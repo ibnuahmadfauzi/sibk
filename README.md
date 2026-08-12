@@ -1,58 +1,343 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIBK — Sistem Informasi Bimbingan dan Konseling
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Repository ini digunakan untuk pengembangan **SIBK (Sistem Informasi Bimbingan dan Konseling)**.
 
-## About Laravel
+Dokumen ini berisi panduan dasar untuk melakukan setup repository, berpindah ke branch `development`, serta mengirim perubahan kode ke repository.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📋 Persyaratan
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Sebelum mulai melakukan pengembangan, pastikan perangkat sudah memiliki:
 
-## Learning Laravel
+- PHP versi **8.3 atau lebih baru**
+- Composer
+- Git
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Cek versi PHP
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php -v
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Pastikan versi PHP yang digunakan adalah **8.3 atau lebih baru**.
 
-## Contributing
+### Cek Composer
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+composer -V
+```
 
-## Code of Conduct
+Jika kedua perintah tersebut dapat dijalankan tanpa error, berarti environment sudah siap digunakan.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+# 🚀 Memulai Project
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 1. Clone Repository
 
-## License
+Clone repository SIBK menggunakan perintah berikut:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+git clone https://github.com/ibnuahmadfauzi/sibk.git
+```
+
+Setelah proses clone selesai, masuk ke folder project:
+
+```bash
+cd sibk
+```
+
+---
+
+## 2. Melihat Branch Repository
+
+Sebelum mulai bekerja, pastikan informasi branch dari repository sudah diperbarui:
+
+```bash
+git fetch -a
+```
+
+Kemudian lihat seluruh branch yang tersedia:
+
+```bash
+git branch -a
+```
+
+Biasanya akan terlihat beberapa branch seperti:
+
+```text
+* main
+  remotes/origin/main
+  remotes/origin/development
+```
+
+---
+
+## 3. Pindah ke Branch Development
+
+Seluruh proses pengembangan dilakukan pada branch:
+
+```text
+development
+```
+
+Pindah ke branch tersebut dengan perintah:
+
+```bash
+git checkout development
+```
+
+Kemudian pastikan posisi branch saat ini:
+
+```bash
+git branch
+```
+
+Jika berhasil, akan muncul:
+
+```text
+* development
+  main
+```
+
+Tanda `*` menunjukkan branch yang sedang aktif.
+
+---
+
+# ⚠️ Aturan Penggunaan Branch
+
+## Jangan melakukan pekerjaan langsung di `main`
+
+Branch `main` digunakan sebagai **branch utama dan backup** project.
+
+Untuk pekerjaan sehari-hari, gunakan:
+
+```text
+development
+```
+
+### Jangan melakukan push ke:
+
+```text
+main
+```
+
+### Push perubahan hanya ke:
+
+```text
+development
+```
+
+> **Penting:** Jangan melakukan `git push origin main`.
+
+---
+
+# 💻 Workflow Pengembangan
+
+Setelah selesai mengerjakan fitur atau melakukan perubahan kode, lakukan proses berikut.
+
+## 1. Periksa perubahan
+
+Sebelum melakukan commit, periksa file yang berubah:
+
+```bash
+git status
+```
+
+---
+
+## 2. Tambahkan perubahan
+
+Tambahkan perubahan ke staging area:
+
+```bash
+git add .
+```
+
+---
+
+## 3. Commit perubahan
+
+Simpan perubahan dengan commit:
+
+```bash
+git commit -m "isi pekerjaan"
+```
+
+Contoh:
+
+```bash
+git commit -m "menambahkan halaman dashboard"
+```
+
+Contoh lainnya:
+
+```bash
+git commit -m "memperbaiki tampilan responsive dashboard"
+```
+
+Gunakan pesan commit yang **jelas dan menggambarkan pekerjaan yang dilakukan**.
+
+---
+
+## 4. Push ke Branch Development
+
+Setelah commit selesai, kirim perubahan ke repository:
+
+```bash
+git push origin development
+```
+
+**Pastikan branch yang digunakan adalah `development`.**
+
+---
+
+# 🔄 Workflow Singkat
+
+Setiap kali selesai mengerjakan perubahan, gunakan alur berikut:
+
+```bash
+git status
+
+git add .
+
+git commit -m "isi pekerjaan"
+
+git push origin development
+```
+
+Contoh:
+
+```bash
+git status
+
+git add .
+
+git commit -m "menambahkan halaman dashboard BK"
+
+git push origin development
+```
+
+---
+
+# 🔐 Aturan Penting untuk Tim
+
+Agar repository tetap aman dan tidak terjadi konflik, ikuti aturan berikut.
+
+### ✅ Yang diperbolehkan
+
+- Bekerja pada branch `development`
+- Melakukan `git pull` sebelum mulai bekerja
+- Melakukan commit secara berkala
+- Push perubahan ke `development`
+- Menggunakan pesan commit yang jelas
+
+### ❌ Yang tidak diperbolehkan
+
+- Jangan coding langsung di `main`
+- Jangan melakukan `push` ke `main`
+- Jangan menghapus branch `main`
+- Jangan melakukan force push tanpa koordinasi dengan tim
+- Jangan menggunakan commit message yang tidak jelas seperti `update`, `fix`, atau `coba`
+
+---
+
+# 📌 Ringkasan Perintah Git
+
+| Perintah                      | Fungsi                                   |
+| ----------------------------- | ---------------------------------------- |
+| `git clone`                   | Mengambil repository ke komputer         |
+| `cd sibk`                     | Masuk ke folder project                  |
+| `git fetch -a`                | Memperbarui informasi branch dari remote |
+| `git branch -a`               | Melihat seluruh branch                   |
+| `git checkout development`    | Berpindah ke branch development          |
+| `git status`                  | Melihat status perubahan                 |
+| `git add .`                   | Menambahkan perubahan ke staging         |
+| `git commit -m "..."`         | Menyimpan perubahan dalam commit         |
+| `git push origin development` | Mengirim perubahan ke branch development |
+
+---
+
+# 🌿 Struktur Branch
+
+Untuk saat ini, repository menggunakan dua branch utama:
+
+```text
+main
+│
+└── development
+```
+
+### `main`
+
+Digunakan sebagai:
+
+- branch utama;
+- versi stabil;
+- backup project.
+
+### `development`
+
+Digunakan untuk:
+
+- pengembangan fitur;
+- perbaikan bug;
+- testing;
+- integrasi pekerjaan anggota tim.
+
+---
+
+# 🎯 Prinsip Pengembangan
+
+> **Kerjakan di `development`, jangan di `main`.**
+
+Setiap anggota tim bertanggung jawab untuk memastikan perubahan yang dikirim tidak langsung mengganggu branch `main`.
+
+Alur kerja yang digunakan:
+
+```text
+Clone Repository
+       ↓
+Masuk ke Folder Project
+       ↓
+Checkout development
+       ↓
+     Coding
+       ↓
+     Testing
+       ↓
+   git status
+       ↓
+    git add .
+       ↓
+git commit -m "..."
+       ↓
+git push origin development
+```
+
+---
+
+## 👥 Untuk Anggota Tim Baru
+
+Jika baru pertama kali mendapatkan project, ikuti langkah berikut:
+
+```bash
+git clone https://github.com/ibnuahmadfauzi/sibk.git
+
+cd sibk
+
+git fetch -a
+
+git checkout development
+```
+
+Setelah itu, Anda sudah berada pada branch yang digunakan untuk pengembangan.
+
+> **Ingat:** semua perubahan hasil pekerjaan dikirim ke:
+>
+> ```bash
+> git push origin development
+> ```
+>
+> **Jangan melakukan `git push origin main`.**
