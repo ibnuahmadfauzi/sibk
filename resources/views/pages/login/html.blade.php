@@ -46,7 +46,7 @@
                     Lupa kata sandi?
                 </a>
 
-                <button type="submit" class="btn-login">
+                <button class="btn-login">
                     Masuk
                 </button>
             </form>

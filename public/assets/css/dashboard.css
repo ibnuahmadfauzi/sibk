@@ -1,0 +1,335 @@
+/* ========================================== */
+/* GLOBAL STYLE */
+/* ========================================== */
+:root {
+    --sidebar-width: 220px;
+    --primary: #3d3d3d;
+    --primary-dark: #303030;
+    --border: #e5e5e5;
+    --background: #f7f7f7;
+    --text: #343434;
+    --muted: #888;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    font-size: 13px;
+}
+a {
+    text-decoration: none;
+}
+/* end GLOBAL STYLE */
+/* ========================================== */
+
+/* ========================================== */
+/* SIDBAR SECTION */
+/* ========================================== */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--primary);
+    color: white;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar-header {
+    padding: 20px 18px 25px;
+}
+.sidebar-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: #fff;
+}
+.sidebar-date {
+    font-size: 10px;
+    color: #cfcfcf;
+}
+.sidebar-menu {
+    padding: 0 8px;
+}
+.menu-label {
+    color: #999;
+    font-size: 9px;
+    font-weight: 600;
+    margin: 22px 10px 8px;
+    text-transform: uppercase;
+}
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ddd;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-radius: 5px;
+    font-size: 11px;
+    transition: 0.2s;
+}
+.sidebar-menu a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+.sidebar-menu a.active {
+    background: #fff;
+    color: #333;
+    font-weight: 600;
+}
+.sidebar-menu i {
+    font-size: 13px;
+}
+.sidebar-bottom {
+    margin-top: auto;
+    padding: 10px 10px 15px;
+}
+.scope-box {
+    border: 1px solid #777;
+    border-radius: 4px;
+    padding: 10px;
+    color: #ddd;
+}
+.scope-title {
+    font-size: 8px;
+    color: #999;
+    margin-bottom: 5px;
+}
+.scope-value {
+    font-size: 10px;
+    font-weight: 600;
+}
+/* end SIDEBAR SECTION */
+/* ========================================== */
+
+/* ========================================== */
+/* MAIN SECTION */
+/* ========================================== */
+.main {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+}
+.topbar {
+    height: 58px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 15px;
+}
+.search-box {
+    width: 300px;
+    position: relative;
+}
+.search-box input {
+    width: 100%;
+    height: 34px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0 35px 0 12px;
+    font-size: 11px;
+    background: #fafafa;
+}
+.search-box i {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    color: #999;
+}
+.topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.topbar-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+}
+.user-badge {
+    width: 34px;
+    height: 30px;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 600;
+}
+.content {
+    padding: 22px 24px 30px;
+}
+.breadcrumb {
+    font-size: 9px;
+    color: #999;
+    margin-bottom: 8px;
+}
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.page-title {
+    font-size: 21px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+.page-description {
+    font-size: 10px;
+    color: #999;
+    margin: 0;
+}
+.btn-primary-custom {
+    border: 0;
+    background: #3d3d3d;
+    color: white;
+    padding: 9px 16px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.btn-primary-custom:hover {
+    background: #222;
+    color: white;
+}
+/* end MAIN SECTION */
+/* ========================================== */
+
+/* ========================================== */
+/* RESPONSIVE (PROCESS) */
+/* ========================================== */
+@media (max-width: 991.98px) {
+    :root {
+        --sidebar-width: 0px;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0;
+    }
+
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .search-box {
+        flex: 1;
+        width: auto;
+    }
+
+    .content {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .topbar {
+        height: 55px;
+        padding: 0 12px;
+        gap: 8px;
+    }
+
+    .search-box {
+        display: none;
+    }
+
+    .topbar-right {
+        gap: 5px;
+    }
+
+    .content {
+        padding: 16px 12px 25px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .page-title {
+        font-size: 19px;
+    }
+
+    .page-description {
+        font-size: 9px;
+        line-height: 1.5;
+    }
+
+    .btn-primary-custom {
+        white-space: nowrap;
+        padding: 8px 11px;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .panel-header {
+        padding: 12px;
+    }
+
+    .panel-body {
+        padding: 10px 12px 14px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .page-header {
+        flex-direction: column;
+    }
+
+    .page-header .btn-primary-custom {
+        align-self: stretch;
+        text-align: center;
+    }
+
+    .info-box {
+        margin-top: 10px;
+    }
+
+    .panel-title {
+        font-size: 10px;
+    }
+
+    .chart-label {
+        width: 60px;
+    }
+
+    .simple-table td {
+        padding: 8px 2px;
+    }
+}
+/* end RESPONSIVE (PROCESS) */
+/* ========================================== */
