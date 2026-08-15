@@ -5,10 +5,33 @@ Checklist ini digunakan sebelum perubahan frontend dinyatakan selesai atau diaju
 ## Keterlacakan
 
 - [ ] ID halaman `PG-*` tercantum pada brief atau PR.
+- [ ] Frame Penpot atau file ekspor yang digunakan tercantum.
 - [ ] Requirement SRS terkait telah diperiksa.
 - [ ] Hak akses cocok dengan access matrix.
 - [ ] Keputusan UX baru sudah dicatat.
 - [ ] Keputusan domain yang belum sah tidak dihardcode.
+
+## Transformasi wireframe
+
+- [ ] UI bukan sekadar perubahan warna, radius, atau bayangan dari wireframe.
+- [ ] Informasi, field, fungsi, dan aksi wajib tetap terjaga.
+- [ ] Pengelompokan, prioritas, navigasi, dan alur UX wireframe telah diperiksa.
+- [ ] Layout tidak di-pixel-copy dan telah disempurnakan oleh ahli UI tanpa mengabaikan maksud UX.
+- [ ] Perbedaan wireframe dan UI produksi memiliki alasan UX atau teknis yang jelas.
+- [ ] Perubahan struktur besar telah dicatat pada UX decision log.
+- [ ] Layout menggunakan grid, alignment, spacing, dan kepadatan yang layak untuk produksi.
+- [ ] Komponen, interaksi, state, dan variasi peran telah dilengkapi.
+- [ ] Informasi atau aksi wajib pada inventaris tidak hilang karena wireframe lama belum memuatnya.
+
+## Kualitas visual
+
+- [ ] Halaman memiliki fokus visual dan tujuan yang segera dikenali.
+- [ ] Komposisi terlihat dirancang untuk tugas halaman, bukan template dashboard generik.
+- [ ] Hierarki, spacing, alignment, dan kepadatan informasi terasa seimbang.
+- [ ] Tipografi dan ikon digunakan konsisten.
+- [ ] Aksi utama jelas tanpa mendominasi berlebihan.
+- [ ] Efek Soft UI membantu pengelompokan dan tidak mengurangi keterbacaan.
+- [ ] UI tetap menarik, utuh, dan mudah dipindai pada mobile maupun desktop.
 
 ## Bootstrap dan komponen
 

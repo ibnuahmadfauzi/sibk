@@ -23,6 +23,8 @@ Dokumen ini memuat keputusan yang telah dikunci. Perubahan hanya dilakukan setel
 | DEC-017 | Tahap pertama pengembangan adalah menerjemahkan wireframe menjadi UI frontend. | Dikunci | Backend tidak menjadi fokus kecuali kontrak minimum yang diperlukan. |
 | DEC-018 | Bootstrap menjadi fondasi frontend. Seluruh warna dan variasi komponen menggunakan token/variabel terpusat. | Dikunci | Tidak ada warna atau visual token tersebar pada halaman. |
 | DEC-019 | Ketidakjelasan UX diputuskan melalui evaluasi ahli dan dicatat; keputusan domain tetap memerlukan pemilik proses. | Dikunci | UX dapat bergerak tanpa mengarang kebijakan BK. |
+| DEC-020 | File Penpot yang dicatat pada `docs/design/wireframe-source.md` menjadi kerangka UX content-first untuk informasi, pengelompokan, prioritas, layout dasar, navigasi, dan alur; detail visual disempurnakan oleh ahli UI. | Dikunci | Setiap halaman menjaga maksud UX, menelusuri frame/ekspor, dan menghasilkan UI yang menarik, responsif, aksesibel, lengkap state, serta sesuai peran. |
+| DEC-021 | Konteks agen dimuat secara selektif melalui router dan pencarian ID; dokumen panjang tidak diimpor pada aturan Always On. | Dikunci | Jumlah file boleh tetap lengkap, tetapi setiap tugas hanya membaca bagian yang relevan dan memperluas konteks berdasarkan risiko. |
 
 ## Cara menambahkan keputusan
 

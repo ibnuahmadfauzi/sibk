@@ -4,6 +4,8 @@
 
 Area ini merupakan fokus pengembangan aktif. Tujuan tahap pertama adalah menerjemahkan wireframe menjadi UI yang konsisten, responsif, aksesibel, dan dapat disambungkan ke backend tanpa mengarang kontrak data.
 
+Menerjemahkan wireframe bukan pekerjaan mengganti warna atau menyalin susunan kotaknya secara mentah. Wireframe menjadi kerangka UX content-first untuk informasi, pengelompokan, prioritas, navigasi, dan alur dasar. Agen frontend sebagai ahli UI wajib menjaga maksud UX sambil menyempurnakan komposisi agar menarik, profesional, tidak generik, serta lengkap dengan komponen reusable, interaksi, responsif, aksesibilitas, state sistem, dan variasi peran.
+
 ## Peran agen frontend
 
 Pada tugas frontend, agen bertindak sebagai:
@@ -18,9 +20,12 @@ Pada tugas frontend, agen bertindak sebagai:
 2. Baris halaman terkait di `docs/product/ui-field-actions.md`
 3. Requirement terkait di `docs/product/srs.md`
 4. `docs/security/access-matrix.md`
-5. Wireframe halaman terkait
-6. `docs/ux/decision-log.md`
-7. Dokumen frontend lain pada folder ini
+5. `docs/design/README.md`
+6. Baris halaman terkait di `docs/design/wireframe-page-map.md`
+7. Frame Penpot atau ekspor wireframe halaman terkait
+8. `docs/design/ui-quality-bar.md`
+9. `docs/ux/decision-log.md`
+10. Dokumen frontend lain pada folder ini
 
 ## Aturan teknologi
 
@@ -42,6 +47,8 @@ Pada tugas frontend, agen bertindak sebagai:
 ## Hasil minimum per halaman
 
 - implementasi mengikuti ID `PG-*`;
+- frame atau ekspor wireframe yang digunakan dapat ditelusuri;
+- perbedaan antara wireframe dan UI produksi dijelaskan serta tidak mengubah kebutuhan;
 - komponen reusable digunakan bila pola muncul lebih dari sekali;
 - state loading, kosong, berhasil, gagal, read-only, dan akses ditolak tersedia sesuai kebutuhan;
 - tampilan diperiksa pada mobile, tablet, dan desktop;

@@ -1,73 +1,59 @@
 # Mulai dari Sini
 
-## Tujuan proyek
+Dokumen ini hanya router konteks. Jangan membaca seluruh dokumentasi untuk setiap tugas.
 
-Aplikasi BK adalah ruang kerja terpusat untuk layanan Bimbingan dan Konseling di SMKN 1 Surabaya. Sistem menyatukan kasus, tindak lanjut, histori murid, koordinasi Waka Kesiswaan, laporan, serta audit tanpa menggantikan Dapodik atau e-Tatib.
+## Proyek dan tahap aktif
 
-## Tahap aktif
+Aplikasi BK adalah ruang kerja layanan BK SMKN 1 Surabaya untuk kasus, tindak lanjut, histori murid, koordinasi Waka, laporan, dan audit. Dapodik tetap menjadi master murid/kelas; e-Tatib tetap menjadi sumber baca-saja pelanggaran dan poin.
 
-Tahap aktif adalah **pengembangan frontend dari wireframe menjadi UI**. Style guide visual masih dapat disesuaikan, sehingga seluruh nilai visual harus memakai token terpusat. Bootstrap menjadi fondasi layout dan komponen.
+Tahap aktif adalah frontend dari wireframe menuju UI produksi. Bootstrap dan design tokens menjadi fondasi. Frontend dan backend berada dalam satu repository, tetapi tidak boleh dicampur tanpa cakupan eksplisit.
 
-Frontend dan backend berada dalam satu repository, tetapi dikembangkan sebagai area kerja terpisah. Tugas frontend tidak boleh memperluas cakupan menjadi implementasi backend tanpa instruksi eksplisit.
+## Cara memilih konteks
 
-## Pengguna MVP
+1. Tentukan area tugas: frontend, backend, dokumentasi, atau lintas area.
+2. Tentukan ID halaman dan requirement yang terdampak.
+3. Cari ID pada dokumentasi, misalnya:
 
-- Guru BK
-- Koordinator BK
-- Waka Kesiswaan
-- Admin IT
+   ```bash
+   rg -n "PG-103|CASE-12|AUTH-05" docs/
+   ```
 
-Wali kelas dan murid berada pada P1. Prestasi tetap P0 bertahap setelah fungsi inti stabil.
+4. Baca baris/bagian yang ditemukan dan dokumen rute di bawah.
+5. Tambahkan dokumen lain hanya jika muncul dependensi atau konflik.
 
-## Keputusan yang tidak boleh berubah diam-diam
+Aturan rinci pemuatan konteks: `docs/ai/context-loading.md`.
 
-- Koordinator BK menjadi penanggung jawab operasional.
-- Jabatan Koordinator tidak otomatis membuka konsultasi sensitif.
-- Waka hanya-baca dan hanya menerima detail kasus yang dikoordinasikan kepadanya.
-- Guru BK pemegang scope aktif dapat membaca histori murid lintas kelas dan pergantian guru, tetapi tidak mengubah catatan profesional lama.
-- Dapodik adalah sumber master murid, kelas, dan tahun ajaran.
-- e-Tatib adalah sumber baca-saja pelanggaran dan poin; tidak ada write-back pada MVP.
-- Sebelum sinkronisasi, kasus dapat memakai NISN dan nama sementara lalu direkonsiliasi berdasarkan NISN tanpa duplikasi.
-- Perubahan penugasan dicatat Koordinator berdasarkan keputusan resmi; tidak ada rolling atau pemindahan kasus aktif otomatis.
-- Admin IT menangani akun, infrastruktur, integrasi, dan rekonsiliasi tanpa memperoleh akses otomatis ke isi BK.
-- Data disimpan minimum tiga tahun dan tidak dihapus otomatis sebelum kebijakan penghapusan serta pemulihan disahkan.
+## Rute berdasarkan tugas
 
-## Jalur baca berdasarkan tugas
+### Frontend satu halaman
 
-### Semua tugas
+Wajib:
 
-1. `docs/decisions/decision-log.md`
-2. Bagian PRD dan SRS yang terkait
-3. `docs/security/access-matrix.md`
-4. `docs/decisions/open-validation.md`
+- `docs/frontend/README.md`
+- baris `PG-*` pada `docs/product/ui-inventory.md`
+- baris halaman terkait pada `docs/product/ui-field-actions.md`
+- frame/ekspor melalui `docs/design/wireframe-page-map.md`
 
-### Tugas frontend
+Tambahkan hanya bila relevan:
 
-1. `docs/frontend/README.md`
-2. `docs/product/ui-inventory.md`
-3. Baris halaman terkait pada `docs/product/ui-field-actions.md`
-4. `docs/frontend/bootstrap-and-design-tokens.md`
-5. `docs/frontend/ui-ux-guidelines.md`
-6. `docs/frontend/wireframe-to-ui-workflow.md`
-7. `docs/frontend/qa-checklist.md`
-8. `docs/ux/decision-log.md`
+- visual: `docs/design/ui-quality-bar.md` dan `docs/frontend/bootstrap-and-design-tokens.md`
+- pola UX/state: `docs/frontend/ui-ux-guidelines.md`
+- akses/sensitivitas: `docs/security/access-matrix.md`
+- keputusan atau konflik: `docs/decisions/decision-log.md`, `docs/ux/decision-log.md`, atau `docs/decisions/open-validation.md`
+- QA/handoff: `docs/frontend/qa-checklist.md`
 
-### Tugas backend
+### Fondasi atau lintas halaman frontend
 
-1. `docs/backend/README.md`
-2. `docs/backend/api-contract-rules.md`
-3. Requirement SRS terkait
-4. `docs/security/access-matrix.md`
+Baca `docs/design/README.md`, `docs/frontend/wireframe-to-ui-workflow.md`, dan dokumen visual/UX terkait. Tambahkan inventaris hanya untuk pola atau halaman yang terdampak.
 
-### Tugas dokumentasi atau review
+### Backend
 
-1. `docs/development/documentation-rules.md`
-2. `docs/development/definition-of-done.md`
+Baca `docs/backend/README.md`, requirement SRS terkait, access matrix terkait, lalu `docs/backend/api-contract-rules.md` bila mengubah kontrak API.
 
-## Langkah awal setiap agen
+### Dokumentasi atau review
 
-1. Jalankan audit singkat berdasarkan `docs/development/repository-audit-checklist.md`.
-2. Cocokkan tugas dengan ID halaman (`PG-*`) dan requirement (`AUTH-*`, `CASE-*`, dan seterusnya).
-3. Tentukan apakah ketidakjelasan termasuk UX atau domain.
-4. Buat rencana perubahan kecil yang dapat diperiksa.
-5. Kerjakan, uji, periksa visual, lalu dokumentasikan hasil.
+Baca `docs/development/documentation-rules.md` dan sumber kanonik yang benar-benar terdampak. Gunakan `docs/development/definition-of-done.md` saat menilai kesiapan merge.
+
+## Batas keputusan
+
+Ketidakjelasan visual, responsif, state, dan interaksi dapat diputuskan sebagai UX lalu dicatat. Istilah BK, data wajib, status operasional, hak akses, verifikator, retensi, dan integrasi tidak boleh diputuskan melalui asumsi agen.

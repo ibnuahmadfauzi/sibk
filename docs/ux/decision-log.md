@@ -19,6 +19,7 @@ Keputusan di bawah dapat diterapkan untuk menyelesaikan ketidakjelasan UX tanpa 
 | UX-013 | Sidebar memakai arah warna biru dan menu aktif memakai latar krem; nilai warna tidak dikunci pada komponen. | Mempertahankan arah visual yang telah dipilih sekaligus memudahkan revisi style guide. | Seluruh nilai disimpan pada token tema. | Disetujui ahli |
 | UX-014 | Filter aktif terlihat, dapat dihapus satu per satu, dan dipertahankan saat pengguna kembali dari halaman detail bila alur memungkinkan. | Mengurangi pengulangan saat meninjau banyak kasus atau murid. | State filter dikelola pada pola yang sesuai dengan stack. | Disetujui ahli |
 | UX-015 | Gunakan bahasa antarmuka yang netral, singkat, dan tidak menghakimi murid. | Konteks BK memerlukan komunikasi yang aman dan profesional. | Microcopy diperiksa pada form, alert, empty state, dan error. | Disetujui ahli |
+| UX-016 | Perlakukan wireframe sebagai kerangka UX content-first untuk informasi, pengelompokan, prioritas, layout dasar, navigasi, dan alur. Ahli UI menyempurnakan komponen serta visual akhir; perubahan struktur besar memerlukan alasan UX dan pencatatan. | Wireframe low-fidelity bukan desain visual final, tetapi tetap memuat keputusan UX awal. | Review menilai maksud UX, ketercakupan informasi, kemudahan penggunaan, daya tarik visual, responsif, dan aksesibilitas; bukan kemiripan gaya atau posisi secara piksel. | Disetujui ahli |
 
 ## Aturan pencatatan keputusan UX baru
 

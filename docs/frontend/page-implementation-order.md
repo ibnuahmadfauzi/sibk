@@ -2,6 +2,8 @@
 
 Urutan ini mengurangi pekerjaan ulang dan mengikuti dependensi komponen. Satu gelombang harus stabil sebelum gelombang berikutnya dimulai, kecuali tim membagi pekerjaan pada komponen yang tidak saling bergantung.
 
+Setiap ID halaman harus dicocokkan dengan `docs/design/wireframe-page-map.md` sebelum implementasi. Wireframe membantu memastikan informasi, pengelompokan, prioritas, navigasi, dan alur halaman tidak terlewat; detail UI mengikuti `docs/design/README.md` dan `docs/design/ui-quality-bar.md`.
+
 ## Gelombang 0 — Fondasi UI
 
 - Audit repository dan inventaris komponen yang sudah ada.

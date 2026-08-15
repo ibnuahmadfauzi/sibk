@@ -84,3 +84,35 @@
 - [x] Periksa konsistensi ID dan keputusan.
 - [x] Pindai placeholder dan kontradiksi yang tidak berasal dari validasi terbuka.
 - [x] Kemas struktur agar dapat disalin ke root repository.
+
+### Task 6: Sumber wireframe dan transformasi UI
+
+**Files:**
+
+- Create: `docs/design/README.md`
+- Create: `docs/design/wireframe-source.md`
+- Create: `docs/design/wireframe-page-map.md`
+- Create: `docs/design/wireframes/README.md`
+- Create: `docs/design/ui-quality-bar.md`
+- Modify: entrypoint agen, workflow frontend, QA, serta decision log terkait
+
+- [x] Tetapkan file Penpot sebagai sumber struktur wireframe.
+- [x] Petakan seluruh 26 ID halaman ke nama frame dan nama ekspor.
+- [x] Tetapkan bahwa wireframe harus ditransformasikan menjadi UI produksi, bukan sekadar diwarnai ulang.
+- [x] Tetapkan fallback ekspor untuk agen yang tidak dapat mengakses Penpot.
+- [x] Tetapkan wireframe sebagai kerangka UX content-first dan ahli UI menyempurnakan visual tanpa mengabaikan maksud UX.
+
+### Task 7: Optimasi konteks agen
+
+**Files:**
+
+- Modify: `AGENTS.md`
+- Modify: `.agents/rules/00-project-context.md`
+- Modify: `docs/ai/00-start-here.md`
+- Modify: `docs/ai/agent-operating-rules.md`
+- Create: `docs/ai/context-loading.md`
+
+- [x] Hapus impor `@` dokumen panjang dari aturan Always On Antigravity.
+- [x] Ubah entrypoint menjadi router konteks selektif.
+- [x] Tetapkan pencarian berdasarkan ID dan batas awal empat dokumen domain.
+- [x] Pertahankan dokumen kanonik tanpa memuat semuanya pada setiap tugas.

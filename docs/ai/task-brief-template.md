@@ -15,7 +15,9 @@ Jelaskan satu hasil yang dapat diperiksa.
 
 ## Sumber wajib
 
-- Tautkan bagian PRD/SRS, inventaris, wireframe, access matrix, atau decision log yang relevan.
+- Tautkan maksimal empat sumber awal yang paling relevan beserta ID/bagiannya.
+- Tambahkan sumber lain hanya jika dependensi atau konflik ditemukan saat pengerjaan.
+- Jangan meminta agen membaca seluruh folder `docs/`.
 
 ## Perilaku yang diharapkan
 
