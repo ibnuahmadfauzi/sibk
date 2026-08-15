@@ -1,21 +1,27 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import { bunny } from 'laravel-vite-plugin/fonts';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
-            refresh: true,
-            fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
-                }),
+            input: [
+                'resources/scss/app-auth.scss',
+                'resources/scss/app-dashboard.scss',
+                'resources/js/app-auth.js',
+                'resources/js/app-dashboard.js',
             ],
+            refresh: true,
         }),
-        tailwindcss(),
     ],
+    css: {
+        preprocessorOptions: {
+            scss: {
+                // Sembunyikan deprecation warnings dari Bootstrap 5 yang spam di terminal
+                quietDeps: true,
+                silenceDeprecations: ['legacy-js-api', 'import', 'global-builtin', 'color-functions', 'if-function']
+            }
+        }
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

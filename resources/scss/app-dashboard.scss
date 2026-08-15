@@ -1,0 +1,752 @@
+// ===========================================
+// SIBK Dashboard Entry Point
+// ===========================================
+// Layout: app-2.blade.php
+// ===========================================
+
+// 1. Bootstrap override variables
+@import 'bootstrap-override';
+
+// 2. Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+// 3. Design tokens
+@import 'tokens';
+
+// 4. Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+
+// ===========================================
+// GLOBAL
+// ===========================================
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  background: var(--sibk-color-page);
+  color: var(--sibk-color-text);
+  font-size: 13px;
+}
+
+a { text-decoration: none; }
+
+
+// ===========================================
+// SIDEBAR
+// ===========================================
+.sibk-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sibk-sidebar-width);
+  background: linear-gradient(180deg, var(--sibk-color-sidebar) 0%, var(--sibk-color-sidebar-dark) 100%);
+  color: var(--sibk-color-sidebar-text);
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Brand Header
+.sibk-sidebar-header {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sibk-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sibk-sidebar-logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sibk-sidebar-app-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--sibk-color-sidebar-text);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.sibk-sidebar-school-name {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+// Nav Menu
+.sibk-sidebar-menu {
+  padding: 16px 12px 0;
+  flex: 1;
+}
+
+.sibk-sidebar-divider-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 18px 10px 7px;
+  text-transform: uppercase;
+}
+
+.sibk-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 10px 12px;
+  border-radius: 9px;
+  margin-bottom: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.18s, color 0.18s;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sibk-color-nav-hover-bg);
+    color: var(--sibk-color-sidebar-text);
+  }
+
+  &.is-active {
+    background: var(--sibk-color-nav-active-bg);
+    color: var(--sibk-color-nav-active-text);
+    font-weight: 600;
+  }
+}
+
+.sibk-nav-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  justify-content: center;
+}
+
+// Sidebar Footer
+.sibk-sidebar-footer {
+  position: relative;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.sibk-sidebar-footer-leaf {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  pointer-events: none;
+}
+
+.sibk-sidebar-motto {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.6;
+  margin: 0 0 10px;
+  font-style: italic;
+  position: relative;
+  z-index: 1;
+}
+
+.sibk-sidebar-motto-line {
+  width: 28px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+
+// ===========================================
+// MAIN LAYOUT
+// ===========================================
+.sibk-main {
+  margin-left: var(--sibk-sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+
+// ===========================================
+// TOPBAR
+// ===========================================
+.sibk-topbar {
+  height: var(--sibk-topbar-height);
+  background: var(--sibk-color-surface-raised);
+  border-bottom: 1px solid var(--sibk-color-border-light);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.sibk-mobile-menu-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--sibk-color-border-light);
+  background: var(--sibk-color-surface-raised);
+  border-radius: var(--sibk-radius-sm);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sibk-search-box {
+  position: relative;
+  width: 340px;
+}
+
+.sibk-search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.sibk-search-box input {
+  width: 100%;
+  height: 38px;
+  border: 1.5px solid var(--sibk-color-border-light);
+  border-radius: var(--sibk-radius-pill);
+  padding: 0 16px 0 38px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  background: var(--sibk-color-surface);
+  color: var(--sibk-color-text);
+  outline: none;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: #b0b8cc;
+  }
+
+  &:focus {
+    border-color: var(--sibk-color-primary);
+    background: var(--sibk-color-surface-raised);
+  }
+}
+
+.sibk-topbar-right {
+  margin-left: auto;
+}
+
+.sibk-user-info {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  padding: 6px 12px 6px 10px;
+  border-radius: var(--sibk-radius-pill);
+  border: 1.5px solid var(--sibk-color-border-light);
+  background: var(--sibk-color-surface-raised);
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--sibk-color-surface);
+  }
+}
+
+.sibk-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sibk-color-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sibk-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sibk-color-text);
+}
+
+.sibk-user-chevron {
+  display: flex;
+  align-items: center;
+}
+
+
+// ===========================================
+// CONTENT
+// ===========================================
+.sibk-content {
+  padding: 24px 26px 36px;
+  flex: 1;
+}
+
+.sibk-page-header {
+  margin-bottom: 20px;
+}
+
+.sibk-page-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--sibk-color-text);
+  margin: 0 0 4px;
+}
+
+.sibk-page-description {
+  font-size: 13px;
+  color: var(--sibk-color-text-muted);
+  margin: 0;
+}
+
+
+// ===========================================
+// STAT CARDS
+// ===========================================
+.sibk-stat-card {
+  background: var(--sibk-color-surface-raised);
+  border-radius: var(--sibk-radius-md);
+  padding: 18px 18px 16px;
+  border: 1.5px solid var(--sibk-color-border-light);
+  height: 100%;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    box-shadow: var(--sibk-shadow-card-hover);
+    transform: translateY(-2px);
+  }
+}
+
+.sibk-stat-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--sibk-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+
+  &--blue   { background: var(--sibk-color-stat-blue-bg); }
+  &--orange { background: var(--sibk-color-stat-orange-bg); }
+  &--green  { background: var(--sibk-color-stat-green-bg); }
+  &--purple { background: var(--sibk-color-stat-purple-bg); }
+}
+
+.sibk-stat-label {
+  font-size: 12px;
+  color: var(--sibk-color-text-muted);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.sibk-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--sibk-color-text);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.sibk-stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+
+  &--up   { color: var(--sibk-color-trend-up); }
+  &--down { color: var(--sibk-color-trend-down); }
+}
+
+
+// ===========================================
+// DASH PANELS
+// ===========================================
+.sibk-dash-panel {
+  background: var(--sibk-color-surface-raised);
+  border-radius: var(--sibk-radius-md);
+  border: 1.5px solid var(--sibk-color-border-light);
+  height: 100%;
+  overflow: hidden;
+}
+
+.sibk-dash-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--sibk-color-border-light);
+}
+
+.sibk-dash-panel-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sibk-dash-panel-icon {
+  display: flex;
+  align-items: center;
+}
+
+.sibk-dash-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sibk-color-text);
+}
+
+.sibk-dash-panel-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sibk-color-primary);
+  border: 1.5px solid var(--sibk-color-border-light);
+  border-radius: var(--sibk-radius-pill);
+  padding: 5px 12px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--sibk-color-primary-light);
+    color: var(--sibk-color-primary);
+  }
+}
+
+.sibk-dash-panel-body {
+  padding: 4px 0;
+}
+
+
+// ── Follow-up items ─────────────────────────
+.sibk-followup-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--sibk-color-surface);
+  transition: background 0.15s;
+
+  &:hover { background: var(--sibk-color-surface); }
+  &--last { border-bottom: none; }
+}
+
+.sibk-followup-date {
+  text-align: center;
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.sibk-followup-day {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--sibk-color-text);
+  line-height: 1;
+}
+
+.sibk-followup-month {
+  font-size: 9px;
+  color: var(--sibk-color-text-muted);
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+.sibk-followup-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sibk-followup-code {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sibk-color-text);
+  margin-bottom: 1px;
+}
+
+.sibk-followup-type {
+  font-size: 12px;
+  color: var(--sibk-color-text-muted);
+}
+
+.sibk-followup-student {
+  font-size: 11px;
+  color: var(--sibk-color-text-subtle);
+  margin-top: 1px;
+}
+
+.sibk-followup-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--sibk-radius-pill);
+  padding: 4px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sibk-status--processing {
+  background: var(--sibk-color-stat-blue-bg);
+  color: var(--sibk-color-stat-blue);
+}
+
+.sibk-status--waiting {
+  background: var(--sibk-color-stat-orange-bg);
+  color: var(--sibk-color-stat-orange);
+}
+
+.sibk-status--done {
+  background: var(--sibk-color-stat-green-bg);
+  color: var(--sibk-color-trend-up);
+}
+
+.sibk-followup-arrow {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+
+  &:hover { background: var(--sibk-color-border-light); }
+}
+
+
+// ── Activity items ──────────────────────────
+.sibk-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--sibk-color-surface);
+  transition: background 0.15s;
+
+  &:hover { background: var(--sibk-color-surface); }
+  &--last { border-bottom: none; }
+}
+
+.sibk-activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sibk-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+
+  &--blue   { background: var(--sibk-color-stat-blue-bg); }
+  &--green  { background: var(--sibk-color-stat-green-bg); }
+  &--orange { background: var(--sibk-color-stat-orange-bg); }
+  &--purple { background: var(--sibk-color-stat-purple-bg); }
+}
+
+.sibk-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sibk-activity-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sibk-color-text);
+  margin-bottom: 2px;
+}
+
+.sibk-activity-sub {
+  font-size: 11.5px;
+  color: var(--sibk-color-text-muted);
+}
+
+.sibk-activity-time {
+  font-size: 11.5px;
+  color: var(--sibk-color-text-subtle);
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+
+// ===========================================
+// QUICK ACTIONS
+// ===========================================
+.sibk-quick-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.sibk-quick-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: var(--sibk-radius-md);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  text-decoration: none;
+
+  &--outline {
+    background: var(--sibk-color-surface-raised);
+    border: 1.5px solid var(--sibk-color-border-light);
+    color: var(--sibk-color-text);
+
+    &:hover {
+      border-color: var(--sibk-color-primary);
+      color: var(--sibk-color-primary);
+      background: var(--sibk-color-primary-light);
+    }
+  }
+
+  &--primary {
+    background: var(--sibk-color-primary);
+    border: 1.5px solid var(--sibk-color-primary);
+    color: var(--sibk-color-primary-contrast);
+    box-shadow: var(--sibk-shadow-btn);
+
+    &:hover {
+      background: var(--sibk-color-primary-hover);
+      border-color: var(--sibk-color-primary-hover);
+      color: var(--sibk-color-primary-contrast);
+    }
+  }
+}
+
+
+// ===========================================
+// DASHBOARD DECORATION
+// ===========================================
+.sibk-dashboard-deco {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 0 4px;
+}
+
+.sibk-dashboard-deco-text {
+  font-size: 12px;
+  color: var(--sibk-color-text-muted);
+  text-align: right;
+  line-height: 1.5;
+  margin: 0;
+
+  em { font-style: italic; }
+}
+
+.sibk-dashboard-deco-leaf {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: -8px;
+}
+
+
+// ===========================================
+// RESPONSIVE: TABLET
+// ===========================================
+@media (max-width: 991.98px) {
+  :root { --sibk-sidebar-width: 0px; }
+
+  .sibk-sidebar {
+    width: 230px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+
+    &.show {
+      transform: translateX(0);
+    }
+  }
+
+  .sibk-main { margin-left: 0; }
+
+  .sibk-mobile-menu-btn {
+    display: flex;
+  }
+
+  .sibk-search-box {
+    flex: 1;
+    width: auto;
+    max-width: 360px;
+  }
+
+  .sibk-content {
+    padding: 20px 18px 30px;
+  }
+}
+
+
+// ===========================================
+// RESPONSIVE: MOBILE
+// ===========================================
+@media (max-width: 767.98px) {
+  .sibk-topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .sibk-search-box {
+    display: none;
+  }
+
+  .sibk-content {
+    padding: 16px 14px 28px;
+  }
+
+  .sibk-stat-value {
+    font-size: 26px;
+  }
+
+  .sibk-quick-actions {
+    flex-direction: column;
+  }
+
+  .sibk-quick-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sibk-dashboard-deco {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}
+
+
+// ===========================================
+// RESPONSIVE: SMALL MOBILE
+// ===========================================
+@media (max-width: 400px) {
+  .sibk-content {
+    padding: 14px 10px 24px;
+  }
+
+  .sibk-dash-panel-header {
+    padding: 14px 14px 12px;
+  }
+
+  .sibk-followup-item,
+  .sibk-activity-item {
+    padding: 11px 14px;
+  }
+}

@@ -1,0 +1,91 @@
+// ===========================================
+// SIBK Design Tokens
+// ===========================================
+// Satu-satunya sumber nilai visual proyek.
+// Semua file SCSS dan komponen harus merujuk
+// variabel ini, bukan hardcode warna/radius.
+// ===========================================
+
+:root {
+  // ── Brand & Navigasi ──────────────────────
+  --sibk-color-primary:          #2f5b85;
+  --sibk-color-primary-hover:    #244867;
+  --sibk-color-primary-contrast: #ffffff;
+  --sibk-color-primary-light:    #eef2ff;
+
+  --sibk-color-sidebar:          #2f5b85;
+  --sibk-color-sidebar-dark:     #1e4a6e;
+  --sibk-color-sidebar-text:     #ffffff;
+  --sibk-color-nav-active-bg:    rgba(255, 255, 255, 0.18);
+  --sibk-color-nav-hover-bg:     rgba(255, 255, 255, 0.10);
+  --sibk-color-nav-active-text:  #ffffff;
+
+  // ── Permukaan & Teks ──────────────────────
+  --sibk-color-page:             #eef3f8;
+  --sibk-color-surface:          #f7f9fc;
+  --sibk-color-surface-raised:   #ffffff;
+  --sibk-color-text:             #1f2937;
+  --sibk-color-text-muted:       #5f6b7a;
+  --sibk-color-text-subtle:      #aab0be;
+  --sibk-color-border:           #cdd6e1;
+  --sibk-color-border-light:     #e8ecf4;
+
+  // ── Aksen ─────────────────────────────────
+  --sibk-color-accent:           #e8734a;
+  --sibk-color-accent-light:     #fff5ee;
+
+  // ── Panel Branding (login kiri) ───────────
+  --sibk-color-brand-panel:      #f5efe6;
+
+  // ── Status ────────────────────────────────
+  --sibk-color-success:          #18794e;
+  --sibk-color-success-light:    #f0fdf4;
+  --sibk-color-warning:          #8a5a00;
+  --sibk-color-warning-light:    #fffbeb;
+  --sibk-color-danger:           #b42318;
+  --sibk-color-danger-light:     #fff5f5;
+  --sibk-color-info:             #175cd3;
+  --sibk-color-info-light:       #eff6ff;
+
+  // ── Warna Stat Semantik ───────────────────
+  --sibk-color-stat-blue:        #4a6fa5;
+  --sibk-color-stat-blue-bg:     #eef2ff;
+  --sibk-color-stat-orange:      #e8734a;
+  --sibk-color-stat-orange-bg:   #fff5ee;
+  --sibk-color-stat-green:       #22c55e;
+  --sibk-color-stat-green-bg:    #f0fdf4;
+  --sibk-color-stat-purple:      #8b5cf6;
+  --sibk-color-stat-purple-bg:   #f5f0ff;
+
+  // ── Trend ─────────────────────────────────
+  --sibk-color-trend-up:         #16a34a;
+  --sibk-color-trend-down:       #dc2626;
+
+  // ── Fokus & Bentuk ────────────────────────
+  --sibk-focus-ring:             rgba(29, 78, 216, 0.35);
+  --sibk-radius-sm:              0.5rem;    // 8px
+  --sibk-radius-md:              0.75rem;   // 12px
+  --sibk-radius-lg:              1rem;      // 16px
+  --sibk-radius-xl:              1.25rem;   // 20px
+  --sibk-radius-pill:            50rem;
+
+  // ── Bayangan ──────────────────────────────
+  --sibk-shadow-card:            0 4px 40px rgba(74, 111, 165, 0.10);
+  --sibk-shadow-card-hover:      0 6px 24px rgba(45, 95, 161, 0.10);
+  --sibk-shadow-btn:             0 4px 14px rgba(47, 91, 133, 0.30);
+  --sibk-shadow-btn-hover:       0 6px 20px rgba(47, 91, 133, 0.40);
+
+  // ── Layout ────────────────────────────────
+  --sibk-sidebar-width:          230px;
+  --sibk-topbar-height:          60px;
+
+  // ── Pemetaan ke Bootstrap ─────────────────
+  --bs-primary:       var(--sibk-color-primary);
+  --bs-primary-rgb:   47, 91, 133;
+  --bs-body-bg:       var(--sibk-color-page);
+  --bs-body-color:    var(--sibk-color-text);
+  --bs-border-color:  var(--sibk-color-border);
+  --bs-border-radius:    var(--sibk-radius-sm);
+  --bs-border-radius-lg: var(--sibk-radius-md);
+  --bs-focus-ring-color: var(--sibk-focus-ring);
+}

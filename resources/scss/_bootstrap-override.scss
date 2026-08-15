@@ -1,0 +1,44 @@
+// ===========================================
+// Bootstrap SCSS Variable Overrides
+// ===========================================
+// File ini di-import SEBELUM bootstrap.
+// Variabel di sini mengganti default Bootstrap.
+// ===========================================
+
+// ── Warna ───────────────────────────────────
+$primary:       #2f5b85;
+$secondary:     #5f6b7a;
+$success:       #18794e;
+$info:          #175cd3;
+$warning:       #8a5a00;
+$danger:        #b42318;
+
+// ── Tipografi ───────────────────────────────
+$font-family-sans-serif: 'Inter', Arial, Helvetica, sans-serif;
+$font-size-base: 0.875rem;  // 14px
+$font-size-sm:   0.8125rem; // 13px
+
+// ── Border radius ───────────────────────────
+$border-radius:     0.5rem;   // 8px
+$border-radius-sm:  0.375rem; // 6px
+$border-radius-lg:  0.75rem;  // 12px
+
+// ── Body ────────────────────────────────────
+$body-bg:    #eef3f8;
+$body-color: #1f2937;
+
+// ── Border ──────────────────────────────────
+$border-color: #cdd6e1;
+
+// ── Input ───────────────────────────────────
+$input-border-color:        #cdd6e1;
+$input-focus-border-color:  $primary;
+$input-focus-box-shadow:    0 0 0 3px rgba(47, 91, 133, 0.12);
+$input-border-radius:       0.625rem; // 10px
+$input-padding-y:           0.625rem;
+$input-padding-x:           0.875rem;
+
+// ── Buttons ─────────────────────────────────
+$btn-border-radius:    0.625rem;
+$btn-font-weight:      600;
+$btn-focus-box-shadow: 0 0 0 3px rgba(47, 91, 133, 0.25);

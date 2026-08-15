@@ -1,0 +1,416 @@
+// ===========================================
+// SIBK Auth Entry Point (Login)
+// ===========================================
+// Layout: app-1.blade.php
+// ===========================================
+
+// 1. Bootstrap override variables — harus sebelum import bootstrap
+@import 'bootstrap-override';
+
+// 2. Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+// 3. Design tokens
+@import 'tokens';
+
+// 4. Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+
+// ===========================================
+// LOGIN PAGE
+// ===========================================
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  background: var(--sibk-color-page);
+}
+
+// ── Layout Wrapper ──────────────────────────
+.sibk-login-wrapper {
+  min-height: 100vh;
+  display: flex;
+}
+
+// ── Panel Kiri: Branding ────────────────────
+.sibk-login-info {
+  width: 42%;
+  min-height: 100vh;
+  background: var(--sibk-color-brand-panel);
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.sibk-login-info-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 36px 40px 32px;
+}
+
+// Brand Header
+.sibk-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 44px;
+}
+
+.sibk-brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sibk-brand-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--sibk-color-text);
+  letter-spacing: 0.04em;
+}
+
+// Info Body
+.sibk-login-info-body {
+  flex: 1;
+}
+
+.sibk-info-tagline {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--sibk-color-text);
+  line-height: 1.35;
+  margin-bottom: 16px;
+}
+
+.sibk-info-divider {
+  width: 40px;
+  height: 3px;
+  background: var(--sibk-color-accent);
+  border-radius: 2px;
+  margin-bottom: 18px;
+}
+
+.sibk-info-desc {
+  font-size: 13.5px;
+  color: var(--sibk-color-text-muted);
+  line-height: 1.65;
+  max-width: 320px;
+  margin-bottom: 32px;
+}
+
+// Ilustrasi
+.sibk-info-illustration {
+  width: 100%;
+  border-radius: var(--sibk-radius-lg);
+  overflow: hidden;
+}
+
+.sibk-illustration-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--sibk-radius-lg);
+  object-fit: cover;
+}
+
+// Footer note
+.sibk-info-footer-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  font-size: 12px;
+  color: var(--sibk-color-text-muted);
+
+  span {
+    line-height: 1.4;
+  }
+}
+
+// ── Panel Kanan: Form ───────────────────────
+.sibk-login-form-wrapper {
+  width: 58%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 30px;
+  background: var(--sibk-color-page);
+}
+
+.sibk-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--sibk-color-surface-raised);
+  border-radius: var(--sibk-radius-xl);
+  padding: 40px 36px 36px;
+  box-shadow: var(--sibk-shadow-card);
+}
+
+// Card Logo
+.sibk-card-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.sibk-card-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--sibk-color-primary-light);
+  border-radius: 50%;
+}
+
+// Login Title
+.sibk-login-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--sibk-color-text);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+// Validation Alert
+.sibk-validation-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sibk-color-danger-light);
+  border: 1px solid #f5c6c6;
+  border-radius: var(--sibk-radius-sm);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--sibk-color-danger);
+  margin-bottom: 18px;
+}
+
+// Field Groups
+.sibk-field-group {
+  margin-bottom: 18px;
+}
+
+.sibk-field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sibk-color-text);
+  margin-bottom: 7px;
+}
+
+.sibk-field-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sibk-field-icon {
+  position: absolute;
+  left: 13px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sibk-field-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 42px;
+  font-size: 13.5px;
+  font-family: 'Inter', Arial, sans-serif;
+  border: 1.5px solid var(--sibk-color-border);
+  border-radius: var(--sibk-radius-md);
+  background: var(--sibk-color-surface-raised);
+  color: var(--sibk-color-text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+
+  &::placeholder {
+    color: #b0b8cc;
+  }
+
+  &:focus {
+    border-color: var(--sibk-color-primary);
+    box-shadow: 0 0 0 3px rgba(47, 91, 133, 0.12);
+  }
+}
+
+// Toggle Password
+.sibk-toggle-password {
+  position: absolute;
+  right: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: var(--sibk-color-text-muted);
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--sibk-color-primary);
+  }
+}
+
+// Btn Login
+.sibk-btn-login {
+  width: 100%;
+  height: 48px;
+  margin-top: 8px;
+  border: none;
+  border-radius: var(--sibk-radius-md);
+  background: var(--sibk-color-primary);
+  color: var(--sibk-color-primary-contrast);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', Arial, sans-serif;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: var(--sibk-shadow-btn);
+
+  &:hover {
+    background: var(--sibk-color-primary-hover);
+    box-shadow: var(--sibk-shadow-btn-hover);
+  }
+
+  &:active {
+    transform: scale(0.985);
+  }
+
+  &.is-loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+// Divider
+.sibk-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 18px;
+  color: #b0b8cc;
+  font-size: 12px;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--sibk-color-border-light);
+  }
+}
+
+// Help Button
+.sibk-btn-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  height: 46px;
+  border: 1.5px solid var(--sibk-color-border);
+  border-radius: var(--sibk-radius-md);
+  background: var(--sibk-color-surface-raised);
+  color: var(--sibk-color-primary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', Arial, sans-serif;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sibk-color-primary-light);
+    border-color: var(--sibk-color-primary);
+    color: var(--sibk-color-primary-hover);
+  }
+}
+
+
+// ===========================================
+// RESPONSIVE: TABLET
+// ===========================================
+@media (max-width: 991.98px) {
+  .sibk-login-info {
+    width: 44%;
+  }
+
+  .sibk-login-info-inner {
+    padding: 30px 28px 28px;
+  }
+
+  .sibk-login-form-wrapper {
+    width: 56%;
+    padding: 30px 20px;
+  }
+
+  .sibk-info-tagline {
+    font-size: 22px;
+  }
+
+  .sibk-login-card {
+    padding: 34px 28px 30px;
+  }
+}
+
+// ===========================================
+// RESPONSIVE: MOBILE
+// ===========================================
+@media (max-width: 767.98px) {
+  .sibk-login-wrapper {
+    flex-direction: column;
+  }
+
+  .sibk-login-info {
+    display: none;
+  }
+
+  .sibk-login-form-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    padding: 40px 20px 50px;
+  }
+
+  .sibk-login-card {
+    max-width: 100%;
+    padding: 32px 22px 28px;
+  }
+
+  .sibk-login-title {
+    font-size: 20px;
+  }
+}
+
+// ===========================================
+// RESPONSIVE: SMALL MOBILE
+// ===========================================
+@media (max-width: 400px) {
+  .sibk-login-card {
+    padding: 26px 16px 22px;
+  }
+
+  .sibk-field-input {
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .sibk-btn-login {
+    height: 44px;
+    font-size: 14px;
+  }
+}
