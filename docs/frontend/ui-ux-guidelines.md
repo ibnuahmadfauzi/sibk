@@ -63,7 +63,7 @@ Batasi satu aksi utama pada satu konteks visual. Aksi berisiko tidak boleh dilet
 - Tablet: layout dapat memakai dua area bila tidak mengurangi keterbacaan.
 - Desktop: manfaatkan ruang untuk ringkasan dan detail tanpa memperpanjang baris teks.
 - Hindari breakpoint khusus halaman bila grid Bootstrap sudah memadai.
-- Uji zoom browser sampai 200 persen tanpa kehilangan fungsi.
+- Reviewer manusia memeriksa zoom browser sampai 200 persen tanpa kehilangan fungsi. Agen melakukannya hanya bila pengguna memintanya secara eksplisit.
 
 ## Aksesibilitas
 

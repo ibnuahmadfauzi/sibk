@@ -1,6 +1,10 @@
 # Agent Documentation Foundation Implementation Plan
 
-> **For agentic workers:** gunakan rencana ini sebagai jejak pembentukan fondasi dokumentasi. Langkah menggunakan checkbox untuk pemeriksaan ulang.
+> **Status:** riwayat baseline v1.3. Dokumen ini mempertahankan jejak pembentukan fondasi dokumentasi dan tidak menjadi rencana aktif untuk perubahan desain berikutnya.
+>
+> **Rencana aktif pengganti:** [SIBK Agent Docs High-Fidelity Workflow Implementation Plan](agent-docs-hifi-workflow-plan.md). Gunakan rencana tersebut untuk alur `lowfi-approved` → `hifi-approved` → frontend, review visual manual, dan perubahan desain selanjutnya.
+>
+> **For agentic workers:** gunakan rencana ini hanya sebagai jejak pembentukan fondasi dokumentasi. Langkah menggunakan checkbox untuk pemeriksaan ulang.
 
 **Goal:** Menyediakan satu sumber konteks pengembangan Aplikasi BK yang dapat dibaca konsisten oleh Codex dan seluruh model Google Antigravity.
 
@@ -11,7 +15,7 @@
 ## Global Constraints
 
 - Repository tunggal dengan branch integrasi `development`.
-- Tahap aktif hanya frontend wireframe ke UI.
+- Tahap pada baseline v1.3: frontend dari wireframe menuju UI.
 - Bootstrap menjadi fondasi UI.
 - Token visual terpusat; tidak ada nilai warna tersebar.
 - Keputusan UX boleh ditetapkan ahli dan dicatat.

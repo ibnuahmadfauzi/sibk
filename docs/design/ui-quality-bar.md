@@ -1,6 +1,10 @@
 # Standar Kualitas Visual UI
 
-Dokumen ini menetapkan mutu visual minimum Aplikasi BK. Agen frontend bertindak sebagai ahli UI dan memiliki kewenangan menyempurnakan komposisi visual wireframe selama tetap menjaga maksud UX, kebutuhan, alur bisnis, hak akses, sensitivitas data, dan makna informasi.
+## Acuan dan wewenang
+
+Untuk frontend, board atau ekspor Penpot halaman `hifi-approved` adalah acuan visual. Low-fidelity approved tetap mengunci informasi, alur, aksi, state, hierarki, dan batas peran, tetapi tidak menjadi sumber visual langsung. Gambar visual direction hanya mengarahkan karakter umum dan tidak dapat menggantikan high-fidelity.
+
+Agen frontend menerapkan acuan tersebut dengan Bootstrap, komponen bersama, dan design tokens/CSS variables terpusat. Agen boleh menyelesaikan detail teknis yang telah ditetapkan acuan, tetapi tidak mendesain ulang halaman, menebak nilai visual permanen, atau mengklaim kesesuaian visual. Nilai contoh token yang belum berasal dari foundations approved bersifat `provisional`.
 
 ## Karakter visual
 
@@ -10,77 +14,34 @@ UI Aplikasi BK harus terasa:
 - modern tanpa mengikuti tren secara berlebihan;
 - profesional tetapi tidak kaku;
 - ramah bagi Guru BK, Koordinator, Waka, dan Admin IT;
-- rapi pada halaman dengan informasi padat;
+- rapi pada halaman dengan informasi padat; dan
 - aman untuk konteks layanan dan data sensitif murid.
 
-Tampilan tidak boleh terasa menghukum, menakutkan, terlalu dekoratif, atau menyerupai template dashboard generik yang hanya mengganti logo dan warna.
+Tampilan tidak boleh terasa menghukum, menakutkan, terlalu dekoratif, atau menyerupai template dashboard generik yang hanya mengganti logo dan warna. Soft UI hanya memberi aksen fungsional pada permukaan, kartu, dan navigasi; input, tabel, status, dan fokus tetap tegas serta mudah dibaca.
 
-## Wewenang ahli UI
+## Prinsip implementasi
 
-Untuk meningkatkan mutu visual dan penggunaan, agen boleh:
+### Hierarki dan layout
 
-- mengubah grid, posisi, urutan visual, alignment, dan pembagian kolom;
-- mengelompokkan atau memisahkan informasi menjadi section, card, tab, accordion, drawer, atau modal;
-- memilih pola tabel, daftar, timeline, kartu ringkasan, dan form yang paling sesuai;
-- mengatur kepadatan informasi, whitespace, fokus visual, dan progressive disclosure;
-- menentukan tipografi, skala teks, ikon, ilustrasi fungsional, border, radius, serta bayangan melalui token;
-- membuat variasi layout untuk mobile, tablet, desktop, dan peran berbeda;
-- menyederhanakan microcopy tanpa mengubah istilah resmi atau makna kebijakan.
+- Tujuan halaman, konteks, informasi penting, dan aksi utama harus memiliki penekanan yang sesuai board high-fidelity.
+- Gunakan grid Bootstrap, alignment, dan komponen bersama; jangan memosisikan ulang nilai visual yang sama pada tiap halaman.
+- Kepadatan, grouping, whitespace, tabel, kartu, tab, dan progressive disclosure mengikuti high-fidelity tanpa mengubah kontrak UX atau batas akses.
 
-Setiap perubahan tetap harus mempertahankan informasi, aksi, validasi, dan batas akses yang diwajibkan sumber produk.
+### Token, warna, dan aset
 
-Perubahan terhadap pengelompokan, prioritas, navigasi, atau alur wireframe bukan sekadar keputusan visual. Perubahan tersebut harus didasarkan pada masalah penggunaan yang jelas dan dicatat sebagai keputusan UX.
+- Semua nilai visual berasal dari token terpusat yang dipetakan dari foundations `hifi-approved`; nilai yang belum demikian tetap `provisional`.
+- Warna status selalu menyampaikan makna bersama teks, ikon, atau pola lain.
+- Gunakan logo, ikon, dan ilustrasi proyek yang disahkan; jangan menggambar ulang aset dengan CSS.
+- Hindari gradient, shadow berat, warna aksen, dan dekorasi yang mengurangi keterbacaan atau kontras.
 
-## Prinsip komposisi
+### Responsif, state, dan peran
 
-### Hierarki
+- Terapkan desktop referensi, tablet `768px`, dan mobile `390px` beserta seluruh state/peran yang diwajibkan brief.
+- Layout mobile bukan desktop yang diperkecil; tabel dan aksi harus tetap dapat dipahami tanpa menutupi konten.
+- Fokus, label, error, disabled, loading, empty, read-only, dan akses ditolak harus tersedia bila dicakup brief/high-fidelity.
 
-- Tujuan halaman dapat dikenali dalam beberapa detik.
-- Judul, konteks, informasi penting, dan aksi utama memiliki tingkat penekanan yang berbeda.
-- Satu konteks visual memiliki paling banyak satu aksi utama.
-- Data sensitif tidak dijadikan pusat perhatian tanpa kebutuhan tugas.
+## Review visual manual
 
-### Layout dan ritme
+Kesesuaian visual terhadap high-fidelity dinilai oleh reviewer manusia, bukan oleh agen melalui browser otomatis, screenshot, perbandingan gambar, atau visual regression. Setelah pemeriksaan teknis, agen menyerahkan `manual-visual-review-pending` dan melaporkan sumbernya. Browser, screenshot, perbandingan gambar, atau visual regression hanya dilakukan agen bila pengguna memintanya eksplisit.
 
-- Gunakan grid Bootstrap sebagai fondasi, bukan posisi absolut dari wireframe.
-- Jarak antarelemen membentuk kelompok informasi yang jelas.
-- Kepadatan data disesuaikan dengan tugas; hindari halaman kosong berlebihan maupun tampilan sesak.
-- Card digunakan untuk mengelompokkan konteks, bukan membungkus setiap elemen secara terpisah.
-- Alignment dan ukuran komponen konsisten antarhalaman.
-
-### Warna dan permukaan
-
-- Semua nilai berasal dari design tokens.
-- Warna utama membangun identitas; warna status hanya menyampaikan makna sistem.
-- Gunakan arah sidebar biru dan menu aktif krem melalui token yang dapat diganti.
-- Soft UI dibatasi pada permukaan, kartu, dan navigasi. Input, tabel, status, serta fokus harus tetap tegas.
-- Hindari terlalu banyak gradient, shadow berat, warna aksen, atau efek dekoratif yang mengurangi keterbacaan.
-
-### Tipografi dan ikon
-
-- Skala tipografi harus konsisten dan membedakan judul, label, isi, metadata, serta bantuan.
-- Gunakan panjang baris dan line-height yang nyaman dibaca.
-- Ikon membantu pengenalan, bukan menggantikan label pada aksi penting.
-- Gunakan satu keluarga/gaya ikon secara konsisten.
-
-### Responsif
-
-- Layout mobile bukan versi desktop yang diperkecil.
-- Prioritaskan informasi dan aksi sesuai konteks layar.
-- Tabel kompleks dapat berubah menjadi kolom prioritas, daftar, atau kartu dengan akses menuju detail.
-- Aksi penting tetap mudah dijangkau tanpa menutupi konten.
-
-## Gerbang penilaian visual
-
-Sebelum halaman dinyatakan selesai, reviewer harus dapat menjawab “ya” untuk hal berikut:
-
-- Apakah halaman memiliki fokus visual dan tujuan yang jelas?
-- Apakah komposisinya terlihat dirancang khusus untuk tugas halaman tersebut?
-- Apakah informasi dapat dipindai tanpa membaca seluruh layar?
-- Apakah aksi utama mudah ditemukan tetapi tidak mendominasi berlebihan?
-- Apakah tampilan konsisten dengan halaman lain tanpa terasa monoton?
-- Apakah UI tetap menarik dan utuh pada mobile maupun desktop?
-- Apakah efek visual membantu pemahaman dan tidak mengurangi kontras?
-- Apakah pengguna dapat menyelesaikan tugas tanpa bergantung pada warna atau tebakan?
-
-Kemiripan gaya visual dengan wireframe tidak menjadi ukuran kualitas. Kesesuaian terhadap maksud UX tetap dinilai bersama ketercakupan informasi, kemudahan penggunaan, konsistensi, daya tarik visual, aksesibilitas, dan kepatuhan terhadap kebutuhan.
+Reviewer manusia memeriksa desktop referensi, tablet `768px`, mobile `390px`, dan semua state/peran brief dengan data sintetis. Temuan mencantumkan `PG`, viewport, komponen, gejala, dan hasil yang diharapkan. Hanya reviewer manusia atau owner yang ditentukan yang boleh menyetujui tampilan dan mengubah status menjadi `implemented`; prosedur lengkapnya ada di [manual visual review](../frontend/manual-visual-review.md).

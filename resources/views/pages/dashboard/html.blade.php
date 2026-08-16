@@ -1,256 +1,193 @@
-{{-- Page Header --}}
-<div class="sibk-page-header">
-    <div>
-        <h1 class="sibk-page-title">Dashboard</h1>
-        <p class="sibk-page-description">Ringkasan kasus dan tindak lanjut dalam cakupan Anda.</p>
-    </div>
-</div>
+<div class="sibk-dashboard" data-page-id="PG-002" data-preview-state="{{ $previewState }}">
 
-
-{{-- STAT CARDS --}}
-<div class="row g-3 mb-3">
-
-    {{-- Card 1: Murid dalam cakupan --}}
-    <div class="col-6 col-xl-3">
-        <div class="sibk-stat-card">
-            <div class="sibk-stat-icon-wrap sibk-stat-icon-wrap--blue">
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="8" cy="7" r="3" stroke="#4A6FA5" stroke-width="1.5"/><path d="M2 17c0-3.314 2.686-6 6-6" stroke="#4A6FA5" stroke-width="1.5" stroke-linecap="round"/><circle cx="15" cy="8" r="2.5" stroke="#4A6FA5" stroke-width="1.5"/><path d="M10.5 17c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#4A6FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <header class="sibk-page-header">
+        <div class="sibk-page-header__copy">
+            <h1 id="dashboard-title">Dashboard</h1>
+            <p>{{ $dashboard['description'] }}</p>
+        </div>
+        
+        @if ($dashboard['read_only'])
+            <div class="alert sibk-read-only-notice" role="status">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
+                <div><strong>Tampilan koordinasi hanya-baca</strong><p>Anda hanya melihat agregat yang diizinkan dan kasus yang secara eksplisit dikoordinasikan. Isi konsultasi sensitif serta aksi perubahan tidak ditampilkan.</p></div>
             </div>
-            <div class="sibk-stat-label">Murid dalam cakupan</div>
-            <div class="sibk-stat-value">72</div>
-            <div class="sibk-stat-trend sibk-stat-trend--up">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2.5 5.5L6 2l3.5 3.5" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                +3 dari bulan lalu
+        @endif
+    </header>
+
+    @if ($previewState === 'error')
+        <section class="sibk-state-panel" aria-labelledby="dashboard-error-title">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>
+            <h2 id="dashboard-error-title">Ringkasan belum dapat dimuat</h2>
+            <p>Data tidak berubah. Periksa koneksi lalu coba kembali tanpa memperluas cakupan akses.</p>
+            <a class="btn btn-primary" href="{{ route('dashboard.preview', ['role' => $previewRole, 'year' => $activeYear]) }}">Coba lagi</a>
+        </section>
+    @elseif ($previewState === 'loading')
+        <div class="sibk-loading" role="status" aria-live="polite">
+            <span class="visually-hidden">Memuat ringkasan dashboard</span>
+            <div class="row g-3" aria-hidden="true">
+                @for ($i = 0; $i < 4; $i++)
+                    <div class="col-12 col-sm-6 col-xl-3"><div class="sibk-skeleton sibk-skeleton--stat"></div></div>
+                @endfor
+                <div class="col-12 col-xl-7"><div class="sibk-skeleton sibk-skeleton--panel"></div></div>
+                <div class="col-12 col-xl-5"><div class="sibk-skeleton sibk-skeleton--panel"></div></div>
             </div>
         </div>
-    </div>
-
-    {{-- Card 2: Kasus aktif --}}
-    <div class="col-6 col-xl-3">
-        <div class="sibk-stat-card">
-            <div class="sibk-stat-icon-wrap sibk-stat-icon-wrap--orange">
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="15" rx="2" stroke="#E8734A" stroke-width="1.5"/><path d="M7 4V2M15 4V2" stroke="#E8734A" stroke-width="1.5" stroke-linecap="round"/><path d="M7 10h8M7 14h5" stroke="#E8734A" stroke-width="1.5" stroke-linecap="round"/></svg>
+    @else
+        <section aria-label="Statistik utama">
+            <div class="row g-3 sibk-stat-row">
+                @foreach ($dashboard['stats'] as $stat)
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <article class="sibk-stat-card sibk-tone--{{ $stat['tone'] }}">
+                            <div class="sibk-stat-card__inner">
+                                <div class="sibk-stat-card__icon-col">
+                                    <div class="sibk-stat-card__icon" aria-hidden="true">
+                                        @switch($stat['kind'])
+                                            @case('students')
+                                                <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2.7-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 15c3.6 0 6 2.2 6 5"/></svg>
+                                                @break
+                                            @case('etatib')
+                                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+                                                @break
+                                            @case('cases')
+                                                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                                @break
+                                            @default
+                                                <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        @endswitch
+                                    </div>
+                                </div>
+                                <div class="sibk-stat-card__content-col">
+                                    <h2 class="sibk-stat-card__label">{{ $stat['label'] }}</h2>
+                                    <strong class="sibk-stat-card__value">{{ $previewState === 'empty' ? '0' : $stat['value'] }}</strong>
+                                    
+                                    @if ($previewState !== 'empty' && isset($stat['delta']))
+                                        <span class="sibk-stat-delta sibk-stat-delta--{{ $stat['delta_tone'] ?? 'neutral' }}">
+                                            @if (($stat['delta_tone'] ?? '') === 'up')
+                                                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                                            @elseif (($stat['delta_tone'] ?? '') === 'down')
+                                                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                                            @endif
+                                            {{ $stat['delta'] }}
+                                        </span>
+                                    @else
+                                        <span class="sibk-stat-meta">{{ $previewState === 'empty' ? 'Belum ada data' : $stat['meta'] }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                @endforeach
             </div>
-            <div class="sibk-stat-label">Kasus aktif</div>
-            <div class="sibk-stat-value">7</div>
-            <div class="sibk-stat-trend sibk-stat-trend--down">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2.5 6.5L6 10l3.5-3.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                -2 dari bulan lalu
-            </div>
-        </div>
-    </div>
+        </section>
 
-    {{-- Card 3: Tindak lanjut terdekat --}}
-    <div class="col-6 col-xl-3">
-        <div class="sibk-stat-card">
-            <div class="sibk-stat-icon-wrap sibk-stat-icon-wrap--green">
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="#22c55e" stroke-width="1.5"/><path d="M7 11l3 3 5-5" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <div class="sibk-stat-label">Tindak lanjut terdekat</div>
-            <div class="sibk-stat-value">5</div>
-            <div class="sibk-stat-trend sibk-stat-trend--up">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2.5 5.5L6 2l3.5 3.5" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                +1 dari bulan lalu
-            </div>
-        </div>
-    </div>
+        <div class="row g-3 mt-1">
+            {{-- Panel Kiri: Tindak Lanjut Terdekat --}}
+            <div class="col-12 col-xl-7">
+                <section class="sibk-panel" aria-labelledby="tindak-lanjut-title">
+                    <header class="sibk-panel__header">
+                        <div class="sibk-panel__title-group">
+                            <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <h2 id="tindak-lanjut-title">Tindak lanjut terdekat</h2>
+                        </div>
+                        <a href="#" class="btn btn-sm btn-outline-primary sibk-panel__action is-planned">
+                            Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                        </a>
+                    </header>
 
-    {{-- Card 4: Data e-Tatib terkait --}}
-    <div class="col-6 col-xl-3">
-        <div class="sibk-stat-card">
-            <div class="sibk-stat-icon-wrap sibk-stat-icon-wrap--purple">
-                <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="4" width="16" height="15" rx="2" stroke="#8B5CF6" stroke-width="1.5"/><path d="M7 4V2M15 4V2" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round"/><path d="M3 9h16" stroke="#8B5CF6" stroke-width="1.5"/><circle cx="8" cy="14" r="1" fill="#8B5CF6"/><circle cx="11" cy="14" r="1" fill="#8B5CF6"/><circle cx="14" cy="14" r="1" fill="#8B5CF6"/></svg>
-            </div>
-            <div class="sibk-stat-label">Data e-Tatib terkait</div>
-            <div class="sibk-stat-value">24</div>
-            <div class="sibk-stat-trend sibk-stat-trend--up">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 2v8M2.5 5.5L6 2l3.5 3.5" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                +4 dari bulan lalu
-            </div>
-        </div>
-    </div>
-
-</div>
-
-
-{{-- MAIN PANELS ROW --}}
-<div class="row g-3 mb-3">
-
-    {{-- Panel Kiri: Tindak Lanjut Terdekat --}}
-    <div class="col-lg-6">
-        <div class="sibk-dash-panel">
-            <div class="sibk-dash-panel-header">
-                <div class="sibk-dash-panel-title-wrap">
-                    <span class="sibk-dash-panel-icon">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="13" rx="1.5" stroke="#4A6FA5" stroke-width="1.3"/><path d="M5 3V1M13 3V1" stroke="#4A6FA5" stroke-width="1.3" stroke-linecap="round"/><path d="M2 7h14" stroke="#4A6FA5" stroke-width="1.3"/></svg>
-                    </span>
-                    <span class="sibk-dash-panel-title">Tindak lanjut terdekat</span>
-                </div>
-                <a href="#" class="sibk-dash-panel-action">
-                    Lihat semua
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="#4A6FA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </a>
+                    @if ($previewState === 'empty' || empty($dashboard['tindak_lanjut']))
+                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada jadwal tindak lanjut dalam waktu dekat." />
+                    @else
+                        <div class="sibk-list-group">
+                            @foreach ($dashboard['tindak_lanjut'] as $item)
+                                <article class="sibk-list-item">
+                                    <div class="sibk-list-item__date-box">
+                                        <strong>{{ $item['date'] }}</strong>
+                                        <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
+                                    </div>
+                                    <div class="sibk-list-item__content">
+                                        <strong>{{ $item['code'] }}</strong>
+                                        <span>{{ $item['title'] }}</span>
+                                        <small>Siswa: {{ $item['student'] }}</small>
+                                    </div>
+                                    <div class="sibk-list-item__trailing">
+                                        <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                        <svg class="sibk-list-item__chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </section>
             </div>
 
-            <div class="sibk-dash-panel-body">
-
-                {{-- Item 1 --}}
-                <div class="sibk-followup-item">
-                    <div class="sibk-followup-date">
-                        <div class="sibk-followup-day">11</div>
-                        <div class="sibk-followup-month">Agu<br>2026</div>
-                    </div>
-                    <div class="sibk-followup-info">
-                        <div class="sibk-followup-code">K-001</div>
-                        <div class="sibk-followup-type">Konsultasi lanjutan</div>
-                        <div class="sibk-followup-student">Siswa: Rina Aulia (XI IPS 2)</div>
-                    </div>
-                    <div class="sibk-followup-status sibk-status--processing">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#4A6FA5" stroke-width="1.2"/><path d="M6 3.5V6l1.5 1.5" stroke="#4A6FA5" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        Dalam penanganan
-                    </div>
-                    <button class="sibk-followup-arrow">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-
-                {{-- Item 2 --}}
-                <div class="sibk-followup-item">
-                    <div class="sibk-followup-date">
-                        <div class="sibk-followup-day">12</div>
-                        <div class="sibk-followup-month">Agu<br>2026</div>
-                    </div>
-                    <div class="sibk-followup-info">
-                        <div class="sibk-followup-code">K-002</div>
-                        <div class="sibk-followup-type">Home visit</div>
-                        <div class="sibk-followup-student">Siswa: Andi Pratama (X IPA 1)</div>
-                    </div>
-                    <div class="sibk-followup-status sibk-status--waiting">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#E8734A" stroke-width="1.2"/><path d="M6 3.5V6.5" stroke="#E8734A" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="8.5" r="0.6" fill="#E8734A"/></svg>
-                        Menunggu
-                    </div>
-                    <button class="sibk-followup-arrow">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-
-                {{-- Item 3 --}}
-                <div class="sibk-followup-item sibk-followup-item--last">
-                    <div class="sibk-followup-date">
-                        <div class="sibk-followup-day">14</div>
-                        <div class="sibk-followup-month">Agu<br>2026</div>
-                    </div>
-                    <div class="sibk-followup-info">
-                        <div class="sibk-followup-code">K-006</div>
-                        <div class="sibk-followup-type">Verifikasi hasil</div>
-                        <div class="sibk-followup-student">Siswa: Siti Nurhaliza (XI IPS 1)</div>
-                    </div>
-                    <div class="sibk-followup-status sibk-status--done">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#22c55e" stroke-width="1.2"/><path d="M3.5 6l2 2 3-3" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        Selesai
-                    </div>
-                    <button class="sibk-followup-arrow">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-
+            {{-- Panel Kanan: Aktivitas Terbaru --}}
+            <div class="col-12 col-xl-5">
+                <section class="sibk-panel" aria-labelledby="activity-title">
+                    <header class="sibk-panel__header">
+                        <div class="sibk-panel__title-group">
+                            <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <h2 id="activity-title">Aktivitas terbaru</h2>
+                        </div>
+                        <a href="#" class="btn btn-sm btn-outline-primary sibk-panel__action is-planned">
+                            Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                        </a>
+                    </header>
+                    
+                    @if ($previewState === 'empty' || empty($dashboard['activities']))
+                        <x-empty-state title="Belum ada aktivitas" description="Aktivitas sistem yang relevan dengan Anda akan tampil di sini." />
+                    @else
+                        <div class="sibk-activity-list">
+                            @foreach ($dashboard['activities'] as $activity)
+                                <article class="sibk-activity-row">
+                                    <div class="sibk-activity-row__icon-circle sibk-icon-tone--{{ $activity['tone'] }}" aria-hidden="true">
+                                        @if($activity['icon'] === 'case-new')
+                                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                        @elseif($activity['icon'] === 'followup')
+                                            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        @elseif($activity['icon'] === 'etatib')
+                                            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                        @else
+                                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                        @endif
+                                    </div>
+                                    <div class="sibk-activity-row__content">
+                                        <strong>{{ $activity['title'] }}</strong>
+                                        <span>{{ $activity['context'] }}</span>
+                                    </div>
+                                    <time class="sibk-activity-row__time">{{ $activity['time'] }}</time>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </section>
             </div>
         </div>
-    </div>
 
-    {{-- Panel Kanan: Aktivitas Terbaru --}}
-    <div class="col-lg-6">
-        <div class="sibk-dash-panel">
-            <div class="sibk-dash-panel-header">
-                <div class="sibk-dash-panel-title-wrap">
-                    <span class="sibk-dash-panel-icon">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="#4A6FA5" stroke-width="1.3"/><path d="M5 7h8M5 10h8M5 13h5" stroke="#4A6FA5" stroke-width="1.3" stroke-linecap="round"/></svg>
-                    </span>
-                    <span class="sibk-dash-panel-title">Aktivitas terbaru</span>
-                </div>
-                <a href="#" class="sibk-dash-panel-action">
-                    Lihat semua
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="#4A6FA5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </a>
+        {{-- Quick Actions & Dekorasi --}}
+        <div class="sibk-dashboard-footer">
+            <div class="sibk-quick-actions">
+                <button class="btn btn-outline-primary is-planned" type="button">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Lihat daftar kasus
+                </button>
+                <button class="btn btn-primary is-planned" type="button">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Cari profil murid
+                </button>
+                <button class="btn btn-outline-primary is-planned" type="button">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    Buka laporan
+                </button>
             </div>
-
-            <div class="sibk-dash-panel-body">
-
-                {{-- Activity 1 --}}
-                <div class="sibk-activity-item">
-                    <div class="sibk-activity-icon sibk-activity-icon--blue">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#4A6FA5" stroke-width="1.2"/><path d="M7 4v3.5L9 9" stroke="#4A6FA5" stroke-width="1.2" stroke-linecap="round"/></svg>
-                    </div>
-                    <div class="sibk-activity-content">
-                        <div class="sibk-activity-title">Kasus baru ditambahkan</div>
-                        <div class="sibk-activity-sub">K-006 - Verifikasi hasil</div>
-                    </div>
-                    <div class="sibk-activity-time">10:24</div>
-                </div>
-
-                {{-- Activity 2 --}}
-                <div class="sibk-activity-item">
-                    <div class="sibk-activity-icon sibk-activity-icon--green">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#22c55e" stroke-width="1.2"/><path d="M4 7l2.5 2.5 4-4" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                    <div class="sibk-activity-content">
-                        <div class="sibk-activity-title">Tindak lanjut diperbarui</div>
-                        <div class="sibk-activity-sub">K-005 - Sesi konseling</div>
-                    </div>
-                    <div class="sibk-activity-time">09:15</div>
-                </div>
-
-                {{-- Activity 3 --}}
-                <div class="sibk-activity-item">
-                    <div class="sibk-activity-icon sibk-activity-icon--orange">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="#E8734A" stroke-width="1.2"/><path d="M4.5 7h5M4.5 5h5M4.5 9h3" stroke="#E8734A" stroke-width="1.2" stroke-linecap="round"/></svg>
-                    </div>
-                    <div class="sibk-activity-content">
-                        <div class="sibk-activity-title">Data e-Tatib diperbarui</div>
-                        <div class="sibk-activity-sub">Pelanggaran kelas IX</div>
-                    </div>
-                    <div class="sibk-activity-time">08:47</div>
-                </div>
-
-                {{-- Activity 4 --}}
-                <div class="sibk-activity-item sibk-activity-item--last">
-                    <div class="sibk-activity-icon sibk-activity-icon--purple">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="#8B5CF6" stroke-width="1.2"/><path d="M4 5h6M4 7.5h6M4 10h4" stroke="#8B5CF6" stroke-width="1.2" stroke-linecap="round"/></svg>
-                    </div>
-                    <div class="sibk-activity-content">
-                        <div class="sibk-activity-title">Laporan baru dibuat</div>
-                        <div class="sibk-activity-sub">Laporan bulanan Juli 2026</div>
-                    </div>
-                    <div class="sibk-activity-time">08:20</div>
-                </div>
-
+            
+            <div class="sibk-dashboard-deco" aria-hidden="true">
+                <p>Konseling Hari Ini,<br>Masa Depan yang Lebih Baik</p>
+                <svg class="sibk-dashboard-deco__leaf" viewBox="0 0 120 160" fill="none">
+                    <path d="M60 155 C60 155 5 120 8 60 C10 20 35 5 50 18 C57 24 60 60 60 155Z" fill="currentColor" opacity="0.18"/>
+                    <path d="M60 155 C60 155 115 120 112 60 C110 20 85 5 70 18 C63 24 60 60 60 155Z" fill="currentColor" opacity="0.11"/>
+                    <path d="M60 155 C60 155 30 110 35 70 C38 48 52 42 60 52 C68 42 82 48 85 70 C90 110 60 155 60 155Z" fill="currentColor" opacity="0.14"/>
+                </svg>
             </div>
         </div>
-    </div>
-
-</div>
-
-
-{{-- QUICK ACTION BUTTONS --}}
-<div class="sibk-quick-actions">
-    <a href="#" class="sibk-quick-action-btn sibk-quick-action-btn--outline">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h8M5 10h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Lihat daftar kasus
-    </a>
-    <a href="#" class="sibk-quick-action-btn sibk-quick-action-btn--primary">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 15c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Cari profil murid
-    </a>
-    <a href="#" class="sibk-quick-action-btn sibk-quick-action-btn--outline">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Buka laporan
-    </a>
-</div>
-
-{{-- Bottom Right Decoration --}}
-<div class="sibk-dashboard-deco">
-    <p class="sibk-dashboard-deco-text">Konseling Hari Ini,<br><em>Masa Depan yang Lebih Baik</em></p>
-    <div class="sibk-dashboard-deco-leaf">
-        <svg width="80" height="90" viewBox="0 0 80 90" fill="none" opacity="0.55"><ellipse cx="40" cy="45" rx="30" ry="42" fill="#E8D5C4" transform="rotate(-15 40 45)"/><ellipse cx="40" cy="45" rx="14" ry="36" fill="#D4BFA8" opacity="0.6" transform="rotate(-15 40 45)"/><path d="M40 10 Q42 45 38 80" stroke="#C4A882" stroke-width="2" opacity="0.5"/></svg>
-    </div>
+    @endif
 </div>

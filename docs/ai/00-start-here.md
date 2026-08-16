@@ -1,59 +1,37 @@
 # Mulai dari Sini
 
-Dokumen ini hanya router konteks. Jangan membaca seluruh dokumentasi untuk setiap tugas.
+Dokumen ini adalah router konteks; jangan membaca seluruh dokumentasi untuk setiap tugas.
 
 ## Proyek dan tahap aktif
 
-Aplikasi BK adalah ruang kerja layanan BK SMKN 1 Surabaya untuk kasus, tindak lanjut, histori murid, koordinasi Waka, laporan, dan audit. Dapodik tetap menjadi master murid/kelas; e-Tatib tetap menjadi sumber baca-saja pelanggaran dan poin.
+Aplikasi BK melayani kasus, tindak lanjut, histori murid, koordinasi Waka, laporan, dan audit. Dapodik adalah master murid/kelas; e-Tatib sumber baca-saja pelanggaran dan poin.
 
-Tahap aktif adalah frontend dari wireframe menuju UI produksi. Bootstrap dan design tokens menjadi fondasi. Frontend dan backend berada dalam satu repository, tetapi tidak boleh dicampur tanpa cakupan eksplisit.
+Tahap aktif: selesaikan low-fidelity, lanjutkan high-fidelity, lalu frontend. Low-fidelity approved adalah kontrak UX; hanya high-fidelity `hifi-approved` menjadi kontrak visual frontend. Review visual frontend dilakukan manual oleh tim.
 
 ## Cara memilih konteks
 
-1. Tentukan area tugas: frontend, backend, dokumentasi, atau lintas area.
-2. Tentukan ID halaman dan requirement yang terdampak.
-3. Cari ID pada dokumentasi, misalnya:
-
-   ```bash
-   rg -n "PG-103|CASE-12|AUTH-05" docs/
-   ```
-
-4. Baca baris/bagian yang ditemukan dan dokumen rute di bawah.
-5. Tambahkan dokumen lain hanya jika muncul dependensi atau konflik.
-
-Aturan rinci pemuatan konteks: `docs/ai/context-loading.md`.
+1. Tentukan tahap, area, ID halaman/requirement, dan peran yang terdampak.
+2. Pilih rute di bawah, lalu ikuti batas pada `docs/ai/context-loading.md`.
+3. Gunakan pencarian ID untuk membaca bagian relevan; perluas hanya bila ada dependensi, konflik, atau risiko.
 
 ## Rute berdasarkan tugas
 
+### UX dan low-fidelity satu halaman
+
+Mulai dari brief `docs/design/pages/PG-xxx-*.md` dan satu sumber low-fidelity yang dipilih melalui `docs/design/design-page-map.md`. Tambahkan paling banyak dua pedoman UX, akses, atau keputusan yang relevan. Gunakan peta hanya untuk memilih sumber bila brief belum menunjukkannya. Low-fidelity menetapkan informasi, alur, prioritas, state, dan peran; jangan menetapkan detail visual frontend.
+
+### UI high-fidelity satu halaman
+
+Mulai dari brief `docs/design/pages/PG-xxx-*.md` dan satu sumber desain sesuai tahap: low-fidelity approved untuk kontrak UX atau board high-fidelity saat melanjutkan desain. Gunakan `docs/design/design-page-map.md` dan `docs/design/high-fidelity-source.md` hanya untuk memilih atau mencatat sumber bila brief belum cukup. Tambahkan paling banyak dua pedoman visual, token, akses, atau keputusan. Tandai status desain dan board/ekspor yang dihasilkan; frontend belum boleh dimulai sebelum `hifi-approved`.
+
 ### Frontend satu halaman
 
-Wajib:
-
-- `docs/frontend/README.md`
-- baris `PG-*` pada `docs/product/ui-inventory.md`
-- baris halaman terkait pada `docs/product/ui-field-actions.md`
-- frame/ekspor melalui `docs/design/wireframe-page-map.md`
-
-Tambahkan hanya bila relevan:
-
-- visual: `docs/design/ui-quality-bar.md` dan `docs/frontend/bootstrap-and-design-tokens.md`
-- pola UX/state: `docs/frontend/ui-ux-guidelines.md`
-- akses/sensitivitas: `docs/security/access-matrix.md`
-- keputusan atau konflik: `docs/decisions/decision-log.md`, `docs/ux/decision-log.md`, atau `docs/decisions/open-validation.md`
-- QA/handoff: `docs/frontend/qa-checklist.md`
-
-### Fondasi atau lintas halaman frontend
-
-Baca `docs/design/README.md`, `docs/frontend/wireframe-to-ui-workflow.md`, dan dokumen visual/UX terkait. Tambahkan inventaris hanya untuk pola atau halaman yang terdampak.
+Verifikasi `hifi-approved`, lalu rujuk `docs/design/pages/PG-xxx-*.md`, `docs/design/design-page-map.md`, `docs/design/high-fidelity-source.md`, `docs/frontend/hifi-to-frontend-workflow.md`, dan aturan token `docs/frontend/bootstrap-and-design-tokens.md`. Konteks awal hanya satu brief PG, satu board/ekspor high-fidelity halaman, serta paling banyak dua pedoman; gunakan peta dan sumber high-fidelity untuk memilih atau memverifikasi board sebelum memuat pedoman. Jangan memakai low-fidelity atau gambar visual direction sebagai sumber visual bila board/ekspor hifi-approved tersedia. Jalankan pemeriksaan teknis; serahkan review visual kepada manusia.
 
 ### Backend
 
-Baca `docs/backend/README.md`, requirement SRS terkait, access matrix terkait, lalu `docs/backend/api-contract-rules.md` bila mengubah kontrak API.
-
-### Dokumentasi atau review
-
-Baca `docs/development/documentation-rules.md` dan sumber kanonik yang benar-benar terdampak. Gunakan `docs/development/definition-of-done.md` saat menilai kesiapan merge.
+Mulai dari `docs/backend/README.md`, requirement SRS dan access matrix terkait; tambahkan `docs/backend/api-contract-rules.md` bila mengubah kontrak API. Backend tidak mengambil sumber visual sebagai spesifikasi implementasi.
 
 ## Batas keputusan
 
-Ketidakjelasan visual, responsif, state, dan interaksi dapat diputuskan sebagai UX lalu dicatat. Istilah BK, data wajib, status operasional, hak akses, verifikator, retensi, dan integrasi tidak boleh diputuskan melalui asumsi agen.
+UX dapat menetapkan hierarki visual, layout responsif, state, feedback, aksesibilitas, dan microcopy tanpa mengubah kebijakan; catat keputusan baru di `docs/ux/decision-log.md`. Istilah BK, data wajib, status operasional, hak akses, verifikator, retensi, dan integrasi tidak boleh diasumsikan.

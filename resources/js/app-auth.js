@@ -1,77 +1,91 @@
-// ===========================================
-// SIBK Auth JS (Login)
-// ===========================================
+const form = document.querySelector('#loginForm');
+const identifier = document.querySelector('#identifier');
+const password = document.querySelector('#password');
+const togglePassword = document.querySelector('#togglePassword');
+const visibilityIcon = document.querySelector('#passwordVisibilityIcon');
+const summary = document.querySelector('#loginSummary');
+const summaryTitle = document.querySelector('#loginSummaryTitle');
+const summaryMessage = document.querySelector('#loginSummaryMessage');
+const success = document.querySelector('#loginSuccess');
+const submitButton = document.querySelector('#loginButton');
+const submitText = document.querySelector('#loginButtonText');
+const spinner = document.querySelector('#loginSpinner');
 
-// Bootstrap JS
-import * as bootstrap from 'bootstrap';
+const eyeOpen = '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/>';
+const eyeClosed = '<path d="M4 4l16 16M9.5 6.4A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.5 3.2M14.3 14.3A3.2 3.2 0 0 1 9.7 9.7M6.2 8.2A15.6 15.6 0 0 0 2.5 12s3.5 6 9.5 6c1 0 2-.2 2.8-.5"/>';
 
-// jQuery
-import $ from 'jquery';
+function setFieldValidity(field, valid) {
+    field.classList.toggle('is-invalid', !valid);
+    field.setAttribute('aria-invalid', String(!valid));
+}
 
-// SweetAlert2
-import Swal from 'sweetalert2';
+function hideMessages() {
+    summary.hidden = true;
+    success.hidden = true;
+}
 
-// Expose ke global (untuk pemakaian di blade jika diperlukan)
-window.$ = $;
-window.jQuery = $;
-window.Swal = Swal;
-window.bootstrap = bootstrap;
+function showSummary(title, message) {
+    summaryTitle.textContent = title;
+    summaryMessage.textContent = message;
+    summary.hidden = false;
+    success.hidden = true;
+    summary.focus();
+}
 
-$(document).ready(function () {
+function setLoading(loading) {
+    submitButton.disabled = loading;
+    form.setAttribute('aria-busy', String(loading));
+    spinner.hidden = !loading;
+    submitText.textContent = loading ? 'Memeriksa akun…' : 'Masuk';
+}
 
-    // Toggle show/hide password
-    $('#togglePassword').on('click', function () {
-        const input = $('#password');
-        const eyeIcon = $('#eyeIcon');
-        const isPassword = input.attr('type') === 'password';
+togglePassword?.addEventListener('click', () => {
+    const reveal = password.type === 'password';
+    password.type = reveal ? 'text' : 'password';
+    togglePassword.setAttribute('aria-pressed', String(reveal));
+    togglePassword.setAttribute('aria-label', reveal ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+    visibilityIcon.innerHTML = reveal ? eyeClosed : eyeOpen;
+});
 
-        input.attr('type', isPassword ? 'text' : 'password');
-
-        // Ganti icon
-        if (isPassword) {
-            eyeIcon.html(`
-                <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-2.5-5-7-5a6.97 6.97 0 0 0-3.357.882M5.5 5.5A7 7 0 0 0 1 8s2.5 5 7 5a6.97 6.97 0 0 0 3.5-.937M5.5 5.5l6 6" stroke="#4A6FA5" stroke-width="1.3" stroke-linecap="round"/>
-                <line x1="2" y1="2" x2="14" y2="14" stroke="#4A6FA5" stroke-width="1.3" stroke-linecap="round"/>
-            `);
-        } else {
-            eyeIcon.html(`
-                <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="#9CA3AF" stroke-width="1.3"/>
-                <circle cx="8" cy="8" r="2" stroke="#9CA3AF" stroke-width="1.3"/>
-            `);
-        }
+[identifier, password].forEach((field) => {
+    field?.addEventListener('input', () => {
+        if (field.value.length > 0) setFieldValidity(field, true);
+        hideMessages();
     });
+});
 
-    // Handle form submit
-    $('#loginForm').on('submit', function (e) {
-        e.preventDefault();
+form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    hideMessages();
 
-        const identifier = $('#identifier').val().trim();
-        const password = $('#password').val().trim();
-        const alertBox = $('#validationAlert');
-        const msgBox = $('#validationMsg');
+    const identifierValid = identifier.value.trim().length > 0;
+    const passwordValid = password.value.length > 0;
+    setFieldValidity(identifier, identifierValid);
+    setFieldValidity(password, passwordValid);
 
-        // Reset
-        alertBox.hide();
+    if (!identifierValid || !passwordValid) {
+        showSummary('Periksa kembali isian Anda', 'Lengkapi semua field wajib sebelum melanjutkan.');
+        (identifierValid ? password : identifier).focus();
+        return;
+    }
 
-        if (!identifier || !password) {
-            msgBox.text('Nama pengguna/email dan kata sandi harus diisi.');
-            alertBox.slideDown(200);
+    setLoading(true);
+
+    window.setTimeout(() => {
+        setLoading(false);
+        const result = form.dataset.previewResult;
+
+        if (result === 'success') {
+            success.hidden = false;
+            success.focus();
             return;
         }
 
-        // Simulasi login gagal (ganti dengan AJAX asli nanti)
-        Swal.fire({
-            title: "Login Gagal",
-            text: "Username atau password tidak valid.",
-            icon: "error",
-            confirmButtonColor: getComputedStyle(document.documentElement)
-                .getPropertyValue('--sibk-color-primary').trim() || '#2f5b85',
-            confirmButtonText: "Coba Lagi"
-        });
-    });
+        if (result === 'system-error') {
+            showSummary('Layanan belum dapat diakses', 'Coba kembali beberapa saat lagi atau hubungi Admin IT sekolah.');
+            return;
+        }
 
-    // Sembunyikan alert saat user mulai mengetik
-    $('#identifier, #password').on('input', function () {
-        $('#validationAlert').slideUp(150);
-    });
+        showSummary('Belum dapat masuk', 'Nama pengguna/email atau kata sandi belum sesuai. Periksa kembali tanpa membagikan kredensial Anda.');
+    }, 650);
 });

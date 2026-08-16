@@ -1,6 +1,6 @@
 # Template Brief Tugas Agen
 
-Gunakan struktur ini pada issue, prompt, atau deskripsi pekerjaan agar handoff antaranggota dan agen tetap konsisten.
+Gunakan struktur ini pada issue, prompt, atau deskripsi pekerjaan agar handoff tetap konsisten.
 
 ## Tujuan
 
@@ -8,14 +8,26 @@ Jelaskan satu hasil yang dapat diperiksa.
 
 ## Cakupan
 
-- ID halaman: tuliskan `PG-*` yang terdampak.
+- ID halaman:
+- Tahap: lowfi | hifi | frontend | backend
+- Status desain saat mulai:
+- State/peran dalam cakupan:
 - Requirement: tuliskan ID SRS yang terkait.
-- Peran pengguna: tuliskan peran yang terdampak.
 - Area kode: frontend, backend, dokumentasi, atau kombinasi yang disetujui.
 
 ## Sumber wajib
 
-- Tautkan maksimal empat sumber awal yang paling relevan beserta ID/bagiannya.
+### Tugas halaman: lowfi, hifi, atau frontend
+
+- Board/ekspor sumber:
+- Tautkan satu brief PG, satu sumber desain sesuai tahap, dan paling banyak dua pedoman awal beserta ID/bagiannya.
+
+### Backend
+
+- Tautkan requirement SRS dan baris access matrix yang relevan.
+- Tautkan aturan atau kontrak API hanya bila tugas mengubah kontrak.
+- Jangan memuat brief PG atau sumber desain kecuali cakupan lintas area menyatakannya secara eksplisit.
+
 - Tambahkan sumber lain hanya jika dependensi atau konflik ditemukan saat pengerjaan.
 - Jangan meminta agen membaca seluruh folder `docs/`.
 
@@ -40,6 +52,7 @@ Jelaskan satu hasil yang dapat diperiksa.
 
 - Ringkasan perubahan.
 - File yang berubah.
-- Pemeriksaan dan hasil.
+- Pemeriksaan teknis:
+- Review visual manual: belum | disetujui | perlu koreksi
 - Keputusan baru beserta lokasi dokumentasinya.
 - Risiko tersisa.

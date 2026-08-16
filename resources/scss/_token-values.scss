@@ -1,0 +1,54 @@
+// SIBK Sass token values.
+// Core design variables for Bootstrap overrides.
+// Brand dan navigasi
+$sibk-primary: #5379a5;
+$sibk-primary-hover: #45668d;
+$sibk-primary-contrast: #ffffff;
+$sibk-primary-soft: #edf4fb;
+$sibk-sidebar: #5379a5;
+$sibk-sidebar-deep: #45668d;
+$sibk-sidebar-text: #ffffff;
+$sibk-nav-active-bg: rgba(255,255,255,0.15);
+$sibk-nav-active-text: #ffffff;
+
+// Permukaan dan teks
+$sibk-page: #f7f8fa;
+$sibk-surface: #ffffff;
+$sibk-surface-raised: #ffffff;
+$sibk-text: #1f2937;
+$sibk-text-muted: #5f6b7a;
+$sibk-text-subtle: #8793a3;
+$sibk-border: #cdd6e1;
+$sibk-border-light: #e5eaf1;
+
+// Aksen dan panel brand
+$sibk-accent: #d66542;
+$sibk-accent-soft: #fff1eb;
+$sibk-brand-panel: #f5efe6;
+
+// Status dan feedback
+$sibk-success: #18794e;
+$sibk-success-soft: #eaf7f0;
+$sibk-warning: #8a5a00;
+$sibk-warning-soft: #fff7df;
+$sibk-danger: #b42318;
+$sibk-danger-soft: #fff1f0;
+$sibk-danger-border: #efb4ae;
+$sibk-info: #175cd3;
+$sibk-info-soft: #edf4ff;
+$sibk-purple: #6941c6;
+$sibk-purple-soft: #f2effb;
+
+// Fokus, bayangan, dan bentuk — provisional
+$sibk-focus-ring: rgba(29, 78, 216, 0.35);
+$sibk-shadow-card: 0 0.75rem 2rem rgba(36, 72, 103, 0.08);
+$sibk-shadow-card-hover: 0 1rem 2.5rem rgba(36, 72, 103, 0.13);
+$sibk-shadow-button: 0 0.5rem 1.1rem rgba(47, 91, 133, 0.2);
+$sibk-radius-sm: 0.5rem;
+$sibk-radius-md: 0.75rem;
+$sibk-radius-lg: 1rem;
+$sibk-radius-xl: 1.5rem;
+
+// Dimensi shell — provisional
+$sibk-sidebar-width: 16.5rem;
+$sibk-topbar-height: 4.5rem;

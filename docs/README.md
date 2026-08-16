@@ -11,8 +11,8 @@ Jika terdapat perbedaan isi, gunakan urutan berikut:
 3. Tujuan, prioritas, dan batas produk di `docs/product/prd.md`.
 4. Hak akses di `docs/security/access-matrix.md`.
 5. Inventaris halaman dan field di `docs/product/`.
-6. Wireframe yang telah disetujui dan dipetakan di `docs/design/`.
-7. Keputusan UX di `docs/ux/decision-log.md`.
+6. [Pipeline delivery desain](design/design-delivery-pipeline.md): low-fidelity approved adalah kontrak UX, sedangkan high-fidelity approved adalah kontrak visual frontend.
+7. [Keputusan UX](ux/decision-log.md).
 8. Implementasi kode yang sedang berjalan.
 
 Jika dua sumber pada tingkat yang sama bertentangan, jangan memilih diam-diam. Catat konflik dan hentikan bagian yang terdampak sampai keputusan dibuat.
@@ -21,26 +21,29 @@ Jika dua sumber pada tingkat yang sama bertentangan, jangan memilih diam-diam. C
 
 | Area | Dokumen | Fungsi |
 |---|---|---|
-| Orientasi agen | `ai/00-start-here.md` | Titik mulai dan jalur baca setiap tugas. |
-| Pemuatan konteks | `ai/context-loading.md` | Aturan membaca dokumen secara selektif dan hemat token. |
-| Perilaku agen | `ai/agent-operating-rules.md` | Aturan kerja lintas model dan pembagian kepakaran. |
-| Brief tugas | `ai/task-brief-template.md` | Format seragam untuk menyerahkan pekerjaan. |
-| Produk | `product/prd.md` | Tujuan, pengguna, ruang lingkup, dan prioritas. |
-| Spesifikasi | `product/srs.md` | Kebutuhan, akses, data, integrasi, dan penerimaan. |
-| Antarmuka | `product/ui-inventory.md` | Daftar 26 antarmuka MVP. |
-| Field dan aksi | `product/ui-field-actions.md` | Katalog data, kontrol, validasi, respons, dan sensitivitas. |
-| Hak akses | `security/access-matrix.md` | Batas tindakan per peran dan objek. |
-| Sumber desain | `design/wireframe-source.md` | Lokasi Penpot dan aturan penggunaan sumber. |
-| Pemetaan desain | `design/wireframe-page-map.md` | Pemetaan 26 halaman ke frame dan ekspor. |
-| Transformasi desain | `design/README.md` | Batas antara struktur wireframe dan UI produksi. |
-| Kualitas UI | `design/ui-quality-bar.md` | Standar daya tarik, komposisi, dan mutu visual. |
-| Keputusan | `decisions/decision-log.md` | Keputusan proyek yang telah dikunci. |
-| Validasi terbuka | `decisions/open-validation.md` | Keputusan domain dan teknis yang belum lengkap. |
-| UX | `ux/decision-log.md` | Keputusan ahli UX dan alasan penerapannya. |
-| Frontend | `frontend/README.md` | Ruang kerja frontend aktif. |
-| Backend | `backend/README.md` | Batas dan aturan backend untuk tahap berikutnya. |
-| Proses tim | `development/workflow.md` | Alur Git, implementasi, review, dan handoff. |
-| Selesai | `development/definition-of-done.md` | Gerbang kualitas sebelum merge. |
+| Orientasi agen | [Mulai dari sini](ai/00-start-here.md) | Titik mulai dan jalur baca setiap tugas. |
+| Pemuatan konteks | [Aturan konteks](ai/context-loading.md) | Aturan membaca dokumen secara selektif dan hemat token. |
+| Perilaku agen | [Aturan operasi](ai/agent-operating-rules.md) | Aturan kerja lintas model dan pembagian kepakaran. |
+| Brief tugas | [Template brief](ai/task-brief-template.md) | Format seragam untuk menyerahkan pekerjaan. |
+| Produk | [PRD](product/prd.md) | Tujuan, pengguna, ruang lingkup, dan prioritas. |
+| Spesifikasi | [SRS](product/srs.md) | Kebutuhan, akses, data, integrasi, dan penerimaan. |
+| Antarmuka | [Inventaris UI](product/ui-inventory.md) | Daftar 26 antarmuka MVP. |
+| Field dan aksi | [Katalog field dan aksi](product/ui-field-actions.md) | Data, kontrol, validasi, respons, dan sensitivitas. |
+| Hak akses | [Access matrix](security/access-matrix.md) | Batas tindakan per peran dan objek. |
+| Pipeline desain | [Design delivery pipeline](design/design-delivery-pipeline.md) | Rantai low-fi → high-fi → frontend dan status gerbang desain. |
+| Sumber high-fidelity | [High-fidelity source](design/high-fidelity-source.md) | Board/ekspor dan paket visual resmi per halaman. |
+| Peta halaman desain | [Design page map](design/design-page-map.md) | Pemetaan brief, low-fi, high-fi, ekspor, dan status per `PG-*`. |
+| Bahasa visual | [Visual language](design/visual-language.md) | Karakter visual dan batas penggunaan visual direction. |
+| Brief halaman | [Daftar page briefs](design/pages/README.md) | Paket konteks ringkas per halaman `PG-*`. |
+| Keputusan | [Decision log](decisions/decision-log.md) | Keputusan proyek yang telah dikunci. |
+| Validasi terbuka | [Open validation](decisions/open-validation.md) | Keputusan domain dan teknis yang belum lengkap. |
+| UX | [UX decision log](ux/decision-log.md) | Keputusan ahli UX dan alasan penerapannya. |
+| Frontend | [Frontend README](frontend/README.md) | Ruang kerja frontend aktif dan batas sumbernya. |
+| Implementasi frontend | [Workflow high-fidelity ke frontend](frontend/hifi-to-frontend-workflow.md) | Handoff teknis dari `hifi-approved` hingga review manusia. |
+| Review visual manual | [Prosedur review visual manual](frontend/manual-visual-review.md) | Review manusia, bukti sintetis, dan persetujuan status akhir. |
+| Backend | [Backend README](backend/README.md) | Batas dan aturan backend untuk tahap berikutnya. |
+| Proses tim | [Workflow pengembangan](development/workflow.md) | Alur Git, area kerja, handoff, review, dan merge. |
+| Selesai | [Definition of Done](development/definition-of-done.md) | Gerbang kualitas dan persetujuan sebelum merge. |
 
 ## Aturan pemeliharaan
 

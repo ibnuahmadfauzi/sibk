@@ -7,12 +7,6 @@
 
     <title>@yield('page-title')</title>
 
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- end Google Fonts -->
-
     {{-- Vite: SCSS + JS --}}
     @vite(['resources/scss/app-dashboard.scss', 'resources/js/app-dashboard.js'])
     {{-- end Vite --}}
@@ -20,14 +14,15 @@
     @yield('extra-css')
 </head>
 
-<body>
+<body class="sibk-app-body">
+    <a class="sibk-skip-link" href="#main-content">Lewati ke konten utama</a>
 
     {{-- Include Sidebar Component --}}
     @include('components.sidebar')
     {{-- end Include Sidebar Component --}}
 
     {{-- MAIN SECTION --}}
-    <main class="sibk-main">
+    <main class="sibk-main" id="main-content">
 
         {{-- Include Topbar Component --}}
         @include('components.topbar')

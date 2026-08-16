@@ -1,0 +1,41 @@
+.sibk-skip-link {
+  position: fixed;
+  inset: 0 auto auto 1rem;
+  z-index: 2000;
+  transform: translateY(-120%);
+  padding: 0.7rem 1rem;
+  border-radius: 0 0 var(--sibk-radius-sm) var(--sibk-radius-sm);
+  background: var(--sibk-color-primary);
+  color: var(--sibk-color-primary-contrast);
+
+  &:focus { transform: translateY(0); }
+}
+
+.sibk-brand-mark {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+
+  &__surface { fill: var(--sibk-color-primary-soft); }
+  &__primary { fill: var(--sibk-color-primary); }
+  &__accent { fill: var(--sibk-color-accent); }
+  &__leaf { fill: var(--sibk-color-primary); opacity: 0.68; }
+
+  &--brand {
+    color: var(--sibk-color-primary);
+    .sibk-brand-mark__surface { fill: var(--sibk-color-surface-raised); }
+  }
+}
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

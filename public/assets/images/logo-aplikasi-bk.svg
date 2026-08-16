@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logo Aplikasi BK — SMKN 1 Surabaya
+  Untuk mengganti logo: timpa file ini atau edit path di bawah.
+  Warna utama : #2f5b85 (provisional)
+  Warna aksen : #d66542 (provisional)
+  Diperbarui bersama resources/views/components/brand-mark.blade.php
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 52" role="img" aria-label="Logo Aplikasi BK">
+  <!-- Daun kiri -->
+  <path d="M23 46C23 46 5 36 7 18C8.5 7 16 5 20 9C22.5 11.5 23.5 26 23 46Z" fill="#2f5b85"/>
+  <!-- Daun kanan -->
+  <path d="M25 46C25 46 43 36 41 18C39.5 7 32 5 28 9C25.5 11.5 24.5 26 25 46Z" fill="#2f5b85" opacity="0.72"/>
+  <!-- Hati aksen -->
+  <path d="M24 18C24 18 21 13 19 14.5C17 16 17 19 19.5 21.5L24 26.5L28.5 21.5C31 19 31 16 29 14.5C27 13 24 18 24 18Z" fill="#d66542"/>
+</svg>

@@ -1,13 +1,17 @@
 ---
 document_id: wireframe-page-map
-version: 1.0
-status: canonical-name-map
-last_updated: 2026-08-15
+version: 1.1
+status: lowfi-only-name-map
+design_scope: ux-low-fidelity
+frontend_visual_source: prohibited
+last_updated: 2026-08-16
 ---
 
-# Pemetaan Halaman ke Wireframe
+# Pemetaan Halaman ke Wireframe Low-Fidelity
 
-Peta ini menetapkan nama frame Penpot dan nama file ekspor untuk seluruh 26 antarmuka. Nama frame wajib diawali ID halaman agar kebutuhan, desain, kode, test, dan pull request dapat ditelusuri dengan istilah yang sama.
+Peta ini hanya dipakai untuk pekerjaan UX/low-fidelity atau audit maksud UX. Ia tidak memetakan sumber visual frontend. Status `lowfi-approved` menjadikan keluarga board sebagai kontrak UX; sumber visual frontend harus dipilih dari board atau ekspor `hifi-approved` pada [design-page-map.md](design-page-map.md).
+
+Peta ini menetapkan nama frame Penpot low-fi dan nama file ekspor untuk seluruh 26 antarmuka. Nama frame wajib diawali ID halaman agar kebutuhan, desain, kode, test, dan pull request dapat ditelusuri dengan istilah yang sama.
 
 | ID halaman | Nama frame Penpot wajib | File ekspor | Prioritas | Catatan transformasi utama |
 |---|---|---|---|---|

@@ -1,6 +1,6 @@
 # Aturan Operasi Agen
 
-Dokumen ini dibaca ketika tugas lintas area, keputusan ambigu, atau review membutuhkan aturan kerja lengkap. Tugas satu halaman tidak wajib membacanya jika router sudah memberi konteks yang cukup.
+Dokumen ini dibaca untuk tugas lintas area, keputusan ambigu, atau review yang membutuhkan aturan kerja lengkap. Tugas satu halaman mengikuti router dan anggaran konteks terlebih dahulu.
 
 ## Hierarki sumber
 
@@ -8,11 +8,17 @@ Dokumen ini dibaca ketika tugas lintas area, keputusan ambigu, atau review membu
 2. `docs/decisions/decision-log.md`.
 3. SRS, lalu PRD.
 4. `docs/security/access-matrix.md`.
-5. Inventaris UI.
-6. Wireframe dan keputusan UX.
+5. Brief dan inventaris UI.
+6. Low-fidelity approved untuk kontrak UX, lalu high-fidelity `hifi-approved` untuk kontrak visual frontend.
 7. Kode berjalan.
 
 Konflik tidak boleh diselesaikan diam-diam. Catat sumber yang bertentangan dan hentikan bagian yang bergantung pada keputusan tersebut.
+
+## Tahap desain dan visual
+
+Tahap aktif bergerak dari penyelesaian low-fidelity ke high-fidelity lalu frontend. Low-fidelity bukan sumber visual frontend. Implementasi frontend hanya dimulai dari board atau ekspor halaman `hifi-approved`; visual direction approved bukan pengganti status itu. Agen menjalankan pemeriksaan teknis, tetapi kesesuaian visual frontend direview manual oleh tim. Bila belum disetujui, handoff berstatus `manual-visual-review-pending`.
+
+Jangan menggunakan browser, screenshot, atau visual regression otomatis; gunakan hanya bila tugas memintanya secara eksplisit.
 
 ## Peran berdasarkan area
 
@@ -28,12 +34,12 @@ Agen tidak boleh menetapkan istilah resmi BK, kewajiban/kardinalitas data, statu
 
 ## Protokol perubahan
 
-Sebelum mengubah: periksa branch/status, audit stack dan pola terkait, tentukan ID halaman/requirement, lalu batasi dampak.
+Sebelum mengubah: periksa branch/status, audit stack dan pola terkait, tentukan ID halaman/requirement serta tahap, lalu batasi dampak dan muat konteks sesuai anggaran.
 
 Saat mengubah: pertahankan pola sehat, hindari refactor di luar tugas, jangan menggandakan komponen/aturan, jangan menambah dependency tanpa alasan, dan gunakan data sintetis.
 
-Setelah mengubah: jalankan formatter, linter, build, test, serta pemeriksaan visual/akses yang tersedia. Perbarui dokumen hanya bila keputusan, kontrak, komponen, atau workflow berubah.
+Setelah mengubah: jalankan formatter, linter, build, test, serta pemeriksaan teknis yang tersedia. Lakukan review visual manual bila ditugaskan; jangan mengklaim visual selesai tanpa persetujuan tersebut. Perbarui dokumen bila keputusan, kontrak, komponen, atau workflow berubah.
 
 ## Handoff
 
-Laporkan tujuan dan ID kebutuhan, file yang berubah, keputusan baru, pemeriksaan beserta hasil aktual, serta risiko atau keputusan terbuka. Jangan mengklaim pemeriksaan yang tidak dijalankan.
+Laporkan tujuan dan ID kebutuhan, tahap serta status desain awal, sumber board/ekspor, file yang berubah, pemeriksaan beserta hasil aktual, status review visual manual, dan risiko atau keputusan terbuka. Jangan mengklaim pemeriksaan yang tidak dijalankan.

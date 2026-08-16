@@ -1,57 +1,36 @@
 # Frontend Aplikasi BK
 
-## Status
+## Rute aktif
 
-Area ini merupakan fokus pengembangan aktif. Tujuan tahap pertama adalah menerjemahkan wireframe menjadi UI yang konsisten, responsif, aksesibel, dan dapat disambungkan ke backend tanpa mengarang kontrak data.
+Frontend menerapkan board atau ekspor Penpot `hifi-approved` dengan Bootstrap dan design tokens/CSS variables terpusat. Low-fidelity yang disetujui adalah kontrak UX, bukan sumber visual frontend; visual direction hanya inspirasi terkontrol. Jangan mulai implementasi visual halaman sebelum status `hifi-approved` beserta paket high-fidelity-nya tersedia.
 
-Menerjemahkan wireframe bukan pekerjaan mengganti warna atau menyalin susunan kotaknya secara mentah. Wireframe menjadi kerangka UX content-first untuk informasi, pengelompokan, prioritas, navigasi, dan alur dasar. Agen frontend sebagai ahli UI wajib menjaga maksud UX sambil menyempurnakan komposisi agar menarik, profesional, tidak generik, serta lengkap dengan komponen reusable, interaksi, responsif, aksesibilitas, state sistem, dan variasi peran.
+Ikuti [workflow high-fidelity ke frontend](hifi-to-frontend-workflow.md): audit repository, pilih `PG-*`, periksa `hifi-approved`, petakan komponen/tokens, implementasi, verifikasi teknis, handoff `manual-visual-review-pending`, review manusia, lalu `implemented`.
 
-## Peran agen frontend
+## Paket konteks satu halaman
 
-Pada tugas frontend, agen bertindak sebagai:
+Konteks kerja awal per halaman maksimal empat sumber:
 
-- senior frontend engineer untuk struktur komponen, state, performa, integrasi, dan pengujian;
-- ahli UI untuk hierarki, layout, tipografi, warna, komponen, serta konsistensi visual;
-- ahli UX untuk alur, feedback, pencegahan kesalahan, aksesibilitas, dan perlindungan informasi sensitif.
+1. Brief `docs/design/pages/PG-xxx-*.md`.
+2. Board atau ekspor halaman `hifi-approved` yang dirujuk brief.
+3. [Aturan Bootstrap dan token](bootstrap-and-design-tokens.md).
+4. Maksimal satu pedoman aksesibilitas atau UX yang relevan dengan halaman.
 
-## Sumber wajib
+Gunakan [design page map](../design/design-page-map.md) dan [sumber high-fidelity](../design/high-fidelity-source.md) hanya sebagai selector untuk menemukan atau memvalidasi board/ekspor yang tepat. Setelah sumber halaman terpilih dan tervalidasi, lepaskan kedua selector tersebut dari konteks kerja; keduanya bukan tambahan paket kerja per halaman.
 
-1. `docs/product/ui-inventory.md`
-2. Baris halaman terkait di `docs/product/ui-field-actions.md`
-3. Requirement terkait di `docs/product/srs.md`
-4. `docs/security/access-matrix.md`
-5. `docs/design/README.md`
-6. Baris halaman terkait di `docs/design/wireframe-page-map.md`
-7. Frame Penpot atau ekspor wireframe halaman terkait
-8. `docs/design/ui-quality-bar.md`
-9. `docs/ux/decision-log.md`
-10. Dokumen frontend lain pada folder ini
+Jangan memakai board low-fi, workflow lama, atau gambar visual direction sebagai rute visual aktif ketika board/ekspor high-fidelity tersedia.
 
-## Aturan teknologi
+## Aturan implementasi
 
-- Gunakan Bootstrap yang sudah terpasang di repository.
-- Jangan mengganti versi mayor Bootstrap atau menambahkan framework UI paralel dalam tugas tampilan biasa.
-- Gunakan komponen dan utility Bootstrap sebelum menulis CSS khusus.
-- CSS khusus hanya untuk kebutuhan identitas SIBK atau perilaku yang tidak disediakan Bootstrap.
-- Seluruh warna, radius, shadow, ukuran penting, dan variasi komponen berasal dari token terpusat.
-- Jangan memakai inline style dan jangan menyebarkan nilai hex/rgb ke file halaman.
-- Ikuti pola templating, bundler, dan struktur aset yang ditemukan dari audit repository.
+- Audit versi Bootstrap, pola stack, routing, komponen bersama, token, dan pemeriksaan tersedia sebelum mengubah kode.
+- Gunakan Bootstrap serta komponen yang sudah ada sebelum membuat CSS atau komponen khusus; jangan menggandakan pola bersama.
+- Ambil nilai visual dari foundations `hifi-approved` melalui token/CSS variables terpusat. Jangan hardcode nilai berulang, menyebarkan hex/rgb, atau memakai inline style pada halaman.
+- Gunakan fixture sintetis; jangan menetapkan kontrak backend, kebijakan domain, atau hak akses dari asumsi frontend.
+- Implementasikan state, responsif, aksesibilitas, dan variasi peran yang tercantum pada brief dan high-fidelity.
 
-## Batas tahap frontend
+## QA dan handoff
 
-- Boleh membuat adapter, fixture sintetis, dan mock state untuk mengembangkan UI.
-- Jangan mengubah skema basis data, aturan otorisasi backend, atau integrasi sumber data tanpa tugas backend terpisah.
-- Jangan menampilkan aksi yang tidak tersedia bagi peran, tetapi tetap asumsikan server wajib menolak akses langsung.
-- Jangan menetapkan opsi domain yang masih terbuka sebagai konstanta final.
+Agen menjalankan pemeriksaan teknis yang relevan dan tersedia: format/lint/build/test serta pemeriksaan route, komponen, dan aksesibilitas statis. Agen tidak otomatis membuka browser, mengambil screenshot, membandingkan gambar, atau menjalankan visual regression; lakukan hanya bila pengguna memintanya eksplisit.
 
-## Hasil minimum per halaman
+Setelah pemeriksaan teknis, handoff wajib `manual-visual-review-pending`, bukan klaim visually complete. Reviewer manusia memakai [review visual manual](manual-visual-review.md) pada desktop referensi, tablet `768px`, mobile `390px`, serta seluruh state/peran brief. Hanya reviewer manusia/owner yang ditentukan dapat mengubah status menjadi `implemented`.
 
-- implementasi mengikuti ID `PG-*`;
-- frame atau ekspor wireframe yang digunakan dapat ditelusuri;
-- perbedaan antara wireframe dan UI produksi dijelaskan serta tidak mengubah kebutuhan;
-- komponen reusable digunakan bila pola muncul lebih dari sekali;
-- state loading, kosong, berhasil, gagal, read-only, dan akses ditolak tersedia sesuai kebutuhan;
-- tampilan diperiksa pada mobile, tablet, dan desktop;
-- keyboard, fokus, label, pesan error, serta kontras diperiksa;
-- perubahan memiliki keterlacakan ke requirement dan keputusan UX;
-- dokumentasi serta test diperbarui.
+Gunakan [checklist QA frontend](qa-checklist.md) dan [urutan implementasi halaman](page-implementation-order.md) sebagai pelengkap rute aktif ini.

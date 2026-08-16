@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "check:frontend": "node scripts/check-frontend.mjs",
         "dev": "vite"
     },
     "devDependencies": {
@@ -13,9 +14,6 @@
         "vite": "^8.0.0"
     },
     "dependencies": {
-        "@popperjs/core": "^2.11.8",
-        "bootstrap": "^5.3.8",
-        "jquery": "^3.7.1",
-        "sweetalert2": "^11.14.0"
+        "bootstrap": "^5.3.8"
     }
 }

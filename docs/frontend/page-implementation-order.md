@@ -1,16 +1,15 @@
 # Urutan Implementasi Halaman Frontend
 
-Urutan ini mengurangi pekerjaan ulang dan mengikuti dependensi komponen. Satu gelombang harus stabil sebelum gelombang berikutnya dimulai, kecuali tim membagi pekerjaan pada komponen yang tidak saling bergantung.
+Urutan ini mengurangi pekerjaan ulang dan mengikuti dependensi komponen. Ia tidak mengizinkan halaman dimulai hanya karena urutannya tiba: setiap `PG-*` membutuhkan brief, board atau ekspor yang dapat diperiksa, dan status `hifi-approved` sebelum implementasi visual. Setelah pemeriksaan teknis agen, setiap halaman masuk `manual-visual-review-pending` hingga review manusia selesai.
 
-Setiap ID halaman harus dicocokkan dengan `docs/design/wireframe-page-map.md` sebelum implementasi. Wireframe membantu memastikan informasi, pengelompokan, prioritas, navigasi, dan alur halaman tidak terlewat; detail UI mengikuti `docs/design/README.md` dan `docs/design/ui-quality-bar.md`.
+Sebelum setiap gelombang, audit repository, Bootstrap, token, dan komponen bersama. Implementasikan fondasi atau komponen yang benar-benar dibagi lebih dahulu; jangan menduplikasi komponen antarhalaman. Gunakan [workflow high-fidelity ke frontend](hifi-to-frontend-workflow.md) dan [peta desain](../design/design-page-map.md), bukan rute wireframe langsung ke UI produksi.
 
 ## Gelombang 0 — Fondasi UI
 
-- Audit repository dan inventaris komponen yang sudah ada.
-- App shell, sidebar, offcanvas mobile, top bar, breadcrumb, container, grid, dan token.
-- Komponen dasar: button, form feedback, alert, badge status, empty state, loading state, modal konfirmasi, table shell, filter bar, pagination, dan access denied.
+- App shell, sidebar, offcanvas mobile, top bar, breadcrumb, container, grid, dan token terpusat.
+- Komponen dasar bersama: button, form feedback, alert, badge status, empty/loading state, modal konfirmasi, table shell, filter bar, pagination, dan access denied.
 
-**Selesai ketika:** pola dasar dapat digunakan ulang dan lolos pemeriksaan mobile/desktop serta keyboard.
+**Selesai ketika:** fondasi dapat digunakan ulang, setiap sumber desain yang dipakai telah `hifi-approved`, dan hasil teknis dapat diserahkan untuk review visual manual.
 
 ## Gelombang 1 — Akses dan konteks global
 
@@ -32,7 +31,7 @@ Setiap ID halaman harus dicocokkan dengan `docs/design/wireframe-page-map.md` se
 - `PG-106` Selesaikan Kasus
 - `PG-107` Koordinasikan Kasus dengan Waka
 
-**Alasan:** ini merupakan nilai utama MVP dan membentuk komponen form, timeline, detail, akses sensitif, serta read-only Waka.
+**Alasan:** membentuk komponen form, timeline, detail, akses sensitif, serta read-only Waka.
 
 ## Gelombang 3 — Data dan histori murid
 
@@ -71,4 +70,4 @@ Setiap ID halaman harus dicocokkan dengan `docs/design/wireframe-page-map.md` se
 
 - `PG-203` Catat/Edit Prestasi
 
-**Syarat mulai:** fungsi kasus, tindak lanjut, laporan, akses, dan keputusan domain prestasi telah stabil.
+**Syarat mulai:** fungsi kasus, tindak lanjut, laporan, akses, dan keputusan domain prestasi telah stabil, beserta brief dan high-fidelity `hifi-approved`.

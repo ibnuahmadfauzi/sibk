@@ -1,44 +1,37 @@
-// ===========================================
-// Bootstrap SCSS Variable Overrides
-// ===========================================
-// File ini di-import SEBELUM bootstrap.
-// Variabel di sini mengganti default Bootstrap.
-// ===========================================
+// Bootstrap Sass overrides. Import before bootstrap.scss.
+@import 'token-values';
 
-// ── Warna ───────────────────────────────────
-$primary:       #2f5b85;
-$secondary:     #5f6b7a;
-$success:       #18794e;
-$info:          #175cd3;
-$warning:       #8a5a00;
-$danger:        #b42318;
+$primary: $sibk-primary;
+$secondary: $sibk-text-muted;
+$success: $sibk-success;
+$info: $sibk-info;
+$warning: $sibk-warning;
+$danger: $sibk-danger;
 
-// ── Tipografi ───────────────────────────────
 $font-family-sans-serif: 'Inter', Arial, Helvetica, sans-serif;
-$font-size-base: 0.875rem;  // 14px
-$font-size-sm:   0.8125rem; // 13px
+$font-size-base: 0.875rem;
+$font-size-sm: 0.8125rem;
+$line-height-base: 1.5;
 
-// ── Border radius ───────────────────────────
-$border-radius:     0.5rem;   // 8px
-$border-radius-sm:  0.375rem; // 6px
-$border-radius-lg:  0.75rem;  // 12px
+$border-radius: $sibk-radius-sm;
+$border-radius-sm: 0.375rem;
+$border-radius-lg: $sibk-radius-md;
+$border-radius-xl: $sibk-radius-lg;
+$border-radius-pill: 50rem;
 
-// ── Body ────────────────────────────────────
-$body-bg:    #eef3f8;
-$body-color: #1f2937;
+$body-bg: $sibk-page;
+$body-color: $sibk-text;
+$border-color: $sibk-border;
 
-// ── Border ──────────────────────────────────
-$border-color: #cdd6e1;
+$input-border-color: $sibk-border;
+$input-focus-border-color: $sibk-primary;
+$input-focus-box-shadow: 0 0 0 0.2rem $sibk-focus-ring;
+$input-border-radius: $sibk-radius-md;
+$input-padding-y: 0.625rem;
+$input-padding-x: 0.875rem;
 
-// ── Input ───────────────────────────────────
-$input-border-color:        #cdd6e1;
-$input-focus-border-color:  $primary;
-$input-focus-box-shadow:    0 0 0 3px rgba(47, 91, 133, 0.12);
-$input-border-radius:       0.625rem; // 10px
-$input-padding-y:           0.625rem;
-$input-padding-x:           0.875rem;
-
-// ── Buttons ─────────────────────────────────
-$btn-border-radius:    0.625rem;
-$btn-font-weight:      600;
-$btn-focus-box-shadow: 0 0 0 3px rgba(47, 91, 133, 0.25);
+$btn-border-radius: $sibk-radius-md;
+$btn-font-weight: 600;
+$btn-padding-y: 0.625rem;
+$btn-padding-x: 1.25rem;
+$btn-focus-box-shadow: 0 0 0 0.2rem $sibk-focus-ring;

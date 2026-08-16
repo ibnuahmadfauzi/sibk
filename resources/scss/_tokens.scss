@@ -1,91 +1,56 @@
-// ===========================================
-// SIBK Design Tokens
-// ===========================================
-// Satu-satunya sumber nilai visual proyek.
-// Semua file SCSS dan komponen harus merujuk
-// variabel ini, bukan hardcode warna/radius.
-// ===========================================
+@use 'sass:color';
+@import 'token-values';
 
 :root {
-  // ── Brand & Navigasi ──────────────────────
-  --sibk-color-primary:          #2f5b85;
-  --sibk-color-primary-hover:    #244867;
-  --sibk-color-primary-contrast: #ffffff;
-  --sibk-color-primary-light:    #eef2ff;
+  --sibk-color-primary: #{$sibk-primary};
+  --sibk-color-primary-hover: #{$sibk-primary-hover};
+  --sibk-color-primary-contrast: #{$sibk-primary-contrast};
+  --sibk-color-primary-soft: #{$sibk-primary-soft};
+  --sibk-color-sidebar: #{$sibk-sidebar};
+  --sibk-color-sidebar-deep: #{$sibk-sidebar-deep};
+  --sibk-color-sidebar-text: #{$sibk-sidebar-text};
+  --sibk-color-nav-active-bg: #{$sibk-nav-active-bg};
+  --sibk-color-nav-active-text: #{$sibk-nav-active-text};
+  --sibk-color-page: #{$sibk-page};
+  --sibk-color-surface: #{$sibk-surface};
+  --sibk-color-surface-raised: #{$sibk-surface-raised};
+  --sibk-color-text: #{$sibk-text};
+  --sibk-color-text-muted: #{$sibk-text-muted};
+  --sibk-color-text-subtle: #{$sibk-text-subtle};
+  --sibk-color-border: #{$sibk-border};
+  --sibk-color-border-light: #{$sibk-border-light};
+  --sibk-color-accent: #{$sibk-accent};
+  --sibk-color-accent-soft: #{$sibk-accent-soft};
+  --sibk-color-brand-panel: #{$sibk-brand-panel};
+  --sibk-color-success: #{$sibk-success};
+  --sibk-color-success-soft: #{$sibk-success-soft};
+  --sibk-color-warning: #{$sibk-warning};
+  --sibk-color-warning-soft: #{$sibk-warning-soft};
+  --sibk-color-danger: #{$sibk-danger};
+  --sibk-color-danger-soft: #{$sibk-danger-soft};
+  --sibk-color-danger-border: #{$sibk-danger-border};
+  --sibk-color-info: #{$sibk-info};
+  --sibk-color-info-soft: #{$sibk-info-soft};
+  --sibk-color-purple: #{$sibk-purple};
+  --sibk-color-purple-soft: #{$sibk-purple-soft};
+  --sibk-focus-ring: #{$sibk-focus-ring};
+  --sibk-shadow-card: #{$sibk-shadow-card};
+  --sibk-shadow-card-hover: #{$sibk-shadow-card-hover};
+  --sibk-shadow-button: #{$sibk-shadow-button};
+  --sibk-radius-sm: #{$sibk-radius-sm};
+  --sibk-radius-md: #{$sibk-radius-md};
+  --sibk-radius-lg: #{$sibk-radius-lg};
+  --sibk-radius-xl: #{$sibk-radius-xl};
+  --sibk-sidebar-width: #{$sibk-sidebar-width};
+  --sibk-topbar-height: #{$sibk-topbar-height};
 
-  --sibk-color-sidebar:          #2f5b85;
-  --sibk-color-sidebar-dark:     #1e4a6e;
-  --sibk-color-sidebar-text:     #ffffff;
-  --sibk-color-nav-active-bg:    rgba(255, 255, 255, 0.18);
-  --sibk-color-nav-hover-bg:     rgba(255, 255, 255, 0.10);
-  --sibk-color-nav-active-text:  #ffffff;
-
-  // ── Permukaan & Teks ──────────────────────
-  --sibk-color-page:             #eef3f8;
-  --sibk-color-surface:          #f7f9fc;
-  --sibk-color-surface-raised:   #ffffff;
-  --sibk-color-text:             #1f2937;
-  --sibk-color-text-muted:       #5f6b7a;
-  --sibk-color-text-subtle:      #aab0be;
-  --sibk-color-border:           #cdd6e1;
-  --sibk-color-border-light:     #e8ecf4;
-
-  // ── Aksen ─────────────────────────────────
-  --sibk-color-accent:           #e8734a;
-  --sibk-color-accent-light:     #fff5ee;
-
-  // ── Panel Branding (login kiri) ───────────
-  --sibk-color-brand-panel:      #f5efe6;
-
-  // ── Status ────────────────────────────────
-  --sibk-color-success:          #18794e;
-  --sibk-color-success-light:    #f0fdf4;
-  --sibk-color-warning:          #8a5a00;
-  --sibk-color-warning-light:    #fffbeb;
-  --sibk-color-danger:           #b42318;
-  --sibk-color-danger-light:     #fff5f5;
-  --sibk-color-info:             #175cd3;
-  --sibk-color-info-light:       #eff6ff;
-
-  // ── Warna Stat Semantik ───────────────────
-  --sibk-color-stat-blue:        #4a6fa5;
-  --sibk-color-stat-blue-bg:     #eef2ff;
-  --sibk-color-stat-orange:      #e8734a;
-  --sibk-color-stat-orange-bg:   #fff5ee;
-  --sibk-color-stat-green:       #22c55e;
-  --sibk-color-stat-green-bg:    #f0fdf4;
-  --sibk-color-stat-purple:      #8b5cf6;
-  --sibk-color-stat-purple-bg:   #f5f0ff;
-
-  // ── Trend ─────────────────────────────────
-  --sibk-color-trend-up:         #16a34a;
-  --sibk-color-trend-down:       #dc2626;
-
-  // ── Fokus & Bentuk ────────────────────────
-  --sibk-focus-ring:             rgba(29, 78, 216, 0.35);
-  --sibk-radius-sm:              0.5rem;    // 8px
-  --sibk-radius-md:              0.75rem;   // 12px
-  --sibk-radius-lg:              1rem;      // 16px
-  --sibk-radius-xl:              1.25rem;   // 20px
-  --sibk-radius-pill:            50rem;
-
-  // ── Bayangan ──────────────────────────────
-  --sibk-shadow-card:            0 4px 40px rgba(74, 111, 165, 0.10);
-  --sibk-shadow-card-hover:      0 6px 24px rgba(45, 95, 161, 0.10);
-  --sibk-shadow-btn:             0 4px 14px rgba(47, 91, 133, 0.30);
-  --sibk-shadow-btn-hover:       0 6px 20px rgba(47, 91, 133, 0.40);
-
-  // ── Layout ────────────────────────────────
-  --sibk-sidebar-width:          230px;
-  --sibk-topbar-height:          60px;
-
-  // ── Pemetaan ke Bootstrap ─────────────────
-  --bs-primary:       var(--sibk-color-primary);
-  --bs-primary-rgb:   47, 91, 133;
-  --bs-body-bg:       var(--sibk-color-page);
-  --bs-body-color:    var(--sibk-color-text);
-  --bs-border-color:  var(--sibk-color-border);
-  --bs-border-radius:    var(--sibk-radius-sm);
+  // Pemetaan dasar Bootstrap — provisional sampai foundations approved
+  --bs-primary: var(--sibk-color-primary);
+  --bs-primary-rgb: #{color.channel($sibk-primary, 'red', $space: rgb)}, #{color.channel($sibk-primary, 'green', $space: rgb)}, #{color.channel($sibk-primary, 'blue', $space: rgb)};
+  --bs-body-bg: var(--sibk-color-page);
+  --bs-body-color: var(--sibk-color-text);
+  --bs-border-color: var(--sibk-color-border);
+  --bs-border-radius: var(--sibk-radius-sm);
   --bs-border-radius-lg: var(--sibk-radius-md);
   --bs-focus-ring-color: var(--sibk-focus-ring);
 }

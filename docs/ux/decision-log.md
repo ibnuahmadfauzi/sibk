@@ -20,6 +20,8 @@ Keputusan di bawah dapat diterapkan untuk menyelesaikan ketidakjelasan UX tanpa 
 | UX-014 | Filter aktif terlihat, dapat dihapus satu per satu, dan dipertahankan saat pengguna kembali dari halaman detail bila alur memungkinkan. | Mengurangi pengulangan saat meninjau banyak kasus atau murid. | State filter dikelola pada pola yang sesuai dengan stack. | Disetujui ahli |
 | UX-015 | Gunakan bahasa antarmuka yang netral, singkat, dan tidak menghakimi murid. | Konteks BK memerlukan komunikasi yang aman dan profesional. | Microcopy diperiksa pada form, alert, empty state, dan error. | Disetujui ahli |
 | UX-016 | Perlakukan wireframe sebagai kerangka UX content-first untuk informasi, pengelompokan, prioritas, layout dasar, navigasi, dan alur. Ahli UI menyempurnakan komponen serta visual akhir; perubahan struktur besar memerlukan alasan UX dan pencatatan. | Wireframe low-fidelity bukan desain visual final, tetapi tetap memuat keputusan UX awal. | Review menilai maksud UX, ketercakupan informasi, kemudahan penggunaan, daya tarik visual, responsif, dan aksesibilitas; bukan kemiripan gaya atau posisi secara piksel. | Disetujui ahli |
+| UX-017 | Pisahkan low-fidelity sebagai kontrak UX dan high-fidelity sebagai kontrak visual. | Mengurangi tafsir visual agen dan menjaga keterlacakan perubahan. | Setiap halaman melewati lowfi-approved lalu hifi-approved sebelum frontend. | Disetujui pemilik proyek |
+| UX-018 | Gunakan arah visual tenang, ramah, profesional, biru lembut, navy, putih hangat, krem, soft UI ringan, ikon outline, dan ilustrasi pendukung. | Sesuai karakter layanan BK tanpa terasa menghukum atau generik. | Nilai presisi berasal dari foundations high-fidelity dan design tokens. | Disetujui pemilik proyek |
 
 ## Aturan pencatatan keputusan UX baru
 

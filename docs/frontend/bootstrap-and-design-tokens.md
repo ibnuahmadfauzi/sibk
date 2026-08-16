@@ -2,60 +2,62 @@
 
 ## Tujuan
 
-Bootstrap menjadi fondasi komponen. Design tokens menjadi satu-satunya tempat untuk mengubah warna, radius, bayangan, dan karakter visual SIBK. Style guide dapat disesuaikan kemudian tanpa mengedit setiap halaman.
+Bootstrap menjadi fondasi komponen. Design tokens/CSS variables terpusat menjadi satu-satunya tempat untuk mengubah warna, radius, bayangan, dan karakter visual SIBK. Nilai final harus dipetakan dari foundations Penpot `hifi-approved`; tidak ada halaman yang menjadi sumber nilai visual sendiri.
 
 ## Aturan utama
 
 1. Gunakan versi Bootstrap yang sudah ada di repository setelah audit.
-2. Jangan melakukan upgrade versi mayor dalam pekerjaan UI biasa.
-3. Bila pipeline Sass tersedia, override variabel Bootstrap sebelum import Bootstrap dan keluarkan CSS custom properties dari sumber token yang sama.
+2. Jangan melakukan upgrade versi mayor atau menambah framework UI paralel dalam pekerjaan UI biasa.
+3. Bila pipeline Sass tersedia, override variabel Bootstrap sebelum import Bootstrap dan keluarkan custom properties dari sumber token yang sama.
 4. Bila pipeline hanya CSS, simpan token pada satu file tema yang dimuat setelah Bootstrap.
-5. Jangan mendefinisikan warna atau shadow langsung pada template halaman.
+5. Jangan mendefinisikan warna, radius, shadow, atau nilai visual berulang langsung pada template/komponen halaman; jangan gunakan inline style.
 6. Gunakan nama token berdasarkan fungsi, bukan nama warna seperti `blue-1` atau `cream-2`.
-7. Komponen khusus memakai namespace `.sibk-*` agar tidak bertabrakan dengan Bootstrap.
+7. Komponen khusus memakai namespace `.sibk-*` agar tidak bertabrakan dengan Bootstrap dan digunakan ulang bila polanya bersama.
 
-## Token awal
+## Token awal `provisional`
 
-Nilai berikut adalah titik awal implementasi, bukan style guide permanen. Perubahan warna hanya dilakukan pada sumber token.
+Nilai berikut berstatus **`provisional`**: titik awal arsitektur token, bukan style guide permanen dan bukan salinan high-fidelity. Nilai ini belum boleh dianggap approved sampai foundations Penpot high-fidelity yang disahkan memetakannya ke sumber token terpusat. Jangan menebak atau menyalin nilai dari screenshot; jika foundations belum tersedia, pertahankan status `provisional` dan catat kekurangan desain.
+
+Ketika foundations approved tersedia, ganti nilai provisional pada sumber pusat beserta pemetaan Bootstrap terkait, bukan di komponen atau halaman.
 
 ```css
 :root {
-  /* Brand dan navigasi */
+  /* Brand dan navigasi — provisional */
   --sibk-color-primary: #2f5b85;
   --sibk-color-primary-hover: #244867;
   --sibk-color-primary-contrast: #ffffff;
-  --sibk-color-sidebar: #2f5b85;
-  --sibk-color-sidebar-text: #ffffff;
+  --sibk-color-sidebar: var(--sibk-color-primary);
+  --sibk-color-sidebar-text: var(--sibk-color-primary-contrast);
   --sibk-color-nav-active-bg: #f3e8cd;
   --sibk-color-nav-active-text: #243449;
 
-  /* Permukaan dan teks */
+  /* Permukaan dan teks — provisional */
   --sibk-color-page: #eef3f8;
   --sibk-color-surface: #f7f9fc;
-  --sibk-color-surface-raised: #ffffff;
+  --sibk-color-surface-raised: var(--sibk-color-primary-contrast);
   --sibk-color-text: #1f2937;
   --sibk-color-text-muted: #5f6b7a;
   --sibk-color-border: #cdd6e1;
 
-  /* Status */
+  /* Status — provisional */
   --sibk-color-success: #18794e;
   --sibk-color-warning: #8a5a00;
   --sibk-color-danger: #b42318;
   --sibk-color-info: #175cd3;
 
-  /* Fokus dan bentuk */
+  /* Fokus dan bentuk — provisional */
   --sibk-focus-ring: rgba(29, 78, 216, 0.35);
   --sibk-radius-sm: 0.5rem;
   --sibk-radius-md: 0.75rem;
   --sibk-radius-lg: 1rem;
 
-  /* Soft UI yang dibatasi */
+  /* Soft UI yang dibatasi — provisional */
   --sibk-shadow-raised: 0.5rem 0.5rem 1rem rgba(55, 74, 96, 0.14),
     -0.5rem -0.5rem 1rem rgba(255, 255, 255, 0.8);
   --sibk-shadow-inset: inset 0.2rem 0.2rem 0.45rem rgba(55, 74, 96, 0.16),
     inset -0.2rem -0.2rem 0.45rem rgba(255, 255, 255, 0.75);
 
-  /* Pemetaan dasar Bootstrap */
+  /* Pemetaan dasar Bootstrap — provisional sampai foundations approved */
   --bs-primary: var(--sibk-color-primary);
   --bs-primary-rgb: 47, 91, 133;
   --bs-body-bg: var(--sibk-color-page);
@@ -67,7 +69,7 @@ Nilai berikut adalah titik awal implementasi, bukan style guide permanen. Peruba
 }
 ```
 
-Jika warna primer berubah, nilai `--bs-primary-rgb` harus ikut diperbarui pada sumber token yang sama. Jangan menyalin nilai RGB tersebut ke komponen lain.
+Nilai `rgb` dalam contoh ini juga `provisional` dan harus diperbarui bersama token sumbernya ketika foundations approved berubah. Jangan menyalin nilai tersebut ke komponen lain.
 
 ## Pemetaan komponen Bootstrap
 
@@ -81,7 +83,7 @@ Gunakan custom properties komponen Bootstrap bila tersedia pada versi yang terpa
   --bs-btn-hover-border-color: var(--sibk-color-primary-hover);
   --bs-btn-color: var(--sibk-color-primary-contrast);
   --bs-btn-hover-color: var(--sibk-color-primary-contrast);
-  --bs-btn-focus-shadow-rgb: 47, 91, 133;
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
 }
 
 .sibk-sidebar {
@@ -108,20 +110,11 @@ Jika versi Bootstrap belum mendukung custom properties komponen, lakukan pemetaa
 ## Aturan komponen
 
 - Gunakan `.btn`, `.form-control`, `.form-select`, `.table`, `.card`, `.modal`, `.offcanvas`, `.alert`, `.badge`, `.nav`, dan grid Bootstrap sebagai basis.
-- Buat komponen SIBK hanya ketika pola memiliki makna atau struktur khusus proyek.
+- Buat komponen SIBK hanya ketika pola memiliki makna atau struktur khusus proyek; jangan menggandakan markup modal, alert, empty state, pagination, filter bar, atau form feedback.
 - Gunakan variant semantik seperti `primary`, `success`, `warning`, dan `danger`; jangan mengandalkan warna tanpa label.
 - Hindari `!important`. Jika diperlukan karena batas versi Bootstrap, dokumentasikan alasan pada file style yang sama.
-- Jangan menggandakan markup modal, alert, empty state, pagination, filter bar, atau form feedback.
 - Setiap komponen interaktif memiliki default, hover, focus-visible, active, disabled, loading, dan error sesuai relevansi.
 
 ## Gerbang perubahan token
 
-Perubahan token harus diperiksa pada:
-
-- sidebar dan menu aktif;
-- tombol dan tautan;
-- input, select, checkbox, radio, dan focus ring;
-- kartu, modal, dropdown, offcanvas, dan tabel;
-- badge, alert, serta status kasus;
-- mobile dan desktop;
-- kontras teks serta elemen fokus.
+Sebelum nilai `provisional` dipromosikan, foundations high-fidelity yang disahkan harus menjadi sumbernya. Perubahan token diperiksa secara teknis pada sidebar/menu aktif, tombol/tautan, input/select/checkbox/radio/focus ring, kartu/modal/dropdown/offcanvas/tabel, badge/alert/status, serta pemakaian token di mobile dan desktop. Kesesuaian visualnya tetap masuk review manusia setelah handoff `manual-visual-review-pending`.

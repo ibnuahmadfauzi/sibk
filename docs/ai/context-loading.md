@@ -1,33 +1,42 @@
 # Aturan Pemuatan Konteks
 
-Tujuannya adalah menjaga konsistensi tanpa memenuhi context window dengan dokumen yang tidak berkaitan.
+Tujuannya menjaga konsistensi tanpa memuat dokumen yang tidak berkaitan.
 
 ## Prinsip
 
-- Jumlah file di repository tidak menjadi masalah; isi file baru memakai konteks ketika dimuat.
-- Jangan membaca seluruh folder `docs/` pada awal tugas.
-- Mulai dari router, ID halaman/requirement, dan file kode terdekat.
-- Gunakan pencarian untuk mengambil bagian yang relevan sebelum membuka dokumen besar.
-- Satu aturan harus memiliki satu sumber kanonik. Dokumen lain cukup menautkannya.
-- Perluas konteks hanya ketika ditemukan dependensi, konflik, atau risiko lintas area.
+- Jangan membaca seluruh folder `docs/` pada awal tugas; mulai dari router, tahap, ID halaman/requirement, dan file kode terdekat.
+- Gunakan pencarian untuk mengambil bagian relevan sebelum membuka dokumen besar.
+- Satu aturan memiliki satu sumber kanonik; perluas konteks hanya saat ada dependensi, konflik, atau risiko lintas area.
+- Browser, screenshot, dan visual regression tidak digunakan otomatis; gunakan hanya atas permintaan eksplisit.
 
 ## Anggaran konteks awal
 
-- Always On Antigravity: hanya `.agents/rules/00-project-context.md`; tanpa impor `@` dokumen panjang.
-- Codex: `AGENTS.md`, lalu router.
-- Tugas biasa: mulai dengan paling banyak empat dokumen domain selain entrypoint.
+- Always On Antigravity hanya `.agents/rules/00-project-context.md`, tanpa impor `@` dokumen panjang. Codex membaca `AGENTS.md`, lalu router.
+- Tugas satu halaman memulai dengan satu brief PG, satu sumber desain sesuai tahap, dan paling banyak dua pedoman tambahan.
+- Untuk frontend, sumber desain adalah board atau ekspor halaman `hifi-approved`, bukan low-fidelity. Gambar visual direction tidak dimuat bila board atau ekspor hifi-approved halaman sudah tersedia.
 - PRD, SRS, inventaris field, open validation, dan access matrix dibaca per bagian atau ID, bukan seluruhnya.
 
-Anggaran ini dapat dilampaui untuk perubahan arsitektur, keamanan, migrasi data, atau kebijakan lintas modul. Alasan perluasan harus jelas dari tugas.
+Anggaran dapat dilampaui untuk arsitektur, keamanan, migrasi data, atau kebijakan lintas modul; alasan perluasan harus jelas dari tugas.
 
 ## Paket konteks minimum
 
+### UX dan low-fidelity satu halaman
+
+1. Brief PG halaman.
+2. Sumber low-fidelity yang dipetakan.
+3. Paling banyak dua pedoman UX, akses, keputusan, atau state yang relevan.
+
+### UI high-fidelity satu halaman
+
+1. Brief PG halaman.
+2. Satu sumber desain sesuai tahap: low-fidelity approved atau board high-fidelity yang dipetakan.
+3. Paling banyak dua pedoman visual, token, akses, atau keputusan yang relevan. Peta/status dipakai hanya untuk memilih atau mencatat sumber bila brief belum cukup.
+
 ### Frontend satu halaman
 
-1. Baris halaman pada inventaris.
-2. Item field/aksi untuk halaman tersebut.
-3. Frame/ekspor wireframe terkait.
-4. Satu dokumen pedoman sesuai fokus: visual, UX, akses, atau QA.
+1. Brief PG halaman.
+2. Board atau ekspor `hifi-approved` halaman.
+3. Paling banyak dua pedoman, biasanya workflow frontend dan aturan token.
 
 ### Backend satu kontrak/fitur
 
@@ -36,21 +45,9 @@ Anggaran ini dapat dilampaui untuk perubahan arsitektur, keamanan, migrasi data,
 3. Aturan backend/API bila kontrak berubah.
 4. File kode dan test terdekat.
 
-### Review
-
-1. Brief/PR dan diff.
-2. Requirement serta keputusan yang disebutkan.
-3. Checklist kualitas yang sesuai area.
-
 ## Kapan membaca dokumen penuh
 
-Baca dokumen penuh hanya untuk:
-
-- menyusun atau mengubah arsitektur lintas modul;
-- mengubah model akses atau data sensitif;
-- merevisi baseline PRD/SRS;
-- melakukan audit konsistensi dokumentasi;
-- menyelesaikan konflik yang melibatkan banyak requirement.
+Baca dokumen penuh hanya untuk arsitektur lintas modul, model akses atau data sensitif, baseline PRD/SRS, audit konsistensi dokumentasi, atau konflik banyak requirement.
 
 ## Larangan
 
