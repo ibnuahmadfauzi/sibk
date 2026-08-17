@@ -23,8 +23,10 @@ $body-bg: $sibk-page;
 $body-color: $sibk-text;
 $border-color: $sibk-border;
 
+$input-bg: $sibk-field;
 $input-border-color: $sibk-border;
 $input-focus-border-color: $sibk-primary;
+$input-box-shadow: $sibk-shadow-inset;
 $input-focus-box-shadow: 0 0 0 0.2rem $sibk-focus-ring;
 $input-border-radius: $sibk-radius-md;
 $input-padding-y: 0.625rem;

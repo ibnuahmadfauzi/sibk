@@ -10,7 +10,7 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-// ─── Main Layout ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 :root {
   --sibk-sidebar-width: 17.5rem;
@@ -53,7 +53,7 @@ body {
   }
 }
 
-// ─── Topbar ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Topbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-topbar {
   position: sticky;
@@ -64,7 +64,6 @@ body {
   gap: 1.5rem;
   padding: 1rem 1.5rem;
   background: var(--sibk-color-page);
-  border-bottom: 1px solid var(--sibk-color-border-light);
 
   &__menu {
     display: none;
@@ -97,45 +96,66 @@ body {
   &__search-input {
     width: 100%;
     padding-left: 2.75rem;
-    border-radius: 50rem;
-    border-color: var(--sibk-color-border);
+    border-radius: var(--sibk-radius-lg);
+    border: none;
     background: var(--sibk-color-surface);
-    box-shadow: none;
-    font-size: 0.95rem;
+    box-shadow: var(--sibk-shadow-inset);
+    font-size: 0.9375rem;
+    font-weight: 400;
 
-    &:focus { border-color: var(--sibk-color-primary); box-shadow: 0 0 0 0.2rem var(--sibk-color-primary-soft); }
-    &::placeholder { color: var(--sibk-color-text-muted); font-weight: 500; }
+    &:focus { outline: none; box-shadow: var(--sibk-shadow-inset), 0 0 0 0.2rem var(--sibk-color-primary-soft); }
+    &::placeholder { color: var(--sibk-color-text-muted); font-weight: 400; }
+  }
+
+  &__user-dropdown {
+    margin-left: auto;
   }
 
   &__user {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-left: auto;
     padding: 0.4rem 0.75rem;
     border-radius: 50rem;
     cursor: pointer;
     transition: background 0.2s;
+    border: none;
+    background: transparent;
 
-    &:hover { background: var(--sibk-color-surface-raised); }
+    &:hover, &:focus { 
+      background: var(--sibk-color-surface-raised); 
+      outline: none;
+      box-shadow: none;
+    }
   }
 
   &__avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: 50%;
-    background: var(--sibk-color-primary-soft);
+    background: #E5EFFB;
     color: var(--sibk-color-primary);
+    box-shadow: 3px 4px 9px -3px rgba(53, 108, 178, 0.25);
     font-weight: 700;
     font-size: 0.9rem;
+
+    svg {
+      width: 1.2rem;
+      height: 1.2rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
   }
 
   &__user-name {
-    font-weight: 700;
-    font-size: 0.95rem;
+    font-weight: 500;
+    font-size: 0.9375rem;
     color: var(--sibk-color-text-dark);
   }
 
@@ -158,10 +178,11 @@ body {
   }
 }
 
-// ─── Sidebar ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-sidebar {
-  background: var(--sibk-color-primary);
+  background: linear-gradient(180deg, var(--sibk-color-sidebar) 0%, var(--sibk-color-sidebar-deep) 100%);
+  box-shadow: 8px 0 24px -8px rgba(32, 75, 128, 0.25);
   color: #fff;
   border-right: none;
   display: flex;
@@ -183,11 +204,22 @@ body {
     color: #fff;
     text-decoration: none;
 
-    .sibk-sidebar__logo-img {
-      width: 2.75rem;
-      height: 2.75rem;
+    .sibk-sidebar__logo-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 3.875rem;
+      height: 3.875rem;
       border-radius: 50%;
-      object-fit: cover;
+      background: #F9F7F2;
+      box-shadow: 4px 5px 12px -3px rgba(33, 77, 131, 0.38);
+      flex: 0 0 auto;
+    }
+
+    .sibk-sidebar__logo-img {
+      width: 2.5rem;
+      height: 2.5rem;
+      object-fit: contain;
     }
 
     span { display: flex; flex-direction: column; }
@@ -263,14 +295,15 @@ body {
   &:hover:not(.is-planned) { background: rgba(255, 255, 255, 0.1); color: #fff; }
   
   &.is-active {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    background: var(--sibk-color-page);
+    color: var(--sibk-color-primary);
+    box-shadow: inset 2px 2px 8px rgba(184, 203, 225, 0.55), inset 3px 4px 12px -4px rgba(27, 78, 142, 0.35);
   }
 
   &.is-planned { opacity: 0.6; cursor: not-allowed; }
 }
 
-// ─── Dashboard Layout ────────────────────────────────────────────────────────
+// â”€â”€â”€ Dashboard Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-dashboard {
   padding: clamp(1.5rem, 4vw, 2.5rem);
@@ -287,7 +320,7 @@ body {
   }
 }
 
-// ─── Status Notices & States ──────────────────────────────────────────────────
+// â”€â”€â”€ Status Notices & States â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-read-only-notice {
   display: flex;
@@ -348,18 +381,22 @@ body {
 }
 
 
-// ─── Stat Cards ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-stat-row { margin-bottom: 2rem; }
 
 .sibk-stat-card {
   height: 100%;
   background: var(--sibk-color-surface-raised);
-  border-radius: 1rem;
-  border: 1px solid rgba(0,0,0,0.06);
-  transition: transform 0.2s;
+  border-radius: var(--sibk-radius-lg);
+  border: none;
+  box-shadow: var(--sibk-shadow-raised);
+  transition: transform 0.2s, box-shadow 0.2s;
 
-  &:hover { transform: translateY(-2px); }
+  &:hover { 
+    transform: translateY(-2px);
+    box-shadow: var(--sibk-shadow-raised-hover);
+  }
 
   &__inner { display: flex; flex-direction: row; gap: 1rem; padding: 1.5rem; height: 100%; align-items: flex-start; }
   
@@ -411,14 +448,14 @@ body {
 .sibk-icon-tone--info { background: #e2def4; color: #7457c1; }
 
 
-// ─── Panels ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-panel {
   height: 100%;
   background: var(--sibk-color-surface-raised);
   border-radius: var(--sibk-radius-lg);
-  border: 1px solid var(--sibk-color-border-light);
-  box-shadow: var(--sibk-shadow-card);
+  border: none;
+  box-shadow: var(--sibk-shadow-raised);
   display: flex;
   flex-direction: column;
 
@@ -458,7 +495,7 @@ body {
   }
 }
 
-// ─── List Items (Tindak Lanjut) ──────────────────────────────────────────────
+// â”€â”€â”€ List Items (Tindak Lanjut) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-list-group { padding: 0.5rem; }
 
@@ -480,7 +517,8 @@ body {
     justify-content: center;
     width: 3.5rem;
     height: 3.5rem;
-    background: #f1f5f9;
+    background: #eef4fb;
+    box-shadow: var(--sibk-shadow-inset);
     border-radius: var(--sibk-radius-md);
     text-align: center;
 
@@ -512,7 +550,7 @@ body {
   }
 }
 
-// ─── Activity Row ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Activity Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-activity-list { padding: 0.5rem; }
 
@@ -555,7 +593,7 @@ body {
   }
 }
 
-// ─── Footer & Quick Actions ──────────────────────────────────────────────────
+// â”€â”€â”€ Footer & Quick Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-dashboard-footer {
   display: flex;
@@ -614,4 +652,394 @@ body {
 @media (max-width: 767.98px) {
   .sibk-quick-actions { flex-direction: column; }
   .sibk-quick-actions .btn { width: 100%; justify-content: center; }
+}
+
+// â”€â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+.sibk-notification-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+
+  .sibk-page-title {
+    margin-bottom: 0.25rem;
+  }
+}
+
+.sibk-notification-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+
+  .btn {
+    border-radius: 50rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+}
+
+.sibk-notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem;
+}
+
+.sibk-notification-item {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  background: #ffffff;
+  transition: background-color 0.2s, transform 0.2s;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px dashed var(--sibk-color-border-light);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__icon-col {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    
+    svg { 
+      width: 1.35rem; 
+      height: 1.35rem; 
+      fill: none; 
+      stroke: currentColor; 
+      stroke-width: 2; 
+      stroke-linecap: round; 
+      stroke-linejoin: round; 
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.35rem;
+  }
+  
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0;
+    color: var(--sibk-color-text-dark);
+  }
+  
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__time {
+    font-size: 0.75rem;
+    color: var(--sibk-color-text-muted);
+    white-space: nowrap;
+  }
+
+  &__unread-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: var(--sibk-color-primary);
+    border-radius: 50%;
+  }
+  
+  &__desc {
+    font-size: 0.85rem;
+    color: var(--sibk-color-text-muted);
+    margin: 0;
+  }
+  
+  &:hover {
+    background: #fafcff;
+  }
+  
+  &.is-unread {
+    background: #ffffff;
+    
+    .sibk-notification-item__title {
+      font-weight: 700;
+      color: var(--sibk-color-text-dark);
+    }
+    
+    &:hover {
+      background: #fafcff;
+    }
+  }
+}
+
+// ==========================================================================
+// 8. Account (PG-004)
+// ==========================================================================
+
+.sibk-account-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--sibk-color-border-light);
+  margin-bottom: 1.5rem;
+
+  &__avatar {
+    width: 6.5rem;
+    height: 6.5rem;
+    border-radius: 50%;
+    background-color: #eef4fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sibk-color-primary);
+
+    svg {
+      width: 3rem;
+      height: 3rem;
+    }
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    margin: 0 0 0.25rem 0;
+  }
+
+  &__email {
+    font-size: 0.95rem;
+    color: var(--sibk-color-text-muted);
+    margin: 0;
+  }
+}
+
+.sibk-account-details {
+  display: flex;
+  flex-direction: column;
+
+  &__item {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--sibk-color-border-light);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    font-weight: 500;
+    color: var(--sibk-color-text-muted);
+    font-size: 0.9rem;
+  }
+
+  &__value {
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    font-size: 0.9rem;
+  }
+}
+
+.sibk-security-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background-color: transparent;
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    
+    svg {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    margin: 0 0 0.25rem 0;
+  }
+
+  &__desc {
+    font-size: 0.85rem;
+    color: var(--sibk-color-text-muted);
+    margin: 0;
+  }
+}
+
+.sibk-btn-ubah-sandi {
+  padding: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.sibk-btn-logout {
+  padding: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &:hover, &:focus {
+    background-color: rgba(220, 53, 69, 0.05);
+    color: #dc3545;
+    border-color: rgba(220, 53, 69, 0.5);
+  }
+}
+
+.sibk-account-info-box {
+  background-color: #f7fbff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid var(--sibk-color-border-light);
+
+  &__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    margin: 0 0 0.5rem 0;
+  }
+
+  &__desc {
+    font-size: 0.85rem;
+    color: var(--sibk-color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+// ==========================================================================
+// 9. Cases (PG-101)
+// ==========================================================================
+
+.sibk-filter-form {
+  .sibk-form-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    margin-bottom: 0.5rem;
+  }
+  
+  .sibk-form-control, .sibk-form-select {
+    background-color: var(--sibk-color-surface);
+    border: 1px solid var(--sibk-color-border-light);
+    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+    border-radius: var(--sibk-radius-md);
+    
+    &:focus {
+      border-color: var(--sibk-color-primary-soft);
+      box-shadow: 0 0 0 0.2rem rgba(64, 114, 178, 0.15);
+    }
+  }
+}
+
+.sibk-table {
+  vertical-align: middle;
+
+  th {
+    background-color: #f1f6fc;
+    color: var(--sibk-color-text-dark);
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 2px solid var(--sibk-color-border-light);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 1.25rem 1.5rem;
+    color: var(--sibk-color-text);
+    font-size: 0.9rem;
+    border-bottom: 1px dashed var(--sibk-color-border-light);
+  }
+
+  tbody tr:hover {
+    background-color: rgba(241, 246, 252, 0.4);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.sibk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 50rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &--primary {
+    background-color: #d7e6f5;
+    color: #356cb2;
+  }
+  
+  &--info {
+    background-color: #e5effb;
+    color: #4072b2;
+  }
+  
+  &--success {
+    background-color: #e5f6eb;
+    color: #2e8b57;
+  }
+
+  &--warning {
+    background-color: #fdf3eb;
+    color: #d16b24;
+  }
 }

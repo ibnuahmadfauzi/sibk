@@ -1,0 +1,5 @@
+# Local MCP / personal credentials
+.agents/mcp_config.json
+.env
+.env.local
+.env.*.local

@@ -1,30 +1,48 @@
-# SIBK Agent Instructions
+# SIBK / Ruang BK
 
-Titik masuk Codex untuk repository Aplikasi BK. Jangan membaca seluruh `docs/` sekaligus.
+Ruang BK adalah aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 
-## Mulai kerja
+## Source of Truth
 
-1. Baca `docs/ai/00-start-here.md` sebagai router.
-2. Ikuti `docs/ai/context-loading.md`: konteks awal memuat paling banyak empat dokumen domain.
-3. Audit stack, struktur, pola, branch, dan perubahan lokal sebelum mengubah kode.
+Kebutuhan dan perilaku sistem:
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` — baseline final manusia.
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.md` — mirror AI-readable.
+- `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` — baseline final manusia.
+- `docs/requirements/SRS_Aplikasi_BK_v1.0.md` — mirror AI-readable.
+- `docs/requirements-index.md` — indeks ringan untuk menentukan bagian requirement yang perlu dibuka.
 
-## Tahap dan sumber desain
+Referensi visual frontend:
+- Penpot page `22 — UI High-Fidelity Final`.
 
-- Tahap aktif: menyelesaikan low-fidelity, lalu high-fidelity, lalu frontend.
-- Low-fidelity approved adalah kontrak UX, bukan sumber visual frontend.
-- Frontend hanya boleh dimulai ketika halaman berstatus `hifi-approved`; board atau ekspor high-fidelity halaman itu adalah sumber visualnya.
-- Agen menjalankan pemeriksaan teknis; kesesuaian visual direview manual oleh tim. Serahkan sebagai `manual-visual-review-pending` bila review belum disetujui.
-- Jangan gunakan browser, screenshot, atau visual regression kecuali tugas memintanya secara eksplisit.
+Design system frontend:
+- Penpot page `22.5 — Style Guide`.
 
-## Konteks dan batas kerja
+Page `21 — Wireframe Low-Fidelity Final` adalah artefak proses desain dan bukan referensi visual implementasi frontend.
 
-- Satu repository; branch integrasi `development`. Frontend dan backend adalah area terpisah. Frontend memakai Bootstrap dan design tokens terpusat; jangan menyebarkan nilai visual langsung.
-- Keputusan produk dan akses berasal dari `docs/decisions/`, PRD, SRS, dan access matrix; jangan menebak kebijakan BK.
-- Gunakan data sintetis. Jangan menulis rahasia atau data pribadi murid ke kode, fixture, log, gambar, atau dokumentasi.
-- Ketidakjelasan visual, responsif, state, dan interaksi dapat diputuskan sebagai UX lalu dicatat. Domain, status operasional, hak akses, retensi, dan integrasi tidak boleh diasumsikan.
+## Status Pengembangan
 
-## Siklus minimum
+- Frontend: aktif untuk dikembangkan. Fokus pengembangan saat ini adalah membangun seluruh antarmuka pengguna (UI statis) dengan asumsi "akun normal" (tanpa pembatasan role/hak akses) hingga ada instruksi untuk mengimplementasikan backend/role.
+- Backend: belum dikembangkan.
+- Integrasi Dapodik/e-Tatib: belum diimplementasikan.
+- API contract: belum dikunci.
 
-Identifikasi ID halaman/requirement dan tahap; buat perubahan terkecil; periksa akses, state, responsif, dan aksesibilitas yang relevan; jalankan pemeriksaan tersedia; perbarui dokumentasi bila keputusan berubah; laporkan file, perintah, hasil, dan risiko.
+## Aturan Umum
 
-Jangan menyatakan selesai tanpa bukti pemeriksaan yang relevan atau menyatakan kesesuaian visual tanpa review manual.
+- Pertahankan arsitektur dan konvensi repository yang sudah ada.
+- Jangan menambah fitur yang tidak tercantum pada requirement.
+- Jangan mendesain ulang UI yang sudah disetujui.
+- Gunakan komponen yang sudah ada sebelum membuat komponen baru.
+- Pisahkan UI, akses data, business logic, dan integrasi eksternal.
+- Gunakan Bahasa Indonesia untuk teks yang tampil kepada pengguna.
+- Gunakan istilah `murid`, bukan `siswa`, kecuali sumber resmi yang dirujuk memang menggunakan istilah lain.
+- Jangan hardcode hak akses berdasarkan tampilan desain. Visibilitas menu, data, dan aksi mengikuti authorization/capability aplikasi.
+- Jangan membuat endpoint, migration, model database, atau integrasi backend sebelum ada perintah eksplisit untuk memulai backend.
+
+## Context Efficiency
+
+- Jangan membuka PRD/SRS lengkap pada setiap task.
+- Jika requirement diperlukan, prioritaskan mirror `.md` dan baca hanya section/ID relevan.
+- Gunakan `docs/requirements-index.md` terlebih dahulu.
+- Buka PRD/SRS hanya ketika task memerlukan keputusan scope, behavior, akses, field, acceptance criteria, integrasi, privacy, atau aturan bisnis.
+- Untuk pekerjaan visual murni, cukup gunakan Penpot Hi-Fi, Style Guide, dan existing code.
+- Jangan menyalin isi PRD/SRS ke rules/workflows karena menambah context berulang.

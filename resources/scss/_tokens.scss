@@ -13,6 +13,7 @@
   --sibk-color-nav-active-text: #{$sibk-nav-active-text};
   --sibk-color-page: #{$sibk-page};
   --sibk-color-surface: #{$sibk-surface};
+  --sibk-color-field: #{$sibk-field};
   --sibk-color-surface-raised: #{$sibk-surface-raised};
   --sibk-color-text: #{$sibk-text};
   --sibk-color-text-muted: #{$sibk-text-muted};
@@ -34,8 +35,9 @@
   --sibk-color-purple: #{$sibk-purple};
   --sibk-color-purple-soft: #{$sibk-purple-soft};
   --sibk-focus-ring: #{$sibk-focus-ring};
-  --sibk-shadow-card: #{$sibk-shadow-card};
-  --sibk-shadow-card-hover: #{$sibk-shadow-card-hover};
+  --sibk-shadow-raised: #{$sibk-shadow-raised};
+  --sibk-shadow-raised-hover: #{$sibk-shadow-raised-hover};
+  --sibk-shadow-inset: #{$sibk-shadow-inset};
   --sibk-shadow-button: #{$sibk-shadow-button};
   --sibk-radius-sm: #{$sibk-radius-sm};
   --sibk-radius-md: #{$sibk-radius-md};

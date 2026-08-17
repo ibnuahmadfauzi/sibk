@@ -10,7 +10,7 @@ Dokumen ini berisi panduan dasar untuk melakukan setup repository, berpindah ke 
 
 Sebelum mulai melakukan pengembangan, pastikan perangkat sudah memiliki:
 
-- PHP versi **8.3 atau lebih baru**
+- PHP versi **8.4 atau lebih baru**
 - Composer
 - Git
 
@@ -20,7 +20,7 @@ Sebelum mulai melakukan pengembangan, pastikan perangkat sudah memiliki:
 php -v
 ```
 
-Pastikan versi PHP yang digunakan adalah **8.3 atau lebih baru**.
+Pastikan versi PHP yang digunakan adalah **8.4 atau lebih baru**.
 
 ### Cek Composer
 

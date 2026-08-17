@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "penpot": {
+      "serverUrl": "https://design.penpot.app/mcp/stream?userToken=YOUR_PERSONAL_MCP_KEY"
+    }
+  }
+}

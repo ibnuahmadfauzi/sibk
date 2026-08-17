@@ -133,7 +133,7 @@ body {
   padding: clamp(1.75rem, 4vw, 2.75rem);
   border-radius: var(--sibk-radius-xl);
   background: var(--sibk-color-surface-raised);
-  box-shadow: var(--sibk-shadow-card);
+  box-shadow: var(--sibk-shadow-raised);
 
   &__logo {
     display: flex;
