@@ -169,3 +169,28 @@ Route::get('/cases', function () {
 
     return view('pages.cases.index', compact('dashboard', 'cases'));
 })->name('cases.index');
+
+// Placeholder — PG-103 akan diimplementasikan pada fase berikutnya
+Route::get('/cases/show', function () {
+    return redirect()->route('cases.index');
+})->name('cases.show');
+
+Route::get('/students', function () {
+    return view('pages.students.index');
+})->name('students.index');
+
+Route::get('/students/show', function () {
+    return view('pages.students.show');
+})->name('students.show');
+
+Route::get('/consultations', function () {
+    return view('pages.consultations.index');
+})->name('consultations.index');
+
+Route::get('/consultations/create', function () {
+    return view('pages.consultations.create');
+})->name('consultations.create');
+
+Route::get('/consultations/show', function () {
+    return view('pages.consultations.show');
+})->name('consultations.show');

@@ -7,7 +7,7 @@
     </div>
 
     <div class="sibk-sidebar__content">
-        <a class="sibk-sidebar__brand" href="{{ route('dashboard.preview', ['role' => $previewRole]) }}">
+        <a class="sibk-sidebar__brand" href="{{ route('dashboard.preview') }}">
             <div class="sibk-sidebar__logo-wrapper">
                 <x-logo class="sibk-sidebar__logo-img" />
             </div>
@@ -27,10 +27,11 @@
                 <span>Layanan BK</span>
             </a>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap halaman murid">
+            <a class="sibk-nav-link {{ request()->routeIs('students.*') ? 'is-active' : '' }}" href="{{ route('students.index') }}"
+                aria-current="{{ request()->routeIs('students.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
                 <span>Data Murid</span>
-            </span>
+            </a>
 
             <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap halaman laporan">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>

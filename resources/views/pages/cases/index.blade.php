@@ -99,7 +99,7 @@
                                 </td>
                                 <td>{{ $case['follow_up'] }}</td>
                                 <td>
-                                    <a href="#" class="fw-bold text-decoration-none">Buka</a>
+                                    <a href="{{ url('cases/show') }}" class="fw-bold text-decoration-none">Buka</a>
                                 </td>
                             </tr>
                         @empty
@@ -113,7 +113,7 @@
             
             <div class="sibk-panel__footer p-4 border-top border-light">
                 <div class="text-muted small fw-medium">
-                    Menampilkan 1-{{ count($cases) }} dari {{ count($cases) }} kasus
+                    Menampilkan 1–{{ count($cases) }} dari {{ count($cases) }} kasus
                 </div>
             </div>
         </div>
