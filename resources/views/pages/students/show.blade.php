@@ -70,7 +70,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ ($activeTab ?? '') === 'prestasi' ? 'active' : '' }}" href="{{ route('students.show', ['tab' => 'prestasi', 'nisn' => $student['nisn'] ?? '']) }}">
+                    <a class="nav-link {{ ($activeTab ?? '') === 'prestasi' ? 'active' : '' }}" 
+                    href="{{ route('achievements.create', ['tab' => 'prestasi', 'nisn' => $student['nisn'] ?? '']) }}">
                         Prestasi
                     </a>
                 </li>
