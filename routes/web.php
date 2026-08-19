@@ -178,12 +178,104 @@ Route::get('/cases/show', function () {
     return view('pages.cases.show');
 })->name('cases.show');
 
+// PG-201: Daftar Murid
 Route::get('/students', function () {
-    return view('pages.students.index');
+    $students = [
+        [
+            'nisn' => '0012345678',
+            'name' => 'Murid A',
+            'class' => 'X RPL 1',
+            'active_cases' => 1,
+            'follow_up' => '18 Agu 2026',
+        ],
+        [
+            'nisn' => '0012345679',
+            'name' => 'Murid B',
+            'class' => 'X RPL 2',
+            'active_cases' => 1,
+            'follow_up' => 'Belum ada',
+        ],
+        [
+            'nisn' => '0012345680',
+            'name' => 'Murid C',
+            'class' => 'XI RPL 1',
+            'active_cases' => 0,
+            'follow_up' => 'Selesai',
+        ],
+        [
+            'nisn' => '0012345681',
+            'name' => 'Murid D',
+            'class' => 'XI RPL 2',
+            'active_cases' => 2,
+            'follow_up' => '20 Agu 2026',
+        ],
+    ];
+
+    $classes = ['Semua kelas', 'X RPL 1', 'X RPL 2', 'XI RPL 1', 'XI RPL 2', 'XII RPL 1'];
+
+    return view('pages.students.index', compact('students', 'classes'));
 })->name('students.index');
 
+// PG-202: Profil Murid
 Route::get('/students/show', function () {
-    return view('pages.students.show');
+    $student = [
+        'nisn' => request()->query('nisn', '0012345678'),
+        'name' => 'Murid A',
+        'initials' => 'MA',
+        'class' => 'X RPL 1',
+        'academic_year' => '2026/2027',
+    ];
+
+    $stats = [
+        'active_cases' => [
+            'value' => '1',
+            'label' => 'Kasus Aktif',
+            'sub' => 'Dalam penanganan',
+            'tone' => 'primary',
+            'badge_bg' => '#e9f2fb',
+            'icon_color' => '#2f6fc6',
+        ],
+        'points' => [
+            'value' => '15',
+            'label' => 'Poin e-Tatib',
+            'sub' => 'Data terkait',
+            'tone' => 'warning',
+            'badge_bg' => '#fdf3e7',
+            'icon_color' => '#d97706',
+        ],
+        'follow_ups' => [
+            'value' => '2',
+            'label' => 'Tindak Lanjut',
+            'sub' => 'Terjadwal',
+            'tone' => 'info',
+            'badge_bg' => '#e3f2fd',
+            'icon_color' => '#0284c7',
+        ],
+        'achievements' => [
+            'value' => '3',
+            'label' => 'Prestasi',
+            'sub' => 'Riwayat tercatat',
+            'tone' => 'purple',
+            'badge_bg' => '#eeeafd',
+            'icon_color' => '#6657c8',
+        ],
+    ];
+
+    $operationalSummary = [
+        'latest_case' => 'K-014 • Dalam Penanganan',
+        'next_follow_up' => '18 Agustus 2026',
+        'service_field' => 'Pribadi',
+    ];
+
+    $recentActivities = [
+        ['date' => '15 Agu', 'activity' => 'Konsultasi dicatat'],
+        ['date' => '14 Agu', 'activity' => 'Kasus K-014 dibuat'],
+        ['date' => '10 Agu', 'activity' => 'Data e-Tatib diperbarui'],
+    ];
+
+    $activeTab = request()->query('tab', 'ringkasan');
+
+    return view('pages.students.show', compact('student', 'stats', 'operationalSummary', 'recentActivities', 'activeTab'));
 })->name('students.show');
 
 Route::get('/consultations', function () {
