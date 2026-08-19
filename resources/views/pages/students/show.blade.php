@@ -2,195 +2,217 @@
 
 @section('page-title', 'Profil Murid - Ruang BK')
 
-@php
-    $student = [
-        'nisn' => '0012345678',
-        'nis' => '2021001',
-        'name' => 'Ahmad Fauzi',
-        'class' => 'X RPL 1',
-        'gender' => 'Laki-laki',
-        'religion' => 'Islam',
-        'phone' => '081234567890',
-        'address' => 'Jl. Merdeka No. 123, Surabaya',
-        'parent_name' => 'Budi Sudarsono',
-        'parent_phone' => '081298765432',
-        'status' => 'Aktif'
-    ];
-@endphp
-
 @section('body')
     <div class="sibk-dashboard">
-        <!-- Header -->
-        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
-            <div class="d-flex align-items-center gap-3">
-                <a href="{{ url('students') }}" class="btn btn-icon btn-light" aria-label="Kembali">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
+        <!-- Page Header -->
+        <div class="sibk-page-header mb-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <a href="{{ route('students.index') }}" class="sibk-back-link d-inline-flex align-items-center gap-1 text-decoration-none text-muted small fw-semibold">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6"/>
                     </svg>
+                    Daftar Murid
                 </a>
-                <div class="sibk-page-header__copy m-0">
-                    <h1 class="mb-1">Profil Murid</h1>
-                    <p class="mb-0">Detail informasi dan riwayat layanan BK.</p>
-                </div>
             </div>
-            <div class="sibk-page-header__actions">
-                <a href="#" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 20h9"></path>
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                    Edit Profil Manual
-                </a>
+            <div class="sibk-page-header__copy">
+                <h1>Profil Murid</h1>
+                <p>Riwayat layanan dan informasi terkait murid.</p>
             </div>
         </div>
 
+        <!-- Student Identity Panel -->
+        <div class="sibk-panel mb-4">
+            <div class="sibk-panel__header p-4 border-0 pb-0">
+                <h3 class="sibk-panel__title d-flex align-items-center gap-2">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Identitas Murid
+                </h3>
+            </div>
+            <div class="sibk-panel__body p-4 pt-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-primary flex-shrink-0" style="width: 52px; height: 52px; background-color: #e5effb; font-size: 1.15rem;">
+                        {{ $student['initials'] ?? 'MA' }}
+                    </div>
+                    <div>
+                        <h2 class="fs-4 fw-bold text-dark mb-1">{{ $student['name'] ?? 'Murid A' }}</h2>
+                        <div class="text-muted small">
+                            NISN {{ $student['nisn'] ?? '0012345678' }} • {{ $student['class'] ?? 'X RPL 1' }} • Tahun Ajaran {{ $student['academic_year'] ?? '2026/2027' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="sibk-panel mb-4 p-2">
+            <ul class="nav nav-pills gap-1">
+                <li class="nav-item">
+                    <a class="nav-link {{ ($activeTab ?? 'ringkasan') === 'ringkasan' ? 'active' : '' }}" href="{{ route('students.show', ['tab' => 'ringkasan', 'nisn' => $student['nisn'] ?? '']) }}">
+                        Ringkasan
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ ($activeTab ?? '') === 'kasus' ? 'active' : '' }}" href="{{ route('students.show', ['tab' => 'kasus', 'nisn' => $student['nisn'] ?? '']) }}">
+                        Kasus dan Layanan
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ ($activeTab ?? '') === 'etatib' ? 'active' : '' }}" href="{{ route('students.show', ['tab' => 'etatib', 'nisn' => $student['nisn'] ?? '']) }}">
+                        Data e-Tatib
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ ($activeTab ?? '') === 'konsultasi' ? 'active' : '' }}" href="{{ route('students.show', ['tab' => 'konsultasi', 'nisn' => $student['nisn'] ?? '']) }}">
+                        Konsultasi dan Tindak Lanjut
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ ($activeTab ?? '') === 'prestasi' ? 'active' : '' }}" href="{{ route('students.show', ['tab' => 'prestasi', 'nisn' => $student['nisn'] ?? '']) }}">
+                        Prestasi
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- KPI Summary Cards (4 Columns) -->
+        <div class="row g-3 mb-4">
+            <!-- 1. Kasus Aktif -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="sibk-stat-card p-3 rounded-3 border bg-white h-100 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-2 flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: {{ $stats['active_cases']['badge_bg'] ?? '#e9f2fb' }}; color: {{ $stats['active_cases']['icon_color'] ?? '#2f6fc6' }};">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">{{ $stats['active_cases']['label'] ?? 'Kasus Aktif' }}</div>
+                        <div class="fs-4 fw-bold text-dark">{{ $stats['active_cases']['value'] ?? '1' }}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">{{ $stats['active_cases']['sub'] ?? 'Dalam penanganan' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Poin e-Tatib -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="sibk-stat-card p-3 rounded-3 border bg-white h-100 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-2 flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: {{ $stats['points']['badge_bg'] ?? '#fdf3e7' }}; color: {{ $stats['points']['icon_color'] ?? '#d97706' }};">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">{{ $stats['points']['label'] ?? 'Poin e-Tatib' }}</div>
+                        <div class="fs-4 fw-bold text-dark">{{ $stats['points']['value'] ?? '15' }}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">{{ $stats['points']['sub'] ?? 'Data terkait' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Tindak Lanjut -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="sibk-stat-card p-3 rounded-3 border bg-white h-100 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-2 flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: {{ $stats['follow_ups']['badge_bg'] ?? '#e3f2fd' }}; color: {{ $stats['follow_ups']['icon_color'] ?? '#0284c7' }};">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">{{ $stats['follow_ups']['label'] ?? 'Tindak Lanjut' }}</div>
+                        <div class="fs-4 fw-bold text-dark">{{ $stats['follow_ups']['value'] ?? '2' }}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">{{ $stats['follow_ups']['sub'] ?? 'Terjadwal' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Prestasi -->
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="sibk-stat-card p-3 rounded-3 border bg-white h-100 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-2 flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: {{ $stats['achievements']['badge_bg'] ?? '#eeeafd' }}; color: {{ $stats['achievements']['icon_color'] ?? '#6657c8' }};">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 4h8v4.5a4 4 0 0 1-8 0V4z"/>
+                            <path d="M8 5.5H5a1.5 1.5 0 0 0 1.5 2.5H8M16 5.5h3a1.5 1.5 0 0 1-1.5 2.5H16M12 12.5v4.5M8.5 19.5h7"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-medium">{{ $stats['achievements']['label'] ?? 'Prestasi' }}</div>
+                        <div class="fs-4 fw-bold text-dark">{{ $stats['achievements']['value'] ?? '3' }}</div>
+                        <div class="text-muted small" style="font-size: 0.75rem;">{{ $stats['achievements']['sub'] ?? 'Riwayat tercatat' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Layout: Ringkasan Operasional & Aktivitas Terbaru -->
         <div class="row g-4">
-            <!-- Left Column: Profile Card -->
-            <div class="col-12 col-lg-4">
+            <!-- Left Column: Ringkasan Operasional -->
+            <div class="col-12 col-lg-7">
                 <div class="sibk-panel h-100">
-                    <div class="sibk-panel__body p-4">
-                        <div class="text-center mb-4">
-                            <div class="sibk-avatar-placeholder mx-auto mb-3" style="width: 100px; height: 100px; border-radius: 50%; background-color: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: #6c757d;">
-                                {{ substr($student['name'], 0, 1) }}
+                    <div class="sibk-panel__header p-4 border-0 pb-0">
+                        <h3 class="sibk-panel__title d-flex align-items-center gap-2">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            Ringkasan Operasional
+                        </h3>
+                        <p class="sibk-panel__subtitle text-muted small">Informasi yang paling relevan dari layanan murid.</p>
+                    </div>
+                    <div class="sibk-panel__body p-4 pt-2">
+                        <div class="d-flex flex-column gap-3">
+                            <div class="p-3 rounded-3 border bg-light">
+                                <div class="text-muted small fw-semibold mb-1">Kasus terakhir</div>
+                                <div class="fs-6 fw-bold text-dark">{{ $operationalSummary['latest_case'] ?? 'K-014 • Dalam Penanganan' }}</div>
                             </div>
-                            <h3 class="fw-bold mb-1">{{ $student['name'] }}</h3>
-                            <span class="badge bg-primary bg-opacity-10 text-primary">{{ $student['class'] }}</span>
-                        </div>
-
-                        <hr class="text-light">
-
-                        <div class="mb-3">
-                            <label class="text-muted small fw-medium d-block mb-1">NISN / NIS</label>
-                            <div class="fw-bold text-dark">{{ $student['nisn'] }} / {{ $student['nis'] }}</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="text-muted small fw-medium d-block mb-1">Jenis Kelamin</label>
-                            <div class="fw-medium text-dark">{{ $student['gender'] }}</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="text-muted small fw-medium d-block mb-1">No. HP / WhatsApp</label>
-                            <div class="fw-medium text-dark">{{ $student['phone'] }}</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="text-muted small fw-medium d-block mb-1">Alamat</label>
-                            <div class="fw-medium text-dark">{{ $student['address'] }}</div>
-                        </div>
-                        <div class="mb-0">
-                            <label class="text-muted small fw-medium d-block mb-1">Orang Tua / Wali</label>
-                            <div class="fw-medium text-dark">{{ $student['parent_name'] }} ({{ $student['parent_phone'] }})</div>
+                            <div class="p-3 rounded-3 border bg-light">
+                                <div class="text-muted small fw-semibold mb-1">Tindak lanjut berikutnya</div>
+                                <div class="fs-6 fw-bold text-dark">{{ $operationalSummary['next_follow_up'] ?? '18 Agustus 2026' }}</div>
+                            </div>
+                            <div class="p-3 rounded-3 border bg-light">
+                                <div class="text-muted small fw-semibold mb-1">Bidang layanan</div>
+                                <div class="fs-6 fw-bold text-dark">{{ $operationalSummary['service_field'] ?? 'Pribadi' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: History Tabs -->
-            <div class="col-12 col-lg-8">
-                <div class="sibk-panel">
-                    <div class="sibk-panel__header p-0 border-bottom">
-                        <ul class="nav nav-tabs sibk-nav-tabs px-4 border-0" id="profileTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="konsultasi-tab" data-bs-toggle="tab" data-bs-target="#konsultasi-pane" type="button" role="tab" aria-controls="konsultasi-pane" aria-selected="true">Riwayat Konsultasi</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="kasus-tab" data-bs-toggle="tab" data-bs-target="#kasus-pane" type="button" role="tab" aria-controls="kasus-pane" aria-selected="false">Riwayat Kasus</button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="prestasi-tab" data-bs-toggle="tab" data-bs-target="#prestasi-pane" type="button" role="tab" aria-controls="prestasi-pane" aria-selected="false">Prestasi</button>
-                            </li>
+            <!-- Right Column: Aktivitas Terbaru -->
+            <div class="col-12 col-lg-5">
+                <div class="sibk-panel h-100">
+                    <div class="sibk-panel__header p-4 border-0 pb-0">
+                        <h3 class="sibk-panel__title d-flex align-items-center gap-2">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 14 10"/>
+                            </svg>
+                            Aktivitas Terbaru
+                        </h3>
+                        <p class="sibk-panel__subtitle text-muted small">Urutan perubahan yang dapat dibaca pengguna.</p>
+                    </div>
+                    <div class="sibk-panel__body p-4 pt-2">
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                            @forelse($recentActivities ?? [] as $activity)
+                                <li class="d-flex align-items-start gap-2 p-2 rounded hover-bg-light">
+                                    <span class="text-primary mt-1">•</span>
+                                    <div>
+                                        <span class="fw-bold text-dark">{{ $activity['date'] ?? '-' }}</span>
+                                        <span class="text-muted"> • {{ $activity['activity'] ?? '-' }}</span>
+                                    </div>
+                                </li>
+                            @empty
+                                <li class="text-muted small py-3 text-center">Belum ada aktivitas tercatat.</li>
+                            @endforelse
                         </ul>
                     </div>
-                    
-                    <div class="sibk-panel__body p-4 tab-content" id="profileTabsContent">
-                        
-                        <!-- Tab Konsultasi -->
-                        <div class="tab-pane fade show active" id="konsultasi-pane" role="tabpanel" aria-labelledby="konsultasi-tab" tabindex="0">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="m-0 fs-5">Sesi Bimbingan & Konsultasi</h4>
-                                <a href="{{ url('consultations/create') }}" class="btn btn-sm btn-primary">Tambah Sesi</a>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table sibk-table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Tanggal</th>
-                                            <th>Topik</th>
-                                            <th>Jenis</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>10 Agu 2026</td>
-                                            <td class="fw-medium text-dark">Konsultasi Pemilihan Jurusan Kuliah</td>
-                                            <td>Bimbingan Karir</td>
-                                            <td><span class="badge bg-success bg-opacity-10 text-success">Selesai</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="4" class="text-center py-3 text-muted">Tidak ada riwayat lain.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Tab Kasus -->
-                        <div class="tab-pane fade" id="kasus-pane" role="tabpanel" aria-labelledby="kasus-tab" tabindex="0">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="m-0 fs-5">Riwayat Pelanggaran & Kasus</h4>
-                                <a href="{{ url('cases/create') }}" class="btn btn-sm btn-primary">Catat Kasus</a>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table sibk-table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Tanggal</th>
-                                            <th>Kasus / Pelanggaran</th>
-                                            <th>Tindak Lanjut</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="4" class="text-center py-4 text-muted">Murid ini tidak memiliki riwayat kasus.</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Tab Prestasi -->
-                        <div class="tab-pane fade" id="prestasi-pane" role="tabpanel" aria-labelledby="prestasi-tab" tabindex="0">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h4 class="m-0 fs-5">Catatan Prestasi</h4>
-                                <a href="{{ url('achievements/create') }}" class="btn btn-sm btn-primary">Tambah Prestasi</a>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table sibk-table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Tanggal</th>
-                                            <th>Nama Prestasi</th>
-                                            <th>Tingkat</th>
-                                            <th>Bukti</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>15 Jul 2026</td>
-                                            <td class="fw-medium text-dark">Juara 1 Lomba Web Design Provinsi</td>
-                                            <td>Provinsi</td>
-                                            <td><a href="#" class="text-decoration-none">Lihat</a></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                    </div>
                 </div>
             </div>
         </div>
-
     </div>
 @endsection
