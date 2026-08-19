@@ -1043,3 +1043,171 @@ body {
     color: #d16b24;
   }
 }
+
+// ==========================================================================
+// 10. Reports (PG-301, PG-302)
+// ==========================================================================
+
+.sibk-report-card {
+  height: 100%;
+  background: var(--sibk-color-surface-raised);
+  border-radius: var(--sibk-radius-lg);
+  border: 1px solid rgba(var(--bs-primary-rgb), 0.06);
+  box-shadow: var(--sibk-shadow-raised);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sibk-shadow-raised-hover);
+  }
+
+  &__body {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+
+    svg {
+      width: 1.4rem;
+      height: 1.4rem;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  &__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    margin: 0 0 0.25rem 0;
+  }
+
+  &__desc {
+    font-size: 0.85rem;
+    color: var(--sibk-color-text-muted);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    border-top: 1px solid var(--sibk-color-border-light);
+    padding-top: 0.85rem;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--sibk-color-primary);
+    text-decoration: none;
+    transition: gap 0.2s ease, color 0.2s ease;
+
+    &:hover {
+      gap: 0.6rem;
+      color: var(--sibk-color-primary-hover);
+    }
+  }
+}
+
+.sibk-report-preview-page {
+  .sibk-back-link {
+    transition: color 0.2s;
+    &:hover {
+      color: var(--sibk-color-primary) !important;
+    }
+  }
+
+  .sibk-filter-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+  }
+
+  .sibk-btn-apply {
+    padding: 0.65rem 1rem;
+    font-weight: 600;
+    border-radius: var(--sibk-radius-md);
+  }
+}
+
+// ==========================================================================
+// 11. Pengelolaan (PG-401 s/d PG-406)
+// ==========================================================================
+
+.sibk-target-highlight-box {
+  background-color: var(--sibk-color-surface);
+  border: 1px solid var(--sibk-color-border-light);
+  border-radius: var(--sibk-radius-md);
+}
+
+.sibk-assignment-info-card {
+  background-color: var(--sibk-color-surface);
+  border: 1px solid var(--sibk-color-border-light);
+  border-radius: var(--sibk-radius-md);
+}
+
+// ==========================================================================
+// 12. Print Styles
+// ==========================================================================
+
+@media print {
+  .sibk-sidebar,
+  .sibk-topbar,
+  .no-print,
+  .sibk-skip-link {
+    display: none !important;
+  }
+
+  .sibk-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .sibk-content {
+    padding: 0 !important;
+  }
+
+  .sibk-dashboard {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .sibk-panel {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
+  .sibk-stat-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+
