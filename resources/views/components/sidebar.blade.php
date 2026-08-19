@@ -65,10 +65,11 @@
                 <span>Riwayat Perubahan</span>
             </a>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap pengelolaan">
+            <a class="sibk-nav-link {{ request()->routeIs('data-master.index') ? 'is-active' : '' }}" href="{{ route('data-master.index') }}"
+                aria-current="{{ request()->routeIs('data-master.index') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
                 <span>Data Master</span>
-            </span>
+            </a>
 
             <p class="sibk-sidebar__section">UTILITAS</p>
 
