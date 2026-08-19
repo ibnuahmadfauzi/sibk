@@ -5,18 +5,10 @@
 @section('body')
     <div class="sibk-dashboard">
         <!-- Header -->
-        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
                 <h1 class="mb-1">Data Master dan Sinkronisasi</h1>
                 <p class="mb-0">Pantau pembaruan data murid, kelas, dan data e-Tatib.</p>
-            </div>
-            <div class="sibk-page-header__actions">
-                <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-sync-all">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
-                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                    </svg>
-                    Perbarui Data
-                </button>
             </div>
         </div>
 
@@ -91,24 +83,40 @@
             </div>
         </div>
 
-        <!-- Sync Status & Details -->
-        <div class="sibk-panel mb-4">
-            <div class="sibk-panel__header flex-column align-items-start gap-2">
-                <div class="d-flex align-items-center gap-2">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
-                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                    </svg>
-                    <h2 class="m-0 fs-5 fw-bold text-dark">Status Sinkronisasi</h2>
-                </div>
-                <p class="text-muted small m-0">Data sumber tetap menjadi acuan utama dan riwayat pembaruan dapat ditelusuri.</p>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <span class="sibk-badge sibk-badge--success">Dapodik • Berhasil</span>
-                    <span class="sibk-badge sibk-badge--success">e-Tatib • Berhasil</span>
-                    <span class="sibk-badge sibk-badge--warning">3 data perlu diperiksa</span>
+        <!-- Sync Button Row -->
+        <div class="d-flex justify-content-end mb-4">
+            <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-sync-all">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                </svg>
+                Perbarui Data
+            </button>
+        </div>
+
+        <!-- Status Sinkronisasi Info Box -->
+        <div class="sibk-panel mb-4 border-0">
+            <div class="sibk-panel__body p-4 p-md-5">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="text-primary mt-1">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h2 class="fs-5 fw-bold text-dark mb-1">Status Sinkronisasi</h2>
+                        <p class="text-muted small mb-3">Data sumber tetap menjadi acuan utama dan riwayat pembaruan dapat ditelusuri.</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="sibk-badge sibk-badge--success px-3 py-2 fs-7">Dapodik • Berhasil</span>
+                            <span class="sibk-badge sibk-badge--success px-3 py-2 fs-7">e-Tatib • Berhasil</span>
+                            <span class="sibk-badge sibk-badge--warning px-3 py-2 fs-7">3 data perlu diperiksa</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Table -->
+        <!-- Sync Log Table Card -->
+        <div class="sibk-panel border-0">
             <div class="table-responsive">
                 <table class="table sibk-table mb-0">
                     <thead>
@@ -154,9 +162,9 @@
             </div>
 
             <!-- Panel Footer Action -->
-            <div class="p-3 border-top d-flex justify-content-end">
-                <a href="{{ route('students.index') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="p-3 border-top d-flex justify-content-end bg-light rounded-bottom">
+                <a href="{{ route('students.index') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 px-3 py-2">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
                     </svg>
                     Lihat Data
