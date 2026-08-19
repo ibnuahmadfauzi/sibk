@@ -559,4 +559,8 @@ Route::get('/history', function () {
     return view('pages.history.index', compact('historyLogs'));
 })->name('history.index');
 
+Route::get('/achievements/create', function () {
+    return view('pages.achievements.create');
+})->name('achievements.create');
+
 //new
