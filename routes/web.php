@@ -655,4 +655,9 @@ Route::get('/achievements/create', function () {
     return view('pages.achievements.create');
 })->name('achievements.create');
 
+Route::get('/data-master', function () {
+    return view('pages.data-master.index');
+})->name('data-master.index');
+
 //new
+
