@@ -33,32 +33,37 @@
                 <span>Data Murid</span>
             </a>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap halaman laporan">
+            <a class="sibk-nav-link {{ request()->routeIs('reports.*') ? 'is-active' : '' }}" href="{{ route('reports.index') }}"
+                aria-current="{{ request()->routeIs('reports.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
                 <span>Laporan</span>
-            </span>
+            </a>
 
             <p class="sibk-sidebar__section">PENGELOLAAN</p>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap pengelolaan">
+            <a class="sibk-nav-link {{ request()->routeIs('assignments.classes.*') ? 'is-active' : '' }}" href="{{ route('assignments.classes.index') }}"
+                aria-current="{{ request()->routeIs('assignments.classes.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>
                 <span>Penugasan Kelas</span>
-            </span>
+            </a>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap pengelolaan">
+            <a class="sibk-nav-link {{ request()->routeIs('assignments.cases.*') ? 'is-active' : '' }}" href="{{ route('assignments.cases.index') }}"
+                aria-current="{{ request()->routeIs('assignments.cases.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
                 <span>Pengalihan Kasus</span>
-            </span>
+            </a>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap pengelolaan">
+            <a class="sibk-nav-link {{ request()->routeIs('corrections.*') ? 'is-active' : '' }}" href="{{ route('corrections.index') }}"
+                aria-current="{{ request()->routeIs('corrections.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.83A2 2 0 0 0 19.41 6l-1.41-1zM14 2.5V7h4.5M8 13h8M8 17h8M8 9h2"/></svg>
                 <span>Koreksi Data</span>
-            </span>
+            </a>
 
-            <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap pengelolaan">
+            <a class="sibk-nav-link {{ request()->routeIs('history.*') ? 'is-active' : '' }}" href="{{ route('history.index') }}"
+                aria-current="{{ request()->routeIs('history.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
                 <span>Riwayat Perubahan</span>
-            </span>
+            </a>
 
             <span class="sibk-nav-link is-planned" aria-disabled="true" title="Dikerjakan pada tahap pengelolaan">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
