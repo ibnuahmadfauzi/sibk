@@ -148,14 +148,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($tableRows as $row)
+                        @forelse($rows ?? $tableRows ?? [] as $row)
                             <tr>
-                                <td class="fw-semibold text-primary">{{ $row['code'] }}</td>
-                                <td class="fw-medium text-dark">{{ $row['class'] }}</td>
-                                <td>{{ $row['field'] }}</td>
+                                <td class="fw-semibold text-primary">{{ $row['code'] ?? '-' }}</td>
+                                <td class="fw-medium text-dark">{{ $row['class'] ?? '-' }}</td>
+                                <td>{{ $row['field'] ?? $row['category'] ?? '-' }}</td>
                                 <td>
                                     @php
-                                        $badgeClass = match($row['status']) {
+                                        $status = $row['status'] ?? 'Baru';
+                                        $badgeClass = match($status) {
                                             'Dalam Penanganan' => 'sibk-badge--warning',
                                             'Baru' => 'sibk-badge--primary',
                                             'Selesai' => 'sibk-badge--success',
@@ -163,11 +164,11 @@
                                         };
                                     @endphp
                                     <span class="sibk-badge {{ $badgeClass }}">
-                                        {{ $row['status'] }}
+                                        {{ $status }}
                                     </span>
                                 </td>
-                                <td class="text-muted">{{ $row['follow_up'] }}</td>
-                                <td class="text-muted">{{ $row['date'] }}</td>
+                                <td class="text-muted">{{ $row['follow_up'] ?? '-' }}</td>
+                                <td class="text-muted">{{ $row['date'] ?? '-' }}</td>
                             </tr>
                         @empty
                             <tr>
