@@ -174,9 +174,8 @@ Route::get('/cases/create', function () {
     return view('pages.cases.create');
 })->name('cases.create');
 
-// Placeholder — PG-103 akan diimplementasikan pada fase berikutnya
 Route::get('/cases/show', function () {
-    return redirect()->route('cases.index');
+    return view('pages.cases.show');
 })->name('cases.show');
 
 Route::get('/students', function () {
