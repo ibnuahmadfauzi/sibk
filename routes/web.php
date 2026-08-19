@@ -559,4 +559,4 @@ Route::get('/history', function () {
     return view('pages.history.index', compact('historyLogs'));
 })->name('history.index');
 
-
+//new
