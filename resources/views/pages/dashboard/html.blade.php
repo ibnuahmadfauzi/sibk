@@ -89,7 +89,7 @@
                             <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <h2 id="tindak-lanjut-title">Tindak lanjut terdekat</h2>
                         </div>
-                        <a href="#" class="btn btn-sm btn-outline-primary sibk-panel__action is-planned">
+                        <a href="{{ route('cases.index') }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
                             Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
                         </a>
                     </header>
@@ -99,7 +99,7 @@
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
-                                <article class="sibk-list-item">
+                                <a href="{{ route('cases.show') }}" class="sibk-list-item text-decoration-none">
                                     <div class="sibk-list-item__date-box">
                                         <strong>{{ $item['date'] }}</strong>
                                         <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
@@ -107,13 +107,13 @@
                                     <div class="sibk-list-item__content">
                                         <strong>{{ $item['code'] }}</strong>
                                         <span>{{ $item['title'] }}</span>
-                                        <small>Siswa: {{ $item['student'] }}</small>
+                                        <small>Murid: {{ $item['student'] }}</small>
                                     </div>
                                     <div class="sibk-list-item__trailing">
                                         <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
                                         <svg class="sibk-list-item__chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
                                     </div>
-                                </article>
+                                </a>
                             @endforeach
                         </div>
                     @endif
@@ -128,7 +128,7 @@
                             <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             <h2 id="activity-title">Aktivitas terbaru</h2>
                         </div>
-                        <a href="#" class="btn btn-sm btn-outline-primary sibk-panel__action is-planned">
+                        <a href="{{ route('history.index') }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
                             Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
                         </a>
                     </header>

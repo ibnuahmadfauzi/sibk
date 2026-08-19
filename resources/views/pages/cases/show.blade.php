@@ -11,19 +11,19 @@
                 <p>Murid A &bull; X RPL 1</p>
             </div>
             <div class="sibk-page-header__actions d-flex gap-2">
-                <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+                <a href="{{ route('cases.follow-up') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"/>
                         <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                     Tambah Tindak Lanjut
-                </button>
-                <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2">
+                </a>
+                <a href="{{ route('cases.resolve') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
                     Selesaikan Kasus
-                </button>
+                </a>
             </div>
         </div>
 
@@ -108,14 +108,14 @@
                             <td>Konsultasi</td>
                             <td><span class="sibk-badge sibk-badge--success">Selesai</span></td>
                             <td>Ringkasan hasil tindak lanjut</td>
-                            <td><a href="#" class="fw-bold text-decoration-none">Buka</a></td>
+                            <td><a href="{{ route('cases.follow-up', ['mode' => 'edit']) }}" class="fw-bold text-decoration-none">Buka</a></td>
                         </tr>
                         <tr>
                             <td>18 Agu</td>
                             <td>Pertemuan</td>
                             <td><span class="sibk-badge sibk-badge--warning">Terjadwal</span></td>
                             <td>Belum dilaksanakan</td>
-                            <td><a href="#" class="fw-bold text-decoration-none">Buka</a></td>
+                            <td><a href="{{ route('cases.follow-up', ['mode' => 'edit']) }}" class="fw-bold text-decoration-none">Buka</a></td>
                         </tr>
                     </tbody>
                 </table>

@@ -54,7 +54,7 @@
                                 </svg>
                                 <input type="text" class="form-control sibk-form-control sibk-form-control--search"
                                     id="murid_search" name="murid_search"
-                                    placeholder="Cari dan pilih murid" autocomplete="off">
+                                    placeholder="Cari dan pilih murid" value="{{ request('student', '') }}" autocomplete="off">
                             </div>
                         </div>
 
@@ -176,7 +176,7 @@
 
             {{-- Action Buttons --}}
             <div class="d-flex justify-content-end gap-2 pb-4">
-                <a href="{{ url()->previous() }}" class="btn btn-light">Batal</a>
+                <a href="{{ route('students.show', ['tab' => 'prestasi']) }}" class="btn btn-light">Batal</a>
                 <button type="submit" class="btn btn-primary">Simpan Prestasi</button>
             </div>
 

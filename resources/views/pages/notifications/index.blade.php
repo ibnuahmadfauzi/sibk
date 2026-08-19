@@ -31,7 +31,7 @@
         
         <div class="sibk-notification-list">
             @forelse($notifications as $notif)
-                <a href="#" class="sibk-notification-item {{ !$notif['is_read'] ? 'is-unread' : '' }}">
+                <a href="{{ route('cases.show') }}" class="sibk-notification-item {{ !$notif['is_read'] ? 'is-unread' : '' }}">
                     <div class="sibk-notification-item__icon-col">
                         <div class="sibk-notification-item__icon sibk-icon-tone--{{ $notif['tone'] ?? 'primary' }}">
                             <svg viewBox="0 0 24 24">{!! $notif['icon'] ?? '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>' !!}</svg>

@@ -122,7 +122,7 @@ Route::get('/account', function () {
 })->name('account.preview');
 
 Route::get('/cases', function () {
-    // Data dummy untuk tabel PG-101
+    // Data dummy untuk tabel PG-101 (Kasus)
     $cases = [
         [
             'no' => 'K-014',
@@ -162,12 +162,57 @@ Route::get('/cases', function () {
         ],
     ];
 
-    $dashboard = [
-        'label' => 'Daftar Kasus',
-        'description' => 'Cari, filter, dan buka kasus layanan BK.'
+    // Data dummy untuk sesi Bimbingan & Konsultasi
+    $consultations = [
+        [
+            'id' => 'KNS-001',
+            'student' => 'Murid A',
+            'class' => 'X RPL 1',
+            'topic' => 'Pemilihan Ekstrakurikuler & Penyesuaian Diri',
+            'type' => 'Pribadi',
+            'case_ref' => 'K-014',
+            'date' => '18 Agu 2026',
+            'status' => 'Terlaksana',
+            'summary' => 'Murid telah memilih minat eskul dan memahami pembagian waktu belajar.'
+        ],
+        [
+            'id' => 'KNS-002',
+            'student' => 'Murid B',
+            'class' => 'X RPL 2',
+            'topic' => 'Minat Bakat & Eksplorasi Karier Industri',
+            'type' => 'Karier',
+            'case_ref' => '—',
+            'date' => '19 Agu 2026',
+            'status' => 'Dijadwalkan',
+            'summary' => 'Rencana pembahasan hasil asesmen minat bakat.'
+        ],
+        [
+            'id' => 'KNS-003',
+            'student' => 'Murid C',
+            'class' => 'XI RPL 1',
+            'topic' => 'Peningkatan Motivasi Belajar & Manajemen Waktu',
+            'type' => 'Belajar',
+            'case_ref' => '—',
+            'date' => '20 Agu 2026',
+            'status' => 'Dijadwalkan',
+            'summary' => 'Diskusi jadwal belajar teratur dan kendala belajar mandiri.'
+        ],
+        [
+            'id' => 'KNS-004',
+            'student' => 'Murid D',
+            'class' => 'XI RPL 2',
+            'topic' => 'Penyesuaian Sosial & Kerjasama Kelompok',
+            'type' => 'Sosial',
+            'case_ref' => 'K-011',
+            'date' => '15 Agu 2026',
+            'status' => 'Terlaksana',
+            'summary' => 'Mediasi dan komunikasi antar anggota kelompok tugas.'
+        ],
     ];
 
-    return view('pages.cases.index', compact('dashboard', 'cases'));
+    $activeTab = request()->query('tab', 'kasus');
+
+    return view('pages.cases.index', compact('cases', 'consultations', 'activeTab'));
 })->name('cases.index');
 
 Route::get('/cases/create', function () {
@@ -177,6 +222,16 @@ Route::get('/cases/create', function () {
 Route::get('/cases/show', function () {
     return view('pages.cases.show');
 })->name('cases.show');
+
+// PG-104: Tambah atau Edit Tindak Lanjut
+Route::get('/cases/follow-up', function () {
+    return view('pages.cases.follow-up');
+})->name('cases.follow-up');
+
+// PG-106: Selesaikan Kasus
+Route::get('/cases/resolve', function () {
+    return view('pages.cases.resolve');
+})->name('cases.resolve');
 
 // PG-201: Daftar Murid
 Route::get('/students', function () {
@@ -273,13 +328,115 @@ Route::get('/students/show', function () {
         ['date' => '10 Agu', 'activity' => 'Data e-Tatib diperbarui'],
     ];
 
+    $studentCases = [
+        [
+            'no' => 'K-014',
+            'date' => '14 Agu 2026',
+            'category' => 'Pribadi',
+            'source' => 'e-Tatib',
+            'status' => 'Dalam Penanganan',
+            'follow_up' => '18 Agu 2026',
+            'pic' => 'Guru BK A'
+        ],
+        [
+            'no' => 'K-005',
+            'date' => '10 Jan 2026',
+            'category' => 'Belajar',
+            'source' => 'Rujukan Wali Kelas',
+            'status' => 'Selesai',
+            'follow_up' => 'Selesai',
+            'pic' => 'Guru BK A'
+        ]
+    ];
+
+    $studentEtatib = [
+        'total_points' => 15,
+        'violations' => [
+            [
+                'date' => '10 Agu 2026',
+                'time' => '07:15',
+                'violation' => 'Terlambat Masuk Sekolah (>15 Menit)',
+                'category' => 'Kedisiplinan',
+                'points' => 5,
+                'reporter' => 'Petugas Tatib'
+            ],
+            [
+                'date' => '03 Agu 2026',
+                'time' => '10:30',
+                'violation' => 'Seragam Tidak Sesuai Ketentuan',
+                'category' => 'Kerapian',
+                'points' => 10,
+                'reporter' => 'Wali Kelas'
+            ]
+        ]
+    ];
+
+    $studentConsultations = [
+        [
+            'id' => 'KNS-001',
+            'date' => '18 Agu 2026',
+            'type' => 'Pribadi',
+            'case_ref' => 'K-014',
+            'status' => 'Terlaksana',
+            'summary' => 'Murid telah memilih minat eskul dan memahami pembagian waktu belajar.'
+        ],
+        [
+            'id' => 'KNS-009',
+            'date' => '12 Agu 2026',
+            'type' => 'Belajar',
+            'case_ref' => '—',
+            'status' => 'Terlaksana',
+            'summary' => 'Konseling bimbingan cara belajar efektif menjelang ujian tengah semester.'
+        ]
+    ];
+
+    $studentAchievements = [
+        [
+            'activity' => 'Lomba Kompetensi Siswa (LKS) Web Technologies',
+            'type' => 'Akademik / Vokasi',
+            'level' => 'Tingkat Kota',
+            'organizer' => 'Dinas Pendidikan Kota Surabaya',
+            'date' => '12 Jul 2026',
+            'result' => 'Juara 1',
+            'status_verifikasi' => 'Terverifikasi'
+        ],
+        [
+            'activity' => 'Olimpiade Sains Informatika Remaja',
+            'type' => 'Ilmiah',
+            'level' => 'Tingkat Provinsi',
+            'organizer' => 'Universitas Negeri Surabaya',
+            'date' => '20 Mei 2026',
+            'result' => 'Juara 3',
+            'status_verifikasi' => 'Terverifikasi'
+        ],
+        [
+            'activity' => 'Turnamen Basket Antar Pelajar Surabaya',
+            'type' => 'Olahraga',
+            'level' => 'Tingkat Kota',
+            'organizer' => 'Perbasi Surabaya',
+            'date' => '15 Feb 2026',
+            'result' => 'Semifinalis',
+            'status_verifikasi' => 'Terverifikasi'
+        ]
+    ];
+
     $activeTab = request()->query('tab', 'ringkasan');
 
-    return view('pages.students.show', compact('student', 'stats', 'operationalSummary', 'recentActivities', 'activeTab'));
+    return view('pages.students.show', compact(
+        'student',
+        'stats',
+        'operationalSummary',
+        'recentActivities',
+        'studentCases',
+        'studentEtatib',
+        'studentConsultations',
+        'studentAchievements',
+        'activeTab'
+    ));
 })->name('students.show');
 
 Route::get('/consultations', function () {
-    return view('pages.consultations.index');
+    return redirect()->route('cases.index', ['tab' => 'konsultasi']);
 })->name('consultations.index');
 
 Route::get('/consultations/create', function () {
@@ -659,5 +816,9 @@ Route::get('/data-master', function () {
     return view('pages.data-master.index');
 })->name('data-master.index');
 
-//new
+// PG-901: Akses Ditolak
+Route::get('/access-denied', function () {
+    return view('pages.system.access-denied');
+})->name('access.denied');
+
 
