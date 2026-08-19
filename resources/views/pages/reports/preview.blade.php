@@ -23,7 +23,12 @@
         <!-- Filter Panel -->
         <div class="sibk-panel mb-4 sibk-filter-panel no-print">
             <div class="sibk-panel__body p-4">
-                <h3 class="sibk-filter-title mb-3">Filter Laporan</h3>
+                <h3 class="sibk-filter-title mb-3 d-flex align-items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    Filter Laporan
+                </h3>
                 <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('reports.preview') }}" method="GET">
                     <input type="hidden" name="type" value="{{ $type }}">
                     
@@ -76,39 +81,52 @@
                     </div>
                 </form>
             </div>
-        </div>
-
-        <!-- Summary KPI Row -->
+        </div>        <!-- Summary KPI Row -->
         <div class="row g-3 mb-4 sibk-report-kpi-row">
             <div class="col-12 col-md-4">
-                <div class="sibk-stat-card sibk-tone--primary">
-                    <div class="sibk-stat-card__inner">
-                        <div class="sibk-stat-card__content-col">
-                            <h4 class="sibk-stat-card__label">{{ $stats['total']['label'] }}</h4>
-                            <div class="sibk-stat-card__value">{{ $stats['total']['value'] }}</div>
-                            <span class="sibk-stat-meta">{{ $stats['total']['sub'] }}</span>
+                <div class="sibk-stat-card sibk-tone--primary p-3 bg-white rounded-3 border">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h4 class="sibk-stat-card__label text-muted small fw-semibold mb-1">{{ $stats['total']['label'] }}</h4>
+                            <div class="sibk-stat-card__value fs-2 fw-bold text-dark">{{ $stats['total']['value'] }}</div>
+                            <span class="sibk-stat-meta text-muted small">{{ $stats['total']['sub'] }}</span>
+                        </div>
+                        <div class="sibk-stat-card__icon p-3 rounded-circle" style="background-color: #e9f2fb; color: #2f6fc6;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                            </svg>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-md-4">
-                <div class="sibk-stat-card sibk-tone--warning">
-                    <div class="sibk-stat-card__inner">
-                        <div class="sibk-stat-card__content-col">
-                            <h4 class="sibk-stat-card__label">{{ $stats['active']['label'] }}</h4>
-                            <div class="sibk-stat-card__value">{{ $stats['active']['value'] }}</div>
-                            <span class="sibk-stat-meta">{{ $stats['active']['sub'] }}</span>
+                <div class="sibk-stat-card sibk-tone--warning p-3 bg-white rounded-3 border">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h4 class="sibk-stat-card__label text-muted small fw-semibold mb-1">{{ $stats['active']['label'] }}</h4>
+                            <div class="sibk-stat-card__value fs-2 fw-bold text-dark">{{ $stats['active']['value'] }}</div>
+                            <span class="sibk-stat-meta text-muted small">{{ $stats['active']['sub'] }}</span>
+                        </div>
+                        <div class="sibk-stat-card__icon p-3 rounded-circle" style="background-color: #fbece3; color: #cf6a2d;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="12" cy="14" r="3"/>
+                            </svg>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-md-4">
-                <div class="sibk-stat-card sibk-tone--success">
-                    <div class="sibk-stat-card__inner">
-                        <div class="sibk-stat-card__content-col">
-                            <h4 class="sibk-stat-card__label">{{ $stats['completed']['label'] }}</h4>
-                            <div class="sibk-stat-card__value">{{ $stats['completed']['value'] }}</div>
-                            <span class="sibk-stat-meta">{{ $stats['completed']['sub'] }}</span>
+                <div class="sibk-stat-card sibk-tone--success p-3 bg-white rounded-3 border">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h4 class="sibk-stat-card__label text-muted small fw-semibold mb-1">{{ $stats['completed']['label'] }}</h4>
+                            <div class="sibk-stat-card__value fs-2 fw-bold text-dark">{{ $stats['completed']['value'] }}</div>
+                            <span class="sibk-stat-meta text-muted small">{{ $stats['completed']['sub'] }}</span>
+                        </div>
+                        <div class="sibk-stat-card__icon p-3 rounded-circle" style="background-color: #e7f4ef; color: #2f8f73;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+                            </svg>
                         </div>
                     </div>
                 </div>
@@ -118,44 +136,48 @@
         <!-- Data Table Panel -->
         <div class="sibk-panel mb-4">
             <div class="table-responsive">
-                <table class="table sibk-table mb-0">
+                <table class="table sibk-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Kode</th>
-                            <th>Kelas</th>
-                            <th>Bidang</th>
-                            <th>Status</th>
-                            <th>Tindak Lanjut</th>
-                            <th>Tanggal</th>
+                            <th scope="col">Kode</th>
+                            <th scope="col">Kelas</th>
+                            <th scope="col">Bidang</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Tindak Lanjut</th>
+                            <th scope="col">Tanggal</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($rows as $row)
+                        @forelse($tableRows as $row)
                             <tr>
-                                <td class="fw-bold text-primary">{{ $row['code'] }}</td>
-                                <td class="fw-semibold text-dark">{{ $row['class'] }}</td>
-                                <td>{{ $row['category'] }}</td>
+                                <td class="fw-semibold text-primary">{{ $row['code'] }}</td>
+                                <td class="fw-medium text-dark">{{ $row['class'] }}</td>
+                                <td>{{ $row['field'] }}</td>
                                 <td>
-                                    <span class="sibk-badge sibk-badge--{{ $row['status_tone'] }}">
+                                    @php
+                                        $badgeClass = match($row['status']) {
+                                            'Dalam Penanganan' => 'sibk-badge--warning',
+                                            'Baru' => 'sibk-badge--primary',
+                                            'Selesai' => 'sibk-badge--success',
+                                            default => 'sibk-badge--neutral'
+                                        };
+                                    @endphp
+                                    <span class="sibk-badge {{ $badgeClass }}">
                                         {{ $row['status'] }}
                                     </span>
                                 </td>
-                                <td>{{ $row['follow_up'] }}</td>
+                                <td class="text-muted">{{ $row['follow_up'] }}</td>
                                 <td class="text-muted">{{ $row['date'] }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4 text-muted">Tidak ada data untuk filter yang dipilih.</td>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Tidak ada data untuk filter yang dipilih.
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
-            </div>
-
-            <div class="sibk-panel__footer p-4 border-top border-light d-flex justify-content-between align-items-center">
-                <div class="text-muted small fw-medium">
-                    Menampilkan 1–{{ count($rows) }} dari 42 data laporan
-                </div>
             </div>
         </div>
 

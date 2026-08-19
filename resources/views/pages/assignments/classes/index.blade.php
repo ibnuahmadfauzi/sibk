@@ -23,7 +23,12 @@
         <!-- Filter Panel -->
         <div class="sibk-panel mb-4">
             <div class="sibk-panel__body p-4">
-                <h3 class="sibk-filter-title mb-3">Filter Penugasan</h3>
+                <h3 class="sibk-filter-title mb-3 d-flex align-items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    Filter Penugasan
+                </h3>
                 <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('assignments.classes.index') }}" method="GET">
                     <div class="col-12 col-md-3">
                         <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran</label>
@@ -45,7 +50,10 @@
                         </select>
                     </div>
                     <div class="col-12 col-md-2">
-                        <button type="submit" class="btn btn-outline-primary w-100 sibk-btn-apply">
+                        <button type="submit" class="btn btn-outline-primary w-100 sibk-btn-apply d-inline-flex align-items-center justify-content-center gap-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                            </svg>
                             Filter
                         </button>
                     </div>

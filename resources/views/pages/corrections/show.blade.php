@@ -97,7 +97,10 @@
                 <a href="{{ route('corrections.index') }}" class="btn btn-outline-secondary px-4 py-2">
                     Kembali
                 </a>
-                <button type="submit" class="btn btn-primary px-4 py-2">
+                <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2 px-4 py-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
                     Simpan Keputusan
                 </button>
             </div>
