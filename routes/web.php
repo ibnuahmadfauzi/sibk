@@ -194,3 +194,8 @@ Route::get('/consultations/create', function () {
 Route::get('/consultations/show', function () {
     return view('pages.consultations.show');
 })->name('consultations.show');
+
+// PG-203 — Catat atau Edit Prestasi
+Route::get('/achievements/create', function () {
+    return view('pages.achievements.create');
+})->name('achievements.create');
