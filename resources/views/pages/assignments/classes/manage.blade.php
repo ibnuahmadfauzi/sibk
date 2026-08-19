@@ -21,76 +21,72 @@
         </div>
 
         <form action="{{ route('assignments.classes.index') }}" method="GET">
-            <div class="row g-4">
-                <!-- Left Panel: Form Detail Penugasan -->
-                <div class="col-12 col-lg-8">
-                    <div class="sibk-panel">
-                        <div class="sibk-panel__header p-4 border-0 pb-0">
-                            <div>
-                                <h3 class="sibk-panel__title mb-1">Detail Penugasan</h3>
-                                <p class="sibk-panel__subtitle text-muted small">Perubahan tidak menghapus riwayat penugasan sebelumnya.</p>
-                            </div>
+            <!-- Main Panel: Detail Penugasan -->
+            <div class="sibk-panel mb-4">
+                <div class="sibk-panel__header p-4 border-0 pb-0">
+                    <div>
+                        <h3 class="sibk-panel__title mb-1">Detail Penugasan</h3>
+                        <p class="sibk-panel__subtitle text-muted small">Perubahan tidak menghapus riwayat penugasan sebelumnya.</p>
+                    </div>
+                </div>
+                <div class="sibk-panel__body p-4 pt-2">
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-4">
+                            <label for="kelas" class="form-label sibk-form-label">Kelas <span class="text-danger">*</span></label>
+                            <select class="form-select sibk-form-select" id="kelas" name="kelas" required>
+                                <option value="">Pilih kelas</option>
+                                @foreach($classes as $c)
+                                    <option value="{{ $c }}" {{ request()->query('class') === $c || $c === 'X RPL 1' ? 'selected' : '' }}>{{ $c }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <div class="sibk-panel__body p-4 pt-2">
-                            <div class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label for="kelas" class="form-label sibk-form-label">Kelas <span class="text-danger">*</span></label>
-                                    <select class="form-select sibk-form-select" id="kelas" name="kelas" required>
-                                        <option value="">Pilih kelas</option>
-                                        @foreach($classes as $c)
-                                            <option value="{{ $c }}" {{ request()->query('class') === $c || $c === 'X RPL 1' ? 'selected' : '' }}>{{ $c }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control sibk-form-control bg-light" id="tahun_ajaran" name="tahun_ajaran" value="2026/2027" readonly>
-                                </div>
-                                <div class="col-12">
-                                    <label for="counselor" class="form-label sibk-form-label">Penanggung Jawab <span class="text-danger">*</span></label>
-                                    <select class="form-select sibk-form-select" id="counselor" name="counselor" required>
-                                        <option value="">Pilih Guru BK</option>
-                                        @foreach($counselors as $guru)
-                                            <option value="{{ $guru }}" {{ $guru === 'Guru BK A' ? 'selected' : '' }}>{{ $guru }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label for="start_date" class="form-label sibk-form-label">Tanggal Mulai <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control sibk-form-control" id="start_date" name="start_date" value="2026-07-15" required>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label for="end_date" class="form-label sibk-form-label">Tanggal Akhir</label>
-                                    <input type="date" class="form-control sibk-form-control" id="end_date" name="end_date" placeholder="Pilih tanggal bila ada">
-                                </div>
-                                <div class="col-12">
-                                    <label for="notes" class="form-label sibk-form-label">Catatan Perubahan</label>
-                                    <textarea class="form-control sibk-form-control" id="notes" name="notes" rows="3" placeholder="Isi bila pembagian yang sedang berjalan berubah"></textarea>
-                                </div>
-                            </div>
+                        <div class="col-12 col-md-4">
+                            <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control sibk-form-control bg-light" id="tahun_ajaran" name="tahun_ajaran" value="2026/2027" readonly>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="counselor" class="form-label sibk-form-label">Penanggung Jawab <span class="text-danger">*</span></label>
+                            <select class="form-select sibk-form-select" id="counselor" name="counselor" required>
+                                <option value="">Pilih Guru BK</option>
+                                @foreach($counselors as $guru)
+                                    <option value="{{ $guru }}" {{ $guru === 'Guru BK A' ? 'selected' : '' }}>{{ $guru }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="start_date" class="form-label sibk-form-label">Tanggal Mulai <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control sibk-form-control" id="start_date" name="start_date" value="2026-07-15" required>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="end_date" class="form-label sibk-form-label">Tanggal Akhir</label>
+                            <input type="date" class="form-control sibk-form-control" id="end_date" name="end_date" placeholder="Pilih tanggal bila ada">
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="notes" class="form-label sibk-form-label">Catatan Perubahan</label>
+                            <input type="text" class="form-control sibk-form-control" id="notes" name="notes" placeholder="Isi bila pembagian yang sedang berjalan berubah">
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Right Panel: Penugasan Saat Ini Info Box -->
-                <div class="col-12 col-lg-4">
-                    <div class="sibk-panel">
-                        <div class="sibk-panel__header p-4 border-0 pb-0">
-                            <div>
-                                <h3 class="sibk-panel__title mb-1">Penugasan Saat Ini</h3>
-                                <p class="sibk-panel__subtitle text-muted small">Periksa kondisi aktif sebelum menyimpan perubahan.</p>
-                            </div>
+            <!-- Panel: Penugasan Saat Ini -->
+            <div class="sibk-panel mb-4">
+                <div class="sibk-panel__header p-4 border-0 pb-0">
+                    <div>
+                        <h3 class="sibk-panel__title mb-1">Penugasan Saat Ini</h3>
+                        <p class="sibk-panel__subtitle text-muted small">Periksa kondisi aktif sebelum menyimpan perubahan.</p>
+                    </div>
+                </div>
+                <div class="sibk-panel__body p-4 pt-2">
+                    <div class="sibk-target-highlight-box p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <strong class="text-dark">{{ $currentAssignment['class'] }}</strong>
+                            <span class="text-muted">•</span>
+                            <span class="fw-semibold text-primary">{{ $currentAssignment['counselor'] }}</span>
+                            <span class="text-muted">•</span>
+                            <span class="text-muted small">Berlaku sejak {{ $currentAssignment['start_date'] }}</span>
                         </div>
-                        <div class="sibk-panel__body p-4 pt-2">
-                            <div class="sibk-assignment-info-card p-3 rounded border mb-3">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <strong class="text-dark">{{ $currentAssignment['class'] }}</strong>
-                                    <span class="sibk-badge sibk-badge--success">{{ $currentAssignment['status'] }}</span>
-                                </div>
-                                <div class="text-muted small mb-1">Penanggung Jawab: <span class="fw-semibold text-dark">{{ $currentAssignment['counselor'] }}</span></div>
-                                <div class="text-muted small">Berlaku sejak {{ $currentAssignment['start_date'] }}</div>
-                            </div>
-                        </div>
+                        <span class="sibk-badge sibk-badge--success">{{ $currentAssignment['status'] }}</span>
                     </div>
                 </div>
             </div>
