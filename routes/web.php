@@ -121,6 +121,10 @@ Route::get('/account', function () {
     return view('pages.account.index', compact('previewRole', 'dashboard', 'account'));
 })->name('account.preview');
 
+Route::get('/account/create', function () {
+    return view('pages.account.create');
+})->name('account.create');
+
 Route::get('/cases', function () {
     // Data dummy untuk tabel PG-101 (Kasus)
     $cases = [
