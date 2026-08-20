@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AssignmentController;
@@ -571,9 +572,13 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::post('/corrections/{correction}/process-master', [CorrectionController::class, 'processMaster'])->name('corrections.process-master');
     Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
 
-    Route::get('/achievements/create', function () {
-        return view('pages.achievements.create');
-    })->name('achievements.create');
+    Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
+    Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
+    Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
+    Route::get('/achievements/{achievement}', [AchievementController::class, 'show'])->name('achievements.show');
+    Route::get('/achievements/{achievement}/edit', [AchievementController::class, 'edit'])->name('achievements.edit');
+    Route::patch('/achievements/{achievement}', [AchievementController::class, 'update'])->name('achievements.update');
+    Route::post('/achievements/{achievement}/verify', [AchievementController::class, 'verify'])->name('achievements.verify');
 
     Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master.index');
     Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');

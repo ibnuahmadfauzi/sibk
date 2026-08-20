@@ -131,7 +131,17 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Endpoint:** `GET /students`; `GET /students/{student}`. URL kompatibilitas `GET /students/show?nisn=...` mengalihkan ke profil database setelah policy disetujui.
 - **Controller:** `StudentController@index`, `StudentController@show`, `StudentController@legacy`.
 - **Authorization:** Guru BK melihat murid dari penugasan kelas atau kasus aktif; Koordinator melihat ringkasan; Waka hanya murid dengan kasus yang dikoordinasikan; Admin IT diarahkan menggunakan Data Master.
-- **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi yang diizinkan, statistik berbasis scope, serta empty state Prestasi sampai Sprint 8. Waka tidak menerima tab/data konsultasi dan hanya menerima e-Tatib yang tertaut ke kasus koordinasinya.
+- **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi serta prestasi yang diizinkan, dan statistik berbasis scope. Waka tidak menerima tab/data konsultasi; e-Tatib dibatasi pada kasus koordinasinya dan prestasi dibatasi pada data terverifikasi.
+
+### Pencatatan dan verifikasi prestasi
+- **Endpoint:** `GET /achievements`, `GET /achievements/create`, `POST /achievements`, `GET /achievements/{achievement}`, `GET /achievements/{achievement}/edit`, `PATCH /achievements/{achievement}`, dan `POST /achievements/{achievement}/verify`.
+- **Controller:** `AchievementController`.
+- **Form Request:** `AchievementIndexRequest`, `StoreAchievementRequest`, `UpdateAchievementRequest`, dan `VerifyAchievementRequest`.
+- **Input pencatatan:** `student_id`, `type_id`, `level_id`, `activity_name`, `organizer`, `achievement_date`, `result`, `evidence_reference`, `evidence_description`, dan `notes`. Bukti berupa tautan atau referensi arsip; unggahan berkas tidak tersedia sampai `DEP-06` disahkan.
+- **Filter daftar:** pencarian, murid, kelas historis, jenis, tingkat, status, tanggal awal/akhir, dan halaman.
+- **Authorization:** Guru BK mencatat murid dalam scope profesional dan hanya dapat mengubah catatannya selama berstatus `menunggu`. Koordinator melihat seluruh prestasi dan menetapkan `terverifikasi` atau `ditolak`. Waka hanya membaca prestasi terverifikasi milik murid dengan kasus terkoordinasi. Admin IT ditolak.
+- **Verifikasi:** `decision` hanya menerima `terverifikasi` atau `ditolak`; `verification_notes` wajib untuk penolakan. Review memakai row lock dan bersifat final.
+- **Audit dan retensi:** pencatatan, perubahan, review, dan koreksi diaudit tanpa menyalin catatan atau referensi bukti. Tidak tersedia endpoint hapus atau penghapusan otomatis.
 
 ---
 
@@ -181,7 +191,7 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Endpoint:** `GET /corrections`, `GET /corrections/create`, `POST /corrections`, dan `GET /corrections/{correction}`.
 - **Controller:** `CorrectionController@index/create/store/show`.
 - **Form Request:** `StoreCorrectionRequest`.
-  - `target_type` (`case`, `follow_up`, `consultation`, atau `student`)
+  - `target_type` (`case`, `follow_up`, `consultation`, `achievement`, atau `student`)
   - `target_id` (required, integer)
   - `field_name` (required, atribut yang diizinkan per jenis objek)
   - `proposed_value` (present, nullable hanya untuk atribut yang memang opsional)
@@ -195,7 +205,7 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Form Request:** `VerifyCorrectionRequest`.
 - **Authorization:** `Koordinator BK` only.
 - **Request:** `decision` (`approved`, `rejected`, `revision_requested`) dan `review_notes` (wajib untuk penolakan/permintaan perbaikan).
-- **Business Logic:** approval memakai row lock, memeriksa bahwa nilai objek belum berubah sejak pengajuan, lalu menerapkan perubahan melalui `CaseService`, `FollowUpService`, atau `ConsultationService`. Tidak tersedia mutasi field generik. Penolakan dan permintaan perbaikan tidak mengubah objek target.
+- **Business Logic:** approval memakai row lock, memeriksa bahwa nilai objek belum berubah sejak pengajuan, lalu menerapkan perubahan melalui `CaseService`, `FollowUpService`, `ConsultationService`, atau `AchievementService`. Prestasi hanya dapat diajukan setelah terverifikasi. Tidak tersedia mutasi field generik.
 
 ### Pemrosesan Koreksi Master
 - **Endpoint:** `POST /corrections/{correction}/process-master`.
@@ -244,7 +254,7 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Form Request:** `ReportRequest`.
 - **Query Params:**
   - `type`: `pelanggaran-murid`, `pelanggaran-kelas`, `poin-pelanggaran`, `konsultasi`, `status-tindak-lanjut`, `rekap-layanan-bk`, atau `prestasi`.
-  - `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `student_id`, `category`, `service_field_id`, `status_id`, `counselor_id`, `minimum_points`, dan `page` sesuai tipe.
+  - `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `student_id`, `category`, `service_field_id`, `status_id`, `counselor_id`, `minimum_points`, `achievement_type_id`, `achievement_level_id`, dan `page` sesuai tipe.
   - `format=csv` wajib pada endpoint ekspor. XLSX dan PDF server belum tersedia sampai `DEP-07` disahkan.
 - **Authorization:** `ReportPolicy` mengizinkan Guru BK, Koordinator BK, dan Waka Kesiswaan; Admin IT ditolak. Waka tidak memperoleh laporan konsultasi dan hanya menerima kasus/e-Tatib yang tertaut pada koordinasinya.
 - **Business Logic:** `ReportService` memakai scope objek yang sama dengan daftar/detail. Guru BK dibatasi scope profesional atau kasus khusus, Koordinator memperoleh rekap gabungan, dan akun multi-role dihitung berdasarkan fungsi yang sah.
@@ -252,4 +262,4 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Privasi:** semua baris memakai inisial murid dan NISN tersamarkan. Query tidak memuat catatan privat konsultasi, catatan internal kasus, hasil/rencana tindak lanjut, dokumen, atau narasi sensitif.
 - **Pratinjau:** KPI dihitung dari seluruh dataset terfilter dan tabel dipaginasi 20 baris.
 - **CSV:** memakai dataset tidak terpagina dari pipeline yang sama, UTF-8 BOM, nama file terkontrol, serta perlindungan formula injection.
-- **Prestasi:** tersedia sebagai empty state tanpa fixture sampai Sprint 8.
+- **Prestasi:** memakai data `achievements`, kelas historis pada tanggal prestasi, filter jenis/tingkat/status, inisial dan NISN tersamarkan, serta mengecualikan bukti dan catatan dari pratinjau maupun CSV. Waka hanya menerima prestasi terverifikasi untuk murid terkoordinasi.

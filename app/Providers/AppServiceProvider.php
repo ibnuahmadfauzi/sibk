@@ -8,6 +8,7 @@ use App\Integrations\Dapodik\DapodikConnector;
 use App\Integrations\Dapodik\UnavailableDapodikConnector;
 use App\Integrations\Etatib\EtatibConnector;
 use App\Integrations\Etatib\UnavailableEtatibConnector;
+use App\Models\Achievement;
 use App\Models\BkCase;
 use App\Models\Consultation;
 use App\Models\Correction;
@@ -15,6 +16,7 @@ use App\Models\Student;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Policies\AchievementPolicy;
 use App\Policies\CasePolicy;
 use App\Policies\ConsultationPolicy;
 use App\Policies\CorrectionPolicy;
@@ -44,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Achievement::class, AchievementPolicy::class);
         Gate::policy(TeacherAssignment::class, TeacherAssignmentPolicy::class);
         Gate::policy(BkCase::class, CasePolicy::class);
         Gate::policy(Consultation::class, ConsultationPolicy::class);

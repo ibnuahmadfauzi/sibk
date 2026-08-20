@@ -59,6 +59,18 @@ class User extends Authenticatable
         return $this->hasMany(Consultation::class, 'counselor_id');
     }
 
+    /** @return HasMany<Achievement, $this> */
+    public function recordedAchievements(): HasMany
+    {
+        return $this->hasMany(Achievement::class, 'recorded_by');
+    }
+
+    /** @return HasMany<Achievement, $this> */
+    public function reviewedAchievements(): HasMany
+    {
+        return $this->hasMany(Achievement::class, 'reviewer_id');
+    }
+
     /** @return HasMany<Correction, $this> */
     public function submittedCorrections(): HasMany
     {

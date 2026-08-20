@@ -25,6 +25,13 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Sprint 8 Backend — Prestasi P0 Bertahap`
+  - Menambahkan skema additive Prestasi, tiga kategori referensi idempotent, bukti berbasis metadata, soft delete tanpa endpoint hapus, typed casts, relasi, scope, dan audit yang tidak menyimpan isi bukti/catatan.
+  - Mengimplementasikan `AchievementService`, Form Request, `AchievementPolicy`, transaksi, row locking, antrean verifikasi Koordinator, status final, batas akses Guru BK/Waka/Admin IT, serta koreksi prestasi terverifikasi melalui service terkait.
+  - Mengganti fixture PG-203 serta empty state PG-202 dengan pencatatan, detail, edit, verifikasi, histori profil, statistik, filter, kelas historis, preselection murid, dan pesan Bahasa Indonesia tanpa mengubah navigasi utama.
+  - Mengaktifkan laporan Prestasi PG-301/PG-302 dan CSV dengan filter jenis/tingkat/status, scope per role, inisial dan NISN tersamarkan, serta pengecualian bukti dan catatan dari keluaran umum.
+  - Memverifikasi migrasi additive SQLite dan MySQL tanpa `migrate:fresh`, seeder dua kali, 73 test/502 assertion, kompilasi Blade, Pint, build Vite, pemeriksaan frontend, serta `git diff --check`.
+
 - `[x] [2026-08-20] Sprint 7 Backend — Laporan Terscope, Pratinjau, Cetak, dan Ekspor CSV`
   - Mengimplementasikan `ReportService`, `ReportPolicy`, `ReportRequest`, dan `ReportController` untuk tujuh tipe laporan dengan filter tahun ajaran/periode, kelas historis, murid, kategori, bidang, status, Guru BK, dan ambang poin.
   - Menerapkan scope Guru BK, rekap gabungan Koordinator, batas koordinasi Waka, penolakan Admin IT, masa penugasan kasus, serta evaluasi multi-role tanpa membuka data di luar kewenangan.

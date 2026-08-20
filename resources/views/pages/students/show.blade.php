@@ -13,6 +13,7 @@
             <div class="d-flex flex-wrap align-items-start gap-2">
                 @can('create', \App\Models\Correction::class)<a href="{{ route('corrections.create', ['target_type' => 'student', 'target_id' => $student->id]) }}" class="btn btn-outline-secondary">Ajukan Koreksi</a>@endcan
                 @if($canCreateConsultation)<a href="{{ route('consultations.create', ['student_id' => $student->id]) }}" class="btn btn-outline-primary">Catat Konsultasi</a>@endif
+                @if($canCreateAchievement)<a href="{{ route('achievements.create', ['student_id' => $student->id]) }}" class="btn btn-outline-primary">Catat Prestasi</a>@endif
                 @if($canCreateCase)<a href="{{ route('cases.create', ['student_id' => $student->id]) }}" class="btn btn-primary">Buat Kasus</a>@endif
             </div>
         </div>
@@ -31,7 +32,7 @@
                 ['Kasus Aktif', $stats['active_cases'], 'primary', 'Dalam kewenangan'],
                 ['Poin e-Tatib', $stats['points'], 'warning', 'Data yang diizinkan'],
                 ['Tindak Lanjut', $stats['follow_ups'], 'info', 'Terjadwal'],
-                ['Prestasi', $stats['achievements'], 'secondary', 'Sprint 8'],
+                ['Prestasi', $stats['achievements'], 'secondary', 'Sesuai kewenangan'],
             ] as [$label, $value, $tone, $sub])
                 <div class="col-6 col-xl-3"><div class="sibk-stat-card p-3 border bg-white h-100"><div class="text-muted small">{{ $label }}</div><div class="fs-4 fw-bold text-{{ $tone }}">{{ $value }}</div><div class="small text-muted">{{ $sub }}</div></div></div>
             @endforeach
@@ -53,7 +54,7 @@
         @elseif($activeTab === 'konsultasi' && $canViewConsultations)
             <div class="sibk-panel"><div class="sibk-panel__header p-4"><h2 class="sibk-panel__title">Riwayat Konsultasi & Bimbingan</h2></div><div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>No. Sesi</th><th>Tanggal</th><th>Jenis</th><th>Kasus</th><th>Status</th><th>Ringkasan Umum</th><th></th></tr></thead><tbody>@forelse($consultations as $session)<tr><td class="fw-bold text-primary">{{ $session->registration_number }}</td><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $session->serviceField->label }}</td><td>{{ $session->case?->registration_number ?? '—' }}</td><td>{{ $session->status->label }}</td><td>{{ \Illuminate\Support\Str::limit($session->general_summary ?: '—', 100) }}</td><td><a href="{{ route('consultations.show', $session) }}">Buka</a></td></tr>@empty<tr><td colspan="7" class="text-center text-muted py-4">Belum ada konsultasi yang dapat diakses.</td></tr>@endforelse</tbody></table></div></div>
         @else
-            <div class="sibk-panel p-5 text-center"><h2 class="fs-5">Prestasi belum tersedia</h2><p class="text-muted mb-0">Modul prestasi akan diintegrasikan pada Sprint 8.</p></div>
+            <div class="sibk-panel"><div class="sibk-panel__header p-4 d-flex flex-wrap justify-content-between gap-3"><div><h2 class="sibk-panel__title">Riwayat Prestasi</h2><p class="sibk-panel__subtitle">Prestasi yang dapat dibaca sesuai kewenangan Anda.</p></div>@if($canCreateAchievement)<a href="{{ route('achievements.create', ['student_id' => $student->id]) }}" class="btn btn-primary">Catat Prestasi</a>@endif</div><div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Kegiatan</th><th>Jenis / Tingkat</th><th>Hasil</th><th>Status</th><th>Pencatat</th><th></th></tr></thead><tbody>@forelse($achievements as $achievement)@php $tone = match($achievement->verificationStatus->code) {'terverifikasi' => 'success', 'ditolak' => 'danger', default => 'warning'}; @endphp<tr><td>{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $achievement->activity_name }}<span class="small text-muted d-block">{{ $achievement->organizer }}</span></td><td>{{ $achievement->type->label }} / {{ $achievement->level->label }}</td><td>{{ $achievement->result }}</td><td><span class="badge text-bg-{{ $tone }}">{{ $achievement->verificationStatus->label }}</span></td><td>{{ $achievement->recorder->name }}</td><td><a href="{{ route('achievements.show', $achievement) }}">Buka</a></td></tr>@empty<tr><td colspan="7" class="text-center text-muted py-5">Belum ada prestasi yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div></div>
         @endif
     </div>
 @endsection
