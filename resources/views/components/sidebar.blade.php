@@ -33,11 +33,13 @@
                 <span>Data Murid</span>
             </a>
 
-            <a class="sibk-nav-link {{ request()->routeIs('reports.*') ? 'is-active' : '' }}" href="{{ route('reports.index') }}"
-                aria-current="{{ request()->routeIs('reports.*') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-                <span>Laporan</span>
-            </a>
+            @if(auth()->user()?->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']))
+                <a class="sibk-nav-link {{ request()->routeIs('reports.*') ? 'is-active' : '' }}" href="{{ route('reports.index') }}"
+                    aria-current="{{ request()->routeIs('reports.*') ? 'page' : 'false' }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                    <span>Laporan</span>
+                </a>
+            @endif
 
             <p class="sibk-sidebar__section">PENGELOLAAN</p>
 

@@ -25,6 +25,13 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Sprint 7 Backend — Laporan Terscope, Pratinjau, Cetak, dan Ekspor CSV`
+  - Mengimplementasikan `ReportService`, `ReportPolicy`, `ReportRequest`, dan `ReportController` untuk tujuh tipe laporan dengan filter tahun ajaran/periode, kelas historis, murid, kategori, bidang, status, Guru BK, dan ambang poin.
+  - Menerapkan scope Guru BK, rekap gabungan Koordinator, batas koordinasi Waka, penolakan Admin IT, masa penugasan kasus, serta evaluasi multi-role tanpa membuka data di luar kewenangan.
+  - Mengganti fixture PG-301/PG-302 dengan katalog, KPI, pagination, filter, cetak, identitas pencetak, dan empty state Prestasi dari database tanpa nama/NIP/tanggal sintetis.
+  - Menambahkan redaksi inisial dan NISN, pengecualian seluruh narasi privat, serta ekspor CSV streaming dengan UTF-8 BOM, formula-injection protection, dan dataset yang sama dengan pratinjau. XLSX/PDF tetap ditunda sampai `DEP-07`.
+  - Memverifikasi 67 test/447 assertion, kompilasi Blade, Pint, build Vite, pemeriksaan frontend PG-301/PG-302, serta `git diff --check`; Sprint ini tidak memerlukan migrasi atau dependensi baru.
+
 - `[x] [2026-08-20] Sprint 6 Backend — Dashboard dan Notifikasi`
   - Menambahkan `DashboardService` dengan query terpisah untuk Guru BK, Koordinator BK, Waka Kesiswaan, dan Admin IT; agregat, jadwal, aktivitas, serta tautan aksi mengikuti tahun ajaran dan kewenangan server tanpa memuat catatan privat.
   - Menambahkan notifikasi persisten, policy kepemilikan, kategori jadwal/penugasan/koordinasi/koreksi/perubahan, deduplikasi, status baca, filter, jumlah belum dibaca pada navigasi, dan allowlist tautan tujuan yang tetap diperiksa policy objek.

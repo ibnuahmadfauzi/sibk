@@ -238,8 +238,18 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 
 ## 8. Modul Laporan (`REP`)
 
-### Pusat & Ekspor Laporan
-- **Endpoint:** `GET /reports/export`
-- **Controller:** `ReportController@export`
-- **Query Params:** `report_type`, `academic_year_id`, `classroom_id`, `date_start`, `date_end`, `format` (pdf, excel, csv).
-- **Authorization:** `ReportService` otomatis memfilter data sesuai scope peran pengguna dan menyembunyikan catatan konseling sensitif.
+### Pusat, Pratinjau, dan Ekspor Laporan
+- **Endpoint:** `GET /reports`, `GET /reports/preview`, dan `GET /reports/export`.
+- **Controller:** `ReportController@index/preview/export`.
+- **Form Request:** `ReportRequest`.
+- **Query Params:**
+  - `type`: `pelanggaran-murid`, `pelanggaran-kelas`, `poin-pelanggaran`, `konsultasi`, `status-tindak-lanjut`, `rekap-layanan-bk`, atau `prestasi`.
+  - `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `student_id`, `category`, `service_field_id`, `status_id`, `counselor_id`, `minimum_points`, dan `page` sesuai tipe.
+  - `format=csv` wajib pada endpoint ekspor. XLSX dan PDF server belum tersedia sampai `DEP-07` disahkan.
+- **Authorization:** `ReportPolicy` mengizinkan Guru BK, Koordinator BK, dan Waka Kesiswaan; Admin IT ditolak. Waka tidak memperoleh laporan konsultasi dan hanya menerima kasus/e-Tatib yang tertaut pada koordinasinya.
+- **Business Logic:** `ReportService` memakai scope objek yang sama dengan daftar/detail. Guru BK dibatasi scope profesional atau kasus khusus, Koordinator memperoleh rekap gabungan, dan akun multi-role dihitung berdasarkan fungsi yang sah.
+- **Periode dan kelas:** periode default mengikuti tahun ajaran aktif. Kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kejadian, sesi, layanan, atau tindak lanjut.
+- **Privasi:** semua baris memakai inisial murid dan NISN tersamarkan. Query tidak memuat catatan privat konsultasi, catatan internal kasus, hasil/rencana tindak lanjut, dokumen, atau narasi sensitif.
+- **Pratinjau:** KPI dihitung dari seluruh dataset terfilter dan tabel dipaginasi 20 baris.
+- **CSV:** memakai dataset tidak terpagina dari pipeline yang sama, UTF-8 BOM, nama file terkontrol, serta perlindungan formula injection.
+- **Prestasi:** tersedia sebagai empty state tanpa fixture sampai Sprint 8.

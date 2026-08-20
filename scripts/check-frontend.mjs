@@ -5,6 +5,8 @@ const files = {
     login: 'resources/views/pages/login/html.blade.php',
     dashboard: 'resources/views/pages/dashboard/html.blade.php',
     notifications: 'resources/views/pages/notifications/index.blade.php',
+    reportIndex: 'resources/views/pages/reports/index.blade.php',
+    reportPreview: 'resources/views/pages/reports/preview.blade.php',
     sidebar: 'resources/views/components/sidebar.blade.php',
     topbar: 'resources/views/components/topbar.blade.php',
     routes: 'routes/web.php',
@@ -20,7 +22,7 @@ const assert = (condition, message) => {
     if (!condition) failures.push(message);
 };
 
-for (const key of ['login', 'dashboard', 'notifications', 'sidebar', 'topbar']) {
+for (const key of ['login', 'dashboard', 'notifications', 'reportIndex', 'reportPreview', 'sidebar', 'topbar']) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
     assert(!/\son\w+\s*=/.test(contents[key]), `${files[key]} masih memakai inline event handler.`);
     assert(!/#[0-9a-f]{3,8}\b/i.test(contents[key]), `${files[key]} masih memuat nilai warna langsung.`);
@@ -46,6 +48,12 @@ assert(contents.notifications.includes("route('notifications.read-all')"), 'Aksi
 assert(contents.notifications.includes('@csrf'), 'Aksi PG-003 belum memiliki perlindungan CSRF.');
 assert(contents.routes.includes('DashboardController::class'), 'Dashboard belum memakai controller database.');
 assert(contents.routes.includes('NotificationController::class'), 'Notifikasi belum memakai controller database.');
+assert(contents.reportIndex.includes('data-page-id="PG-301"'), 'PG-301 belum dapat ditelusuri dari markup.');
+assert(contents.reportPreview.includes('data-page-id="PG-302"'), 'PG-302 belum dapat ditelusuri dari markup.');
+assert(contents.reportPreview.includes("route('reports.export'"), 'Ekspor CSV PG-302 belum terhubung.');
+assert(contents.reportPreview.includes('data-print-report'), 'Aksi cetak PG-302 belum tersedia.');
+assert(!contents.reportPreview.includes("alert('"), 'PG-302 masih memakai simulasi ekspor.');
+assert(contents.routes.includes('ReportController::class'), 'Laporan belum memakai controller database.');
 assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak terpakai masih ada.');
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');
 
@@ -54,4 +62,4 @@ if (failures.length > 0) {
     process.exit(1);
 }
 
-console.log('Frontend checks passed for PG-001, PG-002, and PG-003.');
+console.log('Frontend checks passed for PG-001, PG-002, PG-003, PG-301, and PG-302.');
