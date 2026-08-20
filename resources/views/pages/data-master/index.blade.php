@@ -4,6 +4,19 @@
 
 @section('body')
     <div class="sibk-dashboard">
+        @if(session('success'))
+            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+        @endif
+        @if(session('warning'))
+            <div class="alert alert-warning" role="alert">{{ session('warning') }}</div>
+        @endif
+        @error('sync')
+            <div class="alert alert-danger" role="alert">{{ $message }}</div>
+        @enderror
+        @error('etatib_sync')
+            <div class="alert alert-danger" role="alert">{{ $message }}</div>
+        @enderror
+
         <!-- Header -->
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
@@ -30,8 +43,19 @@
                         </div>
                         <div class="sibk-stat-card__content-col">
                             <span class="sibk-stat-card__label">Dapodik</span>
-                            <span class="sibk-stat-card__value fs-6 text-dark mt-1">Sinkron Aktif</span>
-                            <span class="sibk-stat-meta text-muted small">Terakhir: 16 Agu 2026, 07.30</span>
+                            @php
+                                $dapodikStatus = match($lastDapodikRun?->status) {
+                                    'succeeded' => 'Sinkron Aktif',
+                                    'warning' => 'Perlu Diperiksa',
+                                    'failed' => 'Sinkronisasi Gagal',
+                                    'running' => 'Sedang Sinkronisasi',
+                                    default => 'Belum Dikonfigurasi',
+                                };
+                            @endphp
+                            <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $dapodikStatus }}</span>
+                            <span class="sibk-stat-meta text-muted small">
+                                {{ $lastSuccessfulDapodikRun?->finished_at ? 'Data terakhir: '.$lastSuccessfulDapodikRun->finished_at->locale('id')->translatedFormat('d M Y, H.i') : 'Belum ada data hasil sinkronisasi' }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -52,8 +76,17 @@
                         </div>
                         <div class="sibk-stat-card__content-col">
                             <span class="sibk-stat-card__label">e-Tatib</span>
-                            <span class="sibk-stat-card__value fs-6 text-dark mt-1">Sinkron Aktif</span>
-                            <span class="sibk-stat-meta text-muted small">Terakhir: 16 Agu 2026, 07.45</span>
+                            @php
+                                $etatibStatus = match($lastEtatibRun?->status) {
+                                    'succeeded' => 'Sinkron Aktif',
+                                    'warning' => 'Perlu Diperiksa',
+                                    'failed' => 'Sinkronisasi Gagal',
+                                    'running' => 'Sedang Sinkronisasi',
+                                    default => 'Belum Dikonfigurasi',
+                                };
+                            @endphp
+                            <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $etatibStatus }}</span>
+                            <span class="sibk-stat-meta text-muted small">{{ $lastSuccessfulEtatibRun?->finished_at ? 'Data terakhir: '.$lastSuccessfulEtatibRun->finished_at->locale('id')->translatedFormat('d M Y, H.i') : 'Belum ada data hasil sinkronisasi' }}</span>
                         </div>
                     </div>
                 </div>
@@ -75,7 +108,7 @@
                         </div>
                         <div class="sibk-stat-card__content-col">
                             <span class="sibk-stat-card__label">Data Murid</span>
-                            <span class="sibk-stat-card__value" id="val-dapodik">1.248</span>
+                            <span class="sibk-stat-card__value" id="val-dapodik">{{ number_format($studentCount, 0, ',', '.') }}</span>
                             <span class="sibk-stat-meta text-muted small">Total murid terdaftar</span>
                         </div>
                     </div>
@@ -98,8 +131,8 @@
                         </div>
                         <div class="sibk-stat-card__content-col">
                             <span class="sibk-stat-card__label">Kelas</span>
-                            <span class="sibk-stat-card__value" id="val-kelas">36</span>
-                            <span class="sibk-stat-meta text-muted small">Rombel aktif TA 2026/2027</span>
+                            <span class="sibk-stat-card__value" id="val-kelas">{{ number_format($classroomCount, 0, ',', '.') }}</span>
+                            <span class="sibk-stat-meta text-muted small">Rombel aktif{{ $activeYear ? ' TA '.$activeYear->name : '' }}</span>
                         </div>
                     </div>
                 </div>
@@ -107,13 +140,20 @@
         </div>
 
         <!-- Sync Button Row -->
-        <div class="d-flex justify-content-end mb-4">
-            <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-sync-all">
+        <div class="d-flex flex-wrap justify-content-end gap-2 mb-4">
+            <form action="{{ route('data-master.etatib.sync') }}" method="POST">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary">Sinkronkan e-Tatib</button>
+            </form>
+            <form action="{{ route('data-master.dapodik.sync') }}" method="POST">
+                @csrf
+            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-sync-all">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                 </svg>
                 Perbarui Data
             </button>
+            </form>
         </div>
 
         <!-- Data yang Perlu Diperiksa Box (Penpot PG-501) -->
@@ -130,7 +170,7 @@
                         </div>
                         <div>
                             <h2 class="fs-6 fw-bold text-dark mb-1">Data yang Perlu Diperiksa</h2>
-                            <p class="text-muted small mb-0">3 data belum cocok dan perlu ditinjau sebelum pembaruan berikutnya.</p>
+                            <p class="text-muted small mb-0">{{ $unresolvedIssueCount }} data belum cocok dan perlu ditinjau pada sumber resmi.</p>
                         </div>
                     </div>
                     <div>
@@ -159,34 +199,28 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td class="fw-semibold">16 Agu 07:45</td>
-                            <td>e-Tatib</td>
-                            <td>Pelanggaran dan poin</td>
-                            <td><span class="sibk-badge sibk-badge--success">Berhasil</span></td>
-                            <td class="text-muted">Data terbaru tersedia</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">16 Agu 07:30</td>
-                            <td>Dapodik</td>
-                            <td>Murid dan kelas</td>
-                            <td><span class="sibk-badge sibk-badge--success">Berhasil</span></td>
-                            <td class="text-muted">Data terbaru tersedia</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">15 Agu 07:45</td>
-                            <td>e-Tatib</td>
-                            <td>Pelanggaran dan poin</td>
-                            <td><span class="sibk-badge sibk-badge--warning">Perlu diperiksa</span></td>
-                            <td class="text-muted">3 data belum cocok</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">15 Agu 07:30</td>
-                            <td>Dapodik</td>
-                            <td>Murid dan kelas</td>
-                            <td><span class="sibk-badge sibk-badge--success">Berhasil</span></td>
-                            <td class="text-muted">Sinkronisasi selesai</td>
-                        </tr>
+                        @forelse($syncRuns as $run)
+                            @php
+                                [$statusLabel, $statusTone] = match($run->status) {
+                                    'succeeded' => ['Berhasil', 'success'],
+                                    'warning' => ['Perlu diperiksa', 'warning'],
+                                    'failed' => ['Gagal', 'danger'],
+                                    'running' => ['Berjalan', 'info'],
+                                    default => ['Tidak diketahui', 'neutral'],
+                                };
+                            @endphp
+                            <tr>
+                                <td class="fw-semibold">{{ $run->started_at->locale('id')->translatedFormat('d M H:i') }}</td>
+                                <td>{{ $run->source === 'dapodik' ? 'Dapodik' : ($run->source === 'etatib' ? 'e-Tatib' : $run->source) }}</td>
+                                <td>{{ $run->source === 'dapodik' ? 'Murid dan kelas' : ($run->source === 'etatib' ? 'Pelanggaran murid' : 'Data eksternal') }}</td>
+                                <td><span class="sibk-badge sibk-badge--{{ $statusTone }}">{{ $statusLabel }}</span></td>
+                                <td class="text-muted">{{ $run->summary }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">Belum ada riwayat sinkronisasi.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -202,57 +236,4 @@
             </div>
         </div>
     </div>
-@endsection
-
-@section('extra-javascript')
-    <script>
-        document.getElementById('btn-sync-all').addEventListener('click', function() {
-            const btn = this;
-            const icon = btn.querySelector('.sync-icon-spin');
-            
-            // Add spinning animation class
-            icon.style.animation = 'spin 1s linear infinite';
-            btn.disabled = true;
-            btn.innerHTML = `
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1.2s linear infinite">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                </svg>
-                Sinkronisasi...
-            `;
-
-            // Inject spin styling if not present
-            if (!document.getElementById('spin-style')) {
-                const style = document.createElement('style');
-                style.id = 'spin-style';
-                style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
-                document.head.appendChild(style);
-            }
-
-            // Simulate sync
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.className = "btn btn-success d-inline-flex align-items-center gap-2";
-                btn.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Selesai
-                `;
-                
-                // Show floating success toast or notification
-                alert('Sinkronisasi data master Dapodik dan e-Tatib berhasil diselesaikan.');
-                
-                // Reset button after 3 seconds
-                setTimeout(() => {
-                    btn.className = "btn btn-primary d-inline-flex align-items-center gap-2";
-                    btn.innerHTML = `
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                        </svg>
-                        Perbarui Data
-                    `;
-                }, 3000);
-            }, 2500);
-        });
-    </script>
 @endsection

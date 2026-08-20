@@ -4,155 +4,136 @@
 
 @section('body')
     <div class="sibk-dashboard">
-        <!-- Header -->
-        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div class="sibk-page-header mb-4">
             <div class="d-flex align-items-center gap-3">
-                <a href="{{ route('cases.index') }}" class="btn btn-icon btn-light" aria-label="Kembali">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                </a>
-                <div class="sibk-page-header__copy m-0">
-                    <h1 class="mb-1">Buat Kasus Baru</h1>
-                    <p class="mb-0">Catat informasi awal layanan BK secara terstruktur.</p>
-                </div>
+                <a href="{{ route('cases.index') }}" class="btn btn-icon btn-light" aria-label="Kembali">←</a>
+                <div class="sibk-page-header__copy m-0"><h1 class="mb-1">Buat Kasus Baru</h1><p class="mb-0">Catat informasi awal layanan BK secara terstruktur.</p></div>
             </div>
         </div>
 
-        <form action="#" method="POST">
-            <!-- Bagian 1: Murid dan Sumber Kasus -->
-            <div class="sibk-panel mb-4 border-0 shadow-sm">
-                <div class="sibk-panel__body p-4 p-md-5">
-                    <div class="d-flex gap-3 mb-4">
-                        <div class="flex-shrink-0">
-                            <div class="d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary" style="width: 48px; height: 48px;">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Kasus</h4>
-                            <p class="text-muted small mb-0">Tentukan murid, asal informasi, dan konteks awal kasus.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="row g-4 ms-0 ms-md-5 ps-0 ps-md-2">
-                        <div class="col-md-6">
-                            <label for="student" class="form-label sibk-form-label text-dark fw-medium">Murid</label>
-                            <div class="position-relative">
-                                <svg class="position-absolute top-50 translate-middle-y ms-3 text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                <select class="form-select sibk-form-select ps-5 bg-light border-0" id="student">
-                                    <option selected disabled>Cari dan pilih murid</option>
-                                    <option value="1">Murid A - X RPL 1</option>
-                                    <option value="2">Murid B - X RPL 2</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="sumber" class="form-label sibk-form-label text-dark fw-medium">Sumber Kasus</label>
-                            <select class="form-select sibk-form-select bg-light border-0" id="sumber">
-                                <option selected disabled>Pilih sumber kasus</option>
-                                <option value="e-tatib">e-Tatib</option>
-                                <option value="rujukan">Rujukan</option>
-                                <option value="inisiatif">Murid datang sendiri</option>
-                                <option value="temuan">Temuan</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="tanggal" class="form-label sibk-form-label text-dark fw-medium">Tanggal Layanan</label>
-                            <input type="date" class="form-control sibk-form-control bg-light border-0" id="tanggal" placeholder="Pilih tanggal">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="bidang" class="form-label sibk-form-label text-dark fw-medium">Bidang Layanan BK</label>
-                            <select class="form-select sibk-form-select bg-light border-0" id="bidang">
-                                <option selected disabled>Pilih bidang layanan</option>
-                                <option value="pribadi">Pribadi</option>
-                                <option value="belajar">Belajar</option>
-                                <option value="sosial">Sosial</option>
-                                <option value="karier">Karier</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="perujuk" class="form-label sibk-form-label text-dark fw-medium">Pihak Perujuk</label>
-                            <input type="text" class="form-control sibk-form-control bg-light border-0" id="perujuk" placeholder="Isi jika sumber kasus berasal dari rujukan">
-                        </div>
-                    </div>
-                </div>
-            </div>
+        @if($errors->any())
+            <div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+        @endif
 
-            <!-- Bagian 2: Informasi Kasus -->
+        <form action="{{ route('cases.store') }}" method="POST">
+            @csrf
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
-                    <div class="d-flex gap-3 mb-4">
-                        <div class="flex-shrink-0">
-                            <div class="d-flex align-items-center justify-content-center rounded-circle text-danger" style="width: 48px; height: 48px; background-color: #FFF0F0;">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                    <polyline points="10 9 9 9 8 9"></polyline>
-                                </svg>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="fs-5 mb-1 text-dark fw-bold">Informasi Kasus</h4>
-                            <p class="text-muted small mb-0">Tuliskan informasi yang diperlukan untuk memulai penanganan.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="row g-4 ms-0 ms-md-5 ps-0 ps-md-2">
+                    <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Kasus</h4>
+                    <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <label for="informasi_awal" class="form-label sibk-form-label text-dark fw-medium">Informasi Awal</label>
-                            <textarea class="form-control sibk-form-control bg-light border-0" id="informasi_awal" rows="4" placeholder="Tuliskan ringkasan informasi awal"></textarea>
+                            <label for="student" class="form-label sibk-form-label">Murid Master</label>
+                            <select class="form-select sibk-form-select" id="student" name="student_id">
+                                <option value="">Pilih murid atau isi identitas sementara</option>
+                                @foreach($students as $student)
+                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id') === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $student->classMemberships->first()?->classroom?->name ?? 'Tanpa kelas aktif' }})</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <div class="col-md-6">
-                            <label for="penanganan_awal" class="form-label sibk-form-label text-dark fw-medium">Penanganan Awal</label>
-                            <textarea class="form-control sibk-form-control bg-light border-0" id="penanganan_awal" rows="4" placeholder="Tuliskan penanganan awal yang dilakukan"></textarea>
+                        <div class="col-md-3">
+                            <label for="temporary_nisn" class="form-label sibk-form-label">NISN Sementara</label>
+                            <input class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
+                            <input class="form-control sibk-form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Nama sesuai informasi awal">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="sumber" class="form-label sibk-form-label">Sumber Kasus</label>
+                            <select class="form-select sibk-form-select" id="sumber" name="case_source_id" required>
+                                <option value="">Pilih sumber kasus</option>
+                                @foreach($caseSources as $source)<option value="{{ $source->id }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tanggal" class="form-label sibk-form-label">Tanggal Layanan</label>
+                            <input type="date" class="form-control sibk-form-control" id="tanggal" name="service_date" value="{{ old('service_date', today()->toDateString()) }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="bidang" class="form-label sibk-form-label">Bidang Layanan BK</label>
+                            <select class="form-select sibk-form-select" id="bidang" name="service_field_id" required>
+                                <option value="">Pilih bidang layanan</option>
+                                @foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) old('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach
+                            </select>
                         </div>
                         <div class="col-12">
-                            <label for="catatan_internal" class="form-label sibk-form-label text-dark fw-medium">Catatan Internal</label>
-                            <textarea class="form-control sibk-form-control bg-light border-0" id="catatan_internal" rows="2" placeholder="Catatan tambahan bila diperlukan"></textarea>
+                            <label for="referrer" class="form-label sibk-form-label">Pihak Perujuk</label>
+                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber kasus berasal dari rujukan">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bagian 3: Data e-Tatib Terkait -->
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4">
-                        <div class="d-flex gap-3 w-100">
-                            <div class="flex-shrink-0">
-                                <div class="d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success" style="width: 48px; height: 48px;">
-                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                                <div>
-                                    <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
-                                    <p class="text-muted small mb-4">Hubungkan data e-Tatib yang relevan bila kasus berkaitan dengan pelanggaran.</p>
-                                    <p class="text-muted small mb-0">Belum ada data e-Tatib yang dipilih.</p>
-                                </div>
-                                <button type="button" class="btn fw-bold px-4 py-2 rounded-pill shadow-sm" style="color: #2b5cff; background-color: #ffffff; border: 1px solid #e2e8f0;">Pilih Data e-Tatib</button>
-                            </div>
-                        </div>
+                    <h4 class="fs-5 mb-1 text-dark fw-bold">Informasi Kasus</h4>
+                    <p class="text-muted small mb-4">Tuliskan informasi yang diperlukan untuk memulai penanganan.</p>
+                    <div class="row g-4">
+                        <div class="col-md-6"><label for="initial_info" class="form-label sibk-form-label">Informasi Awal</label><textarea class="form-control sibk-form-control" id="initial_info" name="initial_info" rows="4" required>{{ old('initial_info') }}</textarea></div>
+                        <div class="col-md-6"><label for="initial_action" class="form-label sibk-form-label">Penanganan Awal</label><textarea class="form-control sibk-form-control" id="initial_action" name="initial_action" rows="4" required>{{ old('initial_action') }}</textarea></div>
+                        <div class="col-12"><label for="internal_note" class="form-label sibk-form-label">Catatan Internal</label><textarea class="form-control sibk-form-control" id="internal_note" name="internal_note" rows="2" placeholder="Hanya terlihat bagi Guru BK yang memiliki penugasan aktif">{{ old('internal_note') }}</textarea></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Footer Actions -->
-            <div class="d-flex justify-content-end gap-3 mt-4 mb-5">
-                <a href="{{ route('cases.index') }}" class="btn fw-bold px-5 py-2 rounded-pill shadow-sm" style="color: #2b5cff; background-color: #ffffff; border: 1px solid #e2e8f0;">Batal</a>
-                <button type="submit" class="btn btn-primary fw-bold px-5 py-2 rounded-pill shadow-sm border-0" style="background-color: #2b5cff;">Simpan Kasus</button>
+            <div class="sibk-panel mb-4 border-0 shadow-sm">
+                <div class="sibk-panel__body p-4 p-md-5">
+                    <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
+                    <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber kasus adalah e-Tatib.</p>
+                    @forelse($etatibRecords as $record)
+                        <div class="form-check border rounded p-3 mb-2 ps-5" data-etatib-nisn="{{ $record->nisn }}">
+                            <input class="form-check-input" type="checkbox" name="etatib_record_ids[]" value="{{ $record->id }}" id="etatib-{{ $record->id }}" @checked(in_array($record->id, old('etatib_record_ids', [])))>
+                            <label class="form-check-label w-100" for="etatib-{{ $record->id }}">
+                                <span class="fw-semibold">{{ $record->violation_type }}</span>
+                                <span class="text-muted small d-block">NISN {{ $record->nisn }} · {{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }} · {{ $record->points }} poin</span>
+                            </label>
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0">Belum ada data e-Tatib aktif. Admin IT perlu menjalankan sinkronisasi setelah connector tersedia.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 mb-5">
+                <a href="{{ route('cases.index') }}" class="btn btn-outline-secondary px-4">Batal</a>
+                <button type="submit" class="btn btn-primary px-4">Simpan Kasus</button>
             </div>
         </form>
     </div>
+@endsection
+
+@section('extra-javascript')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const student = document.getElementById('student');
+            const temporaryNisn = document.getElementById('temporary_nisn');
+            const temporaryName = document.getElementById('temporary_name');
+            const records = document.querySelectorAll('[data-etatib-nisn]');
+
+            const refreshEtatib = () => {
+                const masterNisn = student?.selectedOptions[0]?.dataset.nisn ?? '';
+                const selectedNisn = masterNisn || temporaryNisn?.value.trim() || '';
+
+                records.forEach((record) => {
+                    const matches = selectedNisn !== '' && record.dataset.etatibNisn === selectedNisn;
+                    record.classList.toggle('d-none', !matches);
+                    if (!matches) record.querySelector('input').checked = false;
+                });
+            };
+
+            student?.addEventListener('change', () => {
+                if (student.value !== '') {
+                    temporaryNisn.value = '';
+                    temporaryName.value = '';
+                }
+                refreshEtatib();
+            });
+            temporaryNisn?.addEventListener('input', () => {
+                if (temporaryNisn.value.trim() !== '') student.value = '';
+                refreshEtatib();
+            });
+            refreshEtatib();
+        });
+    </script>
 @endsection

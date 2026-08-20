@@ -99,7 +99,7 @@
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
-                                <a href="{{ route('cases.show') }}" class="sibk-list-item text-decoration-none">
+                                <a href="{{ route('cases.index') }}" class="sibk-list-item text-decoration-none">
                                     <div class="sibk-list-item__date-box">
                                         <strong>{{ $item['date'] }}</strong>
                                         <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
@@ -170,10 +170,12 @@
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     Lihat daftar kasus
                 </button>
-                <button class="btn btn-primary is-planned" type="button">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    Cari profil murid
-                </button>
+                @unless ($dashboard['read_only'])
+                    <button class="btn btn-primary is-planned" type="button">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Cari profil murid
+                    </button>
+                @endunless
                 <button class="btn btn-outline-primary is-planned" type="button">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     Buka laporan

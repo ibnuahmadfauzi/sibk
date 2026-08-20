@@ -20,7 +20,18 @@
             </div>
         </div>
 
-        <form action="{{ route('assignments.classes.index') }}" method="GET">
+        @if($errors->any())
+            <div class="alert alert-danger" role="alert">
+                <ul class="mb-0">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form action="{{ route('assignments.classes.store') }}" method="POST">
+            @csrf
             <!-- Main Panel: Detail Penugasan -->
             <div class="sibk-panel mb-4">
                 <div class="sibk-panel__header p-4 border-0 pb-0">
@@ -33,41 +44,45 @@
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-4">
                             <label for="kelas" class="form-label sibk-form-label">Kelas <span class="text-danger">*</span></label>
-                            <select class="form-select sibk-form-select" id="kelas" name="kelas" required>
+                            <select class="form-select sibk-form-select" id="kelas" name="classroom_id" required>
                                 <option value="">Pilih kelas</option>
-                                @foreach($classes as $c)
-                                    <option value="{{ $c }}" {{ request()->query('class') === $c || $c === 'X RPL 1' ? 'selected' : '' }}>{{ $c }}</option>
+                                @foreach($classes as $classroom)
+                                    <option value="{{ $classroom->id }}" @selected((string) old('classroom_id', $selectedClass?->id) === (string) $classroom->id)>{{ $classroom->name }} — {{ $classroom->academicYear->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control sibk-form-control bg-light" id="tahun_ajaran" name="tahun_ajaran" value="2026/2027" readonly>
+                            <select class="form-select sibk-form-select" id="tahun_ajaran" name="academic_year_id" required>
+                                @foreach($academicYears as $year)
+                                    <option value="{{ $year->id }}" @selected((string) old('academic_year_id', $selectedYear?->id) === (string) $year->id)>{{ $year->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="counselor" class="form-label sibk-form-label">Penanggung Jawab <span class="text-danger">*</span></label>
-                            <select class="form-select sibk-form-select" id="counselor" name="counselor" required>
+                            <select class="form-select sibk-form-select" id="counselor" name="user_id" required>
                                 <option value="">Pilih Guru BK</option>
                                 @foreach($counselors as $guru)
-                                    <option value="{{ $guru }}" {{ $guru === 'Guru BK A' ? 'selected' : '' }}>{{ $guru }}</option>
+                                    <option value="{{ $guru->id }}" @selected((string) old('user_id') === (string) $guru->id)>{{ $guru->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="start_date" class="form-label sibk-form-label">Tanggal Mulai <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control sibk-form-control" id="start_date" name="start_date" value="2026-07-15" required>
+                            <input type="date" class="form-control sibk-form-control" id="start_date" name="effective_date" value="{{ old('effective_date', now()->toDateString()) }}" required>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="end_date" class="form-label sibk-form-label">Tanggal Akhir</label>
-                            <input type="date" class="form-control sibk-form-control" id="end_date" name="end_date" placeholder="Pilih tanggal bila ada">
+                            <input type="date" class="form-control sibk-form-control" id="end_date" name="effective_until" value="{{ old('effective_until') }}" placeholder="Pilih tanggal bila ada">
                         </div>
                         <div class="col-12 col-md-6">
                             <label for="decision_basis" class="form-label sibk-form-label">Dasar Keputusan / Nomor SK</label>
-                            <input type="text" class="form-control sibk-form-control" id="decision_basis" name="decision_basis" placeholder="Contoh: SK Pembagian Tugas No. 421/089/2026" value="SK Kepala Sekolah No. 421/112/2026">
+                            <input type="text" class="form-control sibk-form-control" id="decision_basis" name="decision_number" placeholder="Contoh: SK Pembagian Tugas No. 421/089/2026" value="{{ old('decision_number') }}" required>
                         </div>
                         <div class="col-12 col-md-6">
                             <label for="notes" class="form-label sibk-form-label">Catatan Perubahan</label>
-                            <input type="text" class="form-control sibk-form-control" id="notes" name="notes" placeholder="Isi bila pembagian yang sedang berjalan berubah" value="Penyesuaian distribusi kelas reguler tahun ajaran 2026/2027">
+                            <input type="text" class="form-control sibk-form-control" id="notes" name="notes" placeholder="Isi bila pembagian yang sedang berjalan berubah" value="{{ old('notes') }}">
                         </div>
                     </div>
                 </div>
@@ -98,16 +113,20 @@
                     </div>
                 </div>
                 <div class="sibk-panel__body p-4 pt-2">
+                    @if($currentAssignment)
                     <div class="sibk-target-highlight-box p-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-2">
-                            <strong class="text-dark">{{ $currentAssignment['class'] }}</strong>
+                            <strong class="text-dark">{{ $currentAssignment->classroom->name }}</strong>
                             <span class="text-muted">•</span>
-                            <span class="fw-semibold text-primary">{{ $currentAssignment['counselor'] }}</span>
+                            <span class="fw-semibold text-primary">{{ $currentAssignment->teacher->name }}</span>
                             <span class="text-muted">•</span>
-                            <span class="text-muted small">Berlaku sejak {{ $currentAssignment['start_date'] }}</span>
+                            <span class="text-muted small">Berlaku sejak {{ $currentAssignment->effective_from->locale('id')->translatedFormat('d F Y') }}</span>
                         </div>
-                        <span class="sibk-badge sibk-badge--success">{{ $currentAssignment['status'] }}</span>
+                        <span class="sibk-badge sibk-badge--success">Aktif</span>
                     </div>
+                    @else
+                        <div class="text-muted small">Belum ada penugasan aktif untuk kelas yang dipilih.</div>
+                    @endif
                 </div>
             </div>
 

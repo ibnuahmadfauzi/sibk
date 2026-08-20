@@ -4,12 +4,17 @@
 
 @section('body')
     <div class="sibk-dashboard">
+        @if(session('success'))
+            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+        @endif
+
         <!-- Header -->
         <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
             <div class="sibk-page-header__copy">
                 <h1>Penugasan Kelas</h1>
                 <p>Daftar penanggung jawab layanan BK per kelas.</p>
             </div>
+            @if($canManage)
             <div class="sibk-page-header__actions">
                 <a href="{{ route('assignments.classes.manage') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -18,6 +23,7 @@
                     Atur Penugasan
                 </a>
             </div>
+            @endif
         </div>
 
         <!-- Filter Panel -->
@@ -32,21 +38,23 @@
                 <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('assignments.classes.index') }}" method="GET">
                     <div class="col-12 col-md-3">
                         <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran</label>
-                        <select class="form-select sibk-form-select" id="tahun_ajaran" name="tahun_ajaran">
-                            <option selected value="2026/2027">2026/2027</option>
-                            <option value="2025/2026">2025/2026</option>
+                        <select class="form-select sibk-form-select" id="tahun_ajaran" name="academic_year_id">
+                            <option value="">Semua tahun ajaran</option>
+                            @foreach($academicYears as $year)
+                                <option value="{{ $year->id }}" @selected((string) request('academic_year_id') === (string) $year->id)>{{ $year->name }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-12 col-md-4">
                         <label for="search_kelas" class="form-label sibk-form-label">Cari Kelas</label>
-                        <input type="text" class="form-control sibk-form-control" id="search_kelas" name="search_kelas" placeholder="Nama kelas">
+                        <input type="text" class="form-control sibk-form-control" id="search_kelas" name="search_kelas" value="{{ request('search_kelas') }}" placeholder="Nama kelas">
                     </div>
                     <div class="col-12 col-md-3">
                         <label for="status" class="form-label sibk-form-label">Status</label>
                         <select class="form-select sibk-form-select" id="status" name="status">
-                            <option selected value="">Semua status</option>
-                            <option value="aktif">Aktif</option>
-                            <option value="nonaktif">Tidak Aktif</option>
+                            <option value="">Semua status</option>
+                            <option value="aktif" @selected(request('status') === 'aktif')>Aktif</option>
+                            <option value="nonaktif" @selected(request('status') === 'nonaktif')>Tidak Aktif</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-2">
@@ -77,20 +85,25 @@
                     </thead>
                     <tbody>
                         @forelse($assignments as $assignment)
+                            @php($isActive = $assignment->effective_from->lte(now()) && ($assignment->effective_until === null || $assignment->effective_until->gte(now())))
                             <tr>
-                                <td class="fw-bold text-dark">{{ $assignment['class'] }}</td>
-                                <td class="fw-semibold text-primary">{{ $assignment['counselor'] }}</td>
-                                <td>{{ $assignment['start_date'] }}</td>
-                                <td class="text-muted">{{ $assignment['end_date'] }}</td>
+                                <td class="fw-bold text-dark">{{ $assignment->classroom->name }}</td>
+                                <td class="fw-semibold text-primary">{{ $assignment->teacher->name }}</td>
+                                <td>{{ $assignment->effective_from->locale('id')->translatedFormat('d M Y') }}</td>
+                                <td class="text-muted">{{ $assignment->effective_until?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td>
                                 <td>
-                                    <span class="sibk-badge sibk-badge--{{ $assignment['status_tone'] }}">
-                                        {{ $assignment['status'] }}
+                                    <span class="sibk-badge sibk-badge--{{ $isActive ? 'success' : 'neutral' }}">
+                                        {{ $isActive ? 'Aktif' : 'Tidak Aktif' }}
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ route('assignments.classes.manage', ['class' => $assignment['class']]) }}" class="fw-bold text-decoration-none text-primary">
-                                        Atur
-                                    </a>
+                                    @if($canManage)
+                                        <a href="{{ route('assignments.classes.manage', ['classroom_id' => $assignment->classroom_id, 'academic_year_id' => $assignment->academic_year_id]) }}" class="fw-bold text-decoration-none text-primary">
+                                            Atur
+                                        </a>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -104,7 +117,7 @@
 
             <div class="sibk-panel__footer p-4 border-top border-light">
                 <div class="text-muted small fw-medium">
-                    Menampilkan 1–{{ count($assignments) }} dari {{ count($assignments) }} penugasan kelas
+                    Menampilkan {{ $assignments->isEmpty() ? 0 : 1 }}–{{ $assignments->count() }} dari {{ $assignments->count() }} penugasan kelas
                 </div>
             </div>
         </div>

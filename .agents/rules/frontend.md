@@ -28,34 +28,21 @@ Gunakan kembali komponen yang setara sebelum membuat komponen baru:
 - EmptyState
 - Modal
 
-## Data Layer
+## Data Layer & Integrasi Backend
 
 Gunakan pola:
 
-`UI/presentation → page/container → service/repository interface → adapter`
+`Blade View / Presentation → Web Controller (Form Request) → Service Layer → Eloquent Model`
 
-Fase sekarang:
-
-`Page → Service Interface → Mock Adapter`
-
-Fase backend nanti:
-
-`Page → Service Interface → API Adapter`
-
-Jangan menanam mock data permanen di komponen presentasi dan jangan membuat endpoint backend sebagai bagian dari task frontend.
+Fase aktif saat ini:
+- Menggantikan mock fixture dengan Controller terhubung ke database.
+- Menyediakan form actions, CSRF token, session validation feedback, dan old input support.
+- Menghubungkan authorization/policy checks di Blade (`@can`, `@if(auth()->user()->...)`).
+- Komponen presentasi tetap modular dan tidak menanam query database langsung di view.
 
 ## Authorization
 
-Hi-Fi bersifat account-neutral. Menu, data, dan aksi aplikasi nyata mengikuti authorization/capability, bukan varian UI hardcoded per role.
-
-## Backend Boundary
-
-Frontend tidak memutuskan:
-- skema database;
-- endpoint final;
-- payload final;
-- autentikasi server;
-- mekanisme sinkronisasi Dapodik/e-Tatib.
+Menu, data, dan aksi pada antarmuka pengguna dikendalikan oleh authorization/policy backend (AUTH-01 s.d. AUTH-07). Jangan hardcode logika hak akses statis di tampilan.
 
 ## Quality Gate
 

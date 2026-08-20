@@ -27,16 +27,18 @@ for (const key of ['login', 'dashboard', 'sidebar', 'topbar']) {
 }
 
 assert(contents.login.includes('data-page-id="PG-001"'), 'PG-001 belum dapat ditelusuri dari markup.');
+assert(contents.login.includes('name="email"'), 'Field email PG-001 belum mengikuti kontrak autentikasi.');
 assert(contents.login.includes('autocomplete="username"'), 'PG-001 belum menetapkan autocomplete username.');
 assert(contents.login.includes('autocomplete="current-password"'), 'PG-001 belum menetapkan autocomplete kata sandi.');
-assert(contents.login.includes('aria-describedby="identifierHint identifierError"'), 'Error identifier PG-001 belum terhubung.');
-assert(contents.login.includes('aria-describedby="passwordHint passwordError"'), 'Error kata sandi PG-001 belum terhubung.');
+assert(contents.login.includes('aria-describedby="identifierError"'), 'Error email PG-001 belum terhubung.');
+assert(contents.login.includes('aria-describedby="passwordError"'), 'Error kata sandi PG-001 belum terhubung.');
+assert(contents.login.includes("route('login.store')"), 'Form PG-001 belum terhubung ke endpoint login.');
+assert(contents.login.includes('@csrf'), 'Form PG-001 belum memiliki perlindungan CSRF.');
 assert(contents.login.includes('id="loginSpinner"'), 'State loading PG-001 belum tersedia.');
 
 assert(contents.dashboard.includes('data-page-id="PG-002"'), 'PG-002 belum dapat ditelusuri dari markup.');
-assert(contents.dashboard.includes('id="academicYear"'), 'Filter tahun ajaran PG-002 belum tersedia.');
-assert(contents.dashboard.includes('Kasus terkoordinasi'), 'Variasi Waka PG-002 belum tersedia.');
-assert(contents.dashboard.includes('Pelanggaran menurut kategori dan kelas'), 'Ringkasan pelanggaran PG-002 belum tersedia.');
+assert(contents.dashboard.includes("$dashboard['read_only']"), 'Mode hanya-baca PG-002 belum diterapkan.');
+assert(contents.dashboard.includes('@unless ($dashboard[\'read_only\'])'), 'Aksi terlarang Waka PG-002 belum disembunyikan.');
 assert(contents.dashboard.includes("$previewState === 'loading'"), 'State loading PG-002 belum tersedia.');
 assert(contents.dashboard.includes("$previewState === 'empty'"), 'State kosong PG-002 belum tersedia.');
 assert(contents.dashboard.includes("$previewState === 'error'"), 'State gagal PG-002 belum tersedia.');
@@ -45,6 +47,10 @@ for (const role of ['guru', 'koordinator', 'waka']) {
     assert(contents.fixtures.includes(`'${role}' => [`), `Fixture peran ${role} belum tersedia.`);
 }
 
+assert(contents.fixtures.includes('Kasus terkoordinasi'), 'Fixture Waka PG-002 belum tersedia.');
+assert(contents.routes.includes("hasRole('guru_bk')"), 'Dashboard belum menentukan scope Guru BK dari akun.');
+assert(contents.routes.includes("hasRole('koordinator_bk')"), 'Dashboard belum menentukan scope Koordinator dari akun.');
+assert(contents.routes.includes("hasRole('waka_kesiswaan')"), 'Dashboard belum menentukan scope Waka dari akun.');
 assert(contents.routes.includes("['default', 'loading', 'empty', 'error']"), 'Allowlist state dashboard belum tersedia.');
 assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak terpakai masih ada.');
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');

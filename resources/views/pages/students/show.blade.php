@@ -287,7 +287,7 @@
                                     <td>{{ $case['follow_up'] }}</td>
                                     <td>{{ $case['pic'] }}</td>
                                     <td>
-                                        <a href="{{ route('cases.show') }}" class="fw-bold text-decoration-none">Buka</a>
+                                        <a href="{{ route('cases.index') }}" class="fw-bold text-decoration-none">Buka</a>
                                     </td>
                                 </tr>
                             @empty
@@ -387,7 +387,7 @@
                                     <td><span class="badge bg-light text-dark border">{{ $cons['type'] }}</span></td>
                                     <td>
                                         @if(($cons['case_ref'] ?? '—') !== '—')
-                                            <a href="{{ route('cases.show') }}" class="fw-semibold text-primary text-decoration-none">
+                                            <a href="{{ route('cases.index') }}" class="fw-semibold text-primary text-decoration-none">
                                                 {{ $cons['case_ref'] }}
                                             </a>
                                         @else

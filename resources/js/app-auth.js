@@ -55,7 +55,6 @@ togglePassword?.addEventListener('click', () => {
 });
 
 form?.addEventListener('submit', (event) => {
-    event.preventDefault();
     hideMessages();
 
     const identifierValid = identifier.value.trim().length > 0;
@@ -64,28 +63,11 @@ form?.addEventListener('submit', (event) => {
     setFieldValidity(password, passwordValid);
 
     if (!identifierValid || !passwordValid) {
+        event.preventDefault();
         showSummary('Periksa kembali isian Anda', 'Lengkapi semua field wajib sebelum melanjutkan.');
         (identifierValid ? password : identifier).focus();
         return;
     }
 
     setLoading(true);
-
-    window.setTimeout(() => {
-        setLoading(false);
-        const result = form.dataset.previewResult;
-
-        if (result === 'success') {
-            success.hidden = false;
-            success.focus();
-            return;
-        }
-
-        if (result === 'system-error') {
-            showSummary('Layanan belum dapat diakses', 'Coba kembali beberapa saat lagi atau hubungi Admin IT sekolah.');
-            return;
-        }
-
-        showSummary('Belum dapat masuk', 'Nama pengguna/email atau kata sandi belum sesuai. Periksa kembali tanpa membagikan kredensial Anda.');
-    }, 650);
 });
