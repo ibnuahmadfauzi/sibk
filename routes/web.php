@@ -748,7 +748,8 @@ Route::get('/assignments/cases', function () {
         ['no' => 'K-011', 'student' => 'Murid D', 'class' => 'X RPL 1', 'status' => 'Dalam Penanganan'],
     ];
     $counselors = ['Guru BK A', 'Guru BK B', 'Guru BK C', 'Guru BK D'];
-    $selectedCase = $cases[0];
+    $caseNo = request()->query('case_no', 'K-014');
+    $selectedCase = collect($cases)->firstWhere('no', $caseNo) ?? $cases[0];
 
     return view('pages.assignments.cases.index', compact('cases', 'counselors', 'selectedCase'));
 })->name('assignments.cases.index');

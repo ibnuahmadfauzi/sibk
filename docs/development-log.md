@@ -21,6 +21,10 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Audit dan Penyempurnaan Paket 400 (Pengelolaan) & Paket 500 (Data Master)`
+  - Memperbarui `PG-402 (Atur Penugasan Kelas)` dengan menambahkan field *Dasar Keputusan / Nomor SK* dan box ketentuan tata kelola *ASN-02, ASN-03, ASN-06*.
+  - Menghubungkan `PG-103 (Detail Kasus)` dengan `PG-403 (Penugasan atau Pengalihan Kasus)` melalui tombol "Alihkan Kasus" dengan parameter kasus dinamis.
+  - Menyesuaikan 4 kartu ringkasan sinkronisasi pada `PG-501 (Data Master dan Status Sinkronisasi)` sesuai Penpot (*Dapodik, e-Tatib, Data Murid 1.248, Kelas 36*).
 - `[x] [2026-08-20] Implementasi Halaman Dedikasi Form Pengajuan Koreksi Data (corrections/create)`
   - Membuat halaman formulir penuh `/corrections/create` untuk pengajuan koreksi data operasional maupun data master tanpa modal pop-up.
   - Menambahkan tombol aksi "Ajukan Koreksi" pada header halaman Detail Kasus (`/cases/show`) dan Profil Murid (`/students/show`) dengan auto-fill parameter kontekstual.

@@ -61,11 +61,31 @@
                             <label for="end_date" class="form-label sibk-form-label">Tanggal Akhir</label>
                             <input type="date" class="form-control sibk-form-control" id="end_date" name="end_date" placeholder="Pilih tanggal bila ada">
                         </div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-6">
+                            <label for="decision_basis" class="form-label sibk-form-label">Dasar Keputusan / Nomor SK</label>
+                            <input type="text" class="form-control sibk-form-control" id="decision_basis" name="decision_basis" placeholder="Contoh: SK Pembagian Tugas No. 421/089/2026" value="SK Kepala Sekolah No. 421/112/2026">
+                        </div>
+                        <div class="col-12 col-md-6">
                             <label for="notes" class="form-label sibk-form-label">Catatan Perubahan</label>
-                            <input type="text" class="form-control sibk-form-control" id="notes" name="notes" placeholder="Isi bila pembagian yang sedang berjalan berubah">
+                            <input type="text" class="form-control sibk-form-control" id="notes" name="notes" placeholder="Isi bila pembagian yang sedang berjalan berubah" value="Penyesuaian distribusi kelas reguler tahun ajaran 2026/2027">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Info Box: Ketentuan Tata Kelola (ASN-01 s.d. ASN-06) -->
+            <div class="alert alert-info d-flex align-items-start gap-3 p-3 mb-4 rounded-3 border-0 bg-opacity-10 bg-primary">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary flex-shrink-0 mt-1">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <div class="small text-dark">
+                    <strong>Ketentuan Tata Kelola Penugasan Guru BK:</strong>
+                    <ul class="mb-0 ps-3 mt-1 text-muted">
+                        <li>Penetapan penugasan baru akan mengarsipkan penugasan sebelumnya tanpa menghapus rekam jejak histori (<em>ASN-02</em>).</li>
+                        <li>Perubahan penugasan kelas di tengah tahun <strong>tidak otomatis memindahkan kasus aktif</strong> yang sedang berjalan (<em>ASN-03</em>). Pengalihan kasus khusus dilakukan terpisah melalui menu <a href="{{ route('assignments.cases.index') }}" class="text-primary fw-semibold text-decoration-none">Pengalihan Kasus</a>.</li>
+                    </ul>
                 </div>
             </div>
 
