@@ -213,7 +213,30 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 
 ---
 
-## 7. Modul Laporan (`REP`)
+## 7. Dashboard dan Notifikasi (`DASH`, `NOT`)
+
+### Dashboard per kewenangan
+- **Endpoint:** `GET /dashboard`.
+- **Controller:** `DashboardController@index`.
+- **Query Params:** `academic_year_id` (opsional; harus merujuk tahun ajaran yang tersedia).
+- **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
+  - Guru BK menerima agregat murid dalam scope profesional, kasus yang dapat diakses, tindak lanjut terdekat, mirror e-Tatib terkait, dan aktivitasnya sendiri.
+  - Koordinator BK menerima rekap tata kelola umum tanpa isi catatan internal atau konsultasi privat.
+  - Waka Kesiswaan hanya menerima kasus yang dikoordinasikan kepadanya dalam mode hanya-baca.
+  - Admin IT hanya menerima status akun, sinkronisasi, konflik sumber, dan koreksi master tanpa identitas atau isi layanan BK.
+- **Multi-role:** fungsi Koordinator diprioritaskan sebagai rekap tata kelola; role teknis tidak membuka isi layanan sensitif.
+
+### Daftar dan status baca notifikasi
+- **Endpoint:** `GET /notifications`, `GET /notifications/{notification}`, dan `POST /notifications/read-all`.
+- **Controller:** `NotificationController@index/open/markAllRead`.
+- **Filter:** `filter=unread` dan `category` (`schedule`, `assignment`, `coordination`, `correction`, atau `change`).
+- **Authorization:** notifikasi hanya dapat dilihat dan ditandai dibaca oleh akun penerimanya. Akun nonaktif tidak menerima notifikasi baru dan ditolak middleware akun aktif.
+- **Business Logic:** `NotificationService` membuat notifikasi persisten dan idempotent untuk jadwal, penugasan, koordinasi, koreksi, serta perubahan kewenangan yang penting. Tautan aksi hanya dibentuk dari allowlist route server; akses objek tujuan tetap diperiksa kembali oleh policy objek.
+- **Privasi:** judul dan pesan tidak menyimpan kata sandi, kredensial, catatan internal kasus, atau isi konsultasi privat.
+
+---
+
+## 8. Modul Laporan (`REP`)
 
 ### Pusat & Ekspor Laporan
 - **Endpoint:** `GET /reports/export`

@@ -1,65 +1,16 @@
 @extends('layouts.app-2')
-
 @section('page-title', 'Notifikasi - Ruang BK')
-
 @section('body')
-<div class="container-fluid py-4 px-lg-4">
-
-    {{-- Header --}}
-    <div class="sibk-notification-header">
-        <h1 class="sibk-page-title">Notifikasi</h1>
-        <p class="sibk-page-subtitle text-muted">Pemberitahuan terkait layanan dan tindak lanjut.</p>
+<div class="container-fluid py-4 px-lg-4" data-page-id="PG-003">
+    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    <div class="sibk-notification-header"><h1 class="sibk-page-title">Notifikasi</h1><p class="sibk-page-subtitle text-muted">Pemberitahuan operasional yang ditujukan khusus kepada Anda.</p></div>
+    <div class="sibk-notification-tabs d-flex flex-wrap justify-content-between gap-2">
+        <div class="d-flex gap-2"><a href="{{ route('notifications.preview') }}" class="btn {{ $activeFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary' }}">Semua</a><a href="{{ route('notifications.preview', ['filter' => 'unread']) }}" class="btn {{ $activeFilter === 'unread' ? 'btn-primary' : 'btn-outline-secondary' }}">Belum dibaca <span class="badge bg-secondary ms-1">{{ $unreadCount }}</span></a></div>
+        @if($unreadCount > 0)<form action="{{ route('notifications.read-all') }}" method="POST">@csrf<button class="btn btn-link text-decoration-none">Tandai semua dibaca</button></form>@endif
     </div>
-
-    {{-- Tabs --}}
-    <div class="sibk-notification-tabs">
-        <button class="btn btn-primary" type="button">Semua</button>
-        <button class="btn btn-outline-secondary" type="button">Belum dibaca</button>
-    </div>
-
-    {{-- Main Panel --}}
-    <div class="sibk-panel">
-        <div class="sibk-panel__header">
-            <div class="sibk-panel__title-group">
-                <h2>Daftar Notifikasi</h2>
-                <span class="badge bg-secondary ms-2" style="font-weight: 500;">{{ count($notifications) }}</span>
-            </div>
-            <button class="btn btn-link text-decoration-none" style="font-size: 0.85rem; font-weight: 500;">
-                Tandai semua dibaca
-            </button>
-        </div>
-        
-        <div class="sibk-notification-list">
-            @forelse($notifications as $notif)
-                <a href="{{ route('cases.index') }}" class="sibk-notification-item {{ !$notif['is_read'] ? 'is-unread' : '' }}">
-                    <div class="sibk-notification-item__icon-col">
-                        <div class="sibk-notification-item__icon sibk-icon-tone--{{ $notif['tone'] ?? 'primary' }}">
-                            <svg viewBox="0 0 24 24">{!! $notif['icon'] ?? '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>' !!}</svg>
-                        </div>
-                    </div>
-                    <div class="sibk-notification-item__content">
-                        <div class="sibk-notification-item__header">
-                            <p class="sibk-notification-item__title">{{ $notif['title'] }}</p>
-                            <div class="sibk-notification-item__meta">
-                                <span class="sibk-notification-item__time">{{ $notif['time'] }}</span>
-                                @if(!$notif['is_read'])
-                                    <span class="sibk-notification-item__unread-dot"></span>
-                                @endif
-                            </div>
-                        </div>
-                        <p class="sibk-notification-item__desc">{{ $notif['description'] }}</p>
-                    </div>
-                </a>
-            @empty
-                <div class="text-center py-5 text-muted">
-                    <p class="mb-0">Tidak ada notifikasi baru.</p>
-                </div>
-            @endforelse
-        </div>
-        
-        <div class="sibk-panel__footer border-top px-4 py-3 text-center">
-            <span class="text-muted" style="font-size: 0.85rem;">{{ count($notifications) }} notifikasi ditampilkan</span>
-        </div>
+    <div class="sibk-panel"><div class="sibk-panel__header"><div class="sibk-panel__title-group"><h2>Daftar Notifikasi</h2><span class="badge bg-secondary ms-2">{{ $notifications->total() }}</span></div><form action="{{ route('notifications.preview') }}" method="GET" class="d-flex gap-2"><input type="hidden" name="filter" value="{{ $activeFilter === 'unread' ? 'unread' : '' }}"><label class="visually-hidden" for="category">Kategori</label><select class="form-select form-select-sm" id="category" name="category"><option value="">Semua kategori</option>@foreach(['schedule' => 'Jadwal', 'assignment' => 'Penugasan', 'coordination' => 'Koordinasi', 'correction' => 'Koreksi', 'change' => 'Perubahan'] as $code => $label)<option value="{{ $code }}" @selected(request('category') === $code)>{{ $label }}</option>@endforeach</select><button class="btn btn-sm btn-outline-primary">Filter</button></form></div>
+        <div class="sibk-notification-list">@forelse($notifications as $notification)<a href="{{ route('notifications.open', $notification) }}" class="sibk-notification-item {{ $notification->read_at === null ? 'is-unread' : '' }}"><div class="sibk-notification-item__icon-col"><div class="sibk-notification-item__icon sibk-icon-tone--{{ $notification->category === 'correction' ? 'warning' : ($notification->category === 'coordination' ? 'info' : 'primary') }}"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg></div></div><div class="sibk-notification-item__content"><div class="sibk-notification-item__header"><p class="sibk-notification-item__title">{{ $notification->title }}</p><div class="sibk-notification-item__meta"><span class="sibk-notification-item__time">{{ $notification->created_at->locale('id')->diffForHumans() }}</span>@if($notification->read_at === null)<span class="sibk-notification-item__unread-dot"></span>@endif</div></div><p class="sibk-notification-item__desc">{{ $notification->message }}</p></div></a>@empty<div class="text-center py-5 text-muted"><p class="mb-0">Tidak ada notifikasi yang sesuai filter.</p></div>@endforelse</div>
+        @if($notifications->hasPages())<div class="sibk-panel__footer border-top px-4 py-3">{{ $notifications->links() }}</div>@endif
     </div>
 </div>
 @endsection

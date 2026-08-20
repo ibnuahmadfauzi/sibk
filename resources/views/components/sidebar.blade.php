@@ -79,6 +79,9 @@
                 aria-current="{{ request()->routeIs('notifications.preview') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
                 <span>Notifikasi</span>
+                @if($unreadNotificationCount > 0)
+                    <span class="badge bg-danger ms-auto" aria-label="{{ $unreadNotificationCount }} notifikasi belum dibaca">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
+                @endif
             </a>
             <a class="sibk-nav-link {{ request()->routeIs('account.preview') ? 'is-active' : '' }}" href="{{ route('account.preview') }}" 
                 aria-current="{{ request()->routeIs('account.preview') ? 'page' : 'false' }}">

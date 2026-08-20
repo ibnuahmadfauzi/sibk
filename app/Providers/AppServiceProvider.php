@@ -14,14 +14,18 @@ use App\Models\Correction;
 use App\Models\Student;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Policies\CasePolicy;
 use App\Policies\ConsultationPolicy;
 use App\Policies\CorrectionPolicy;
 use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
+use App\Policies\UserNotificationPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\View as BladeView;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,5 +49,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Consultation::class, ConsultationPolicy::class);
         Gate::policy(Correction::class, CorrectionPolicy::class);
         Gate::policy(Student::class, StudentPolicy::class);
+        Gate::policy(UserNotification::class, UserNotificationPolicy::class);
+
+        View::composer('components.sidebar', function (BladeView $view): void {
+            $user = auth()->user();
+            $view->with(
+                'unreadNotificationCount',
+                $user instanceof User ? $user->notifications()->unread()->count() : 0,
+            );
+        });
     }
 }

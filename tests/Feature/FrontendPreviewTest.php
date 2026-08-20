@@ -38,7 +38,7 @@ class FrontendPreviewTest extends TestCase
     }
 
     #[DataProvider('dashboardRoleProvider')]
-    public function test_pg_002_renders_fixture_for_authenticated_role(string $role, string $expected): void
+    public function test_pg_002_renders_database_dashboard_for_authenticated_role(string $role, string $expected): void
     {
         $this->authenticateAs($role);
 
@@ -48,18 +48,7 @@ class FrontendPreviewTest extends TestCase
             ->assertSee($expected);
     }
 
-    #[DataProvider('dashboardStateProvider')]
-    public function test_pg_002_renders_each_static_state(string $state, string $expected): void
-    {
-        $this->authenticateAs('guru_bk');
-
-        $this->get('/dashboard?state='.$state)
-            ->assertOk()
-            ->assertSee('data-preview-state="'.$state.'"', false)
-            ->assertSee($expected);
-    }
-
-    public function test_pg_002_waka_fixture_is_explicitly_read_only(): void
+    public function test_pg_002_waka_dashboard_is_explicitly_read_only(): void
     {
         $this->authenticateAs('waka_kesiswaan');
 
@@ -84,20 +73,9 @@ class FrontendPreviewTest extends TestCase
     public static function dashboardRoleProvider(): array
     {
         return [
-            'guru' => ['guru_bk', 'Konsultasi lanjutan'],
-            'coordinator' => ['koordinator_bk', 'Review pembagian kasus'],
+            'guru' => ['guru_bk', 'Murid dalam cakupan'],
+            'coordinator' => ['koordinator_bk', 'Rekap tata kelola'],
             'waka' => ['waka_kesiswaan', 'Tampilan koordinasi hanya-baca'],
-        ];
-    }
-
-    /** @return array<string, array{string, string}> */
-    public static function dashboardStateProvider(): array
-    {
-        return [
-            'default' => ['default', 'Konsultasi lanjutan'],
-            'loading' => ['loading', 'Memuat ringkasan dashboard'],
-            'empty' => ['empty', 'Tidak ada tindak lanjut'],
-            'failure' => ['error', 'Ringkasan belum dapat dimuat'],
         ];
     }
 }

@@ -10,12 +10,14 @@ use App\Http\Controllers\CaseController;
 use App\Http\Controllers\CaseCoordinationController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\CorrectionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FollowUpController;
 use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
-// Route pratinjau frontend dengan fixture sintetis; bukan kontrak backend final.
+// Route kompatibilitas pratinjau dipertahankan sementara dan diarahkan ke endpoint database.
 
 Route::get('/', function () {
     return redirect()->route(auth()->check() ? 'dashboard.preview' : 'login');
@@ -31,94 +33,12 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
     Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
 
-    Route::get('/dashboard', function () {
-        $roles = config('sibk-preview.dashboard.roles');
-        $years = config('sibk-preview.dashboard.years');
-        $user = auth()->user();
-        $previewRole = match (true) {
-            $user?->hasRole('guru_bk') => 'guru',
-            $user?->hasRole('koordinator_bk') => 'koordinator',
-            $user?->hasRole('waka_kesiswaan') => 'waka',
-            default => 'guru',
-        };
-        $previewState = request()->query('state', 'default');
-        $activeYear = request()->query('year', $years[0]);
-
-        if (! array_key_exists($previewRole, $roles)) {
-            $previewRole = 'guru';
-        }
-
-        if (! in_array($previewState, ['default', 'loading', 'empty', 'error'], true)) {
-            $previewState = 'default';
-        }
-
-        if (! in_array($activeYear, $years, true)) {
-            $activeYear = $years[0];
-        }
-
-        return view('pages.dashboard.index', [
-            'dashboard' => $roles[$previewRole],
-            'previewRole' => $previewRole,
-            'previewState' => $previewState,
-            'previewRoles' => $roles,
-            'years' => $years,
-            'activeYear' => $activeYear,
-        ]);
-    })->name('dashboard.preview');
-
-    Route::get('/notifications', function () {
-        $roles = config('sibk-preview.dashboard.roles');
-        $previewRole = 'guru'; // Fokus pada akun normal (tanpa pembatasan role)
-
-        if (! array_key_exists($previewRole, $roles)) {
-            $previewRole = 'guru';
-        }
-
-        $notifications = [
-            [
-                'id' => 1,
-                'title' => 'Jadwal tindak lanjut Murid A hari ini.',
-                'time' => 'Hari ini, 09.10',
-                'description' => 'Tindak lanjut · Murid A',
-                'is_read' => false,
-                'icon' => '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
-                'tone' => 'primary',
-            ],
-            [
-                'id' => 2,
-                'title' => 'Kasus K-014 diperbarui.',
-                'time' => 'Kemarin, 14.20',
-                'description' => 'Perubahan terbaru pada penanganan kasus.',
-                'is_read' => false,
-                'icon' => '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
-                'tone' => 'success',
-            ],
-            [
-                'id' => 3,
-                'title' => 'Koreksi data yang diajukan telah diperiksa.',
-                'time' => 'Kemarin, 10.05',
-                'description' => 'Hasil pemeriksaan koreksi data sudah tersedia.',
-                'is_read' => true,
-                'icon' => '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>',
-                'tone' => 'warning',
-            ],
-            [
-                'id' => 4,
-                'title' => 'Penugasan kasus K-009 diperbarui.',
-                'time' => '15 Agu, 13.40',
-                'description' => 'Perubahan penanggung jawab kasus telah dicatat.',
-                'is_read' => true,
-                'icon' => '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.828l-5.656-5.656A4 4 0 0 1 4 2.343V2"/><path d="M20 2v.343a4 4 0 0 1-1.172 2.828l-5.656 5.656A4 4 0 0 0 12 13.7V22"/>',
-                'tone' => 'info',
-            ],
-        ];
-
-        return view('pages.notifications.index', [
-            'dashboard' => $roles[$previewRole],
-            'previewRole' => $previewRole,
-            'notifications' => $notifications,
-        ]);
-    })->name('notifications.preview');
+    Route::redirect('/_preview/dashboard', '/dashboard')->name('fixtures.dashboard');
+    Route::redirect('/_preview/notifications', '/notifications')->name('fixtures.notifications');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.preview');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     Route::get('/account', function () {
         // Default fallback 'guru' agar UI bisa dirender

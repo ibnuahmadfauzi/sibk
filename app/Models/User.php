@@ -71,6 +71,12 @@ class User extends Authenticatable
         return $this->hasMany(Correction::class, 'reviewer_id');
     }
 
+    /** @return HasMany<UserNotification, $this> */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
     public function hasRole(string $role): bool
     {
         if ($this->relationLoaded('roles')) {

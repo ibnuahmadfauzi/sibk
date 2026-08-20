@@ -25,6 +25,13 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Sprint 6 Backend — Dashboard dan Notifikasi`
+  - Menambahkan `DashboardService` dengan query terpisah untuk Guru BK, Koordinator BK, Waka Kesiswaan, dan Admin IT; agregat, jadwal, aktivitas, serta tautan aksi mengikuti tahun ajaran dan kewenangan server tanpa memuat catatan privat.
+  - Menambahkan notifikasi persisten, policy kepemilikan, kategori jadwal/penugasan/koordinasi/koreksi/perubahan, deduplikasi, status baca, filter, jumlah belum dibaca pada navigasi, dan allowlist tautan tujuan yang tetap diperiksa policy objek.
+  - Menghubungkan event penugasan kelas/kasus, koordinasi Waka, tindak lanjut, konsultasi, dan koreksi kepada penerima aktif yang relevan; Admin IT tidak menerima notifikasi layanan hanya karena role teknis.
+  - Mengganti fixture produksi PG-002/PG-003 dengan controller, service, pagination, filter, empty state, dan data database; URL pratinjau lama dipertahankan sebagai redirect kompatibilitas.
+  - Memverifikasi migrasi additive SQLite dan MySQL tanpa `migrate:fresh`, seeder dua kali, 59 test/361 assertion, kompilasi Blade, Pint, build Vite, pemeriksaan frontend, serta `git diff --check`.
+
 - `[x] [2026-08-20] Sprint 5 Backend — Koreksi dan Riwayat Perubahan`
   - Menambahkan skema additive koreksi dengan nomor `KR-YYYY-XXXX`, target polymorphic, status referensi dinamis, nilai lama/usulan, pengaju, pemeriksa, hasil, tautan sinkronisasi, soft delete, serta relasi eksplisit pada objek domain.
   - Mengimplementasikan `CorrectionService`, Form Request, `CorrectionPolicy`, row locking, pemeriksaan stale value, matriks akses per peran, dan penerapan koreksi operasional hanya melalui `CaseService`, `FollowUpService`, atau `ConsultationService`.

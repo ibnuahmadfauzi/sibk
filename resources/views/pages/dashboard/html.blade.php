@@ -1,10 +1,17 @@
-<div class="sibk-dashboard" data-page-id="PG-002" data-preview-state="{{ $previewState }}">
+<div class="sibk-dashboard" data-page-id="PG-002" data-dashboard-role="{{ $dashboard['role_key'] }}">
 
-    <header class="sibk-page-header">
+    <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
         <div class="sibk-page-header__copy">
             <h1 id="dashboard-title">Dashboard</h1>
             <p>{{ $dashboard['description'] }}</p>
+            <small class="text-muted">{{ $dashboard['scope'] }}</small>
         </div>
+        @if($years->isNotEmpty())
+            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2">
+                <div><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
+                <button class="btn btn-outline-primary">Terapkan</button>
+            </form>
+        @endif
         
         @if ($dashboard['read_only'])
             <div class="alert sibk-read-only-notice" role="status">
@@ -14,25 +21,6 @@
         @endif
     </header>
 
-    @if ($previewState === 'error')
-        <section class="sibk-state-panel" aria-labelledby="dashboard-error-title">
-            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>
-            <h2 id="dashboard-error-title">Ringkasan belum dapat dimuat</h2>
-            <p>Data tidak berubah. Periksa koneksi lalu coba kembali tanpa memperluas cakupan akses.</p>
-            <a class="btn btn-primary" href="{{ route('dashboard.preview', ['role' => $previewRole, 'year' => $activeYear]) }}">Coba lagi</a>
-        </section>
-    @elseif ($previewState === 'loading')
-        <div class="sibk-loading" role="status" aria-live="polite">
-            <span class="visually-hidden">Memuat ringkasan dashboard</span>
-            <div class="row g-3" aria-hidden="true">
-                @for ($i = 0; $i < 4; $i++)
-                    <div class="col-12 col-sm-6 col-xl-3"><div class="sibk-skeleton sibk-skeleton--stat"></div></div>
-                @endfor
-                <div class="col-12 col-xl-7"><div class="sibk-skeleton sibk-skeleton--panel"></div></div>
-                <div class="col-12 col-xl-5"><div class="sibk-skeleton sibk-skeleton--panel"></div></div>
-            </div>
-        </div>
-    @else
         <section aria-label="Statistik utama">
             <div class="row g-3 sibk-stat-row">
                 @foreach ($dashboard['stats'] as $stat)
@@ -58,9 +46,9 @@
                                 </div>
                                 <div class="sibk-stat-card__content-col">
                                     <h2 class="sibk-stat-card__label">{{ $stat['label'] }}</h2>
-                                    <strong class="sibk-stat-card__value">{{ $previewState === 'empty' ? '0' : $stat['value'] }}</strong>
+                                    <strong class="sibk-stat-card__value">{{ $stat['value'] }}</strong>
                                     
-                                    @if ($previewState !== 'empty' && isset($stat['delta']))
+                                    @if (isset($stat['delta']))
                                         <span class="sibk-stat-delta sibk-stat-delta--{{ $stat['delta_tone'] ?? 'neutral' }}">
                                             @if (($stat['delta_tone'] ?? '') === 'up')
                                                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
@@ -70,7 +58,7 @@
                                             {{ $stat['delta'] }}
                                         </span>
                                     @else
-                                        <span class="sibk-stat-meta">{{ $previewState === 'empty' ? 'Belum ada data' : $stat['meta'] }}</span>
+                                        <span class="sibk-stat-meta">{{ $stat['meta'] }}</span>
                                     @endif
                                 </div>
                             </div>
@@ -87,19 +75,19 @@
                     <header class="sibk-panel__header">
                         <div class="sibk-panel__title-group">
                             <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            <h2 id="tindak-lanjut-title">Tindak lanjut terdekat</h2>
+                            <h2 id="tindak-lanjut-title">{{ $dashboard['schedule_title'] }}</h2>
                         </div>
-                        <a href="{{ route('cases.index') }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
+                        <a href="{{ $dashboard['schedule_url'] }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
                             Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
                         </a>
                     </header>
 
-                    @if ($previewState === 'empty' || empty($dashboard['tindak_lanjut']))
+                    @if (empty($dashboard['tindak_lanjut']))
                         <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada jadwal tindak lanjut dalam waktu dekat." />
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
-                                <a href="{{ route('cases.index') }}" class="sibk-list-item text-decoration-none">
+                                <a href="{{ $item['url'] }}" class="sibk-list-item text-decoration-none">
                                     <div class="sibk-list-item__date-box">
                                         <strong>{{ $item['date'] }}</strong>
                                         <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
@@ -107,7 +95,7 @@
                                     <div class="sibk-list-item__content">
                                         <strong>{{ $item['code'] }}</strong>
                                         <span>{{ $item['title'] }}</span>
-                                        <small>Murid: {{ $item['student'] }}</small>
+                                        <small>{{ $item['context_label'] }}</small>
                                     </div>
                                     <div class="sibk-list-item__trailing">
                                         <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
@@ -133,7 +121,7 @@
                         </a>
                     </header>
                     
-                    @if ($previewState === 'empty' || empty($dashboard['activities']))
+                    @if (empty($dashboard['activities']))
                         <x-empty-state title="Belum ada aktivitas" description="Aktivitas sistem yang relevan dengan Anda akan tampil di sini." />
                     @else
                         <div class="sibk-activity-list">
@@ -165,22 +153,7 @@
 
         {{-- Quick Actions & Dekorasi --}}
         <div class="sibk-dashboard-footer">
-            <div class="sibk-quick-actions">
-                <button class="btn btn-outline-primary is-planned" type="button">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    Lihat daftar kasus
-                </button>
-                @unless ($dashboard['read_only'])
-                    <button class="btn btn-primary is-planned" type="button">
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        Cari profil murid
-                    </button>
-                @endunless
-                <button class="btn btn-outline-primary is-planned" type="button">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    Buka laporan
-                </button>
-            </div>
+            <div class="sibk-quick-actions">@foreach($dashboard['quick_actions'] as $action)<a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
             
             <div class="sibk-dashboard-deco" aria-hidden="true">
                 <p>Konseling Hari Ini,<br>Masa Depan yang Lebih Baik</p>
@@ -191,5 +164,4 @@
                 </svg>
             </div>
         </div>
-    @endif
 </div>
