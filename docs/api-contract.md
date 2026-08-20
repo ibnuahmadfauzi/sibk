@@ -41,7 +41,7 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Controller:** `CaseController@index`
 - **Authorization:** `Guru BK` (scope kelas aktif / kasus khusus), `Koordinator BK` (semua kasus), `Waka` (kasus terkoordinasi).
 - **Query Params:** `search`, `classroom_id`, `case_source_id`, `status_id`, `month`, `tab`, dan `page`.
-- **Response Data:** daftar `BkCase` terpagina dan tersaring policy; tab konsultasi masih fixture sampai Sprint 4.
+- **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
 ### Buat Kasus Baru
 - **Endpoint:** `POST /cases`
@@ -104,21 +104,34 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 
 ---
 
-## 4. Modul Konsultasi (`CONS`, `STU`)
+## 4. Modul Konsultasi dan Profil Murid (`CONS`, `STU`)
 
-### Catat Konsultasi
-- **Endpoint:** `POST /consultations`
-- **Controller:** `ConsultationController@store`
-- **Form Request:** `StoreConsultationRequest`
-  - `student_id` (nullable, exists:students,id)
-  - `temporary_student_id` (nullable, exists:temporary_students,id)
-  - `case_id` (nullable, exists:cases,id)
-  - `consultation_date` (required, date)
-  - `consultation_type_id` (required, exists:references,id)
-  - `status_id` (required, exists:references,id)
-  - `public_summary` (required, string)
-  - `sensitive_notes` (nullable, string — diproteksi otorisasi ketat)
-- **Authorization:** `ConsultationPolicy@create`
+### Daftar, detail, dan formulir konsultasi
+- **Endpoint:** `GET /consultations` mengalihkan ke `GET /cases?tab=konsultasi`; `GET /consultations/create`; `GET /consultations/{consultation}`; `GET /consultations/{consultation}/edit`.
+- **Controller:** `CaseController@index` untuk daftar dan `ConsultationController` untuk formulir/detail.
+- **Filter daftar:** `search` (nomor, nama, NISN, atau topik), `classroom_id`, `service_field_id`, `consultation_status_id`, dan `month` (`YYYY-MM`).
+- **Authorization:** Guru BK membaca histori ketika masih memiliki scope profesional atas murid. Koordinator membaca metadata dan ringkasan umum. Waka dan Admin IT tidak memiliki akses. Relasi `privateNote` hanya dimuat setelah `ConsultationPolicy@viewSensitive` disetujui.
+
+### Catat dan ubah konsultasi
+- **Endpoint:** `POST /consultations`; `PATCH /consultations/{consultation}`.
+- **Controller:** `ConsultationController@store`, `ConsultationController@update`.
+- **Form Request:** `StoreConsultationRequest`, `UpdateConsultationRequest`.
+  - `student_id` atau pasangan `temporary_nisn` + `temporary_name` (salah satu wajib)
+  - `case_id` (nullable, kasus dengan identitas sama dan penugasan aktif)
+  - `service_field_id` (required, reference category `service_field`)
+  - `status_id` (required, reference category `consultation_status`)
+  - `topic` (required), `referral_source` (nullable)
+  - `session_date` (required), `starts_at`, `ends_at`, `follow_up_date` (nullable)
+  - `general_summary` (wajib untuk status `terlaksana`)
+  - `internal_note`, `sensitive_content`, `conclusion`, `follow_up_plan` (nullable, disimpan pada tabel privat)
+- **Business Logic:** `ConsultationService` membuat nomor `KNS-YYYY-XXXX`, memvalidasi identitas/scope/kasus/jadwal, dan menulis metadata serta catatan privat dalam satu transaksi. Hanya pencatat asli yang masih memiliki kewenangan profesional dapat mengubah sesi; tidak tersedia endpoint hapus.
+- **Audit:** hanya metadata umum dan nama field privat yang berubah. Isi catatan privat tidak dicatat pada audit.
+
+### Daftar dan profil murid
+- **Endpoint:** `GET /students`; `GET /students/{student}`. URL kompatibilitas `GET /students/show?nisn=...` mengalihkan ke profil database setelah policy disetujui.
+- **Controller:** `StudentController@index`, `StudentController@show`, `StudentController@legacy`.
+- **Authorization:** Guru BK melihat murid dari penugasan kelas atau kasus aktif; Koordinator melihat ringkasan; Waka hanya murid dengan kasus yang dikoordinasikan; Admin IT diarahkan menggunakan Data Master.
+- **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi yang diizinkan, statistik berbasis scope, serta empty state Prestasi sampai Sprint 8. Waka tidak menerima tab/data konsultasi dan hanya menerima e-Tatib yang tertaut ke kasus koordinasinya.
 
 ---
 

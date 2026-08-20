@@ -25,6 +25,17 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Sprint 4 Backend — Konsultasi dan Profil Murid`
+  - Menambahkan skema additive `consultations` dan `consultation_private_notes`, referensi empat status konsultasi, nomor sesi `KNS-YYYY-XXXX`, identitas resmi/sementara, relasi kasus opsional, soft delete, transaksi, serta audit yang tidak menyimpan isi sensitif.
+  - Mengimplementasikan `ConsultationService`, Form Request, `ConsultationPolicy`, `StudentPolicy`, scope profesional lintas penugasan kelas/kasus, histori privat Guru BK penerus yang read-only, serta redaksi ketat untuk Koordinator, Waka, Admin IT, dan akun multi-role.
+  - Mengganti fixture PG-101/PG-105/PG-201/PG-202 dengan query database, filter dan pagination, profil murid terscope, histori kasus/tindak lanjut/e-Tatib/konsultasi, preselection murid, dan empty state Prestasi sampai Sprint 8.
+  - Memverifikasi migrasi additive SQLite dan MySQL tanpa `migrate:fresh`, seeder dua kali, 52 test/274 assertion, kompilasi Blade, Pint, build Vite, pemeriksaan frontend, serta `git diff --check`.
+
+- `[x] [2026-08-20] Seeder Akun Sintetis untuk Setiap Role P0`
+  - Menambahkan empat akun pengembangan idempotent untuk Guru BK, Koordinator BK, Waka Kesiswaan, dan Admin IT dengan tepat satu role per akun.
+  - Menambahkan konfigurasi `SIBK_SEED_ACCOUNT_PASSWORD`, integrasi ke `DatabaseSeeder`, dan test idempotensi serta pencocokan role/password.
+  - Seeder berhasil dijalankan dua kali pada database lokal; 42 test/213 assertion dan Pint lulus.
+
 - `[x] [2026-08-20] Sprint 3 Backend — Kasus, e-Tatib, Koordinasi Waka, Penugasan Kasus, dan Tindak Lanjut`
   - Menambahkan skema additive kasus, histori penugasan, koordinasi Waka, tindak lanjut, mirror e-Tatib read-only, serta tautan kasus–e-Tatib dengan soft delete dan audit.
   - Mengimplementasikan `CaseService`, `FollowUpService`, perluasan `AssignmentService`, `EtatibSyncService`, policy per objek, validasi identitas/NISN, transfer dan kewenangan tambahan, transisi status, serta penyelesaian kasus.

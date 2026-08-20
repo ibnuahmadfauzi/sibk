@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'is_active', 'deactivated_at', 'updated_by'])]
+#[Fillable(['name', 'email', 'email_verified_at', 'password', 'is_active', 'deactivated_at', 'updated_by'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -51,6 +51,12 @@ class User extends Authenticatable
     public function teacherAssignments(): HasMany
     {
         return $this->hasMany(TeacherAssignment::class);
+    }
+
+    /** @return HasMany<Consultation, $this> */
+    public function consultations(): HasMany
+    {
+        return $this->hasMany(Consultation::class, 'counselor_id');
     }
 
     public function hasRole(string $role): bool

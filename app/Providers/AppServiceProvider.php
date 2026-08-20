@@ -9,9 +9,13 @@ use App\Integrations\Dapodik\UnavailableDapodikConnector;
 use App\Integrations\Etatib\EtatibConnector;
 use App\Integrations\Etatib\UnavailableEtatibConnector;
 use App\Models\BkCase;
+use App\Models\Consultation;
+use App\Models\Student;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Policies\CasePolicy;
+use App\Policies\ConsultationPolicy;
+use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -36,5 +40,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(TeacherAssignment::class, TeacherAssignmentPolicy::class);
         Gate::policy(BkCase::class, CasePolicy::class);
+        Gate::policy(Consultation::class, ConsultationPolicy::class);
+        Gate::policy(Student::class, StudentPolicy::class);
     }
 }

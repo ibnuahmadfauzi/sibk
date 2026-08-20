@@ -1,122 +1,103 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Catat Konsultasi - Ruang BK')
+@section('page-title', ($isEdit ? 'Ubah' : 'Catat').' Konsultasi - Ruang BK')
 
 @section('body')
     <div class="sibk-dashboard">
-        <!-- Header -->
-        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div class="sibk-page-header mb-4">
             <div class="d-flex align-items-center gap-3">
-                <a href="{{ route('cases.index') }}" class="btn btn-icon btn-light" aria-label="Kembali">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                </a>
-                <div class="sibk-page-header__copy m-0">
-                    <h1 class="mb-1">Catat Konsultasi</h1>
-                    <p class="mb-0 text-muted">Catat informasi layanan konsultasi.</p>
+                <a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-icon btn-light" aria-label="Kembali">&larr;</a>
+                <div class="sibk-page-header__copy m-0"><h1>{{ $isEdit ? 'Ubah' : 'Catat' }} Konsultasi</h1><p>Metadata, ringkasan umum, dan catatan privat disimpan terpisah.</p></div>
+            </div>
+        </div>
+
+        @if($errors->any())
+            <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
+        @endif
+
+        <form action="{{ $isEdit ? route('consultations.update', $consultation) : route('consultations.store') }}" method="POST">
+            @csrf
+            @if($isEdit) @method('PATCH') @endif
+
+            <div class="sibk-panel mb-4">
+                <div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Murid dan Konteks Layanan</h2></div>
+                <div class="sibk-panel__body p-4 row g-4">
+                    @if($isEdit)
+                        <div class="col-12"><label class="form-label">Murid</label><div class="form-control bg-light">{{ $consultation->identityName() }} — NISN {{ $consultation->identityNisn() }}</div></div>
+                    @else
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="student_id">Murid Master</label>
+                            <select class="form-select" id="student_id" name="student_id">
+                                <option value="">Pilih murid atau isi identitas sementara</option>
+                                @foreach($students as $student)
+                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id', $preselectedStudentId) === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $student->classMemberships->first()?->classroom?->name ?? 'Tanpa kelas aktif' }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3"><label class="form-label" for="temporary_nisn">NISN Sementara</label><input class="form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" inputmode="numeric" maxlength="20"></div>
+                        <div class="col-12 col-md-3"><label class="form-label" for="temporary_name">Nama Sementara</label><input class="form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150"></div>
+                    @endif
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="case_id">Kasus Terkait</label>
+                        <select class="form-select" id="case_id" name="case_id">
+                            <option value="">Tidak terkait kasus khusus</option>
+                            @foreach($cases as $case)
+                                <option value="{{ $case->id }}" data-nisn="{{ $case->identityNisn() }}" @selected((string) old('case_id', $consultation?->case_id) === (string) $case->id)>{{ $case->registration_number }} — {{ $case->identityName() }} ({{ $case->status->label }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label" for="service_field_id">Jenis Layanan <span class="text-danger">*</span></label>
+                        <select class="form-select" id="service_field_id" name="service_field_id" required><option value="">Pilih jenis</option>@foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) old('service_field_id', $consultation?->service_field_id) === (string) $field->id)>{{ $field->label }}</option>@endforeach</select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label" for="status_id">Status <span class="text-danger">*</span></label>
+                        <select class="form-select" id="status_id" name="status_id" required><option value="">Pilih status</option>@foreach($consultationStatuses as $status)<option value="{{ $status->id }}" @selected((string) old('status_id', $consultation?->status_id) === (string) $status->id)>{{ $status->label }}</option>@endforeach</select>
+                    </div>
+                    <div class="col-12 col-md-8"><label class="form-label" for="topic">Topik / Permasalahan Awal <span class="text-danger">*</span></label><input class="form-control" id="topic" name="topic" value="{{ old('topic', $consultation?->topic) }}" maxlength="250" required></div>
+                    <div class="col-12 col-md-4"><label class="form-label" for="referral_source">Sumber Rujukan</label><input class="form-control" id="referral_source" name="referral_source" value="{{ old('referral_source', $consultation?->referral_source) }}" maxlength="150"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Form Panel PG-105 -->
-        <div class="sibk-panel">
-            <div class="sibk-panel__body p-4 p-md-5">
-                <form action="{{ route('cases.index') }}" method="GET" class="row g-4" enctype="multipart/form-data">
-                    
-                    <!-- Baris 1: Murid & Kasus Terkait -->
-                    <div class="col-12 col-md-6">
-                        <label for="murid" class="form-label sibk-form-label text-dark fw-semibold small">Murid</label>
-                        <select class="form-select sibk-form-select" id="murid" name="murid">
-                            <option value="" disabled {{ !request('student') && !request('nisn') ? 'selected' : '' }}>Cari dan pilih murid</option>
-                            <option value="1" {{ request('student') == 'Murid A' || request('nisn') == '0012345678' ? 'selected' : '' }}>Murid A — X RPL 1</option>
-                            <option value="2" {{ request('student') == 'Murid B' || request('nisn') == '0012345679' ? 'selected' : '' }}>Murid B — X RPL 2</option>
-                            <option value="3" {{ request('student') == 'Murid C' || request('nisn') == '0012345680' ? 'selected' : '' }}>Murid C — XI RPL 1</option>
-                            <option value="4" {{ request('student') == 'Murid D' || request('nisn') == '0012345681' ? 'selected' : '' }}>Murid D — XI RPL 2</option>
-                        </select>
-                    </div>
-
-                    <div class="col-12 col-md-6">
-                        <label for="kasus_terkait" class="form-label sibk-form-label text-dark fw-semibold small">Kasus Terkait</label>
-                        <select class="form-select sibk-form-select" id="kasus_terkait" name="kasus_terkait">
-                            <option value="" disabled {{ !request('case') ? 'selected' : '' }}>Pilih kasus bila terkait</option>
-                            <option value="none">Tidak terkait kasus khusus</option>
-                            <option value="K-014" {{ request('case') == 'K-014' ? 'selected' : '' }}>K-014 — Murid A (Pribadi)</option>
-                            <option value="K-013" {{ request('case') == 'K-013' ? 'selected' : '' }}>K-013 — Murid B (Belajar)</option>
-                            <option value="K-011" {{ request('case') == 'K-011' ? 'selected' : '' }}>K-011 — Murid D (Karier)</option>
-                        </select>
-                    </div>
-
-                    <!-- Baris 2: Tanggal, Jenis Layanan & Status -->
-                    <div class="col-12 col-md-4">
-                        <label for="tanggal" class="form-label sibk-form-label text-dark fw-semibold small">Tanggal</label>
-                        <input type="date" class="form-control sibk-form-control" id="tanggal" name="tanggal" value="2026-08-16">
-                    </div>
-
-                    <div class="col-12 col-md-4">
-                        <label for="jenis_layanan" class="form-label sibk-form-label text-dark fw-semibold small">Jenis Layanan</label>
-                        <select class="form-select sibk-form-select" id="jenis_layanan" name="jenis_layanan">
-                            <option value="" disabled selected>Pilih jenis layanan</option>
-                            <option value="pribadi" selected>Pribadi</option>
-                            <option value="sosial">Sosial</option>
-                            <option value="belajar">Belajar</option>
-                            <option value="karier">Karier</option>
-                        </select>
-                    </div>
-
-                    <div class="col-12 col-md-4">
-                        <label for="status" class="form-label sibk-form-label text-dark fw-semibold small">Status</label>
-                        <select class="form-select sibk-form-select" id="status" name="status">
-                            <option value="" disabled selected>Pilih status</option>
-                            <option value="terlaksana" selected>Terlaksana</option>
-                            <option value="dijadwalkan">Dijadwalkan</option>
-                            <option value="dibatalkan">Dibatalkan</option>
-                        </select>
-                    </div>
-
-                    <!-- Baris 3: Jadwal Tindak Lanjut -->
-                    <div class="col-12">
-                        <label for="jadwal_tindak_lanjut" class="form-label sibk-form-label text-dark fw-semibold small">Jadwal Tindak Lanjut</label>
-                        <input type="date" class="form-control sibk-form-control" id="jadwal_tindak_lanjut" name="jadwal_tindak_lanjut">
-                        <span class="text-muted d-block mt-1" style="font-size: 0.75rem;">Pilih tanggal bila ada</span>
-                    </div>
-
-                    <!-- Baris 4: Ringkasan Umum -->
-                    <div class="col-12">
-                        <label for="ringkasan_umum" class="form-label sibk-form-label text-dark fw-semibold small">Ringkasan Umum</label>
-                        <textarea class="form-control sibk-form-control" id="ringkasan_umum" name="ringkasan_umum" rows="4" placeholder="Tuliskan ringkasan layanan yang dapat dicatat"></textarea>
-                    </div>
-
-                    <!-- Baris 5: Dokumen Pendukung -->
-                    <div class="col-12">
-                        <label class="form-label sibk-form-label text-dark fw-semibold small mb-1">Dokumen Pendukung</label>
-                        <p class="text-muted small mb-3">Tambahkan dokumen bila diperlukan dan diizinkan.</p>
-                        <div class="d-flex align-items-center gap-3">
-                            <label for="dokumen" class="btn btn-outline-primary fw-bold px-4 py-2" style="border-radius: 14px; cursor: pointer;">
-                                <svg class="me-1" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                Pilih Dokumen
-                            </label>
-                            <input type="file" id="dokumen" name="dokumen" class="d-none" onchange="document.getElementById('fileName').textContent = this.files[0]?.name || ''">
-                            <span id="fileName" class="text-muted small"></span>
-                        </div>
-                    </div>
-
-                    <!-- Footer Action Buttons -->
-                    <div class="col-12 mt-4 pt-2">
-                        <div class="d-flex justify-content-end align-items-center gap-3">
-                            <a href="{{ route('cases.index') }}" class="btn btn-light text-primary fw-bold px-4 py-2" style="border-radius: 14px;">Batal</a>
-                            <button type="submit" class="btn btn-primary fw-bold px-4 py-2 shadow-sm" style="border-radius: 14px; background-color: #2f6fc6; border-color: #2f6fc6;">Simpan Konsultasi</button>
-                        </div>
-                    </div>
-
-                </form>
+            <div class="sibk-panel mb-4">
+                <div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Jadwal dan Ringkasan Umum</h2></div>
+                <div class="sibk-panel__body p-4 row g-4">
+                    <div class="col-12 col-md-4"><label class="form-label" for="session_date">Tanggal Sesi <span class="text-danger">*</span></label><input type="date" class="form-control" id="session_date" name="session_date" value="{{ old('session_date', $consultation?->session_date?->format('Y-m-d') ?? today()->format('Y-m-d')) }}" required></div>
+                    <div class="col-6 col-md-2"><label class="form-label" for="starts_at">Jam Mulai</label><input type="time" class="form-control" id="starts_at" name="starts_at" value="{{ old('starts_at', $consultation?->starts_at ? substr($consultation->starts_at, 0, 5) : null) }}"></div>
+                    <div class="col-6 col-md-2"><label class="form-label" for="ends_at">Jam Selesai</label><input type="time" class="form-control" id="ends_at" name="ends_at" value="{{ old('ends_at', $consultation?->ends_at ? substr($consultation->ends_at, 0, 5) : null) }}"></div>
+                    <div class="col-12 col-md-4"><label class="form-label" for="follow_up_date">Jadwal Tindak Lanjut</label><input type="date" class="form-control" id="follow_up_date" name="follow_up_date" value="{{ old('follow_up_date', $consultation?->follow_up_date?->format('Y-m-d')) }}"></div>
+                    <div class="col-12"><label class="form-label" for="general_summary">Ringkasan Umum</label><textarea class="form-control" id="general_summary" name="general_summary" rows="4" placeholder="Ringkasan yang diizinkan untuk tata kelola umum">{{ old('general_summary', $consultation?->general_summary) }}</textarea><div class="form-text">Wajib untuk sesi berstatus Terlaksana.</div></div>
+                </div>
             </div>
-        </div>
 
+            <div class="sibk-panel mb-4">
+                <div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Catatan Profesional Privat</h2><p class="sibk-panel__subtitle">Bagian ini hanya dapat dibaca Guru BK dengan kewenangan profesional yang sah.</p></div>
+                <div class="sibk-panel__body p-4 row g-4">
+                    <div class="col-12"><label class="form-label" for="sensitive_content">Uraian / Proses Bimbingan</label><textarea class="form-control" id="sensitive_content" name="sensitive_content" rows="5">{{ old('sensitive_content', $consultation?->privateNote?->sensitive_content) }}</textarea></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="internal_note">Catatan Internal</label><textarea class="form-control" id="internal_note" name="internal_note" rows="4">{{ old('internal_note', $consultation?->privateNote?->internal_note) }}</textarea></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="conclusion">Kesimpulan / Solusi</label><textarea class="form-control" id="conclusion" name="conclusion" rows="4">{{ old('conclusion', $consultation?->privateNote?->conclusion) }}</textarea></div>
+                    <div class="col-12"><label class="form-label" for="follow_up_plan">Rencana Lanjutan</label><textarea class="form-control" id="follow_up_plan" name="follow_up_plan" rows="3">{{ old('follow_up_plan', $consultation?->privateNote?->follow_up_plan) }}</textarea></div>
+                </div>
+            </div>
+
+            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><h2 class="fs-6 fw-bold">Dokumen Pendukung</h2><p class="text-muted mb-0">Unggahan dokumen belum tersedia sampai kebijakan format, akses, dan retensi DEP-06 disahkan.</p></div></div>
+
+            <div class="d-flex justify-content-end gap-2 mb-5"><a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-secondary">Batal</a><button class="btn btn-primary" type="submit">Simpan Konsultasi</button></div>
+        </form>
     </div>
+@endsection
+
+@section('extra-javascript')
+    @if(!$isEdit)
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const student = document.getElementById('student_id');
+                const nisn = document.getElementById('temporary_nisn');
+                const name = document.getElementById('temporary_name');
+                student?.addEventListener('change', () => { if (student.value) { nisn.value = ''; name.value = ''; } });
+                nisn?.addEventListener('input', () => { if (nisn.value.trim()) student.value = ''; });
+            });
+        </script>
+    @endif
 @endsection

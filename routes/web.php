@@ -8,7 +8,9 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\CaseCoordinationController;
+use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\FollowUpController;
+use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
 // Route pratinjau frontend dengan fixture sintetis; bukan kontrak backend final.
@@ -40,15 +42,15 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         $previewState = request()->query('state', 'default');
         $activeYear = request()->query('year', $years[0]);
 
-        if (! array_key_exists($previewRole, $roles)) {
+        if (!array_key_exists($previewRole, $roles)) {
             $previewRole = 'guru';
         }
 
-        if (! in_array($previewState, ['default', 'loading', 'empty', 'error'], true)) {
+        if (!in_array($previewState, ['default', 'loading', 'empty', 'error'], true)) {
             $previewState = 'default';
         }
 
-        if (! in_array($activeYear, $years, true)) {
+        if (!in_array($activeYear, $years, true)) {
             $activeYear = $years[0];
         }
 
@@ -66,7 +68,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         $roles = config('sibk-preview.dashboard.roles');
         $previewRole = 'guru'; // Fokus pada akun normal (tanpa pembatasan role)
 
-        if (! array_key_exists($previewRole, $roles)) {
+        if (!array_key_exists($previewRole, $roles)) {
             $previewRole = 'guru';
         }
 
@@ -263,7 +265,9 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
 
     // PG-201: Daftar Murid
-    Route::get('/students', function () {
+    Route::get('/_preview/students', function () {
+        return redirect()->route('students.index');
+
         $students = [
             [
                 'nisn' => '0012345678',
@@ -298,10 +302,12 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         $classes = ['Semua kelas', 'X RPL 1', 'X RPL 2', 'XI RPL 1', 'XI RPL 2', 'XII RPL 1'];
 
         return view('pages.students.index', compact('students', 'classes'));
-    })->name('students.index');
+    })->name('fixtures.students.index');
 
     // PG-202: Profil Murid
-    Route::get('/students/show', function () {
+    Route::get('/_preview/students/show', function () {
+        return redirect()->route('students.legacy', request()->query());
+
         $student = [
             'nisn' => request()->query('nisn', '0012345678'),
             'name' => 'Murid A',
@@ -462,19 +468,25 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
             'studentAchievements',
             'activeTab'
         ));
-    })->name('students.show');
+    })->name('fixtures.students.show');
+
+    Route::get('/students', [StudentController::class, 'index'])->name('students.index');
+    Route::get('/students/show', [StudentController::class, 'legacy'])->name('students.legacy');
+    Route::get('/students/{student}', [StudentController::class, 'show'])->name('students.show');
 
     Route::get('/consultations', function () {
         return redirect()->route('cases.index', ['tab' => 'konsultasi']);
     })->name('consultations.index');
 
-    Route::get('/consultations/create', function () {
-        return view('pages.consultations.create');
-    })->name('consultations.create');
+    Route::get('/_preview/consultations/show', function () {
+        return redirect()->route('consultations.index');
+    })->name('fixtures.consultations.show');
 
-    Route::get('/consultations/show', function () {
-        return view('pages.consultations.show');
-    })->name('consultations.show');
+    Route::get('/consultations/create', [ConsultationController::class, 'create'])->name('consultations.create');
+    Route::post('/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
+    Route::get('/consultations/{consultation}/edit', [ConsultationController::class, 'edit'])->name('consultations.edit');
+    Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
+    Route::get('/consultations/{consultation}', [ConsultationController::class, 'show'])->name('consultations.show');
 
     Route::get('/reports', function () {
         $reports = [
@@ -680,7 +692,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         ];
 
         $type = request()->query('type', 'rekap-layanan-bk');
-        if (! array_key_exists($type, $reportConfigs)) {
+        if (!array_key_exists($type, $reportConfigs)) {
             $type = 'rekap-layanan-bk';
         }
 

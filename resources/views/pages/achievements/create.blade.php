@@ -176,7 +176,7 @@
 
             {{-- Action Buttons --}}
             <div class="d-flex justify-content-end gap-2 pb-4">
-                <a href="{{ route('students.show', ['tab' => 'prestasi']) }}" class="btn btn-light">Batal</a>
+                <a href="{{ route('students.index') }}" class="btn btn-light">Batal</a>
                 <button type="submit" class="btn btn-primary">Simpan Prestasi</button>
             </div>
 
@@ -200,4 +200,3 @@
     })();
 </script>
 @endsection
-
