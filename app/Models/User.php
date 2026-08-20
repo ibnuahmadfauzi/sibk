@@ -59,6 +59,18 @@ class User extends Authenticatable
         return $this->hasMany(Consultation::class, 'counselor_id');
     }
 
+    /** @return HasMany<Correction, $this> */
+    public function submittedCorrections(): HasMany
+    {
+        return $this->hasMany(Correction::class, 'requester_id');
+    }
+
+    /** @return HasMany<Correction, $this> */
+    public function reviewedCorrections(): HasMany
+    {
+        return $this->hasMany(Correction::class, 'reviewer_id');
+    }
+
     public function hasRole(string $role): bool
     {
         if ($this->relationLoaded('roles')) {

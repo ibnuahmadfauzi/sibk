@@ -178,21 +178,38 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Aturan:** hanya NISN dan nama masukan yang disimpan; kecocokan memakai NISN, nama resmi berasal dari Dapodik, dan nilai awal dipertahankan dalam histori/audit.
 
 ### Ajukan Koreksi
-- **Endpoint:** `POST /corrections`
-- **Controller:** `CorrectionController@store`
-- **Form Request:** `StoreCorrectionRequest`
-  - `target_type` (string: case, student, consultation)
-  - `target_id` (integer)
-  - `field_name` (string)
-  - `old_value` (string)
-  - `proposed_value` (string)
-  - `reason` (string)
+- **Endpoint:** `GET /corrections`, `GET /corrections/create`, `POST /corrections`, dan `GET /corrections/{correction}`.
+- **Controller:** `CorrectionController@index/create/store/show`.
+- **Form Request:** `StoreCorrectionRequest`.
+  - `target_type` (`case`, `follow_up`, `consultation`, atau `student`)
+  - `target_id` (required, integer)
+  - `field_name` (required, atribut yang diizinkan per jenis objek)
+  - `proposed_value` (present, nullable hanya untuk atribut yang memang opsional)
+  - `reason` (required, string)
+- **Business Logic:** `CorrectionService::submit()` membaca nilai lama langsung dari objek terotorisasi, menormalisasi tanggal/jam/referensi, menolak nilai usulan yang sama, memberi nomor `KR-YYYY-XXXX`, dan mencatat audit. Klien tidak dapat menentukan nilai lama atau jenis koreksi secara sepihak.
+- **Scope daftar/detail:** Guru BK melihat pengajuannya; Koordinator melihat seluruh pengajuan untuk tata kelola; Waka hanya pengajuan yang terkait kasus koordinasinya; Admin IT hanya koreksi master. Multi-role menggabungkan fungsi tanpa membuka objek layanan di luar fungsi yang sah.
 
 ### Verifikasi Koreksi Operasional
-- **Endpoint:** `POST /corrections/{id}/verify`
+- **Endpoint:** `POST /corrections/{correction}/verify`.
 - **Controller:** `CorrectionController@verify`
+- **Form Request:** `VerifyCorrectionRequest`.
 - **Authorization:** `Koordinator BK` only.
-- **Request:** `status` (approved/rejected), `review_notes`.
+- **Request:** `decision` (`approved`, `rejected`, `revision_requested`) dan `review_notes` (wajib untuk penolakan/permintaan perbaikan).
+- **Business Logic:** approval memakai row lock, memeriksa bahwa nilai objek belum berubah sejak pengajuan, lalu menerapkan perubahan melalui `CaseService`, `FollowUpService`, atau `ConsultationService`. Tidak tersedia mutasi field generik. Penolakan dan permintaan perbaikan tidak mengubah objek target.
+
+### Pemrosesan Koreksi Master
+- **Endpoint:** `POST /corrections/{correction}/process-master`.
+- **Controller:** `CorrectionController@processMaster`.
+- **Form Request:** `ProcessMasterCorrectionRequest`.
+- **Authorization:** hanya Admin IT dan hanya untuk koreksi master berstatus `menunggu` atau `diproses`.
+- **Request:** `action` (`processing`, `completed`, `rejected`), `review_notes`, dan `external_sync_run_id` yang wajib untuk `completed`.
+- **Business Logic:** aplikasi tidak mengubah cache Dapodik melalui koreksi. Status `selesai` hanya diterima bila log sinkronisasi Dapodik berhasil/peringatan terjadi setelah pengajuan dan nilai master hasil sinkronisasi sama dengan nilai usulan.
+
+### Riwayat Perubahan
+- **Endpoint:** `GET /history`.
+- **Controller:** `HistoryController@index`.
+- **Response:** audit append-only terpagina berisi waktu, pelaku, tipe/ID objek, tindakan, dan ringkasan; nilai before/after tidak ditampilkan pada PG-406.
+- **Scope:** Koordinator memperoleh ringkasan tata kelola; Guru BK dan Waka hanya tindakan yang dilakukannya; Admin IT hanya tindakan teknis, sinkronisasi, akun, dan pemrosesan koreksi master.
 
 ---
 

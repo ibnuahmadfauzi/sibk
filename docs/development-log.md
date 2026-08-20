@@ -25,6 +25,13 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Sprint 5 Backend — Koreksi dan Riwayat Perubahan`
+  - Menambahkan skema additive koreksi dengan nomor `KR-YYYY-XXXX`, target polymorphic, status referensi dinamis, nilai lama/usulan, pengaju, pemeriksa, hasil, tautan sinkronisasi, soft delete, serta relasi eksplisit pada objek domain.
+  - Mengimplementasikan `CorrectionService`, Form Request, `CorrectionPolicy`, row locking, pemeriksaan stale value, matriks akses per peran, dan penerapan koreksi operasional hanya melalui `CaseService`, `FollowUpService`, atau `ConsultationService`.
+  - Mengimplementasikan koreksi master tanpa mutasi Dapodik sepihak; status selesai hanya dapat disimpan setelah hasil sinkronisasi Dapodik yang lebih baru cocok dengan nilai usulan.
+  - Mengganti fixture PG-404/PG-405/PG-406 dengan daftar/detail/form database, verifikasi Koordinator, pemrosesan Admin IT, audit terpagina dan terscope, filter, pagination, serta pesan Bahasa Indonesia.
+  - Memverifikasi migrasi additive SQLite dan MySQL tanpa `migrate:fresh`, seeder dua kali, 59 test/336 assertion, kompilasi Blade, Pint, build Vite, pemeriksaan frontend, serta `git diff --check`.
+
 - `[x] [2026-08-20] Sprint 4 Backend — Konsultasi dan Profil Murid`
   - Menambahkan skema additive `consultations` dan `consultation_private_notes`, referensi empat status konsultasi, nomor sesi `KNS-YYYY-XXXX`, identitas resmi/sementara, relasi kasus opsional, soft delete, transaksi, serta audit yang tidak menyimpan isi sensitif.
   - Mengimplementasikan `ConsultationService`, Form Request, `ConsultationPolicy`, `StudentPolicy`, scope profesional lintas penugasan kelas/kasus, histori privat Guru BK penerus yang read-only, serta redaksi ketat untuk Koordinator, Waka, Admin IT, dan akun multi-role.

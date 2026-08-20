@@ -11,7 +11,7 @@
         <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">
             <div class="sibk-page-header__copy"><a href="{{ route('students.index') }}" class="text-decoration-none small">&larr; Daftar Murid</a><h1>Profil Murid</h1><p>Riwayat layanan dan informasi terkait murid.</p></div>
             <div class="d-flex flex-wrap align-items-start gap-2">
-                <a href="{{ route('corrections.create', ['object_type' => 'Murid', 'object_id' => $student->nisn, 'student' => $student->name, 'attribute' => 'Nama Murid', 'old_value' => $student->name]) }}" class="btn btn-outline-secondary">Ajukan Koreksi</a>
+                @can('create', \App\Models\Correction::class)<a href="{{ route('corrections.create', ['target_type' => 'student', 'target_id' => $student->id]) }}" class="btn btn-outline-secondary">Ajukan Koreksi</a>@endcan
                 @if($canCreateConsultation)<a href="{{ route('consultations.create', ['student_id' => $student->id]) }}" class="btn btn-outline-primary">Catat Konsultasi</a>@endif
                 @if($canCreateCase)<a href="{{ route('cases.create', ['student_id' => $student->id]) }}" class="btn btn-primary">Buat Kasus</a>@endif
             </div>

@@ -14,6 +14,9 @@
                 <p class="mb-0">{{ $case->identityName() }} &bull; NISN {{ $case->identityNisn() }}</p>
             </div>
             <div class="d-flex flex-wrap align-items-start gap-2">
+                @if(auth()->user()?->hasRole('guru_bk'))
+                    <a href="{{ route('corrections.create', ['target_type' => 'case', 'target_id' => $case->id]) }}" class="btn btn-outline-secondary">Ajukan Koreksi</a>
+                @endif
                 @if($canAssignCase)
                     <a href="{{ route('assignments.cases.index', ['case_id' => $case->id]) }}" class="btn btn-outline-secondary">Atur Penugasan</a>
                 @endif

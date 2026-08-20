@@ -7,7 +7,7 @@
         @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
         <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">
             <div class="sibk-page-header__copy"><a href="{{ route('cases.index', ['tab' => 'konsultasi']) }}" class="text-decoration-none small">&larr; Kembali ke daftar</a><h1>Detail Sesi Bimbingan</h1><p>Nomor Sesi: {{ $consultation->registration_number }}</p></div>
-            <div class="d-flex gap-2"><button type="button" onclick="window.print()" class="btn btn-outline-secondary">Cetak Riwayat</button>@if($canUpdateConsultation)<a href="{{ route('consultations.edit', $consultation) }}" class="btn btn-primary">Edit Data Sesi</a>@endif</div>
+            <div class="d-flex gap-2">@if(auth()->user()?->hasRole('guru_bk'))<a href="{{ route('corrections.create', ['target_type' => 'consultation', 'target_id' => $consultation->id]) }}" class="btn btn-outline-secondary">Ajukan Koreksi</a>@endif<button type="button" onclick="window.print()" class="btn btn-outline-secondary">Cetak Riwayat</button>@if($canUpdateConsultation)<a href="{{ route('consultations.edit', $consultation) }}" class="btn btn-primary">Edit Data Sesi</a>@endif</div>
         </div>
 
         <div class="row g-4">

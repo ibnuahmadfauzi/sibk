@@ -9,7 +9,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\CaseCoordinationController;
 use App\Http\Controllers\ConsultationController;
+use App\Http\Controllers\CorrectionController;
 use App\Http\Controllers\FollowUpController;
+use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,15 +44,15 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         $previewState = request()->query('state', 'default');
         $activeYear = request()->query('year', $years[0]);
 
-        if (!array_key_exists($previewRole, $roles)) {
+        if (! array_key_exists($previewRole, $roles)) {
             $previewRole = 'guru';
         }
 
-        if (!in_array($previewState, ['default', 'loading', 'empty', 'error'], true)) {
+        if (! in_array($previewState, ['default', 'loading', 'empty', 'error'], true)) {
             $previewState = 'default';
         }
 
-        if (!in_array($activeYear, $years, true)) {
+        if (! in_array($activeYear, $years, true)) {
             $activeYear = $years[0];
         }
 
@@ -68,7 +70,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         $roles = config('sibk-preview.dashboard.roles');
         $previewRole = 'guru'; // Fokus pada akun normal (tanpa pembatasan role)
 
-        if (!array_key_exists($previewRole, $roles)) {
+        if (! array_key_exists($previewRole, $roles)) {
             $previewRole = 'guru';
         }
 
@@ -692,7 +694,7 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         ];
 
         $type = request()->query('type', 'rekap-layanan-bk');
-        if (!array_key_exists($type, $reportConfigs)) {
+        if (! array_key_exists($type, $reportConfigs)) {
             $type = 'rekap-layanan-bk';
         }
 
@@ -733,7 +735,9 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
     Route::get('/assignments/cases', [AssignmentController::class, 'caseIndex'])->name('assignments.cases.index');
 
     // PG-404: Daftar Koreksi Data
-    Route::get('/corrections', function () {
+    Route::get('/_preview/corrections', function () {
+        return redirect()->route('corrections.index');
+
         $corrections = [
             [
                 'id' => 1,
@@ -771,10 +775,12 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         ];
 
         return view('pages.corrections.index', compact('corrections'));
-    })->name('corrections.index');
+    })->name('fixtures.corrections.index');
 
     // Form Pengajuan Koreksi Data
-    Route::get('/corrections/create', function () {
+    Route::get('/_preview/corrections/create', function () {
+        return redirect()->route('corrections.create');
+
         $objectType = request()->query('object_type', 'Kasus');
         $objectId = request()->query('object_id', 'K-014');
         $studentName = request()->query('student', 'Murid A');
@@ -782,10 +788,12 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         $oldValue = request()->query('old_value', 'Pribadi');
 
         return view('pages.corrections.create', compact('objectType', 'objectId', 'studentName', 'attribute', 'oldValue'));
-    })->name('corrections.create');
+    })->name('fixtures.corrections.create');
 
     // PG-405: Detail dan Verifikasi Koreksi
-    Route::get('/corrections/show', function () {
+    Route::get('/_preview/corrections/show', function () {
+        return redirect()->route('corrections.index');
+
         $correction = [
             'object' => 'Kasus K-014',
             'attribute' => 'Bidang Layanan',
@@ -798,10 +806,12 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         ];
 
         return view('pages.corrections.show', compact('correction'));
-    })->name('corrections.show');
+    })->name('fixtures.corrections.show');
 
     // PG-406: Riwayat Perubahan
-    Route::get('/history', function () {
+    Route::get('/_preview/history', function () {
+        return redirect()->route('history.index');
+
         $historyLogs = [
             [
                 'time' => '16 Agu 10:20',
@@ -846,7 +856,15 @@ Route::middleware(['auth', 'account.active'])->group(function (): void {
         ];
 
         return view('pages.history.index', compact('historyLogs'));
-    })->name('history.index');
+    })->name('fixtures.history.index');
+
+    Route::get('/corrections', [CorrectionController::class, 'index'])->name('corrections.index');
+    Route::get('/corrections/create', [CorrectionController::class, 'create'])->name('corrections.create');
+    Route::post('/corrections', [CorrectionController::class, 'store'])->name('corrections.store');
+    Route::get('/corrections/{correction}', [CorrectionController::class, 'show'])->name('corrections.show');
+    Route::post('/corrections/{correction}/verify', [CorrectionController::class, 'verify'])->name('corrections.verify');
+    Route::post('/corrections/{correction}/process-master', [CorrectionController::class, 'processMaster'])->name('corrections.process-master');
+    Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
 
     Route::get('/achievements/create', function () {
         return view('pages.achievements.create');
