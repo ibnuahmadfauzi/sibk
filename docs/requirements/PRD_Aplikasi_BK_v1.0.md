@@ -124,6 +124,8 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanjut, laporan, dan pengendalian akses inti stabil.
 
+- Menyediakan UI untuk integrasi dengan dapodik untuk sinkronisasi data dengan requery manual lewat fiel/form di frontend (perlu di rencanakan lebih lanjut)
+
 ## P1 – Setelah MVP tervalidasi
 
 - Akun wali kelas dengan informasi terbatas sesuai kewenangan yang disahkan.
