@@ -16,7 +16,7 @@
             <!-- Kolom Kiri: Profil & Info Personal -->
             <div class="col-lg-7 col-xl-8">
                 <div class="sibk-panel h-100">
-                    <div class="sibk-panel__header">
+                    <div class="sibk-panel__header sibk-account-panel__header">
                         <h3 class="sibk-panel__title">Informasi Akun</h3>
                         <p class="sibk-panel__subtitle">Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
                     </div>
@@ -56,7 +56,7 @@
             <!-- Kolom Kanan: Keamanan & Info -->
             <div class="col-lg-5 col-xl-4 d-flex flex-column gap-4">
                 <div class="sibk-panel">
-                    <div class="sibk-panel__header">
+                    <div class="sibk-panel__header sibk-account-panel__header">
                         <h3 class="sibk-panel__title">Keamanan Akun</h3>
                         <p class="sibk-panel__subtitle">Kelola keamanan akun yang sedang digunakan.</p>
                     </div>
