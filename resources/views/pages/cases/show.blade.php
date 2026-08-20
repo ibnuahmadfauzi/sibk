@@ -10,7 +10,13 @@
                 <h1>Detail Kasus K-014</h1>
                 <p>Murid A &bull; X RPL 1</p>
             </div>
-            <div class="sibk-page-header__actions d-flex gap-2">
+            <div class="sibk-page-header__actions d-flex flex-wrap gap-2">
+                <a href="{{ route('corrections.create', ['object_type' => 'Kasus', 'object_id' => 'K-014', 'student' => 'Murid A', 'attribute' => 'Bidang Layanan', 'old_value' => 'Pribadi']) }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" title="Ajukan koreksi data jika terdapat kesalahan pencatatan">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.83A2 2 0 0 0 19.41 6l-1.41-1zM14 2.5V7h4.5M8 13h8M8 17h8M8 9h2"/>
+                    </svg>
+                    Ajukan Koreksi
+                </a>
                 <a href="{{ route('cases.follow-up') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"/>

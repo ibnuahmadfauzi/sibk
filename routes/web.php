@@ -525,95 +525,145 @@ Route::get('/reports', function () {
 })->name('reports.index');
 
 Route::get('/reports/preview', function () {
-    $reportTypes = [
-        'pelanggaran-murid' => 'Pelanggaran per Murid',
-        'pelanggaran-kelas' => 'Pelanggaran per Kelas',
-        'poin-pelanggaran' => 'Poin Pelanggaran',
-        'konsultasi' => 'Konsultasi',
-        'status-tindak-lanjut' => 'Status Tindak Lanjut',
-        'rekap-layanan-bk' => 'Rekap Layanan BK',
-        'prestasi' => 'Prestasi Murid',
+    $reportConfigs = [
+        'rekap-layanan-bk' => [
+            'title' => 'Rekap Layanan BK',
+            'desc' => 'Ringkasan seluruh layanan bimbingan dan konseling',
+            'stats' => [
+                'total' => ['label' => 'Jumlah Layanan', 'value' => '42', 'sub' => 'Periode aktif', 'tone' => 'primary'],
+                'active' => ['label' => 'Kasus Aktif', 'value' => '12', 'sub' => 'Perlu pemantauan', 'tone' => 'warning'],
+                'completed' => ['label' => 'Selesai', 'value' => '30', 'sub' => 'Tuntas', 'tone' => 'success'],
+            ],
+            'filters' => ['periode', 'kelas', 'bidang', 'status'],
+            'columns' => ['Kode', 'Kelas', 'Bidang Layanan', 'Status', 'Tindak Lanjut', 'Tanggal'],
+            'rows' => [
+                ['col1' => 'L-021', 'col2' => 'X RPL 1', 'col3' => 'Pribadi', 'status' => 'Dalam Penanganan', 'status_tone' => 'warning', 'col5' => '18 Agu 2026', 'col6' => '14 Agu'],
+                ['col1' => 'L-020', 'col2' => 'X RPL 2', 'col3' => 'Belajar', 'status' => 'Baru', 'status_tone' => 'primary', 'col5' => 'Belum dijadwalkan', 'col6' => '14 Agu'],
+                ['col1' => 'L-019', 'col2' => 'XI RPL 1', 'col3' => 'Sosial', 'status' => 'Selesai', 'status_tone' => 'success', 'col5' => 'Selesai', 'col6' => '13 Agu'],
+                ['col1' => 'L-018', 'col2' => 'X RPL 1', 'col3' => 'Karier', 'status' => 'Dalam Penanganan', 'status_tone' => 'warning', 'col5' => '19 Agu 2026', 'col6' => '12 Agu'],
+                ['col1' => 'L-017', 'col2' => 'XI RPL 2', 'col3' => 'Pribadi', 'status' => 'Selesai', 'status_tone' => 'success', 'col5' => 'Selesai', 'col6' => '11 Agu'],
+                ['col1' => 'L-016', 'col2' => 'XII RPL 1', 'col3' => 'Belajar', 'status' => 'Selesai', 'status_tone' => 'success', 'col5' => 'Selesai', 'col6' => '10 Agu'],
+            ]
+        ],
+        'pelanggaran-murid' => [
+            'title' => 'Pelanggaran per Murid',
+            'desc' => 'Riwayat pelanggaran tata tertib per murid',
+            'stats' => [
+                'total' => ['label' => 'Total Kejadian', 'value' => '18', 'sub' => 'Periode terpilih', 'tone' => 'primary'],
+                'active' => ['label' => 'Murid Terkait', 'value' => '12', 'sub' => 'Dalam binaan', 'tone' => 'warning'],
+                'completed' => ['label' => 'Total Poin', 'value' => '135', 'sub' => 'Akumulasi tercatat', 'tone' => 'success'],
+            ],
+            'filters' => ['periode', 'kelas', 'kategori_pelanggaran', 'murid'],
+            'columns' => ['NISN', 'Nama Murid', 'Kelas', 'Tanggal', 'Jenis Pelanggaran', 'Kategori', 'Poin'],
+            'rows' => [
+                ['col1' => '0012345678', 'col2' => 'Murid A', 'col3' => 'X RPL 1', 'col4' => '14 Agu 2026', 'col5' => 'Terlambat Masuk Sekolah (>15 Menit)', 'category' => 'Kedisiplinan', 'badge_value' => '5 Poin', 'status_tone' => 'primary'],
+                ['col1' => '0012345679', 'col2' => 'Murid B', 'col3' => 'X RPL 2', 'col4' => '12 Agu 2026', 'col5' => 'Seragam Tidak Sesuai Ketentuan', 'category' => 'Kerapian', 'badge_value' => '10 Poin', 'status_tone' => 'warning'],
+                ['col1' => '0012345681', 'col2' => 'Murid D', 'col3' => 'XI RPL 2', 'col4' => '10 Agu 2026', 'col5' => 'Meninggalkan Kelas Tanpa Izin', 'category' => 'Kedisiplinan', 'badge_value' => '15 Poin', 'status_tone' => 'warning'],
+                ['col1' => '0012345682', 'col2' => 'Murid E', 'col3' => 'XII RPL 1', 'col4' => '08 Agu 2026', 'col5' => 'Tidak Mengikuti Upacara Bendera', 'category' => 'Kedisiplinan', 'badge_value' => '10 Poin', 'status_tone' => 'primary'],
+            ]
+        ],
+        'pelanggaran-kelas' => [
+            'title' => 'Pelanggaran per Kelas',
+            'desc' => 'Ringkasan distribusi pelanggaran dan penanganan per kelas',
+            'stats' => [
+                'total' => ['label' => 'Total Pelanggaran', 'value' => '24', 'sub' => 'Seluruh kelas binaan', 'tone' => 'primary'],
+                'active' => ['label' => 'Kelas Tertinggi', 'value' => 'X RPL 1', 'sub' => '8 kejadian tercatat', 'tone' => 'warning'],
+                'completed' => ['label' => 'Kasus Tertangani', 'value' => '19', 'sub' => 'Dari 24 kejadian', 'tone' => 'success'],
+            ],
+            'filters' => ['periode', 'kelas', 'kategori_pelanggaran'],
+            'columns' => ['Kelas', 'Wali Kelas', 'Jumlah Kejadian', 'Total Poin', 'Kategori Dominan', 'Status Penanganan'],
+            'rows' => [
+                ['col1' => 'X RPL 1', 'col2' => 'Guru A, S.Pd.', 'col3' => '8 Kejadian', 'col4' => '55 Poin', 'col5' => 'Kedisiplinan', 'status' => 'Dalam Penanganan', 'status_tone' => 'warning'],
+                ['col1' => 'X RPL 2', 'col2' => 'Guru B, S.Pd.', 'col3' => '5 Kejadian', 'col4' => '30 Poin', 'col5' => 'Kerapian', 'status' => 'Selesai', 'status_tone' => 'success'],
+                ['col1' => 'XI RPL 1', 'col2' => 'Guru C, S.Kom.', 'col3' => '3 Kejadian', 'col4' => '15 Poin', 'col5' => 'Kedisiplinan', 'status' => 'Selesai', 'status_tone' => 'success'],
+                ['col1' => 'XI RPL 2', 'col2' => 'Guru D, M.Pd.', 'col3' => '6 Kejadian', 'col4' => '40 Poin', 'col5' => 'Kedisiplinan', 'status' => 'Dalam Penanganan', 'status_tone' => 'warning'],
+                ['col1' => 'XII RPL 1', 'col2' => 'Guru E, S.T.', 'col3' => '2 Kejadian', 'col4' => '10 Poin', 'col5' => 'Kerapian', 'status' => 'Selesai', 'status_tone' => 'success'],
+            ]
+        ],
+        'poin-pelanggaran' => [
+            'title' => 'Poin Pelanggaran',
+            'desc' => 'Rekapitulasi akumulasi poin pelanggaran dari e-Tatib',
+            'stats' => [
+                'total' => ['label' => 'Total Akumulasi Poin', 'value' => '150', 'sub' => 'Sinkronisasi e-Tatib', 'tone' => 'primary'],
+                'active' => ['label' => 'Ambang Pembinaan', 'value' => '4 Murid', 'sub' => 'Poin ≥ 25 poin', 'tone' => 'warning'],
+                'completed' => ['label' => 'Waktu Sinkronisasi', 'value' => 'Hari ini', 'sub' => '16 Agu 2026, 06.00', 'tone' => 'success'],
+            ],
+            'filters' => ['periode', 'kelas', 'ambang_poin'],
+            'columns' => ['NISN', 'Nama Murid', 'Kelas', 'Total Poin', 'Kategori Terkait', 'Status Pembinaan', 'Terakhir Sinkron'],
+            'rows' => [
+                ['col1' => '0012345681', 'col2' => 'Murid D', 'col3' => 'XI RPL 2', 'col4' => '35 Poin', 'col5' => 'Kedisiplinan & Kerapian', 'status' => 'Perlu Pembinaan Khusus', 'status_tone' => 'warning', 'col7' => 'Hari ini 06.00'],
+                ['col1' => '0012345678', 'col2' => 'Murid A', 'col3' => 'X RPL 1', 'col4' => '15 Poin', 'col5' => 'Kedisiplinan', 'status' => 'Pemantauan Rutin', 'status_tone' => 'primary', 'col7' => 'Hari ini 06.00'],
+                ['col1' => '0012345679', 'col2' => 'Murid B', 'col3' => 'X RPL 2', 'col4' => '10 Poin', 'col5' => 'Kerapian', 'status' => 'Normal', 'status_tone' => 'success', 'col7' => 'Hari ini 06.00'],
+                ['col1' => '0012345682', 'col2' => 'Murid E', 'col3' => 'XII RPL 1', 'col4' => '10 Poin', 'col5' => 'Kedisiplinan', 'status' => 'Normal', 'status_tone' => 'success', 'col7' => 'Hari ini 06.00'],
+            ]
+        ],
+        'konsultasi' => [
+            'title' => 'Konsultasi',
+            'desc' => 'Rekapitulasi layanan bimbingan & konsultasi (tanpa isi sensitif)',
+            'stats' => [
+                'total' => ['label' => 'Total Konsultasi', 'value' => '28', 'sub' => 'Periode terpilih', 'tone' => 'primary'],
+                'active' => ['label' => 'Terlaksana', 'value' => '22', 'sub' => 'Sesi selesai', 'tone' => 'success'],
+                'completed' => ['label' => 'Dijadwalkan', 'value' => '6', 'sub' => 'Menunggu pelaksanaan', 'tone' => 'warning'],
+            ],
+            'filters' => ['periode', 'kelas', 'bidang', 'status'],
+            'columns' => ['No Sesi', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
+            'rows' => [
+                ['col1' => 'KNS-001', 'col2' => 'Murid A', 'col3' => 'X RPL 1', 'col4' => 'Pribadi', 'col5' => '18 Agu 2026', 'col6' => 'Guru BK A', 'status' => 'Terlaksana', 'status_tone' => 'success'],
+                ['col1' => 'KNS-002', 'col2' => 'Murid B', 'col3' => 'X RPL 2', 'col4' => 'Karier', 'col5' => '19 Agu 2026', 'col6' => 'Guru BK B', 'status' => 'Dijadwalkan', 'status_tone' => 'primary'],
+                ['col1' => 'KNS-003', 'col2' => 'Murid C', 'col3' => 'XI RPL 1', 'col4' => 'Belajar', 'col5' => '20 Agu 2026', 'col6' => 'Guru BK A', 'status' => 'Dijadwalkan', 'status_tone' => 'primary'],
+                ['col1' => 'KNS-004', 'col2' => 'Murid D', 'col3' => 'XI RPL 2', 'col4' => 'Sosial', 'col5' => '15 Agu 2026', 'col6' => 'Guru BK C', 'status' => 'Terlaksana', 'status_tone' => 'success'],
+            ]
+        ],
+        'status-tindak-lanjut' => [
+            'title' => 'Status Tindak Lanjut',
+            'desc' => 'Pemantauan jadwal dan realisasi pelaksanaan tindak lanjut',
+            'stats' => [
+                'total' => ['label' => 'Total Tindak Lanjut', 'value' => '16', 'sub' => 'Kasus aktif & selesai', 'tone' => 'primary'],
+                'active' => ['label' => 'Dalam Penanganan', 'value' => '5', 'sub' => 'Perlu pelaksanaan', 'tone' => 'warning'],
+                'completed' => ['label' => 'Selesai', 'value' => '11', 'sub' => 'Telah terealisasi', 'tone' => 'success'],
+            ],
+            'filters' => ['periode', 'kelas', 'status'],
+            'columns' => ['No Kasus', 'Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tgl Rencana', 'Tgl Realisasi', 'Status'],
+            'rows' => [
+                ['col1' => 'K-014', 'col2' => 'Murid A', 'col3' => 'X RPL 1', 'col4' => 'Konseling Individu', 'col5' => '18 Agu 2026', 'col6' => '18 Agu 2026', 'status' => 'Selesai', 'status_tone' => 'success'],
+                ['col1' => 'K-013', 'col2' => 'Murid B', 'col3' => 'X RPL 2', 'col4' => 'Panggilan Orang Tua', 'col5' => '20 Agu 2026', 'col6' => '—', 'status' => 'Dijadwalkan', 'status_tone' => 'primary'],
+                ['col1' => 'K-011', 'col2' => 'Murid D', 'col3' => 'XI RPL 2', 'col4' => 'Konferensi Kasus', 'col5' => '22 Agu 2026', 'col6' => '—', 'status' => 'Dalam Proses', 'status_tone' => 'warning'],
+                ['col1' => 'K-009', 'col2' => 'Murid E', 'col3' => 'XII RPL 1', 'col4' => 'Kunjungan Rumah', 'col5' => '12 Agu 2026', 'col6' => '13 Agu 2026', 'status' => 'Selesai', 'status_tone' => 'success'],
+            ]
+        ],
+        'prestasi' => [
+            'title' => 'Prestasi Murid',
+            'desc' => 'Rekapitulasi pencatatan dan verifikasi prestasi murid',
+            'stats' => [
+                'total' => ['label' => 'Total Prestasi', 'value' => '14', 'sub' => 'Tahun Ajaran 2026/2027', 'tone' => 'primary'],
+                'active' => ['label' => 'Terverifikasi', 'value' => '12', 'sub' => 'Bukti tervalidasi', 'tone' => 'success'],
+                'completed' => ['label' => 'Tingkat Kota / Prov', 'value' => '5', 'sub' => 'Kejuaraan resmi', 'tone' => 'warning'],
+            ],
+            'filters' => ['periode', 'kelas', 'tingkat_prestasi', 'status_verifikasi'],
+            'columns' => ['Inisial Murid', 'Kelas', 'Nama Kegiatan / Lomba', 'Jenis & Tingkat', 'Hasil / Juara', 'Tanggal', 'Status Verifikasi'],
+            'rows' => [
+                ['col1' => 'Murid A', 'col2' => 'X RPL 1', 'col3' => 'LKS Web Technologies 2026', 'col4' => 'Vokasi • Kota', 'col5' => 'Juara 1', 'col6' => '12 Jul 2026', 'status' => 'Terverifikasi', 'status_tone' => 'success'],
+                ['col1' => 'Murid A', 'col2' => 'X RPL 1', 'col3' => 'Olimpiade Sains Informatika', 'col4' => 'Ilmiah • Provinsi', 'col5' => 'Juara 3', 'col6' => '20 Mei 2026', 'status' => 'Terverifikasi', 'status_tone' => 'success'],
+                ['col1' => 'Murid C', 'col2' => 'XI RPL 1', 'col3' => 'Turnamen Basket Pelajar', 'col4' => 'Olahraga • Kota', 'col5' => 'Semifinalis', 'col6' => '15 Feb 2026', 'status' => 'Terverifikasi', 'status_tone' => 'success'],
+                ['col1' => 'Murid D', 'col2' => 'XI RPL 2', 'col3' => 'Lomba Karya Tulis Ilmiah', 'col4' => 'Akademik • Nasional', 'col5' => 'Finalis', 'col6' => '10 Agu 2026', 'status' => 'Menunggu Verifikasi', 'status_tone' => 'warning'],
+            ]
+        ],
     ];
 
     $type = request()->query('type', 'rekap-layanan-bk');
-    $reportTitle = $reportTypes[$type] ?? 'Rekap Layanan BK';
+    if (!array_key_exists($type, $reportConfigs)) {
+        $type = 'rekap-layanan-bk';
+    }
 
-    $stats = [
-        'total' => [
-            'label' => 'Jumlah Layanan',
-            'value' => '42',
-            'sub' => 'Periode aktif',
-        ],
-        'active' => [
-            'label' => 'Kasus Aktif',
-            'value' => '12',
-            'sub' => 'Perlu pemantauan',
-        ],
-        'completed' => [
-            'label' => 'Selesai',
-            'value' => '30',
-            'sub' => 'Tuntas',
-        ],
-    ];
+    $config = $reportConfigs[$type];
+    $reportTitle = $config['title'];
+    $reportDesc = $config['desc'];
+    $stats = $config['stats'];
+    $filters = $config['filters'];
+    $columns = $config['columns'];
+    $rows = $config['rows'];
 
-    $rows = [
-        [
-            'code' => 'L-021',
-            'class' => 'X RPL 1',
-            'category' => 'Pribadi',
-            'status' => 'Dalam Penanganan',
-            'status_tone' => 'primary',
-            'follow_up' => '18 Agu 2026',
-            'date' => '14 Agu',
-        ],
-        [
-            'code' => 'L-020',
-            'class' => 'X RPL 2',
-            'category' => 'Belajar',
-            'status' => 'Baru',
-            'status_tone' => 'info',
-            'follow_up' => 'Belum dijadwalkan',
-            'date' => '14 Agu',
-        ],
-        [
-            'code' => 'L-019',
-            'class' => 'XI RPL 1',
-            'category' => 'Sosial',
-            'status' => 'Selesai',
-            'status_tone' => 'success',
-            'follow_up' => 'Selesai',
-            'date' => '13 Agu',
-        ],
-        [
-            'code' => 'L-018',
-            'class' => 'X RPL 1',
-            'category' => 'Karier',
-            'status' => 'Dalam Penanganan',
-            'status_tone' => 'primary',
-            'follow_up' => '19 Agu 2026',
-            'date' => '12 Agu',
-        ],
-        [
-            'code' => 'L-017',
-            'class' => 'XI RPL 2',
-            'category' => 'Pribadi',
-            'status' => 'Selesai',
-            'status_tone' => 'success',
-            'follow_up' => 'Selesai',
-            'date' => '11 Agu',
-        ],
-        [
-            'code' => 'L-016',
-            'class' => 'XII RPL 1',
-            'category' => 'Belajar',
-            'status' => 'Selesai',
-            'status_tone' => 'success',
-            'follow_up' => 'Selesai',
-            'date' => '10 Agu',
-        ],
-    ];
-
-    return view('pages.reports.preview', compact('type', 'reportTitle', 'stats', 'rows'));
+    return view('pages.reports.preview', compact('type', 'reportTitle', 'reportDesc', 'stats', 'filters', 'columns', 'rows'));
 })->name('reports.preview');
 
 // ==========================================================================
@@ -743,6 +793,17 @@ Route::get('/corrections', function () {
 
     return view('pages.corrections.index', compact('corrections'));
 })->name('corrections.index');
+
+// Form Pengajuan Koreksi Data
+Route::get('/corrections/create', function () {
+    $objectType = request()->query('object_type', 'Kasus');
+    $objectId = request()->query('object_id', 'K-014');
+    $studentName = request()->query('student', 'Murid A');
+    $attribute = request()->query('attribute', 'Bidang Layanan');
+    $oldValue = request()->query('old_value', 'Pribadi');
+
+    return view('pages.corrections.create', compact('objectType', 'objectId', 'studentName', 'attribute', 'oldValue'));
+})->name('corrections.create');
 
 // PG-405: Detail dan Verifikasi Koreksi
 Route::get('/corrections/show', function () {

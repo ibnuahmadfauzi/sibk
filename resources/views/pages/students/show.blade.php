@@ -21,6 +21,12 @@
                 </div>
             </div>
             <div class="sibk-page-header__actions d-flex flex-wrap gap-2">
+                <a href="{{ route('corrections.create', ['object_type' => 'Murid', 'object_id' => $student['nisn'] ?? '0012345678', 'student' => $student['name'] ?? 'Murid A', 'attribute' => 'Nama Murid', 'old_value' => $student['name'] ?? 'Murid A']) }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" title="Ajukan koreksi data identitas murid atau data master">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.83A2 2 0 0 0 19.41 6l-1.41-1zM14 2.5V7h4.5M8 13h8M8 17h8M8 9h2"/>
+                    </svg>
+                    Ajukan Koreksi
+                </a>
                 <a href="{{ route('consultations.create', ['student' => $student['name'] ?? 'Murid A', 'nisn' => $student['nisn'] ?? '0012345678']) }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>

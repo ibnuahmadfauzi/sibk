@@ -5,10 +5,19 @@
 @section('body')
     <div class="sibk-dashboard">
         <!-- Page Header -->
-        <div class="sibk-page-header mb-4">
+        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
             <div class="sibk-page-header__copy">
                 <h1>Koreksi Data</h1>
                 <p>Daftar pengajuan koreksi data operasional dan master.</p>
+            </div>
+            <div class="sibk-page-header__actions">
+                <a href="{{ route('corrections.create') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    <span>Ajukan Koreksi</span>
+                </a>
             </div>
         </div>
 

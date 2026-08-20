@@ -128,7 +128,7 @@ Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanju
 
 - Akun wali kelas dengan informasi terbatas sesuai kewenangan yang disahkan.
 
-- Akun murid untuk melihat data miliknya dan mengajukan koreksi.
+- Akun murid untuk melihat data miliknya dan melakukan koreksi data miliknya.
 
 - Alur koreksi oleh murid yang lebih lengkap.
 
