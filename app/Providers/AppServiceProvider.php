@@ -20,6 +20,7 @@ use App\Policies\AchievementPolicy;
 use App\Policies\CasePolicy;
 use App\Policies\ConsultationPolicy;
 use App\Policies\CorrectionPolicy;
+use App\Policies\ReportPolicy;
 use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserNotificationPolicy;
@@ -53,6 +54,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Correction::class, CorrectionPolicy::class);
         Gate::policy(Student::class, StudentPolicy::class);
         Gate::policy(UserNotification::class, UserNotificationPolicy::class);
+
+        Gate::define('viewReports', fn (User $user): bool => app(ReportPolicy::class)->viewAny($user));
+        Gate::define('viewAuditHistory', fn (User $user): bool => $user->is_active
+            && $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it']));
+        Gate::define('manageDataMaster', fn (User $user): bool => $user->is_active && $user->hasRole('admin_it'));
+        Gate::define('manageCaseAssignments', fn (User $user): bool => $user->is_active && $user->hasRole('koordinator_bk'));
 
         View::composer('components.sidebar', function (BladeView $view): void {
             $user = auth()->user();

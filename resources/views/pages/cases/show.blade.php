@@ -3,7 +3,7 @@
 @section('page-title', 'Detail Kasus - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-103">
         @if(session('success'))
             <div class="alert alert-success" role="alert">{{ session('success') }}</div>
         @endif

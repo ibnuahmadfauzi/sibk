@@ -1,7 +1,7 @@
 @extends('layouts.app-2')
 @section('page-title', 'Detail Koreksi - Ruang BK')
 @section('body')
-<div class="sibk-dashboard">
+<div class="sibk-dashboard" data-page-id="PG-405">
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     <div class="sibk-page-header mb-4"><a href="{{ route('corrections.index') }}" class="small text-decoration-none">&larr; Koreksi Data</a><div class="sibk-page-header__copy"><h1>Detail Koreksi</h1><p>{{ $correction->registration_number }}</p></div></div>

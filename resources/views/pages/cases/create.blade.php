@@ -3,7 +3,7 @@
 @section('page-title', 'Buat Kasus Baru - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-102">
         <div class="sibk-page-header mb-4">
             <div class="d-flex align-items-center gap-3">
                 <a href="{{ route('cases.index') }}" class="btn btn-icon btn-light" aria-label="Kembali">←</a>

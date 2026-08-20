@@ -3,7 +3,7 @@
 @section('page-title', 'Atur Penugasan Kelas - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-402">
         <!-- Page Header -->
         <div class="sibk-page-header mb-4">
             <div class="d-flex align-items-center gap-2 mb-2">

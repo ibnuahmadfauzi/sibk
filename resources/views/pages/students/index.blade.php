@@ -3,7 +3,7 @@
 @section('page-title', 'Daftar Murid - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-201">
         <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4"><div class="sibk-page-header__copy"><h1>Daftar Murid</h1><p>Cari murid dan buka profil layanan sesuai kewenangan Anda.</p></div><a href="{{ route('achievements.index') }}" class="btn btn-outline-primary">Kelola Prestasi</a></div>
         <div class="sibk-panel mb-4"><div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Pencarian Murid</h2></div><div class="sibk-panel__body p-4"><form class="row g-3 align-items-end" action="{{ route('students.index') }}" method="GET">
             <div class="col-12 col-md-7"><label class="form-label" for="student_search">Cari murid</label><input class="form-control" id="student_search" name="search" value="{{ request('search') }}" placeholder="Nama atau NISN"></div>

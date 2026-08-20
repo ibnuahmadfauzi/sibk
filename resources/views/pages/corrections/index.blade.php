@@ -1,7 +1,7 @@
 @extends('layouts.app-2')
 @section('page-title', 'Koreksi Data - Ruang BK')
 @section('body')
-<div class="sibk-dashboard">
+<div class="sibk-dashboard" data-page-id="PG-404">
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4"><div class="sibk-page-header__copy"><h1>Koreksi Data</h1><p>Daftar pengajuan koreksi data operasional dan master sesuai kewenangan.</p></div>@if($canCreateCorrection)<a href="{{ route('corrections.create') }}" class="btn btn-primary">+ Ajukan Koreksi</a>@endif</div>
     <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><h2 class="sibk-filter-title mb-3">Filter Pengajuan</h2><form class="row g-3 align-items-end" action="{{ route('corrections.index') }}" method="GET">

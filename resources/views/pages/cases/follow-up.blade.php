@@ -3,7 +3,7 @@
 @section('page-title', ($isEdit ? 'Ubah' : 'Tambah').' Tindak Lanjut - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-104">
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy">
                 <a href="{{ route('cases.show', $case) }}" class="text-decoration-none small">&larr; Kembali ke detail kasus</a>

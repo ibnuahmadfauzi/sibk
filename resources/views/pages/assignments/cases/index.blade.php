@@ -3,7 +3,7 @@
 @section('page-title', 'Penugasan & Pengalihan Kasus - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-403">
         <div class="sibk-page-header mb-4"><div class="sibk-page-header__copy"><h1>Penugasan dan Pengalihan Kasus</h1><p>Atur penanggung jawab atau kewenangan tambahan untuk kasus aktif.</p></div></div>
         @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 

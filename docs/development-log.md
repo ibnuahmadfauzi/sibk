@@ -25,6 +25,13 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-08-20] Sprint 9 Backend — Hardening, Keamanan, Performa, dan Integrasi Akhir`
+  - Menghapus seluruh fixture produksi dan route closure, mempertahankan `_preview/*` sebagai redirect kompatibilitas GET/HEAD, menghubungkan halaman akun serta pencarian global ke data nyata, dan memastikan route/config/view dapat di-cache.
+  - Menerapkan navigasi berbasis policy/Gate, matriks `AUTH-01`–`AUTH-07`, scoped binding anti-IDOR, perlindungan route web/CSRF, akun nonaktif, retensi minimum tiga tahun, audit append-only, dan pemisahan penuh Admin IT dari layanan BK.
+  - Membatasi akun sintetis ke local/testing dengan password environment eksplisit, menonaktifkan serving storage privat sampai `DEP-06`, serta mempertahankan connector eksternal dan ekspor lanjutan sesuai dependency yang belum disahkan.
+  - Menambahkan indeks hardening additive, filter kelas historis di database, pagination/KPI query-backed untuk laporan detail, ekspor CSV bertahap, dan pengujian regresi N+1 dengan pertumbuhan maksimal dua query.
+  - Memperluas checker ke seluruh halaman PG dan komponen navigasi, menghapus Blade fixture yang tidak digunakan, serta memverifikasi 87 test/643 assertion, migrasi MySQL tanpa `migrate:fresh`, seeder dua kali, Pint, cache Laravel, kompilasi Blade, build Vite, frontend checker, dan `git diff --check`.
+
 - `[x] [2026-08-20] Sprint 8 Backend — Prestasi P0 Bertahap`
   - Menambahkan skema additive Prestasi, tiga kategori referensi idempotent, bukti berbasis metadata, soft delete tanpa endpoint hapus, typed casts, relasi, scope, dan audit yang tidak menyimpan isi bukti/catatan.
   - Mengimplementasikan `AchievementService`, Form Request, `AchievementPolicy`, transaksi, row locking, antrean verifikasi Koordinator, status final, batas akses Guru BK/Waka/Admin IT, serta koreksi prestasi terverifikasi melalui service terkait.

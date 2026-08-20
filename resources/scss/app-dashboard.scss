@@ -1637,3 +1637,109 @@ body {
     }
   }
 }
+
+// Access denied (PG-901)
+.sibk-access-denied-page {
+  min-height: 100vh;
+  background-color: var(--sibk-color-page);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1.5rem;
+}
+
+.sibk-access-denied-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  color: inherit;
+
+  &__logo {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background-color: var(--sibk-color-surface-raised);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--sibk-shadow-raised);
+  }
+
+  &__image {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  &__title {
+    display: block;
+    color: var(--sibk-color-text-dark);
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  &__subtitle {
+    color: var(--sibk-color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+}
+
+.sibk-access-denied-card {
+  max-width: 40rem;
+  width: 100%;
+  background: var(--sibk-color-surface-raised);
+  border-radius: 1.5rem;
+  padding: 3.5rem 2rem;
+  box-shadow: var(--sibk-shadow-raised);
+  text-align: center;
+  margin: auto;
+
+  &__title {
+    margin-bottom: 0.5rem;
+    color: var(--sibk-color-text-dark);
+    font-size: 1.85rem;
+    font-weight: 700;
+  }
+
+  &__message {
+    margin-bottom: 0.25rem;
+    color: var(--sibk-color-text);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.875rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+}
+
+.sibk-access-denied-icon {
+  width: 8rem;
+  height: 8rem;
+  border-radius: 50%;
+  background-color: var(--sibk-color-danger-soft);
+  color: var(--sibk-color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 2rem;
+}
+
+.sibk-student-avatar {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--sibk-color-primary-soft);
+  color: var(--sibk-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-weight: 700;
+}

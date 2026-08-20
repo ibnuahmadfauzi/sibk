@@ -16,10 +16,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-            RoleSeeder::class,
-            ReferenceSeeder::class,
-            AccountSeeder::class,
-        ]);
+        $this->call([RoleSeeder::class, ReferenceSeeder::class]);
+
+        if (app()->environment(['local', 'testing'])) {
+            $this->call(AccountSeeder::class);
+        }
     }
 }

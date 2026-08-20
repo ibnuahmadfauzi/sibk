@@ -3,7 +3,7 @@
 @section('page-title', 'Layanan BK - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
+    <div class="sibk-dashboard" data-page-id="PG-101">
         @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
         <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
             <div class="sibk-page-header__copy"><h1>Layanan BK</h1><p>Cari, filter, dan kelola penanganan kasus serta sesi konsultasi.</p></div>

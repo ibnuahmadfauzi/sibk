@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Dokumen privat belum tersedia sampai keputusan DEP-06 disahkan.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

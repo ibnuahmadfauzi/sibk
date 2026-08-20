@@ -37,12 +37,20 @@
 
                         <div class="sibk-account-details">
                             <div class="sibk-account-details__item">
-                                <span class="sibk-account-details__label">Nama pengguna</span>
-                                <span class="sibk-account-details__value">{{ $account['username'] }}</span>
+                                <span class="sibk-account-details__label">Peran</span>
+                                <span class="sibk-account-details__value">{{ implode(', ', $account['roles']) ?: 'Belum memiliki peran' }}</span>
                             </div>
                             <div class="sibk-account-details__item">
                                 <span class="sibk-account-details__label">Email</span>
                                 <span class="sibk-account-details__value">{{ $account['email'] }}</span>
+                            </div>
+                            <div class="sibk-account-details__item">
+                                <span class="sibk-account-details__label">Status akun</span>
+                                <span class="sibk-account-details__value">{{ $account['status'] }}</span>
+                            </div>
+                            <div class="sibk-account-details__item">
+                                <span class="sibk-account-details__label">Login terakhir</span>
+                                <span class="sibk-account-details__value">{{ $account['last_login_at']?->locale('id')->translatedFormat('d F Y H.i') ?? 'Belum tercatat' }}</span>
                             </div>
                             <div class="sibk-account-details__item">
                                 <span class="sibk-account-details__label">Tahun ajaran aktif</span>
@@ -71,15 +79,13 @@
                             </div>
                             <div class="sibk-security-info__text">
                                 <h5 class="sibk-security-info__title">Kata sandi</h5>
-                                <p class="sibk-security-info__desc">Perbarui kata sandi jika diperlukan.</p>
+                                <p class="sibk-security-info__desc">Perubahan kata sandi dikelola oleh Admin IT.</p>
                             </div>
                         </div>
 
-                        <button type="button" class="btn btn-primary w-100 sibk-btn-ubah-sandi">Ubah Kata Sandi</button>
-                        
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
-                            <button type="submit" class="btn w-100 sibk-btn-logout mt-3">
+                            <button type="submit" class="btn w-100 sibk-btn-logout">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                                     <polyline points="16 17 21 12 16 7"/>
