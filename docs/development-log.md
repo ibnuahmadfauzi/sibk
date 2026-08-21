@@ -15,6 +15,7 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## 🚀 Current / Upcoming Tasks
 
+- `[ ] [2026-08-21] Analisis Hasil dan Pembahasan Penelitian RBAC`
 - `[ ] [2026-08-20] Eksekusi Migrasi Database & Seeder Ruang BK (Roles, References, AcademicYears, Classrooms, Students, TemporaryStudents, Cases, FollowUps, Consultations, Corrections, AuditLogs)`
 - `[ ] [2026-08-20] Implementasi Eloquent Models, Relations & Query Scopes`
 - `[ ] [2026-08-20] Implementasi Policies & Otorisasi Multi-Role (Guru BK, Koordinator, Waka, Admin IT)`
@@ -24,6 +25,25 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 ---
 
 ## ✅ Completed Tasks
+
+- `[x] [2026-08-21] Penyelarasan Dataset, Manual, Matriks, dan Hasil Pengujian RBAC`
+  - Menetapkan katalog versi `2026-08-21.1` dengan label resource, prasyarat, marker tampil/tersembunyi, istilah periode yang tidak ambigu, tanggal baseline, dan URL aktual untuk 41 skenario AUTH-01–AUTH-07.
+  - Menambahkan validator baseline serta command read-only `rbac:scenario-verify`; reset sekarang menolak penerbitan CSV bila aktor, role, periode kelas, kasus, koordinasi, nested resource, konsultasi, prestasi, notifikasi, atau URL hasil tidak konsisten.
+  - Menulis ulang panduan manual menjadi langkah lengkap RBAC-001–RBAC-041, memperjelas exact scope Paket 2, Allow terbatas/redacted, Deny 403/404, redirect, evidence, serta batas klaim penelitian.
+  - Menyelaraskan matriks role-permission dan template hasil dengan katalog serta memperkuat automated companion untuk memeriksa seluruh kolom, relasi baseline, isi daftar/laporan, redaksi privat, redirect, dan cakupan manual.
+  - Memverifikasi reset MySQL dua kali, verifier CSV, 102 test/771 assertion, Pint, cache Laravel, build Vite, frontend checker, dan `git diff --check`.
+
+- `[x] [2026-08-21] GUI Pengelolaan Akun Admin IT`
+  - Mengganti respons JSON pada akses browser `/admin/users` dengan halaman Blade untuk membuat akun, mengubah identitas/password/peran, serta mengaktifkan atau menonaktifkan akun.
+  - Mempertahankan respons JSON melalui content negotiation bagi request API/test, menambahkan navigasi capability-aware `Kelola Akun`, serta flash message dan validasi Bahasa Indonesia.
+  - Memverifikasi 100 test/738 assertion, Pint, build Vite, frontend checker, dan `git diff --check`.
+
+- `[x] [2026-08-21] Dataset dan Pengujian RBAC untuk Penelitian`
+  - Menambahkan delapan aktor dan resource sintetis terkontrol untuk AUTH-01–AUTH-07, termasuk scope kelas aktif/kedaluwarsa/masa depan, penugasan kasus khusus, koordinasi Waka, konsultasi privat, e-Tatib, prestasi, koreksi, notifikasi, dan pasangan nested resource anti-IDOR.
+  - Menambahkan katalog 41 skenario, `AuthorizationScenarioSeeder`, serta command `rbac:scenario-reset` khusus local/testing yang transaksional, idempotent, tidak dipanggil production seeder, tidak mencetak password, dan menghasilkan lembar hasil berisi ID/URL aktual.
+  - Menambahkan panduan manual penelitian, matriks role–capability–resource, template Allow/Deny, konvensi evidence, metode rekap Pass/Fail, serta batas klaim penelitian.
+  - Menambahkan `AuthorizationResearchScenarioTest` untuk enforcement fungsi/data, redaksi privat, periode efektif, multi-role, Waka read-only, pemisahan Admin IT, laporan/CSV, audit tersanitasi, reset, dan penolakan command pada production.
+  - Memverifikasi command dua kali pada database lokal, 99 test/727 assertion, Pint, cache Laravel, build Vite, frontend checker, dan `git diff --check`.
 
 - `[x] [2026-08-20] Sprint 9 Backend — Hardening, Keamanan, Performa, dan Integrasi Akhir`
   - Menghapus seluruh fixture produksi dan route closure, mempertahankan `_preview/*` sebagai redirect kompatibilitas GET/HEAD, menghubungkan halaman akun serta pencarian global ke data nyata, dan memastikan route/config/view dapat di-cache.
