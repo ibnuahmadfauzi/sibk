@@ -15,7 +15,6 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## 🚀 Current / Upcoming Tasks
 
-- `[ ] [2026-08-21] Analisis Hasil dan Pembahasan Penelitian RBAC`
 - `[ ] [2026-08-20] Eksekusi Migrasi Database & Seeder Ruang BK (Roles, References, AcademicYears, Classrooms, Students, TemporaryStudents, Cases, FollowUps, Consultations, Corrections, AuditLogs)`
 - `[ ] [2026-08-20] Implementasi Eloquent Models, Relations & Query Scopes`
 - `[ ] [2026-08-20] Implementasi Policies & Otorisasi Multi-Role (Guru BK, Koordinator, Waka, Admin IT)`
@@ -25,6 +24,11 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 ---
 
 ## ✅ Completed Tasks
+
+- `[x] [2026-08-21] Analisis Hasil dan Pembahasan Penelitian RBAC`
+  - Menyusun dokumen analisis berbasis workbook final dataset `2026-08-21.1`, mencakup 41/41 Pass, distribusi 18 Allow dan 23 Deny, serta rekap AUTH-01–AUTH-07.
+  - Merumuskan jawaban RQ1 dan RQ2, desain enforcement berlapis, analisis skenario kunci, pembahasan, validitas evidence, keterbatasan, batas klaim, pemetaan tujuan dan lima aspek Projek Kepemimpinan, serta narasi siap adaptasi ke artikel.
+  - Memverifikasi konsistensi angka terhadap matriks skenario, kelengkapan 41 evidence tanpa ID hilang/duplikat, struktur dokumen, dan tidak adanya placeholder atau masalah whitespace.
 
 - `[x] [2026-08-21] Penyelarasan Dataset, Manual, Matriks, dan Hasil Pengujian RBAC`
   - Menetapkan katalog versi `2026-08-21.1` dengan label resource, prasyarat, marker tampil/tersembunyi, istilah periode yang tidak ambigu, tanggal baseline, dan URL aktual untuk 41 skenario AUTH-01–AUTH-07.

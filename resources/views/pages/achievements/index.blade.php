@@ -1,0 +1,24 @@
+@extends('layouts.app-2')
+
+@section('page-title', 'Daftar Prestasi - Ruang BK')
+
+@section('body')
+<div class="sibk-dashboard">
+    <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4"><div class="sibk-page-header__copy"><h1>Daftar Prestasi</h1><p>Riwayat dan antrean verifikasi sesuai kewenangan Anda.</p></div>@if($canCreateAchievement)<a href="{{ route('achievements.create') }}" class="btn btn-primary">Catat Prestasi</a>@endif</div>
+    <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form action="{{ route('achievements.index') }}" method="GET" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4"><label for="achievement_search" class="form-label">Cari</label><input id="achievement_search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Murid, NISN, kegiatan, atau penyelenggara"></div>
+        <div class="col-6 col-md-3 col-lg-2"><label for="achievement_type" class="form-label">Jenis</label><select id="achievement_type" name="type_id" class="form-select"><option value="">Semua</option>@foreach($types as $type)<option value="{{ $type->id }}" @selected((string) request('type_id') === (string) $type->id)>{{ $type->label }}</option>@endforeach</select></div>
+        <div class="col-6 col-md-3 col-lg-2"><label for="achievement_level" class="form-label">Tingkat</label><select id="achievement_level" name="level_id" class="form-select"><option value="">Semua</option>@foreach($levels as $level)<option value="{{ $level->id }}" @selected((string) request('level_id') === (string) $level->id)>{{ $level->label }}</option>@endforeach</select></div>
+        <div class="col-6 col-md-3 col-lg-2"><label for="achievement_status" class="form-label">Status</label><select id="achievement_status" name="status_id" class="form-select"><option value="">Semua</option>@foreach($statuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
+        <div class="col-6 col-md-3 col-lg-2"><label for="achievement_class" class="form-label">Kelas historis</label><select id="achievement_class" name="classroom_id" class="form-select"><option value="">Semua</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected((string) request('classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>
+        <div class="col-6 col-md-3"><label for="achievement_student" class="form-label">Murid</label><select id="achievement_student" name="student_id" class="form-select"><option value="">Semua</option>@foreach($students as $student)<option value="{{ $student->id }}" @selected((string) request('student_id') === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }}</option>@endforeach</select></div>
+        <div class="col-6 col-md-3"><label for="achievement_start" class="form-label">Tanggal awal</label><input type="date" id="achievement_start" name="date_start" class="form-control" value="{{ request('date_start') }}"></div>
+        <div class="col-6 col-md-3"><label for="achievement_end" class="form-label">Tanggal akhir</label><input type="date" id="achievement_end" name="date_end" class="form-control" value="{{ request('date_end') }}"></div>
+        <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-primary flex-grow-1">Terapkan</button><a href="{{ route('achievements.index') }}" class="btn btn-light">Reset</a></div>
+    </form></div></div>
+    <div class="sibk-panel"><div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Murid</th><th>Kegiatan</th><th>Jenis / Tingkat</th><th>Tanggal</th><th>Hasil</th><th>Status</th><th></th></tr></thead><tbody>
+        @forelse($achievements as $achievement)@php $tone = match($achievement->verificationStatus->code) {'terverifikasi' => 'success', 'ditolak' => 'danger', default => 'warning'}; @endphp<tr><td><strong>{{ $achievement->student->name }}</strong><span class="small text-muted d-block">{{ $achievement->student->nisn }}</span></td><td>{{ $achievement->activity_name }}<span class="small text-muted d-block">{{ $achievement->organizer }}</span></td><td>{{ $achievement->type->label }}<span class="small text-muted d-block">{{ $achievement->level->label }}</span></td><td>{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $achievement->result }}</td><td><span class="badge text-bg-{{ $tone }}">{{ $achievement->verificationStatus->label }}</span></td><td><a href="{{ route('achievements.show', $achievement) }}">Buka</a></td></tr>
+        @empty<tr><td colspan="7" class="text-center text-muted py-5">Belum ada prestasi yang sesuai dengan filter dan kewenangan Anda.</td></tr>@endforelse
+    </tbody></table></div><div class="p-4 border-top">{{ $achievements->links() }}</div></div>
+</div>
+@endsection
