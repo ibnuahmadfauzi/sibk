@@ -35,6 +35,7 @@ class UserManagementController extends Controller
             'roles' => Role::query()->active()->orderBy('name')->get(),
         ]);
     }
+    
 
     public function store(StoreUserRequest $request, AccountService $accountService): JsonResponse|RedirectResponse
     {

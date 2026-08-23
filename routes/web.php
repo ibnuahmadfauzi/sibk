@@ -29,6 +29,8 @@ Route::post('/login', [AuthController::class, 'store'])->middleware(['guest', 't
 Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (): void {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
     Route::get('/account', [AccountController::class, 'index'])->name('account.index');
+    Route::get('/account/preview', [AccountController::class, 'index'])->name('account.preview');
+    Route::view('/account/create', 'pages.account.create')->name('account.create');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.preview');
     Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
