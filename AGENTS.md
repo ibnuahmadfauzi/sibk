@@ -26,6 +26,15 @@ Page `21 — Wireframe Low-Fidelity Final` adalah artefak proses desain dan buka
 - Integrasi Dapodik/e-Tatib: disiapkan melalui cache read-only, pemetaan NISN, dan log sinkronisasi terkelola.
 - API contract: aktif disusun dan diselaraskan dengan kebutuhan web controller & service layer.
 
+## Pending Implementation Plan — Wajib Ditinjau
+
+- Terdapat plan berstatus **menunggu review dan konfirmasi pengguna** di `docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md`.
+- Pada awal sesi kerja baru, setiap agent/model AI harus membaca plan tersebut secara lengkap, memberitahu pengguna bahwa plan masih pending, lalu menanyakan satu kali apakah implementasi akan dilanjutkan.
+- Jangan menjalankan Task 1–Task 8, mengubah PRD/SRS, membuat migration, atau mengubah kode dalam scope plan hanya karena plan tersedia.
+- Implementasi hanya boleh dimulai setelah pengguna memberikan persetujuan eksplisit dalam percakapan aktif.
+- Jika pengguna memilih belum/tidak melanjutkan, pertahankan plan tanpa perubahan dan kerjakan hanya permintaan lain yang diberikan secara eksplisit.
+- Saat implementasi disetujui, gunakan workflow dan sub-skill yang diwajibkan pada header plan serta kerjakan task secara berurutan dengan verification gate per task.
+
 ## Aturan Umum
 
 - Pertahankan arsitektur dan konvensi repository yang sudah ada.
