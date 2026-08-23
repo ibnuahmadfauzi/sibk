@@ -12,10 +12,11 @@ $sibk-nav-active-bg: rgba(255,255,255,0.15);
 $sibk-nav-active-text: #ffffff;
 
 // Permukaan dan teks
-$sibk-page: #FAF5F1;
-$sibk-surface: #FAF9F6;
-$sibk-field: #F8F7F4;
-$sibk-surface-raised: #ffffff;
+// $sibk-page: #f8f0ea;
+$sibk-page: #f8f0ea;
+$sibk-surface: #f8f0ea;
+$sibk-field: #f8f0ea;          // Mengikuti warna background tanpa dibuat lebih gelap
+$sibk-surface-raised: #FDFBF9; // Sedikit lebih terang dari background secara lembut
 $sibk-text: #0D2447;
 $sibk-text-muted: #5F6F86;   // Penpot: "Secondary"
 $sibk-text-subtle: #8794A7;  // Penpot: "Placeholder/Search"
@@ -25,7 +26,7 @@ $sibk-border-light: #EDEAE6; // turunan warm, lebih terang dari border
 // Aksen dan panel brand
 $sibk-accent: #CF6A2D;
 $sibk-accent-soft: #FBECE3;  // Penpot: warning/accent soft
-$sibk-brand-panel: #FAF5F1;
+$sibk-brand-panel: #f8f0ea;
 
 // Status dan feedback
 $sibk-success: #2F8F73;
@@ -40,20 +41,29 @@ $sibk-info-soft: #E9F2FB;    // Penpot: info/primary tint
 $sibk-purple: #6657C8;
 $sibk-purple-soft: #EEEAFD;  // Penpot: limited/purple tint
 
-// Fokus, bayangan (Neumorphism & Elevation)
+// Fokus, bayangan (Neumorphism & Elevation - Formula Themesberg Neumorphic)
 $sibk-focus-ring: rgba(47, 111, 198, 0.35);
 
-// Raised Surface (Stat card, Panel utama)
-// Shadow gelap: 6 / 8 / 18 / -4 | Highlight: -4 / -5 / 14 / -5
-$sibk-shadow-raised: 6px 8px 18px -4px rgba(207, 199, 189, 0.34), -4px -5px 14px -5px rgba(255, 255, 255, 0.9);
-$sibk-shadow-raised-hover: 6px 12px 24px -4px rgba(207, 199, 189, 0.48), -4px -5px 14px -5px rgba(255, 255, 255, 0.9);
+// Raised Surfaces (Cards, Panels, Modals)
+$sibk-shadow-raised-sm: 3px 3px 6px rgba(188, 175, 160, 0.45), -3px -3px 6px rgba(255, 255, 255, 0.95);
+$sibk-shadow-raised: 6px 6px 14px rgba(188, 175, 160, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.95), 2px 2px 4px rgba(188, 175, 160, 0.25);
+$sibk-shadow-raised-hover: 9px 9px 20px rgba(188, 175, 160, 0.6), -9px -9px 20px rgba(255, 255, 255, 1), 3px 3px 6px rgba(188, 175, 160, 0.3);
 
-// Inset Field (Input form, text area)
-// Inner: 3 / 3 / 8 | Highlight: -3 / -3 / 8
-$sibk-shadow-inset: inset 3px 3px 8px rgba(201, 208, 216, 0.32), inset -3px -3px 8px rgba(255, 255, 255, 0.9);
+// Inset Fields (Inputs, Search Bar, Recessed Containers, Pressed States, Tables)
+$sibk-shadow-inset-sm: inset 2px 2px 5px rgba(188, 175, 160, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.95);
+$sibk-shadow-inset: inset 3px 3px 8px rgba(188, 175, 160, 0.55), inset -3px -3px 8px rgba(255, 255, 255, 0.95);
+$sibk-shadow-inset-lg: inset 6px 6px 14px rgba(188, 175, 160, 0.6), inset -6px -6px 14px rgba(255, 255, 255, 1);
 
-// Button Shadow
-$sibk-shadow-button: 0 0.5rem 1.1rem rgba(47, 111, 198, 0.2);
+// Button Shadows (Tactile Elevated & Inset Active)
+$sibk-shadow-button: 5px 5px 12px rgba(35, 85, 155, 0.42), -4px -4px 10px rgba(255, 255, 255, 0.95), 0 3px 6px rgba(47, 111, 198, 0.3);
+$sibk-shadow-button-hover: 7px 7px 16px rgba(35, 85, 155, 0.52), -5px -5px 12px rgba(255, 255, 255, 1), 0 5px 10px rgba(47, 111, 198, 0.4);
+$sibk-shadow-button-active: inset 3px 3px 6px rgba(15, 45, 90, 0.65), inset -3px -3px 6px rgba(255, 255, 255, 0.3);
+
+// Neutral / Light Button Shadows (Themesberg signature tactile button)
+$sibk-shadow-btn-light: 5px 5px 10px rgba(188, 175, 160, 0.55), -5px -5px 10px #ffffff;
+$sibk-shadow-btn-light-hover: 7px 7px 15px rgba(188, 175, 160, 0.65), -7px -7px 15px #ffffff;
+$sibk-shadow-btn-light-active: inset 3px 3px 6px rgba(188, 175, 160, 0.6), inset -3px -3px 6px #ffffff;
+
 $sibk-radius-sm: 14px;
 $sibk-radius-md: 16px;
 $sibk-radius-lg: 18px;

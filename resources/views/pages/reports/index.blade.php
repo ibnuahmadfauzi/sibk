@@ -8,7 +8,7 @@
     <div class="row g-4 sibk-report-grid">
         @foreach($reports as $report)
             <div class="{{ $loop->last && $loop->count % 2 !== 0 ? 'col-12 col-md-6 mx-auto' : 'col-12 col-md-6' }}">
-                <article class="sibk-report-card h-100">
+                <article class="sibk-report-card sibk-report-card--{{ $report['tone'] }} h-100">
                     <div class="sibk-report-card__body">
                         <div class="sibk-report-card__icon-wrapper sibk-icon-tone--{{ $report['tone'] }}" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

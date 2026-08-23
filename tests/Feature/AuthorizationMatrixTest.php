@@ -27,7 +27,7 @@ class AuthorizationMatrixTest extends TestCase
     {
         yield 'Guru BK' => ['guru_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 200, '/assignments/cases' => 403, '/corrections' => 200,
+            '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
             '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
         ]];
         yield 'Koordinator BK' => ['koordinator_bk', [
@@ -37,13 +37,13 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 200, '/assignments/cases' => 403, '/corrections' => 200,
+            '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 403,
             '/history' => 200, '/achievements' => 200, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 200, '/assignments/cases' => 403, '/corrections' => 200,
+            '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
             '/history' => 200, '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
         ]];
     }
@@ -80,6 +80,7 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
             ->assertDontSee('Laporan')
+            ->assertDontSee('Penugasan Kelas')
             ->assertDontSee('Pengalihan Kasus')
             ->assertSee('Data Master');
     }

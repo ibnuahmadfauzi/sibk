@@ -35,20 +35,32 @@
   --sibk-color-purple: #{$sibk-purple};
   --sibk-color-purple-soft: #{$sibk-purple-soft};
   --sibk-focus-ring: #{$sibk-focus-ring};
+  --sibk-shadow-raised-sm: #{$sibk-shadow-raised-sm};
   --sibk-shadow-raised: #{$sibk-shadow-raised};
   --sibk-shadow-raised-hover: #{$sibk-shadow-raised-hover};
+  --sibk-shadow-inset-sm: #{$sibk-shadow-inset-sm};
   --sibk-shadow-inset: #{$sibk-shadow-inset};
+  --sibk-shadow-inset-lg: #{$sibk-shadow-inset-lg};
   --sibk-shadow-button: #{$sibk-shadow-button};
+  --sibk-shadow-button-hover: #{$sibk-shadow-button-hover};
+  --sibk-shadow-button-active: #{$sibk-shadow-button-active};
+  --sibk-shadow-btn-light: #{$sibk-shadow-btn-light};
+  --sibk-shadow-btn-light-hover: #{$sibk-shadow-btn-light-hover};
+  --sibk-shadow-btn-light-active: #{$sibk-shadow-btn-light-active};
   --sibk-radius-sm: #{$sibk-radius-sm};
   --sibk-radius-md: #{$sibk-radius-md};
   --sibk-radius-lg: #{$sibk-radius-lg};
   --sibk-radius-xl: #{$sibk-radius-xl};
   --sibk-sidebar-width: #{$sibk-sidebar-width};
   --sibk-topbar-height: #{$sibk-topbar-height};
+  --sibk-font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sibk-font-heading: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --sibk-font-handwriting: 'Caveat', cursive, sans-serif;
 
   // Pemetaan dasar Bootstrap — provisional sampai foundations approved
   --bs-primary: var(--sibk-color-primary);
   --bs-primary-rgb: #{color.channel($sibk-primary, 'red', $space: rgb)}, #{color.channel($sibk-primary, 'green', $space: rgb)}, #{color.channel($sibk-primary, 'blue', $space: rgb)};
+  --bs-body-font-family: var(--sibk-font-family);
   --bs-body-bg: var(--sibk-color-page);
   --bs-body-color: var(--sibk-color-text);
   --bs-border-color: var(--sibk-color-border);

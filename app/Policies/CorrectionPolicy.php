@@ -11,7 +11,7 @@ class CorrectionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'admin_it']);
     }
 
     public function view(User $user, Correction $correction): bool

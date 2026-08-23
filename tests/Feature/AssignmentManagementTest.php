@@ -176,11 +176,15 @@ class AssignmentManagementTest extends TestCase
         $this->assertTrue($scopedIds->contains($student->id));
         $this->assertFalse($scopedIds->contains($outsideStudent->id));
 
-        $this->actingAs($teacher)
+        $this->actingAs($coordinator)
             ->get(route('assignments.classes.index'))
             ->assertOk()
             ->assertSee('X RPL 1')
-            ->assertDontSee('X RPL 2');
+            ->assertSee('X RPL 2');
+
+        $this->actingAs($teacher)
+            ->get(route('assignments.classes.index'))
+            ->assertForbidden();
     }
 
     /** @return array{AcademicYear, Classroom} */

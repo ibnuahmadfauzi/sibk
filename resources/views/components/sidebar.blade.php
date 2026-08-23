@@ -71,13 +71,13 @@
             </a>
             @endcan
 
-            @can('viewAuditHistory')
+            @if(auth()->user()?->hasRole('admin_it'))
             <a class="sibk-nav-link {{ request()->routeIs('history.*') ? 'is-active' : '' }}" href="{{ route('history.index') }}"
                 aria-current="{{ request()->routeIs('history.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
                 <span>Riwayat Perubahan</span>
             </a>
-            @endcan
+            @endif
 
             @can('manageDataMaster')
                 <a class="sibk-nav-link {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}" href="{{ route('admin.users.index') }}"

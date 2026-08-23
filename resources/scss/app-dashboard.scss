@@ -7,8 +7,636 @@ body {
   min-width: 20rem;
   background: var(--sibk-color-page);
   color: var(--sibk-color-text);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--sibk-font-family);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+// ─── Global Heading & Typography Hierarchy ──────────────────────────────────
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--sibk-font-heading);
+  color: var(--sibk-color-text-dark);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h1, .h1 {
+  font-size: 1.625rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+h2, .h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+h3, .h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+h4, .h4 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+h5, .h5 {
+  font-size: 0.925rem;
+  font-weight: 700;
+}
+
+p {
+  line-height: 1.55;
+}
+
+small, .small {
+  font-size: 0.8125rem;
+}
+
+// ─── Themesberg Neumorphic Foundations ───────────────────────────────────────
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  padding: 0.625rem 1.35rem;
+  border-radius: var(--sibk-radius-md);
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  cursor: pointer;
+
+  &:focus,
+  &:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 0.25rem var(--sibk-focus-ring) !important;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(145deg, #357ad6, #2761ae) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  box-shadow: var(--sibk-shadow-button) !important;
+
+  &:hover,
+  &:focus {
+    background: #25589e !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+    box-shadow: inset 3px 3px 6px rgba(10, 35, 75, 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active,
+  &:active:focus {
+    background: #204b86 !important;
+    border-color: rgba(0, 0, 0, 0.25) !important;
+    box-shadow: inset 4px 4px 9px rgba(10, 35, 75, 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+.btn-light,
+.btn-secondary,
+.btn-white {
+  background: var(--sibk-color-surface-raised) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  color: var(--sibk-color-text) !important;
+  box-shadow: var(--sibk-shadow-btn-light) !important;
+
+  &:hover,
+  &:focus {
+    background: var(--sibk-color-field) !important;
+    color: var(--sibk-color-primary) !important;
+    border-color: var(--sibk-color-border-light) !important;
+    box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.6), inset -3px -3px 6px #ffffff !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active,
+  &:active:focus {
+    background: var(--sibk-color-field) !important;
+    color: var(--sibk-color-primary) !important;
+    border-color: var(--sibk-color-border-light) !important;
+    box-shadow: inset 4px 4px 8px rgba(188, 175, 160, 0.75), inset -4px -4px 8px #ffffff !important;
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+.btn-outline-primary {
+  background: var(--sibk-color-surface-raised) !important;
+  border: 1.5px solid var(--sibk-color-primary) !important;
+  color: var(--sibk-color-primary) !important;
+  box-shadow: var(--sibk-shadow-btn-light) !important;
+
+  &:hover,
+  &:focus {
+    background: #eef5fc !important;
+    color: var(--sibk-color-primary) !important;
+    border-color: var(--sibk-color-primary) !important;
+    box-shadow: inset 3px 3px 6px rgba(47, 111, 198, 0.35), inset -3px -3px 6px #ffffff !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active {
+    background: #e2effb !important;
+    color: var(--sibk-color-primary) !important;
+    box-shadow: inset 4px 4px 8px rgba(47, 111, 198, 0.5), inset -3px -3px 6px rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+.btn-danger {
+  background: linear-gradient(145deg, #c45d5d, #a84747) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  box-shadow: 5px 5px 12px rgba(181, 83, 83, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
+
+  &:hover,
+  &:focus {
+    background: #963d3d !important;
+    box-shadow: inset 3px 3px 6px rgba(70, 15, 15, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active {
+    background: #832e2e !important;
+    box-shadow: inset 4px 4px 8px rgba(70, 15, 15, 0.85), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: var(--sibk-shadow-btn-light) !important;
+  background: var(--sibk-color-surface-raised) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  color: var(--sibk-color-text) !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover,
+  &:focus {
+    box-shadow: inset 2px 2px 5px rgba(188, 175, 160, 0.6), inset -2px -2px 5px #ffffff !important;
+    color: var(--sibk-color-primary) !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active {
+    box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.75), inset -3px -3px 6px #ffffff !important;
+    color: var(--sibk-color-primary) !important;
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+// ─── Circle & Pill Neumorphic Elements (Themesberg Style) ─────────────────────
+
+// 1. Circle Buttons
+.btn-circle,
+.btn-circle-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border-radius: 50% !important;
+  font-size: 1rem;
+  box-shadow: var(--sibk-shadow-btn-light) !important;
+  background: var(--sibk-color-surface-raised) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  color: var(--sibk-color-text) !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &:hover,
+  &:focus {
+    box-shadow: inset 2px 2px 5px rgba(188, 175, 160, 0.6), inset -2px -2px 5px #ffffff !important;
+    color: var(--sibk-color-primary) !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active {
+    box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.75), inset -3px -3px 6px #ffffff !important;
+    color: var(--sibk-color-primary) !important;
+    transform: translateY(2px) scale(0.985);
+  }
+
+  &.btn-primary {
+    background: linear-gradient(145deg, #357ad6, #2761ae) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    box-shadow: var(--sibk-shadow-button) !important;
+
+    &:hover,
+    &:focus {
+      background: #25589e !important;
+      box-shadow: inset 3px 3px 6px rgba(10, 35, 75, 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      transform: translateY(1px);
+    }
+
+    &:active,
+    &.active {
+      background: #204b86 !important;
+      box-shadow: inset 4px 4px 8px rgba(10, 35, 75, 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
+      transform: translateY(2px) scale(0.985);
+    }
+  }
+
+  &.btn-danger {
+    background: linear-gradient(145deg, #c45d5d, #a84747) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+    box-shadow: 5px 5px 12px rgba(181, 83, 83, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
+
+    &:hover,
+    &:focus {
+      background: #963d3d !important;
+      box-shadow: inset 3px 3px 6px rgba(70, 15, 15, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      transform: translateY(1px);
+    }
+
+    &:active,
+    &.active {
+      background: #832e2e !important;
+      box-shadow: inset 4px 4px 8px rgba(70, 15, 15, 0.85), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      transform: translateY(2px) scale(0.985);
+    }
+  }
+}
+
+.btn-circle-sm {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  font-size: 0.85rem !important;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+.btn-circle-lg {
+  width: 3.75rem !important;
+  height: 3.75rem !important;
+  font-size: 1.25rem !important;
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+// 2. Pill Buttons
+.btn-pill,
+.rounded-pill.btn {
+  border-radius: 50rem !important;
+  padding: 0.65rem 1.65rem !important;
+
+  &.btn-sm,
+  &.btn-pill-sm {
+    padding: 0.4rem 1.15rem !important;
+    font-size: 0.8125rem !important;
+  }
+
+  &.btn-lg,
+  &.btn-pill-lg {
+    padding: 0.85rem 2.25rem !important;
+    font-size: 1.05rem !important;
+  }
+}
+
+// 3. Circle & Pill Badges
+.badge-pill,
+.badge.rounded-pill,
+.sibk-badge--pill {
+  border-radius: 50rem !important;
+  padding: 0.4rem 1rem !important;
+  font-weight: 700;
+  box-shadow: var(--sibk-shadow-raised-sm);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.badge-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-weight: 700;
+  box-shadow: var(--sibk-shadow-raised-sm);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+// 4. Nav Pills (Themesberg Neumorphic Tabs)
+.nav-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+
+  .nav-link {
+    border-radius: 50rem !important;
+    padding: 0.625rem 1.4rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--sibk-color-text) !important;
+    background: var(--sibk-color-surface-raised);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sibk-shadow-btn-light);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    &:hover,
+    &:focus {
+      color: var(--sibk-color-primary) !important;
+      background: var(--sibk-color-field) !important;
+      border-color: var(--sibk-color-border-light) !important;
+      box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.6), inset -3px -3px 6px #ffffff !important;
+      transform: translateY(1px);
+    }
+
+    &.active {
+      background: var(--sibk-color-field) !important;
+      color: var(--sibk-color-primary) !important;
+      border-color: var(--sibk-color-border-light) !important;
+      box-shadow: inset 4px 4px 8px rgba(188, 175, 160, 0.75), inset -4px -4px 8px #ffffff !important;
+      font-weight: 700;
+      transform: translateY(2px) scale(0.985);
+    }
+  }
+}
+
+// 5. Circle Pill Utilities & Icon Shapes
+.circle-pill {
+  border-radius: 50rem !important;
+}
+
+.circle-disc {
+  border-radius: 50% !important;
+}
+
+// 6. Circle Pills for Icons (Themesberg Icon Shapes)
+.icon-shape,
+.icon-shape-circle,
+.icon-circle,
+.circle-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50% !important;
+  background: var(--sibk-color-surface-raised);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--sibk-shadow-raised-sm);
+  color: var(--sibk-color-primary);
+  flex-shrink: 0;
+
+  svg {
+    width: 1.35rem;
+    height: 1.35rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  &--sm {
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    svg { width: 1rem !important; height: 1rem !important; }
+  }
+
+  &--lg {
+    width: 3.75rem !important;
+    height: 3.75rem !important;
+    svg { width: 1.75rem !important; height: 1.75rem !important; }
+  }
+
+  &--inset {
+    background: var(--sibk-color-field) !important;
+    border: 1px solid var(--sibk-color-border-light) !important;
+    box-shadow: var(--sibk-shadow-inset-sm) !important;
+  }
+
+  &--primary {
+    background: #eef5fc !important;
+    color: #2F6FC6 !important;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+  }
+
+  &--success {
+    background: #eff8f2 !important;
+    color: #2e8b57 !important;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+  }
+
+  &--warning {
+    background: #fdf5ef !important;
+    color: #d16b24 !important;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+  }
+
+  &--danger {
+    background: #fdeeee !important;
+    color: #c45d5d !important;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+  }
+}
+
+.icon-shape-pill,
+.icon-pill,
+.pill-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1.15rem;
+  border-radius: 50rem !important;
+  background: var(--sibk-color-surface-raised);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--sibk-shadow-raised-sm);
+  color: var(--sibk-color-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+
+  svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    color: var(--sibk-color-primary);
+  }
+
+  &--inset {
+    background: var(--sibk-color-field) !important;
+    border: 1px solid var(--sibk-color-border-light) !important;
+    box-shadow: var(--sibk-shadow-inset-sm) !important;
+  }
+}
+
+.pagination {
+  gap: 0.5rem;
+
+  .page-item {
+    .page-link {
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      border-radius: var(--sibk-radius-md) !important;
+      background: var(--sibk-color-surface-raised);
+      color: var(--sibk-color-text);
+      box-shadow: var(--sibk-shadow-raised-sm);
+      padding: 0.5rem 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s ease-in-out;
+
+      &:hover {
+        background: var(--sibk-color-surface);
+        color: var(--sibk-color-primary);
+        box-shadow: var(--sibk-shadow-raised);
+        transform: translateY(-1px);
+      }
+    }
+
+    &.active .page-link {
+      background: var(--sibk-color-surface) !important;
+      color: var(--sibk-color-primary) !important;
+      border-color: var(--sibk-color-border-light) !important;
+      box-shadow: var(--sibk-shadow-inset-sm) !important;
+      font-weight: 700;
+    }
+
+    &.disabled .page-link {
+      box-shadow: none;
+      background: rgba(238, 235, 230, 0.5);
+      border-color: transparent;
+      opacity: 0.6;
+    }
+  }
+}
+
+.form-control,
+.form-select,
+.sibk-form-control,
+.sibk-form-select {
+  background-color: var(--sibk-color-field) !important;
+  border: 1px solid var(--sibk-color-border-light) !important;
+  border-radius: var(--sibk-radius-md) !important;
+  box-shadow: var(--sibk-shadow-inset) !important;
+  color: var(--sibk-color-text) !important;
+  padding: 0.65rem 1rem;
+  transition: all 0.2s ease-in-out;
+
+  &:focus {
+    background-color: var(--sibk-color-surface-raised) !important;
+    border-color: var(--sibk-color-primary) !important;
+    box-shadow: var(--sibk-shadow-inset), 0 0 0 0.25rem var(--sibk-focus-ring) !important;
+  }
+
+  &::placeholder {
+    color: var(--sibk-color-text-muted);
+    opacity: 0.75;
+  }
+}
+
+.input-group {
+  background-color: var(--sibk-color-field) !important;
+  border: 1px solid var(--sibk-color-border-light) !important;
+  border-radius: var(--sibk-radius-md) !important;
+  box-shadow: var(--sibk-shadow-inset) !important;
+  overflow: hidden;
+  transition: all 0.2s ease-in-out;
+
+  .input-group-text {
+    background: transparent !important;
+    border: none !important;
+    color: var(--sibk-color-text-muted) !important;
+    box-shadow: none !important;
+  }
+
+  .form-control {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+
+    &:focus {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+
+  &:focus-within {
+    background-color: var(--sibk-color-surface-raised) !important;
+    border-color: var(--sibk-color-primary) !important;
+    box-shadow: var(--sibk-shadow-inset), 0 0 0 0.25rem var(--sibk-focus-ring) !important;
+  }
+}
+
+.form-check-input {
+  background-color: var(--sibk-color-field);
+  border: 1px solid var(--sibk-color-border);
+  box-shadow: var(--sibk-shadow-inset-sm);
+  transition: all 0.2s ease-in-out;
+
+  &:checked {
+    background-color: var(--sibk-color-primary);
+    border-color: var(--sibk-color-primary);
+    box-shadow: 2px 2px 5px rgba(47, 111, 198, 0.35);
+  }
+
+  &:focus {
+    box-shadow: var(--sibk-shadow-inset-sm), 0 0 0 0.2rem var(--sibk-focus-ring);
+  }
+}
+
+.form-switch .form-check-input {
+  box-shadow: var(--sibk-shadow-inset-sm);
+
+  &:checked {
+    background-color: var(--sibk-color-primary);
+    border-color: var(--sibk-color-primary);
+  }
+}
+
+// Neumorphism utility classes (Themesberg style)
+.shadow-neumorph { box-shadow: var(--sibk-shadow-raised) !important; }
+.shadow-neumorph-sm { box-shadow: var(--sibk-shadow-raised-sm) !important; }
+.shadow-neumorph-inset { box-shadow: var(--sibk-shadow-inset) !important; }
+.shadow-neumorph-inset-sm { box-shadow: var(--sibk-shadow-inset-sm) !important; }
 
 // â”€â”€â”€ Main Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -132,6 +760,49 @@ body {
 
   &__user-dropdown {
     margin-left: auto;
+    position: relative;
+
+    .dropdown-menu {
+      min-width: 14rem;
+      padding: 0.5rem;
+      margin-top: 0.5rem !important;
+      background: var(--sibk-color-surface-raised);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      border-radius: var(--sibk-radius-md);
+      box-shadow: var(--sibk-shadow-raised-lg);
+      z-index: 1050;
+
+      .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+        border-radius: var(--sibk-radius-sm);
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--sibk-color-text);
+        transition: all 0.15s ease;
+
+        &:hover,
+        &:focus {
+          background: var(--sibk-color-page);
+          box-shadow: var(--sibk-shadow-inset-xs);
+          color: var(--sibk-color-primary);
+        }
+
+        &.text-danger:hover,
+        &.text-danger:focus {
+          color: var(--sibk-color-danger) !important;
+          background: rgba(220, 53, 69, 0.08);
+        }
+      }
+
+      .dropdown-divider {
+        margin: 0.35rem 0;
+        border-color: var(--sibk-color-border-light);
+        opacity: 0.6;
+      }
+    }
   }
 
   &__user {
@@ -212,7 +883,7 @@ body {
   }
 }
 
-// â”€â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────────────────
 
 .sibk-sidebar {
   background: linear-gradient(180deg, var(--sibk-color-sidebar) 0%, var(--sibk-color-sidebar-deep) 100%);
@@ -226,15 +897,15 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 1.5rem 1rem;
+    padding: 1.15rem 0.85rem;
     overflow-y: auto;
   }
 
   &__brand {
     display: flex;
     align-items: center;
-    gap: 0.85rem;
-    padding: 0 0.5rem 2rem;
+    gap: 0.75rem;
+    padding: 0 0.25rem 1.15rem;
     color: #fff;
     text-decoration: none;
 
@@ -242,17 +913,17 @@ body {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 3.875rem;
-      height: 3.875rem;
+      width: 3.125rem;
+      height: 3.125rem;
       border-radius: 50%;
       background: #F9F7F2;
-      box-shadow: 4px 5px 12px -3px rgba(33, 77, 131, 0.38);
+      box-shadow: 3px 4px 10px -2px rgba(33, 77, 131, 0.38);
       flex: 0 0 auto;
     }
 
     .sibk-sidebar__logo-img {
-      width: 2.5rem;
-      height: 2.5rem;
+      width: 2rem;
+      height: 2rem;
       object-fit: contain;
     }
 
@@ -263,13 +934,13 @@ body {
 
     strong {
       font-weight: 800;
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       letter-spacing: 0.02em;
       line-height: 1.2;
     }
 
     small {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       opacity: 0.8;
       letter-spacing: 0.05em;
       margin-top: 0.1rem;
@@ -279,28 +950,28 @@ body {
   &__nav {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.45rem;
     flex: 1;
   }
 
   &__section {
-    font-size: 0.65rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     color: rgba(255, 255, 255, 0.6);
-    margin: 1.5rem 0.5rem 0.5rem;
+    margin: 1.25rem 0.65rem 0.45rem;
   }
 
   &__divider {
-    margin: 1.25rem 0.5rem;
-    border-color: rgba(255, 255, 255, 0.2);
+    margin: 1rem 0.5rem;
+    border-color: rgba(255, 255, 255, 0.18);
     opacity: 1;
   }
 
   &__footer {
     position: relative;
-    margin-top: 2rem;
-    padding: 1.5rem 0.5rem 0;
+    margin-top: auto;
+    padding: 0.75rem 0.5rem 0;
     overflow: hidden;
   }
 
@@ -308,7 +979,7 @@ body {
     position: absolute;
     bottom: -1rem;
     left: -1rem;
-    width: 8rem;
+    width: 6.5rem;
     height: auto;
     color: #fff;
     pointer-events: none;
@@ -318,9 +989,9 @@ body {
     position: relative;
     z-index: 1;
     margin: 0;
-    margin-left: 2rem;
+    margin-left: 1.5rem;
     font-family: 'Caveat', cursive, sans-serif;
-    font-size: 1.35rem;
+    font-size: 1.15rem;
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.9);
     transform: rotate(-4deg);
@@ -331,37 +1002,48 @@ body {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.95rem;
   border-radius: var(--sibk-radius-md);
   color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.2s;
+  font-size: 0.925rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
 
   svg {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.3rem;
+    height: 1.3rem;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
+    flex-shrink: 0;
+    transition: transform 0.2s, color 0.2s;
   }
 
-  &:hover:not(.is-planned) {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+  &:hover:not(.is-planned):not(.is-active) {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    transform: translateX(2px);
   }
 
   &.is-active {
-    background: var(--sibk-color-page);
-    color: var(--sibk-color-primary);
-    box-shadow: inset 2px 2px 8px rgba(184, 203, 225, 0.55), inset 3px 4px 12px -4px rgba(27, 78, 142, 0.35);
+    background: #183e6c !important;
+    color: #ffffff !important;
+    border-color: rgba(10, 28, 52, 0.75) !important;
+    box-shadow: inset 3px 3px 7px rgba(7, 19, 36, 0.9), inset -2px -2px 5px rgba(255, 255, 255, 0.15) !important;
+    font-weight: 700;
+
+    svg {
+      color: #8ac0f8 !important;
+      filter: drop-shadow(0 0 4px rgba(138, 192, 248, 0.6));
+    }
   }
 
   &.is-planned {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 }
@@ -379,22 +1061,70 @@ body {
 
   &__copy {
     h1 {
-      margin: 0 0 0.5rem;
-      font-size: 2rem;
+      margin: 0 0 0.35rem;
+      font-size: 1.625rem;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.025em;
+      line-height: 1.25;
       color: var(--sibk-color-text-dark);
     }
 
     p {
       margin: 0;
       color: var(--sibk-color-text-muted);
-      font-size: 1.05rem;
+      font-size: 0.925rem;
+      line-height: 1.5;
     }
   }
 }
 
-// â”€â”€â”€ Status Notices & States â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Status Notices & States ──────────────────────────────────────────────────
+
+.sibk-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  margin: auto;
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: var(--sibk-color-field);
+    box-shadow: var(--sibk-shadow-inset-sm);
+    border: 1px solid var(--sibk-color-border-light);
+    color: var(--sibk-color-text-subtle);
+    margin-bottom: 1.25rem;
+
+    svg {
+      width: 2rem;
+      height: 2rem;
+      fill: none;
+      stroke: currentColor;
+    }
+  }
+
+  &__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--sibk-color-text-dark);
+    margin: 0 0 0.35rem 0;
+  }
+
+  &__desc {
+    font-size: 0.875rem;
+    color: var(--sibk-color-text-muted);
+    max-width: 22rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
 
 .sibk-read-only-notice {
   display: flex;
@@ -492,17 +1222,17 @@ body {
 }
 
 
-// â”€â”€â”€ Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ————————————————————————————————————————————————————————————————
 
 .sibk-stat-row {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .sibk-stat-card {
   height: 100%;
   background: var(--sibk-color-surface-raised);
   border-radius: var(--sibk-radius-lg);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: var(--sibk-shadow-raised);
   transition: transform 0.2s, box-shadow 0.2s;
 
@@ -514,8 +1244,8 @@ body {
   &__inner {
     display: flex;
     flex-direction: row;
-    gap: 1rem;
-    padding: 1.5rem;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
     height: 100%;
     align-items: flex-start;
   }
@@ -529,13 +1259,18 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50% !important;
+    background: var(--sibk-color-surface-raised);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sibk-shadow-raised-sm);
+    flex-shrink: 0;
+    transition: all 0.2s ease-in-out;
 
     svg {
-      width: 1.75rem;
-      height: 1.75rem;
+      width: 1.35rem;
+      height: 1.35rem;
       fill: none;
       stroke: currentColor;
       stroke-width: 2;
@@ -551,20 +1286,20 @@ body {
   }
 
   &__label {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.9rem;
-    font-weight: 700;
+    margin: 0 0 0.15rem 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
     color: var(--sibk-color-text-dark);
-    line-height: 1.3;
+    line-height: 1.25;
   }
 
   &__value {
-    font-size: 2.75rem;
+    font-size: 1.85rem;
     font-weight: 800;
-    line-height: 1;
+    line-height: 1.1;
     color: var(--sibk-color-text-dark);
     letter-spacing: -0.03em;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
   }
 }
 
@@ -607,9 +1342,10 @@ body {
   color: var(--sibk-color-text-muted);
 }
 
-// Warna khusus per card untuk referensi
+// Warna khusus per card dengan garis tipis tegas sesuai warna icon
 .sibk-tone--primary {
-  background: #edf4fa;
+  background: #edf4fa !important;
+  border: 1.5px solid #4072b2 !important;
 
   .sibk-stat-card__icon {
     background: #d7e6f5;
@@ -618,7 +1354,8 @@ body {
 }
 
 .sibk-tone--warning {
-  background: #fdf3eb;
+  background: #fdf3eb !important;
+  border: 1.5px solid #d16b24 !important;
 
   .sibk-stat-card__icon {
     background: #fae2d0;
@@ -627,7 +1364,8 @@ body {
 }
 
 .sibk-tone--success {
-  background: #ebf6f0;
+  background: #ebf6f0 !important;
+  border: 1.5px solid #3d8e57 !important;
 
   .sibk-stat-card__icon {
     background: #d1ead9;
@@ -636,7 +1374,8 @@ body {
 }
 
 .sibk-tone--info {
-  background: #f2effb;
+  background: #f2effb !important;
+  border: 1.5px solid #7457c1 !important;
 
   .sibk-stat-card__icon {
     background: #e2def4;
@@ -644,24 +1383,39 @@ body {
   }
 }
 
+.sibk-tone--danger {
+  background: #fdeeee !important;
+  border: 1.5px solid #dc3545 !important;
+
+  .sibk-stat-card__icon {
+    background: #fbd6d9;
+    color: #dc3545;
+  }
+}
+
 .sibk-icon-tone--primary {
-  background: #d7e6f5;
-  color: #4072b2;
+  background: #d7e6f5 !important;
+  color: #4072b2 !important;
 }
 
 .sibk-icon-tone--warning {
-  background: #fae2d0;
-  color: #d16b24;
+  background: #fae2d0 !important;
+  color: #d16b24 !important;
 }
 
 .sibk-icon-tone--success {
-  background: #d1ead9;
-  color: #3d8e57;
+  background: #d1ead9 !important;
+  color: #3d8e57 !important;
 }
 
 .sibk-icon-tone--info {
-  background: #e2def4;
-  color: #7457c1;
+  background: #e2def4 !important;
+  color: #7457c1 !important;
+}
+
+.sibk-icon-tone--danger {
+  background: #fbd6d9 !important;
+  color: #dc3545 !important;
 }
 
 
@@ -671,7 +1425,7 @@ body {
   height: 100%;
   background: var(--sibk-color-surface-raised);
   border-radius: var(--sibk-radius-lg);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: var(--sibk-shadow-raised);
   display: flex;
   flex-direction: column;
@@ -680,19 +1434,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     border-bottom: 1px solid var(--sibk-color-border-light);
   }
 
   &__title-group {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
 
     h2 {
       margin: 0;
-      font-size: 1.1rem;
-      font-weight: 800;
+      font-size: 1rem;
+      font-weight: 700;
       color: var(--sibk-color-text-dark);
     }
   }
@@ -727,28 +1481,54 @@ body {
       stroke-linejoin: round;
     }
   }
+
+  // Neumorphic Inset / Sunken Well Panel
+  &--inset,
+  &.sibk-tindak-lanjut-panel {
+    background: var(--sibk-color-field) !important;
+    border: 1px solid var(--sibk-color-border-light) !important;
+    box-shadow: var(--sibk-shadow-inset) !important;
+
+    .sibk-panel__header {
+      border-bottom: 1px dashed var(--sibk-color-border-light);
+    }
+  }
+
+  // Neumorphic Raised / Extruded Panel
+  &--raised,
+  &.sibk-activity-panel {
+    background: var(--sibk-color-surface-raised) !important;
+    border: 1px solid rgba(255, 255, 255, 0.95) !important;
+    box-shadow: var(--sibk-shadow-raised) !important;
+  }
 }
 
-// â”€â”€â”€ List Items (Tindak Lanjut) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── List Items (Tindak Lanjut — Inset Well Content) ─────────────────────────
 
 .sibk-list-group {
-  padding: 0.5rem;
+  padding: 0.75rem;
 }
 
 .sibk-list-item {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   border-radius: var(--sibk-radius-md);
-  transition: background 0.2s;
+  margin-bottom: 0.65rem;
+  background: var(--sibk-color-surface-raised);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--sibk-shadow-raised-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: var(--sibk-color-surface);
+    transform: translateY(-2px);
+    box-shadow: var(--sibk-shadow-raised);
+    background: #ffffff;
   }
 
-  &+& {
-    border-top: 1px solid var(--sibk-color-border-light);
+  &:last-child {
+    margin-bottom: 0;
   }
 
   &__date-box {
@@ -758,16 +1538,18 @@ body {
     justify-content: center;
     width: 3.5rem;
     height: 3.5rem;
-    background: #eef4fb;
-    box-shadow: var(--sibk-shadow-inset);
+    background: var(--sibk-color-field);
+    box-shadow: var(--sibk-shadow-inset-sm);
     border-radius: var(--sibk-radius-md);
     text-align: center;
+    border: 1px solid var(--sibk-color-border-light);
+    flex-shrink: 0;
 
     strong {
       font-size: 1.15rem;
       font-weight: 800;
       line-height: 1;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-primary);
       margin-bottom: 0.15rem;
     }
 
@@ -822,7 +1604,7 @@ body {
   }
 }
 
-// â”€â”€â”€ Activity Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Activity Row (Raised Panel Content) ────────────────────────────────────
 
 .sibk-activity-list {
   padding: 0.5rem;
@@ -832,12 +1614,12 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   border-radius: var(--sibk-radius-md);
-  transition: background 0.2s;
+  transition: all 0.2s;
 
   &:hover {
-    background: var(--sibk-color-surface);
+    background: rgba(255, 255, 255, 0.6);
   }
 
   &+& {
@@ -848,13 +1630,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50% !important;
+    background: var(--sibk-color-surface-raised) !important;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sibk-shadow-raised-sm);
+    flex-shrink: 0;
 
     svg {
-      width: 1.1rem;
-      height: 1.1rem;
+      width: 1.25rem;
+      height: 1.25rem;
       fill: none;
       stroke: currentColor;
       stroke-width: 2;
@@ -894,23 +1680,24 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 2.5rem;
-  padding-top: 2.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--sibk-color-border-light);
 }
 
 .sibk-quick-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: flex-start;
 
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     font-weight: 600;
-    padding: 0.75rem 1.25rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
     border-radius: var(--sibk-radius-md);
 
     svg {
@@ -1121,16 +1908,18 @@ body {
   &__avatar {
     width: 6.5rem;
     height: 6.5rem;
-    border-radius: 50%;
-    background-color: #eef4fb;
+    border-radius: 50% !important;
+    background: var(--sibk-color-surface-raised);
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sibk-shadow-raised);
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--sibk-color-primary);
 
     svg {
-      width: 3rem;
-      height: 3rem;
+      width: 3.25rem;
+      height: 3.25rem;
     }
   }
 
@@ -1184,19 +1973,26 @@ body {
 .sibk-security-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1.5rem;
   padding: 1.25rem;
-  border-radius: 12px;
-  background-color: transparent;
+  border-radius: var(--sibk-radius-md);
+  background: var(--sibk-color-field);
+  border: 1px solid var(--sibk-color-border-light);
+  box-shadow: var(--sibk-shadow-inset-sm);
 
   &__icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50% !important;
+    background: var(--sibk-color-surface-raised) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sibk-shadow-raised-sm);
+    color: var(--sibk-color-primary);
+    flex-shrink: 0;
 
     svg {
       width: 1.5rem;
@@ -1226,21 +2022,23 @@ body {
 .sibk-btn-ubah-sandi {
   padding: 0.85rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: var(--sibk-radius-md);
 }
 
 .sibk-btn-logout {
-  padding: 0.85rem;
-  font-weight: 600;
-  border-radius: 8px;
-  background-color: transparent;
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.2);
+  padding: 0.85rem 1.5rem;
+  font-weight: 700;
+  border-radius: var(--sibk-radius-md) !important;
+  background: var(--sibk-color-surface-raised) !important;
+  color: var(--sibk-color-danger) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: var(--sibk-shadow-btn-light) !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease-in-out;
+  gap: 0.65rem;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 
   svg {
     width: 1.25rem;
@@ -1249,9 +2047,19 @@ body {
 
   &:hover,
   &:focus {
-    background-color: rgba(220, 53, 69, 0.05);
-    color: #dc3545;
-    border-color: rgba(220, 53, 69, 0.5);
+    background: #fff5f5 !important;
+    color: #b73232 !important;
+    border-color: rgba(220, 53, 69, 0.3) !important;
+    box-shadow: inset 3px 3px 6px rgba(181, 83, 83, 0.35), inset -3px -3px 6px #ffffff !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active {
+    background: #ffebeb !important;
+    color: #9c2424 !important;
+    box-shadow: inset 4px 4px 8px rgba(181, 83, 83, 0.55), inset -3px -3px 6px #ffffff !important;
+    transform: translateY(2px) scale(0.985);
   }
 }
 
@@ -1330,33 +2138,68 @@ body {
   }
 }
 
-.sibk-table {
-  vertical-align: middle;
+.table-responsive {
+  background: var(--sibk-color-field) !important;
+  border: 1px solid var(--sibk-color-border-light) !important;
+  border-radius: var(--sibk-radius-md) !important;
+  box-shadow: var(--sibk-shadow-inset) !important;
+  padding: 0.5rem 0.75rem !important;
+  margin: 0.75rem 0 1rem 0 !important;
+  overflow-x: auto;
+}
 
+.sibk-panel .table-responsive {
+  margin: 1rem 1.25rem 1.5rem 1.25rem !important;
+  border-radius: var(--sibk-radius-lg) !important;
+}
+
+.table,
+.sibk-table {
+  --bs-table-bg: transparent !important;
+  background-color: transparent !important;
+  vertical-align: middle;
+  margin-bottom: 0;
+
+  thead th,
   th {
-    background-color: #f1f6fc;
-    color: var(--sibk-color-text-dark);
+    background-color: transparent !important;
+    color: var(--sibk-color-text-dark) !important;
     font-weight: 700;
     font-size: 0.85rem;
-    padding: 1rem 1.5rem;
-    border-bottom: 2px solid var(--sibk-color-border-light);
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--sibk-color-border) !important;
     white-space: nowrap;
   }
 
+  tbody tr {
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      background-color: var(--sibk-color-surface-raised) !important;
+      box-shadow: var(--sibk-shadow-raised-sm);
+    }
+  }
+
+  tbody td,
   td {
-    padding: 1.25rem 1.5rem;
+    background-color: transparent !important;
+    padding: 1.1rem 1.25rem;
     color: var(--sibk-color-text);
     font-size: 0.9rem;
     border-bottom: 1px dashed var(--sibk-color-border-light);
   }
 
-  tbody tr:hover {
-    background-color: rgba(241, 246, 252, 0.4);
-  }
-
   tbody tr:last-child td {
     border-bottom: none;
   }
+}
+
+.sibk-panel__body > .d-flex > form.border.rounded-3,
+.sibk-panel__body form.border.rounded-3 {
+  background: var(--sibk-color-field) !important;
+  border: 1px solid var(--sibk-color-border-light) !important;
+  border-radius: var(--sibk-radius-md) !important;
+  box-shadow: var(--sibk-shadow-inset) !important;
 }
 
 .sibk-badge {
@@ -1402,13 +2245,33 @@ body {
   flex-direction: column;
   background: var(--sibk-color-surface-raised);
   border-radius: var(--sibk-radius-lg);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: var(--sibk-shadow-raised);
   transition: transform 0.2s, box-shadow 0.2s;
   overflow: hidden;
 
+  &--primary {
+    border: 1.5px solid #4072b2 !important;
+  }
+
+  &--warning {
+    border: 1.5px solid #d16b24 !important;
+  }
+
+  &--success {
+    border: 1.5px solid #3d8e57 !important;
+  }
+
+  &--info {
+    border: 1.5px solid #7457c1 !important;
+  }
+
+  &--danger {
+    border: 1.5px solid #dc3545 !important;
+  }
+
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: var(--sibk-shadow-raised-hover);
   }
 
@@ -1421,17 +2284,19 @@ body {
   }
 
   &__icon-wrapper {
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 50%;
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: 50% !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: var(--sibk-shadow-raised-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 
     svg {
-      width: 1.75rem;
-      height: 1.75rem;
+      width: 1.85rem;
+      height: 1.85rem;
     }
   }
 

@@ -16,9 +16,9 @@
         <div class="col-6 col-md-3"><label for="achievement_end" class="form-label">Tanggal akhir</label><input type="date" id="achievement_end" name="date_end" class="form-control" value="{{ request('date_end') }}"></div>
         <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-primary flex-grow-1">Terapkan</button><a href="{{ route('achievements.index') }}" class="btn btn-light">Reset</a></div>
     </form></div></div>
-    <div class="sibk-panel"><div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Murid</th><th>Kegiatan</th><th>Jenis / Tingkat</th><th>Tanggal</th><th>Hasil</th><th>Status</th><th></th></tr></thead><tbody>
+    <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Murid</th><th>Kegiatan</th><th>Jenis / Tingkat</th><th>Tanggal</th><th>Hasil</th><th>Status</th><th></th></tr></thead><tbody>
         @forelse($achievements as $achievement)@php $tone = match($achievement->verificationStatus->code) {'terverifikasi' => 'success', 'ditolak' => 'danger', default => 'warning'}; @endphp<tr><td><strong>{{ $achievement->student->name }}</strong><span class="small text-muted d-block">{{ $achievement->student->nisn }}</span></td><td>{{ $achievement->activity_name }}<span class="small text-muted d-block">{{ $achievement->organizer }}</span></td><td>{{ $achievement->type->label }}<span class="small text-muted d-block">{{ $achievement->level->label }}</span></td><td>{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $achievement->result }}</td><td><span class="badge text-bg-{{ $tone }}">{{ $achievement->verificationStatus->label }}</span></td><td><a href="{{ route('achievements.show', $achievement) }}">Buka</a></td></tr>
         @empty<tr><td colspan="7" class="text-center text-muted py-5">Belum ada prestasi yang sesuai dengan filter dan kewenangan Anda.</td></tr>@endforelse
-    </tbody></table></div><div class="p-4 border-top">{{ $achievements->links() }}</div></div>
+    </tbody></table></div>@if($achievements->hasPages())<div class="mt-3">{{ $achievements->links() }}</div>@endif
 </div>
 @endsection
