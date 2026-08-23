@@ -5,18 +5,28 @@
 @section('body')
     <div class="sibk-dashboard">
         <!-- Header -->
-        <div class="sibk-page-header">
+        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div class="sibk-page-header__copy">
                 <h1>Akun Saya</h1>
                 <p>Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
             </div>
+            <div class="d-flex gap-2">
+                <a href="{{ route('account.create') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Tambah Akun
+                </a>
+            </div>
         </div>
+
 
         <div class="row g-4">
             <!-- Kolom Kiri: Profil & Info Personal -->
             <div class="col-lg-7 col-xl-8">
                 <div class="sibk-panel h-100">
-                    <div class="sibk-panel__header">
+                    <div class="sibk-panel__header sibk-account-panel__header">
                         <h3 class="sibk-panel__title">Informasi Akun</h3>
                         <p class="sibk-panel__subtitle">Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
                     </div>
@@ -64,7 +74,7 @@
             <!-- Kolom Kanan: Keamanan & Info -->
             <div class="col-lg-5 col-xl-4 d-flex flex-column gap-4">
                 <div class="sibk-panel">
-                    <div class="sibk-panel__header">
+                    <div class="sibk-panel__header sibk-account-panel__header">
                         <h3 class="sibk-panel__title">Keamanan Akun</h3>
                         <p class="sibk-panel__subtitle">Kelola keamanan akun yang sedang digunakan.</p>
                     </div>
