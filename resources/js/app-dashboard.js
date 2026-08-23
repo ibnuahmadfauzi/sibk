@@ -1,2 +1,5 @@
 import 'bootstrap/js/dist/offcanvas';
-import 'bootstrap/js/dist/dropdown';
+
+document.querySelectorAll('[data-print-report]').forEach((button) => {
+    button.addEventListener('click', () => window.print());
+});

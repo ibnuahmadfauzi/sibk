@@ -1,0 +1,37 @@
+Requirement ID,Role,Capability,Resource Predicate,Expected Access,Scenario Evidence
+AUTH-01,Guest,Akses fungsi operasional,Tidak memiliki sesi,Deny,RBAC-001
+AUTH-01,Semua role aktif,Login dan sesi,Credential benar dan akun aktif,Allow,RBAC-002
+AUTH-01,Semua role nonaktif,Login dan sesi,Akun is_active=false,Deny,RBAC-004 | RBAC-005
+AUTH-02,Guru BK,Lihat daftar/detail murid,Penugasan kelas aktif atau penugasan kasus aktif,Allow terbatas,RBAC-006 | RBAC-007
+AUTH-02,Guru BK,Lihat daftar/detail murid,Tidak ada penugasan kelas atau kasus aktif,Deny 403,RBAC-008
+AUTH-02,Guru BK,Lihat kasus,Penugasan kasus aktif,Allow,RBAC-011
+AUTH-02,Guru BK,Lihat kasus,Murid berada pada kelas yang ditugaskan aktif,Allow,RBAC-009
+AUTH-02,Guru BK,Lihat kasus,Penugasan kelas/kasus kedaluwarsa atau masa depan,Deny 403,RBAC-012
+AUTH-02,Guru BK,Laporan dan CSV,Hanya resource dalam scope profesional,Allow terbatas,RBAC-013
+AUTH-03,Guru BK,Ubah kasus,Penugasan kasus aktif dan kasus belum selesai,Allow,Automated companion
+AUTH-03,Guru BK,Ubah tindak lanjut,Perekam sendiri dan tindak lanjut milik kasus URL,Allow,Automated companion
+AUTH-03,Semua role,Akses nested resource,Resource anak bukan milik resource induk URL,Deny 404,RBAC-014
+AUTH-03,Semua role,Buka notifikasi,Notification.user_id sama dengan pengguna,Allow + redirect,RBAC-015
+AUTH-03,Semua role,Buka notifikasi,Notification.user_id berbeda,Deny 403,RBAC-016
+AUTH-03,Waka Kesiswaan,Mutasi kasus terkoordinasi,Semua resource,Deny 403,RBAC-017
+AUTH-04,Guru BK,Lihat catatan privat konsultasi,Scope profesional aktif pada murid/kasus,Allow penuh,RBAC-018
+AUTH-04,Guru BK penerus,Lihat histori privat,Memiliki scope profesional aktif saat ini,Allow penuh/read-only,RBAC-022
+AUTH-04,Guru BK penerus,Ubah konsultasi lama,Bukan counselor pencatat,Deny 403,RBAC-023
+AUTH-04,Koordinator BK,Lihat konsultasi,Metadata dan ringkasan umum,Allow terbatas/redacted,RBAC-019
+AUTH-04,Koordinator BK,Lihat catatan privat,Tidak memiliki fungsi/scope Guru BK yang sah,Redacted,RBAC-019 | RBAC-024
+AUTH-04,Waka Kesiswaan,Lihat konsultasi,Walaupun kasus dikoordinasikan,Deny 403,RBAC-020
+AUTH-04,Admin IT,Lihat konsultasi,Role teknis,Deny 403,RBAC-021
+AUTH-05,Waka Kesiswaan,Lihat kasus,Koordinasi ditujukan kepada akun Waka tersebut,Allow terbatas/read-only,RBAC-025
+AUTH-05,Waka Kesiswaan,Lihat kasus,Tanpa koordinasi atau koordinasi kepada Waka lain,Deny 403,RBAC-026 | RBAC-027
+AUTH-05,Waka Kesiswaan,Ubah kasus/koordinasi,Semua resource,Deny 403,RBAC-028
+AUTH-05,Waka Kesiswaan,Lihat prestasi,Status terverifikasi dan murid terkoordinasi,Allow terbatas/read-only,RBAC-030
+AUTH-05,Waka Kesiswaan,Lihat prestasi,Status menunggu/ditolak,Deny 403,RBAC-031
+AUTH-05,Waka Kesiswaan,Laporan konsultasi,Semua resource,Deny 403,RBAC-029
+AUTH-06,Admin IT,Kelola akun,Semua akun sesuai UserPolicy,Allow,RBAC-032
+AUTH-06,Admin IT,Kelola Data Master,Data teknis dan sinkronisasi,Allow,RBAC-033
+AUTH-06,Admin IT,Lihat kasus/konsultasi/profil/prestasi,Data layanan BK,Deny 403,RBAC-034 | RBAC-035 | RBAC-037
+AUTH-06,Admin IT,Lihat laporan layanan,Semua tipe laporan BK,Deny 403,RBAC-036
+AUTH-07,Guru BK + Koordinator,Kelola penugasan,Fungsi Koordinator,Allow,RBAC-038 | RBAC-041
+AUTH-07,Guru BK + Koordinator,Lihat data profesional,Fungsi dan scope Guru BK,Allow terbatas,RBAC-039
+AUTH-07,Guru BK + Koordinator,Lihat catatan privat di luar scope,Hanya mengandalkan role Koordinator,Redacted,RBAC-024
+AUTH-07,Guru BK saja,Kelola penugasan kelas,Tidak memiliki fungsi Koordinator,Deny 403,RBAC-040

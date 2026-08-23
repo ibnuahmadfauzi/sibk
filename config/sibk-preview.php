@@ -13,10 +13,10 @@ return [
         'years' => ['2026/2027', '2025/2026'],
         'roles' => [
             'guru' => [
-                'label'       => 'Guru BK',
-                'user_name'   => 'Pengguna Demo',
-                'scope'       => 'Kelas X AKL 1, X AKL 2, dan penugasan khusus',
-                'read_only'   => false,
+                'label' => 'Guru BK',
+                'user_name' => 'Pengguna Demo',
+                'scope' => 'Kelas X AKL 1, X AKL 2, dan penugasan khusus',
+                'read_only' => false,
                 'description' => 'Ringkasan kasus dan tindak lanjut dalam cakupan Anda.',
                 'stats' => [
                     ['label' => 'Murid dalam cakupan',   'value' => '72', 'delta' => '+3 dari bulan lalu',  'delta_tone' => 'up',   'tone' => 'primary',  'kind' => 'students'],
@@ -39,7 +39,7 @@ return [
                 'priority_cases' => [
                     ['code' => 'K-026', 'student' => 'Murid A', 'class' => 'X AKL 1',        'status' => 'Belum ditindaklanjuti',   'updated' => 'Diperbarui 2 hari lalu', 'tone' => 'danger'],
                     ['code' => 'K-031', 'student' => 'Murid B', 'class' => 'X AKL 2',        'status' => 'Jadwal perlu ditetapkan', 'updated' => 'Diperbarui kemarin',     'tone' => 'warning'],
-                    ['code' => 'K-034', 'student' => 'Murid C', 'class' => 'Penugasan khusus','status' => 'Dalam penanganan',        'updated' => 'Diperbarui hari ini',    'tone' => 'info'],
+                    ['code' => 'K-034', 'student' => 'Murid C', 'class' => 'Penugasan khusus', 'status' => 'Dalam penanganan',        'updated' => 'Diperbarui hari ini',    'tone' => 'info'],
                 ],
                 'schedule' => [
                     ['date' => '18', 'month' => 'Agu', 'time' => '09.00', 'title' => 'Tindak lanjut kasus K-026', 'context' => 'Ruang BK · Murid A'],
@@ -54,14 +54,14 @@ return [
                 'classes' => [
                     ['label' => 'X AKL 1',        'value' => 10],
                     ['label' => 'X AKL 2',        'value' => 8],
-                    ['label' => 'Penugasan khusus','value' => 6],
+                    ['label' => 'Penugasan khusus', 'value' => 6],
                 ],
             ],
             'koordinator' => [
-                'label'       => 'Koordinator BK',
-                'user_name'   => 'Koordinator Demo',
-                'scope'       => 'Rekap seluruh Guru BK aktif dan penugasan yang sah',
-                'read_only'   => false,
+                'label' => 'Koordinator BK',
+                'user_name' => 'Koordinator Demo',
+                'scope' => 'Rekap seluruh Guru BK aktif dan penugasan yang sah',
+                'read_only' => false,
                 'description' => 'Ringkasan kasus dan tindak lanjut dalam cakupan Anda.',
                 'stats' => [
                     ['label' => 'Murid dalam cakupan',   'value' => '486', 'delta' => '+12 dari bulan lalu', 'delta_tone' => 'up',   'tone' => 'primary', 'kind' => 'students'],
@@ -102,10 +102,10 @@ return [
                 ],
             ],
             'waka' => [
-                'label'       => 'Waka Kesiswaan',
-                'user_name'   => 'Waka Demo',
-                'scope'       => 'Agregat yang diizinkan dan kasus yang dikoordinasikan',
-                'read_only'   => true,
+                'label' => 'Waka Kesiswaan',
+                'user_name' => 'Waka Demo',
+                'scope' => 'Agregat yang diizinkan dan kasus yang dikoordinasikan',
+                'read_only' => true,
                 'description' => 'Ringkasan koordinasi kesiswaan tanpa membuka catatan konsultasi atau catatan internal.',
                 'stats' => [
                     ['label' => 'Murid pada agregat',    'value' => '486', 'delta' => 'Tanpa rincian sensitif', 'delta_tone' => 'neutral', 'tone' => 'primary', 'kind' => 'students'],
@@ -115,7 +115,7 @@ return [
                 ],
                 'tindak_lanjut' => [
                     ['date' => '12', 'month' => 'Agu', 'year' => '2026', 'code' => 'K-012', 'title' => 'Koordinasi kesiswaan',  'student' => 'Murid H (XI AKL 1)', 'status' => 'Menunggu',         'status_tone' => 'warning'],
-                    ['date' => '20', 'month' => 'Agu', 'year' => '2026', 'code' => 'K-022', 'title' => 'Koordinasi aktif',      'student' => 'Murid F (XII AKL 2)','status' => 'Dalam penanganan', 'status_tone' => 'info'],
+                    ['date' => '20', 'month' => 'Agu', 'year' => '2026', 'code' => 'K-022', 'title' => 'Koordinasi aktif',      'student' => 'Murid F (XII AKL 2)', 'status' => 'Dalam penanganan', 'status_tone' => 'info'],
                 ],
                 'activities' => [
                     ['icon' => 'followup', 'title' => 'Koordinasi diperbarui',         'context' => 'K-022 - Koordinasi aktif',     'time' => '09:20', 'tone' => 'warning'],

@@ -4,7 +4,7 @@
     <section class="sibk-auth-brand" aria-labelledby="auth-brand-title">
         <div class="sibk-auth-brand__inner">
 
-            <a class="sibk-auth-brand__identity" href="{{ route('login.preview') }}"
+            <a class="sibk-auth-brand__identity" href="{{ route('login') }}"
                 aria-label="Aplikasi BK, kembali ke login">
                 <x-logo aria-hidden="true" width="36" height="36" />
                 <span>Ruang BK</span>
@@ -39,11 +39,11 @@
             </div>
 
             {{-- Ringkasan error validasi --}}
-            <div class="alert sibk-form-summary" id="loginSummary" role="alert" tabindex="-1" hidden>
+            <div class="alert sibk-form-summary" id="loginSummary" role="alert" tabindex="-1" @if (! $errors->any()) hidden @endif>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>
                 <div>
                     <strong id="loginSummaryTitle">Periksa kembali isian Anda</strong>
-                    <p id="loginSummaryMessage"></p>
+                    <p id="loginSummaryMessage">{{ $errors->first() }}</p>
                 </div>
             </div>
 
@@ -62,21 +62,20 @@
                 <h2 id="login-title">Masuk ke Ruang BK</h2>
             </header>
 
-            <form id="loginForm" action="{{ route('login.preview') }}" method="post" novalidate
-                data-preview-result="{{ $authPreviewState ?? 'error' }}">
+            <form id="loginForm" action="{{ route('login.store') }}" method="post" novalidate>
                 @csrf
 
                 <div class="mb-3">
-                    <label class="form-label" for="identifier">Nama pengguna atau email</label>
+                    <label class="form-label" for="identifier">Email</label>
                     <div class="input-group has-validation">
                         <span class="input-group-text" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
                         </span>
-                        <input class="form-control" id="identifier" name="identifier" type="text" required
+                        <input class="form-control @error('email') is-invalid @enderror" id="identifier" name="email" type="email" required
                             autocomplete="username" spellcheck="false"
-                            placeholder="Masukkan identitas akun"
+                            value="{{ old('email') }}" placeholder="Masukkan email akun"
                             aria-describedby="identifierError">
-                        <div class="invalid-feedback" id="identifierError">Nama pengguna atau email wajib diisi.</div>
+                        <div class="invalid-feedback" id="identifierError">{{ $errors->first('email', 'Email wajib diisi.') }}</div>
                     </div>
                 </div>
 
@@ -86,7 +85,7 @@
                         <span class="input-group-text" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         </span>
-                        <input class="form-control" id="password" name="password" type="password" required
+                        <input class="form-control @error('password') is-invalid @enderror" id="password" name="password" type="password" required
                             autocomplete="current-password" placeholder="Masukkan kata sandi"
                             aria-describedby="passwordError">
                         <button class="btn sibk-password-toggle" id="togglePassword" type="button"

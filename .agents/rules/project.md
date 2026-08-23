@@ -14,22 +14,19 @@ Jangan gunakan `21 — Wireframe Low-Fidelity Final` sebagai referensi visual im
 
 ## Status Fase
 
-- Frontend dapat dikembangkan.
-- Backend belum dikembangkan.
-- Integrasi Dapodik dan e-Tatib belum diimplementasikan.
-- Endpoint, database, dan mekanisme sinkronisasi belum final.
+- Frontend telah selesai diimplementasikan (semua page PG Penpot Hi-Fi tersedia).
+- Backend **aktif dikembangkan** (skema database, model, policy, services, form requests, controllers, seeders, audit trail).
+- Integrasi Dapodik dan e-Tatib disiapkan melalui struktur model/cache terkelola dan log rekonsiliasi.
 
 ## Batasan
 
 Jangan:
-- menciptakan fitur baru tanpa requirement;
-- memunculkan informasi sensitif hanya karena tersedia ruang pada UI;
-- membuat desain berbeda per role kecuali requirement memerlukannya;
-- menduplikasi komponen;
-- mengubah file yang tidak berkaitan dengan task;
-- mengubah token visual global untuk menyelesaikan masalah satu halaman;
-- menambahkan catatan teknis, nama PG, PRD, SRS, backend, atau API ke UI pengguna;
-- membuat endpoint, migration, model, job, webhook, atau integrasi eksternal tanpa task backend eksplisit.
+- menciptakan fitur baru di luar requirement SRS/PRD;
+- membocorkan atau memunculkan informasi sensitif (catatan konseling lengkap) pada laporan umum atau detail Waka;
+- mengubah token visual atau merusak tampilan halaman yang sudah disetujui;
+- menduplikasi logika bisnis di luar Service/Action layer;
+- mengubah file yang tidak berkaitan dengan modul yang sedang dikerjakan;
+- menambahkan catatan teknis internal (nama PG, nama file, istilah PRD/SRS) ke teks UI yang tampil ke pengguna.
 
 Jika requirement dan desain bertentangan, laporkan konflik sebelum mengubah perilaku produk.
 

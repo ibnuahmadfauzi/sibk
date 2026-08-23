@@ -1,8 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
+use App\Integrations\Dapodik\DapodikConnector;
+use App\Integrations\Dapodik\UnavailableDapodikConnector;
+use App\Integrations\Etatib\EtatibConnector;
+use App\Integrations\Etatib\UnavailableEtatibConnector;
+use App\Models\Achievement;
+use App\Models\BkCase;
+use App\Models\Consultation;
+use App\Models\Correction;
+use App\Models\Student;
+use App\Models\TeacherAssignment;
+use App\Models\User;
+use App\Models\UserNotification;
+use App\Policies\AchievementPolicy;
+use App\Policies\CasePolicy;
+use App\Policies\ConsultationPolicy;
+use App\Policies\CorrectionPolicy;
+use App\Policies\ReportPolicy;
+use App\Policies\StudentPolicy;
+use App\Policies\TeacherAssignmentPolicy;
+use App\Policies\UserNotificationPolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\View as BladeView;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +37,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(DapodikConnector::class, UnavailableDapodikConnector::class);
+        $this->app->bind(EtatibConnector::class, UnavailableEtatibConnector::class);
     }
 
     /**
@@ -19,6 +46,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Achievement::class, AchievementPolicy::class);
+        Gate::policy(TeacherAssignment::class, TeacherAssignmentPolicy::class);
+        Gate::policy(BkCase::class, CasePolicy::class);
+        Gate::policy(Consultation::class, ConsultationPolicy::class);
+        Gate::policy(Correction::class, CorrectionPolicy::class);
+        Gate::policy(Student::class, StudentPolicy::class);
+        Gate::policy(UserNotification::class, UserNotificationPolicy::class);
+
+        Gate::define('viewReports', fn (User $user): bool => app(ReportPolicy::class)->viewAny($user));
+        Gate::define('viewAuditHistory', fn (User $user): bool => $user->is_active
+            && $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it']));
+        Gate::define('manageDataMaster', fn (User $user): bool => $user->is_active && $user->hasRole('admin_it'));
+        Gate::define('manageCaseAssignments', fn (User $user): bool => $user->is_active && $user->hasRole('koordinator_bk'));
+
+        View::composer('components.sidebar', function (BladeView $view): void {
+            $user = auth()->user();
+            $view->with(
+                'unreadNotificationCount',
+                $user instanceof User ? $user->notifications()->unread()->count() : 0,
+            );
+        });
     }
 }

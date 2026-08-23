@@ -21,22 +21,22 @@ Page `21 — Wireframe Low-Fidelity Final` adalah artefak proses desain dan buka
 
 ## Status Pengembangan
 
-- Frontend: aktif untuk dikembangkan. Fokus pengembangan saat ini adalah membangun seluruh antarmuka pengguna (UI statis) dengan asumsi "akun normal" (tanpa pembatasan role/hak akses) hingga ada instruksi untuk mengimplementasikan backend/role.
-- Backend: belum dikembangkan.
-- Integrasi Dapodik/e-Tatib: belum diimplementasikan.
-- API contract: belum dikunci.
+- Frontend: selesai diimplementasikan (seluruh paket halaman PG Penpot Hi-Fi telah tersedia).
+- Backend: **aktif untuk dikembangkan**. Implementasi mencakup skema database, otorisasi multi-role (Guru BK, Koordinator BK, Waka Kesiswaan, Admin IT), Service/Action layer, audit trail append-only, dan integrasi dengan controller/views.
+- Integrasi Dapodik/e-Tatib: disiapkan melalui cache read-only, pemetaan NISN, dan log sinkronisasi terkelola.
+- API contract: aktif disusun dan diselaraskan dengan kebutuhan web controller & service layer.
 
 ## Aturan Umum
 
 - Pertahankan arsitektur dan konvensi repository yang sudah ada.
-- Jangan menambah fitur yang tidak tercantum pada requirement.
+- Jangan menambah fitur yang tidak tercantum pada requirement (SRS/PRD).
 - Jangan mendesain ulang UI yang sudah disetujui.
 - Gunakan komponen yang sudah ada sebelum membuat komponen baru.
 - Pisahkan UI, akses data, business logic, dan integrasi eksternal.
 - Gunakan Bahasa Indonesia untuk teks yang tampil kepada pengguna.
 - Gunakan istilah `murid`, bukan `siswa`, kecuali sumber resmi yang dirujuk memang menggunakan istilah lain.
-- Jangan hardcode hak akses berdasarkan tampilan desain. Visibilitas menu, data, dan aksi mengikuti authorization/capability aplikasi.
-- Jangan membuat endpoint, migration, model database, atau integrasi backend sebelum ada perintah eksplisit untuk memulai backend.
+- Terapkan hak akses sesuai authorization/capability (AUTH-01 s.d. AUTH-07) pada server/policy.
+- Ikuti standar PHP 8.3 (`declare(strict_types=1);`), Thin Controller, Form Request, Service Layer, dan Query Scopes.
 
 ## Context Efficiency
 
