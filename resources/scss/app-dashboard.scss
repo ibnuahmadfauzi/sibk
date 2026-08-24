@@ -638,10 +638,11 @@ small, .small {
 .shadow-neumorph-inset { box-shadow: var(--sibk-shadow-inset) !important; }
 .shadow-neumorph-inset-sm { box-shadow: var(--sibk-shadow-inset-sm) !important; }
 
-// â”€â”€â”€ Main Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Layout ────────────────────────────────────────────────────────────
 
 :root {
   --sibk-sidebar-width: 17.5rem;
+  --sibk-sidebar-gap: 1rem;       // Jarak sidebar dari tepi layar
   --sibk-topbar-height: 4.5rem;
 }
 
@@ -663,21 +664,25 @@ small, .small {
 
 @media (min-width: 992px) {
   .sibk-main {
-    margin-left: var(--sibk-sidebar-width);
+    // Tambah offset agar konten tidak tertutup sidebar melayang
+    margin-left: calc(var(--sibk-sidebar-width) + var(--sibk-sidebar-gap) * 2);
   }
 
   // Override Bootstrap offcanvas reset on desktop
+  // Sidebar melayang: posisi offset dari semua tepi, bukan full-screen
   .sibk-sidebar.offcanvas-lg {
     position: fixed !important;
-    top: 0;
-    bottom: 0;
-    left: 0;
+    top: var(--sibk-sidebar-gap) !important;
+    bottom: var(--sibk-sidebar-gap) !important;
+    left: var(--sibk-sidebar-gap) !important;
     z-index: 1045;
     width: var(--sibk-sidebar-width) !important;
-    height: 100vh !important;
+    height: auto !important;
     transform: none !important;
     visibility: visible !important;
-    background-color: var(--sibk-color-primary) !important;
+    background-color: transparent !important;
+    border-radius: var(--sibk-radius-xl) !important;
+    overflow: hidden !important;
   }
 }
 
@@ -886,19 +891,34 @@ small, .small {
 // ─────────────────────────────────────────────────────────────────────────────
 
 .sibk-sidebar {
-  background: linear-gradient(180deg, var(--sibk-color-sidebar) 0%, var(--sibk-color-sidebar-deep) 100%);
-  box-shadow: 8px 0 24px -8px rgba(32, 75, 128, 0.25);
+  // Sidebar melayang — background, shadow, dan radius diset di sini
+  background: linear-gradient(160deg, #4880c8 0%, #2F67AA 55%, #234f88 100%);
+  box-shadow:
+    0 8px 32px rgba(32, 75, 128, 0.35),
+    0 2px 8px rgba(32, 75, 128, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   color: #fff;
   border-right: none;
   display: flex;
   flex-direction: column;
+  // border-radius diterapkan lewat offcanvas override di atas
+  // tapi tambahkan juga di sini untuk konsistensi mobile
+  border-radius: var(--sibk-radius-xl);
 
   &__content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 1.15rem 0.85rem;
+    padding: 1.25rem 0.9rem;
     overflow-y: auto;
+
+    // Scrollbar tipis agar tidak merusak estetika
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.25);
+      border-radius: 4px;
+    }
   }
 
   &__brand {
@@ -950,7 +970,7 @@ small, .small {
   &__nav {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.35rem;
     flex: 1;
   }
 
@@ -958,8 +978,8 @@ small, .small {
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.6);
-    margin: 1.25rem 0.65rem 0.45rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 1.15rem 0.5rem 0.4rem;
   }
 
   &__divider {
@@ -1024,21 +1044,26 @@ small, .small {
   }
 
   &:hover:not(.is-planned):not(.is-active) {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.13);
     color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.12);
     transform: translateX(2px);
   }
 
+  // Active: kartu putih melayang di atas sidebar biru
   &.is-active {
-    background: #183e6c !important;
-    color: #ffffff !important;
-    border-color: rgba(10, 28, 52, 0.75) !important;
-    box-shadow: inset 3px 3px 7px rgba(7, 19, 36, 0.9), inset -2px -2px 5px rgba(255, 255, 255, 0.15) !important;
+    background: #ffffff !important;
+    color: var(--sibk-color-primary) !important;
+    border-color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow:
+      0 4px 14px rgba(30, 68, 120, 0.22),
+      0 1px 4px rgba(30, 68, 120, 0.12) !important;
     font-weight: 700;
+    transform: none;
 
     svg {
-      color: #8ac0f8 !important;
-      filter: drop-shadow(0 0 4px rgba(138, 192, 248, 0.6));
+      color: var(--sibk-color-primary) !important;
+      filter: none;
     }
   }
 
