@@ -972,6 +972,7 @@ small, .small {
     flex-direction: column;
     gap: 0.35rem;
     flex: 1;
+    position: relative;  // Konteks untuk .sibk-nav-indicator
   }
 
   &__section {
@@ -1028,8 +1029,12 @@ small, .small {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.925rem;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid transparent;
+  // Hanya transition color & opacity agar tidak bentrok dengan magic indicator
+  transition: color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  border: none;
+  position: relative;  // penting untuk pseudo-element concave corners
+  z-index: 1;
+  background: transparent;
 
   svg {
     width: 1.3rem;
@@ -1040,30 +1045,26 @@ small, .small {
     stroke-linecap: round;
     stroke-linejoin: round;
     flex-shrink: 0;
-    transition: transform 0.2s, color 0.2s;
+    transition: color 0.25s ease;
   }
 
   &:hover:not(.is-planned):not(.is-active) {
     background: rgba(255, 255, 255, 0.13);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.12);
     transform: translateX(2px);
+    border-radius: var(--sibk-radius-md);
   }
 
-  // Active: kartu putih melayang di atas sidebar biru
+  // ── Active: efek "cutout" — terlihat seperti latar belakang menembus sidebar ──
   &.is-active {
-    background: #ffffff !important;
+    // Warna teks dan ikon jadi biru (warna halaman primary)
     color: var(--sibk-color-primary) !important;
-    border-color: rgba(255, 255, 255, 0.9) !important;
-    box-shadow:
-      0 4px 14px rgba(30, 68, 120, 0.22),
-      0 1px 4px rgba(30, 68, 120, 0.12) !important;
     font-weight: 700;
-    transform: none;
+    background: transparent !important;  // background dari magic indicator, bukan di sini
+    transform: none !important;
 
     svg {
       color: var(--sibk-color-primary) !important;
-      filter: none;
     }
   }
 
@@ -1071,6 +1072,31 @@ small, .small {
     opacity: 0.5;
     cursor: not-allowed;
   }
+}
+
+// ── Magic Sidebar Indicator ──────────────────────────────────────────────────
+// Elemen ini disuntikkan oleh JS dan meluncur di antara menu aktif.
+// Efek neumorphic "sunken": background = warna halaman + inset shadow tenggelam.
+.sibk-nav-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  // top & height diset lewat JS
+  background: var(--sibk-color-page);
+  border-radius: var(--sibk-radius-md);
+  z-index: 0;
+  pointer-events: none;
+  // Animasi meluncur mulus
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+
+  // ── Inset shadow "tenggelam" (neumorphic pressed) ──
+  // Sisi kanan-bawah: bayangan gelap (kesan gravitasi)
+  // Sisi kiri-atas:   highlight terang (pantulan cahaya)
+  box-shadow:
+    inset 3px 3px 8px  rgba(188, 175, 160, 0.7),   // kiri-atas gelap warm
+    inset -2px -2px 6px rgba(255, 255, 255, 0.9);   // kanan-bawah terang
 }
 
 // â”€â”€â”€ Dashboard Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
