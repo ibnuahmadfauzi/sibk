@@ -141,23 +141,23 @@ POST  /data-master/integrations/{provider}/deactivate
 - Extend: `tests/Feature/AssignmentManagementTest.php`
 - Extend: `tests/Feature/StudentProfileTest.php`
 
-- [ ] **Step 1: Tulis failing test scope e-Tatib**
+- [x] **Step 1: Tulis failing test scope e-Tatib**
 
 Pastikan setiap actor yang memiliki capability membuat kasus hanya menerima pilihan record e-Tatib milik murid yang lolos scope akses pembuatan kasusnya. Role Koordinator BK tidak boleh memperluas fungsi Guru BK hanya karena role tersebut melekat pada akun yang sama.
 
-- [ ] **Step 2: Gunakan query scope akses yang sama untuk murid dan record e-Tatib**
+- [x] **Step 2: Gunakan query scope akses yang sama untuk murid dan record e-Tatib**
 
 Jangan memuat maksimal 200 record aktif global ke form. Query harus dibatasi di server berdasarkan murid yang dapat diakses actor. Validasi akhir di Service wajib mengulang scope actor dan relasi record-ke-murid agar ID hasil forge/direct request ditolak meskipun lolos validasi `exists` global. Untuk identitas sementara, hanya record aktif yang belum dipetakan ke master (`student_id` null) dan memiliki NISN exact yang boleh dipilih; record yang sudah dipetakan ke murid master tidak boleh diakses melalui jalur identitas sementara.
 
-- [ ] **Step 3: Tulis failing test rollover UI**
+- [x] **Step 3: Tulis failing test rollover UI**
 
 Uji status penugasan setelah akhir tahun ajaran, kelas aktif pada profil murid, pasangan kelas-tahun pada form, penugasan masa depan yang sudah dijadwalkan, dan forged `etatib_record_ids` milik murid di luar scope.
 
-- [ ] **Step 4: Selaraskan presentasi frontend dengan batas periode domain**
+- [x] **Step 4: Selaraskan presentasi frontend dengan batas periode domain**
 
 Gunakan scope/helper model yang sudah ada agar controller dan Blade tidak menghitung ulang periode aktif secara berbeda. `StudentController` harus mengirim current membership yang sudah di-resolve oleh query domain; Blade hanya mempresentasikannya. Sediakan kontrak helper/query yang eksplisit untuk status aktif, terjadwal, dan berakhir. Pilihan kelas wajib mengikuti tahun ajaran terpilih tanpa menambah JavaScript baru; pasangan invalid tetap ditolak server.
 
-- [ ] **Step 5: Jalankan verification**
+- [x] **Step 5: Jalankan verification**
 
 ```bash
 php artisan test --filter CaseManagementTest
@@ -167,12 +167,14 @@ npm run check:frontend
 git diff --check
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/Http/Controllers app/Http/Requests/StoreCaseRequest.php app/Services/CaseService.php app/Models/StudentClassMembership.php app/Models/TeacherAssignment.php resources/views/pages tests/Feature
 git commit -m "fix: align rollover UI and e-tatib access scope"
 ```
+
+**Gate selesai 9 September 2026:** commits `ac7d2af`, `062f563`, dan `db94662`; focused tests 31/31, suite penuh 111/111 dengan 834 assertion, frontend checker, Pint, dan diff-check lulus; scoped re-review menyatakan seluruh finding selesai tanpa breakage baru.
 
 ---
 
