@@ -2957,3 +2957,14 @@ small, .small {
     display: none;
   }
 }
+
+.sibk-header-filter {
+  width: 100%;
+
+  @media (min-width: 1400px) {
+    width: 50%;
+  }
+}
+
+
+

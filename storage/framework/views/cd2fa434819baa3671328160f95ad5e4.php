@@ -1,0 +1,2 @@
+<img src="<?php echo e(asset('assets/images/logo.png')); ?>" alt="Logo Aplikasi BK" <?php echo e($attributes->merge(['class' => 'sibk-logo'])); ?>>
+<?php /**PATH D:\Data PPG\Tugas PPG\PK\sibk\resources\views/components/logo.blade.php ENDPATH**/ ?>
