@@ -1,8 +1,10 @@
 # Fondasi Konfigurasi Koneksi Dapodik & e-Tatib Implementation Plan
 
-> **Status: MENUNGGU REVIEW DAN KONFIRMASI PENGGUNA.** Dokumen ini bukan izin implementasi. Agent/model AI wajib membaca plan ini dan meminta persetujuan eksplisit sebelum menjalankan Task 1 atau mengubah file dalam scope plan.
+> **Status: DISETUJUI UNTUK IMPLEMENTASI BERTAHAP PADA 8 SEPTEMBER 2026.** Persetujuan mencakup fondasi Fase A pada branch `integrasi-api-plan`; adapter production nyata tetap di luar scope sampai kontrak provider diterima dan lolos admission gate.
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **Execution gate:** Selesaikan dan verifikasi satu task sebelum berpindah ke task berikutnya. Driver production tetap `unavailable` pada seluruh task plan ini.
 
 **Goal:** Menyediakan konfigurasi URL dan credential Dapodik/e-Tatib melalui UI Admin IT dengan alur Simpan → Uji → Aktifkan, tanpa menebak kontrak API dan tanpa membahayakan data lama.
 
@@ -16,12 +18,17 @@
 
 - Pertahankan PRD/SRS v1.0 sebagai arsip; jangan mengubah atau menghapusnya.
 - Semua PHP baru memakai `declare(strict_types=1);`.
-- Hanya Admin IT aktif melalui Gate `manageDataMaster`.
+- Hanya Admin IT aktif melalui Gate `manageDataMaster` yang boleh mengakses UI dan aksi konfigurasi integrasi pada Task 1–Task 8. Task 0 tetap mengikuti capability domain kasus/penugasan/murid yang sudah ditetapkan AUTH-01–AUTH-07.
 - Frontend tidak pernah menghubungi Dapodik/e-Tatib secara langsung.
 - Credential tidak boleh muncul pada HTML, JSON, session old input, audit, log, exception, atau response eksternal.
 - Jangan menyimpan raw payload API pada tabel murid/e-Tatib.
 - Jangan membuat `HttpDapodikConnector` atau `HttpEtatibConnector` berdasarkan field tebakan.
 - `is_full_snapshot` kelak wajib berasal dari kontrak eksplisit dan tidak boleh memiliki default `true`.
+- Credential pada sistem sumber wajib least-privilege/read-only; larangan method tulis pada kode SIBK saja tidak dianggap cukup.
+- `driver_id`, `adapter_version`, dan `contract_version` adalah identitas berbeda dan tidak boleh saling menggantikan.
+- Probe sukses wajib membuktikan autentikasi, kompatibilitas kontrak, serta identitas sekolah/sumber yang diharapkan; respons HTTP 2xx saja tidak cukup.
+- Endpoint outbound wajib fail-closed terhadap redirect, user-info, DNS rebinding, alamat metadata/link-local, origin drift, proxy tak tepercaya, dan TLS invalid. Akses jaringan privat hanya boleh melalui origin deployment yang ditulis eksplisit.
+- Sebelum adapter production dibuat, kontrak wajib menetapkan ukuran maksimum respons/page, pagination, timeout, retry/backoff, rate limit, concurrency, dan kebutuhan queue.
 - Gunakan istilah `murid` pada UI.
 
 ---
@@ -32,7 +39,7 @@
 
 | State | Kondisi |
 |---|---|
-| `unconfigured` | URL atau credential belum lengkap |
+| `unconfigured` | URL, credential, atau expected source identifier belum lengkap |
 | `draft` | Konfigurasi lengkap, adapter tersedia, belum diuji |
 | `blocked` | Adapter belum tersedia, credential rusak, atau endpoint tidak lagi diizinkan |
 | `test_failed` | Uji versi konfigurasi terakhir gagal |
@@ -43,9 +50,10 @@ Aturan transisi:
 
 - Simpan perubahan material menaikkan `configuration_version`, membatalkan verifikasi, dan menonaktifkan koneksi.
 - Simpan tanpa perubahan tidak mengubah version/state.
+- Field expected source identifier boleh kosong hanya agar konfigurasi parsial dapat disimpan sebagai `unconfigured`; test dan activation wajib gagal tertutup sampai field lengkap.
 - API key kosong berarti mempertahankan; API key berisi berarti mengganti; checkbox hapus berarti menghapus.
 - Uji tidak boleh mengimpor, membuat `external_sync_runs`, atau memodifikasi cache master.
-- Aktivasi hanya boleh dilakukan setelah uji sukses untuk configuration version dan adapter version yang sama.
+- Aktivasi hanya boleh dilakukan setelah uji sukses untuk configuration version, driver ID, adapter version, contract version, dan endpoint-policy digest yang sama.
 - Deaktivasi selalu diperbolehkan.
 - Perubahan driver, allowlist, credential, atau configuration version membuat koneksi efektif terblokir walaupun flag database masih aktif.
 
@@ -55,6 +63,10 @@ Aturan transisi:
 interface IntegrationDriver
 {
     public function id(): string;
+
+    public function adapterVersion(): string;
+
+    public function contractVersion(): string;
 
     public function isAvailable(): bool;
 
@@ -81,13 +93,17 @@ interface IntegrationConfigurationProvider
 {
     public function active(
         string $provider,
+        string $driverId,
         string $adapterVersion,
+        string $contractVersion,
     ): IntegrationRuntimeConfiguration;
 
     public function assertCurrent(
         string $provider,
         int $configurationVersion,
+        string $driverId,
         string $adapterVersion,
+        string $contractVersion,
     ): void;
 }
 ```
@@ -107,6 +123,59 @@ POST  /data-master/integrations/{provider}/deactivate
 
 ---
 
+## Task 0: Tutup Gap Otorisasi dan Rollover yang Sudah Ada
+
+**Files:**
+
+- Modify: `app/Http/Controllers/CaseController.php`
+- Modify: `app/Http/Controllers/StudentController.php`
+- Modify: `app/Http/Controllers/AssignmentController.php`
+- Modify: `app/Http/Requests/StoreCaseRequest.php`
+- Modify: `app/Services/CaseService.php`
+- Modify: `app/Models/StudentClassMembership.php`
+- Modify: `app/Models/TeacherAssignment.php`
+- Modify: `resources/views/pages/assignments/classes/index.blade.php`
+- Modify: `resources/views/pages/assignments/classes/manage.blade.php`
+- Modify: `resources/views/pages/students/show.blade.php`
+- Extend: `tests/Feature/CaseManagementTest.php`
+- Extend: `tests/Feature/AssignmentManagementTest.php`
+- Extend: `tests/Feature/StudentProfileTest.php`
+
+- [ ] **Step 1: Tulis failing test scope e-Tatib**
+
+Pastikan setiap actor yang memiliki capability membuat kasus hanya menerima pilihan record e-Tatib milik murid yang lolos scope akses pembuatan kasusnya. Role Koordinator BK tidak boleh memperluas fungsi Guru BK hanya karena role tersebut melekat pada akun yang sama.
+
+- [ ] **Step 2: Gunakan query scope akses yang sama untuk murid dan record e-Tatib**
+
+Jangan memuat maksimal 200 record aktif global ke form. Query harus dibatasi di server berdasarkan murid yang dapat diakses actor. Validasi akhir di Service wajib mengulang scope actor dan relasi record-ke-murid agar ID hasil forge/direct request ditolak meskipun lolos validasi `exists` global. Untuk identitas sementara, hanya record aktif yang belum dipetakan ke master (`student_id` null) dan memiliki NISN exact yang boleh dipilih; record yang sudah dipetakan ke murid master tidak boleh diakses melalui jalur identitas sementara.
+
+- [ ] **Step 3: Tulis failing test rollover UI**
+
+Uji status penugasan setelah akhir tahun ajaran, kelas aktif pada profil murid, pasangan kelas-tahun pada form, penugasan masa depan yang sudah dijadwalkan, dan forged `etatib_record_ids` milik murid di luar scope.
+
+- [ ] **Step 4: Selaraskan presentasi frontend dengan batas periode domain**
+
+Gunakan scope/helper model yang sudah ada agar controller dan Blade tidak menghitung ulang periode aktif secara berbeda. `StudentController` harus mengirim current membership yang sudah di-resolve oleh query domain; Blade hanya mempresentasikannya. Sediakan kontrak helper/query yang eksplisit untuk status aktif, terjadwal, dan berakhir. Pilihan kelas wajib mengikuti tahun ajaran terpilih tanpa menambah JavaScript baru; pasangan invalid tetap ditolak server.
+
+- [ ] **Step 5: Jalankan verification**
+
+```bash
+php artisan test --filter CaseManagementTest
+php artisan test --filter AssignmentManagementTest
+php artisan test --filter StudentProfileTest
+npm run check:frontend
+git diff --check
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/Http/Controllers app/Http/Requests/StoreCaseRequest.php app/Services/CaseService.php app/Models/StudentClassMembership.php app/Models/TeacherAssignment.php resources/views/pages tests/Feature
+git commit -m "fix: align rollover UI and e-tatib access scope"
+```
+
+---
+
 ## Task 1: Baseline PRD/SRS v1.1 dan Desain PG-501
 
 **Files:**
@@ -118,6 +187,8 @@ POST  /data-master/integrations/{provider}/deactivate
 - Modify: `docs/requirements-index.md`
 - Modify: `docs/api-contract.md`
 - Modify: `AGENTS.md`
+- Create: `docs/integrations/dapodik-contract-discovery.md`
+- Create: `docs/integrations/etatib-contract-discovery.md`
 
 - [ ] **Step 1: Salin baseline v1.0 menjadi v1.1 tanpa mengubah v1.0**
 
@@ -133,7 +204,8 @@ Tambahkan:
 - Konfigurasi dapat disiapkan sebelum kontrak provider tersedia, tetapi sinkronisasi nyata tetap diblokir.
 - Endpoint outbound dibatasi allowlist deployment.
 - Raw payload tidak disimpan secara default.
-- Tambahkan risiko credential, SSRF, stale verification, malformed snapshot, dan duplicate sync beserta pengendaliannya.
+- Credential sumber wajib read-only dan identitas sekolah/sumber harus dipastikan saat probe.
+- Tambahkan risiko credential, SSRF/DNS rebinding, salah identitas sekolah, stale verification, malformed snapshot, payload berlebih, dan duplicate sync beserta pengendaliannya.
 
 - [ ] **Step 3: Tambahkan requirement berikut ke SRS v1.1**
 
@@ -158,17 +230,34 @@ INT-10 — Driver production tidak boleh diaktifkan sebelum autentikasi,
           endpoint, schema, pagination, semantik full/partial, fixture
           sintetis, dan prosedur gangguan provider disahkan.
 
+INT-11 — Uji koneksi baru dinyatakan sukses bila autentikasi, versi kontrak,
+          schema minimum, dan identitas sumber/sekolah cocok dengan nilai
+          yang diharapkan; status HTTP sukses saja tidak mencukupi.
+
 NFR-09 — Credential dienkripsi menggunakan encrypter Laravel dan tidak
           boleh tampil pada response, session, audit, atau log.
 
 NFR-10 — Endpoint outbound mengikuti exact deployment allowlist,
           redirect dimatikan, operasi per provider diserialisasi, dan
           kegagalan mempertahankan data lama.
+
+NFR-11 — Credential provider harus least-privilege/read-only. Endpoint
+          policy memvalidasi resolusi alamat untuk setiap koneksi dan
+          menolak metadata/link-local, origin drift, proxy tak tepercaya,
+          serta TLS invalid secara fail-closed.
+
+NFR-12 — Adapter production menerapkan batas payload/page, pagination,
+          timeout, retry/backoff, rate limit, concurrency, dan backpressure
+          yang disahkan dalam kontrak provider.
 ```
 
 Perbarui `DEP-01` dan `DEP-02`: fondasi konfigurasi boleh tersedia, tetapi uji/aktivasi production tetap terblokir sampai kontrak resmi disahkan.
 
 - [ ] **Step 4: Tambahkan riwayat versi 1.1 bertanggal 23 Agustus 2026**
+
+- [ ] **Step 4a: Buat lembar discovery kontrak per provider**
+
+Template harus meminta dokumentasi autentikasi, base URL/origin, identitas sekolah, endpoint, method, contoh respons tersanitasi, field/type/nullability, pagination, full/partial semantics, deletion semantics, timezone, rate limit, retry, batas payload, error model, TLS, jaringan, dan bukti credential read-only. Jangan mengisi jawabannya dengan asumsi.
 
 - [ ] **Step 5: Perbarui source-of-truth pointer**
 
@@ -183,7 +272,7 @@ Pada page `22 — UI High-Fidelity Final`, tambahkan dua panel konfigurasi mengg
 - [ ] **Step 8: Commit**
 
 ```bash
-git add AGENTS.md docs/requirements-index.md docs/requirements docs/api-contract.md
+git add AGENTS.md docs/requirements-index.md docs/requirements docs/integrations docs/api-contract.md
 git commit -m "docs: baseline secure integration settings in requirements v1.1"
 ```
 
@@ -208,6 +297,8 @@ public function test_default_setting_is_unverified_and_disabled(): void;
 public function test_provider_is_unique(): void;
 public function test_user_foreign_keys_become_null_when_user_is_deleted(): void;
 public function test_corrupt_ciphertext_is_not_treated_as_configured(): void;
+public function test_driver_adapter_and_contract_versions_are_stored_separately(): void;
+public function test_verified_endpoint_policy_digest_is_persisted_separately(): void;
 ```
 
 - [ ] **Step 2: Jalankan test dan pastikan gagal karena tabel/model belum tersedia**
@@ -223,12 +314,16 @@ Schema::create('integration_settings', function (Blueprint $table): void {
     $table->id();
     $table->string('provider', 30)->unique();
     $table->string('base_url', 500)->nullable();
+    $table->string('expected_source_identifier', 100)->nullable();
     $table->text('credentials')->nullable();
     $table->unsignedSmallInteger('timeout_seconds')->default(30);
 
     $table->unsignedInteger('configuration_version')->default(0);
     $table->unsignedInteger('verified_configuration_version')->nullable();
+    $table->string('verified_driver_id', 100)->nullable();
     $table->string('verified_adapter_version', 100)->nullable();
+    $table->string('verified_contract_version', 100)->nullable();
+    $table->string('verified_endpoint_policy_digest', 64)->nullable();
 
     $table->string('last_test_status', 20)->default('untested');
     $table->string('last_test_code', 50)->nullable();
@@ -283,11 +378,17 @@ Jangan membuat accessor yang menelan `Throwable`. Decryption failure harus diter
 
 `IntegrationSettingState` tidak boleh memiliki plaintext/ciphertext. `IntegrationRuntimeConfiguration` boleh memuat credential tetapi tidak memiliki `toArray()`, `jsonSerialize()`, atau implementasi logging.
 
+`IntegrationProbeResult` membawa hanya metadata aman yang dibutuhkan untuk verifikasi: result code, `driver_id`, `adapter_version`, `contract_version`, reported source identifier, serta ringkasan schema/completeness. Ia tidak boleh membawa raw body atau credential.
+
 - [ ] **Step 6: Pastikan test lulus**
 
 ```bash
 php artisan test --filter IntegrationSettingTest
 ```
+
+- [ ] **Step 6a: Verifikasi migration pada SQLite dan MySQL disposable**
+
+Jalankan migration pada database SQLite test serta database MySQL disposable yang tervalidasi bukan shared/production. Bila MySQL disposable belum tersedia, hentikan Task 2 pada verification gate; jangan menunda kompatibilitas migration sampai Task 8 dan jangan memakai `migrate:fresh`, reset, atau rollback pada database shared.
 
 - [ ] **Step 7: Commit**
 
@@ -323,19 +424,23 @@ Uji exact origin match dan penolakan user-info, query/fragment, wildcard/suffix 
 ```env
 SIBK_DAPODIK_DRIVER=unavailable
 SIBK_DAPODIK_ALLOWED_ORIGINS=
+SIBK_DAPODIK_ALLOW_PRIVATE_NETWORKS=false
 SIBK_ETATIB_DRIVER=unavailable
 SIBK_ETATIB_ALLOWED_ORIGINS=
+SIBK_ETATIB_ALLOW_PRIVATE_NETWORKS=false
 ```
 
 Format allowlist adalah comma-separated exact origins.
 
 - [ ] **Step 3: Implementasikan endpoint policy**
 
-Policy harus memerlukan URL absolut, membandingkan scheme/host/effective port, menolak username/password/query/fragment, menormalisasi URL, dan dipanggil saat save, test, activate, serta setiap penggunaan sync.
+Policy harus memerlukan URL absolut, membandingkan scheme/host/effective port, menolak username/password/query/fragment, menormalisasi URL, dan dipanggil saat save, test, activate, serta setiap penggunaan sync. Pisahkan validasi origin dari validasi target hasil resolusi DNS agar keduanya dapat diuji. Semua alamat hasil resolusi harus diperiksa tepat sebelum koneksi; metadata/link-local/multicast/unspecified selalu ditolak, sedangkan loopback/private hanya dapat dipakai bila origin tercantum exact dan flag private-network provider aktif. Driver production fase berikutnya wajib mengikat koneksi ke alamat yang telah divalidasi sambil mempertahankan Host/SNI, serta menolak jawaban DNS campuran atau berubah; resolve-then-re-resolve oleh HTTP client tidak diperbolehkan. Redirect tetap dimatikan, TLS verification tidak boleh dinonaktifkan, dan proxy environment tidak boleh dipercaya secara implisit.
+
+Policy menyediakan digest SHA-256 atas versi implementasi policy dan konfigurasi deployment provider yang sudah dikanonisasi (allowed origins serta private-network flag). Test harus membuktikan urutan allowlist yang ekuivalen menghasilkan digest sama, sedangkan perubahan efektif menghasilkan digest berbeda.
 
 - [ ] **Step 4: Implementasikan driver interfaces dan registry**
 
-Registry hanya mengenal nama driver yang ditulis eksplisit di kode. Pada fase ini satu-satunya driver adalah `unavailable`.
+Registry hanya mengenal nama driver yang ditulis eksplisit di kode. Pada fase ini satu-satunya driver adalah `unavailable`. Registry dan hasil probe membawa `driver_id`, `adapter_version`, dan `contract_version` secara terpisah.
 
 Kode hasil aman:
 
@@ -352,6 +457,8 @@ authentication_rejected
 rate_limited
 remote_unavailable
 contract_invalid
+source_identity_mismatch
+response_too_large
 configuration_changed
 ```
 
@@ -394,14 +501,14 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
     public function testConnection(string $provider, User $actor): IntegrationSettingState;
     public function activate(string $provider, User $actor): IntegrationSettingState;
     public function deactivate(string $provider, User $actor): IntegrationSettingState;
-    public function active(string $provider, string $adapterVersion): IntegrationRuntimeConfiguration;
-    public function assertCurrent(string $provider, int $configurationVersion, string $adapterVersion): void;
+    public function active(string $provider, string $driverId, string $adapterVersion, string $contractVersion): IntegrationRuntimeConfiguration;
+    public function assertCurrent(string $provider, int $configurationVersion, string $driverId, string $adapterVersion, string $contractVersion): void;
 }
 ```
 
 - [ ] **Step 1: Tulis failing tests state machine**
 
-Uji first save, keep/replace/remove credential, invalid replace+remove, perubahan material, no-op save, test sukses/gagal/stale, activation invariant, deactivation, driver/allowlist drift, serta rollback ketika audit gagal.
+Uji first save, keep/replace/remove credential, invalid replace+remove, perubahan material, no-op save, expected source identifier kosong tetap `unconfigured` dan menolak test/activation, test sukses/gagal/stale, activation invariant, deactivation, driver/adapter/contract/allowlist drift, source identity mismatch, serta rollback ketika audit gagal.
 
 - [ ] **Step 2: Implementasikan per-provider operation lock**
 
@@ -426,11 +533,11 @@ Audit hanya menyimpan provider, endpoint origin, timeout, versions, test status,
 
 - [ ] **Step 4: Implementasikan connection test**
 
-Ambil setting/version, validasi, jalankan probe tanpa transaksi, lalu kunci row dan terapkan hasil hanya jika configuration/adapter version belum berubah. Jangan membuat sync run atau memodifikasi cache.
+Ambil setting/version, validasi, jalankan probe tanpa transaksi, lalu kunci row dan terapkan hasil hanya jika configuration version, driver ID, adapter version, contract version, dan endpoint-policy digest belum berubah. Simpan digest yang terverifikasi bersama hasil probe. Probe `success` hanya valid bila schema minimum dan identitas sumber yang dikembalikan cocok dengan konfigurasi. Jangan membuat sync run atau memodifikasi cache.
 
 - [ ] **Step 5: Implementasikan activation invariant dan safe state DTO**
 
-Blade hanya menerima provider, label, base URL, timeout, boolean credential, effective state, safe test code/time, versions, adapter availability, dan capability flags.
+Blade hanya menerima provider, label, base URL, timeout, boolean credential, effective state, safe test code/time, versions, adapter availability, dan capability flags. `active()` dan `assertCurrent()` menghitung ulang endpoint-policy digest dan gagal tertutup bila berbeda dari nilai yang diverifikasi.
 
 - [ ] **Step 6: Jalankan tests**
 
@@ -468,23 +575,29 @@ Uji guest, Guru BK, Koordinator BK, Waka, Admin IT nonaktif, dan Admin IT aktif 
 
 ```text
 dapodik[base_url]
+dapodik[expected_source_identifier]
 dapodik[api_key]
 dapodik[remove_api_key]
 dapodik[timeout_seconds]
+dapodik[current_password]
 etatib[base_url]
+etatib[expected_source_identifier]
 etatib[api_key]
 etatib[remove_api_key]
 etatib[timeout_seconds]
+etatib[current_password]
 ```
 
-Base URL wajib lolos endpoint policy; API key nullable max 1000; remove boolean; key dilarang jika remove aktif; timeout 5–120.
+Base URL wajib lolos endpoint policy; expected source identifier nullable max 100; API key nullable max 1000; remove boolean; key dilarang jika remove aktif; timeout 5–120. Seluruh aksi konfigurasi memerlukan step-up menggunakan rule `current_password`; password/token tidak boleh masuk old input atau log.
 
 - [ ] **Step 3: Cegah token masuk session**
 
 ```php
 $exceptions->dontFlash([
     'dapodik.api_key',
+    'dapodik.current_password',
     'etatib.api_key',
+    'etatib.current_password',
 ]);
 ```
 
@@ -496,11 +609,13 @@ Controller hanya mengambil actor, memanggil service, dan kembali ke `#integratio
 
 Gunakan route PATCH/POST yang ditetapkan di bagian Interface. Terapkan `whereIn('provider', IntegrationSetting::PROVIDERS)`.
 
-- [ ] **Step 6: Daftarkan rate limiter**
+- [ ] **Step 6: Daftarkan dan pasang rate limiter**
 
-Maksimum lima uji per menit untuk kombinasi user ID dan provider.
+Maksimum lima uji per menit untuk kombinasi user ID dan provider. Route test koneksi wajib memakai named throttle middleware tersebut; test harus membuktikan request keenam ditolak.
 
 - [ ] **Step 7: DataMasterController hanya mengirim safe states**
+
+Response halaman dan seluruh aksi konfigurasi harus memakai `Cache-Control: no-store`; tambahkan test bahwa secret tidak muncul pada HTML, flash data, validation response, exception, atau log. Pertahankan CSRF dan security headers aplikasi; jangan melonggarkan CSP untuk halaman ini.
 
 - [ ] **Step 8: Jalankan tests**
 
@@ -548,7 +663,7 @@ Gunakan dua panel `col-12 col-xl-6`, existing `sibk-panel`, form classes, badge,
 >
 ```
 
-Input tidak memiliki value/old input. Tampilkan indikator boolean `Token tersimpan` dan checkbox hapus eksplisit.
+Input token dan current password tidak memiliki value/old input. Tampilkan indikator boolean `Token tersimpan` dan checkbox hapus eksplisit. Tampilkan expected source identifier sebagai field non-secret dengan bantuan teks bahwa nilai harus cocok dengan identitas yang dilaporkan provider.
 
 - [ ] **Step 4: Pisahkan form Simpan, Uji, Aktifkan, dan Nonaktifkan**
 
@@ -579,6 +694,11 @@ git commit -m "feat: add secure integration settings to data master"
 
 - Create: `app/Integrations/Dapodik/ConfiguredDapodikConnector.php`
 - Create: `app/Integrations/Etatib/ConfiguredEtatibConnector.php`
+- Create: `app/Integrations/Dapodik/DapodikSnapshotValidator.php`
+- Create: `app/Integrations/Etatib/EtatibSnapshotValidator.php`
+- Create: `app/Integrations/IntegrationSnapshotEvidence.php`
+- Modify: `app/Integrations/Dapodik/DapodikSnapshot.php`
+- Modify: `app/Integrations/Etatib/EtatibSnapshot.php`
 - Modify: `app/Providers/AppServiceProvider.php`
 - Modify: `app/Services/DapodikSyncService.php`
 - Modify: `app/Services/EtatibSyncService.php`
@@ -587,7 +707,7 @@ git commit -m "feat: add secure integration settings to data master"
 
 - [ ] **Step 1: Tulis failing guard tests**
 
-Uji sync tanpa konfigurasi aktif, stale verification, unavailable driver, duplicate sync, config change during operation, safe failed run/audit, dan data lama tetap aktif.
+Uji sync tanpa konfigurasi aktif, stale verification, unavailable driver, duplicate sync, config change during operation, invalid/oversized snapshot, Dapodik source-ID collision lintas tahun ajaran, safe failed run/audit, dan data lama tetap aktif.
 
 - [ ] **Step 2: Implementasikan configured connector**
 
@@ -598,14 +718,19 @@ public function fetchSnapshot(): DapodikSnapshot
     $configuration = $this->settings->active(
         IntegrationSetting::PROVIDER_DAPODIK,
         $driver->id(),
+        $driver->adapterVersion(),
+        $driver->contractVersion(),
     );
 
     $snapshot = $driver->fetchSnapshot($configuration);
+    $this->validator->validate($snapshot, $configuration);
 
     $this->settings->assertCurrent(
         IntegrationSetting::PROVIDER_DAPODIK,
         $configuration->configurationVersion,
         $driver->id(),
+        $driver->adapterVersion(),
+        $driver->contractVersion(),
     );
 
     return $snapshot;
@@ -613,6 +738,10 @@ public function fetchSnapshot(): DapodikSnapshot
 ```
 
 Terapkan pola bertipe sama untuk e-Tatib.
+
+Driver menerapkan batas byte dan pagination sebelum dan selama mapping, lalu mengembalikan `IntegrationSnapshotEvidence` tanpa raw payload: reported source identifier, contract marker/provenance, page count, record count, dan processed byte count. Snapshot tidak boleh memakai boolean completeness tanpa evidence yang diturunkan dari kontrak resmi.
+
+Validator harus executable dan berjalan sebelum transaksi import. Ia memeriksa evidence dan menolak collection/type/nullability yang salah, marker completeness yang tidak terbukti, source identity mismatch, limit record/payload yang dilanggar, dan identity collision. Dapodik `source_id` rombel tidak boleh memindahkan record historis ke tahun ajaran lain. Untuk e-Tatib, kontrak admission wajib menetapkan field immutable/mutable dan strategi revision provenance sebelum adapter production diaktifkan.
 
 - [ ] **Step 3: Bind connector domain ke configured connector**
 
@@ -656,17 +785,17 @@ git commit -m "feat: enforce verified integration settings during sync"
 
 - [ ] **Step 1: Dokumentasikan admission gate provider**
 
-Driver selain `unavailable` hanya boleh ditambahkan bila tersedia dokumentasi autentikasi, endpoint, fixture sintetis, field/type, pagination, completeness, full/partial semantics, rate limit, retry, outage procedure, TLS behavior, mapping snapshot, dan persetujuan Admin IT.
+Driver selain `unavailable` hanya boleh ditambahkan bila tersedia dokumentasi autentikasi, endpoint, fixture sintetis, field/type/nullability, identitas sekolah/sumber, bukti credential read-only, pagination, completeness, full/partial dan deletion semantics, batas payload/page, rate limit, retry/backoff, timeout, concurrency/backpressure, outage procedure, TLS/proxy/network behavior, mapping snapshot, serta persetujuan Admin IT.
 
 - [ ] **Step 2: Kunci aturan adapter fase berikutnya**
 
-Adapter wajib memakai exact field resmi, menolak missing collection/type salah, mewajibkan full marker eksplisit, memvalidasi seluruh page, mematikan redirect, memakai `Http::preventStrayRequests()` pada test, serta tidak menyimpan/log body.
+Adapter wajib memakai exact field resmi, menolak missing collection/type salah, mewajibkan full marker eksplisit, memvalidasi seluruh page dan identitas sumber, mematikan redirect, memvalidasi DNS lalu mengikat koneksi ke alamat tervalidasi dengan Host/SNI yang benar, menolak jawaban campuran/berubah, TLS invalid, dan proxy tak tepercaya, memakai `Http::preventStrayRequests()` pada test, membatasi ukuran respons, serta tidak menyimpan/log body.
 
 Dapodik full snapshot tanpa tahun ajaran atau murid wajib ditolak. e-Tatib full snapshot kosong hanya boleh diterima bila kontrak resmi memberikan completeness/total terverifikasi.
 
 - [ ] **Step 3: Dokumentasikan deployment**
 
-Deploy Fase A dengan driver `unavailable`, isi exact origins, cache config, simpan draft, verifikasi audit/redaksi, dan jangan aktifkan sebelum adapter resmi. Dokumentasikan `APP_PREVIOUS_KEYS` untuk rotasi key.
+Deploy Fase A dengan driver `unavailable`, isi exact origins dan kebijakan jaringan privat, cache config, simpan konfigurasi, verifikasi audit/redaksi/no-store/security headers, dan jangan aktifkan sebelum adapter resmi. Dokumentasikan `APP_PREVIOUS_KEYS` untuk rotasi key serta prosedur rotasi/revokasi credential sumber.
 
 - [ ] **Step 4: Jalankan final automated verification**
 
@@ -688,7 +817,7 @@ Jalankan pada SQLite test dan database MySQL disposable. Jangan memakai `migrate
 
 - [ ] **Step 6: Manual acceptance**
 
-- Admin IT dapat menyimpan draft kedua provider.
+- Admin IT dapat menyimpan konfigurasi kedua provider; state tetap `blocked` ketika driver `unavailable`, atau `unconfigured` bila expected source identifier belum lengkap.
 - Role lain ditolak.
 - Token tidak muncul di HTML, session, audit, log, atau database plaintext.
 - Test/aktivasi menampilkan `Adapter belum tersedia`.
@@ -712,14 +841,16 @@ git commit -m "docs: document integration contract and deployment gates"
 | Kontrak API belum diketahui | Driver `unavailable`; adapter nyata berada di plan terpisah |
 | Field API berbeda dari database | Mapping hanya di provider driver menuju snapshot internal |
 | Credential bocor | Encrypted cast, hidden model field, safe DTO, `dontFlash`, audit tersensor |
-| SSRF/pengalihan credential | Exact deployment origin allowlist; tidak ada wildcard; redirect dimatikan |
-| Config berubah setelah test | Configuration version dan adapter version |
+| Credential memiliki hak tulis | Akun/token sumber least-privilege read-only dan bukti scope sebagai admission gate |
+| SSRF/pengalihan credential | Exact deployment origin allowlist, pemeriksaan DNS/address class, private-network opt-in, redirect/proxy tak tepercaya dimatikan, TLS wajib valid |
+| Sumber milik sekolah lain | Expected source identifier diverifikasi saat probe dan setiap sinkronisasi |
+| Config/policy berubah setelah test | Configuration version, driver ID, adapter version, contract version, dan endpoint-policy digest |
 | Test/sync bersamaan | Per-provider atomic lock dan version recheck |
-| Malformed full snapshot menonaktifkan data | Contract validator fail-closed sebelum snapshot/import |
+| Malformed full snapshot menonaktifkan data | Validator snapshot executable dan fail-closed sebelum transaksi import |
 | API mengirim banyak field | Ambil field yang dibutuhkan; jangan menyimpan raw payload |
 | APP_KEY berubah | `APP_PREVIOUS_KEYS`; unreadable credential memblokir outbound |
 | Duplicate-click atau penyalahgunaan test | Lock dan rate limit lima uji/menit/user/provider |
-| Request sinkronisasi panjang | Contract admission wajib menentukan pagination, limit, dan kebutuhan queue sebelum adapter production dibuat |
+| Request sinkronisasi panjang/berlebih | Contract admission wajib menentukan pagination, payload/page limit, timeout, retry/backoff, rate limit, backpressure, dan kebutuhan queue sebelum adapter production dibuat |
 
 ## Assumptions
 
