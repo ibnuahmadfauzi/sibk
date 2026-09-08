@@ -139,7 +139,9 @@ class StudentProfileTest extends TestCase
         $this->actingAs($coordinator)->get(route('students.show', $student))
             ->assertOk()
             ->assertSee('Tanpa kelas aktif')
-            ->assertSee('X AKL Histori');
+            ->assertSee('X AKL Histori')
+            ->assertSee('30-06-2027')
+            ->assertDontSee('s.d. sekarang');
     }
 
     /** @return array{User, Student} */

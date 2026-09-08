@@ -100,7 +100,7 @@ class TeacherAssignment extends Model
     {
         $on = CarbonImmutable::parse($date)->startOfDay();
 
-        if ($this->effective_until?->lt($on) || $this->academicYear?->ends_on?->lt($on)) {
+        if ($this->effectiveEnd()?->lt($on)) {
             return self::STATUS_ENDED;
         }
 
@@ -109,6 +109,22 @@ class TeacherAssignment extends Model
         }
 
         return self::STATUS_ACTIVE;
+    }
+
+    public function effectiveEnd(): ?CarbonInterface
+    {
+        $assignmentEnd = $this->effective_until;
+        $academicYearEnd = $this->academicYear?->ends_on;
+
+        if ($assignmentEnd === null) {
+            return $academicYearEnd;
+        }
+
+        if ($academicYearEnd === null) {
+            return $assignmentEnd;
+        }
+
+        return $assignmentEnd->lte($academicYearEnd) ? $assignmentEnd : $academicYearEnd;
     }
 
     /** @return array<string, string> */

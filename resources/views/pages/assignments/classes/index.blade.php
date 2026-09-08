@@ -91,7 +91,7 @@
                             <td class="fw-bold text-dark">{{ $assignment->classroom->name }}</td>
                             <td class="fw-semibold text-primary">{{ $assignment->teacher->name }}</td>
                             <td>{{ $assignment->effective_from->locale('id')->translatedFormat('d M Y') }}</td>
-                            <td class="text-muted">{{ $assignment->effective_until?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td>
+                            <td class="text-muted">{{ $assignment->effectiveEnd()?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td>
                             <td>
                                 <span class="sibk-badge sibk-badge--{{ $statusTone }}">
                                     {{ $statusLabel }}

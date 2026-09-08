@@ -307,7 +307,7 @@ class AssignmentManagementTest extends TestCase
 
         $this->actingAs($coordinator)->get(route('assignments.classes.index'))
             ->assertOk()
-            ->assertSeeInOrder(['XII RPL Terjadwal', 'Terjadwal', 'XI RPL Aktif', 'Aktif', 'X RPL Berakhir', 'Berakhir']);
+            ->assertSeeInOrder(['XII RPL Terjadwal', 'Terjadwal', 'XI RPL Aktif', 'Aktif', 'X RPL Berakhir', '30 Jun 2027', 'Berakhir']);
 
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'terjadwal']))
             ->assertSee('XII RPL Terjadwal')

@@ -60,6 +60,22 @@ class StudentClassMembership extends Model
         return $query->active()->effectiveOn($date);
     }
 
+    public function effectiveEnd(): ?CarbonInterface
+    {
+        $membershipEnd = $this->effective_until;
+        $academicYearEnd = $this->academicYear?->ends_on;
+
+        if ($membershipEnd === null) {
+            return $academicYearEnd;
+        }
+
+        if ($academicYearEnd === null) {
+            return $membershipEnd;
+        }
+
+        return $membershipEnd->lte($academicYearEnd) ? $membershipEnd : $academicYearEnd;
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

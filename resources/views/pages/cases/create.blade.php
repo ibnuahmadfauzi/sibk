@@ -15,6 +15,21 @@
             <div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
         @endif
 
+        <div class="sibk-panel mb-4 border-0 shadow-sm">
+            <div class="sibk-panel__body p-4">
+                <form action="{{ route('cases.create') }}" method="GET" class="row g-3 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label">Cari e-Tatib untuk Identitas Sementara</label>
+                        <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN exact">
+                        <div class="form-text">Record yang belum dipetakan hanya dimuat untuk NISN exact 1–20 digit.</div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <button type="submit" class="btn btn-outline-primary w-100">Tampilkan Data e-Tatib</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <form action="{{ route('cases.store') }}" method="POST">
             @csrf
             <div class="sibk-panel mb-4 border-0 shadow-sm">
@@ -33,7 +48,7 @@
                         </div>
                         <div class="col-md-3">
                             <label for="temporary_nisn" class="form-label sibk-form-label">NISN Sementara</label>
-                            <input class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
+                            <input class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn', $temporaryNisnFilter) }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
                         </div>
                         <div class="col-md-3">
                             <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
@@ -81,6 +96,9 @@
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
                     <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber kasus adalah e-Tatib.</p>
+                    @if($etatibRecordsCapped)
+                        <div class="alert alert-info py-2">Daftar data e-Tatib dibatasi pada {{ $etatibRecords->count() }} record terbaru. Gunakan pencarian NISN exact untuk mempersempit hasil.</div>
+                    @endif
                     @forelse($etatibRecords as $record)
                         <div class="form-check border rounded p-3 mb-2 ps-5" data-etatib-nisn="{{ $record->nisn }}">
                             <input class="form-check-input" type="checkbox" name="etatib_record_ids[]" value="{{ $record->id }}" id="etatib-{{ $record->id }}" @checked(in_array($record->id, old('etatib_record_ids', [])))>
