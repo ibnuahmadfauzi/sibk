@@ -299,6 +299,7 @@ public function test_user_foreign_keys_become_null_when_user_is_deleted(): void;
 public function test_corrupt_ciphertext_is_not_treated_as_configured(): void;
 public function test_driver_adapter_and_contract_versions_are_stored_separately(): void;
 public function test_verified_endpoint_policy_digest_is_persisted_separately(): void;
+public function test_operation_fence_version_defaults_to_zero(): void;
 ```
 
 - [ ] **Step 2: Jalankan test dan pastikan gagal karena tabel/model belum tersedia**
@@ -319,6 +320,7 @@ Schema::create('integration_settings', function (Blueprint $table): void {
     $table->unsignedSmallInteger('timeout_seconds')->default(30);
 
     $table->unsignedInteger('configuration_version')->default(0);
+    $table->unsignedBigInteger('operation_fence_version')->default(0);
     $table->unsignedInteger('verified_configuration_version')->nullable();
     $table->string('verified_driver_id', 100)->nullable();
     $table->string('verified_adapter_version', 100)->nullable();
@@ -356,6 +358,7 @@ protected function casts(): array
         'credentials' => 'encrypted:array',
         'timeout_seconds' => 'integer',
         'configuration_version' => 'integer',
+        'operation_fence_version' => 'integer',
         'verified_configuration_version' => 'integer',
         'last_tested_at' => 'datetime',
         'is_enabled' => 'boolean',
@@ -417,7 +420,7 @@ git commit -m "feat: add encrypted integration setting state"
 
 - [ ] **Step 1: Tulis failing tests URL policy**
 
-Uji exact origin match dan penolakan user-info, query/fragment, wildcard/suffix host, port berbeda, origin di luar allowlist, driver selain whitelist, dan allowlist kosong. Origin internal HTTP hanya boleh diterima bila seluruh origin tersebut tercantum eksplisit di deployment config.
+Uji exact origin match dan penolakan user-info, query/fragment, wildcard/suffix host, port berbeda, origin di luar allowlist, driver selain whitelist, allowlist kosong, metadata/link-local/multicast/unspecified, private/loopback tanpa opt-in, jawaban DNS campuran, jawaban berubah, serta canonical endpoint-policy digest. Origin internal HTTP hanya boleh diterima bila seluruh origin tersebut tercantum eksplisit di deployment config dan private-network flag aktif.
 
 - [ ] **Step 2: Tambahkan deployment configuration**
 
@@ -486,6 +489,7 @@ git commit -m "feat: gate integration drivers with deployment policy"
 
 - Create: `app/Integrations/IntegrationConfigurationProvider.php`
 - Create: `app/Integrations/IntegrationOperationLock.php`
+- Create: `app/Integrations/IntegrationOperationContext.php`
 - Create: `app/Integrations/IntegrationConfigurationException.php`
 - Create: `app/Integrations/IntegrationBusyException.php`
 - Create: `app/Services/IntegrationSettingService.php`
@@ -508,11 +512,11 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
 
 - [ ] **Step 1: Tulis failing tests state machine**
 
-Uji first save, keep/replace/remove credential, invalid replace+remove, perubahan material, no-op save, expected source identifier kosong tetap `unconfigured` dan menolak test/activation, test sukses/gagal/stale, activation invariant, deactivation, driver/adapter/contract/allowlist drift, source identity mismatch, serta rollback ketika audit gagal.
+Uji first save, keep/replace/remove credential, invalid replace+remove, perubahan material, no-op save, expected source identifier kosong tetap `unconfigured` dan menolak test/activation, test sukses/gagal/stale, activation invariant, deactivation, driver/adapter/contract/allowlist drift, source identity mismatch, stale fencing token setelah lease berpindah, hard deadline, serta rollback ketika audit gagal.
 
 - [ ] **Step 2: Implementasikan per-provider operation lock**
 
-Gunakan `Cache::lock('sibk:integration-operation:'.$provider, 600)` secara non-blocking. Save, test, activate, deactivate, dan sync memakai lock yang sama.
+Gunakan cache lock per provider secara non-blocking sebagai exclusion gate. Setelah lock didapat, alokasikan token dengan mengunci row, menaikkan `operation_fence_version`, dan commit dalam transaksi singkat sebelum pekerjaan jaringan yang panjang dimulai; bawa token pada operation context. Save, test, activate, deactivate, dan sync memakai lock/context yang sama. Sebelum menerapkan hasil probe atau memulai transaksi import, kunci row dan pastikan fencing token masih current; proses lama wajib berhenti tanpa write bila lease telah berpindah. Terapkan invariant `hard operation deadline + safety margin <= lease TTL`. Adapter yang worst-case pagination/retry/import-nya tidak muat dalam deadline tidak boleh di-admit tanpa queue/lock renewal design terpisah.
 
 - [ ] **Step 3: Implementasikan save transaction dan audit tersanitasi**
 
@@ -537,7 +541,7 @@ Ambil setting/version, validasi, jalankan probe tanpa transaksi, lalu kunci row 
 
 - [ ] **Step 5: Implementasikan activation invariant dan safe state DTO**
 
-Blade hanya menerima provider, label, base URL, timeout, boolean credential, effective state, safe test code/time, versions, adapter availability, dan capability flags. `active()` dan `assertCurrent()` menghitung ulang endpoint-policy digest dan gagal tertutup bila berbeda dari nilai yang diverifikasi.
+Blade hanya menerima provider, label, base URL, expected source identifier, timeout, boolean credential, effective state, safe test code/time, versions, adapter availability, dan capability flags. `active()` dan `assertCurrent()` menghitung ulang endpoint-policy digest dan gagal tertutup bila berbeda dari nilai yang diverifikasi.
 
 - [ ] **Step 6: Jalankan tests**
 
@@ -645,7 +649,7 @@ git commit -m "feat: expose admin integration configuration workflow"
 
 - [ ] **Step 1: Tulis failing view tests**
 
-Uji dua panel Admin IT, redaksi secret, pemisahan error, ID/label/ARIA unik, disabled sync button, direct POST enforcement, serta pemisahan state koneksi dan data freshness.
+Uji dua panel Admin IT, redaksi secret, pemisahan error, ID/label/ARIA unik, disabled sync button, fail-safe direct POST selama driver masih `unavailable`, serta pemisahan state koneksi dan data freshness. Guard penuh konfigurasi/version/fencing untuk direct POST diselesaikan dan diuji kembali pada Task 7.
 
 - [ ] **Step 2: Tambahkan section setelah status sinkronisasi dan sebelum tabel log**
 
@@ -749,7 +753,7 @@ Driver internal tetap `unavailable`, sehingga tidak ada outbound production pada
 
 - [ ] **Step 4: Gunakan operation lock sepanjang sinkronisasi**
 
-Lock meliputi fetch, validation, import, reconciliation, status run, dan audit.
+Lock/fencing context meliputi fetch, validation, import, reconciliation, status run, dan audit. Service harus memverifikasi fencing token di dalam transaksi sebelum mutasi cache; cache lease yang kedaluwarsa tidak boleh membuat proses lama tetap berhak menulis.
 
 - [ ] **Step 5: Perlakukan configuration/busy exception sebagai expected integration failure**
 
@@ -846,6 +850,7 @@ git commit -m "docs: document integration contract and deployment gates"
 | Sumber milik sekolah lain | Expected source identifier diverifikasi saat probe dan setiap sinkronisasi |
 | Config/policy berubah setelah test | Configuration version, driver ID, adapter version, contract version, dan endpoint-policy digest |
 | Test/sync bersamaan | Per-provider atomic lock dan version recheck |
+| Lease lock kedaluwarsa saat proses lama masih berjalan | Fencing token persisten, row-lock recheck sebelum write, dan hard operation deadline di bawah lease |
 | Malformed full snapshot menonaktifkan data | Validator snapshot executable dan fail-closed sebelum transaksi import |
 | API mengirim banyak field | Ambil field yang dibutuhkan; jangan menyimpan raw payload |
 | APP_KEY berubah | `APP_PREVIOUS_KEYS`; unreadable credential memblokir outbound |
