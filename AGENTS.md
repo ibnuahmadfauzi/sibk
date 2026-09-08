@@ -5,10 +5,10 @@ Ruang BK adalah aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Sura
 ## Source of Truth
 
 Kebutuhan dan perilaku sistem:
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` — baseline final manusia.
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.md` — mirror AI-readable.
-- `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` — baseline final manusia.
-- `docs/requirements/SRS_Aplikasi_BK_v1.0.md` — mirror AI-readable.
+- `docs/requirements/PRD_Aplikasi_BK_v1.1.md` — baseline kebutuhan produk aktif.
+- `docs/requirements/SRS_Aplikasi_BK_v1.1.md` — baseline spesifikasi aktif.
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` dan `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` — arsip baseline manusia sebelumnya sekaligus referensi struktur/visual; jangan diubah.
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.md` dan `docs/requirements/SRS_Aplikasi_BK_v1.0.md` — arsip mirror AI baseline sebelumnya; jangan diubah.
 - `docs/requirements-index.md` — indeks ringan untuk menentukan bagian requirement yang perlu dibuka.
 
 Referensi visual frontend:

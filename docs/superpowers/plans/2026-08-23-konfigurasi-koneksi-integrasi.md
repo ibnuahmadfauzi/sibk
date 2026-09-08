@@ -1,6 +1,6 @@
 # Fondasi Konfigurasi Koneksi Dapodik & e-Tatib Implementation Plan
 
-> **Status: DISETUJUI UNTUK IMPLEMENTASI BERTAHAP PADA 8 SEPTEMBER 2026.** Persetujuan mencakup fondasi Fase A pada branch `integrasi-api-plan`; adapter production nyata tetap di luar scope sampai kontrak provider diterima dan lolos admission gate.
+> **Status: DISETUJUI UNTUK IMPLEMENTASI BERTAHAP PADA 8 SEPTEMBER 2026.** Persetujuan mencakup fondasi Fase A pada branch `integrasi-api-plan`; adapter production nyata tetap di luar scope sampai kontrak provider diterima dan lolos admission gate. Pada 9 September 2026 pengguna menetapkan bahwa baseline v1.1 cukup dalam Markdown dan halaman pengaturan koneksi diimplementasikan langsung tanpa artefak Penpot baru.
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
@@ -29,6 +29,7 @@
 - Probe sukses wajib membuktikan autentikasi, kompatibilitas kontrak, serta identitas sekolah/sumber yang diharapkan; respons HTTP 2xx saja tidak cukup.
 - Endpoint outbound wajib fail-closed terhadap redirect, user-info, DNS rebinding, alamat metadata/link-local, origin drift, proxy tak tepercaya, dan TLS invalid. Akses jaringan privat hanya boleh melalui origin deployment yang ditulis eksplisit.
 - Sebelum adapter production dibuat, kontrak wajib menetapkan ukuran maksimum respons/page, pagination, timeout, retry/backoff, rate limit, concurrency, dan kebutuhan queue.
+- Halaman pengaturan koneksi dibuat langsung dengan komponen, token, dan pola layout yang sudah ada; hierarki informasi mengutamakan keamanan, kepraktisan, dan kenyamanan Admin IT tanpa membuat desain Penpot baru.
 - Gunakan istilah `murid` pada UI.
 
 ---
@@ -178,25 +179,21 @@ git commit -m "fix: align rollover UI and e-tatib access scope"
 
 ---
 
-## Task 1: Baseline PRD/SRS v1.1 dan Desain PG-501
+## Task 1: Baseline PRD/SRS v1.1 Markdown
 
 **Files:**
 
 - Create: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
-- Create: `docs/requirements/PRD_Aplikasi_BK_v1.1.docx`
 - Create: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
-- Create: `docs/requirements/SRS_Aplikasi_BK_v1.1.docx`
 - Modify: `docs/requirements-index.md`
 - Modify: `docs/api-contract.md`
 - Modify: `AGENTS.md`
 - Create: `docs/integrations/dapodik-contract-discovery.md`
 - Create: `docs/integrations/etatib-contract-discovery.md`
 
-- [ ] **Step 1: Salin baseline v1.0 menjadi v1.1 tanpa mengubah v1.0**
+- [x] **Step 1: Salin baseline Markdown v1.0 menjadi v1.1 tanpa mengubah artefak v1.0**
 
-Gunakan skill `documents` untuk menjaga paritas DOCX–Markdown.
-
-- [ ] **Step 2: Tambahkan keputusan produk ke PRD v1.1**
+- [x] **Step 2: Tambahkan keputusan produk ke PRD v1.1**
 
 Tambahkan:
 
@@ -209,7 +206,7 @@ Tambahkan:
 - Credential sumber wajib read-only dan identitas sekolah/sumber harus dipastikan saat probe.
 - Tambahkan risiko credential, SSRF/DNS rebinding, salah identitas sekolah, stale verification, malformed snapshot, payload berlebih, dan duplicate sync beserta pengendaliannya.
 
-- [ ] **Step 3: Tambahkan requirement berikut ke SRS v1.1**
+- [x] **Step 3: Tambahkan requirement berikut ke SRS v1.1**
 
 ```text
 INT-05 — Admin IT dapat mengelola konfigurasi endpoint dan credential
@@ -255,23 +252,23 @@ NFR-12 — Adapter production menerapkan batas payload/page, pagination,
 
 Perbarui `DEP-01` dan `DEP-02`: fondasi konfigurasi boleh tersedia, tetapi uji/aktivasi production tetap terblokir sampai kontrak resmi disahkan.
 
-- [ ] **Step 4: Tambahkan riwayat versi 1.1 bertanggal 23 Agustus 2026**
+- [x] **Step 4: Tambahkan riwayat versi 1.1 bertanggal 23 Agustus 2026**
 
-- [ ] **Step 4a: Buat lembar discovery kontrak per provider**
+- [x] **Step 4a: Buat lembar discovery kontrak per provider**
 
 Template harus meminta dokumentasi autentikasi, base URL/origin, identitas sekolah, endpoint, method, contoh respons tersanitasi, field/type/nullability, pagination, full/partial semantics, deletion semantics, timezone, rate limit, retry, batas payload, error model, TLS, jaringan, dan bukti credential read-only. Jangan mengisi jawabannya dengan asumsi.
 
-- [ ] **Step 5: Perbarui source-of-truth pointer**
+- [x] **Step 5: Perbarui source-of-truth pointer**
 
 Arahkan `AGENTS.md` dan `requirements-index.md` ke v1.1, tetapi tetap dokumentasikan v1.0 sebagai arsip baseline sebelumnya.
 
-- [ ] **Step 6: Perbarui Penpot PG-501**
+- [x] **Step 6: Catat keputusan implementasi UI langsung**
 
-Pada page `22 — UI High-Fidelity Final`, tambahkan dua panel konfigurasi menggunakan token page `22.5 — Style Guide`. Jangan mengubah page lain atau membuat design token baru.
+Dokumentasikan bahwa halaman pengaturan koneksi akan dibuat pada Task 6 menggunakan komponen dan style aplikasi yang sudah ada. Tidak ada artefak Penpot baru yang wajib dibuat untuk halaman ini.
 
-- [ ] **Step 7: Verifikasi DOCX dan Markdown memiliki heading, requirement ID, dan version history yang sama**
+- [x] **Step 7: Verifikasi Markdown v1.1 memiliki heading, requirement ID, dan version history yang lengkap**
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add AGENTS.md docs/requirements-index.md docs/requirements docs/integrations docs/api-contract.md
@@ -639,7 +636,7 @@ git commit -m "feat: expose admin integration configuration workflow"
 
 ---
 
-## Task 6: PG-501 Pengaturan Koneksi
+## Task 6: Halaman Pengaturan Koneksi
 
 **Files:**
 
@@ -655,7 +652,7 @@ Uji dua panel Admin IT, redaksi secret, pemisahan error, ID/label/ARIA unik, dis
 
 - [ ] **Step 2: Tambahkan section setelah status sinkronisasi dan sebelum tabel log**
 
-Gunakan dua panel `col-12 col-xl-6`, existing `sibk-panel`, form classes, badge, dan Bootstrap utilities.
+Susun dua panel `col-12 col-xl-6` dengan existing `sibk-panel`, form classes, badge, dan Bootstrap utilities. Pertahankan style halaman lain dan susun hierarki informasi berdasarkan urutan kerja Admin IT: ringkasan status → konfigurasi → Simpan/Uji/Aktifkan → freshness/log. Tidak perlu membuat atau merujuk desain Penpot baru.
 
 - [ ] **Step 3: Terapkan perlindungan input credential**
 
@@ -829,7 +826,7 @@ Jalankan pada SQLite test dan database MySQL disposable. Jangan memakai `migrate
 - Test/aktivasi menampilkan `Adapter belum tersedia`.
 - Tombol sync disabled dan direct POST gagal aman.
 - Data lama tidak berubah.
-- Desktop/tablet/ponsel sesuai PG-501 Penpot terbaru.
+- Desktop/tablet/ponsel konsisten dengan komponen dan style halaman aplikasi yang sudah ada, dengan hierarki informasi yang praktis dan nyaman digunakan.
 
 - [ ] **Step 7: Commit**
 

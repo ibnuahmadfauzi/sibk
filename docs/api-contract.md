@@ -185,6 +185,25 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 
 ## 6. Modul Koreksi Data & Rekonsiliasi (`COR`, `MD`)
 
+### Konfigurasi Koneksi Dapodik dan e-Tatib
+- **Halaman:** `GET /data-master`, area PG-501 khusus Admin IT aktif melalui capability `manageDataMaster`.
+- **Endpoint:**
+  - `PATCH /data-master/integrations/{provider}` untuk menyimpan konfigurasi.
+  - `POST /data-master/integrations/{provider}/test` untuk menguji tanpa mengimpor data.
+  - `POST /data-master/integrations/{provider}/activate` untuk mengaktifkan hasil uji yang masih current.
+  - `POST /data-master/integrations/{provider}/deactivate` untuk menonaktifkan koneksi.
+- **Provider:** `{provider}` hanya menerima `dapodik` atau `etatib`; pemilihan driver berasal dari registry/whitelist deployment, bukan class dari database atau input pengguna.
+- **Payload namespaced:** `{provider}[base_url]`, `{provider}[expected_source_identifier]`, `{provider}[api_key]`, `{provider}[remove_api_key]`, `{provider}[timeout_seconds]`, dan `{provider}[current_password]`.
+- **Step-up:** seluruh aksi konfigurasi memerlukan kata sandi saat ini. API key kosong mempertahankan credential; nilai baru mengganti; checkbox hapus menghapus. Ganti dan hapus sekaligus ditolak.
+- **Secret-safe response:** credential dan current password tidak masuk HTML, JSON, session/old input, audit, log, exception, atau response eksternal. Halaman dan response aksi konfigurasi memakai `Cache-Control: no-store`; DTO view hanya membawa boolean `has_credentials`.
+- **State:** `unconfigured`, `draft`, `blocked`, `test_failed`, `ready`, dan `active`. Simpan perubahan material menaikkan `configuration_version`, membatalkan verifikasi, serta menonaktifkan koneksi. Simpan tanpa perubahan tidak mengubah version/state.
+- **Uji koneksi:** browser hanya mengirim trigger. Backend memanggil probe server-to-server dan tidak membuat `external_sync_runs` atau mengubah cache master. Hasil `success` harus membuktikan autentikasi, contract/schema minimum, serta reported source identifier yang cocok; HTTP 2xx saja tidak cukup.
+- **Activation invariant:** configuration version, `driver_id`, `adapter_version`, `contract_version`, dan endpoint-policy digest harus sama dengan hasil uji. Perubahan konfigurasi, driver, adapter, contract, allowlist, atau policy membuat koneksi efektif terblokir sampai diuji ulang.
+- **Endpoint policy:** base URL harus cocok exact dengan allowlist origin deployment. User-info, query/fragment, redirect, origin drift, proxy tak tepercaya, TLS invalid, metadata/link-local/multicast/unspecified, serta DNS campuran/berubah ditolak fail-closed. Setiap resolusi alamat diperiksa tepat sebelum koneksi dan transport production wajib diikat ke alamat tervalidasi dengan Host/SNI yang benar.
+- **Concurrency:** save/test/activate/deactivate/sync diserialisasi per provider. Operation context memakai lock, fencing token persisten, row-lock recheck sebelum write, dan hard deadline dengan safety margin di bawah lease; hasil stale tidak boleh diterapkan.
+- **Admission gate:** driver production tetap `unavailable` sampai kontrak resmi provider mengesahkan autentikasi, origin/endpoint/method, identitas sumber, schema/type/nullability, pagination, full/partial dan deletion semantics, timezone, fixture sintetis, payload/page limits, timeout, retry/backoff, rate limit, concurrency/backpressure/queue, TLS/proxy/jaringan, mapping snapshot, bukti credential read-only, serta prosedur gangguan.
+- **Rate limit uji:** maksimum lima permintaan per menit untuk kombinasi pengguna dan provider.
+
 ### Status dan Sinkronisasi Master Eksternal
 - **Endpoint:** `GET /data-master`, `POST /data-master/dapodik/sync`, `POST /data-master/etatib/sync`.
 - **Controller:** `Admin\DataMasterController@index`, `Admin\DataMasterController@synchronize`.
@@ -192,6 +211,9 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Business Logic:** `DapodikSyncService` membaca payload ter-normalisasi melalui `DapodikConnector`, melakukan upsert cache master, menyimpan log sinkronisasi/konflik, lalu menjalankan rekonsiliasi NISN.
 - **Mode connector:** production memakai connector tidak tersedia sampai mekanisme resmi `DEP-02` dikonfigurasi; fake connector digunakan pada test.
 - **Snapshot:** data yang tidak hadir hanya dinonaktifkan pada snapshot penuh. Payload parsial tidak menonaktifkan data lama.
+- **Guard konfigurasi:** sinkronisasi production hanya berjalan dengan setting `active` yang masih current terhadap configuration version, driver ID, adapter version, contract version, endpoint-policy digest, dan fencing token. Driver `unavailable` atau konfigurasi stale gagal aman tanpa mengubah data lama.
+- **Evidence dan validator:** driver memetakan field resmi yang diperlukan ke snapshot internal tanpa menyimpan raw payload. Evidence membawa reported source identifier, contract marker/provenance, page count, record count, dan processed byte count. Validator executable menolak schema/type/nullability salah, completeness tidak terbukti, source identity mismatch, identity collision, atau limit terlampaui sebelum transaksi import.
+- **Batas adapter:** response/page bytes, total bytes/records/pages, pagination, timeout, retry/backoff, rate limit, concurrency, backpressure, hard deadline, dan kebutuhan queue harus berasal dari kontrak yang sudah disahkan.
 - **Konflik:** data bermasalah ditahan di `external_sync_issues` dan tidak menimpa data master yang sah.
 - **e-Tatib:** `EtatibSyncService` menyimpan mirror read-only berdasarkan NISN. Snapshot penuh dapat menonaktifkan record lama; payload parsial hanya upsert. Connector production tetap tidak tersedia sampai `DEP-01` disahkan dan tidak ada endpoint write-back.
 
