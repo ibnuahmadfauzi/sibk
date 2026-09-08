@@ -26,6 +26,10 @@ Dokumen ini mengumpulkan bukti resmi yang diperlukan sebelum driver production e
 - Base URL/origin production exact termasuk scheme dan effective port:
 - Origin non-production yang diizinkan:
 - Apakah jaringan privat diperlukan:
+- Exact origin yang harus tercantum pada deployment allowlist:
+- Keputusan flag opt-in private-network khusus provider:
+- Bukti bahwa private/loopback hanya diperlukan untuk origin exact tersebut:
+- Input endpoint-policy digest yang disahkan yaitu versi policy, exact origins yang dikanonisasi, dan flag private-network:
 - DNS/IP range resmi dan prosedur perubahan:
 - Persyaratan Host dan SNI:
 - Versi TLS minimum dan rantai sertifikat:
