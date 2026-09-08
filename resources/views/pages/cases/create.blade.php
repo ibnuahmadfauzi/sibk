@@ -20,8 +20,8 @@
                 <form action="{{ route('cases.create') }}" method="GET" class="row g-3 align-items-end">
                     <div class="col-12 col-md-8">
                         <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label">Cari e-Tatib untuk Identitas Sementara</label>
-                        <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN exact">
-                        <div class="form-text">Record yang belum dipetakan hanya dimuat untuk NISN exact 1–20 digit.</div>
+                        <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN yang sama persis">
+                        <div class="form-text">Record yang belum dipetakan hanya dimuat untuk NISN yang sama persis sepanjang 1–20 digit.</div>
                     </div>
                     <div class="col-12 col-md-4">
                         <button type="submit" class="btn btn-outline-primary w-100">Tampilkan Data e-Tatib</button>
@@ -97,7 +97,7 @@
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
                     <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber kasus adalah e-Tatib.</p>
                     @if($etatibRecordsCapped)
-                        <div class="alert alert-info py-2">Daftar data e-Tatib dibatasi pada {{ $etatibRecords->count() }} record terbaru. Gunakan pencarian NISN exact untuk mempersempit hasil.</div>
+                        <div class="alert alert-info py-2">Daftar data e-Tatib dibatasi pada {{ $etatibRecords->count() }} record terbaru. Gunakan pencarian NISN yang sama persis untuk mempersempit hasil.</div>
                     @endif
                     @forelse($etatibRecords as $record)
                         <div class="form-check border rounded p-3 mb-2 ps-5" data-etatib-nisn="{{ $record->nisn }}">
