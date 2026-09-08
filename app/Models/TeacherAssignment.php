@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class TeacherAssignment extends Model
 {
     use SoftDeletes;
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_SCHEDULED = 'scheduled';
+
+    public const STATUS_ENDED = 'ended';
 
     /** @return BelongsTo<User, $this> */
     public function teacher(): BelongsTo
@@ -55,6 +62,53 @@ class TeacherAssignment extends Model
                 ->where(fn (Builder $periodEnd): Builder => $periodEnd
                     ->whereNull('ends_on')
                     ->orWhereDate('ends_on', '>=', $date)));
+    }
+
+    /** @param Builder<TeacherAssignment> $query */
+    public function scopeActiveOn(Builder $query, CarbonInterface|string $date): Builder
+    {
+        return $query->effectiveOn($date);
+    }
+
+    /** @param Builder<TeacherAssignment> $query */
+    public function scopeScheduledOn(Builder $query, CarbonInterface|string $date): Builder
+    {
+        return $query
+            ->where(fn (Builder $period): Builder => $period
+                ->whereNull('effective_until')
+                ->orWhereDate('effective_until', '>=', $date))
+            ->whereHas('academicYear', fn (Builder $academicYear): Builder => $academicYear
+                ->where(fn (Builder $periodEnd): Builder => $periodEnd
+                    ->whereNull('ends_on')
+                    ->orWhereDate('ends_on', '>=', $date)))
+            ->where(fn (Builder $schedule): Builder => $schedule
+                ->whereDate('effective_from', '>', $date)
+                ->orWhereHas('academicYear', fn (Builder $academicYear): Builder => $academicYear
+                    ->whereDate('starts_on', '>', $date)));
+    }
+
+    /** @param Builder<TeacherAssignment> $query */
+    public function scopeEndedOn(Builder $query, CarbonInterface|string $date): Builder
+    {
+        return $query->where(fn (Builder $ended): Builder => $ended
+            ->whereDate('effective_until', '<', $date)
+            ->orWhereHas('academicYear', fn (Builder $academicYear): Builder => $academicYear
+                ->whereDate('ends_on', '<', $date)));
+    }
+
+    public function statusOn(CarbonInterface|string $date): string
+    {
+        $on = CarbonImmutable::parse($date)->startOfDay();
+
+        if ($this->effective_until?->lt($on) || $this->academicYear?->ends_on?->lt($on)) {
+            return self::STATUS_ENDED;
+        }
+
+        if ($this->effective_from->gt($on) || $this->academicYear?->starts_on?->gt($on)) {
+            return self::STATUS_SCHEDULED;
+        }
+
+        return self::STATUS_ACTIVE;
     }
 
     /** @return array<string, string> */

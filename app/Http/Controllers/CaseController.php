@@ -87,9 +87,10 @@ class CaseController extends Controller
         $user = $request->user();
         abort_unless($user->can('create', BkCase::class), 403);
 
-        $students = Student::query()
+        $accessibleStudents = Student::query()
             ->active()
-            ->forActiveTeacherAssignment($user, now())
+            ->forActiveTeacherAssignment($user, now());
+        $students = (clone $accessibleStudents)
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
                 ->effectiveOn(now()->toDateString())
@@ -101,7 +102,13 @@ class CaseController extends Controller
             'students' => $students,
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
-            'etatibRecords' => ExternalTatibRecord::query()->active()->latest('occurred_at')->limit(200)->get(),
+            'etatibRecords' => ExternalTatibRecord::query()
+                ->active()
+                ->where(fn ($records) => $records
+                    ->whereIn('student_id', (clone $accessibleStudents)->select('students.id'))
+                    ->orWhereNull('student_id'))
+                ->latest('occurred_at')
+                ->get(),
             'preselectedStudentId' => $request->integer('student_id') ?: null,
         ]);
     }

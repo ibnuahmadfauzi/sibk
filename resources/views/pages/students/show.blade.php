@@ -4,7 +4,6 @@
 
 @section('body')
     @php
-        $currentMembership = $memberships->first(fn ($membership) => $membership->is_active && $membership->effective_from->lte(today()) && ($membership->effective_until === null || $membership->effective_until->gte(today())));
         $initials = collect(explode(' ', $student->name))->filter()->take(2)->map(fn ($word) => mb_substr($word, 0, 1))->join('');
     @endphp
     <div class="sibk-dashboard" data-page-id="PG-202">

@@ -58,6 +58,11 @@ class StudentController extends Controller
         $user = $request->user();
         abort_unless($user->can('view', $student), 403);
         $student->load(['classMemberships.classroom.academicYear']);
+        $currentMembership = $student->classMemberships()
+            ->activeOn(now()->toDateString())
+            ->with(['classroom', 'academicYear'])
+            ->latest('effective_from')
+            ->first();
 
         $activeTab = $request->string('tab', 'ringkasan')->toString();
         $allowedTabs = ['ringkasan', 'kasus', 'etatib', 'konsultasi', 'prestasi'];
@@ -111,6 +116,7 @@ class StudentController extends Controller
             'etatibRecords' => $etatibRecords,
             'consultations' => $consultations,
             'memberships' => $student->classMemberships->sortByDesc('effective_from'),
+            'currentMembership' => $currentMembership,
             'stats' => [
                 'active_cases' => $cases->whereNull('closed_at')->count(),
                 'points' => $etatibRecords->sum('points'),

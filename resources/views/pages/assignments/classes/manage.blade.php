@@ -30,8 +30,27 @@
             </div>
         @endif
 
+        <div class="sibk-panel mb-4">
+            <div class="sibk-panel__body p-4">
+                <form action="{{ route('assignments.classes.manage') }}" method="GET" class="row g-3 align-items-end">
+                    <div class="col-12 col-md-8">
+                        <label for="filter_tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran</label>
+                        <select class="form-select sibk-form-select" id="filter_tahun_ajaran" name="academic_year_id" required>
+                            @foreach($academicYears as $year)
+                                <option value="{{ $year->id }}" @selected((string) $selectedYear?->id === (string) $year->id)>{{ $year->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <button type="submit" class="btn btn-outline-primary w-100">Tampilkan Kelas</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <form action="{{ route('assignments.classes.store') }}" method="POST">
             @csrf
+            <input type="hidden" name="academic_year_id" value="{{ old('academic_year_id', $selectedYear?->id) }}">
             <!-- Main Panel: Detail Penugasan -->
             <div class="sibk-panel mb-4">
                 <div class="sibk-panel__header p-4 border-0 pb-0">
@@ -52,12 +71,8 @@
                             </select>
                         </div>
                         <div class="col-12 col-md-4">
-                            <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran <span class="text-danger">*</span></label>
-                            <select class="form-select sibk-form-select" id="tahun_ajaran" name="academic_year_id" required>
-                                @foreach($academicYears as $year)
-                                    <option value="{{ $year->id }}" @selected((string) old('academic_year_id', $selectedYear?->id) === (string) $year->id)>{{ $year->name }}</option>
-                                @endforeach
-                            </select>
+                            <label for="tahun_ajaran_terpilih" class="form-label sibk-form-label">Tahun Ajaran Terpilih</label>
+                            <input class="form-control sibk-form-control" id="tahun_ajaran_terpilih" value="{{ $selectedYear?->name ?? 'Tidak tersedia' }}" readonly>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="counselor" class="form-label sibk-form-label">Penanggung Jawab <span class="text-danger">*</span></label>
@@ -109,11 +124,19 @@
                 <div class="sibk-panel__header p-4 border-0 pb-0">
                     <div>
                         <h3 class="sibk-panel__title mb-1">Penugasan Saat Ini</h3>
-                        <p class="sibk-panel__subtitle text-muted small">Periksa kondisi aktif sebelum menyimpan perubahan.</p>
+                        <p class="sibk-panel__subtitle text-muted small">Periksa penugasan aktif atau terjadwal sebelum menyimpan perubahan.</p>
                     </div>
                 </div>
                 <div class="sibk-panel__body p-4 pt-2">
                     @if($currentAssignment)
+                    @php
+                        $currentAssignmentStatus = $currentAssignment->statusOn(now());
+                        [$currentAssignmentLabel, $currentAssignmentTone] = match ($currentAssignmentStatus) {
+                            \App\Models\TeacherAssignment::STATUS_ACTIVE => ['Aktif', 'success'],
+                            \App\Models\TeacherAssignment::STATUS_SCHEDULED => ['Terjadwal', 'info'],
+                            default => ['Berakhir', 'neutral'],
+                        };
+                    @endphp
                     <div class="sibk-target-highlight-box p-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-2">
                             <strong class="text-dark">{{ $currentAssignment->classroom->name }}</strong>
@@ -122,10 +145,10 @@
                             <span class="text-muted">•</span>
                             <span class="text-muted small">Berlaku sejak {{ $currentAssignment->effective_from->locale('id')->translatedFormat('d F Y') }}</span>
                         </div>
-                        <span class="sibk-badge sibk-badge--success">Aktif</span>
+                        <span class="sibk-badge sibk-badge--{{ $currentAssignmentTone }}">{{ $currentAssignmentLabel }}</span>
                     </div>
                     @else
-                        <div class="text-muted small">Belum ada penugasan aktif untuk kelas yang dipilih.</div>
+                        <div class="text-muted small">Belum ada penugasan aktif atau terjadwal untuk kelas yang dipilih.</div>
                     @endif
                 </div>
             </div>

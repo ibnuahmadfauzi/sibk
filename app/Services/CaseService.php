@@ -60,10 +60,14 @@ class CaseService
             $etatibRecords = ExternalTatibRecord::query()
                 ->active()
                 ->whereIn('id', $etatibIds)
+                ->when(
+                    $student !== null,
+                    fn ($records) => $records->where('student_id', $student->getKey()),
+                    fn ($records) => $records->whereNull('student_id')->where('nisn', $nisn),
+                )
                 ->get();
 
-            if ($etatibRecords->count() !== count(array_unique($etatibIds))
-                || $etatibRecords->contains(fn (ExternalTatibRecord $record): bool => $record->nisn !== $nisn)) {
+            if ($etatibRecords->count() !== count(array_unique($etatibIds))) {
                 throw ValidationException::withMessages([
                     'etatib_record_ids' => 'Data e-Tatib tidak tersedia atau tidak sesuai dengan NISN murid.',
                 ]);

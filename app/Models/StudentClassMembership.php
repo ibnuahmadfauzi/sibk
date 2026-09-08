@@ -54,6 +54,12 @@ class StudentClassMembership extends Model
         return $query->where('is_active', true);
     }
 
+    /** @param Builder<StudentClassMembership> $query */
+    public function scopeActiveOn(Builder $query, CarbonInterface|string $date): Builder
+    {
+        return $query->active()->effectiveOn($date);
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
