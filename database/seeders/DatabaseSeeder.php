@@ -19,7 +19,10 @@ class DatabaseSeeder extends Seeder
         $this->call([RoleSeeder::class, ReferenceSeeder::class]);
 
         if (app()->environment(['local', 'testing'])) {
-            $this->call(AccountSeeder::class);
+            $this->call([
+                AccountSeeder::class,
+                StudentSeeder::class,
+            ]);
         }
     }
 }
