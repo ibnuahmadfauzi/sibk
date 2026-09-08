@@ -105,7 +105,14 @@
 
                 <div class="mb-3">
                     <label class="form-label" for="identifier">Email</label>
-                    <div class="input-group has-validation">
+                    <div class="input-group <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> <?php if($message !== 'Email atau kata sandi tidak sesuai.'): ?> is-invalid <?php endif; ?> <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>">
                         <span class="input-group-text" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
                         </span>
@@ -113,20 +120,40 @@
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
 if ($__bag->has($__errorArgs[0])) :
 if (isset($message)) { $__messageOriginal = $message; }
-$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+$message = $__bag->first($__errorArgs[0]); ?> <?php if($message !== 'Email atau kata sandi tidak sesuai.'): ?> is-invalid <?php endif; ?> <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" id="identifier" name="email" type="email" required
                             autocomplete="username" spellcheck="false"
                             value="<?php echo e(old('email')); ?>" placeholder="Masukkan email akun"
                             aria-describedby="identifierError">
-                        <div class="invalid-feedback" id="identifierError"><?php echo e($errors->first('email', 'Email wajib diisi.')); ?></div>
                     </div>
+                    <?php $__errorArgs = ['email'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <?php if($message !== 'Email atau kata sandi tidak sesuai.'): ?>
+                            <div class="invalid-feedback d-block" id="identifierError"><?php echo e($message); ?></div>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="invalid-feedback" id="identifierError">Email wajib diisi.</div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label" for="password">Kata sandi</label>
-                    <div class="input-group has-validation">
+                    <div class="input-group <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?> <?php if($errors->first('email') === 'Email atau kata sandi tidak sesuai.'): ?> is-invalid <?php endif; ?>">
                         <span class="input-group-text" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         </span>
@@ -137,15 +164,26 @@ if (isset($message)) { $__messageOriginal = $message; }
 $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
-unset($__errorArgs, $__bag); ?>" id="password" name="password" type="password" required
+unset($__errorArgs, $__bag); ?> <?php if($errors->first('email') === 'Email atau kata sandi tidak sesuai.'): ?> is-invalid <?php endif; ?>" id="password" name="password" type="password" required
                             autocomplete="current-password" placeholder="Masukkan kata sandi"
                             aria-describedby="passwordError">
                         <button class="btn sibk-password-toggle" id="togglePassword" type="button"
                             aria-label="Tampilkan kata sandi" aria-pressed="false">
                             <svg id="passwordVisibilityIcon" aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
                         </button>
-                        <div class="invalid-feedback" id="passwordError">Kata sandi wajib diisi.</div>
                     </div>
+                    <?php $__errorArgs = ['password'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback d-block" id="passwordError"><?php echo e($message); ?></div>
+                    <?php else: ?>
+                        <div class="invalid-feedback" id="passwordError">Kata sandi wajib diisi.</div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                 </div>
 
                 <button class="btn btn-primary sibk-auth-submit w-100" id="loginButton" type="submit">
