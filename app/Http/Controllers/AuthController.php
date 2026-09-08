@@ -38,7 +38,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
-                'email' => 'Email atau kata sandi tidak sesuai.',
+                'credentials' => 'Email atau kata sandi tidak sesuai.',
             ]);
         }
 

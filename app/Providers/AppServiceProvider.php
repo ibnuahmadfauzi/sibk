@@ -25,6 +25,7 @@ use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserNotificationPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Achievement::class, AchievementPolicy::class);
         Gate::policy(TeacherAssignment::class, TeacherAssignmentPolicy::class);

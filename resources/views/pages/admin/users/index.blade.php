@@ -167,7 +167,7 @@
                     @endforelse
                 </div>
 
-                <div class="mt-4">{{ $users->links() }}</div>
+                @if($users->hasPages())<div class="mt-4">{{ $users->links() }}</div>@endif
             </div>
         </div>
     </div>

@@ -17,6 +17,15 @@ const eyeClosed = '<path d="M4 4l16 16M9.5 6.4A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 
 function setFieldValidity(field, valid) {
     field.classList.toggle('is-invalid', !valid);
     field.setAttribute('aria-invalid', String(!valid));
+    const group = field.closest('.input-group');
+    if (group) {
+        group.classList.toggle('is-invalid', !valid);
+    }
+    const container = field.closest('.mb-3, .mb-4');
+    const feedback = container?.querySelector('.invalid-feedback');
+    if (feedback) {
+        feedback.classList.toggle('d-block', !valid);
+    }
 }
 
 function hideMessages() {

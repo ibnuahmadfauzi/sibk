@@ -209,6 +209,68 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseCount('case_assignments', 3);
     }
 
+    public function test_academic_year_rollover_does_not_transfer_active_case_ownership_automatically(): void
+    {
+        $this->travelTo('2026-08-20 08:00:00');
+        [$oldTeacher, $student] = $this->teacherAndScopedStudent();
+        $newTeacher = $this->userWithRole('guru_bk');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $case = $this->createCase($oldTeacher, $student, 'Catatan tetap milik penanggung jawab kasus.');
+        $newYear = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'is_active' => true,
+        ]);
+        $newClass = Classroom::query()->create([
+            'academic_year_id' => $newYear->id,
+            'name' => 'XI RPL 1',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $newClass->id,
+            'academic_year_id' => $newYear->id,
+            'effective_from' => '2027-07-01',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $newTeacher->id,
+            'classroom_id' => $newClass->id,
+            'academic_year_id' => $newYear->id,
+            'effective_from' => '2027-07-01',
+            'decision_number' => 'SK-GURU-BK-2027',
+            'assigned_by' => $coordinator->id,
+        ]);
+
+        $this->travelTo('2027-07-01 08:00:00');
+
+        $this->assertTrue($oldTeacher->can('update', $case));
+        $this->assertTrue($newTeacher->can('view', $case));
+        $this->assertFalse($newTeacher->can('update', $case));
+        $this->assertDatabaseCount('case_assignments', 1);
+
+        app(AssignmentService::class)->assignCase($case, [
+            'assignment_type' => 'transfer',
+            'to_user_id' => $newTeacher->id,
+            'reason' => 'Alih tanggung jawab setelah pergantian tahun ajaran.',
+            'effective_date' => '2027-07-01',
+        ], $coordinator);
+
+        $this->assertFalse($oldTeacher->can('update', $case));
+        $this->assertTrue($newTeacher->can('update', $case));
+        $this->assertDatabaseHas('case_assignments', [
+            'case_id' => $case->id,
+            'user_id' => $oldTeacher->id,
+            'effective_until' => '2027-06-30 00:00:00',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'case.transferred',
+            'auditable_id' => $case->id,
+        ]);
+        $this->assertDatabaseCount('case_assignments', 2);
+    }
+
     public function test_resolution_keeps_history_and_blocks_further_mutation_or_transfer(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();

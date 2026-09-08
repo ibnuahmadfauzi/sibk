@@ -187,6 +187,79 @@ class AssignmentManagementTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_academic_year_rollover_moves_class_scope_without_extending_open_ended_old_periods(): void
+    {
+        [$oldYear, $oldClass] = $this->masterContext();
+        $oldYear->update(['is_active' => false]);
+        $newYear = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'is_active' => true,
+        ]);
+        $newClass = Classroom::query()->create([
+            'academic_year_id' => $newYear->id,
+            'name' => 'XI RPL 1',
+            'is_active' => true,
+        ]);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $oldTeacher = $this->userWithRole('guru_bk');
+        $newTeacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Murid Naik Kelas',
+            'is_active' => true,
+        ]);
+
+        foreach ([
+            [$oldYear, $oldClass, '2026-07-01'],
+            [$newYear, $newClass, '2027-07-01'],
+        ] as [$year, $classroom, $effectiveFrom]) {
+            StudentClassMembership::query()->create([
+                'student_id' => $student->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id,
+                'effective_from' => $effectiveFrom,
+                'effective_until' => null,
+                'is_active' => true,
+            ]);
+        }
+
+        foreach ([
+            [$oldTeacher, $oldYear, $oldClass, '2026-07-01', 'SK-2026'],
+            [$newTeacher, $newYear, $newClass, '2027-07-01', 'SK-2027'],
+        ] as [$teacher, $year, $classroom, $effectiveFrom, $decisionNumber]) {
+            TeacherAssignment::query()->create([
+                'user_id' => $teacher->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id,
+                'effective_from' => $effectiveFrom,
+                'effective_until' => null,
+                'decision_number' => $decisionNumber,
+                'assigned_by' => $coordinator->id,
+            ]);
+        }
+
+        $this->assertTrue(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-06-30')->whereKey($student)->exists());
+        $this->assertFalse(Student::query()->forActiveTeacherAssignment($newTeacher, '2027-06-30')->whereKey($student)->exists());
+        $this->assertFalse(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-07-01')->whereKey($student)->exists());
+        $this->assertTrue(Student::query()->forActiveTeacherAssignment($newTeacher, '2027-07-01')->whereKey($student)->exists());
+
+        $this->assertFalse($oldTeacher->teacherAssignments()->effectiveOn('2027-07-01')->exists());
+        $this->assertFalse($student->classMemberships()->whereKey(
+            $student->classMemberships()->oldest('effective_from')->value('id'),
+        )->effectiveOn('2027-07-01')->exists());
+        $this->assertSame(2, $student->classMemberships()->count());
+        $this->assertSame(2, TeacherAssignment::query()->count());
+
+        $this->travelTo('2027-07-01 08:00:00');
+        $this->actingAs($oldTeacher)->get(route('students.show', $student))->assertForbidden();
+        $this->actingAs($newTeacher)->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee('XI RPL 1')
+            ->assertSee('X RPL 1');
+    }
+
     /** @return array{AcademicYear, Classroom} */
     private function masterContext(): array
     {

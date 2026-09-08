@@ -42,7 +42,7 @@ class AuthenticationTest extends TestCase
         $this->from('/login')->post('/login', [
             'email' => $user->email,
             'password' => 'incorrect-password',
-        ])->assertRedirect('/login')->assertSessionHasErrors('email');
+        ])->assertRedirect('/login')->assertSessionHasErrors('credentials');
 
         $this->assertGuest();
         $this->assertSame(0, AuditLog::query()->count());
@@ -55,7 +55,7 @@ class AuthenticationTest extends TestCase
         $this->from('/login')->post('/login', [
             'email' => $user->email,
             'password' => 'password',
-        ])->assertRedirect('/login')->assertSessionHasErrors('email');
+        ])->assertRedirect('/login')->assertSessionHasErrors('credentials');
 
         $this->actingAs($user)
             ->get('/dashboard')

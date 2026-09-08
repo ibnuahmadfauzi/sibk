@@ -47,28 +47,30 @@
                             </div>
                         </div>
 
-                        <div class="sibk-account-details">
-                            <div class="sibk-account-details__item">
-                                <span class="sibk-account-details__label">Peran</span>
-                                <span class="sibk-account-details__value">{{ implode(', ', $account['roles']) ?: 'Belum memiliki peran' }}</span>
-                            </div>
-                            <div class="sibk-account-details__item">
-                                <span class="sibk-account-details__label">Email</span>
-                                <span class="sibk-account-details__value">{{ $account['email'] }}</span>
-                            </div>
-                            <div class="sibk-account-details__item">
-                                <span class="sibk-account-details__label">Status akun</span>
-                                <span class="sibk-account-details__value">{{ $account['status'] }}</span>
-                            </div>
-                            <div class="sibk-account-details__item">
-                                <span class="sibk-account-details__label">Login terakhir</span>
-                                <span class="sibk-account-details__value">{{ $account['last_login_at']?->locale('id')->translatedFormat('d F Y H.i') ?? 'Belum tercatat' }}</span>
-                            </div>
-                            <div class="sibk-account-details__item">
-                                <span class="sibk-account-details__label">Tahun ajaran aktif</span>
-                                <span class="sibk-account-details__value">{{ $account['academic_year'] }}</span>
-                            </div>
-                        </div>
+                        <table class="table sibk-account-table mb-0">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Peran</th>
+                                    <td>{{ implode(', ', $account['roles']) ?: 'Belum memiliki peran' }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Email</th>
+                                    <td>{{ $account['email'] }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Status akun</th>
+                                    <td><span class="sibk-badge {{ $account['status'] === 'Aktif' ? 'sibk-badge--success' : 'sibk-badge--warning' }}">{{ $account['status'] }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Login terakhir</th>
+                                    <td>{{ $account['last_login_at']?->locale('id')->translatedFormat('d F Y H.i') ?? 'Belum tercatat' }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Tahun ajaran aktif</th>
+                                    <td>{{ $account['academic_year'] }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

@@ -69,6 +69,7 @@ class Student extends Model
                     $join->on('assignments.classroom_id', '=', 'memberships.classroom_id')
                         ->on('assignments.academic_year_id', '=', 'memberships.academic_year_id');
                 })
+                ->join('academic_years as years', 'years.id', '=', 'memberships.academic_year_id')
                 ->whereColumn('memberships.student_id', 'students.id')
                 ->where('memberships.is_active', true)
                 ->where('assignments.user_id', $teacher->getKey())
@@ -82,6 +83,14 @@ class Student extends Model
                 ->where(function ($period) use ($date): void {
                     $period->whereNull('assignments.effective_until')
                         ->orWhereDate('assignments.effective_until', '>=', $date);
+                })
+                ->where(function ($period) use ($date): void {
+                    $period->whereNull('years.starts_on')
+                        ->orWhereDate('years.starts_on', '<=', $date);
+                })
+                ->where(function ($period) use ($date): void {
+                    $period->whereNull('years.ends_on')
+                        ->orWhereDate('years.ends_on', '>=', $date);
                 });
         });
     }

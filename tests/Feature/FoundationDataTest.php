@@ -15,6 +15,7 @@ use App\Models\User;
 use Database\Seeders\AccountSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
+use Database\Seeders\StudentSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
 use Tests\TestCase;
@@ -75,6 +76,60 @@ class FoundationDataTest extends TestCase
 
         $this->assertSame(1, $student->classMemberships()->effectiveOn('2026-08-20')->count());
         $this->assertSame(0, $student->classMemberships()->effectiveOn('2027-01-01')->count());
+    }
+
+    public function test_demo_student_seeder_is_idempotent(): void
+    {
+        $this->seed(StudentSeeder::class);
+        $firstStudentIds = Student::query()
+            ->where('dapodik_id', 'like', 'SEED-STUDENT-%')
+            ->orderBy('dapodik_id')
+            ->pluck('id')
+            ->all();
+        $firstMembershipIds = StudentClassMembership::query()
+            ->where('dapodik_id', 'like', 'SEED-MEMBERSHIP-%')
+            ->orderBy('dapodik_id')
+            ->pluck('id')
+            ->all();
+
+        $this->seed(StudentSeeder::class);
+
+        $this->assertCount(35, $firstStudentIds);
+        $this->assertCount(35, $firstMembershipIds);
+        $this->assertSame(
+            $firstStudentIds,
+            Student::query()
+                ->where('dapodik_id', 'like', 'SEED-STUDENT-%')
+                ->orderBy('dapodik_id')
+                ->pluck('id')
+                ->all(),
+        );
+        $this->assertSame(
+            $firstMembershipIds,
+            StudentClassMembership::query()
+                ->where('dapodik_id', 'like', 'SEED-MEMBERSHIP-%')
+                ->orderBy('dapodik_id')
+                ->pluck('id')
+                ->all(),
+        );
+        $this->assertSame(6, Classroom::query()->where('dapodik_id', 'like', 'SEED-CLASS-%')->count());
+        $this->assertSame(1, AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->count());
+    }
+
+    public function test_demo_year_does_not_replace_an_official_active_year(): void
+    {
+        $official = AcademicYear::query()->create([
+            'dapodik_id' => 'OFFICIAL-2026',
+            'name' => '2026/2027',
+            'is_active' => true,
+        ]);
+
+        $this->seed(StudentSeeder::class);
+
+        $this->assertTrue($official->fresh()?->is_active);
+        $this->assertFalse(
+            AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->firstOrFail()->is_active,
+        );
     }
 
     public function test_audit_log_rejects_updates_and_deletes(): void

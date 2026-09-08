@@ -34,6 +34,8 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('name="email"', false)
             ->assertSee('autocomplete="username"', false)
             ->assertSee('autocomplete="current-password"', false)
+            ->assertSee('id="identifierError"', false)
+            ->assertSee('id="passwordError"', false)
             ->assertSee('action="'.route('login.store').'"', false);
     }
 

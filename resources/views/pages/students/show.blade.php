@@ -34,7 +34,7 @@
                 ['Tindak Lanjut', $stats['follow_ups'], 'info', 'Terjadwal'],
                 ['Prestasi', $stats['achievements'], 'secondary', 'Sesuai kewenangan'],
             ] as [$label, $value, $tone, $sub])
-                <div class="col-6 col-xl-3"><div class="sibk-stat-card p-3 border bg-white h-100"><div class="text-muted small">{{ $label }}</div><div class="fs-4 fw-bold text-{{ $tone }}">{{ $value }}</div><div class="small text-muted">{{ $sub }}</div></div></div>
+                <div class="col-6 col-xl-3"><div class="sibk-stat-card p-2 p-sm-3 border bg-white h-100"><div class="text-muted small text-truncate">{{ $label }}</div><div class="sibk-student-stat-value fw-bold text-{{ $tone }} my-1">{{ $value }}</div><div class="sibk-student-stat-sub text-muted">{{ $sub }}</div></div></div>
             @endforeach
         </div>
 

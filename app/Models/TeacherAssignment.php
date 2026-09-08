@@ -47,7 +47,14 @@ class TeacherAssignment extends Model
             ->whereDate('effective_from', '<=', $date)
             ->where(fn (Builder $period): Builder => $period
                 ->whereNull('effective_until')
-                ->orWhereDate('effective_until', '>=', $date));
+                ->orWhereDate('effective_until', '>=', $date))
+            ->whereHas('academicYear', fn (Builder $academicYear): Builder => $academicYear
+                ->where(fn (Builder $periodStart): Builder => $periodStart
+                    ->whereNull('starts_on')
+                    ->orWhereDate('starts_on', '<=', $date))
+                ->where(fn (Builder $periodEnd): Builder => $periodEnd
+                    ->whereNull('ends_on')
+                    ->orWhereDate('ends_on', '>=', $date)));
     }
 
     /** @return array<string, string> */
