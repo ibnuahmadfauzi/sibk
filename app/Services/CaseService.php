@@ -52,8 +52,8 @@ class CaseService
                 );
             }
 
-            $source = $this->reference('case_source', $data['case_source_id']);
-            $this->reference('service_field', $data['service_field_id']);
+            $source = $this->reference('case_source',(int) $data['case_source_id']);
+            $this->reference('service_field',(int) $data['service_field_id']);
             $status = $this->referenceByCode('case_status', 'baru');
             $nisn = $student?->nisn ?? $temporaryStudent?->nisn ?? '';
             $etatibIds = $data['etatib_record_ids'] ?? [];

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('source_status', 100)->nullable();
             $table->boolean('is_active')->default(true)->index();
             $table->timestamp('source_synced_at')->nullable();
-            $table->timestamp('synced_at');
+            $table->timestamp('synced_at')->useCurrent();
             $table->timestamps();
         });
 
