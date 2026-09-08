@@ -1,8 +1,6 @@
-@extends('layouts.app-2')
+<?php $__env->startSection('page-title', 'Akun Saya - Ruang BK'); ?>
 
-@section('page-title', 'Akun Saya - Ruang BK')
-
-@section('body')
+<?php $__env->startSection('body'); ?>
     <div class="sibk-dashboard">
         <!-- Header -->
         <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
@@ -10,9 +8,9 @@
                 <h1>Akun Saya</h1>
                 <p>Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
             </div>
-            @can('manageDataMaster')
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('manageDataMaster')): ?>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+                    <a href="<?php echo e(route('admin.users.index')); ?>" class="btn btn-primary d-inline-flex align-items-center gap-2">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -20,7 +18,7 @@
                         Kelola Akun
                     </a>
                 </div>
-            @endcan
+            <?php endif; ?>
         </div>
 
 
@@ -42,8 +40,8 @@
                                 </svg>
                             </div>
                             <div class="sibk-account-profile__info">
-                                <h4 class="sibk-account-profile__name">{{ $account['name'] }}</h4>
-                                <p class="sibk-account-profile__email">{{ $account['email'] }}</p>
+                                <h4 class="sibk-account-profile__name"><?php echo e($account['name']); ?></h4>
+                                <p class="sibk-account-profile__email"><?php echo e($account['email']); ?></p>
                             </div>
                         </div>
 
@@ -51,23 +49,23 @@
                             <tbody>
                                 <tr>
                                     <th scope="row">Peran</th>
-                                    <td>{{ implode(', ', $account['roles']) ?: 'Belum memiliki peran' }}</td>
+                                    <td><?php echo e(implode(', ', $account['roles']) ?: 'Belum memiliki peran'); ?></td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Email</th>
-                                    <td>{{ $account['email'] }}</td>
+                                    <td><?php echo e($account['email']); ?></td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Status akun</th>
-                                    <td><span class="sibk-badge {{ $account['status'] === 'Aktif' ? 'sibk-badge--success' : 'sibk-badge--warning' }}">{{ $account['status'] }}</span></td>
+                                    <td><span class="sibk-badge <?php echo e($account['status'] === 'Aktif' ? 'sibk-badge--success' : 'sibk-badge--warning'); ?>"><?php echo e($account['status']); ?></span></td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Login terakhir</th>
-                                    <td>{{ $account['last_login_at']?->locale('id')->translatedFormat('d F Y H.i') ?? 'Belum tercatat' }}</td>
+                                    <td><?php echo e($account['last_login_at']?->locale('id')->translatedFormat('d F Y H.i') ?? 'Belum tercatat'); ?></td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Tahun ajaran aktif</th>
-                                    <td>{{ $account['academic_year'] }}</td>
+                                    <td><?php echo e($account['academic_year']); ?></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -97,8 +95,8 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
+                        <form action="<?php echo e(route('logout')); ?>" method="POST">
+                            <?php echo csrf_field(); ?>
                             <button type="submit" class="btn w-100 sibk-btn-logout">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -121,4 +119,6 @@
             </div>
         </div>
     </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app-2', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\Projects\PPG\sibk\resources\views/pages/account/index.blade.php ENDPATH**/ ?>
