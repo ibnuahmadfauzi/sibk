@@ -30,7 +30,7 @@ Page `21 — Wireframe Low-Fidelity Final` adalah artefak proses desain dan buka
 
 - Plan `docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md` telah disetujui pengguna untuk implementasi bertahap pada 8 September 2026 di branch `integrasi-api-plan`.
 - Pada awal sesi kerja baru, setiap agent/model AI harus membaca plan tersebut secara lengkap dan melanjutkan dari task/verification gate terakhir; persetujuan tidak perlu diminta ulang selama scope Fase A tidak berubah.
-- Gunakan workflow dan sub-skill yang diwajibkan pada header plan, kerjakan Task 0–Task 8 secara berurutan, dan selesaikan verification gate setiap task sebelum berpindah.
+- Gunakan workflow dan sub-skill yang diwajibkan pada header plan, kerjakan Task 0–Task 12 secara berurutan, dan selesaikan verification gate setiap task sebelum berpindah.
 - Adapter production nyata Dapodik/e-Tatib tetap di luar scope. Jangan membuatnya sebelum kontrak provider tersedia dan lolos contract admission gate.
 - Perluasan scope, perubahan arsitektur material, atau tindakan eksternal/destruktif tetap memerlukan persetujuan baru.
 

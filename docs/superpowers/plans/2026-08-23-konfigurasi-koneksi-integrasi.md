@@ -1,14 +1,14 @@
 # Fondasi Konfigurasi Koneksi Dapodik & e-Tatib Implementation Plan
 
-> **Status: DISETUJUI UNTUK IMPLEMENTASI BERTAHAP PADA 8 SEPTEMBER 2026.** Persetujuan mencakup fondasi Fase A pada branch `integrasi-api-plan`; adapter production nyata tetap di luar scope sampai kontrak provider diterima dan lolos admission gate. Pada 9 September 2026 pengguna menetapkan bahwa baseline v1.1 cukup dalam Markdown dan halaman pengaturan koneksi diimplementasikan langsung tanpa artefak Penpot baru.
+> **Status: DISETUJUI UNTUK IMPLEMENTASI BERTAHAP PADA 8 SEPTEMBER 2026.** Persetujuan mencakup fondasi Fase A pada branch `integrasi-api-plan`; adapter production nyata tetap di luar scope sampai kontrak provider diterima dan lolos admission gate. Pada 9 September 2026 pengguna menetapkan bahwa baseline v1.1 cukup dalam Markdown dan halaman pengaturan koneksi diimplementasikan langsung tanpa artefak Penpot baru. Pada tanggal yang sama, pengguna menyetujui perluasan scope untuk menangani keterlambatan data Dapodik tahun ajaran baru selama 2–3 bulan melalui data persiapan sementara yang kemudian dicocokkan dengan Dapodik tanpa menggandakan atau menimpa histori BK.
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Execution gate:** Selesaikan dan verifikasi satu task sebelum berpindah ke task berikutnya. Driver production tetap `unavailable` pada seluruh task plan ini.
 
-**Goal:** Menyediakan konfigurasi URL dan credential Dapodik/e-Tatib melalui UI Admin IT dengan alur Simpan → Uji → Aktifkan, tanpa menebak kontrak API dan tanpa membahayakan data lama.
+**Goal:** Menyediakan konfigurasi URL dan credential Dapodik/e-Tatib melalui UI Admin IT dengan alur Simpan → Uji → Aktifkan, sekaligus memastikan layanan BK tetap berjalan ketika data Dapodik tahun ajaran baru terlambat, tanpa menebak kontrak API dan tanpa membahayakan data lama.
 
-**Architecture:** Frontend hanya mengelola konfigurasi dan memicu tindakan. Backend menyimpan credential terenkripsi, mengendalikan state konfigurasi, dan kelak menjalankan adapter provider yang memetakan payload resmi ke `DapodikSnapshot` atau `EtatibSnapshot`. Fase ini mempertahankan driver production sebagai `unavailable`; adapter HTTP nyata dibuat melalui plan terpisah setelah kontrak provider tersedia.
+**Architecture:** Frontend hanya mengelola konfigurasi dan memicu tindakan. Backend menyimpan credential terenkripsi, mengendalikan state konfigurasi, dan kelak menjalankan adapter provider yang memetakan payload resmi ke `DapodikSnapshot` atau `EtatibSnapshot`. Bila Dapodik terlambat, Admin IT menyiapkan tahun ajaran, rombel, dan daftar minimum NISN–nama secara sementara; Koordinator BK mengaktifkan penggunaan operasional setelah penugasan diperiksa. Snapshot Dapodik yang datang kemudian selalu melalui pratinjau pencocokan dan konfirmasi Admin IT. Fase ini mempertahankan driver production sebagai `unavailable`; adapter HTTP nyata dibuat melalui plan terpisah setelah kontrak provider tersedia.
 
 **Tech Stack:** PHP 8.3, Laravel 13.23, Eloquent, Laravel Crypt/encrypted cast, Laravel HTTP Client untuk adapter fase berikutnya, Blade, Bootstrap 5.3, SCSS existing design system, PHPUnit 12.5.
 
@@ -18,7 +18,7 @@
 
 - Pertahankan PRD/SRS v1.0 sebagai arsip; jangan mengubah atau menghapusnya.
 - Semua PHP baru memakai `declare(strict_types=1);`.
-- Hanya Admin IT aktif melalui Gate `manageDataMaster` yang boleh mengakses UI dan aksi konfigurasi integrasi pada Task 1–Task 8. Task 0 tetap mengikuti capability domain kasus/penugasan/murid yang sudah ditetapkan AUTH-01–AUTH-07.
+- Hanya Admin IT aktif melalui Gate `manageDataMaster` yang boleh mengakses UI dan aksi konfigurasi integrasi, persiapan data sementara, impor daftar, pratinjau Dapodik, dan penerapan hasil pencocokan. Task 0 tetap mengikuti capability domain kasus/penugasan/murid yang sudah ditetapkan AUTH-01–AUTH-07. Aktivasi operasional tahun ajaran tetap menjadi kewenangan Koordinator BK aktif.
 - Frontend tidak pernah menghubungi Dapodik/e-Tatib secara langsung.
 - Credential tidak boleh muncul pada HTML, JSON, session old input, audit, log, exception, atau response eksternal.
 - Jangan menyimpan raw payload API pada tabel murid/e-Tatib.
@@ -30,6 +30,10 @@
 - Endpoint outbound wajib fail-closed terhadap redirect, user-info, DNS rebinding, alamat metadata/link-local, origin drift, proxy tak tepercaya, dan TLS invalid. Akses jaringan privat hanya boleh melalui origin deployment yang ditulis eksplisit.
 - Sebelum adapter production dibuat, kontrak wajib menetapkan ukuran maksimum respons/page, pagination, timeout, retry/backoff, rate limit, concurrency, dan kebutuhan queue.
 - Halaman pengaturan koneksi dibuat langsung dengan komponen, token, dan pola layout yang sudah ada; hierarki informasi mengutamakan keamanan, kepraktisan, dan kenyamanan Admin IT tanpa membuat desain Penpot baru.
+- Data persiapan sementara tidak boleh ditampilkan sebagai data resmi Dapodik, tidak boleh dikirim kembali ke Dapodik/e-Tatib, dan hanya memuat field minimum NISN, nama, rombel, periode, serta dasar resmi sekolah. Tingkat dan jurusan boleh tetap kosong sampai sumber resmi tersedia.
+- Asal data (`school_provisional`, `dapodik`, atau `legacy_unclassified`) dipisahkan dari status penggunaan operasional tahun ajaran. Sinkronisasi Dapodik tidak boleh mengaktifkan atau mengganti tahun ajaran aktif secara otomatis.
+- Pencocokan murid hanya otomatis melalui NISN exact. Nama tidak boleh menjadi kunci identitas. Konflik tahun ajaran, rombel, NISN, atau kepemilikan source ID ditahan untuk Admin IT.
+- Penerapan hasil Dapodik menautkan source ID dan memperbarui field resmi pada baris yang telah dicocokkan; kasus, konsultasi, prestasi, penugasan, dan histori BK tidak dipindahkan atau dibuat ulang.
 - Gunakan istilah `murid` pada UI.
 
 ---
@@ -121,6 +125,33 @@ POST  /data-master/integrations/{provider}/deactivate
 ```
 
 `{provider}` hanya menerima `dapodik|etatib`. Route sinkronisasi lama tetap dipertahankan.
+
+### Keadaan data ketika Dapodik terlambat
+
+Status asal data dan status pemakaian harus dibaca sebagai dua hal berbeda:
+
+| Keadaan | Arti |
+|---|---|
+| `school_provisional` | Data minimum disiapkan di Ruang BK berdasarkan daftar resmi sekolah, tetapi belum dicocokkan dengan Dapodik. |
+| `dapodik` | Data telah dicocokkan dengan snapshot Dapodik yang sah dan memiliki identitas sumber. |
+| `legacy_unclassified` | Data lama tanpa identitas Dapodik yang asalnya belum dapat dibuktikan; tidak boleh otomatis dianggap data persiapan baru. |
+| `is_active = false` | Tahun ajaran masih disiapkan atau sudah ditutup; belum menjadi konteks kerja saat ini. |
+| `is_active = true` | Tahun ajaran telah diaktifkan Koordinator BK sebagai konteks kerja saat ini. |
+
+Aturan alur keterlambatan:
+
+1. Admin IT membuat tahun ajaran sementara berdasarkan kalender pendidikan, SK, atau dasar resmi sekolah. Tahun ajaran baru selalu dibuat belum aktif.
+2. Admin IT mengimpor CSV UTF-8 dengan header exact `nisn,nama,rombel`. Berkas maksimum 2 MiB, diproses atomik, tidak disimpan setelah request, dan satu NISN hanya boleh muncul sekali dalam satu file.
+3. Murid yang NISN-nya sudah tersedia memakai baris yang sama. Murid yang belum tersedia dibuat pada cache operasional dengan `master_source=school_provisional`, tanpa `dapodik_id`. Nama resmi yang sudah terverifikasi tidak boleh ditimpa oleh CSV.
+4. Rombel dan keanggotaan hasil impor juga memakai `master_source=school_provisional`. Impor hanya menambah atau memperbarui baris yang disebutkan dan tidak menonaktifkan baris yang tidak ada di file.
+5. Koordinator BK memeriksa rombel dan penugasan Guru BK. Aktivasi hanya boleh dilakukan bila setiap rombel aktif memiliki penugasan yang mencakup tanggal mulai tahun ajaran. Aktivasi menonaktifkan tahun ajaran lama secara operasional tetapi tidak menghapus histori.
+6. Guru BK memperoleh scope murid dari keanggotaan dan penugasan yang sama setelah tahun ajaran aktif, terlepas dari asal `school_provisional` atau `dapodik`. Semua tampilan data sementara wajib memiliki penanda yang jelas.
+7. Tarik data Dapodik membuat pratinjau terkontrol dan belum mengubah cache operasional. Admin IT melihat data cocok, baru, berubah, dan konflik sebelum menerapkan hasil.
+8. NISN exact dapat dicocokkan otomatis. Tahun ajaran dan rombel hanya dicocokkan otomatis bila pasangan identitasnya unik; pilihan yang meragukan wajib diputuskan Admin IT.
+9. Penerapan hasil dilakukan dalam satu transaksi. Baris sementara yang cocok memperoleh `dapodik_id`, field resmi, `master_source=dapodik`, waktu konfirmasi sumber, dan audit nilai lama/baru. Relasi serta histori BK tetap memakai ID internal yang sama.
+10. Snapshot penuh hanya boleh menonaktifkan baris yang sebelumnya sudah `master_source=dapodik`. Data `school_provisional` atau `legacy_unclassified` yang belum cocok tetap ditahan untuk pemeriksaan dan tidak boleh hilang otomatis.
+11. Nilai `is_active` tahun ajaran dari provider tidak pernah mengaktifkan tahun ajaran Ruang BK. Aktivasi operasional hanya dilakukan Koordinator BK.
+12. e-Tatib tetap hanya-baca dan menautkan record melalui NISN exact. Keterlambatan verifikasi Dapodik tidak memberi hak menulis ke e-Tatib atau Dapodik.
 
 ---
 
@@ -264,7 +295,7 @@ Arahkan `AGENTS.md` dan `requirements-index.md` ke v1.1, tetapi tetap dokumentas
 
 - [x] **Step 6: Catat keputusan implementasi UI langsung**
 
-Dokumentasikan bahwa halaman pengaturan koneksi akan dibuat pada Task 6 menggunakan komponen dan style aplikasi yang sudah ada. Tidak ada artefak Penpot baru yang wajib dibuat untuk halaman ini.
+Dokumentasikan bahwa halaman pengaturan koneksi akan dibuat pada Task 9 menggunakan komponen dan style aplikasi yang sudah ada. Tidak ada artefak Penpot baru yang wajib dibuat untuk halaman ini.
 
 - [x] **Step 7: Verifikasi Markdown v1.1 memiliki heading, requirement ID, dan version history yang lengkap**
 
@@ -390,7 +421,7 @@ php artisan test --filter IntegrationSettingTest
 
 - [x] **Step 6a: Verifikasi migration pada SQLite dan MySQL disposable**
 
-Jalankan migration pada database SQLite test serta database MySQL disposable yang tervalidasi bukan shared/production. Bila MySQL disposable belum tersedia, hentikan Task 2 pada verification gate; jangan menunda kompatibilitas migration sampai Task 8 dan jangan memakai `migrate:fresh`, reset, atau rollback pada database shared.
+Jalankan migration pada database SQLite test serta database MySQL disposable yang tervalidasi bukan shared/production. Bila MySQL disposable belum tersedia, hentikan Task 2 pada verification gate; jangan menunda kompatibilitas migration sampai Task 12 dan jangan memakai `migrate:fresh`, reset, atau rollback pada database shared.
 
 - [x] **Step 7: Commit**
 
@@ -486,7 +517,189 @@ git commit -m "feat: gate integration drivers with deployment policy"
 
 ---
 
-## Task 4: Deep Module Konfigurasi, Audit, dan Concurrency
+## Task 4: Baseline Keterlambatan Dapodik
+
+**Files:**
+
+- Create: `CONTEXT.md`
+- Create: `docs/adr/0001-separate-data-verification-from-operational-activation.md`
+- Modify: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
+- Modify: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
+- Modify: `docs/requirements-index.md`
+- Modify: `docs/api-contract.md`
+- Modify: `AGENTS.md`
+
+- [ ] **Step 1: Tetapkan istilah yang tidak tumpang tindih**
+
+Catat istilah `data persiapan sementara`, `terverifikasi Dapodik`, `aktivasi operasional`, dan `pratinjau pencocokan`. Hindari menyebut data persiapan sebagai data resmi atau master alternatif.
+
+- [ ] **Step 2: Tambahkan keputusan produk ke PRD v1.1**
+
+Dokumentasikan masalah keterlambatan 2–3 bulan, pembagian tanggung jawab Admin IT/Koordinator/Guru BK, penanda data sementara, impor daftar minimum, penggunaan langsung untuk layanan BK, pratinjau sebelum penerapan Dapodik, dan jaminan histori BK tidak ditimpa. Tegaskan tidak ada write-back ke Dapodik/e-Tatib.
+
+- [ ] **Step 3: Tambahkan requirement MD-05 sampai MD-12 dan NFR-13 ke SRS v1.1**
+
+Requirement mencakup pembuatan tahun ajaran sementara oleh Admin IT berdasarkan dasar resmi sekolah, impor minimum, pemisahan status asal dan status aktif, aktivasi oleh Koordinator setelah penugasan lengkap, scope Guru BK pada data sementara, pratinjau/konfirmasi Dapodik, pencocokan NISN exact, penahanan konflik, pemeliharaan ID internal/histori, serta validasi dan pemrosesan impor secara atomik.
+
+- [ ] **Step 4: Perbarui kontrak endpoint dan Service Layer**
+
+Kontrak web minimum:
+
+```text
+POST /data-master/academic-years
+POST /data-master/academic-years/{academicYear}/roster-imports
+POST /assignments/academic-years/{academicYear}/activate
+POST /data-master/dapodik/sync
+GET  /data-master/dapodik/previews/{syncRun}
+PATCH /data-master/dapodik/previews/{syncRun}/items/{item}
+POST /data-master/dapodik/previews/{syncRun}/apply
+```
+
+`POST /data-master/dapodik/sync` kelak hanya mengambil, memvalidasi, dan menyiapkan pratinjau. Cache operasional baru berubah pada endpoint `apply` setelah konfirmasi Admin IT.
+
+- [ ] **Step 5: Catat keputusan arsitektur**
+
+Status verifikasi sumber dipisahkan dari `is_active` operasional. Data sementara memakai ID internal yang sama dan diubah menjadi terverifikasi dengan menempelkan identitas sumber setelah pencocokan, sehingga seluruh relasi BK tetap utuh.
+
+- [ ] **Step 6: Verifikasi dokumen**
+
+```bash
+rg "MD-05|MD-12|NFR-13|data persiapan sementara|pratinjau pencocokan" CONTEXT.md AGENTS.md docs/requirements docs/api-contract.md
+git diff --check
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add CONTEXT.md AGENTS.md docs/adr docs/requirements docs/requirements-index.md docs/api-contract.md docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md
+git commit -m "docs: define delayed Dapodik fallback workflow"
+```
+
+---
+
+## Task 5: Penyimpanan dan Aturan Data Persiapan
+
+**Files:**
+
+- Create: `database/migrations/2026_09_09_000100_add_master_source_to_dapodik_cache.php`
+- Modify: `app/Models/AcademicYear.php`
+- Modify: `app/Models/Classroom.php`
+- Modify: `app/Models/Student.php`
+- Modify: `app/Models/StudentClassMembership.php`
+- Create: `app/Services/AcademicYearPreparationService.php`
+- Create: `app/Services/ProvisionalRosterCsvParser.php`
+- Create: `app/Services/ProvisionalRosterImportResult.php`
+- Test: `tests/Feature/DelayedDapodikPreparationTest.php`
+
+- [ ] **Step 1: Tulis failing tests domain persiapan**
+
+Uji pembuatan tahun ajaran belum aktif, nama/periode unik, dasar resmi wajib, penanda `school_provisional`, pemisahan asal data dari `is_active`, backfill data lama yang aman, exact-NISN terhadap Student `dapodik` dan `legacy_unclassified` tanpa reklasifikasi/putus relasi BK, duplicate local NISN yang gagal tertutup, dan audit tersanitasi. Uji bahwa Admin IT tidak dapat mengaktifkan tahun ajaran melalui module ini.
+
+- [ ] **Step 2: Tambahkan status verifikasi secara additive**
+
+Tambahkan `master_source` (`school_provisional|dapodik|legacy_unclassified`) dan `source_confirmed_at` pada `academic_years`, `classrooms`, `students`, dan `student_class_memberships`. Backfill baris lama yang memiliki `dapodik_id` menjadi `dapodik` dan baris tanpa identitas sumber menjadi `legacy_unclassified`; tidak ada baris lama yang otomatis dianggap persiapan baru. Tambahkan `prepared_by`, `preparation_reference`, `activated_by`, serta `activated_at` pada tahun ajaran. Jangan gunakan enum/check database agar SQLite dan MySQL konsisten. Migrasi lama tidak diubah.
+
+- [ ] **Step 3: Implementasikan module persiapan tahun ajaran**
+
+Interface publik minimum:
+
+```php
+public function prepareAcademicYear(array $data, User $actor): AcademicYear;
+public function importRoster(AcademicYear $academicYear, UploadedFile $file, User $actor): ProvisionalRosterImportResult;
+public function activate(AcademicYear $academicYear, User $actor): AcademicYear;
+```
+
+`prepareAcademicYear` dan `importRoster` hanya menerima Admin IT aktif. `activate` hanya menerima Koordinator BK aktif. Pemeriksaan dilakukan kembali pada Service Layer, bukan hanya controller/policy.
+
+- [ ] **Step 4: Implementasikan parser CSV ketat**
+
+Terima hanya CSV UTF-8 maksimum 2 MiB dengan header exact `nisn,nama,rombel`. NISN wajib 10 digit; nama dan rombel wajib. Tolak BOM selain UTF-8, baris ekstra/tidak lengkap, NISN duplikat, formula/control character pada field teks, jumlah baris melebihi 5.000, dan file yang tidak dapat diparse. Jangan menyimpan file mentah.
+
+- [ ] **Step 5: Import atomik dan idempotent**
+
+Validasi seluruh file sebelum transaksi. Pencocokan murid mensyaratkan satu NISN exact dan tepat satu kandidat lokal; nol kandidat membuat `Student` baru berstatus `school_provisional`, sedangkan lebih dari satu kandidat ditolak sebagai konflik walaupun database normalnya memiliki unique constraint. Jika `Student` sudah ada—baik `dapodik`, `legacy_unclassified`, maupun `school_provisional`—impor tidak mengubah nama, `dapodik_id`, `master_source`, atau field konfirmasi sumbernya; impor hanya menambah keanggotaan persiapan pada ID internal yang sama. Aturan yang sama mempertahankan provenance tahun/rombel yang sudah ada. Buat atau perbarui hanya baris baru yang memang berasal dari daftar persiapan tanpa menonaktifkan data lain. Pasangan tahun–rombel wajib konsisten. Impor persiapan hanya boleh dilakukan ketika tahun belum aktif. Semua hasil dan perubahan dicatat pada audit tanpa isi file mentah.
+
+- [ ] **Step 6: Aktivasi operasional yang aman**
+
+Koordinator hanya dapat mengaktifkan tahun ajaran bila tanggal lengkap, terdapat rombel dan murid aktif, serta setiap rombel memiliki tepat satu penugasan Guru BK yang mencakup tanggal mulai tahun ajaran. Aktivasi menutup `is_active` tahun ajaran lain, tidak menghapus histori, dan tidak mengubah `master_source`. Scope Guru BK wajib memeriksa `academic_years.is_active=true`, sehingga penugasan yang disiapkan lebih awal belum membuka akses murid sebelum aktivasi.
+
+- [ ] **Step 7: Verifikasi migration dan test**
+
+```bash
+php artisan test --filter DelayedDapodikPreparationTest
+php artisan test --filter AssignmentManagementTest
+php vendor/bin/pint --test
+git diff --check
+```
+
+Jalankan migration additive pada SQLite test dan MySQL disposable yang telah divalidasi sebagai database uji. Jangan memakai `migrate:fresh`, rollback, atau reset pada database shared.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add database/migrations app/Models app/Services tests/Feature/DelayedDapodikPreparationTest.php
+git commit -m "feat: prepare provisional academic year data"
+```
+
+---
+
+## Task 6: Halaman Persiapan Tahun Ajaran
+
+**Files:**
+
+- Create: `app/Http/Requests/Admin/StoreProvisionalAcademicYearRequest.php`
+- Create: `app/Http/Requests/Admin/ImportProvisionalRosterRequest.php`
+- Create: `app/Http/Controllers/Admin/AcademicYearPreparationController.php`
+- Create: `app/Http/Controllers/AcademicYearActivationController.php`
+- Modify: `app/Http/Controllers/Admin/DataMasterController.php`
+- Modify: `app/Http/Controllers/AssignmentController.php`
+- Modify: `routes/web.php`
+- Create: `resources/views/pages/data-master/_academic-year-preparation.blade.php`
+- Modify: `resources/views/pages/data-master/index.blade.php`
+- Modify: `resources/views/pages/assignments/classes/manage.blade.php`
+- Extend: `tests/Feature/DelayedDapodikPreparationTest.php`
+- Extend: `tests/Feature/AuthorizationMatrixTest.php`
+- Extend: `tests/Feature/FrontendPreviewTest.php`
+
+- [ ] **Step 1: Tulis failing authorization dan validation tests**
+
+Uji guest, Guru BK, Koordinator, Waka, Admin IT nonaktif, dan Admin IT aktif pada create/import. Uji aktivasi hanya untuk Koordinator aktif. Direct request dengan role salah, tahun lain, pasangan tahun–rombel palsu, file terlalu besar, atau field invalid harus ditolak server.
+
+- [ ] **Step 2: Tambahkan alur Admin IT pada Data Master**
+
+Susun section dengan pola `sibk-panel`: status tahun ajaran → buat tahun sementara → impor daftar → ringkasan isi dan penanda Sementara/Terverifikasi Dapodik. Form tidak memakai JavaScript baru dan tidak menampilkan isi file setelah validation error.
+
+- [ ] **Step 3: Tambahkan alur Koordinator pada Penugasan**
+
+Tampilkan penanda status sumber, daftar kesiapan rombel, penugasan yang belum lengkap, serta tombol `Aktifkan Tahun Ajaran` hanya ketika prasyarat domain terpenuhi. Controller tetap tipis dan Service mengulang seluruh pemeriksaan.
+
+- [ ] **Step 4: Pastikan Guru BK langsung memperoleh scope**
+
+Sebelum aktivasi, penugasan yang masih disiapkan tidak boleh membuka pencarian, profil, atau aksi layanan murid kepada Guru BK. Setelah Koordinator mengaktifkan dan penugasan efektif, murid hasil impor muncul pada pencarian/form Guru BK yang ditugaskan dan tetap ditolak bagi Guru BK kelas lain. Uji aksi Service/endpoint sebenarnya—bukan hanya tampilan—untuk membuat, membaca, dan memperbarui kasus serta konsultasi, dan membuat prestasi: Guru yang ditugaskan berhasil hanya setelah aktivasi; sebelum aktivasi dan untuk kelas lain harus ditolak. Penanda Sementara tampil pada daftar, profil, dan form tanpa mengubah aturan akses atau memperluas akses Waka/Admin IT ke isi layanan BK.
+
+- [ ] **Step 5: Jalankan verification**
+
+```bash
+php artisan test --filter DelayedDapodikPreparationTest
+php artisan test --filter AuthorizationMatrixTest
+php artisan test --filter CaseManagementTest
+php artisan test --filter ConsultationManagementTest
+php artisan test --filter AchievementManagementTest
+npm run check:frontend
+npm run build
+git diff --check
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/Http routes/web.php resources/views tests/Feature
+git commit -m "feat: add provisional academic year workflow"
+```
+
+---
+
+## Task 7: Deep Module Konfigurasi, Audit, dan Concurrency
 
 **Files:**
 
@@ -561,7 +774,7 @@ git commit -m "feat: add audited integration configuration lifecycle"
 
 ---
 
-## Task 5: Admin Endpoints dan Secret-Safe Validation
+## Task 8: Admin Endpoints dan Secret-Safe Validation
 
 **Files:**
 
@@ -640,7 +853,7 @@ git commit -m "feat: expose admin integration configuration workflow"
 
 ---
 
-## Task 6: Halaman Pengaturan Koneksi
+## Task 9: Halaman Pengaturan Koneksi
 
 **Files:**
 
@@ -652,7 +865,7 @@ git commit -m "feat: expose admin integration configuration workflow"
 
 - [ ] **Step 1: Tulis failing view tests**
 
-Uji dua panel Admin IT, redaksi secret, pemisahan error, ID/label/ARIA unik, disabled sync button, fail-safe direct POST selama driver masih `unavailable`, serta pemisahan state koneksi dan data freshness. Guard penuh konfigurasi/version/fencing untuk direct POST diselesaikan dan diuji kembali pada Task 7.
+Uji dua panel Admin IT, redaksi secret, pemisahan error, ID/label/ARIA unik, disabled sync button, fail-safe direct POST selama driver masih `unavailable`, serta pemisahan state koneksi dan data freshness. Guard penuh konfigurasi/version/fencing untuk direct POST diselesaikan dan diuji kembali pada Task 10.
 
 - [ ] **Step 2: Tambahkan section setelah status sinkronisasi dan sebelum tabel log**
 
@@ -695,7 +908,7 @@ git commit -m "feat: add secure integration settings to data master"
 
 ---
 
-## Task 7: Guarded Connector dan Sinkronisasi Terkunci
+## Task 10: Guarded Connector dan Sinkronisasi Terkunci
 
 **Files:**
 
@@ -714,7 +927,7 @@ git commit -m "feat: add secure integration settings to data master"
 
 - [ ] **Step 1: Tulis failing guard tests**
 
-Uji sync tanpa konfigurasi aktif, stale verification, unavailable driver, duplicate sync, config change during operation, invalid/oversized snapshot, Dapodik source-ID collision lintas tahun ajaran, safe failed run/audit, dan data lama tetap aktif.
+Uji configured connector tanpa konfigurasi aktif, stale verification, unavailable driver, config change selama fetch, invalid/oversized snapshot, Dapodik source-ID collision lintas tahun ajaran, safe failure/audit, direct POST Dapodik yang masih gagal tertutup, dan data lama tetap aktif. Uji duplicate apply, expiry, serta state pratinjau baru ditambahkan pada Task 11 setelah module tersebut tersedia.
 
 - [ ] **Step 2: Implementasikan configured connector**
 
@@ -752,11 +965,11 @@ Validator harus executable dan berjalan sebelum transaksi import. Ia memeriksa e
 
 - [ ] **Step 3: Bind connector domain ke configured connector**
 
-Driver internal tetap `unavailable`, sehingga tidak ada outbound production pada fase ini.
+Driver internal tetap `unavailable`, sehingga tidak ada outbound production pada fase ini. Hasil Dapodik kelak diteruskan ke module pratinjau pada Task 11, bukan langsung ke transaksi import. Sampai Task 11 selesai, direct POST Dapodik tetap gagal tertutup. e-Tatib tetap memakai alur sinkronisasi tervalidasi karena tidak mengubah status tahun ajaran/rombel.
 
-- [ ] **Step 4: Gunakan operation lock sepanjang sinkronisasi**
+- [ ] **Step 4: Sediakan operation lock untuk seluruh operasi provider**
 
-Lock/fencing context meliputi fetch, validation, import, reconciliation, status run, dan audit. Service harus memverifikasi fencing token di dalam transaksi sebelum mutasi cache; cache lease yang kedaluwarsa tidak boleh membuat proses lama tetap berhak menulis.
+Lock/fencing context pada task ini meliputi fetch, validation, import e-Tatib, status run, dan audit. Configured Dapodik connector menghasilkan snapshot tervalidasi, tetapi belum memiliki endpoint yang mengimpor atau membuat preview. Interface operation context harus dapat dipakai Task 11 untuk memperluas cakupan ke pembuatan pratinjau, penerapan, rekonsiliasi, dan audit. Service memverifikasi fencing token di dalam transaksi sebelum setiap mutasi; cache lease yang kedaluwarsa tidak boleh membuat proses lama tetap berhak menulis.
 
 - [ ] **Step 5: Perlakukan configuration/busy exception sebagai expected integration failure**
 
@@ -768,6 +981,7 @@ Jangan `report()` expected failure dan jangan tampilkan secret/raw response.
 
 ```bash
 php artisan test tests/Feature/DapodikSyncTest.php
+php artisan test --filter DelayedDapodikPreparationTest
 php artisan test tests/Feature/EtatibSyncTest.php
 php artisan test --filter IntegrationSettingTest
 ```
@@ -781,7 +995,75 @@ git commit -m "feat: enforce verified integration settings during sync"
 
 ---
 
-## Task 8: Contract Admission, Dokumentasi Operasional, dan Release Gate
+## Task 11: Pratinjau dan Penerapan Dapodik
+
+**Files:**
+
+- Create: `database/migrations/2026_09_09_000200_create_dapodik_sync_preview_items.php`
+- Create: `app/Models/DapodikSyncPreviewItem.php`
+- Create: `app/Services/DapodikReconciliationService.php`
+- Create: `app/Http/Requests/Admin/MapDapodikPreviewItemRequest.php`
+- Create: `app/Http/Controllers/Admin/DapodikReconciliationController.php`
+- Modify: `app/Services/DapodikSyncService.php`
+- Modify: `app/Services/StudentIdentityService.php`
+- Modify: `app/Services/EtatibSyncService.php`
+- Modify: `app/Models/ExternalSyncRun.php`
+- Modify: `app/Http/Controllers/Admin/DataMasterController.php`
+- Modify: `routes/web.php`
+- Create: `resources/views/pages/data-master/dapodik-preview.blade.php`
+- Extend: `tests/Feature/DapodikSyncTest.php`
+- Extend: `tests/Feature/DelayedDapodikPreparationTest.php`
+- Extend: `tests/Feature/EtatibSyncTest.php`
+
+- [ ] **Step 1: Tulis failing tests pratinjau tanpa mutasi**
+
+Uji bahwa snapshot hanya dapat diambil melalui configured connector, validator, dan operation lock Task 10. Hasilnya hanya membuat run serta item pratinjau ter-normalisasi; cache tahun, rombel, murid, keanggotaan, penugasan, dan data BK belum berubah sebelum Admin IT menerapkan hasil. Driver `unavailable`, konfigurasi tidak aktif, atau lock sibuk harus gagal tertutup tanpa membuat pratinjau palsu.
+
+- [ ] **Step 2: Buat pratinjau immutable dan klasifikasi pencocokan**
+
+Setiap item memiliki salah satu hasil aman: `exact_match`, `new_record`, `changed`, `needs_mapping`, atau `conflict`. `exact_match` murid hanya sah bila satu NISN valid muncul tepat sekali pada snapshot dan menghasilkan tepat satu kandidat `Student` lokal. Nol kandidat menjadi `new_record`; lebih dari satu kandidat atau konflik NISN/source ID menjadi `conflict` dan tidak dapat dipaksa melalui UI. Pertahankan unique constraint NISN dan tambahkan pemeriksaan aplikasi untuk data historis yang rusak.
+
+Simpan hanya field snapshot internal minimum yang sudah divalidasi, bukan body mentah. Run menyimpan fingerprint seluruh snapshot, nomor generasi, configuration version, driver ID, adapter version, contract version, endpoint-policy digest, waktu kedaluwarsa, dan waktu apply. Item menyimpan jenis entitas, source ID, kandidat ID internal, status, field aman, hash item ter-normalisasi, generasi preview, decision revision, keputusan Admin IT, dan waktu keputusan.
+
+- [ ] **Step 3: Sediakan pemetaan manual terbatas**
+
+Admin IT dapat memilih kandidat tahun/rombel `school_provisional` yang belum dikonfirmasi atau memilih membuat baris resmi baru. Kandidat wajib berada pada konteks tahun yang benar. Murid tidak dapat dipetakan berdasarkan nama. Konflik NISN/source ID tidak dapat dipaksa melalui UI. Pembuatan ulang preview menaikkan generasi, membatalkan keputusan lama, dan dicatat pada audit.
+
+- [ ] **Step 4: Terapkan hasil secara atomik setelah konfirmasi**
+
+Kunci run dan seluruh baris target. Tolak run yang bukan milik Dapodik, sudah diterapkan, kedaluwarsa, bukan generasi terbaru, belum lengkap, masih memiliki konflik, atau konfigurasi/policy/fencing/fingerprint/hash item/decision revision/row target telah berubah. Tempelkan `dapodik_id`, field resmi, `master_source=dapodik`, `source_confirmed_at`, dan `synced_at` pada ID internal yang sama. Nama sementara yang berubah disimpan pada audit. Jangan mengubah `is_active` tahun ajaran.
+
+- [ ] **Step 5: Lindungi provenance dan data yang belum cocok**
+
+Impor roster maupun apply tidak pernah mengubah `master_source` Student `dapodik` atau `legacy_unclassified` menjadi `school_provisional`. Snapshot penuh hanya menonaktifkan record `master_source=dapodik` yang terbukti hilang. Record `school_provisional` atau `legacy_unclassified` yang belum cocok tetap aktif sesuai keputusan operasional dan muncul sebagai masalah yang perlu diperiksa. Gagal atau rollback mempertahankan cache lama dan histori BK.
+
+- [ ] **Step 6: Pertahankan penautan identitas dan e-Tatib**
+
+Identitas kasus sementara dan record e-Tatib dicocokkan kembali melalui NISN exact setelah penerapan. Pesan UI membedakan `belum terverifikasi Dapodik` dari `NISN tidak ditemukan`; tidak ada write-back ke provider. Test harus membuktikan `students.id` dan seluruh foreign key kasus, konsultasi, tindak lanjut, prestasi, serta penugasan tetap sama sebelum/sesudah apply.
+
+- [ ] **Step 7: Jalankan verification**
+
+```bash
+php artisan test tests/Feature/DapodikSyncTest.php
+php artisan test --filter DelayedDapodikPreparationTest
+php artisan test tests/Feature/EtatibSyncTest.php
+php artisan test --filter CaseManagementTest
+php artisan test --filter ConsultationManagementTest
+php artisan test --filter AssignmentManagementTest
+php vendor/bin/pint --test
+git diff --check
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add database/migrations app/Models app/Services app/Http routes/web.php resources/views/pages/data-master tests/Feature
+git commit -m "feat: reconcile provisional data with Dapodik preview"
+```
+
+---
+
+## Task 12: Contract Admission, Dokumentasi Operasional, dan Release Gate
 
 **Files:**
 
@@ -802,7 +1084,7 @@ Dapodik full snapshot tanpa tahun ajaran atau murid wajib ditolak. e-Tatib full 
 
 - [ ] **Step 3: Dokumentasikan deployment**
 
-Deploy Fase A dengan driver `unavailable`, isi exact origins dan kebijakan jaringan privat, cache config, simpan konfigurasi, verifikasi audit/redaksi/no-store/security headers, dan jangan aktifkan sebelum adapter resmi. Dokumentasikan `APP_PREVIOUS_KEYS` untuk rotasi key serta prosedur rotasi/revokasi credential sumber.
+Deploy Fase A dengan driver `unavailable`, isi exact origins dan kebijakan jaringan privat, cache config, simpan konfigurasi, verifikasi audit/redaksi/no-store/security headers, dan jangan aktifkan sebelum adapter resmi. Dokumentasikan `APP_PREVIOUS_KEYS` untuk rotasi key serta prosedur rotasi/revokasi credential sumber. Tambahkan panduan awam untuk menyiapkan tahun ajaran sementara, mengimpor daftar, melengkapi penugasan, mengaktifkan operasional, dan kelak memeriksa pratinjau Dapodik.
 
 - [ ] **Step 4: Jalankan final automated verification**
 
@@ -829,6 +1111,10 @@ Jalankan pada SQLite test dan database MySQL disposable. Jangan memakai `migrate
 - Token tidak muncul di HTML, session, audit, log, atau database plaintext.
 - Test/aktivasi menampilkan `Adapter belum tersedia`.
 - Tombol sync disabled dan direct POST gagal aman.
+- Admin IT dapat menyiapkan tahun ajaran dan mengimpor daftar sementara meskipun driver Dapodik belum tersedia.
+- Koordinator dapat melihat kekurangan penugasan dan mengaktifkan tahun ajaran setelah seluruh syarat terpenuhi.
+- Murid sementara hanya tampil untuk Guru BK yang mendapat kelasnya dan seluruh tampilan memberi penanda `Sementara`.
+- Pratinjau Dapodik tidak mengubah data; apply mempertahankan ID internal, penugasan, dan histori BK.
 - Data lama tidak berubah.
 - Desktop/tablet/ponsel konsisten dengan komponen dan style halaman aplikasi yang sudah ada, dengan hierarki informasi yang praktis dan nyaman digunakan.
 
@@ -855,6 +1141,10 @@ git commit -m "docs: document integration contract and deployment gates"
 | Test/sync bersamaan | Per-provider atomic lock dan version recheck |
 | Lease lock kedaluwarsa saat proses lama masih berjalan | Fencing token persisten, row-lock recheck sebelum write, dan hard operation deadline di bawah lease |
 | Malformed full snapshot menonaktifkan data | Validator snapshot executable dan fail-closed sebelum transaksi import |
+| Dapodik tahun baru terlambat 2–3 bulan | Admin IT menyiapkan data minimum berstatus sementara; Koordinator mengaktifkan setelah penugasan lengkap |
+| Data sementara dianggap resmi | Badge/status asal data wajib pada data master, penugasan, pencarian, dan profil murid |
+| Sinkronisasi menggandakan murid/rombel | Pratinjau dan konfirmasi; NISN exact; pemetaan tahun/rombel terbatas; tempel source ID pada ID internal yang sama |
+| Dapodik mengganti tahun aktif tanpa keputusan sekolah | Status verifikasi dipisahkan dari aktivasi operasional; `is_active` tahun ajaran tidak diambil dari snapshot |
 | API mengirim banyak field | Ambil field yang dibutuhkan; jangan menyimpan raw payload |
 | APP_KEY berubah | `APP_PREVIOUS_KEYS`; unreadable credential memblokir outbound |
 | Duplicate-click atau penyalahgunaan test | Lock dan rate limit lima uji/menit/user/provider |
@@ -866,5 +1156,8 @@ git commit -m "docs: document integration contract and deployment gates"
 - API key/token adalah credential UI awal; schema terenkripsi berbentuk array agar autentikasi resmi dapat dikembangkan tanpa mengekspos secret.
 - Tidak ada adapter HTTP nyata atau dummy production dalam fase ini.
 - Fake connector tetap hanya untuk automated tests.
+- Daftar persiapan sementara berasal dari dokumen/daftar resmi internal sekolah dan bukan hasil input bebas Guru BK.
+- Impor data sementara bersifat menambah atau memperbarui baris yang disebutkan; baris yang tidak ada pada file tidak dinonaktifkan otomatis.
+- Aktivasi operasional tahun ajaran adalah keputusan Koordinator BK dan tetap terpisah dari verifikasi Dapodik.
 - PRD/SRS v1.1 menjadi source of truth baru setelah Task 1 selesai; v1.0 tetap dipertahankan sebagai arsip.
 - Eksekusi direkomendasikan memakai subagent-driven development dengan review requirement, security, dan test pada setiap task.
