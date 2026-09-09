@@ -456,7 +456,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
             100,
         );
         $apiKey = $data['api_key'] ?? '';
-        if (! is_string($apiKey)) {
+        if (! is_string($apiKey) || mb_strlen($apiKey) > 1000) {
             throw new IntegrationConfigurationException('invalid_configuration');
         }
         $replaceCredentials = $apiKey !== '';
@@ -469,7 +469,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
             throw new IntegrationConfigurationException('invalid_configuration');
         }
         $timeout = filter_var($data['timeout_seconds'] ?? 30, FILTER_VALIDATE_INT);
-        if (! is_int($timeout) || $timeout < 1 || $timeout > IntegrationOperationLock::HARD_DEADLINE_SECONDS) {
+        if (! is_int($timeout) || $timeout < 5 || $timeout > 120) {
             throw new IntegrationConfigurationException('invalid_configuration');
         }
         if ($baseUrl !== null) {

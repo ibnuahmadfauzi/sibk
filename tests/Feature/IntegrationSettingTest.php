@@ -26,7 +26,11 @@ use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use JsonSerializable;
 use LogicException;
@@ -389,6 +393,80 @@ class IntegrationSettingTest extends TestCase
         );
         $limited->assertTooManyRequests();
         $this->assertStringContainsString('no-store', (string) $limited->headers->get('Cache-Control'));
+    }
+
+    public function test_integration_lifecycle_failure_responses_are_no_store_and_redact_debug_secrets(): void
+    {
+        config()->set('app.debug', true);
+        Route::post('/data-master/integrations/testing-csrf', static function (): never {
+            throw new TokenMismatchException;
+        });
+        Route::patch('/data-master/integrations/testing-failure', static function (Request $request): never {
+            throw new RuntimeException('Unexpected integration failure.', 0, new LogicException('Previous failure.'));
+        });
+
+        $secret = 'debug-token-'.Str::random(24);
+        $password = 'debug-password-'.Str::random(24);
+
+        $notFound = $this->post('/data-master/integrations/forged/test');
+        $notFound->assertNotFound();
+        $methodNotAllowed = $this->get('/data-master/integrations/dapodik/test');
+        $methodNotAllowed->assertStatus(405);
+        $csrf = $this->post('/data-master/integrations/testing-csrf');
+        $csrf->assertStatus(419);
+        $authentication = $this->post('/data-master/integrations/dapodik/test');
+        $authentication->assertRedirect(route('login'));
+
+        foreach ([$notFound, $methodNotAllowed, $csrf, $authentication] as $response) {
+            $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+        }
+
+        Log::spy();
+        $html = $this->patch('/data-master/integrations/testing-failure', [
+            'dapodik' => [
+                'api_key' => $secret,
+                'current_password' => $password,
+            ],
+        ]);
+        $html->assertStatus(500);
+        $this->assertStringContainsString('no-store', (string) $html->headers->get('Cache-Control'));
+        $this->assertStringNotContainsString($secret, $html->getContent());
+        $this->assertStringNotContainsString($password, $html->getContent());
+        Log::shouldNotHaveReceived('error');
+
+        $json = $this->patchJson('/data-master/integrations/testing-failure', [
+            'dapodik' => [
+                'api_key' => $secret,
+                'current_password' => $password,
+            ],
+        ]);
+        $json->assertStatus(500);
+        $this->assertStringContainsString('no-store', (string) $json->headers->get('Cache-Control'));
+        $this->assertStringNotContainsString($secret, $json->getContent());
+        $this->assertStringNotContainsString($password, $json->getContent());
+    }
+
+    public function test_service_rejects_task_eight_api_key_and_timeout_bounds_without_leaking_secret(): void
+    {
+        $admin = $this->admin();
+        $service = $this->service(new ConfigurableDapodikDriver);
+        $oversizedSecret = 'OVERSIZED-SECRET-'.str_repeat('x', 1000);
+
+        foreach ([
+            [...$this->completeData($oversizedSecret), 'timeout_seconds' => 30],
+            [...$this->completeData('safe-token'), 'timeout_seconds' => 4],
+            [...$this->completeData('safe-token'), 'timeout_seconds' => 121],
+        ] as $data) {
+            try {
+                $service->save('dapodik', $data, $admin);
+                $this->fail('Task 8 bounds must be enforced by the service.');
+            } catch (IntegrationConfigurationException $exception) {
+                $this->assertSame('invalid_configuration', $exception->resultCode());
+                $this->assertThrowableDoesNotExpose($exception, $oversizedSecret);
+            }
+        }
+
+        $this->assertSame(0, IntegrationSetting::query()->count());
     }
 
     public function test_runtime_configuration_redacts_debug_and_export_representations(): void
