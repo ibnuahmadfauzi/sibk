@@ -15,10 +15,18 @@ final class IntegrationDriverRegistry
     /**
      * @param  array<string, array<string, mixed>>|null  $configuration
      */
-    public function __construct(private readonly ?array $configuration = null) {}
+    public function __construct(
+        private readonly ?array $configuration = null,
+        private readonly ?DapodikDriver $dapodikDriver = null,
+        private readonly ?EtatibDriver $etatibDriver = null,
+    ) {}
 
     public function dapodik(): DapodikDriver
     {
+        if ($this->dapodikDriver !== null) {
+            return $this->dapodikDriver;
+        }
+
         return match ($this->driverName('dapodik')) {
             'unavailable' => new UnavailableDapodikDriver,
         };
@@ -26,6 +34,10 @@ final class IntegrationDriverRegistry
 
     public function etatib(): EtatibDriver
     {
+        if ($this->etatibDriver !== null) {
+            return $this->etatibDriver;
+        }
+
         return match ($this->driverName('etatib')) {
             'unavailable' => new UnavailableEtatibDriver,
         };

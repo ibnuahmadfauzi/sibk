@@ -22,6 +22,7 @@ final readonly class IntegrationSettingState
 
     public function __construct(
         public string $provider,
+        public string $label,
         public ?string $baseUrl,
         public ?string $expectedSourceIdentifier,
         public int $timeoutSeconds,
@@ -38,5 +39,9 @@ final readonly class IntegrationSettingState
         public ?string $lastTestCode,
         public ?CarbonImmutable $lastTestedAt,
         public bool $isEnabled,
+        public bool $adapterAvailable,
+        public bool $canTest,
+        public bool $canActivate,
+        public bool $canDeactivate,
     ) {}
 }

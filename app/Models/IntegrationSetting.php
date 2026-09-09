@@ -44,6 +44,10 @@ class IntegrationSetting extends Model
 
     public const string TEST_STATUS_UNTESTED = 'untested';
 
+    public const string TEST_STATUS_SUCCESS = 'success';
+
+    public const string TEST_STATUS_FAILED = 'failed';
+
     /** @return BelongsTo<User, $this> */
     public function lastTestedBy(): BelongsTo
     {
