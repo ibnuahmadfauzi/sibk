@@ -251,6 +251,146 @@ class IntegrationSettingTest extends TestCase
         $this->assertSame($expectedProbeProperties, $probeProperties);
     }
 
+    public function test_integration_endpoints_only_allow_active_admin_it(): void
+    {
+        $this->configureAllowedOrigins();
+        IntegrationSetting::query()->create(['provider' => IntegrationSetting::PROVIDER_DAPODIK]);
+
+        $routes = [
+            ['PATCH', 'data-master.integrations.update'],
+            ['POST', 'data-master.integrations.test'],
+            ['POST', 'data-master.integrations.activate'],
+            ['POST', 'data-master.integrations.deactivate'],
+        ];
+
+        foreach ($routes as [$method, $route]) {
+            $uri = route($route, ['provider' => 'dapodik']);
+            $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
+            $this->call($method, $uri, $payload)->assertRedirect(route('login'));
+        }
+
+        foreach (['guru_bk', 'koordinator_bk', 'waka_kesiswaan'] as $role) {
+            $actor = User::factory()->create();
+            $actor->roles()->attach(Role::query()->firstOrCreate(
+                ['slug' => $role],
+                ['name' => $role, 'is_active' => true],
+            ));
+
+            foreach ($routes as [$method, $route]) {
+                $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
+                $this->actingAs($actor)->call($method, route($route, ['provider' => 'dapodik']), $payload)
+                    ->assertForbidden();
+            }
+        }
+
+        $inactive = $this->admin();
+        $inactive->update(['is_active' => false, 'deactivated_at' => now()]);
+        foreach ($routes as [$method, $route]) {
+            $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
+            $this->actingAs($inactive)->call($method, route($route, ['provider' => 'dapodik']), $payload)
+                ->assertRedirect(route('login'));
+        }
+
+        $admin = $this->admin();
+        foreach ($routes as [$method, $route]) {
+            $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
+            $this->actingAs($admin)->call($method, route($route, ['provider' => 'dapodik']), $payload)
+                ->assertRedirect(route('data-master.index').'#integration-dapodik');
+        }
+    }
+
+    public function test_integration_http_validation_is_provider_scoped_and_never_flashes_secrets(): void
+    {
+        $this->configureAllowedOrigins();
+        IntegrationSetting::query()->create(['provider' => IntegrationSetting::PROVIDER_DAPODIK]);
+        $admin = $this->admin();
+        $secret = 'http-secret-token';
+        $password = 'password';
+
+        $response = $this->actingAs($admin)->patch(
+            route('data-master.integrations.update', ['provider' => 'dapodik']),
+            [
+                'dapodik' => [
+                    'base_url' => 'https://not-allowed.example.test',
+                    'expected_source_identifier' => 'school-01',
+                    'api_key' => $secret,
+                    'remove_api_key' => true,
+                    'timeout_seconds' => 121,
+                    'current_password' => $password,
+                ],
+                'etatib' => ['api_key' => $secret],
+            ],
+        );
+
+        $response->assertRedirect(route('data-master.index').'#integration-dapodik');
+        $response->assertSessionHasErrors([
+            'dapodik.base_url',
+            'dapodik.api_key',
+            'dapodik.timeout_seconds',
+            'etatib',
+        ]);
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+        $this->assertFalse(session()->has('_old_input.dapodik.api_key'));
+        $this->assertFalse(session()->has('_old_input.dapodik.current_password'));
+        $this->assertStringNotContainsString($secret, serialize(session()->all()));
+        $this->assertStringNotContainsString($password, serialize(session()->all()));
+
+        $jsonResponse = $this->actingAs($admin)->patchJson(
+            route('data-master.integrations.update', ['provider' => 'dapodik']),
+            $this->httpSettingPayload(['dapodik' => ['current_password' => 'wrong-password', 'api_key' => $secret]]),
+        );
+        $jsonResponse->assertUnprocessable();
+        $this->assertStringNotContainsString($secret, $jsonResponse->getContent());
+        $this->assertStringContainsString('no-store', (string) $jsonResponse->headers->get('Cache-Control'));
+
+        $this->actingAs($admin)->patch(
+            route('data-master.integrations.update', ['provider' => 'dapodik']),
+            $this->httpSettingPayload(['dapodik' => ['current_password' => 'wrong-password']]),
+        )->assertRedirect(route('data-master.index').'#integration-dapodik')
+            ->assertSessionHasErrors('dapodik.current_password');
+
+        $this->post(route('data-master.integrations.test', ['provider' => 'forged']), $this->httpActionPayload())
+            ->assertNotFound();
+    }
+
+    public function test_integration_actions_use_provider_limiter_and_no_store_responses(): void
+    {
+        $this->configureAllowedOrigins();
+        IntegrationSetting::query()->create([
+            'provider' => IntegrationSetting::PROVIDER_DAPODIK,
+            'base_url' => 'https://dapodik.example.test/api',
+            'expected_source_identifier' => 'school-01',
+            'credentials' => ['type' => 'api_token', 'token' => 'stored-http-secret'],
+        ]);
+        $admin = $this->admin();
+
+        $page = $this->actingAs($admin)->get(route('data-master.index'));
+        $page->assertOk();
+        $page->assertDontSee('stored-http-secret');
+        $this->assertStringContainsString('no-store', (string) $page->headers->get('Cache-Control'));
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $response = $this->actingAs($admin)->post(
+                route('data-master.integrations.test', ['provider' => 'dapodik']),
+                $this->httpActionPayload(),
+            );
+            $response->assertRedirect(route('data-master.index').'#integration-dapodik');
+            $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+            if ($attempt === 1) {
+                $response->assertSessionHasErrors([
+                    'integration' => 'Adapter integrasi belum tersedia.',
+                ]);
+            }
+        }
+
+        $limited = $this->actingAs($admin)->post(
+            route('data-master.integrations.test', ['provider' => 'dapodik']),
+            $this->httpActionPayload(),
+        );
+        $limited->assertTooManyRequests();
+        $this->assertStringContainsString('no-store', (string) $limited->headers->get('Cache-Control'));
+    }
+
     public function test_runtime_configuration_redacts_debug_and_export_representations(): void
     {
         $token = Str::random(64);
@@ -832,6 +972,29 @@ class IntegrationSettingTest extends TestCase
             'remove_api_key' => false,
             'timeout_seconds' => 30,
         ];
+    }
+
+    /** @param array<string, array<string, mixed>> $overrides */
+    private function httpSettingPayload(array $overrides = []): array
+    {
+        return array_replace_recursive([
+            'dapodik' => [
+                ...$this->completeData('http-secret-token'),
+                'current_password' => 'password',
+            ],
+        ], $overrides);
+    }
+
+    /** @return array<string, array<string, string>> */
+    private function httpActionPayload(): array
+    {
+        return ['dapodik' => ['current_password' => 'password']];
+    }
+
+    private function configureAllowedOrigins(): void
+    {
+        config()->set('sibk.integrations.dapodik.allowed_origins', ['https://dapodik.example.test']);
+        config()->set('sibk.integrations.etatib.allowed_origins', ['https://etatib.example.test']);
     }
 
     private function admin(): User

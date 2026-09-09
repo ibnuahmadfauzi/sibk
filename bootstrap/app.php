@@ -7,6 +7,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -23,6 +24,37 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash([
+            'dapodik.api_key',
+            'dapodik.current_password',
+            'etatib.api_key',
+            'etatib.current_password',
+        ]);
+        $exceptions->render(function (ValidationException $exception, Request $request) {
+            if (! $request->routeIs('data-master.integrations.*')) {
+                return null;
+            }
+
+            if ($request->expectsJson()) {
+                return response()
+                    ->json([
+                        'message' => 'Data konfigurasi koneksi tidak valid.',
+                        'errors' => $exception->errors(),
+                    ], 422)
+                    ->header('Cache-Control', 'no-store');
+            }
+
+            return redirect()
+                ->to(route('data-master.index').'#integration-'.(string) $request->route('provider'))
+                ->withInput($request->except([
+                    'dapodik.api_key',
+                    'dapodik.current_password',
+                    'etatib.api_key',
+                    'etatib.current_password',
+                ]))
+                ->withErrors($exception->errors(), $exception->errorBag)
+                ->header('Cache-Control', 'no-store');
+        });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool => $request->is('api/*') || $request->expectsJson(),
         );

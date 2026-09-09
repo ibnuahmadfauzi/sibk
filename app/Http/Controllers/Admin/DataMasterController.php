@@ -13,20 +13,21 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\DapodikSyncService;
 use App\Services\EtatibSyncService;
-use Illuminate\Contracts\View\View;
+use App\Services\IntegrationSettingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
 class DataMasterController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, IntegrationSettingService $integrationSettings): Response
     {
         $this->authorizeAdmin($request);
 
         $activeYear = AcademicYear::query()->active()->orderByDesc('starts_on')->first();
 
-        return view('pages.data-master.index', [
+        return response()->view('pages.data-master.index', [
             'lastDapodikRun' => ExternalSyncRun::query()->where('source', 'dapodik')->latest('started_at')->first(),
             'lastSuccessfulDapodikRun' => ExternalSyncRun::query()
                 ->where('source', 'dapodik')
@@ -60,7 +61,8 @@ class DataMasterController extends Controller
                 ->orderByDesc('starts_on')
                 ->orderByDesc('name')
                 ->get(),
-        ]);
+            'integrationStates' => $integrationSettings->allStates(),
+        ])->header('Cache-Control', 'no-store');
     }
 
     public function synchronize(Request $request, DapodikSyncService $syncService): RedirectResponse

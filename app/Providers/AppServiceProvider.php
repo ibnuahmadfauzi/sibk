@@ -25,8 +25,11 @@ use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserNotificationPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\View as BladeView;
@@ -48,6 +51,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+        RateLimiter::for('integration-test', static function (Request $request): Limit {
+            $userId = $request->user()?->getAuthIdentifier() ?? 'guest';
+            $provider = (string) $request->route('provider');
+
+            return Limit::perMinute(5)
+                ->by("{$userId}:{$provider}")
+                ->response(static fn () => response('Terlalu banyak permintaan.', 429)
+                    ->header('Cache-Control', 'no-store'));
+        });
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Achievement::class, AchievementPolicy::class);
         Gate::policy(TeacherAssignment::class, TeacherAssignmentPolicy::class);
