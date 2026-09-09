@@ -328,7 +328,7 @@ class IntegrationSettingTest extends TestCase
         );
 
         $response->assertRedirect(route('data-master.index').'#integration-dapodik');
-        $response->assertSessionHasErrors([
+        $response->assertSessionHasErrorsIn('dapodik_save', [
             'dapodik.base_url',
             'dapodik.api_key',
             'dapodik.timeout_seconds',
@@ -352,7 +352,7 @@ class IntegrationSettingTest extends TestCase
             route('data-master.integrations.update', ['provider' => 'dapodik']),
             $this->httpSettingPayload(['dapodik' => ['current_password' => 'wrong-password']]),
         )->assertRedirect(route('data-master.index').'#integration-dapodik')
-            ->assertSessionHasErrors('dapodik.current_password');
+            ->assertSessionHasErrorsIn('dapodik_save', 'dapodik.current_password');
 
         $this->post(route('data-master.integrations.test', ['provider' => 'forged']), $this->httpActionPayload())
             ->assertNotFound();
@@ -382,8 +382,8 @@ class IntegrationSettingTest extends TestCase
             $response->assertRedirect(route('data-master.index').'#integration-dapodik');
             $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
             if ($attempt === 1) {
-                $response->assertSessionHasErrors([
-                    'integration' => 'Adapter integrasi belum tersedia.',
+                $response->assertSessionHasErrorsIn('dapodik_test', [
+                    'action' => 'Adapter integrasi belum tersedia.',
                 ]);
             }
         }
@@ -435,12 +435,15 @@ class IntegrationSettingTest extends TestCase
             ->assertSee('Keadaan data terakhir')
             ->assertSee('Belum dapat digunakan')
             ->assertSee('Terakhir berhasil diperbarui 08 Sep 2026, 08.01.')
+            ->assertSee('Data terakhir tersedia')
             ->assertSee('Belum ada data yang berhasil diperbarui dari e-Tatib.')
             ->assertSee('Token tersimpan')
             ->assertSee('school-dapodik')
             ->assertSee('school-etatib')
             ->assertDontSee('DAPODIK-HTML-SECRET')
-            ->assertDontSee('ETATIB-HTML-SECRET');
+            ->assertDontSee('ETATIB-HTML-SECRET')
+            ->assertDontSee('Sinkron Aktif')
+            ->assertDontSee('Belum Dikonfigurasi');
 
         foreach ([IntegrationSetting::PROVIDER_DAPODIK, IntegrationSetting::PROVIDER_ETATIB] as $provider) {
             foreach (['api-key', 'save-current-password', 'test-current-password', 'activate-current-password', 'deactivate-current-password'] as $field) {
@@ -476,6 +479,83 @@ class IntegrationSettingTest extends TestCase
         $this->assertPanelContains($html, 'integration-dapodik', 'Batas waktu harus antara 5 dan 120 detik.');
         $this->assertPanelDoesNotContain($html, 'integration-etatib', 'URL endpoint tidak diizinkan');
         $this->assertPanelDoesNotContain($html, 'integration-etatib', 'Batas waktu harus antara 5 dan 120 detik.');
+    }
+
+    public function test_each_lifecycle_validation_error_marks_only_its_provider_and_form(): void
+    {
+        $this->configureAllowedOrigins();
+        $admin = $this->admin();
+        $wrongPassword = 'WRONG-CURRENT-PASSWORD';
+
+        foreach (IntegrationSetting::PROVIDERS as $provider) {
+            foreach (['save', 'test', 'activate', 'deactivate'] as $action) {
+                $response = $this->actingAs($admin)->call(
+                    $action === 'save' ? 'PATCH' : 'POST',
+                    $this->integrationActionUrl($provider, $action),
+                    $action === 'save'
+                        ? $this->httpSettingPayloadFor($provider, $wrongPassword, "{$provider}-VALIDATION-SECRET")
+                        : [$provider => ['current_password' => $wrongPassword]],
+                );
+
+                $response->assertRedirect(route('data-master.index')."#integration-{$provider}");
+                $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+                $page = $this->followRedirects($response);
+                $html = $page->getContent();
+                $this->assertStringContainsString('Kata sandi saat ini tidak sesuai.', $html);
+                $this->assertStringNotContainsString($wrongPassword, $html);
+                $this->assertStringNotContainsString("{$provider}-VALIDATION-SECRET", $html);
+                $targetId = "{$provider}-{$action}-current-password";
+                $this->assertInputHasScopedError(
+                    $html,
+                    $targetId,
+                    "{$targetId}-error",
+                );
+                $this->assertOnlyLifecycleInputIsInvalid($html, $targetId);
+            }
+        }
+    }
+
+    public function test_each_lifecycle_failure_is_shown_only_in_its_provider_and_form(): void
+    {
+        $this->configureAllowedOrigins();
+        $admin = $this->admin();
+
+        foreach (IntegrationSetting::PROVIDERS as $provider) {
+            $lock = app(CacheFactory::class)->store()
+                ->lock("sibk:integration:{$provider}:operation", IntegrationOperationLock::LEASE_TTL_SECONDS);
+            $this->assertTrue($lock->get());
+
+            try {
+                foreach (['save', 'test', 'activate', 'deactivate'] as $action) {
+                    $secret = "{$provider}-{$action}-LIFECYCLE-SECRET";
+                    $response = $this->actingAs($admin)->call(
+                        $action === 'save' ? 'PATCH' : 'POST',
+                        $this->integrationActionUrl($provider, $action),
+                        $action === 'save'
+                            ? $this->httpSettingPayloadFor($provider, 'password', $secret)
+                            : [$provider => ['current_password' => 'password']],
+                    );
+
+                    $response->assertRedirect(route('data-master.index')."#integration-{$provider}");
+                    $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+                    $html = $this->followRedirects($response)->getContent();
+                    $this->assertStringNotContainsString($secret, $html);
+                    $targetId = "{$provider}-{$action}-current-password";
+                    $errorId = $action === 'save'
+                        ? "{$provider}-save-form-errors"
+                        : "{$provider}-{$action}-action-error";
+                    $this->assertInputHasScopedError($html, $targetId, $errorId);
+                    $this->assertOnlyLifecycleInputIsInvalid($html, $targetId);
+                    $this->assertPanelContains($html, "integration-{$provider}", 'Proses koneksi lain sedang berjalan.');
+                    $otherProvider = $provider === IntegrationSetting::PROVIDER_DAPODIK
+                        ? IntegrationSetting::PROVIDER_ETATIB
+                        : IntegrationSetting::PROVIDER_DAPODIK;
+                    $this->assertPanelDoesNotContain($html, "integration-{$otherProvider}", 'Proses koneksi lain sedang berjalan.');
+                }
+            } finally {
+                $lock->release();
+            }
+        }
     }
 
     public function test_unavailable_drivers_disable_sync_controls_and_direct_posts_fail_without_changing_master_data(): void
@@ -1188,6 +1268,30 @@ class IntegrationSettingTest extends TestCase
         return ['dapodik' => ['current_password' => 'password']];
     }
 
+    private function integrationActionUrl(string $provider, string $action): string
+    {
+        $routeName = $action === 'save'
+            ? 'data-master.integrations.update'
+            : "data-master.integrations.{$action}";
+
+        return route($routeName, ['provider' => $provider]);
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private function httpSettingPayloadFor(string $provider, string $password, string $secret): array
+    {
+        return [
+            $provider => [
+                'base_url' => "https://{$provider}.example.test/api",
+                'expected_source_identifier' => "school-{$provider}",
+                'api_key' => $secret,
+                'remove_api_key' => false,
+                'timeout_seconds' => 30,
+                'current_password' => $password,
+            ],
+        ];
+    }
+
     private function configureAllowedOrigins(): void
     {
         config()->set('sibk.integrations.dapodik.allowed_origins', ['https://dapodik.example.test']);
@@ -1274,6 +1378,39 @@ class IntegrationSettingTest extends TestCase
         foreach (preg_split('/\s+/', $describedBy) ?: [] as $descriptionId) {
             $this->assertSame(1, $xpath->query("//*[@id='{$descriptionId}']")->length, "ARIA {$descriptionId} harus menunjuk elemen unik.");
         }
+    }
+
+    private function assertInputHasScopedError(string $html, string $inputId, string $errorId): void
+    {
+        $document = new \DOMDocument;
+        @$document->loadHTML($html);
+        $xpath = new \DOMXPath($document);
+        $input = $xpath->query("//input[@id='{$inputId}']")->item(0);
+
+        $this->assertInstanceOf(\DOMElement::class, $input);
+        $this->assertContains(
+            'is-invalid',
+            preg_split('/\s+/', $input->getAttribute('class')) ?: [],
+            "Input {$inputId} harus ditandai invalid untuk {$errorId}; error-id-count="
+                .$xpath->query("//*[@id='{$errorId}']")->length.'; html='.$document->saveHTML($input),
+        );
+        $this->assertSame('true', $input->getAttribute('aria-invalid'));
+        $this->assertContains($errorId, preg_split('/\s+/', $input->getAttribute('aria-describedby')) ?: []);
+        $this->assertSame(1, $xpath->query("//*[@id='{$errorId}']")->length, "Error {$errorId} harus unik.");
+    }
+
+    private function assertOnlyLifecycleInputIsInvalid(string $html, string $expectedInputId): void
+    {
+        $document = new \DOMDocument;
+        @$document->loadHTML($html);
+        $xpath = new \DOMXPath($document);
+        $invalidLifecycleInputs = $xpath->query(
+            "//input[@type='password' and contains(concat(' ', normalize-space(@class), ' '), ' is-invalid ')]",
+        );
+
+        $this->assertNotFalse($invalidLifecycleInputs);
+        $this->assertSame(1, $invalidLifecycleInputs->length);
+        $this->assertSame($expectedInputId, $invalidLifecycleInputs->item(0)?->getAttribute('id'));
     }
 
     private function assertPanelContains(string $html, string $panelId, string $text): void

@@ -11,6 +11,11 @@ use InvalidArgumentException;
 
 class UpdateIntegrationSettingRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->errorBag = $this->provider().'_save';
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->can('manageDataMaster') ?? false;
@@ -39,11 +44,13 @@ class UpdateIntegrationSettingRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
+        $provider = $this->provider();
+
         return [
-            'current_password.current_password' => 'Kata sandi saat ini tidak sesuai.',
-            'api_key.prohibited_if' => 'Token baru tidak dapat dikirim bersamaan dengan penghapusan token.',
-            'remove_api_key.required' => 'Pilihan penghapusan token wajib diisi.',
-            'timeout_seconds.between' => 'Batas waktu harus antara 5 dan 120 detik.',
+            "{$provider}.current_password.current_password" => 'Kata sandi saat ini tidak sesuai.',
+            "{$provider}.api_key.prohibited_if" => 'Token baru tidak dapat dikirim bersamaan dengan penghapusan token.',
+            "{$provider}.remove_api_key.required" => 'Pilihan penghapusan token wajib diisi.',
+            "{$provider}.timeout_seconds.between" => 'Batas waktu harus antara 5 dan 120 detik.',
             'prohibited' => 'Payload provider lain tidak diizinkan.',
         ];
     }

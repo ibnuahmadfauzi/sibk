@@ -25,8 +25,7 @@
                 $freshRun = $provider === \App\Models\IntegrationSetting::PROVIDER_DAPODIK
                     ? $lastSuccessfulDapodikRun
                     : $lastSuccessfulEtatibRun;
-                $providerErrors = collect($errors->getMessages())
-                    ->filter(static fn (array $messages, string $key): bool => str_starts_with((string) $key, $provider.'.'));
+                $saveErrors = $errors->getBag($provider.'_save');
             @endphp
 
             <div class="col-12 col-xl-6">
@@ -60,27 +59,6 @@
                             </div>
                         @endif
 
-                        @if($providerErrors->isNotEmpty())
-                            <div class="alert alert-danger py-2" id="{{ $provider }}-form-errors" role="alert">
-                                <strong>Periksa pengaturan {{ $state->label }}:</strong>
-                                <ul class="mb-0 ps-3">
-                                    @foreach($providerErrors as $key => $messages)
-                                        @foreach($messages as $message)
-                                            <li>
-                                                {{ match($key) {
-                                                    $provider.'.timeout_seconds' => 'Batas waktu harus antara 5 dan 120 detik.',
-                                                    $provider.'.current_password' => 'Kata sandi akun belum benar atau belum diisi.',
-                                                    $provider.'.api_key' => 'Token baru tidak valid. Jangan isi token baru saat memilih hapus token.',
-                                                    $provider.'.expected_source_identifier' => 'Identitas sumber belum valid.',
-                                                    default => $message,
-                                                } }}
-                                            </li>
-                                        @endforeach
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
                         <h4 class="fs-6 fw-bold mb-1">Konfigurasi</h4>
                         <p class="text-muted small" id="{{ $provider }}-configuration-help">
                             Token lama tidak pernah ditampilkan. Kosongkan token bila tidak ingin menggantinya.
@@ -89,33 +67,63 @@
                         <form action="{{ route('data-master.integrations.update', ['provider' => $provider]) }}" method="POST" class="row g-3 mb-4">
                             @csrf
                             @method('PATCH')
+                            @if($saveErrors->any())
+                                <div class="col-12">
+                                    <div class="alert alert-danger py-2 mb-0" id="{{ $provider }}-save-form-errors" role="alert">
+                                        <strong>Periksa pengaturan {{ $state->label }}:</strong>
+                                        <ul class="mb-0 ps-3">
+                                            @foreach($saveErrors->getMessages() as $key => $messages)
+                                                @foreach($messages as $message)
+                                                    <li>
+                                                        {{ match($key) {
+                                                            $provider.'.timeout_seconds' => 'Batas waktu harus antara 5 dan 120 detik.',
+                                                            $provider.'.current_password' => 'Kata sandi akun belum benar atau belum diisi.',
+                                                            $provider.'.api_key' => 'Token baru tidak valid. Jangan isi token baru saat memilih hapus token.',
+                                                            $provider.'.expected_source_identifier' => 'Identitas sumber belum valid.',
+                                                            default => $message,
+                                                        } }}
+                                                    </li>
+                                                @endforeach
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                </div>
+                            @endif
                             <div class="col-12">
                                 <label class="form-label sibk-form-label" for="{{ $provider }}-base-url">URL koneksi</label>
                                 <input
                                     type="url"
-                                    class="form-control sibk-form-control @error($provider.'.base_url') is-invalid @enderror"
+                                    class="form-control sibk-form-control {{ $saveErrors->has($provider.'.base_url') ? 'is-invalid' : '' }}"
                                     id="{{ $provider }}-base-url"
                                     name="{{ $provider }}[base_url]"
                                     maxlength="500"
                                     value="{{ old($provider.'.base_url', $state->baseUrl) }}"
-                                    aria-describedby="{{ $provider }}-base-url-help"
+                                    aria-describedby="{{ $provider }}-base-url-help{{ $saveErrors->has($provider.'.base_url') ? ' '.$provider.'-base-url-error' : '' }}"
+                                    @if($saveErrors->has($provider.'.base_url')) aria-invalid="true" @endif
                                     placeholder="https://sumber-data.sekolah/api"
                                 >
                                 <div class="form-text" id="{{ $provider }}-base-url-help">URL harus sesuai daftar alamat yang diizinkan oleh sekolah.</div>
+                                @if($saveErrors->has($provider.'.base_url'))
+                                    <div class="invalid-feedback" id="{{ $provider }}-base-url-error">{{ $saveErrors->first($provider.'.base_url') }}</div>
+                                @endif
                             </div>
 
                             <div class="col-12 col-md-8">
                                 <label class="form-label sibk-form-label" for="{{ $provider }}-source-identifier">Identitas sumber yang diharapkan</label>
                                 <input
                                     type="text"
-                                    class="form-control sibk-form-control @error($provider.'.expected_source_identifier') is-invalid @enderror"
+                                    class="form-control sibk-form-control {{ $saveErrors->has($provider.'.expected_source_identifier') ? 'is-invalid' : '' }}"
                                     id="{{ $provider }}-source-identifier"
                                     name="{{ $provider }}[expected_source_identifier]"
                                     maxlength="100"
                                     value="{{ old($provider.'.expected_source_identifier', $state->expectedSourceIdentifier) }}"
-                                    aria-describedby="{{ $provider }}-source-identifier-help"
+                                    aria-describedby="{{ $provider }}-source-identifier-help{{ $saveErrors->has($provider.'.expected_source_identifier') ? ' '.$provider.'-source-identifier-error' : '' }}"
+                                    @if($saveErrors->has($provider.'.expected_source_identifier')) aria-invalid="true" @endif
                                 >
                                 <div class="form-text" id="{{ $provider }}-source-identifier-help">Nilai ini harus sama dengan identitas sekolah atau sumber yang dilaporkan penyedia data.</div>
+                                @if($saveErrors->has($provider.'.expected_source_identifier'))
+                                    <div class="invalid-feedback" id="{{ $provider }}-source-identifier-error">{{ $saveErrors->first($provider.'.expected_source_identifier') }}</div>
+                                @endif
                             </div>
 
                             <div class="col-12 col-md-4">
@@ -123,18 +131,22 @@
                                 <div class="input-group">
                                     <input
                                         type="number"
-                                        class="form-control sibk-form-control @error($provider.'.timeout_seconds') is-invalid @enderror"
+                                        class="form-control sibk-form-control {{ $saveErrors->has($provider.'.timeout_seconds') ? 'is-invalid' : '' }}"
                                         id="{{ $provider }}-timeout"
                                         name="{{ $provider }}[timeout_seconds]"
                                         min="5"
                                         max="120"
                                         value="{{ old($provider.'.timeout_seconds', $state->timeoutSeconds) }}"
-                                        aria-describedby="{{ $provider }}-timeout-help"
+                                        aria-describedby="{{ $provider }}-timeout-help{{ $saveErrors->has($provider.'.timeout_seconds') ? ' '.$provider.'-timeout-error' : '' }}"
+                                        @if($saveErrors->has($provider.'.timeout_seconds')) aria-invalid="true" @endif
                                         required
                                     >
                                     <span class="input-group-text">detik</span>
                                 </div>
                                 <div class="form-text" id="{{ $provider }}-timeout-help">5–120 detik.</div>
+                                @if($saveErrors->has($provider.'.timeout_seconds'))
+                                    <div class="invalid-feedback d-block" id="{{ $provider }}-timeout-error">{{ $saveErrors->first($provider.'.timeout_seconds') }}</div>
+                                @endif
                             </div>
 
                             <div class="col-12">
@@ -146,31 +158,39 @@
                                 </div>
                                 <input
                                     type="password"
-                                    class="form-control sibk-form-control @error($provider.'.api_key') is-invalid @enderror"
+                                    class="form-control sibk-form-control {{ $saveErrors->has($provider.'.api_key') ? 'is-invalid' : '' }}"
                                     id="{{ $provider }}-api-key"
                                     name="{{ $provider }}[api_key]"
                                     maxlength="1000"
                                     autocomplete="new-password"
                                     spellcheck="false"
                                     autocapitalize="none"
-                                    aria-describedby="{{ $provider }}-api-key-help"
+                                    aria-describedby="{{ $provider }}-api-key-help{{ $saveErrors->has($provider.'.api_key') ? ' '.$provider.'-api-key-error' : '' }}"
+                                    @if($saveErrors->has($provider.'.api_key')) aria-invalid="true" @endif
                                 >
                                 <div class="form-text" id="{{ $provider }}-api-key-help">Isi hanya saat memasang atau mengganti token.</div>
+                                @if($saveErrors->has($provider.'.api_key'))
+                                    <div class="invalid-feedback" id="{{ $provider }}-api-key-error">{{ $saveErrors->first($provider.'.api_key') }}</div>
+                                @endif
                             </div>
 
                             <div class="col-12">
                                 <input type="hidden" name="{{ $provider }}[remove_api_key]" value="0">
                                 <div class="form-check">
                                     <input
-                                        class="form-check-input"
+                                        class="form-check-input {{ $saveErrors->has($provider.'.remove_api_key') ? 'is-invalid' : '' }}"
                                         type="checkbox"
                                         id="{{ $provider }}-remove-api-key"
                                         name="{{ $provider }}[remove_api_key]"
                                         value="1"
-                                        aria-describedby="{{ $provider }}-remove-api-key-help"
+                                        aria-describedby="{{ $provider }}-remove-api-key-help{{ $saveErrors->has($provider.'.remove_api_key') ? ' '.$provider.'-remove-api-key-error' : '' }}"
+                                        @if($saveErrors->has($provider.'.remove_api_key')) aria-invalid="true" @endif
                                     >
                                     <label class="form-check-label" for="{{ $provider }}-remove-api-key">Hapus token yang tersimpan</label>
                                     <div class="form-text" id="{{ $provider }}-remove-api-key-help">Koneksi menjadi tidak lengkap sampai token baru disimpan.</div>
+                                    @if($saveErrors->has($provider.'.remove_api_key'))
+                                        <div class="invalid-feedback" id="{{ $provider }}-remove-api-key-error">{{ $saveErrors->first($provider.'.remove_api_key') }}</div>
+                                    @endif
                                 </div>
                             </div>
 
@@ -178,16 +198,20 @@
                                 <label class="form-label sibk-form-label" for="{{ $provider }}-save-current-password">Kata sandi akun Anda</label>
                                 <input
                                     type="password"
-                                    class="form-control sibk-form-control @error($provider.'.current_password') is-invalid @enderror"
+                                    class="form-control sibk-form-control {{ $saveErrors->has($provider.'.current_password') || $saveErrors->has('action') ? 'is-invalid' : '' }}"
                                     id="{{ $provider }}-save-current-password"
                                     name="{{ $provider }}[current_password]"
                                     autocomplete="current-password"
                                     spellcheck="false"
                                     autocapitalize="none"
-                                    aria-describedby="{{ $provider }}-save-current-password-help"
+                                    aria-describedby="{{ $provider }}-save-current-password-help{{ $saveErrors->has($provider.'.current_password') ? ' '.$provider.'-save-current-password-error' : '' }}{{ $saveErrors->has('action') ? ' '.$provider.'-save-form-errors' : '' }}"
+                                    @if($saveErrors->has($provider.'.current_password') || $saveErrors->has('action')) aria-invalid="true" @endif
                                     required
                                 >
                                 <div class="form-text" id="{{ $provider }}-save-current-password-help">Diperlukan untuk memastikan perubahan dilakukan oleh Anda.</div>
+                                @if($saveErrors->has($provider.'.current_password'))
+                                    <div class="invalid-feedback" id="{{ $provider }}-save-current-password-error">{{ $saveErrors->first($provider.'.current_password') }}</div>
+                                @endif
                             </div>
 
                             <div class="col-12">
@@ -203,23 +227,37 @@
                                 'activate' => ['Aktifkan', $state->canActivate, 'data-master.integrations.activate'],
                                 'deactivate' => ['Nonaktifkan', $state->canDeactivate, 'data-master.integrations.deactivate'],
                             ] as $action => [$actionLabel, $actionAllowed, $routeName])
+                                @php
+                                    $actionErrors = $errors->getBag($provider.'_'.$action);
+                                    $actionPasswordKey = $provider.'.current_password';
+                                    $actionHasError = $actionErrors->has($actionPasswordKey) || $actionErrors->has('action');
+                                @endphp
                                 <form action="{{ route($routeName, ['provider' => $provider]) }}" method="POST" class="integration-setting__action-row">
                                     @csrf
                                     <div class="flex-grow-1">
+                                        @if($actionErrors->has('action'))
+                                            <div class="alert alert-danger py-2" id="{{ $provider }}-{{ $action }}-action-error" role="alert">
+                                                {{ $actionErrors->first('action') }}
+                                            </div>
+                                        @endif
                                         <label class="form-label small fw-semibold" for="{{ $provider }}-{{ $action }}-current-password">Kata sandi untuk {{ strtolower($actionLabel) }}</label>
                                         <input
                                             type="password"
-                                            class="form-control form-control-sm"
+                                            class="form-control form-control-sm {{ $actionHasError ? 'is-invalid' : '' }}"
                                             id="{{ $provider }}-{{ $action }}-current-password"
                                             name="{{ $provider }}[current_password]"
                                             autocomplete="current-password"
                                             spellcheck="false"
                                             autocapitalize="none"
-                                            aria-describedby="{{ $provider }}-{{ $action }}-current-password-help"
+                                            aria-describedby="{{ $provider }}-{{ $action }}-current-password-help{{ $actionErrors->has($actionPasswordKey) ? ' '.$provider.'-'.$action.'-current-password-error' : '' }}{{ $actionErrors->has('action') ? ' '.$provider.'-'.$action.'-action-error' : '' }}"
+                                            @if($actionHasError) aria-invalid="true" @endif
                                             @disabled(! $actionAllowed)
                                             required
                                         >
                                         <div class="form-text" id="{{ $provider }}-{{ $action }}-current-password-help">Masukkan kata sandi akun saat tindakan ini tersedia.</div>
+                                        @if($actionErrors->has($actionPasswordKey))
+                                            <div class="invalid-feedback" id="{{ $provider }}-{{ $action }}-current-password-error">{{ $actionErrors->first($actionPasswordKey) }}</div>
+                                        @endif
                                     </div>
                                     <button type="submit" class="btn {{ $action === 'deactivate' ? 'btn-outline-danger' : 'btn-outline-primary' }}" @disabled(! $actionAllowed)>
                                         {{ $actionLabel }}

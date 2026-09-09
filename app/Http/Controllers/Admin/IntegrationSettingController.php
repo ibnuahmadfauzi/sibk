@@ -28,7 +28,7 @@ class IntegrationSettingController extends Controller
         try {
             $service->save($provider, $data, $actor);
         } catch (IntegrationConfigurationException $exception) {
-            return $this->failure($provider, $exception->resultCode());
+            return $this->failure($provider, 'save', $exception->resultCode());
         }
 
         return $this->success($provider, 'Konfigurasi koneksi berhasil disimpan.');
@@ -45,12 +45,12 @@ class IntegrationSettingController extends Controller
         try {
             $state = $service->testConnection($provider, $actor);
         } catch (IntegrationConfigurationException $exception) {
-            return $this->failure($provider, $exception->resultCode());
+            return $this->failure($provider, 'test', $exception->resultCode());
         }
 
         return $state->lastTestCode === IntegrationProbeResult::CODE_SUCCESS
             ? $this->success($provider, 'Uji koneksi berhasil.')
-            : $this->failure($provider, $state->lastTestCode ?? 'configuration_changed');
+            : $this->failure($provider, 'test', $state->lastTestCode ?? 'configuration_changed');
     }
 
     public function activate(
@@ -64,7 +64,7 @@ class IntegrationSettingController extends Controller
         try {
             $service->activate($provider, $actor);
         } catch (IntegrationConfigurationException $exception) {
-            return $this->failure($provider, $exception->resultCode());
+            return $this->failure($provider, 'activate', $exception->resultCode());
         }
 
         return $this->success($provider, 'Koneksi berhasil diaktifkan.');
@@ -81,7 +81,7 @@ class IntegrationSettingController extends Controller
         try {
             $service->deactivate($provider, $actor);
         } catch (IntegrationConfigurationException $exception) {
-            return $this->failure($provider, $exception->resultCode());
+            return $this->failure($provider, 'deactivate', $exception->resultCode());
         }
 
         return $this->success($provider, 'Koneksi berhasil dinonaktifkan.');
@@ -92,9 +92,12 @@ class IntegrationSettingController extends Controller
         return $this->redirect($provider)->with('success', $message);
     }
 
-    private function failure(string $provider, string $code): RedirectResponse
+    private function failure(string $provider, string $action, string $code): RedirectResponse
     {
-        return $this->redirect($provider)->withErrors(['integration' => $this->messageFor($code)]);
+        return $this->redirect($provider)->withErrors(
+            ['action' => $this->messageFor($code)],
+            "{$provider}_{$action}",
+        );
     }
 
     private function redirect(string $provider): RedirectResponse

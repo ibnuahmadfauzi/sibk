@@ -130,7 +130,7 @@ class DapodikSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Belum Dikonfigurasi');
+            ->assertSee('Belum ada data');
 
         $this->actingAs($admin)
             ->post(route('data-master.dapodik.sync'))

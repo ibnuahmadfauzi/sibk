@@ -114,6 +114,22 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('data-bs-toggle="collapse"', false);
     }
 
+    public function test_small_danger_badge_uses_a_contrast_safe_token(): void
+    {
+        $tokenSource = file_get_contents(resource_path('scss/_token-values.scss'));
+        $dashboardSource = file_get_contents(resource_path('scss/app-dashboard.scss'));
+
+        $this->assertIsString($tokenSource);
+        $this->assertIsString($dashboardSource);
+        $this->assertMatchesRegularExpression('/\$sibk-danger-strong:\s*(#[0-9A-Fa-f]{6});/', $tokenSource);
+        $this->assertMatchesRegularExpression('/\$sibk-danger-soft:\s*(#[0-9A-Fa-f]{6});/', $tokenSource);
+        preg_match('/\$sibk-danger-strong:\s*(#[0-9A-Fa-f]{6});/', $tokenSource, $foreground);
+        preg_match('/\$sibk-danger-soft:\s*(#[0-9A-Fa-f]{6});/', $tokenSource, $background);
+
+        $this->assertGreaterThanOrEqual(4.5, $this->contrastRatio($foreground[1], $background[1]));
+        $this->assertStringContainsString('color: var(--sibk-color-danger-strong);', $dashboardSource);
+    }
+
     private function authenticateAs(string $roleSlug): User
     {
         $user = User::factory()->create();
@@ -122,6 +138,31 @@ class FrontendPreviewTest extends TestCase
         $this->actingAs($user);
 
         return $user;
+    }
+
+    private function contrastRatio(string $foreground, string $background): float
+    {
+        $foregroundLuminance = $this->relativeLuminance($foreground);
+        $backgroundLuminance = $this->relativeLuminance($background);
+
+        return (max($foregroundLuminance, $backgroundLuminance) + 0.05)
+            / (min($foregroundLuminance, $backgroundLuminance) + 0.05);
+    }
+
+    private function relativeLuminance(string $hex): float
+    {
+        $channels = array_map(
+            static function (string $channel): float {
+                $value = hexdec($channel) / 255;
+
+                return $value <= 0.04045
+                    ? $value / 12.92
+                    : (($value + 0.055) / 1.055) ** 2.4;
+            },
+            str_split(substr($hex, 1), 2),
+        );
+
+        return (0.2126 * $channels[0]) + (0.7152 * $channels[1]) + (0.0722 * $channels[2]);
     }
 
     /** @return array<string, array{string, string}> */

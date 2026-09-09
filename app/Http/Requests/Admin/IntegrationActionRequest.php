@@ -9,6 +9,11 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class IntegrationActionRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->errorBag = $this->provider().'_'.$this->action();
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->can('manageDataMaster') ?? false;
@@ -32,8 +37,10 @@ class IntegrationActionRequest extends FormRequest
     /** @return array<string, string> */
     public function messages(): array
     {
+        $provider = $this->provider();
+
         return [
-            'current_password.current_password' => 'Kata sandi saat ini tidak sesuai.',
+            "{$provider}.current_password.current_password" => 'Kata sandi saat ini tidak sesuai.',
             'prohibited' => 'Payload provider lain tidak diizinkan.',
         ];
     }
@@ -46,5 +53,14 @@ class IntegrationActionRequest extends FormRequest
     public function getRedirectUrl(): string
     {
         return route('data-master.index').'#integration-'.$this->provider();
+    }
+
+    private function action(): string
+    {
+        return match ($this->route()?->getName()) {
+            'data-master.integrations.activate' => 'activate',
+            'data-master.integrations.deactivate' => 'deactivate',
+            default => 'test',
+        };
     }
 }

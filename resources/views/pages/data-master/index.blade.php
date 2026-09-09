@@ -16,10 +16,6 @@
         @error('etatib_sync')
             <div class="alert alert-danger" role="alert">{{ $message }}</div>
         @enderror
-        @error('integration')
-            <div class="alert alert-danger" role="alert">{{ $message }}</div>
-        @enderror
-
         <!-- Header -->
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
@@ -50,11 +46,11 @@
                             <span class="sibk-stat-card__label">Dapodik</span>
                             @php
                                 $dapodikStatus = match($lastDapodikRun?->status) {
-                                    'succeeded' => 'Sinkron Aktif',
-                                    'warning' => 'Perlu Diperiksa',
-                                    'failed' => 'Sinkronisasi Gagal',
-                                    'running' => 'Sedang Sinkronisasi',
-                                    default => 'Belum Dikonfigurasi',
+                                    'succeeded' => 'Data terakhir tersedia',
+                                    'warning' => 'Data perlu diperiksa',
+                                    'failed' => 'Pembaruan terakhir gagal',
+                                    'running' => 'Pembaruan sedang berjalan',
+                                    default => 'Belum ada data',
                                 };
                             @endphp
                             <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $dapodikStatus }}</span>
@@ -83,11 +79,11 @@
                             <span class="sibk-stat-card__label">e-Tatib</span>
                             @php
                                 $etatibStatus = match($lastEtatibRun?->status) {
-                                    'succeeded' => 'Sinkron Aktif',
-                                    'warning' => 'Perlu Diperiksa',
-                                    'failed' => 'Sinkronisasi Gagal',
-                                    'running' => 'Sedang Sinkronisasi',
-                                    default => 'Belum Dikonfigurasi',
+                                    'succeeded' => 'Data terakhir tersedia',
+                                    'warning' => 'Data perlu diperiksa',
+                                    'failed' => 'Pembaruan terakhir gagal',
+                                    'running' => 'Pembaruan sedang berjalan',
+                                    default => 'Belum ada data',
                                 };
                             @endphp
                             <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $etatibStatus }}</span>
