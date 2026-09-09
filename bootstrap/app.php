@@ -10,6 +10,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -36,9 +37,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'etatib.api_key',
             'etatib.current_password',
         ]);
-        $exceptions->dontReportWhen(
-            static fn (Throwable $exception): bool => request()->is('data-master/integrations', 'data-master/integrations/*'),
-        );
+        $exceptions->reportable(static function (Throwable $exception): ?bool {
+            $request = request();
+
+            if (! $request->is('data-master/integrations', 'data-master/integrations/*')) {
+                return null;
+            }
+
+            ProtectIntegrationLifecycle::redactForExceptionReporting($request);
+            Log::error('Kegagalan tak terduga pada konfigurasi koneksi.', [
+                'exception_class' => $exception::class,
+                'exception_code' => $exception->getCode(),
+            ]);
+
+            return false;
+        });
         $exceptions->render(function (ValidationException $exception, Request $request) {
             if (! $request->routeIs('data-master.integrations.*')) {
                 return null;

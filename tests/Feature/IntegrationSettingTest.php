@@ -407,6 +407,7 @@ class IntegrationSettingTest extends TestCase
 
         $secret = 'debug-token-'.Str::random(24);
         $password = 'debug-password-'.Str::random(24);
+        Log::spy();
 
         $notFound = $this->post('/data-master/integrations/forged/test');
         $notFound->assertNotFound();
@@ -421,7 +422,6 @@ class IntegrationSettingTest extends TestCase
             $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         }
 
-        Log::spy();
         $html = $this->patch('/data-master/integrations/testing-failure', [
             'dapodik' => [
                 'api_key' => $secret,
@@ -432,7 +432,15 @@ class IntegrationSettingTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $html->headers->get('Cache-Control'));
         $this->assertStringNotContainsString($secret, $html->getContent());
         $this->assertStringNotContainsString($password, $html->getContent());
-        Log::shouldNotHaveReceived('error');
+        Log::shouldHaveReceived('error')->withArgs(function (mixed $message, mixed $context) use ($secret, $password): bool {
+            return $message === 'Kegagalan tak terduga pada konfigurasi koneksi.'
+                && $context === [
+                    'exception_class' => RuntimeException::class,
+                    'exception_code' => 0,
+                ]
+                && ! str_contains(serialize($context), $secret)
+                && ! str_contains(serialize($context), $password);
+        })->once();
 
         $json = $this->patchJson('/data-master/integrations/testing-failure', [
             'dapodik' => [
@@ -444,6 +452,7 @@ class IntegrationSettingTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $json->headers->get('Cache-Control'));
         $this->assertStringNotContainsString($secret, $json->getContent());
         $this->assertStringNotContainsString($password, $json->getContent());
+        Log::shouldHaveReceived('error')->twice();
     }
 
     public function test_service_rejects_task_eight_api_key_and_timeout_bounds_without_leaking_secret(): void
