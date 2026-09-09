@@ -288,7 +288,7 @@ git commit -m "docs: baseline secure integration settings in requirements v1.1"
 - Create: `app/Integrations/IntegrationProbeResult.php`
 - Test: `tests/Feature/IntegrationSettingTest.php`
 
-- [ ] **Step 1: Tulis failing tests persistence**
+- [x] **Step 1: Tulis failing tests persistence**
 
 ```php
 public function test_credentials_are_encrypted_and_hidden(): void;
@@ -301,13 +301,13 @@ public function test_verified_endpoint_policy_digest_is_persisted_separately(): 
 public function test_operation_fence_version_defaults_to_zero(): void;
 ```
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal karena tabel/model belum tersedia**
+- [x] **Step 2: Jalankan test dan pastikan gagal karena tabel/model belum tersedia**
 
 ```bash
 php artisan test --filter IntegrationSettingTest
 ```
 
-- [ ] **Step 3: Buat migration**
+- [x] **Step 3: Buat migration**
 
 ```php
 Schema::create('integration_settings', function (Blueprint $table): void {
@@ -346,7 +346,7 @@ Schema::create('integration_settings', function (Blueprint $table): void {
 
 Jangan memakai database enum/check agar migration konsisten pada SQLite dan MySQL.
 
-- [ ] **Step 4: Implementasikan model**
+- [x] **Step 4: Implementasikan model**
 
 Gunakan `#[Fillable]`, `#[Hidden(['credentials'])]`, provider constants, dan casts berikut:
 
@@ -376,28 +376,30 @@ Credential internal untuk fase ini:
 
 Jangan membuat accessor yang menelan `Throwable`. Decryption failure harus diteruskan ke module konfigurasi agar diblokir secara eksplisit.
 
-- [ ] **Step 5: Implementasikan DTO aman**
+- [x] **Step 5: Implementasikan DTO aman**
 
 `IntegrationSettingState` tidak boleh memiliki plaintext/ciphertext. `IntegrationRuntimeConfiguration` boleh memuat credential tetapi tidak memiliki `toArray()`, `jsonSerialize()`, atau implementasi logging.
 
 `IntegrationProbeResult` membawa hanya metadata aman yang dibutuhkan untuk verifikasi: result code, `driver_id`, `adapter_version`, `contract_version`, reported source identifier, serta ringkasan schema/completeness. Ia tidak boleh membawa raw body atau credential.
 
-- [ ] **Step 6: Pastikan test lulus**
+- [x] **Step 6: Pastikan test lulus**
 
 ```bash
 php artisan test --filter IntegrationSettingTest
 ```
 
-- [ ] **Step 6a: Verifikasi migration pada SQLite dan MySQL disposable**
+- [x] **Step 6a: Verifikasi migration pada SQLite dan MySQL disposable**
 
 Jalankan migration pada database SQLite test serta database MySQL disposable yang tervalidasi bukan shared/production. Bila MySQL disposable belum tersedia, hentikan Task 2 pada verification gate; jangan menunda kompatibilitas migration sampai Task 8 dan jangan memakai `migrate:fresh`, reset, atau rollback pada database shared.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add database/migrations app/Models/IntegrationSetting.php app/Integrations tests/Feature/IntegrationSettingTest.php
 git commit -m "feat: add encrypted integration setting state"
 ```
+
+**Gate selesai 9 September 2026:** commits `3ef085a` dan `b0a1e85`; focused tests 11/11 dengan 43 assertion, migration SQLite serta migration additive/schema MySQL pada database uji `sibk_uji`, Pint, dan diff-check lulus. Re-review memastikan credential tidak bocor melalui debug/export/JSON/log context dan native serialization ditolak.
 
 ---
 
