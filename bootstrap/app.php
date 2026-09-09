@@ -66,14 +66,23 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->header('Cache-Control', 'no-store');
             }
 
+            $oldInput = [];
+            if ($request->routeIs('data-master.integrations.update')) {
+                $provider = (string) $request->route('provider');
+                $providerInput = $request->input($provider);
+                if (is_array($providerInput)) {
+                    $oldInput[$provider] = array_intersect_key($providerInput, array_flip([
+                        'base_url',
+                        'expected_source_identifier',
+                        'remove_api_key',
+                        'timeout_seconds',
+                    ]));
+                }
+            }
+
             return redirect()
                 ->to(route('data-master.index').'#integration-'.(string) $request->route('provider'))
-                ->withInput($request->except([
-                    'dapodik.api_key',
-                    'dapodik.current_password',
-                    'etatib.api_key',
-                    'etatib.current_password',
-                ]))
+                ->withInput($oldInput)
                 ->withErrors($exception->errors(), $exception->errorBag)
                 ->header('Cache-Control', 'no-store');
         });

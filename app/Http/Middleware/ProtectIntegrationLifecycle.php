@@ -60,12 +60,25 @@ class ProtectIntegrationLifecycle
      */
     private static function redact(array $input): array
     {
+        $input = array_intersect_key($input, array_flip(['dapodik', 'etatib']));
+
         foreach (['dapodik', 'etatib'] as $provider) {
-            if (! isset($input[$provider]) || ! is_array($input[$provider])) {
+            if (! array_key_exists($provider, $input)) {
                 continue;
             }
 
-            unset($input[$provider]['api_key'], $input[$provider]['current_password']);
+            if (! is_array($input[$provider])) {
+                unset($input[$provider]);
+
+                continue;
+            }
+
+            $input[$provider] = array_intersect_key($input[$provider], array_flip([
+                'base_url',
+                'expected_source_identifier',
+                'remove_api_key',
+                'timeout_seconds',
+            ]));
         }
 
         return $input;

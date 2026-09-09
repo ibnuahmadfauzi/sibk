@@ -230,7 +230,12 @@
                                 @php
                                     $actionErrors = $errors->getBag($provider.'_'.$action);
                                     $actionPasswordKey = $provider.'.current_password';
-                                    $actionHasError = $actionErrors->has($actionPasswordKey) || $actionErrors->has('action');
+                                    $actionFormMessages = collect($actionErrors->getMessages())
+                                        ->except([$actionPasswordKey, 'action'])
+                                        ->flatten()
+                                        ->unique()
+                                        ->values();
+                                    $actionHasError = $actionErrors->any();
                                 @endphp
                                 <form action="{{ route($routeName, ['provider' => $provider]) }}" method="POST" class="integration-setting__action-row">
                                     @csrf
@@ -238,6 +243,16 @@
                                         @if($actionErrors->has('action'))
                                             <div class="alert alert-danger py-2" id="{{ $provider }}-{{ $action }}-action-error" role="alert">
                                                 {{ $actionErrors->first('action') }}
+                                            </div>
+                                        @endif
+                                        @if($actionFormMessages->isNotEmpty())
+                                            <div class="alert alert-danger py-2" id="{{ $provider }}-{{ $action }}-form-error" role="alert">
+                                                <strong>Tindakan tidak dapat diproses:</strong>
+                                                <ul class="mb-0 ps-3">
+                                                    @foreach($actionFormMessages as $message)
+                                                        <li>{{ $message }}</li>
+                                                    @endforeach
+                                                </ul>
                                             </div>
                                         @endif
                                         <label class="form-label small fw-semibold" for="{{ $provider }}-{{ $action }}-current-password">Kata sandi untuk {{ strtolower($actionLabel) }}</label>
@@ -249,7 +264,7 @@
                                             autocomplete="current-password"
                                             spellcheck="false"
                                             autocapitalize="none"
-                                            aria-describedby="{{ $provider }}-{{ $action }}-current-password-help{{ $actionErrors->has($actionPasswordKey) ? ' '.$provider.'-'.$action.'-current-password-error' : '' }}{{ $actionErrors->has('action') ? ' '.$provider.'-'.$action.'-action-error' : '' }}"
+                                            aria-describedby="{{ $provider }}-{{ $action }}-current-password-help{{ $actionErrors->has($actionPasswordKey) ? ' '.$provider.'-'.$action.'-current-password-error' : '' }}{{ $actionErrors->has('action') ? ' '.$provider.'-'.$action.'-action-error' : '' }}{{ $actionFormMessages->isNotEmpty() ? ' '.$provider.'-'.$action.'-form-error' : '' }}"
                                             @if($actionHasError) aria-invalid="true" @endif
                                             @disabled(! $actionAllowed)
                                             required

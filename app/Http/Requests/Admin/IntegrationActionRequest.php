@@ -38,10 +38,15 @@ class IntegrationActionRequest extends FormRequest
     public function messages(): array
     {
         $provider = $this->provider();
+        $otherProvider = $provider === IntegrationSetting::PROVIDER_DAPODIK
+            ? IntegrationSetting::PROVIDER_ETATIB
+            : IntegrationSetting::PROVIDER_DAPODIK;
 
         return [
+            "{$provider}.required" => 'Data tindakan wajib dikirim.',
+            "{$provider}.array" => 'Bentuk data tindakan tidak valid.',
             "{$provider}.current_password.current_password" => 'Kata sandi saat ini tidak sesuai.',
-            'prohibited' => 'Payload provider lain tidak diizinkan.',
+            "{$otherProvider}.prohibited" => 'Data sumber lain tidak boleh dikirim bersama tindakan ini.',
         ];
     }
 

@@ -515,6 +515,74 @@ class IntegrationSettingTest extends TestCase
         }
     }
 
+    public function test_structural_action_errors_stay_in_the_originating_form_without_flashing_secrets(): void
+    {
+        $this->configureAllowedOrigins();
+        $admin = $this->admin();
+        $secrets = [];
+        Log::spy();
+
+        foreach (IntegrationSetting::PROVIDERS as $provider) {
+            $otherProvider = $provider === IntegrationSetting::PROVIDER_DAPODIK
+                ? IntegrationSetting::PROVIDER_ETATIB
+                : IntegrationSetting::PROVIDER_DAPODIK;
+
+            foreach (['test', 'activate', 'deactivate'] as $action) {
+                foreach (['missing', 'not_array', 'extra_field', 'mixed_provider'] as $case) {
+                    $secret = strtoupper("{$provider}-{$action}-{$case}-secret");
+                    $secrets[] = $secret;
+                    $payload = match ($case) {
+                        'missing' => ['unexpected_secret' => $secret],
+                        'not_array' => [$provider => $secret],
+                        'extra_field' => [$provider => [
+                            'current_password' => 'password',
+                            'unexpected_secret' => $secret,
+                        ]],
+                        default => [
+                            $provider => ['current_password' => 'password'],
+                            $otherProvider => ['current_password' => $secret],
+                        ],
+                    };
+
+                    $response = $this->actingAs($admin)->post(
+                        $this->integrationActionUrl($provider, $action),
+                        $payload,
+                    );
+
+                    $response->assertRedirect(route('data-master.index')."#integration-{$provider}");
+                    $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+                    $this->assertStringNotContainsString($secret, serialize(session()->all()));
+                    $this->assertFalse(session()->has("_old_input.{$provider}"));
+                    $this->assertFalse(session()->has("_old_input.{$otherProvider}"));
+
+                    $html = $this->followRedirects($response)->getContent();
+                    $this->assertStringNotContainsString($secret, $html);
+                    $this->assertStringContainsString(match ($case) {
+                        'missing' => 'Data tindakan wajib dikirim.',
+                        'mixed_provider' => 'Data sumber lain tidak boleh dikirim bersama tindakan ini.',
+                        default => 'Bentuk data tindakan tidak valid.',
+                    }, $html);
+                    $targetId = "{$provider}-{$action}-current-password";
+                    $this->assertInputHasScopedError(
+                        $html,
+                        $targetId,
+                        "{$provider}-{$action}-form-error",
+                    );
+                    $this->assertOnlyLifecycleInputIsInvalid($html, $targetId);
+                }
+            }
+        }
+
+        foreach ($secrets as $secret) {
+            Log::shouldNotHaveReceived('error',
+                static fn (string $message, array $context): bool => str_contains(
+                    $message.(json_encode($context) ?: ''),
+                    $secret,
+                ),
+            );
+        }
+    }
+
     public function test_each_lifecycle_failure_is_shown_only_in_its_provider_and_form(): void
     {
         $this->configureAllowedOrigins();
