@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\Achievement;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -15,6 +17,9 @@ use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AcademicYearPreparationService;
+use App\Services\AchievementService;
+use App\Services\CaseService;
+use App\Services\ConsultationService;
 use App\Services\ProvisionalRosterCsvParser;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -623,6 +628,285 @@ class DelayedDapodikPreparationTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function preparation_endpoints_enforce_roles_input_and_year_classroom_pairs(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $inactiveAdmin = $this->userWithRole('admin_it', false);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $inactiveCoordinator = $this->userWithRole('koordinator_bk', false);
+        $teacher = $this->userWithRole('guru_bk');
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $payload = [
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'preparation_reference' => 'SK Kepala Sekolah 001/2027',
+        ];
+
+        $this->post(route('data-master.academic-years.store'), $payload)->assertRedirect(route('login'));
+        foreach ([$teacher, $coordinator, $waka] as $unauthorized) {
+            $this->actingAs($unauthorized)
+                ->post(route('data-master.academic-years.store'), $payload)
+                ->assertForbidden();
+        }
+        $this->actingAs($inactiveAdmin)
+            ->post(route('data-master.academic-years.store'), $payload)
+            ->assertRedirect(route('login'));
+
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.academic-years.store'), [
+                ...$payload,
+                'name' => 'tahun baru',
+                'starts_on' => 'tidak-valid',
+                'preparation_reference' => '',
+            ])
+            ->assertSessionHasErrors(['name', 'starts_on', 'preparation_reference']);
+
+        $this->actingAs($admin)
+            ->post(route('data-master.academic-years.store'), $payload)
+            ->assertRedirect(route('data-master.index'));
+        $year = AcademicYear::query()->where('name', '2027/2028')->firstOrFail();
+
+        $this->app['auth']->guard()->logout();
+        $this->post(route('data-master.academic-years.roster-imports.store', $year), [
+            'file' => $this->validCsv(),
+        ])->assertRedirect(route('login'));
+        foreach ([$teacher, $coordinator, $waka] as $unauthorized) {
+            $this->actingAs($unauthorized)
+                ->post(route('data-master.academic-years.roster-imports.store', $year), ['file' => $this->validCsv()])
+                ->assertForbidden();
+        }
+        $this->actingAs($inactiveAdmin)
+            ->post(route('data-master.academic-years.roster-imports.store', $year), ['file' => $this->validCsv()])
+            ->assertRedirect(route('login'));
+        $this->actingAs($admin)
+            ->post(route('data-master.academic-years.roster-imports.store', 999999), ['file' => $this->validCsv()])
+            ->assertNotFound();
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.academic-years.roster-imports.store', $year), [
+                'file' => UploadedFile::fake()->create('terlalu-besar.csv', 2049, 'text/csv'),
+            ])
+            ->assertSessionHasErrors('file');
+        $this->actingAs($admin)
+            ->post(route('data-master.academic-years.roster-imports.store', $year), ['file' => $this->validCsv()])
+            ->assertRedirect(route('data-master.index'));
+
+        $classroom = Classroom::query()->where('academic_year_id', $year->id)->firstOrFail();
+        $this->actingAs($coordinator)
+            ->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertOk()
+            ->assertSee('Kesiapan Aktivasi')
+            ->assertDontSee('Aktifkan Tahun Ajaran');
+        $otherYear = AcademicYear::query()->create([
+            'name' => '2028/2029',
+            'starts_on' => '2028-07-01',
+            'ends_on' => '2029-06-30',
+            'is_active' => false,
+        ]);
+        $this->actingAs($coordinator)
+            ->from(route('assignments.classes.manage', ['academic_year_id' => $otherYear->id]))
+            ->post(route('assignments.classes.store'), [
+                'user_id' => $teacher->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $otherYear->id,
+                'decision_number' => 'SK-SILANG',
+                'effective_date' => '2028-07-01',
+            ])
+            ->assertSessionHasErrors('classroom_id');
+
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => $year->starts_on,
+            'decision_number' => 'SK-AKTIVASI',
+            'assigned_by' => $coordinator->id,
+        ]);
+        $this->actingAs($coordinator)
+            ->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertOk()
+            ->assertSee('Aktifkan Tahun Ajaran');
+        $this->app['auth']->guard()->logout();
+        $this->post(route('assignments.academic-years.activate', $year))->assertRedirect(route('login'));
+        foreach ([$teacher, $waka, $admin] as $unauthorized) {
+            $this->actingAs($unauthorized)
+                ->post(route('assignments.academic-years.activate', $year))
+                ->assertForbidden();
+        }
+        $this->actingAs($inactiveCoordinator)
+            ->post(route('assignments.academic-years.activate', $year))
+            ->assertRedirect(route('login'));
+        $this->actingAs($coordinator)
+            ->post(route('assignments.academic-years.activate', $year))
+            ->assertRedirect(route('assignments.classes.manage', ['academic_year_id' => $year->id]));
+        $this->assertTrue($year->refresh()->is_active);
+
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.academic-years.roster-imports.store', $year), ['file' => $this->validCsv()])
+            ->assertSessionHasErrors('academic_year');
+    }
+
+    #[Test]
+    public function provisional_students_become_usable_for_real_bk_actions_only_after_activation_and_only_in_teacher_scope(): void
+    {
+        $this->travelTo('2027-07-10 09:00:00');
+        $preparation = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $assignedTeacher = $this->userWithRole('guru_bk');
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $year = $this->prepareYear($preparation, $admin);
+        $preparation->importRoster($year, $this->csv(implode("\n", [
+            'nisn,nama,rombel',
+            '0012345678,Murid Sementara Utama,X RPL 1',
+            '0098765432,Murid Kelas Lain,X RPL 2',
+        ])), $admin);
+        $classes = Classroom::query()->where('academic_year_id', $year->id)->orderBy('name')->get();
+        $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
+        TeacherAssignment::query()->create([
+            'user_id' => $assignedTeacher->id,
+            'classroom_id' => $classes[0]->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => $year->starts_on,
+            'decision_number' => 'SK-GURU-UTAMA',
+            'assigned_by' => $coordinator->id,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $otherTeacher->id,
+            'classroom_id' => $classes[1]->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => $year->starts_on,
+            'decision_number' => 'SK-GURU-LAIN',
+            'assigned_by' => $coordinator->id,
+        ]);
+
+        $casePayload = $this->bkCasePayload($student);
+        $consultationPayload = $this->consultationPayload($student);
+        $achievementPayload = $this->achievementPayload($student);
+        $this->assertValidationError(fn () => app(CaseService::class)->createCase($casePayload, $assignedTeacher), 'student_id');
+        $this->assertValidationError(fn () => app(ConsultationService::class)->create($consultationPayload, $assignedTeacher), 'student_id');
+        $this->assertValidationError(fn () => app(AchievementService::class)->create($achievementPayload, $assignedTeacher), 'student_id');
+        $this->actingAs($assignedTeacher)->get(route('students.show', $student))->assertForbidden();
+
+        $preparation->activate($year, $coordinator);
+
+        $this->actingAs($assignedTeacher)->get(route('students.index', ['search' => 'Murid Sementara Utama']))
+            ->assertOk()
+            ->assertSee('Murid Sementara Utama')
+            ->assertSee('Sementara');
+        $this->actingAs($assignedTeacher)->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee('Sementara');
+        $this->actingAs($assignedTeacher)->get(route('cases.create'))
+            ->assertOk()
+            ->assertSee('Murid Sementara Utama')
+            ->assertSee('Sementara');
+        $this->actingAs($assignedTeacher)->get(route('consultations.create'))
+            ->assertOk()
+            ->assertSee('Murid Sementara Utama')
+            ->assertSee('Sementara');
+        $this->actingAs($assignedTeacher)->get(route('achievements.create'))
+            ->assertOk()
+            ->assertSee('Murid Sementara Utama')
+            ->assertSee('Sementara');
+
+        $case = app(CaseService::class)->createCase($casePayload, $assignedTeacher);
+        $this->actingAs($assignedTeacher)->get(route('cases.show', $case))->assertOk();
+        $this->actingAs($otherTeacher)->get(route('cases.show', $case))->assertForbidden();
+        $caseResolution = [
+            'closed_at' => '2027-07-10',
+            'final_result' => 'Selesai',
+            'resolution_summary' => 'Pendampingan sudah selesai.',
+        ];
+        $this->assertValidationError(
+            fn () => app(CaseService::class)->resolve($case, $caseResolution, $otherTeacher),
+            'case',
+        );
+        app(CaseService::class)->resolve($case, $caseResolution, $assignedTeacher);
+        $this->assertValidationError(fn () => app(CaseService::class)->createCase($casePayload, $otherTeacher), 'student_id');
+
+        $consultation = app(ConsultationService::class)->create($consultationPayload, $assignedTeacher);
+        $this->assertInstanceOf(Consultation::class, $consultation);
+        $this->actingAs($assignedTeacher)->get(route('consultations.show', $consultation))->assertOk();
+        $this->actingAs($otherTeacher)->get(route('consultations.show', $consultation))->assertForbidden();
+        app(ConsultationService::class)->update($consultation, [
+            ...$consultationPayload,
+            'topic' => 'Topik diperbarui',
+        ], $assignedTeacher);
+        $this->assertSame('Topik diperbarui', $consultation->refresh()->topic);
+        $this->assertValidationError(
+            fn () => app(ConsultationService::class)->create($consultationPayload, $otherTeacher),
+            'student_id',
+        );
+        $this->assertValidationError(
+            fn () => app(ConsultationService::class)->update($consultation, $consultationPayload, $otherTeacher),
+            'consultation',
+        );
+
+        $achievement = app(AchievementService::class)->create($achievementPayload, $assignedTeacher);
+        $this->assertInstanceOf(Achievement::class, $achievement);
+        $this->assertValidationError(
+            fn () => app(AchievementService::class)->create($achievementPayload, $otherTeacher),
+            'student_id',
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function bkCasePayload(Student $student): array
+    {
+        return [
+            'student_id' => $student->id,
+            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'service_date' => '2027-07-10',
+            'initial_info' => 'Informasi awal layanan.',
+            'initial_action' => 'Asesmen awal.',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function consultationPayload(Student $student): array
+    {
+        return [
+            'student_id' => $student->id,
+            'case_id' => null,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('consultation_status', 'terlaksana')->id,
+            'topic' => 'Penyesuaian diri',
+            'referral_source' => 'Inisiatif murid',
+            'session_date' => '2027-07-10',
+            'starts_at' => '08:00',
+            'ends_at' => '08:30',
+            'follow_up_date' => null,
+            'general_summary' => 'Ringkasan umum layanan.',
+            'internal_note' => null,
+            'sensitive_content' => null,
+            'conclusion' => null,
+            'follow_up_plan' => null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function achievementPayload(Student $student): array
+    {
+        return [
+            'student_id' => $student->id,
+            'type_id' => $this->reference('achievement_type', 'akademik')->id,
+            'level_id' => $this->reference('achievement_level', 'sekolah')->id,
+            'activity_name' => 'Lomba Keterampilan',
+            'organizer' => 'Sekolah',
+            'achievement_date' => '2027-07-09',
+            'result' => 'Juara I',
+            'evidence_reference' => 'Arsip sekolah',
+            'evidence_description' => null,
+            'notes' => null,
+        ];
+    }
+
     private function prepareYear(AcademicYearPreparationService $service, User $admin): AcademicYear
     {
         return $service->prepareAcademicYear([
@@ -631,6 +915,14 @@ class DelayedDapodikPreparationTest extends TestCase
             'ends_on' => '2028-06-30',
             'preparation_reference' => 'Kalender Pendidikan 2027/2028',
         ], $admin);
+    }
+
+    private function reference(string $category, string $code): ReferenceValue
+    {
+        return ReferenceValue::query()
+            ->where('category', $category)
+            ->where('code', $code)
+            ->firstOrFail();
     }
 
     private function validCsv(): UploadedFile

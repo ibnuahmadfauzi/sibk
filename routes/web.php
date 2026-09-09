@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AcademicYearActivationController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AchievementController;
+use App\Http\Controllers\Admin\AcademicYearPreparationController;
 use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AssignmentController;
@@ -70,6 +72,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::get('/assignments/classes', [AssignmentController::class, 'index'])->name('assignments.classes.index');
     Route::get('/assignments/classes/manage', [AssignmentController::class, 'manage'])->name('assignments.classes.manage');
     Route::post('/assignments/classes', [AssignmentController::class, 'storeClassAssignment'])->name('assignments.classes.store');
+    Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
+        ->name('assignments.academic-years.activate');
     Route::get('/assignments/cases', [AssignmentController::class, 'caseIndex'])->name('assignments.cases.index');
 
     Route::get('/corrections', [CorrectionController::class, 'index'])->name('corrections.index');
@@ -89,6 +93,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::post('/achievements/{achievement}/verify', [AchievementController::class, 'verify'])->name('achievements.verify');
 
     Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master.index');
+    Route::post('/data-master/academic-years', [AcademicYearPreparationController::class, 'store'])
+        ->name('data-master.academic-years.store');
+    Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
+        ->name('data-master.academic-years.roster-imports.store');
     Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');
     Route::post('/data-master/etatib/sync', [DataMasterController::class, 'synchronizeEtatib'])->name('data-master.etatib.sync');
 

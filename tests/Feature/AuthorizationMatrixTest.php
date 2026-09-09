@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\ReferenceSeeder;
@@ -83,6 +84,32 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Penugasan Kelas')
             ->assertDontSee('Pengalihan Kasus')
             ->assertSee('Data Master');
+    }
+
+    public function test_preparation_and_activation_controls_are_visible_only_to_the_responsible_roles(): void
+    {
+        $year = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $admin = $this->userWithRole('admin_it');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $waka = $this->userWithRole('waka_kesiswaan');
+
+        $this->actingAs($admin)->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee('Persiapan Tahun Ajaran');
+        $this->actingAs($coordinator)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertOk()
+            ->assertSee('Kesiapan Aktivasi');
+        $this->actingAs($teacher)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertForbidden();
+        $this->actingAs($waka)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertForbidden();
     }
 
     private function userWithRole(string $slug): User

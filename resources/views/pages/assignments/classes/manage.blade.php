@@ -29,6 +29,9 @@
                 </ul>
             </div>
         @endif
+        @if(session('success'))
+            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+        @endif
 
         <div class="sibk-panel mb-4">
             <div class="sibk-panel__body p-4">
@@ -47,6 +50,86 @@
                 </form>
             </div>
         </div>
+
+        @if($selectedYear)
+            @php
+                [$yearSourceLabel, $yearSourceTone] = match ($selectedYear->master_source) {
+                    \App\Models\AcademicYear::MASTER_SOURCE_DAPODIK => ['Terverifikasi Dapodik', 'success'],
+                    \App\Models\AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL => ['Sementara', 'warning'],
+                    default => ['Data Lama', 'neutral'],
+                };
+            @endphp
+            <section class="sibk-panel mb-4" aria-labelledby="activation-readiness-title">
+                <div class="sibk-panel__header p-4 border-0 pb-0">
+                    <div>
+                        <h2 class="sibk-panel__title mb-1" id="activation-readiness-title">Kesiapan Aktivasi</h2>
+                        <p class="sibk-panel__subtitle text-muted small mb-0">
+                            Pastikan setiap rombel memiliki tepat satu Guru BK sejak tanggal mulai tahun ajaran.
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="sibk-badge sibk-badge--{{ $yearSourceTone }}">{{ $yearSourceLabel }}</span>
+                        <span class="sibk-badge sibk-badge--{{ $selectedYear->is_active ? 'success' : 'info' }}">
+                            {{ $selectedYear->is_active ? 'Aktif' : 'Belum Aktif' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="sibk-panel__body p-4">
+                    @if($activationReadiness['issues'] !== [])
+                        <div class="alert alert-warning">
+                            <strong>Masih perlu dilengkapi:</strong>
+                            <ul class="mb-0 mt-2">
+                                @foreach($activationReadiness['issues'] as $issue)
+                                    <li>{{ $issue }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="table-responsive">
+                        <table class="table sibk-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Rombel</th>
+                                    <th>Murid</th>
+                                    <th>Guru BK pada Awal Tahun</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($activationReadiness['classrooms'] as $row)
+                                    <tr>
+                                        <td class="fw-semibold">{{ $row['classroom']->name }}</td>
+                                        <td>{{ $row['student_count'] }}</td>
+                                        <td>{{ $row['teacher_name'] ?? 'Belum lengkap' }}</td>
+                                        <td>
+                                            <span class="sibk-badge sibk-badge--{{ $row['ready'] ? 'success' : 'warning' }}">
+                                                {{ $row['ready'] ? 'Siap' : 'Perlu Penugasan' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">Belum ada rombel untuk diperiksa.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if($activationReadiness['ready'])
+                        <form action="{{ route('assignments.academic-years.activate', $selectedYear) }}" method="POST" class="mt-3 d-flex justify-content-end">
+                            @csrf
+                            <button type="submit" class="btn btn-primary">Aktifkan Tahun Ajaran</button>
+                        </form>
+                    @elseif($selectedYear->is_active)
+                        <p class="small text-success mb-0 mt-3">Tahun ajaran ini sudah digunakan untuk layanan BK.</p>
+                    @else
+                        <p class="small text-muted mb-0 mt-3">Tombol aktivasi tersedia setelah semua syarat di atas terpenuhi.</p>
+                    @endif
+                </div>
+            </section>
+        @endif
 
         <form action="{{ route('assignments.classes.store') }}" method="POST">
             @csrf
@@ -85,7 +168,7 @@
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="start_date" class="form-label sibk-form-label">Tanggal Mulai <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control sibk-form-control" id="start_date" name="effective_date" value="{{ old('effective_date', now()->toDateString()) }}" required>
+                            <input type="date" class="form-control sibk-form-control" id="start_date" name="effective_date" value="{{ old('effective_date', $selectedYear?->starts_on?->toDateString() ?? now()->toDateString()) }}" required>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="end_date" class="form-label sibk-form-label">Tanggal Akhir</label>

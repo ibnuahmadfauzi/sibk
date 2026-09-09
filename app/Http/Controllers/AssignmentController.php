@@ -11,6 +11,7 @@ use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\AcademicYearPreparationService;
 use App\Services\AssignmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -53,8 +54,10 @@ class AssignmentController extends Controller
         ]);
     }
 
-    public function manage(Request $request): View
-    {
+    public function manage(
+        Request $request,
+        AcademicYearPreparationService $preparationService,
+    ): View {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('create', TeacherAssignment::class), 403);
@@ -85,6 +88,9 @@ class AssignmentController extends Controller
             $currentAssignment = (clone $assignmentQuery)->activeOn(now())->latest('effective_from')->first()
                 ?? (clone $assignmentQuery)->scheduledOn(now())->oldest('effective_from')->first();
         }
+        $activationReadiness = $selectedYear !== null
+            ? $preparationService->activationReadiness($selectedYear)
+            : ['ready' => false, 'issues' => ['Tahun ajaran belum tersedia.'], 'classrooms' => collect()];
 
         return view('pages.assignments.classes.manage', compact(
             'academicYears',
@@ -93,6 +99,7 @@ class AssignmentController extends Controller
             'selectedClass',
             'counselors',
             'currentAssignment',
+            'activationReadiness',
         ));
     }
 

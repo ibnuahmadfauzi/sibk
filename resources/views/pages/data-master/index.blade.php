@@ -25,6 +25,8 @@
             </div>
         </div>
 
+        @include('pages.data-master._academic-year-preparation')
+
         <!-- Sync 3 Cards -->
         <div class="row g-4 mb-4">
             <!-- Card 1: Dapodik -->

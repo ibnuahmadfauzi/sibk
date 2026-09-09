@@ -358,6 +358,89 @@ class AcademicYearPreparationService
         });
     }
 
+    /**
+     * @return array{
+     *     ready: bool,
+     *     issues: list<string>,
+     *     classrooms: Collection<int, array{
+     *         classroom: Classroom,
+     *         student_count: int,
+     *         assignment_count: int,
+     *         teacher_name: ?string,
+     *         ready: bool
+     *     }>
+     * }
+     */
+    public function activationReadiness(AcademicYear $academicYear): array
+    {
+        $issues = [];
+        if ($academicYear->starts_on === null
+            || $academicYear->ends_on === null
+            || $academicYear->ends_on->lte($academicYear->starts_on)) {
+            $issues[] = 'Tanggal tahun ajaran belum lengkap atau belum berurutan.';
+        }
+
+        /** @var Collection<int, Classroom> $classrooms */
+        $classrooms = Classroom::query()
+            ->where('academic_year_id', $academicYear->getKey())
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        if ($classrooms->isEmpty()) {
+            $issues[] = 'Belum ada rombel aktif pada tahun ajaran ini.';
+        }
+
+        $readinessRows = $classrooms->map(function (Classroom $classroom) use ($academicYear): array {
+            $studentCount = StudentClassMembership::query()
+                ->where('academic_year_id', $academicYear->getKey())
+                ->where('classroom_id', $classroom->getKey())
+                ->where('is_active', true)
+                ->whereHas('student', fn ($students) => $students->where('is_active', true))
+                ->count();
+            $assignments = TeacherAssignment::query()
+                ->with('teacher.roles')
+                ->where('classroom_id', $classroom->getKey())
+                ->where('academic_year_id', $academicYear->getKey())
+                ->when(
+                    $academicYear->starts_on !== null,
+                    fn ($query) => $query
+                        ->whereDate('effective_from', '<=', $academicYear->starts_on->toDateString())
+                        ->where(function ($period) use ($academicYear): void {
+                            $period->whereNull('effective_until')
+                                ->orWhereDate('effective_until', '>=', $academicYear->starts_on->toDateString());
+                        }),
+                    fn ($query) => $query->whereRaw('1 = 0'),
+                )
+                ->get();
+            $assignment = $assignments->first();
+            $assignmentReady = $assignments->count() === 1
+                && $assignment !== null
+                && $assignment->teacher->is_active
+                && $assignment->teacher->hasRole('guru_bk');
+
+            return [
+                'classroom' => $classroom,
+                'student_count' => $studentCount,
+                'assignment_count' => $assignments->count(),
+                'teacher_name' => $assignmentReady ? $assignment->teacher->name : null,
+                'ready' => $assignmentReady,
+            ];
+        });
+
+        if ($readinessRows->sum('student_count') === 0) {
+            $issues[] = 'Belum ada murid aktif dalam daftar persiapan.';
+        }
+        if ($readinessRows->contains(fn (array $row): bool => ! $row['ready'])) {
+            $issues[] = 'Setiap rombel harus memiliki tepat satu Guru BK aktif sejak awal tahun ajaran.';
+        }
+
+        return [
+            'ready' => ! $academicYear->is_active && $issues === [],
+            'issues' => $issues,
+            'classrooms' => $readinessRows,
+        ];
+    }
+
     private function assertImportable(AcademicYear $academicYear): void
     {
         if ($academicYear->is_active) {

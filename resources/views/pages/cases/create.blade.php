@@ -42,7 +42,7 @@
                             <select class="form-select sibk-form-select" id="student" name="student_id">
                                 <option value="">Pilih murid atau isi identitas sementara</option>
                                 @foreach($students as $student)
-                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id', $preselectedStudentId) === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $student->classMemberships->first()?->classroom?->name ?? 'Tanpa kelas aktif' }})</option>
+                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id', $preselectedStudentId) === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $student->classMemberships->first()?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->master_source === \App\Models\Student::MASTER_SOURCE_SCHOOL_PROVISIONAL ? ' — Sementara' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -59,6 +60,34 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Tampilan koordinasi hanya-baca')
             ->assertSee('Kasus terkoordinasi')
             ->assertDontSee('Cari profil murid');
+    }
+
+    public function test_academic_year_preparation_pages_follow_the_existing_panel_hierarchy(): void
+    {
+        $year = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $admin = $this->authenticateAs('admin_it');
+        $this->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee('Persiapan Tahun Ajaran')
+            ->assertSee('Buat Tahun Ajaran Sementara')
+            ->assertSee('name="name"', false)
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('nisn,nama,rombel');
+
+        $admin->roles()->detach();
+        $admin->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
+
+        $this->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertOk()
+            ->assertSee('Kesiapan Aktivasi')
+            ->assertSee('Sementara')
+            ->assertDontSee('Aktifkan Tahun Ajaran');
     }
 
     private function authenticateAs(string $roleSlug): User
