@@ -16,6 +16,9 @@
         @error('etatib_sync')
             <div class="alert alert-danger" role="alert">{{ $message }}</div>
         @enderror
+        @error('integration')
+            <div class="alert alert-danger" role="alert">{{ $message }}</div>
+        @enderror
 
         <!-- Header -->
         <div class="sibk-page-header mb-4">
@@ -141,21 +144,37 @@
         </div>
 
         <!-- Sync Button Row -->
-        <div class="d-flex flex-wrap justify-content-end gap-2 mb-4">
+        <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
             <form action="{{ route('data-master.etatib.sync') }}" method="POST">
                 @csrf
-                <button type="submit" class="btn btn-outline-primary">Sinkronkan e-Tatib</button>
+                <button
+                    type="submit"
+                    class="btn btn-outline-primary"
+                    data-sync-unavailable="etatib"
+                    disabled
+                    aria-describedby="sync-unavailable-message"
+                >Sinkronkan e-Tatib</button>
             </form>
             <form action="{{ route('data-master.dapodik.sync') }}" method="POST">
                 @csrf
-            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-sync-all">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                </svg>
-                Perbarui Data
-            </button>
+                <button
+                    type="submit"
+                    class="btn btn-primary d-inline-flex align-items-center gap-2"
+                    id="btn-sync-all"
+                    data-sync-unavailable="dapodik"
+                    disabled
+                    aria-describedby="sync-unavailable-message"
+                >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                    Perbarui Data
+                </button>
             </form>
         </div>
+        <p class="text-muted small text-end mb-4" id="sync-unavailable-message">
+            Sinkronisasi baru dapat digunakan setelah adapter resmi tersedia dan koneksi berhasil diaktifkan.
+        </p>
 
         <!-- Status Sinkronisasi Box -->
         <div class="sibk-panel mb-4 border-0">
@@ -175,6 +194,8 @@
                 </div>
             </div>
         </div>
+
+        @include('pages.data-master._integration-setting')
 
         <!-- Sync Log Table Card -->
         <div class="sibk-panel border-0 mb-4">

@@ -16,6 +16,7 @@ use App\Integrations\IntegrationSettingState;
 use App\Models\AuditLog;
 use App\Models\IntegrationSetting;
 use App\Models\Role;
+use App\Models\Student;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\IntegrationSettingService;
@@ -393,6 +394,115 @@ class IntegrationSettingTest extends TestCase
         );
         $limited->assertTooManyRequests();
         $this->assertStringContainsString('no-store', (string) $limited->headers->get('Cache-Control'));
+    }
+
+    public function test_admin_page_renders_secure_separate_provider_settings_and_distinct_data_freshness(): void
+    {
+        $this->configureAllowedOrigins();
+        IntegrationSetting::query()->create([
+            'provider' => IntegrationSetting::PROVIDER_DAPODIK,
+            'base_url' => 'https://dapodik.example.test/api',
+            'expected_source_identifier' => 'school-dapodik',
+            'credentials' => ['type' => 'api_token', 'token' => 'DAPODIK-HTML-SECRET'],
+        ]);
+        IntegrationSetting::query()->create([
+            'provider' => IntegrationSetting::PROVIDER_ETATIB,
+            'base_url' => 'https://etatib.example.test/api',
+            'expected_source_identifier' => 'school-etatib',
+            'credentials' => ['type' => 'api_token', 'token' => 'ETATIB-HTML-SECRET'],
+        ]);
+        DB::table('external_sync_runs')->insert([
+            'source' => 'dapodik',
+            'status' => 'succeeded',
+            'received_count' => 2,
+            'processed_count' => 2,
+            'conflict_count' => 0,
+            'summary' => 'Sinkronisasi Dapodik berhasil.',
+            'started_at' => '2026-09-08 08:00:00',
+            'finished_at' => '2026-09-08 08:01:00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($this->admin())->get(route('data-master.index'));
+        $response->assertOk();
+        $html = $response->getContent();
+
+        $response
+            ->assertSee('id="integration-dapodik"', false)
+            ->assertSee('id="integration-etatib"', false)
+            ->assertSee('Status koneksi')
+            ->assertSee('Keadaan data terakhir')
+            ->assertSee('Belum dapat digunakan')
+            ->assertSee('Terakhir berhasil diperbarui 08 Sep 2026, 08.01.')
+            ->assertSee('Belum ada data yang berhasil diperbarui dari e-Tatib.')
+            ->assertSee('Token tersimpan')
+            ->assertSee('school-dapodik')
+            ->assertSee('school-etatib')
+            ->assertDontSee('DAPODIK-HTML-SECRET')
+            ->assertDontSee('ETATIB-HTML-SECRET');
+
+        foreach ([IntegrationSetting::PROVIDER_DAPODIK, IntegrationSetting::PROVIDER_ETATIB] as $provider) {
+            foreach (['api-key', 'save-current-password', 'test-current-password', 'activate-current-password', 'deactivate-current-password'] as $field) {
+                $this->assertSecurePasswordInput($html, "{$provider}-{$field}", $provider, $field === 'api-key' ? 'new-password' : 'current-password');
+            }
+        }
+
+        $this->assertSame(2, substr_count($html, 'data-integration-panel='));
+        $this->assertSame(2, substr_count($html, 'data-sync-unavailable='));
+    }
+
+    public function test_provider_validation_errors_stay_in_the_matching_panel(): void
+    {
+        $this->configureAllowedOrigins();
+        $admin = $this->admin();
+
+        $response = $this->actingAs($admin)->from(route('data-master.index'))->patch(
+            route('data-master.integrations.update', ['provider' => 'dapodik']),
+            $this->httpSettingPayload([
+                'dapodik' => [
+                    'base_url' => 'https://not-allowed.example.test',
+                    'timeout_seconds' => 121,
+                    'current_password' => 'password',
+                ],
+            ]),
+        );
+
+        $page = $this->followRedirects($response);
+        $page->assertOk();
+        $html = $page->getContent();
+
+        $this->assertPanelContains($html, 'integration-dapodik', 'URL endpoint tidak diizinkan');
+        $this->assertPanelContains($html, 'integration-dapodik', 'Batas waktu harus antara 5 dan 120 detik.');
+        $this->assertPanelDoesNotContain($html, 'integration-etatib', 'URL endpoint tidak diizinkan');
+        $this->assertPanelDoesNotContain($html, 'integration-etatib', 'Batas waktu harus antara 5 dan 120 detik.');
+    }
+
+    public function test_unavailable_drivers_disable_sync_controls_and_direct_posts_fail_without_changing_master_data(): void
+    {
+        $admin = $this->admin();
+        $student = Student::query()->create([
+            'nisn' => '0090909001',
+            'name' => 'Data Lama Tetap Ada',
+            'is_active' => true,
+        ]);
+
+        $page = $this->actingAs($admin)->get(route('data-master.index'));
+        $page->assertOk();
+        $html = $page->getContent();
+        $this->assertMatchesRegularExpression('/<button[^>]+data-sync-unavailable="dapodik"[^>]+disabled/u', $html);
+        $this->assertMatchesRegularExpression('/<button[^>]+data-sync-unavailable="etatib"[^>]+disabled/u', $html);
+
+        $this->actingAs($admin)->post(route('data-master.dapodik.sync'))
+            ->assertRedirect()
+            ->assertSessionHasErrors('sync');
+        $this->actingAs($admin)->post(route('data-master.etatib.sync'))
+            ->assertRedirect()
+            ->assertSessionHasErrors('etatib_sync');
+
+        $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'Data Lama Tetap Ada']);
+        $this->assertDatabaseCount('external_sync_runs', 2);
+        $this->assertSame(2, DB::table('external_sync_runs')->where('status', 'failed')->count());
     }
 
     public function test_integration_lifecycle_failure_responses_are_no_store_and_redact_debug_secrets(): void
@@ -1138,6 +1248,54 @@ class IntegrationSettingTest extends TestCase
         } while ($current !== null);
 
         $this->assertStringNotContainsString($secret, implode('\n', $diagnostics));
+    }
+
+    private function assertSecurePasswordInput(string $html, string $id, string $provider, string $autocomplete): void
+    {
+        $document = new \DOMDocument;
+        @$document->loadHTML($html);
+        $xpath = new \DOMXPath($document);
+        $nodes = $xpath->query("//input[@id='{$id}']");
+
+        $this->assertNotFalse($nodes);
+        $this->assertSame(1, $nodes->length, "Input {$id} harus unik.");
+        $input = $nodes->item(0);
+        $this->assertInstanceOf(\DOMElement::class, $input);
+        $this->assertSame('password', $input->getAttribute('type'));
+        $this->assertSame($autocomplete, $input->getAttribute('autocomplete'));
+        $this->assertSame('false', $input->getAttribute('spellcheck'));
+        $this->assertSame('none', $input->getAttribute('autocapitalize'));
+        $this->assertFalse($input->hasAttribute('value'));
+        $this->assertStringStartsWith("{$provider}[", $input->getAttribute('name'));
+        $this->assertSame(1, $xpath->query("//label[@for='{$id}']")->length, "Label {$id} harus unik.");
+
+        $describedBy = $input->getAttribute('aria-describedby');
+        $this->assertNotSame('', $describedBy);
+        foreach (preg_split('/\s+/', $describedBy) ?: [] as $descriptionId) {
+            $this->assertSame(1, $xpath->query("//*[@id='{$descriptionId}']")->length, "ARIA {$descriptionId} harus menunjuk elemen unik.");
+        }
+    }
+
+    private function assertPanelContains(string $html, string $panelId, string $text): void
+    {
+        $panel = $this->panelText($html, $panelId);
+        $this->assertStringContainsString($text, $panel);
+    }
+
+    private function assertPanelDoesNotContain(string $html, string $panelId, string $text): void
+    {
+        $panel = $this->panelText($html, $panelId);
+        $this->assertStringNotContainsString($text, $panel);
+    }
+
+    private function panelText(string $html, string $panelId): string
+    {
+        $document = new \DOMDocument;
+        @$document->loadHTML($html);
+        $node = (new \DOMXPath($document))->query("//*[@id='{$panelId}']")->item(0);
+        $this->assertInstanceOf(\DOMElement::class, $node);
+
+        return $node->textContent;
     }
 
     /** @param array<int, array<string, mixed>> $trace */

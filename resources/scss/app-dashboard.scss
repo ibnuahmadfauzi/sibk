@@ -2332,6 +2332,46 @@ small, .small {
     background-color: #fdf3eb;
     color: #d16b24;
   }
+
+  &--danger {
+    background-color: var(--sibk-color-danger-soft);
+    color: var(--sibk-color-danger);
+  }
+
+  &--neutral {
+    background-color: var(--sibk-color-field);
+    color: var(--sibk-color-text-muted);
+  }
+}
+
+.integration-setting {
+  scroll-margin-top: 1rem;
+
+  &__action-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+
+    & + & {
+      border-top: 1px dashed var(--sibk-color-border-light);
+    }
+
+    .btn {
+      min-width: 8.5rem;
+    }
+  }
+}
+
+@media (max-width: 575.98px) {
+  .integration-setting__action-row {
+    align-items: stretch;
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+    }
+  }
 }
 
 // ==========================================================================

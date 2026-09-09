@@ -90,6 +90,30 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Aktifkan Tahun Ajaran');
     }
 
+    public function test_pg_501_integration_settings_follow_existing_panels_and_plain_language_workflow(): void
+    {
+        $this->authenticateAs('admin_it');
+
+        $this->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee('Pengaturan Koneksi Sumber Data')
+            ->assertSee('class="col-12 col-xl-6"', false)
+            ->assertSee('data-integration-panel="dapodik"', false)
+            ->assertSee('data-integration-panel="etatib"', false)
+            ->assertSeeInOrder([
+                'Ringkasan koneksi',
+                'Konfigurasi',
+                'Simpan Pengaturan',
+                'Uji Koneksi',
+                'Aktifkan',
+                'Keadaan data terakhir',
+            ])
+            ->assertSee('Adapter belum tersedia')
+            ->assertSee('Sinkronisasi baru dapat digunakan setelah adapter resmi tersedia dan koneksi berhasil diaktifkan.')
+            ->assertDontSee('modal')
+            ->assertDontSee('data-bs-toggle="collapse"', false);
+    }
+
     private function authenticateAs(string $roleSlug): User
     {
         $user = User::factory()->create();
