@@ -787,11 +787,11 @@ git commit -m "feat: add audited integration configuration lifecycle"
 - Modify: `routes/web.php`
 - Extend: `tests/Feature/IntegrationSettingTest.php`
 
-- [ ] **Step 1: Tulis failing authorization/validation tests**
+- [x] **Step 1: Tulis failing authorization/validation tests**
 
 Uji guest, Guru BK, Koordinator BK, Waka, Admin IT nonaktif, dan Admin IT aktif untuk seluruh endpoint.
 
-- [ ] **Step 2: Gunakan payload bernamespace**
+- [x] **Step 2: Gunakan payload bernamespace**
 
 ```text
 dapodik[base_url]
@@ -810,7 +810,7 @@ etatib[current_password]
 
 Base URL wajib lolos endpoint policy; expected source identifier nullable max 100; API key nullable max 1000; remove boolean; key dilarang jika remove aktif; timeout 5–120. Seluruh aksi konfigurasi memerlukan step-up menggunakan rule `current_password`; password/token tidak boleh masuk old input atau log.
 
-- [ ] **Step 3: Cegah token masuk session**
+- [x] **Step 3: Cegah token masuk session**
 
 ```php
 $exceptions->dontFlash([
@@ -821,30 +821,30 @@ $exceptions->dontFlash([
 ]);
 ```
 
-- [ ] **Step 4: Implementasikan thin controller dan provider-scoped redirects**
+- [x] **Step 4: Implementasikan thin controller dan provider-scoped redirects**
 
 Controller hanya mengambil actor, memanggil service, dan kembali ke `#integration-{provider}` dengan pesan Bahasa Indonesia berdasarkan safe result code.
 
-- [ ] **Step 5: Tambahkan routes**
+- [x] **Step 5: Tambahkan routes**
 
 Gunakan route PATCH/POST yang ditetapkan di bagian Interface. Terapkan `whereIn('provider', IntegrationSetting::PROVIDERS)`.
 
-- [ ] **Step 6: Daftarkan dan pasang rate limiter**
+- [x] **Step 6: Daftarkan dan pasang rate limiter**
 
 Maksimum lima uji per menit untuk kombinasi user ID dan provider. Route test koneksi wajib memakai named throttle middleware tersebut; test harus membuktikan request keenam ditolak.
 
-- [ ] **Step 7: DataMasterController hanya mengirim safe states**
+- [x] **Step 7: DataMasterController hanya mengirim safe states**
 
 Response halaman dan seluruh aksi konfigurasi harus memakai `Cache-Control: no-store`; tambahkan test bahwa secret tidak muncul pada HTML, flash data, validation response, exception, atau log. Pertahankan CSRF dan security headers aplikasi; jangan melonggarkan CSP untuk halaman ini.
 
-- [ ] **Step 8: Jalankan tests**
+- [x] **Step 8: Jalankan tests**
 
 ```bash
 php artisan test --filter IntegrationSettingTest
 php artisan test --filter AuthorizationMatrixTest
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add app/Http app/Providers/AppServiceProvider.php bootstrap/app.php routes/web.php tests/Feature/IntegrationSettingTest.php
