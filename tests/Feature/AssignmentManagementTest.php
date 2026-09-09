@@ -240,7 +240,7 @@ class AssignmentManagementTest extends TestCase
             ]);
         }
 
-        $this->assertTrue(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-06-30')->whereKey($student)->exists());
+        $this->assertFalse(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-06-30')->whereKey($student)->exists());
         $this->assertFalse(Student::query()->forActiveTeacherAssignment($newTeacher, '2027-06-30')->whereKey($student)->exists());
         $this->assertFalse(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-07-01')->whereKey($student)->exists());
         $this->assertTrue(Student::query()->forActiveTeacherAssignment($newTeacher, '2027-07-01')->whereKey($student)->exists());

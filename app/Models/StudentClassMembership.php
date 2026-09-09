@@ -10,9 +10,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['dapodik_id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until', 'is_active', 'synced_at'])]
+#[Fillable(['dapodik_id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class StudentClassMembership extends Model
 {
+    public const MASTER_SOURCE_SCHOOL_PROVISIONAL = 'school_provisional';
+
+    public const MASTER_SOURCE_DAPODIK = 'dapodik';
+
+    public const MASTER_SOURCE_LEGACY_UNCLASSIFIED = 'legacy_unclassified';
+
     /** @return BelongsTo<Student, $this> */
     public function student(): BelongsTo
     {
@@ -84,6 +90,7 @@ class StudentClassMembership extends Model
             'effective_until' => 'date',
             'is_active' => 'boolean',
             'synced_at' => 'datetime',
+            'source_confirmed_at' => 'datetime',
         ];
     }
 }

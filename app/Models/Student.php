@@ -11,9 +11,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-#[Fillable(['dapodik_id', 'nisn', 'name', 'is_active', 'synced_at'])]
+#[Fillable(['dapodik_id', 'nisn', 'name', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class Student extends Model
 {
+    public const MASTER_SOURCE_SCHOOL_PROVISIONAL = 'school_provisional';
+
+    public const MASTER_SOURCE_DAPODIK = 'dapodik';
+
+    public const MASTER_SOURCE_LEGACY_UNCLASSIFIED = 'legacy_unclassified';
+
     /** @return HasMany<StudentClassMembership, $this> */
     public function classMemberships(): HasMany
     {
@@ -72,6 +78,7 @@ class Student extends Model
                 ->join('academic_years as years', 'years.id', '=', 'memberships.academic_year_id')
                 ->whereColumn('memberships.student_id', 'students.id')
                 ->where('memberships.is_active', true)
+                ->where('years.is_active', true)
                 ->where('assignments.user_id', $teacher->getKey())
                 ->whereNull('assignments.deleted_at')
                 ->whereDate('memberships.effective_from', '<=', $date)
@@ -137,6 +144,7 @@ class Student extends Model
         return [
             'is_active' => 'boolean',
             'synced_at' => 'datetime',
+            'source_confirmed_at' => 'datetime',
         ];
     }
 }
