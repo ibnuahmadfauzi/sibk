@@ -726,15 +726,15 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
 }
 ```
 
-- [ ] **Step 1: Tulis failing tests state machine**
+- [x] **Step 1: Tulis failing tests state machine**
 
 Uji first save, keep/replace/remove credential, invalid replace+remove, perubahan material, no-op save, expected source identifier kosong tetap `unconfigured` dan menolak test/activation, test sukses/gagal/stale, activation invariant, deactivation, driver/adapter/contract/allowlist drift, source identity mismatch, stale fencing token setelah lease berpindah, hard deadline, serta rollback ketika audit gagal.
 
-- [ ] **Step 2: Implementasikan per-provider operation lock**
+- [x] **Step 2: Implementasikan per-provider operation lock**
 
 Gunakan cache lock per provider secara non-blocking sebagai exclusion gate. Setelah lock didapat, alokasikan token dengan mengunci row, menaikkan `operation_fence_version`, dan commit dalam transaksi singkat sebelum pekerjaan jaringan yang panjang dimulai; bawa token pada operation context. Save, test, activate, deactivate, dan sync memakai lock/context yang sama. Sebelum menerapkan hasil probe atau memulai transaksi import, kunci row dan pastikan fencing token masih current; proses lama wajib berhenti tanpa write bila lease telah berpindah. Terapkan invariant `hard operation deadline + safety margin <= lease TTL`. Adapter yang worst-case pagination/retry/import-nya tidak muat dalam deadline tidak boleh di-admit tanpa queue/lock renewal design terpisah.
 
-- [ ] **Step 3: Implementasikan save transaction dan audit tersanitasi**
+- [x] **Step 3: Implementasikan save transaction dan audit tersanitasi**
 
 Audit actions:
 
@@ -751,21 +751,21 @@ etatib.connection_disabled
 
 Audit hanya menyimpan provider, endpoint origin, timeout, versions, test status, enabled flag, credential presence, dan credential changed.
 
-- [ ] **Step 4: Implementasikan connection test**
+- [x] **Step 4: Implementasikan connection test**
 
 Ambil setting/version, validasi, jalankan probe tanpa transaksi, lalu kunci row dan terapkan hasil hanya jika configuration version, driver ID, adapter version, contract version, dan endpoint-policy digest belum berubah. Simpan digest yang terverifikasi bersama hasil probe. Probe `success` hanya valid bila schema minimum dan identitas sumber yang dikembalikan cocok dengan konfigurasi. Jangan membuat sync run atau memodifikasi cache.
 
-- [ ] **Step 5: Implementasikan activation invariant dan safe state DTO**
+- [x] **Step 5: Implementasikan activation invariant dan safe state DTO**
 
 Blade hanya menerima provider, label, base URL, expected source identifier, timeout, boolean credential, effective state, safe test code/time, versions, adapter availability, dan capability flags. `active()` dan `assertCurrent()` menghitung ulang endpoint-policy digest dan gagal tertutup bila berbeda dari nilai yang diverifikasi.
 
-- [ ] **Step 6: Jalankan tests**
+- [x] **Step 6: Jalankan tests**
 
 ```bash
 php artisan test --filter IntegrationSettingTest
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add app/Integrations app/Services/IntegrationSettingService.php tests/Feature/IntegrationSettingTest.php
