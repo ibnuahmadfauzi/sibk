@@ -138,6 +138,12 @@ class Student extends Model
         return $query->whereRaw('1 = 0');
     }
 
+    public function usesProvisionalData(?StudentClassMembership $membership = null): bool
+    {
+        return $this->master_source === self::MASTER_SOURCE_SCHOOL_PROVISIONAL
+            || $membership?->master_source === StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL;
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

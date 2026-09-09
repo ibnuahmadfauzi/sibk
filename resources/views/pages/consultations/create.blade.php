@@ -23,14 +23,16 @@
                 <div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Murid dan Konteks Layanan</h2></div>
                 <div class="sibk-panel__body p-4 row g-4">
                     @if($isEdit)
-                        <div class="col-12"><label class="form-label">Murid</label><div class="form-control bg-light">{{ $consultation->identityName() }} — NISN {{ $consultation->identityNisn() }}</div></div>
+                        @php($membership = $consultation->student?->classMemberships->first())
+                        <div class="col-12"><label class="form-label">Murid</label><div class="form-control bg-light">{{ $consultation->identityName() }} — NISN {{ $consultation->identityNisn() }}{{ $consultation->student?->usesProvisionalData($membership) ? ' — Sementara' : '' }}</div></div>
                     @else
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="student_id">Murid Master</label>
                             <select class="form-select" id="student_id" name="student_id">
                                 <option value="">Pilih murid atau isi identitas sementara</option>
                                 @foreach($students as $student)
-                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id', $preselectedStudentId) === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $student->classMemberships->first()?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->master_source === \App\Models\Student::MASTER_SOURCE_SCHOOL_PROVISIONAL ? ' — Sementara' : '' }}</option>
+                                    @php($membership = $student->classMemberships->first())
+                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id', $preselectedStudentId) === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->usesProvisionalData($membership) ? ' — Sementara' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>

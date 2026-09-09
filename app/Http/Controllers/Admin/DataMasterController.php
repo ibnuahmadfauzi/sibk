@@ -50,6 +50,7 @@ class DataMasterController extends Controller
                 ->count(),
             'activeYear' => $activeYear,
             'preparationYears' => AcademicYear::query()
+                ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
                 ->withCount([
                     'classrooms as active_classroom_count' => fn ($query) => $query->where('is_active', true),
                     'studentClassMemberships as active_student_count' => fn ($query) => $query

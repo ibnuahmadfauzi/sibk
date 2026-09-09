@@ -100,6 +100,7 @@ class CaseController extends Controller
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
                 ->effectiveOn(now()->toDateString())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom')])
             ->orderBy('name')
             ->get();

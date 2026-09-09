@@ -31,6 +31,7 @@ class StudentController extends Controller
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
                     ->effectiveOn(now()->toDateString())
+                    ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom.academicYear'),
                 'cases' => fn ($cases) => $cases
                     ->accessibleTo($user)
@@ -44,11 +45,16 @@ class StudentController extends Controller
             ->whereHas('classMemberships', fn ($memberships) => $memberships
                 ->where('classroom_id', $classroomId)
                 ->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->effectiveOn(now()->toDateString())));
 
         return view('pages.students.index', [
             'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
-            'classrooms' => Classroom::query()->active()->orderBy('name')->get(),
+            'classrooms' => Classroom::query()
+                ->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -60,6 +66,7 @@ class StudentController extends Controller
         $student->load(['classMemberships.classroom.academicYear']);
         $currentMembership = $student->classMemberships()
             ->activeOn(now()->toDateString())
+            ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
             ->with(['classroom', 'academicYear'])
             ->latest('effective_from')
             ->first();

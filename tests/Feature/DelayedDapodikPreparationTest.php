@@ -430,6 +430,70 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function roster_import_rejects_dapodik_and_legacy_years_without_mutation_or_success_audit(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+
+        foreach ([
+            AcademicYear::MASTER_SOURCE_DAPODIK => '2028/2029',
+            AcademicYear::MASTER_SOURCE_LEGACY_UNCLASSIFIED => '2029/2030',
+        ] as $source => $name) {
+            $year = AcademicYear::query()->create([
+                'name' => $name,
+                'starts_on' => mb_substr($name, 0, 4).'-07-01',
+                'ends_on' => mb_substr($name, 5, 4).'-06-30',
+                'is_active' => false,
+                'master_source' => $source,
+            ]);
+
+            $this->assertValidationError(
+                fn () => $service->importRoster($year, $this->validCsv(), $admin),
+                'academic_year',
+            );
+            $this->actingAs($admin)
+                ->from(route('data-master.index'))
+                ->post(route('data-master.academic-years.roster-imports.store', $year), [
+                    'file' => $this->validCsv(),
+                ])
+                ->assertSessionHasErrors('academic_year');
+        }
+
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+    }
+
+    #[Test]
+    public function data_master_only_offers_roster_import_for_provisional_years(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $provisional = $this->prepareYear($service, $admin);
+        $dapodik = AcademicYear::query()->create([
+            'name' => '2028/2029',
+            'starts_on' => '2028-07-01',
+            'ends_on' => '2029-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_DAPODIK,
+        ]);
+        $legacy = AcademicYear::query()->create([
+            'name' => '2029/2030',
+            'starts_on' => '2029-07-01',
+            'ends_on' => '2030-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_LEGACY_UNCLASSIFIED,
+        ]);
+
+        $this->actingAs($admin)->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee(route('data-master.academic-years.roster-imports.store', $provisional), false)
+            ->assertDontSee(route('data-master.academic-years.roster-imports.store', $dapodik), false)
+            ->assertDontSee(route('data-master.academic-years.roster-imports.store', $legacy), false);
+    }
+
+    #[Test]
     public function malformed_csv_is_rejected_without_data_changes_and_leaves_only_a_sanitized_failure_audit(): void
     {
         $service = app(AcademicYearPreparationService::class);
@@ -760,13 +824,31 @@ class DelayedDapodikPreparationTest extends TestCase
         $assignedTeacher = $this->userWithRole('guru_bk');
         $otherTeacher = $this->userWithRole('guru_bk');
         $year = $this->prepareYear($preparation, $admin);
+        $confirmedStudent = Student::query()->create([
+            'dapodik_id' => 'dapodik-student-existing',
+            'nisn' => '0012345678',
+            'name' => 'Murid Terverifikasi Utama',
+            'is_active' => true,
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+            'source_confirmed_at' => now()->subYear(),
+        ]);
         $preparation->importRoster($year, $this->csv(implode("\n", [
             'nisn,nama,rombel',
-            '0012345678,Murid Sementara Utama,X RPL 1',
+            '0012345678,Nama CSV Tidak Menimpa,X RPL 1',
             '0098765432,Murid Kelas Lain,X RPL 2',
         ])), $admin);
         $classes = Classroom::query()->where('academic_year_id', $year->id)->orderBy('name')->get();
         $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
+        $this->assertSame($confirmedStudent->id, $student->id);
+        $this->assertSame(Student::MASTER_SOURCE_DAPODIK, $student->master_source);
+        $this->assertSame(
+            StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            StudentClassMembership::query()
+                ->where('student_id', $student->id)
+                ->where('academic_year_id', $year->id)
+                ->sole()
+                ->master_source,
+        );
         TeacherAssignment::query()->create([
             'user_id' => $assignedTeacher->id,
             'classroom_id' => $classes[0]->id,
@@ -794,25 +876,25 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $preparation->activate($year, $coordinator);
 
-        $this->actingAs($assignedTeacher)->get(route('students.index', ['search' => 'Murid Sementara Utama']))
+        $this->actingAs($assignedTeacher)->get(route('students.index', ['search' => 'Murid Terverifikasi Utama']))
             ->assertOk()
-            ->assertSee('Murid Sementara Utama')
-            ->assertSee('Sementara');
+            ->assertSee('Murid Terverifikasi Utama')
+            ->assertSee('>Sementara</span>', false);
         $this->actingAs($assignedTeacher)->get(route('students.show', $student))
             ->assertOk()
-            ->assertSee('Sementara');
+            ->assertSee('>Sementara</span>', false);
         $this->actingAs($assignedTeacher)->get(route('cases.create'))
             ->assertOk()
-            ->assertSee('Murid Sementara Utama')
-            ->assertSee('Sementara');
+            ->assertSee('Murid Terverifikasi Utama')
+            ->assertSee('— Sementara');
         $this->actingAs($assignedTeacher)->get(route('consultations.create'))
             ->assertOk()
-            ->assertSee('Murid Sementara Utama')
-            ->assertSee('Sementara');
+            ->assertSee('Murid Terverifikasi Utama')
+            ->assertSee('— Sementara');
         $this->actingAs($assignedTeacher)->get(route('achievements.create'))
             ->assertOk()
-            ->assertSee('Murid Sementara Utama')
-            ->assertSee('Sementara');
+            ->assertSee('Murid Terverifikasi Utama')
+            ->assertSee('— Sementara');
 
         $case = app(CaseService::class)->createCase($casePayload, $assignedTeacher);
         $this->actingAs($assignedTeacher)->get(route('cases.show', $case))->assertOk();
@@ -832,6 +914,9 @@ class DelayedDapodikPreparationTest extends TestCase
         $consultation = app(ConsultationService::class)->create($consultationPayload, $assignedTeacher);
         $this->assertInstanceOf(Consultation::class, $consultation);
         $this->actingAs($assignedTeacher)->get(route('consultations.show', $consultation))->assertOk();
+        $this->actingAs($assignedTeacher)->get(route('consultations.edit', $consultation))
+            ->assertOk()
+            ->assertSee('— Sementara');
         $this->actingAs($otherTeacher)->get(route('consultations.show', $consultation))->assertForbidden();
         app(ConsultationService::class)->update($consultation, [
             ...$consultationPayload,
@@ -849,6 +934,9 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $achievement = app(AchievementService::class)->create($achievementPayload, $assignedTeacher);
         $this->assertInstanceOf(Achievement::class, $achievement);
+        $this->actingAs($assignedTeacher)->get(route('achievements.edit', $achievement))
+            ->assertOk()
+            ->assertSee('— Sementara');
         $this->assertValidationError(
             fn () => app(AchievementService::class)->create($achievementPayload, $otherTeacher),
             'student_id',

@@ -71,7 +71,15 @@ class ConsultationController extends Controller
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('update', $consultation), 403);
-        $consultation->load(['student', 'temporaryStudent', 'privateNote']);
+        $consultation->load([
+            'student.classMemberships' => fn ($memberships) => $memberships
+                ->active()
+                ->effectiveOn(now()->toDateString())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->with('classroom'),
+            'temporaryStudent',
+            'privateNote',
+        ]);
 
         return $this->formData($user, $consultation, $request);
     }
@@ -96,6 +104,7 @@ class ConsultationController extends Controller
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
                 ->effectiveOn(now()->toDateString())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom')])
             ->orderBy('name')
             ->get();

@@ -443,6 +443,11 @@ class AcademicYearPreparationService
 
     private function assertImportable(AcademicYear $academicYear): void
     {
+        if ($academicYear->master_source !== AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL) {
+            throw ValidationException::withMessages([
+                'academic_year' => 'Daftar persiapan hanya dapat diimpor ke tahun ajaran sementara.',
+            ]);
+        }
         if ($academicYear->is_active) {
             throw ValidationException::withMessages([
                 'academic_year' => 'Daftar persiapan hanya dapat diimpor sebelum tahun ajaran diaktifkan.',
