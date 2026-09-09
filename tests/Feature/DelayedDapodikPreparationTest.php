@@ -405,6 +405,10 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertDatabaseMissing('students', ['nisn' => '0000000002']);
         $this->assertDatabaseMissing('classrooms', ['name' => 'X RPL 2']);
         $this->assertDatabaseMissing('classrooms', ['name' => 'X RPL 3']);
+        $failedAudit = AuditLog::query()->where('action', 'academic_year.roster_import_failed')->latest('id')->firstOrFail();
+        $this->assertSame('classroom_membership_conflict', $failedAudit->after_values['failure_code']);
+        $this->assertSafeFailedImportAudit($failedAudit);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
 
         try {
             $service->importRoster($year, $this->validCsv(), $inactiveAdmin);
@@ -418,6 +422,89 @@ class DelayedDapodikPreparationTest extends TestCase
             fn () => $service->importRoster($year->refresh(), $this->validCsv(), $admin),
             'academic_year',
         );
+    }
+
+    #[Test]
+    public function malformed_csv_is_rejected_without_data_changes_and_leaves_only_a_sanitized_failure_audit(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear($service, $admin);
+        $unsafeCsv = $this->csv(implode("\n", [
+            'nisn,nama,rombel',
+            '0012345678,=NAMA_RAHASIA,X RPL RAHASIA',
+        ]));
+
+        $this->assertValidationError(
+            fn () => $service->importRoster($year, $unsafeCsv, $admin),
+            'file',
+        );
+
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+        $failedAudit = AuditLog::query()->where('action', 'academic_year.roster_import_failed')->sole();
+        $this->assertSame($year->id, $failedAudit->auditable_id);
+        $this->assertSame($admin->id, $failedAudit->actor_id);
+        $this->assertSame('invalid_csv', $failedAudit->after_values['failure_code']);
+        $this->assertSafeFailedImportAudit($failedAudit);
+    }
+
+    #[Test]
+    public function cross_year_classroom_membership_is_rejected_before_mutation_and_audited_safely(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $otherYear = AcademicYear::query()->create([
+            'name' => '2026/2027',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => false,
+        ]);
+        $targetYear = $this->prepareYear($service, $admin);
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Murid Pasangan Silang',
+        ]);
+        $otherYearClassroom = Classroom::query()->create([
+            'academic_year_id' => $otherYear->id,
+            'name' => 'X RPL 1',
+        ]);
+        $crossYearMembership = StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $otherYearClassroom->id,
+            'academic_year_id' => $targetYear->id,
+            'effective_from' => $targetYear->starts_on,
+        ]);
+        $auditCountBefore = AuditLog::query()->count();
+
+        $this->assertValidationError(
+            fn () => $service->importRoster($targetYear, $this->csv(implode("\n", [
+                'nisn,nama,rombel',
+                '0000000002,Murid Baru Tidak Boleh Tersimpan,X RPL 2',
+                '0012345678,Murid Pasangan Silang,X RPL 1',
+            ])), $admin),
+            'rombel',
+        );
+
+        $this->assertDatabaseCount('students', 1);
+        $this->assertDatabaseCount('classrooms', 1);
+        $this->assertDatabaseCount('student_class_memberships', 1);
+        $this->assertDatabaseHas('student_class_memberships', [
+            'id' => $crossYearMembership->id,
+            'classroom_id' => $otherYearClassroom->id,
+            'academic_year_id' => $targetYear->id,
+        ]);
+        $this->assertDatabaseMissing('students', ['nisn' => '0000000002']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'provisional_student.created']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'provisional_classroom.created']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'provisional_membership.created']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+        $this->assertSame($auditCountBefore + 1, AuditLog::query()->count());
+        $failedAudit = AuditLog::query()->where('action', 'academic_year.roster_import_failed')->sole();
+        $this->assertSame('classroom_membership_conflict', $failedAudit->after_values['failure_code']);
+        $this->assertSafeFailedImportAudit($failedAudit);
     }
 
     #[Test]
@@ -586,6 +673,23 @@ class DelayedDapodikPreparationTest extends TestCase
             $this->fail(sprintf('Validasi %s tidak dijalankan.', $field));
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey($field, $exception->errors());
+        }
+    }
+
+    private function assertSafeFailedImportAudit(AuditLog $audit): void
+    {
+        $this->assertNull($audit->before_values);
+        $this->assertSame(
+            ['failure_code' => $audit->after_values['failure_code']],
+            $audit->after_values,
+        );
+        $serializedAudit = json_encode(
+            [$audit->summary, $audit->before_values, $audit->after_values],
+            JSON_THROW_ON_ERROR,
+        );
+
+        foreach (['0012345678', '0000000002', 'NAMA_RAHASIA', 'RPL RAHASIA', 'Murid Pasangan Silang', 'Murid Baru Tidak Boleh Tersimpan', 'Murid Existing', 'X RPL 1', 'X RPL 2', 'X RPL 3', 'nisn,nama,rombel'] as $sensitiveValue) {
+            $this->assertStringNotContainsString($sensitiveValue, $serializedAudit);
         }
     }
 }
