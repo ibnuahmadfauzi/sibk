@@ -1,6 +1,6 @@
 <!--
 Canonical Markdown baseline for version 1.1.
-Derived from PRD_Aplikasi_BK_v1.0 with approved integration decisions.
+Derived from PRD_Aplikasi_BK_v1.0 with approved integration decisions through 9 September 2026.
 The version 1.0 Markdown and DOCX artifacts remain immutable archives.
 -->
 
@@ -16,6 +16,8 @@ Baseline kebutuhan produk untuk layanan Bimbingan dan Konseling
 
 **Tanggal:** 23 Agustus 2026
 
+**Amandemen disetujui:** 9 September 2026
+
 **Konteks:** SMKN 1 Surabaya
 
 # Ringkasan produk
@@ -28,6 +30,8 @@ Aplikasi BK tidak menggantikan e-Tatib atau Dapodik. Pelanggaran dan poin resmi 
 
 Admin IT menyiapkan URL, identitas sumber yang diharapkan, dan credential Dapodik/e-Tatib melalui PG-501 dengan alur Simpan → Uji → Aktifkan. Browser hanya mengirim konfigurasi dan trigger; backend melakukan komunikasi server-to-server, pemetaan, validasi, dan penyimpanan. Fondasi konfigurasi dapat tersedia sebelum kontrak provider disahkan, tetapi driver production dan sinkronisasi nyata tetap diblokir sampai admission kontrak selesai.
 
+Ketika Dapodik tahun ajaran baru terlambat 2–3 bulan, Admin IT dapat menyiapkan tahun ajaran dan daftar minimum murid berdasarkan dasar resmi sekolah. Koordinator BK melengkapi penugasan dan memutuskan aktivasi operasional; setelah aktif, Guru BK dapat langsung melayani murid dalam scope penugasannya. Data persiapan sementara selalu diberi penanda dan tidak dinyatakan sebagai data resmi Dapodik.
+
 # Masalah yang diselesaikan
 
 Pencatatan BK berjalan menggunakan buku, Excel, Google Spreadsheet, WhatsApp, dan Word. Data yang tersebar memperlambat pencarian riwayat, penyusunan laporan, pemantauan tindak lanjut, serta pengendalian akses terhadap informasi sensitif.
@@ -39,7 +43,7 @@ Pencatatan BK berjalan menggunakan buku, Excel, Google Spreadsheet, WhatsApp, da
 | Riwayat murid terputus      | Pergantian kelas atau Guru BK tidak selalu membawa catatan lama. | Guru BK yang memperoleh scope murid dapat membaca histori layanan sebelumnya.    |
 | Perubahan sulit ditelusuri  | Media kerja tidak menyimpan jejak perubahan seragam.             | Perubahan penting dicatat otomatis.                                              |
 | Risiko kebocoran informasi  | Batas akses belum konsisten mengikuti tanggung jawab.            | Akses dibatasi per peran, objek, kelas ampuan, tahun ajaran, dan penugasan.      |
-| Data master belum tersedia  | Sinkronisasi Dapodik belum selalu siap saat kasus muncul.        | Pencatatan sementara memakai NISN dan nama, lalu direkonsiliasi tanpa duplikasi. |
+| Data master belum tersedia  | Dapodik tahun ajaran baru dapat terlambat 2–3 bulan.             | Admin IT menyiapkan data minimum berdasarkan daftar resmi sekolah; Koordinator mengaktifkan setelah penugasan lengkap; hasil Dapodik diterapkan melalui pratinjau tanpa duplikasi. |
 
 # Dasar kebutuhan
 
@@ -90,10 +94,10 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 | **Peran**      | **Tanggung jawab**                                                                                                                              | **Batas akses**                                                                                                                                                 |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Guru BK        | Mengelola layanan untuk kelas ampuan dan kasus khusus; membaca histori murid dalam scope aktif.                                                 | Tidak mengakses murid di luar tanggung jawabnya dan tidak mengubah catatan profesional lama milik Guru BK sebelumnya.                                           |
-| Koordinator BK | Penanggung jawab operasional; mengatur pembagian, kasus khusus, pengalihan, verifikasi operasional, serta rekap gabungan seluruh Guru BK aktif. | Jabatan koordinator tidak otomatis membuka konsultasi sensitif. Jika merangkap Guru BK, akses sensitif tetap mengikuti scope Guru BK.                           |
+| Guru BK        | Mengelola layanan untuk kelas ampuan dan kasus khusus; membaca histori murid dalam scope aktif, termasuk murid dari data persiapan sementara setelah aktivasi operasional. | Tidak mengakses murid di luar tanggung jawabnya dan tidak mengubah catatan profesional lama milik Guru BK sebelumnya.                                           |
+| Koordinator BK | Penanggung jawab operasional; mengatur pembagian, kasus khusus, pengalihan, verifikasi operasional, aktivasi tahun ajaran setelah penugasan lengkap, serta rekap gabungan seluruh Guru BK aktif. | Jabatan koordinator tidak otomatis membuka konsultasi sensitif. Jika merangkap Guru BK, akses sensitif tetap mengikuti scope Guru BK.                           |
 | Waka Kesiswaan | Memberi persetujuan atau berkoordinasi pada kasus tertentu serta membaca laporan yang disahkan.                                                 | Hanya-baca. Detail kasus hanya untuk kasus yang dikoordinasikan; tidak mengubah catatan profesional dan tidak otomatis membaca isi lengkap konsultasi sensitif. |
-| Admin IT       | Mengelola akun, infrastruktur, konfigurasi koneksi PG-501, sinkronisasi, rekonsiliasi identitas, dan koreksi master melalui sumber resmi.         | Hak teknis tidak otomatis memberi akses ke isi kasus, layanan, atau konsultasi; credential tidak ditampilkan kembali.                                            |
+| Admin IT       | Mengelola akun, infrastruktur, konfigurasi koneksi PG-501, persiapan data tahun ajaran berdasarkan dasar resmi sekolah, sinkronisasi, pratinjau pencocokan, rekonsiliasi identitas, dan koreksi master melalui sumber resmi. | Hak teknis tidak otomatis memberi akses ke isi kasus, layanan, atau konsultasi; credential tidak ditampilkan kembali.                                            |
 | Wali kelas     | Pengguna tahap P1 untuk informasi terbatas pada kelasnya.                                                                                       | Batas informasi ditetapkan sebelum P1 dibangun.                                                                                                                 |
 | Murid          | Pengguna tahap P1 untuk informasi miliknya.                                                                                                     | Tidak melihat data murid lain atau informasi yang dibatasi.                                                                                                     |
 
@@ -113,7 +117,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 |--------------------------------|--------------------------------------------------------------------------------------------------------|-------------|
 | Akses dan akun                 | Login, akun aktif, pengelolaan akun oleh Admin IT, dan pembatasan akses per peran serta objek.         | Inti        |
 | Penugasan                      | Pembagian Guru BK per kelas, periode efektif, perubahan resmi, kasus khusus, dan pengalihan eksplisit. | Inti        |
-| Master dan identitas sementara | Master Dapodik serta pencatatan NISN+nama sementara ketika kasus muncul sebelum sinkronisasi.          | Inti        |
+| Master dan identitas sementara | Master Dapodik; data persiapan sementara tahun ajaran dengan impor minimum NISN, nama, dan rombel; serta identitas sementara ketika kasus muncul sebelum sinkronisasi. | Inti        |
 | Kasus dan tindak lanjut        | Pembuatan kasus, penanganan awal, jadwal, hasil tindak lanjut, koordinasi Waka, dan penyelesaian.      | Inti        |
 | Konteks e-Tatib                | Membaca melalui API dan menautkan pelanggaran/poin tanpa pencatatan ulang atau write-back.             | Inti        |
 | Konfigurasi integrasi          | PG-501 untuk URL, identitas sumber, credential, status Simpan/Uji/Aktifkan, dan ketersediaan adapter.  | Inti        |
@@ -161,6 +165,9 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 |---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
 | e-Tatib             | Sumber resmi pelanggaran dan poin. Aplikasi BK membaca melalui API dan tidak melakukan write-back pada MVP.                                     |
 | Dapodik             | Sumber resmi identitas murid, kelas, keanggotaan kelas, dan tahun ajaran.                                                                       |
+| Data persiapan sementara | Admin IT menyiapkan tahun ajaran, rombel, dan daftar minimum `nisn,nama,rombel` dari dasar resmi sekolah ketika Dapodik terlambat. Data diberi penanda, bukan data resmi Dapodik atau master alternatif. |
+| Aktivasi operasional | Koordinator BK mengaktifkan tahun ajaran hanya setelah penugasan lengkap. Guru BK memperoleh scope murid berdasarkan tahun ajaran aktif dan penugasan, terlepas dari asal data. Provider tidak dapat mengubah status aktif. |
+| Pratinjau pencocokan | Tarik Dapodik hanya menyiapkan hasil cocok, baru, berubah, dan konflik. Cache operasional berubah setelah konfirmasi Admin IT; pencocokan otomatis murid hanya melalui NISN exact. |
 | Alur koneksi        | Admin IT mengelola konfigurasi melalui PG-501 dengan urutan Simpan, Uji, lalu Aktifkan; perubahan material membatalkan verifikasi dan menonaktifkan koneksi. |
 | Pemrosesan integrasi | Browser hanya mengirim konfigurasi dan trigger; fetch, mapping, validasi snapshot, dan penyimpanan dilakukan backend secara server-to-server. |
 | Credential sumber  | Credential provider wajib least-privilege/read-only, disimpan terenkripsi, tidak ditampilkan kembali, dan tidak masuk response, session, audit, atau log. |
@@ -170,6 +177,8 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Snapshot internal  | Adapter hanya memetakan field resmi yang diperlukan ke snapshot internal. Raw payload tidak disimpan secara default, dan evidence serta validator executable harus membuktikan identitas, schema, pagination, ukuran, dan full/partial semantics sebelum import. |
 | Konsistensi operasi | Operasi per provider diserialisasi, memakai fencing token dan hard deadline di bawah masa lease, serta mempertahankan data lama saat gagal atau hasil menjadi stale. |
 | Identitas sementara | Hanya dibuat saat ada kasus/layanan sebelum sinkronisasi, memakai NISN dan nama, lalu dicocokkan tanpa duplikasi.                               |
+| Kesinambungan data  | Penerapan Dapodik menempelkan identitas sumber pada ID internal yang sama; kasus, konsultasi, prestasi, penugasan, dan histori BK tidak dibuat ulang atau ditimpa. |
+| Arah integrasi      | Ruang BK hanya membaca Dapodik dan e-Tatib; data persiapan, layanan BK, serta hasil koreksi tidak ditulis kembali ke provider.                  |
 | Nama resmi          | Setelah rekonsiliasi, tampilan menggunakan nama resmi dari Dapodik/e-Tatib; nilai masukan awal tetap tersimpan pada audit.                      |
 | Kewenangan          | Daftar, pencarian, detail, dashboard, laporan, ekspor, URL, dan API menerapkan batas yang sama.                                                 |
 | Histori murid       | Guru BK dengan scope aktif dapat membaca histori layanan/konsultasi murid lintas kelas dan pergantian guru, tetapi tidak mengubah catatan lama. |
@@ -214,6 +223,7 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 | Akses detail terlalu luas | Kerahasiaan murid terganggu.           | Pemeriksaan server per objek dan per bagian data.                   |
 | Rekonsiliasi salah        | Murid ganda atau kasus tertaut keliru. | NISN sebagai pencocokan, konflik ditahan untuk Admin IT, dan audit. |
 | Integrasi belum siap      | Data sumber belum tersedia.            | Gunakan pencatatan sementara terbatas dan status data.              |
+| Keterlambatan Dapodik     | Tahun ajaran baru belum siap selama 2–3 bulan. | Gunakan data persiapan sementara dari dasar resmi sekolah, aktivasi Koordinator, penanda asal data, dan pratinjau sebelum penerapan Dapodik. |
 | Cakupan membesar          | Fungsi inti terlambat diuji.           | Pertahankan batas P0, P0 bertahap, dan P1.                          |
 | Credential bocor atau berhak tulis | Rahasia terungkap atau sumber resmi berubah. | Enkripsi Laravel, redaksi menyeluruh, step-up Admin IT, dan bukti credential least-privilege/read-only. |
 | SSRF atau DNS rebinding | Credential terkirim ke tujuan yang salah atau jaringan internal disalahgunakan. | Exact origin allowlist; metadata/link-local/multicast/unspecified selalu ditolak; private/loopback memerlukan origin exact dan opt-in provider; setiap resolusi diperiksa, koneksi diikat ke alamat tervalidasi, redirect/proxy tak tepercaya dimatikan, dan TLS wajib valid. |
@@ -235,10 +245,10 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 
 # Sumber dan riwayat versi
 
-Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, diskusi perancangan, PRD v0.5, SRS v0.3, inventaris antarmuka v0.1, keputusan validasi Koordinator BK/Guru BK dan Waka Kesiswaan sampai 13 Agustus 2026, serta keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026.
+Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, diskusi perancangan, PRD v0.5, SRS v0.3, inventaris antarmuka v0.1, keputusan validasi Koordinator BK/Guru BK dan Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, serta amandemen keterlambatan Dapodik yang disetujui 9 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                     |
 |-----------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 0.5       | 12 Agustus 2026 | Mengonsolidasikan batas produk, tata kelola akses, prioritas, dan dependensi.                                                                                                                                                     |
 | 1.0       | 15 Agustus 2026 | Menetapkan Koordinator sebagai penanggung jawab operasional; akses detail Waka pada kasus terkoordinasi; histori lintas guru; NISN sementara dan rekonsiliasi; laporan gabungan; akun Admin IT; serta retensi minimum tiga tahun. |
-| 1.1       | 23 Agustus 2026 | Menetapkan konfigurasi koneksi aman melalui PG-501, alur Simpan–Uji–Aktifkan, credential read-only dan terenkripsi, verifikasi identitas/versi/policy, perlindungan endpoint/DNS, validasi snapshot, batas operasi, serta admission gate driver production. |
+| 1.1       | 23 Agustus 2026; diamandemen 9 September 2026 | Menetapkan konfigurasi koneksi aman melalui PG-501, alur Simpan–Uji–Aktifkan, credential read-only dan terenkripsi, verifikasi identitas/versi/policy, perlindungan endpoint/DNS, validasi snapshot, batas operasi, admission gate driver production, serta fallback data persiapan sementara dan pratinjau pencocokan ketika Dapodik terlambat. |

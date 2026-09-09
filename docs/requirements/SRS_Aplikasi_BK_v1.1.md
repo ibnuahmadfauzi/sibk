@@ -1,6 +1,6 @@
 <!--
 Canonical Markdown baseline for version 1.1.
-Derived from SRS_Aplikasi_BK_v1.0 with approved integration decisions.
+Derived from SRS_Aplikasi_BK_v1.0 with approved integration decisions through 9 September 2026.
 The version 1.0 Markdown and DOCX artifacts remain immutable archives.
 -->
 
@@ -15,6 +15,8 @@ Baseline spesifikasi MVP layanan Bimbingan dan Konseling
 **Status:** Baseline final untuk pengembangan MVP
 
 **Tanggal:** 23 Agustus 2026
+
+**Amandemen disetujui:** 9 September 2026
 
 **Konteks:** Acuan produk: PRD Aplikasi BK v1.1
 
@@ -86,6 +88,14 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | MD-02  | Koreksi data master harus diproses melalui Admin IT dan sumber resmi.                                                 | P0       | Hasil sinkronisasi terbaru tercatat.                                                           |
 | MD-03  | Jika master belum tersinkron dan kasus/layanan harus dicatat, Guru BK harus dapat memasukkan NISN dan nama sementara. | P0       | Form tidak meminta data master lain dan memberi penanda sementara.                             |
 | MD-04  | Identitas sementara harus direkonsiliasi menggunakan NISN tanpa membuat murid ganda.                                  | P0       | Nama resmi mengikuti sumber; kasus tetap terhubung; nilai awal dan hasil rekonsiliasi diaudit. |
+| MD-05  | Admin IT harus dapat membuat tahun ajaran sebagai data persiapan sementara berdasarkan kalender pendidikan, SK, atau dasar resmi sekolah ketika Dapodik terlambat. | P0 | Tahun ajaran baru dibuat belum aktif, memiliki dasar persiapan, dan tidak ditampilkan sebagai data resmi Dapodik. |
+| MD-06  | Admin IT harus dapat mengimpor daftar minimum CSV UTF-8 dengan header exact `nisn,nama,rombel` ke tahun ajaran yang belum aktif. | P0 | Seluruh berkas divalidasi sebelum diproses; hasil membuat atau memperbarui hanya baris yang disebutkan tanpa menyimpan berkas mentah atau menonaktifkan baris lain. |
+| MD-07  | Asal data harus dipisahkan dari status aktivasi operasional dengan kode `school_provisional`, `dapodik`, atau `legacy_unclassified`. | P0 | `is_active` tidak diturunkan dari asal data dan tidak dapat diubah oleh provider atau sinkronisasi. |
+| MD-08  | Koordinator BK harus dapat mengaktifkan tahun ajaran setelah rombel dan seluruh penugasan Guru BK lengkap. | P0 | Setiap rombel aktif memiliki tepat satu penugasan yang mencakup tanggal mulai; aktivasi menutup tahun ajaran aktif sebelumnya tanpa menghapus histori atau mengubah asal data. |
+| MD-09  | Guru BK harus memperoleh scope murid data persiapan sementara hanya setelah aktivasi operasional dan sesuai penugasan kelasnya. | P0 | Sebelum aktivasi akses ditolak; setelah aktivasi layanan BK dapat digunakan dan seluruh tampilan terkait memberi penanda sementara yang jelas. |
+| MD-10  | Tarik data Dapodik harus menghasilkan pratinjau pencocokan dan memerlukan konfirmasi Admin IT sebelum diterapkan. | P0 | Pratinjau menunjukkan data cocok, baru, berubah, dan konflik tanpa mengubah cache operasional; perubahan hanya terjadi pada aksi penerapan. |
+| MD-11  | Pencocokan murid otomatis harus memakai NISN exact; nama tidak boleh menjadi kunci identitas. | P0 | Konflik NISN, tahun ajaran, rombel, atau kepemilikan source ID ditahan; pasangan tahun/rombel hanya dicocokkan otomatis bila unik dan keputusan meragukan diperiksa Admin IT. |
+| MD-12  | Penerapan Dapodik harus mempertahankan ID internal dan seluruh relasi serta histori BK yang sudah ada. | P0 | Identitas sumber dan field resmi ditempelkan pada baris yang sama, asal menjadi `dapodik`, nilai lama/baru diaudit, dan tidak ada write-back ke Dapodik/e-Tatib. |
 | ASN-01 | Koordinator harus dapat menetapkan Guru BK untuk kelas dan tahun ajaran tertentu.                                     | P0       | Penugasan menyimpan periode efektif dan dasar keputusan.                                       |
 | ASN-02 | Penugasan baru tidak boleh menimpa riwayat lama.                                                                      | P0       | Riwayat penanggung jawab tetap dapat ditelusuri.                                               |
 | ASN-03 | Koordinator harus dapat mengubah penugasan di tengah tahun.                                                           | P0       | Perubahan memiliki tanggal efektif dan audit; kasus aktif tidak berpindah otomatis.            |
@@ -167,6 +177,8 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | Akun                | Identitas pengguna, peran, status aktif, waktu perubahan, pengubah.                                                                                        | Hak teknis dan kewenangan objek dipisahkan.                  |
 | Konfigurasi integrasi | Provider, base URL, expected source identifier, credential terenkripsi, timeout, state, configuration version, operation fence version, driver ID, adapter version, contract version, endpoint-policy digest, penguji, dan waktu uji. | Secret tidak keluar dari backend; perubahan material membatalkan verifikasi. |
 | Evidence snapshot   | Identitas sumber terlapor, marker/provenance kontrak, jumlah page, jumlah record, dan jumlah byte terproses.                                               | Tidak memuat raw payload; divalidasi sebelum import.         |
+| Data persiapan sementara | Tahun ajaran, dasar resmi sekolah, NISN, nama, rombel, asal data, status aktif, pembuat, dan waktu persiapan. | Bukan data resmi Dapodik; status asal dan aktivasi operasional disimpan terpisah. |
+| Pratinjau pencocokan | Run sumber, hasil cocok/baru/berubah/konflik, kandidat ID internal, keputusan Admin IT, nilai aman lama/baru, dan waktu keputusan. | Tidak mengubah cache operasional sebelum penerapan dikonfirmasi. |
 
 ## Entitas konseptual
 
@@ -191,6 +203,8 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | Data Referensi            | Bidang layanan, jenis tindak lanjut, dan status operasional.                 |
 | Konfigurasi Integrasi     | State dan versi koneksi Dapodik/e-Tatib beserta credential terenkripsi.      |
 | Evidence Snapshot         | Bukti aman identitas, kontrak, pagination, jumlah record, dan ukuran hasil.  |
+| Data Persiapan Sementara  | Data minimum berdasarkan daftar resmi sekolah untuk menjaga layanan selama Dapodik terlambat.  |
+| Pratinjau Pencocokan      | Hasil pemeriksaan Dapodik sebelum perubahan diterapkan pada cache operasional. |
 
 ## Status dan perubahan
 
@@ -203,6 +217,12 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 - Koordinasi Waka memiliki status tersendiri dan tidak mengubah status kasus.
 
 - Identitas sementara memiliki status rekonsiliasi dan tidak menjadi master murid baru.
+
+- Status asal data memakai `school_provisional`, `dapodik`, atau `legacy_unclassified` dan tidak menentukan status aktif tahun ajaran.
+
+- Aktivasi operasional tahun ajaran hanya diputuskan Koordinator BK setelah penugasan lengkap. Provider dan proses sinkronisasi tidak dapat mengubah `is_active`.
+
+- Data persiapan sementara yang cocok menjadi terverifikasi Dapodik dengan menempelkan identitas sumber pada ID internal yang sama; relasi dan histori BK tidak dibuat ulang.
 
 - Nilai status tindak lanjut, konsultasi, koreksi, dan verifikasi prestasi tetap sebagai data referensi setelah disahkan.
 
@@ -259,6 +279,7 @@ Detail kasus yang dikoordinasikan kepada Waka bukan laporan umum. Akses tersebut
 | NFR-10 | Endpoint outbound mengikuti exact deployment allowlist, redirect dimatikan, operasi per provider diserialisasi, dan kegagalan mempertahankan data lama. | P0 | Save, test, activate, dan sync memvalidasi policy; policy digest mencakup versi policy, exact origins yang dikanonisasi, dan flag private-network provider lalu diverifikasi ulang; lock serta fencing mencegah duplicate/stale write. |
 | NFR-11 | Credential provider harus least-privilege/read-only. Endpoint policy memvalidasi resolusi alamat untuk setiap koneksi dan menolak metadata/link-local, origin drift, proxy tak tepercaya, serta TLS invalid secara fail-closed. | P0 | Admission menyertakan bukti scope read-only; metadata/link-local/multicast/unspecified selalu ditolak, private/loopback hanya diterima jika origin cocok exact dan flag opt-in private-network provider aktif, seluruh hasil DNS diperiksa, jawaban campuran/berubah ditolak, serta koneksi diikat ke alamat tervalidasi dengan Host/SNI yang benar. |
 | NFR-12 | Adapter production menerapkan batas payload/page, pagination, timeout, retry/backoff, rate limit, concurrency, dan backpressure yang disahkan dalam kontrak provider. | P0 | Kontrak menetapkan angka/batas dan kebutuhan queue; worst-case operation harus muat di hard deadline di bawah lease atau adapter tidak di-admit. |
+| NFR-13 | Impor data persiapan dan penerapan hasil Dapodik harus divalidasi penuh sebelum mutasi dan diproses secara atomik. | P0 | CSV wajib UTF-8 maksimum 2 MiB, header exact `nisn,nama,rombel`, NISN 10 digit unik per berkas, nama dan rombel wajib, formula/control character ditolak, dan maksimum 5.000 baris; satu kesalahan, konflik, atau kegagalan membatalkan seluruh perubahan. |
 
 # Integrasi
 
@@ -283,8 +304,11 @@ Detail kasus yang dikoordinasikan kepada Waka bukan laporan umum. Akses tersebut
 |--------------|---------------------------------------------------------------------------------------------|
 | Arah data    | Dapodik atau hasil ekspor resmi ke Aplikasi BK.                                             |
 | Data minimum | Identitas murid, kelas, keanggotaan kelas, dan tahun ajaran.                                |
-| Fallback     | Jika belum tersinkron dan kasus muncul, simpan NISN dan nama sementara pada kasus/layanan.  |
-| Rekonsiliasi | Cocokkan berdasarkan NISN, tautkan kasus yang ada, gunakan nama resmi, dan cegah duplikasi. |
+| Fallback     | Bila Dapodik terlambat 2–3 bulan, Admin IT menyiapkan tahun ajaran dan CSV minimum `nisn,nama,rombel` berdasarkan dasar resmi sekolah; Koordinator mengaktifkan setelah penugasan lengkap. |
+| Status asal  | `school_provisional`, `dapodik`, dan `legacy_unclassified` terpisah dari `is_active`; provider tidak dapat melakukan aktivasi operasional. |
+| Scope Guru BK | Data persiapan dapat dipakai untuk layanan hanya setelah tahun ajaran aktif dan sesuai penugasan; seluruh tampilan memberi penanda sementara. |
+| Pratinjau    | Tarik Dapodik menghasilkan pratinjau cocok, baru, berubah, dan konflik tanpa mengubah cache; Admin IT memeriksa serta mengonfirmasi sebelum penerapan. |
+| Rekonsiliasi | Cocokkan murid hanya berdasarkan NISN exact, tahan konflik, tempelkan identitas sumber pada ID internal yang sama, gunakan field resmi, dan cegah duplikasi. |
 | Konflik      | NISN tidak ditemukan atau ganda ditahan untuk pemeriksaan Admin IT; data sah tidak ditimpa. |
 | Koreksi      | Perubahan identitas dilakukan pada sumber resmi lalu disinkronkan kembali.                  |
 | Riwayat      | Perubahan kelas/tahun ajaran tidak menghapus kasus, layanan, atau konsultasi sebelumnya.    |
@@ -292,6 +316,7 @@ Detail kasus yang dikoordinasikan kepada Waka bukan laporan umum. Akses tersebut
 | Uji koneksi  | Autentikasi, contract/schema minimum, dan identitas sekolah/sumber harus terbukti; HTTP 2xx saja tidak cukup. |
 | Snapshot     | Adapter memetakan field resmi ke snapshot internal beserta evidence; snapshot penuh wajib membuktikan tahun ajaran, identitas sumber, pagination, dan completeness. |
 | Driver production | Tetap `unavailable` sampai lembar discovery dan admission kontrak Dapodik disahkan.     |
+| Perubahan balik | Tidak ada write-back data persiapan, layanan BK, atau koreksi ke Dapodik/e-Tatib.       |
 
 Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist dan validasi setiap resolusi DNS, lalu koneksi diikat ke alamat tervalidasi dengan Host/SNI yang benar. Metadata/link-local/multicast/unspecified selalu ditolak; private/loopback hanya diterima bila origin exact terdaftar dan flag opt-in private-network provider aktif. Redirect, proxy tak tepercaya, TLS invalid, origin drift, serta jawaban DNS campuran atau berubah ditolak. Contract admission wajib menetapkan batas response/page, pagination, timeout, retry/backoff, rate limit, concurrency, backpressure, hard deadline, dan kebutuhan queue.
 
@@ -306,6 +331,8 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 | Waka membaca detail kasus terkoordinasi  | AUTH-05; CASE-12; DASH-03              | P0          |
 | Histori mengikuti scope murid            | AUTH-02; AUTH-04; STU-02               | P0          |
 | NISN+nama sebelum sinkronisasi           | MD-03; MD-04; CASE-01; NFR-05          | P0          |
+| Dapodik terlambat dan data persiapan      | MD-05 s.d. MD-09; NFR-13               | P0          |
+| Pratinjau dan penerapan Dapodik           | MD-10 s.d. MD-12; NFR-13               | P0          |
 | Rolling tidak otomatis                   | ASN-03; ASN-06                         | P0          |
 | Admin IT mengelola akun/infrastruktur    | ACC-01; ACC-02; AUTH-06                | P0          |
 | Konfigurasi koneksi aman melalui PG-501  | INT-05 s.d. INT-07; NFR-09             | P0          |
@@ -330,10 +357,10 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 
 # Sumber dan riwayat versi
 
-Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, dan keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026.
+Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, dan amandemen keterlambatan Dapodik yang disetujui 9 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                  |
 |-----------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 0.3       | 12 Agustus 2026 | Menyelaraskan kebutuhan fungsional, data, nonfungsional, integrasi, dan ketertelusuran dengan PRD v0.5.                                                                                                                        |
 | 1.0       | 15 Agustus 2026 | Menambahkan tata kelola Koordinator, detail kasus terkoordinasi untuk Waka, histori lintas guru, identitas sementara dan rekonsiliasi, akun Admin IT, laporan gabungan, rolling nonotomatis, serta retensi minimum tiga tahun. |
-| 1.1       | 23 Agustus 2026 | Menambahkan INT-05–INT-11 dan NFR-09–NFR-12 untuk konfigurasi PG-501, secret-safe workflow, identitas/versi/policy, endpoint/DNS binding, snapshot evidence/validator, limits, fencing/deadline, serta admission gate driver production. |
+| 1.1       | 23 Agustus 2026; diamandemen 9 September 2026 | Menambahkan INT-05–INT-11, NFR-09–NFR-13, dan MD-05–MD-12 untuk konfigurasi PG-501, pengamanan integrasi, fallback data persiapan sementara, aktivasi operasional terpisah, serta pratinjau dan penerapan Dapodik tanpa memutus histori BK. |

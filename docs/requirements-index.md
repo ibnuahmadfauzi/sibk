@@ -7,7 +7,7 @@ Tujuan file ini adalah membantu agent menentukan apakah PRD/SRS perlu dibuka. Ja
 - Product Requirement Document: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
 - Software Requirements Specification: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
 - Status keduanya: baseline Markdown final untuk pengembangan MVP.
-- Tanggal baseline: 23 Agustus 2026.
+- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026 tanpa mengubah versi atau nama file v1.1.
 
 ## Arsip Baseline Sebelumnya
 
@@ -60,7 +60,7 @@ Untuk task tersebut gunakan:
 ## Peta Cepat PRD v1.1
 
 - Bagian awal: ringkasan produk, masalah, dasar kebutuhan, visi, tujuan, dan indikator keberhasilan.
-- Bagian tengah: pengguna/tata kelola, cakupan P0/P0 bertahap/P1, di luar scope, dan aturan produk utama.
+- Bagian tengah: pengguna/tata kelola, cakupan P0/P0 bertahap/P1, di luar scope, aturan produk utama, data persiapan sementara, dan aktivasi operasional.
 - Bagian akhir: arsitektur informasi, laporan P0, risiko integrasi, dependensi kontrak, dan riwayat versi.
 
 ## Peta Cepat SRS v1.1
@@ -68,13 +68,13 @@ Untuk task tersebut gunakan:
 - Bagian awal: batas sistem, hak akses/tata kelola, dan `AUTH-*`.
 - Kebutuhan fungsional: akun, data master, identitas sementara, penugasan, kasus/tindak lanjut/koordinasi, integrasi, konsultasi, profil, prestasi, dashboard, laporan, notifikasi, audit, dan koreksi.
 - Bagian data/privasi: field minimum, entitas konseptual, status/perubahan, privasi, keamanan, dan audit.
-- Bagian integrasi/keamanan: `INT-05`–`INT-11`, `NFR-09`–`NFR-12`, identitas sumber, secret-safe workflow, endpoint/DNS binding, snapshot evidence/validator, limits, fencing/deadline, dan driver admission gate.
+- Bagian integrasi/keamanan: `INT-05`–`INT-11`, `MD-05`–`MD-12`, `NFR-09`–`NFR-13`, identitas sumber, data persiapan sementara, aktivasi operasional, pratinjau pencocokan, secret-safe workflow, endpoint/DNS binding, snapshot evidence/validator, limits, fencing/deadline, dan driver admission gate.
 - Bagian akhir: integrasi e-Tatib/Dapodik, ketertelusuran, dependensi yang belum dikunci, dan riwayat versi.
 
 ## Requirement ID penting menurut area
 
 - Access/authorization: `AUTH-*`, `GOV-01`
-- Account/master: `ACC-*`, `MD-*`
+- Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik: `MD-05`–`MD-12`, `NFR-13`
 - Assignment: `ASN-*`
 - Reference values: `REF-01`
 - Case/follow-up/coordination: `CASE-*`
@@ -100,5 +100,7 @@ Visual:
 2. Penpot `22.5 — Style Guide`
 
 Halaman pengaturan koneksi PG-501 diimplementasikan langsung menggunakan komponen dan style aplikasi yang sudah ada; tidak memerlukan artefak Penpot baru.
+
+Istilah lintas dokumen tersedia secara ringkas pada `CONTEXT.md`. Keputusan pemisahan verifikasi sumber dan aktivasi operasional dicatat pada `docs/adr/0001-separate-data-verification-from-operational-activation.md`.
 
 Jika visual dan behavior tampak bertentangan, jangan menebak. Periksa requirement terkait dan laporkan konflik.

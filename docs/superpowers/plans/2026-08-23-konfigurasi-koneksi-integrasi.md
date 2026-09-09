@@ -529,19 +529,19 @@ git commit -m "feat: gate integration drivers with deployment policy"
 - Modify: `docs/api-contract.md`
 - Modify: `AGENTS.md`
 
-- [ ] **Step 1: Tetapkan istilah yang tidak tumpang tindih**
+- [x] **Step 1: Tetapkan istilah yang tidak tumpang tindih**
 
 Catat istilah `data persiapan sementara`, `terverifikasi Dapodik`, `aktivasi operasional`, dan `pratinjau pencocokan`. Hindari menyebut data persiapan sebagai data resmi atau master alternatif.
 
-- [ ] **Step 2: Tambahkan keputusan produk ke PRD v1.1**
+- [x] **Step 2: Tambahkan keputusan produk ke PRD v1.1**
 
 Dokumentasikan masalah keterlambatan 2–3 bulan, pembagian tanggung jawab Admin IT/Koordinator/Guru BK, penanda data sementara, impor daftar minimum, penggunaan langsung untuk layanan BK, pratinjau sebelum penerapan Dapodik, dan jaminan histori BK tidak ditimpa. Tegaskan tidak ada write-back ke Dapodik/e-Tatib.
 
-- [ ] **Step 3: Tambahkan requirement MD-05 sampai MD-12 dan NFR-13 ke SRS v1.1**
+- [x] **Step 3: Tambahkan requirement MD-05 sampai MD-12 dan NFR-13 ke SRS v1.1**
 
 Requirement mencakup pembuatan tahun ajaran sementara oleh Admin IT berdasarkan dasar resmi sekolah, impor minimum, pemisahan status asal dan status aktif, aktivasi oleh Koordinator setelah penugasan lengkap, scope Guru BK pada data sementara, pratinjau/konfirmasi Dapodik, pencocokan NISN exact, penahanan konflik, pemeliharaan ID internal/histori, serta validasi dan pemrosesan impor secara atomik.
 
-- [ ] **Step 4: Perbarui kontrak endpoint dan Service Layer**
+- [x] **Step 4: Perbarui kontrak endpoint dan Service Layer**
 
 Kontrak web minimum:
 
@@ -557,18 +557,18 @@ POST /data-master/dapodik/previews/{syncRun}/apply
 
 `POST /data-master/dapodik/sync` kelak hanya mengambil, memvalidasi, dan menyiapkan pratinjau. Cache operasional baru berubah pada endpoint `apply` setelah konfirmasi Admin IT.
 
-- [ ] **Step 5: Catat keputusan arsitektur**
+- [x] **Step 5: Catat keputusan arsitektur**
 
 Status verifikasi sumber dipisahkan dari `is_active` operasional. Data sementara memakai ID internal yang sama dan diubah menjadi terverifikasi dengan menempelkan identitas sumber setelah pencocokan, sehingga seluruh relasi BK tetap utuh.
 
-- [ ] **Step 6: Verifikasi dokumen**
+- [x] **Step 6: Verifikasi dokumen**
 
 ```bash
 rg "MD-05|MD-12|NFR-13|data persiapan sementara|pratinjau pencocokan" CONTEXT.md AGENTS.md docs/requirements docs/api-contract.md
 git diff --check
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add CONTEXT.md AGENTS.md docs/adr docs/requirements docs/requirements-index.md docs/api-contract.md docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md
