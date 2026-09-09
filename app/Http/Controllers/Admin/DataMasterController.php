@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Integrations\IntegrationConfigurationException;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\ExternalSyncIssue;
@@ -70,7 +71,11 @@ class DataMasterController extends Controller
         $this->authorizeAdmin($request);
         /** @var User $actor */
         $actor = $request->user();
-        $run = $syncService->synchronize($actor);
+        try {
+            $run = $syncService->synchronize($actor);
+        } catch (IntegrationConfigurationException $exception) {
+            return back()->withErrors(['sync' => $exception->getMessage()]);
+        }
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['sync' => $run->summary ?? 'Sinkronisasi Dapodik gagal.']);
@@ -87,7 +92,11 @@ class DataMasterController extends Controller
         $this->authorizeAdmin($request);
         /** @var User $actor */
         $actor = $request->user();
-        $run = $syncService->synchronize($actor);
+        try {
+            $run = $syncService->synchronize($actor);
+        } catch (IntegrationConfigurationException $exception) {
+            return back()->withErrors(['etatib_sync' => $exception->getMessage()]);
+        }
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['etatib_sync' => $run->summary ?? 'Sinkronisasi e-Tatib gagal.']);

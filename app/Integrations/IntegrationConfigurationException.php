@@ -32,6 +32,7 @@ class IntegrationConfigurationException extends RuntimeException
             'timeout' => 'Batas waktu operasi integrasi terlampaui.',
             'configuration_changed' => 'Konfigurasi integrasi telah berubah.',
             'not_active' => 'Konfigurasi integrasi belum aktif.',
+            'preview_unavailable' => 'Pratinjau Dapodik belum tersedia.',
             default => 'Konfigurasi integrasi tidak valid.',
         };
     }

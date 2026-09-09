@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Integrations\Dapodik\ConfiguredDapodikConnector;
 use App\Integrations\Dapodik\DapodikConnector;
 use App\Integrations\Dapodik\DapodikSnapshot;
 use App\Integrations\Dapodik\DapodikUnavailableException;
+use App\Integrations\IntegrationConfigurationException;
+use App\Integrations\IntegrationOperationContext;
+use App\Integrations\IntegrationOperationLock;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
+use App\Models\IntegrationSetting;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Throwable;
 
 class DapodikSyncService
@@ -23,72 +29,118 @@ class DapodikSyncService
         private readonly DapodikConnector $connector,
         private readonly StudentIdentityService $studentIdentityService,
         private readonly AuditService $auditService,
+        private readonly IntegrationOperationLock $operationLock,
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
     {
-        $run = ExternalSyncRun::query()->create([
+        return $this->operationLock->run(
+            IntegrationSetting::PROVIDER_DAPODIK,
+            fn (IntegrationOperationContext $context): ExternalSyncRun => $this->synchronizeLocked($context, $actor),
+        );
+    }
+
+    private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
+    {
+        $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
             'source' => 'dapodik',
             'status' => ExternalSyncRun::STATUS_RUNNING,
             'triggered_by' => $actor?->getKey(),
             'started_at' => now(),
-        ]);
+        ]));
 
         try {
-            $snapshot = $this->connector->fetchSnapshot();
-            $run->update([
+            if ($this->connector instanceof ConfiguredDapodikConnector) {
+                throw new IntegrationConfigurationException('preview_unavailable');
+            }
+            $snapshot = $this->connector->fetchSnapshot($context);
+            $this->mutate($context, fn () => $run->update([
                 'is_full_snapshot' => $snapshot->isFullSnapshot,
                 'received_count' => $snapshot->recordCount(),
-            ]);
-
-            $processed = DB::transaction(function () use ($snapshot, $run, $actor): int {
+            ]));
+            $processed = $this->mutate($context, function () use ($snapshot, $run, $actor): int {
                 $processed = $this->importSnapshot($snapshot, $run);
                 $this->studentIdentityService->reconcilePending($actor);
 
                 return $processed;
             });
-
             $conflicts = $run->issues()->count();
-            $run->update([
-                'status' => $conflicts > 0
-                    ? ExternalSyncRun::STATUS_WARNING
-                    : ExternalSyncRun::STATUS_SUCCEEDED,
-                'processed_count' => $processed,
-                'conflict_count' => $conflicts,
-                'summary' => $conflicts > 0
+            $this->complete(
+                $context,
+                $run,
+                $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
+                $conflicts > 0
                     ? sprintf('Sinkronisasi selesai dengan %d data yang perlu diperiksa.', $conflicts)
                     : 'Sinkronisasi Dapodik berhasil.',
-                'finished_at' => now(),
-            ]);
+                $actor,
+                $processed,
+                $conflicts,
+            );
         } catch (Throwable $exception) {
-            if (! $exception instanceof DapodikUnavailableException) {
-                report($exception);
+            if (! $exception instanceof DapodikUnavailableException
+                && ! $exception instanceof IntegrationConfigurationException
+            ) {
+                report(new RuntimeException('Unexpected Dapodik integration failure.'));
             }
-
-            $run->update([
-                'status' => ExternalSyncRun::STATUS_FAILED,
-                'summary' => $exception instanceof DapodikUnavailableException
+            $summary = $exception instanceof IntegrationConfigurationException
+                ? $exception->getMessage()
+                : ($exception instanceof DapodikUnavailableException
                     ? $exception->getMessage()
-                    : 'Sinkronisasi Dapodik gagal. Data master lama tetap dipertahankan.',
-                'finished_at' => now(),
-            ]);
+                    : 'Sinkronisasi Dapodik gagal. Data master lama tetap dipertahankan.');
+            $this->complete($context, $run, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
         }
 
-        $run->refresh();
-        $this->auditService->record(
-            action: 'dapodik.sync_completed',
-            auditable: $run,
-            summary: $run->summary ?? 'Sinkronisasi Dapodik selesai.',
-            actor: $actor,
-            after: [
-                'status' => $run->status,
-                'received_count' => $run->received_count,
-                'processed_count' => $run->processed_count,
-                'conflict_count' => $run->conflict_count,
-            ],
-        );
+        return $run->refresh();
+    }
 
-        return $run;
+    private function complete(
+        IntegrationOperationContext $context,
+        ExternalSyncRun $run,
+        string $status,
+        string $summary,
+        ?User $actor,
+        ?int $processed = null,
+        ?int $conflicts = null,
+    ): void {
+        $this->mutate($context, function () use ($run, $status, $summary, $actor, $processed, $conflicts): void {
+            $run->update(array_filter([
+                'status' => $status,
+                'processed_count' => $processed,
+                'conflict_count' => $conflicts,
+                'summary' => $summary,
+                'finished_at' => now(),
+            ], static fn (mixed $value): bool => $value !== null));
+            $run->refresh();
+            $this->auditService->record(
+                action: 'dapodik.sync_completed',
+                auditable: $run,
+                summary: $summary,
+                actor: $actor,
+                after: [
+                    'status' => $run->status,
+                    'received_count' => $run->received_count,
+                    'processed_count' => $run->processed_count,
+                    'conflict_count' => $run->conflict_count,
+                ],
+            );
+        });
+    }
+
+    /** @template TResult @param \Closure(): TResult $mutation @return TResult */
+    private function mutate(IntegrationOperationContext $context, \Closure $mutation): mixed
+    {
+        return DB::transaction(function () use ($context, $mutation): mixed {
+            $setting = IntegrationSetting::query()
+                ->where('provider', IntegrationSetting::PROVIDER_DAPODIK)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            $result = $mutation();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            return $result;
+        });
     }
 
     private function importSnapshot(DapodikSnapshot $snapshot, ExternalSyncRun $run): int

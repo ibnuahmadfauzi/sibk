@@ -4,14 +4,30 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Integrations\Dapodik\ConfiguredDapodikConnector;
 use App\Integrations\Dapodik\DapodikConnector;
+use App\Integrations\Dapodik\DapodikDriver;
 use App\Integrations\Dapodik\DapodikSnapshot;
+use App\Integrations\Dapodik\DapodikSnapshotValidator;
+use App\Integrations\IntegrationConfigurationException;
+use App\Integrations\IntegrationDriverRegistry;
+use App\Integrations\IntegrationEndpointPolicy;
+use App\Integrations\IntegrationOperationContext;
+use App\Integrations\IntegrationOperationLock;
+use App\Integrations\IntegrationProbeResult;
+use App\Integrations\IntegrationRuntimeConfiguration;
+use App\Integrations\IntegrationSnapshotEvidence;
+use App\Models\AcademicYear;
+use App\Models\Classroom;
 use App\Models\ExternalSyncRun;
+use App\Models\IntegrationSetting;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\DapodikSyncService;
+use App\Services\IntegrationSettingService;
 use App\Services\StudentIdentityService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -43,6 +59,112 @@ class DapodikSyncTest extends TestCase
         $this->assertDatabaseCount('students', 1);
         $this->assertDatabaseCount('student_class_memberships', 1);
         $this->assertDatabaseHas('students', ['nisn' => '0012345678', 'name' => 'Nama Resmi', 'is_active' => true]);
+    }
+
+    public function test_snapshot_validator_fails_closed_without_contract_admission(): void
+    {
+        $snapshot = $this->snapshot();
+        $evidence = new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'full', 1, 4, 512);
+        $this->assertSame(
+            ['reportedSourceIdentifier', 'contractMarker', 'completenessMarker', 'pageCount', 'recordCount', 'processedBytes'],
+            array_keys(get_object_vars($evidence)),
+        );
+        $snapshot = new DapodikSnapshot(
+            $snapshot->isFullSnapshot,
+            $snapshot->academicYears,
+            $snapshot->classrooms,
+            $snapshot->students,
+            $snapshot->memberships,
+            $evidence,
+        );
+
+        $this->expectException(IntegrationConfigurationException::class);
+        (new DapodikSnapshotValidator)->validate($snapshot, $this->runtimeConfiguration());
+    }
+
+    public function test_snapshot_validator_rejects_oversized_data_and_classroom_source_moving_year(): void
+    {
+        $year = AcademicYear::query()->create([
+            'dapodik_id' => 'year-old',
+            'name' => '2025/2026',
+            'is_active' => true,
+        ]);
+        Classroom::query()->create([
+            'dapodik_id' => 'class-1',
+            'academic_year_id' => $year->id,
+            'name' => 'X RPL 1',
+            'is_active' => true,
+        ]);
+        $snapshot = $this->snapshot();
+        $snapshot = new DapodikSnapshot(
+            $snapshot->isFullSnapshot,
+            $snapshot->academicYears,
+            $snapshot->classrooms,
+            $snapshot->students,
+            $snapshot->memberships,
+            new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'full', 1, 4, 2049),
+        );
+        $validator = new DapodikSnapshotValidator('contract-v1', ['full' => true, 'partial' => false], 2, 10, 2048);
+
+        try {
+            $validator->validate($snapshot, $this->runtimeConfiguration());
+            $this->fail('Snapshot oversized harus ditolak.');
+        } catch (IntegrationConfigurationException $exception) {
+            $this->assertSame('response_too_large', $exception->resultCode());
+        }
+
+        $snapshot = new DapodikSnapshot(
+            $snapshot->isFullSnapshot,
+            $snapshot->academicYears,
+            $snapshot->classrooms,
+            $snapshot->students,
+            $snapshot->memberships,
+            new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'full', 1, 4, 512),
+        );
+        $this->expectException(IntegrationConfigurationException::class);
+        $validator->validate($snapshot, $this->runtimeConfiguration());
+    }
+
+    public function test_configured_connector_requires_active_current_configuration_and_fence(): void
+    {
+        $driver = new Task10DapodikDriver($this->evidencedSnapshot());
+        $connector = $this->configuredConnector($driver);
+
+        try {
+            app(IntegrationOperationLock::class)->run('dapodik', fn ($context) => $connector->fetchSnapshot($context));
+            $this->fail('Konfigurasi tidak aktif harus ditolak.');
+        } catch (IntegrationConfigurationException $exception) {
+            $this->assertSame('not_active', $exception->resultCode());
+            $this->assertSame(0, $driver->fetchCalls);
+        }
+
+        $this->seedActiveSetting($driver);
+        $driver->onFetch = static fn () => IntegrationSetting::query()
+            ->where('provider', 'dapodik')
+            ->increment('operation_fence_version');
+
+        $this->expectException(IntegrationConfigurationException::class);
+        app(IntegrationOperationLock::class)->run('dapodik', fn ($context) => $connector->fetchSnapshot($context));
+    }
+
+    public function test_direct_configured_dapodik_post_is_blocked_before_fetch_and_keeps_old_data(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $old = Student::query()->create(['nisn' => '0090909001', 'name' => 'Data Lama', 'is_active' => true]);
+        $driver = new Task10DapodikDriver($this->evidencedSnapshot());
+        $registry = new IntegrationDriverRegistry(dapodikDriver: $driver);
+        $this->app->instance(IntegrationDriverRegistry::class, $registry);
+        $this->app->instance(DapodikSnapshotValidator::class, $this->admittedValidator());
+        $this->seedActiveSetting($driver);
+
+        $this->actingAs($admin)->post(route('data-master.dapodik.sync'))
+            ->assertRedirect()
+            ->assertSessionHasErrors('sync');
+
+        $this->assertSame(0, $driver->fetchCalls);
+        $this->assertTrue($old->refresh()->is_active);
+        $this->assertDatabaseHas('external_sync_runs', ['source' => 'dapodik', 'status' => 'failed']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'dapodik.sync_completed']);
     }
 
     public function test_partial_snapshot_does_not_deactivate_missing_data_but_full_snapshot_does(): void
@@ -148,7 +270,7 @@ class DapodikSyncTest extends TestCase
         {
             public function __construct(private readonly DapodikSnapshot $snapshot) {}
 
-            public function fetchSnapshot(): DapodikSnapshot
+            public function fetchSnapshot(IntegrationOperationContext $context): DapodikSnapshot
             {
                 return $this->snapshot;
             }
@@ -192,11 +314,120 @@ class DapodikSyncTest extends TestCase
         );
     }
 
+    private function evidencedSnapshot(): DapodikSnapshot
+    {
+        $snapshot = $this->snapshot();
+
+        return new DapodikSnapshot(
+            $snapshot->isFullSnapshot,
+            $snapshot->academicYears,
+            $snapshot->classrooms,
+            $snapshot->students,
+            $snapshot->memberships,
+            new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'full', 1, 4, 512),
+        );
+    }
+
+    private function admittedValidator(): DapodikSnapshotValidator
+    {
+        return new DapodikSnapshotValidator('contract-v1', ['full' => true, 'partial' => false], 2, 10, 2048);
+    }
+
+    private function configuredConnector(Task10DapodikDriver $driver): ConfiguredDapodikConnector
+    {
+        $registry = new IntegrationDriverRegistry(dapodikDriver: $driver);
+
+        return new ConfiguredDapodikConnector(
+            $registry,
+            new IntegrationSettingService($registry, app(IntegrationOperationLock::class), app(AuditService::class)),
+            $this->admittedValidator(),
+        );
+    }
+
+    private function seedActiveSetting(Task10DapodikDriver $driver): void
+    {
+        config()->set('sibk.integrations.dapodik', [
+            'driver' => 'unavailable',
+            'allowed_origins' => ['https://dapodik.example.test'],
+            'allow_private_networks' => false,
+        ]);
+        IntegrationSetting::query()->updateOrCreate(['provider' => 'dapodik'], [
+            'base_url' => 'https://dapodik.example.test',
+            'expected_source_identifier' => 'school-01',
+            'credentials' => ['type' => 'api_token', 'token' => 'secret'],
+            'configuration_version' => 1,
+            'verified_configuration_version' => 1,
+            'verified_driver_id' => $driver->id(),
+            'verified_adapter_version' => $driver->adapterVersion(),
+            'verified_contract_version' => $driver->contractVersion(),
+            'verified_endpoint_policy_digest' => (new IntegrationEndpointPolicy(['https://dapodik.example.test'], false))->digest(),
+            'last_test_status' => 'success',
+            'last_test_code' => 'success',
+            'is_enabled' => true,
+        ]);
+    }
+
     private function userWithRole(string $slug): User
     {
         $user = User::factory()->create();
         $user->roles()->attach(Role::query()->where('slug', $slug)->firstOrFail());
 
         return $user;
+    }
+
+    private function runtimeConfiguration(): IntegrationRuntimeConfiguration
+    {
+        return new IntegrationRuntimeConfiguration(
+            provider: 'dapodik',
+            baseUrl: 'https://dapodik.example.test',
+            expectedSourceIdentifier: 'school-01',
+            credentials: ['type' => 'api_token', 'token' => 'secret'],
+            timeoutSeconds: 30,
+            configurationVersion: 1,
+            operationFenceVersion: 1,
+            endpointPolicyDigest: str_repeat('a', 64),
+        );
+    }
+}
+
+final class Task10DapodikDriver implements DapodikDriver
+{
+    public int $fetchCalls = 0;
+
+    public ?\Closure $onFetch = null;
+
+    public function __construct(private readonly DapodikSnapshot $snapshot) {}
+
+    public function id(): string
+    {
+        return 'synthetic-dapodik';
+    }
+
+    public function adapterVersion(): string
+    {
+        return 'synthetic-adapter-v1';
+    }
+
+    public function contractVersion(): string
+    {
+        return 'contract-v1';
+    }
+
+    public function isAvailable(): bool
+    {
+        return true;
+    }
+
+    public function probe(IntegrationRuntimeConfiguration $configuration): IntegrationProbeResult
+    {
+        throw new \LogicException('Not used.');
+    }
+
+    public function fetchSnapshot(IntegrationRuntimeConfiguration $configuration): DapodikSnapshot
+    {
+        $this->fetchCalls++;
+        ($this->onFetch ?? static fn (): null => null)();
+
+        return $this->snapshot;
     }
 }

@@ -311,6 +311,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
         string $driverId,
         string $adapterVersion,
         string $contractVersion,
+        ?IntegrationOperationContext $context = null,
     ): IntegrationRuntimeConfiguration {
         $this->assertProvider($provider);
         $setting = IntegrationSetting::query()->where('provider', $provider)->first();
@@ -328,9 +329,15 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
         ) {
             throw new IntegrationConfigurationException('configuration_changed');
         }
+        if ($context !== null) {
+            $this->operationLock->assertCurrent($context, $setting);
+        }
         $this->assertActivationInvariant($setting);
 
-        return $this->runtimeConfiguration($setting, $setting->operation_fence_version);
+        return $this->runtimeConfiguration(
+            $setting,
+            $context?->fencingToken ?? $setting->operation_fence_version,
+        );
     }
 
     public function assertCurrent(
@@ -339,8 +346,15 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
         string $driverId,
         string $adapterVersion,
         string $contractVersion,
+        ?IntegrationOperationContext $context = null,
     ): void {
-        $configuration = $this->active($provider, $driverId, $adapterVersion, $contractVersion);
+        $configuration = $this->active(
+            $provider,
+            $driverId,
+            $adapterVersion,
+            $contractVersion,
+            $context,
+        );
         if ($configuration->configurationVersion !== $configurationVersion) {
             throw new IntegrationConfigurationException('configuration_changed');
         }

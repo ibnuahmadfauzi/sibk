@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Integrations\Etatib;
 
+use App\Integrations\IntegrationSnapshotEvidence;
+
 final readonly class EtatibSnapshot
 {
     /**
@@ -12,5 +14,6 @@ final readonly class EtatibSnapshot
     public function __construct(
         public bool $isFullSnapshot,
         public array $records,
+        public ?IntegrationSnapshotEvidence $evidence = null,
     ) {}
 }

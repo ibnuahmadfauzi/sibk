@@ -11,6 +11,7 @@ interface IntegrationConfigurationProvider
         string $driverId,
         string $adapterVersion,
         string $contractVersion,
+        ?IntegrationOperationContext $context = null,
     ): IntegrationRuntimeConfiguration;
 
     public function assertCurrent(
@@ -19,5 +20,6 @@ interface IntegrationConfigurationProvider
         string $driverId,
         string $adapterVersion,
         string $contractVersion,
+        ?IntegrationOperationContext $context = null,
     ): void;
 }

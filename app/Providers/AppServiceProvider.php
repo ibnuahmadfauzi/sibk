@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Integrations\Dapodik\ConfiguredDapodikConnector;
 use App\Integrations\Dapodik\DapodikConnector;
-use App\Integrations\Dapodik\UnavailableDapodikConnector;
+use App\Integrations\Etatib\ConfiguredEtatibConnector;
 use App\Integrations\Etatib\EtatibConnector;
-use App\Integrations\Etatib\UnavailableEtatibConnector;
+use App\Integrations\IntegrationConfigurationProvider;
 use App\Models\Achievement;
 use App\Models\BkCase;
 use App\Models\Consultation;
@@ -25,6 +26,7 @@ use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserNotificationPolicy;
 use App\Policies\UserPolicy;
+use App\Services\IntegrationSettingService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -41,8 +43,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(DapodikConnector::class, UnavailableDapodikConnector::class);
-        $this->app->bind(EtatibConnector::class, UnavailableEtatibConnector::class);
+        $this->app->bind(IntegrationConfigurationProvider::class, IntegrationSettingService::class);
+        $this->app->bind(DapodikConnector::class, ConfiguredDapodikConnector::class);
+        $this->app->bind(EtatibConnector::class, ConfiguredEtatibConnector::class);
     }
 
     /**
