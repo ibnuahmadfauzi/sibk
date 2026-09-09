@@ -31,6 +31,7 @@ use Illuminate\Support\Str;
 use JsonSerializable;
 use LogicException;
 use ReflectionClass;
+use ReflectionFunction;
 use RuntimeException;
 use SensitiveParameterValue;
 use Tests\TestCase;
@@ -659,6 +660,53 @@ class IntegrationSettingTest extends TestCase
         $this->assertSame(0, AuditLog::query()->count());
     }
 
+    public function test_plaintext_credential_is_redacted_from_validation_and_audit_exception_traces(): void
+    {
+        $admin = $this->admin();
+        $previousIgnoreArgs = ini_get('zend.exception_ignore_args');
+        ini_set('zend.exception_ignore_args', '0');
+
+        try {
+            $this->assertSame('0', ini_get('zend.exception_ignore_args'));
+            $validationSecret = 'TRACE-VALIDATION-SECRET-4f84f5';
+            $service = $this->service(new ConfigurableDapodikDriver);
+            try {
+                $service->save('dapodik', [
+                    ...$this->completeData($validationSecret),
+                    'remove_api_key' => true,
+                ], $admin);
+                $this->fail('Invalid credential mutation must fail.');
+            } catch (IntegrationConfigurationException $exception) {
+                $this->assertThrowableDoesNotExpose($exception, $validationSecret);
+            }
+
+            $previousSecret = 'TRACE-PREVIOUS-SECRET-76d310';
+            try {
+                $service->save('dapodik', [
+                    ...$this->completeData($previousSecret),
+                    'base_url' => 'https://not-allowed.example.test/api',
+                ], $admin);
+                $this->fail('Disallowed endpoint must fail.');
+            } catch (IntegrationConfigurationException $exception) {
+                $this->assertNotNull($exception->getPrevious());
+                $this->assertThrowableDoesNotExpose($exception, $previousSecret);
+            }
+
+            $auditSecret = 'TRACE-AUDIT-SECRET-2bc9a1';
+            $audit = \Mockery::mock(AuditService::class);
+            $audit->shouldReceive('record')->once()->andThrow(new RuntimeException('audit unavailable'));
+            $service = $this->service(new ConfigurableDapodikDriver, auditService: $audit);
+            try {
+                $service->save('dapodik', $this->completeData($auditSecret), $admin);
+                $this->fail('Audit failure must propagate.');
+            } catch (RuntimeException $exception) {
+                $this->assertThrowableDoesNotExpose($exception, $auditSecret);
+            }
+        } finally {
+            ini_set('zend.exception_ignore_args', (string) $previousIgnoreArgs);
+        }
+    }
+
     public function test_probe_state_rolls_back_when_audit_write_fails(): void
     {
         $admin = $this->admin();
@@ -705,6 +753,45 @@ class IntegrationSettingTest extends TestCase
         } catch (IntegrationConfigurationException $exception) {
             $this->assertSame('adapter_unavailable', $exception->resultCode());
         }
+    }
+
+    public function test_deactivation_commits_and_returns_blocked_state_when_driver_registry_is_unresolvable(): void
+    {
+        $admin = $this->admin();
+        $setting = $this->activeStoredSetting();
+        $service = $this->serviceWithInvalidDriver();
+
+        $state = $service->deactivate('dapodik', $admin);
+
+        $this->assertSame(IntegrationSettingState::STATE_BLOCKED, $state->state);
+        $this->assertFalse($setting->fresh()->is_enabled);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'dapodik.connection_disabled',
+            'auditable_id' => $setting->id,
+            'actor_id' => $admin->id,
+        ]);
+    }
+
+    public function test_deactivation_still_rolls_back_when_audit_fails_with_unresolvable_driver(): void
+    {
+        $admin = $this->admin();
+        $setting = $this->activeStoredSetting();
+        $audit = \Mockery::mock(AuditService::class);
+        $audit->shouldReceive('record')->once()->andThrow(new RuntimeException('audit unavailable'));
+        $service = $this->serviceWithInvalidDriver($audit);
+
+        try {
+            $service->deactivate('dapodik', $admin);
+            $this->fail('Audit failure must roll back deactivation.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('audit unavailable', $exception->getMessage());
+        }
+
+        $this->assertTrue($setting->fresh()->is_enabled);
+        $this->assertDatabaseMissing('audit_logs', [
+            'action' => 'dapodik.connection_disabled',
+            'auditable_id' => $setting->id,
+        ]);
     }
 
     public function test_service_authorizes_configuration_actions_and_all_states_are_safe_and_capability_aware(): void
@@ -757,6 +844,89 @@ class IntegrationSettingTest extends TestCase
         $admin->roles()->attach($role);
 
         return $admin;
+    }
+
+    private function activeStoredSetting(): IntegrationSetting
+    {
+        return IntegrationSetting::query()->create([
+            'provider' => 'dapodik',
+            'base_url' => 'https://dapodik.example.test/api',
+            'expected_source_identifier' => 'school-01',
+            'credentials' => ['type' => 'api_token', 'token' => 'stored-secret'],
+            'timeout_seconds' => 30,
+            'configuration_version' => 1,
+            'last_test_status' => IntegrationSetting::TEST_STATUS_SUCCESS,
+            'last_test_code' => IntegrationProbeResult::CODE_SUCCESS,
+            'is_enabled' => true,
+        ]);
+    }
+
+    private function serviceWithInvalidDriver(?AuditService $auditService = null): IntegrationSettingService
+    {
+        config()->set('sibk.integrations.dapodik', [
+            'driver' => 'unknown-driver',
+            'allowed_origins' => ['https://dapodik.example.test'],
+            'allow_private_networks' => false,
+        ]);
+
+        return new IntegrationSettingService(
+            drivers: new IntegrationDriverRegistry,
+            operationLock: app(IntegrationOperationLock::class),
+            auditService: $auditService ?? app(AuditService::class),
+        );
+    }
+
+    private function assertThrowableDoesNotExpose(\Throwable $throwable, string $secret): void
+    {
+        $diagnostics = [];
+        $current = $throwable;
+
+        do {
+            $diagnostics[] = $current->getMessage();
+            $diagnostics[] = $this->traceDiagnostics($current->getTrace());
+            $current = $current->getPrevious();
+        } while ($current !== null);
+
+        $this->assertStringNotContainsString($secret, implode('\n', $diagnostics));
+    }
+
+    /** @param array<int, array<string, mixed>> $trace */
+    private function traceDiagnostics(array $trace): string
+    {
+        $values = [];
+
+        foreach ($trace as $frame) {
+            foreach ($frame['args'] ?? [] as $argument) {
+                $this->collectDiagnosticStrings($argument, $values);
+            }
+        }
+
+        return implode('\n', $values);
+    }
+
+    /** @param list<string> $values */
+    private function collectDiagnosticStrings(mixed $value, array &$values): void
+    {
+        if (is_string($value)) {
+            $values[] = $value;
+
+            return;
+        }
+        if ($value instanceof SensitiveParameterValue) {
+            $values[] = '[REDACTED]';
+
+            return;
+        }
+        if ($value instanceof Closure) {
+            $this->collectDiagnosticStrings((new ReflectionFunction($value))->getStaticVariables(), $values);
+
+            return;
+        }
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                $this->collectDiagnosticStrings($item, $values);
+            }
+        }
     }
 
     private function service(

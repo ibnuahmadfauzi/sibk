@@ -20,6 +20,7 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
+use SensitiveParameterValue;
 use Throwable;
 
 final class IntegrationSettingService implements IntegrationConfigurationProvider
@@ -42,16 +43,18 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
     }
 
     /** @param array<string, mixed> $data */
-    public function save(string $provider, array $data, User $actor): IntegrationSettingState
-    {
+    public function save(
+        string $provider,
+        #[\SensitiveParameter] array $data,
+        User $actor,
+    ): IntegrationSettingState {
         Gate::forUser($actor)->authorize('manageDataMaster');
         $this->assertProvider($provider);
+        $normalized = $this->normalizeSaveData($provider, $data);
 
         return $this->operationLock->run(
             $provider,
-            function (IntegrationOperationContext $context) use ($provider, $data, $actor): IntegrationSettingState {
-                $normalized = $this->normalizeSaveData($provider, $data);
-
+            function (IntegrationOperationContext $context) use ($provider, $normalized, $actor): IntegrationSettingState {
                 return DB::transaction(function () use ($provider, $normalized, $actor, $context): IntegrationSettingState {
                     $setting = IntegrationSetting::query()
                         ->where('provider', $provider)
@@ -81,7 +84,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
                     if ($normalized['replace_credentials']) {
                         $nextCredentials = [
                             'type' => 'api_token',
-                            'token' => $normalized['api_key'],
+                            'token' => $normalized['api_key']->getValue(),
                         ];
                         $credentialsChanged = $existingCredentials !== $nextCredentials;
                     } elseif ($normalized['remove_credentials']) {
@@ -362,7 +365,11 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
 
     private function state(IntegrationSetting $setting): IntegrationSettingState
     {
-        $driver = $this->driver($setting->provider);
+        try {
+            $driver = $this->driver($setting->provider);
+        } catch (InvalidArgumentException) {
+            $driver = null;
+        }
         $credentials = null;
         $credentialUnreadable = false;
         try {
@@ -391,6 +398,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
         }
         $verifiedCurrent = $complete
             && $endpointAllowed
+            && $driver !== null
             && $setting->last_test_status === IntegrationSetting::TEST_STATUS_SUCCESS
             && $setting->verified_configuration_version === $setting->configuration_version
             && $setting->verified_driver_id === $driver->id()
@@ -401,7 +409,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
         $state = match (true) {
             $credentialUnreadable => IntegrationSettingState::STATE_BLOCKED,
             ! $complete => IntegrationSettingState::STATE_UNCONFIGURED,
-            ! $driver->isAvailable() || ! $endpointAllowed => IntegrationSettingState::STATE_BLOCKED,
+            $driver === null || ! $driver->isAvailable() || ! $endpointAllowed => IntegrationSettingState::STATE_BLOCKED,
             $setting->is_enabled && $verifiedCurrent => IntegrationSettingState::STATE_ACTIVE,
             $setting->is_enabled => IntegrationSettingState::STATE_BLOCKED,
             $verifiedCurrent => IntegrationSettingState::STATE_READY,
@@ -429,8 +437,8 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
             lastTestCode: $setting->last_test_code,
             lastTestedAt: $setting->last_tested_at?->toImmutable(),
             isEnabled: (bool) $setting->is_enabled,
-            adapterAvailable: $driver->isAvailable(),
-            canTest: $complete && $endpointAllowed && $driver->isAvailable(),
+            adapterAvailable: $driver?->isAvailable() ?? false,
+            canTest: $complete && $endpointAllowed && ($driver?->isAvailable() ?? false),
             canActivate: $state === IntegrationSettingState::STATE_READY,
             canDeactivate: (bool) $setting->is_enabled,
         );
@@ -438,9 +446,9 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{base_url: ?string, expected_source_identifier: ?string, api_key: string, replace_credentials: bool, remove_credentials: bool, timeout_seconds: int}
+     * @return array{base_url: ?string, expected_source_identifier: ?string, api_key: SensitiveParameterValue, replace_credentials: bool, remove_credentials: bool, timeout_seconds: int}
      */
-    private function normalizeSaveData(string $provider, array $data): array
+    private function normalizeSaveData(string $provider, #[\SensitiveParameter] array $data): array
     {
         $baseUrl = $this->nullableTrimmedString($data['base_url'] ?? null, 500);
         $expectedSourceIdentifier = $this->nullableTrimmedString(
@@ -475,7 +483,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
         return [
             'base_url' => $baseUrl,
             'expected_source_identifier' => $expectedSourceIdentifier,
-            'api_key' => $apiKey,
+            'api_key' => new SensitiveParameterValue($apiKey),
             'replace_credentials' => $replaceCredentials,
             'remove_credentials' => $removeCredentials,
             'timeout_seconds' => $timeout,

@@ -40,7 +40,7 @@ final class IntegrationOperationLock
      * @param  Closure(IntegrationOperationContext): TResult  $operation
      * @return TResult
      */
-    public function run(string $provider, Closure $operation): mixed
+    public function run(string $provider, #[\SensitiveParameter] Closure $operation): mixed
     {
         $this->assertProvider($provider);
         $lock = $this->cache->store()->lock($this->lockName($provider), $this->leaseTtlSeconds);
