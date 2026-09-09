@@ -863,15 +863,15 @@ git commit -m "feat: expose admin integration configuration workflow"
 - Extend: `tests/Feature/IntegrationSettingTest.php`
 - Extend: `tests/Feature/FrontendPreviewTest.php`
 
-- [ ] **Step 1: Tulis failing view tests**
+- [x] **Step 1: Tulis failing view tests**
 
 Uji dua panel Admin IT, redaksi secret, pemisahan error, ID/label/ARIA unik, disabled sync button, fail-safe direct POST selama driver masih `unavailable`, serta pemisahan state koneksi dan data freshness. Guard penuh konfigurasi/version/fencing untuk direct POST diselesaikan dan diuji kembali pada Task 10.
 
-- [ ] **Step 2: Tambahkan section setelah status sinkronisasi dan sebelum tabel log**
+- [x] **Step 2: Tambahkan section setelah status sinkronisasi dan sebelum tabel log**
 
 Susun dua panel `col-12 col-xl-6` dengan existing `sibk-panel`, form classes, badge, dan Bootstrap utilities. Pertahankan style halaman lain dan susun hierarki informasi berdasarkan urutan kerja Admin IT: ringkasan status → konfigurasi → Simpan/Uji/Aktifkan → freshness/log. Tidak perlu membuat atau merujuk desain Penpot baru.
 
-- [ ] **Step 3: Terapkan perlindungan input credential**
+- [x] **Step 3: Terapkan perlindungan input credential**
 
 ```html
 <input
@@ -885,13 +885,13 @@ Susun dua panel `col-12 col-xl-6` dengan existing `sibk-panel`, form classes, ba
 
 Input token dan current password tidak memiliki value/old input. Tampilkan indikator boolean `Token tersimpan` dan checkbox hapus eksplisit. Tampilkan expected source identifier sebagai field non-secret dengan bantuan teks bahwa nilai harus cocok dengan identitas yang dilaporkan provider.
 
-- [ ] **Step 4: Pisahkan form Simpan, Uji, Aktifkan, dan Nonaktifkan**
+- [x] **Step 4: Pisahkan form Simpan, Uji, Aktifkan, dan Nonaktifkan**
 
 Tidak ada modal/collapse atau JavaScript baru.
 
-- [ ] **Step 5: Tambahkan status UI dan badge `danger`/`neutral` menggunakan token existing**
+- [x] **Step 5: Tambahkan status UI dan badge `danger`/`neutral` menggunakan token existing**
 
-- [ ] **Step 6: Jalankan verification**
+- [x] **Step 6: Jalankan verification**
 
 ```bash
 php artisan test --filter IntegrationSettingTest
@@ -899,7 +899,7 @@ npm run check:frontend
 npm run build
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add resources/views/pages/data-master resources/scss/app-dashboard.scss tests/Feature
