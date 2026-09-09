@@ -32,7 +32,7 @@ final class UnavailableDapodikDriver implements DapodikDriver
     public function probe(IntegrationRuntimeConfiguration $configuration): IntegrationProbeResult
     {
         return new IntegrationProbeResult(
-            code: 'adapter_unavailable',
+            code: IntegrationProbeResult::CODE_ADAPTER_UNAVAILABLE,
             driverId: $this->id(),
             adapterVersion: $this->adapterVersion(),
             contractVersion: $this->contractVersion(),

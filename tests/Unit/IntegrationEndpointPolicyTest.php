@@ -125,6 +125,101 @@ final class IntegrationEndpointPolicyTest extends TestCase
         yield 'IPv6 multicast' => ['ff02::1'];
         yield 'IPv4 unspecified' => ['0.0.0.0'];
         yield 'IPv6 unspecified' => ['::'];
+        yield 'IPv4 shared address space' => ['100.64.0.1'];
+        yield 'IPv4 shared address space upper boundary' => ['100.127.255.255'];
+        yield 'IPv4 benchmarking' => ['198.18.0.1'];
+        yield 'IPv4 benchmarking upper boundary' => ['198.19.255.255'];
+        yield 'IPv4 IETF protocol assignment' => ['192.0.0.8'];
+        yield 'IPv4 IETF protocol assignment upper boundary' => ['192.0.0.255'];
+        yield 'IPv4 TEST-NET-1' => ['192.0.2.1'];
+        yield 'IPv4 deprecated 6to4 relay' => ['192.88.99.1'];
+        yield 'IPv4 TEST-NET-2' => ['198.51.100.1'];
+        yield 'IPv4 TEST-NET-3' => ['203.0.113.1'];
+        yield 'IPv6 NAT64' => ['64:ff9b::1'];
+        yield 'IPv6 local translation' => ['64:ff9b:1::1'];
+        yield 'IPv6 discard-only' => ['100::1'];
+        yield 'IPv6 dummy' => ['100:0:0:1::1'];
+        yield 'IPv6 IETF protocol assignment' => ['2001::1'];
+        yield 'IPv6 IETF protocol assignment upper boundary' => ['2001:1ff:ffff:ffff:ffff:ffff:ffff:ffff'];
+        yield 'IPv6 benchmarking' => ['2001:2::1'];
+        yield 'IPv6 documentation' => ['2001:db8::1'];
+        yield 'IPv6 6to4 tunneling' => ['2002::1'];
+        yield 'IPv6 documentation 3fff' => ['3fff::1'];
+        yield 'IPv6 SRv6 SID' => ['5f00::1'];
+    }
+
+    #[DataProvider('globalBoundaryAddressProvider')]
+    public function test_addresses_immediately_outside_special_ranges_remain_public(string $address): void
+    {
+        $policy = new IntegrationEndpointPolicy(['https://api.example.sch.id'], false);
+
+        self::assertSame(
+            [$address],
+            $policy->assertStableResolution(
+                'https://api.example.sch.id',
+                [$address],
+                [$address],
+            ),
+        );
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function globalBoundaryAddressProvider(): iterable
+    {
+        yield 'before shared IPv4' => ['100.63.255.255'];
+        yield 'after shared IPv4' => ['100.128.0.0'];
+        yield 'before benchmarking IPv4' => ['198.17.255.255'];
+        yield 'after benchmarking IPv4' => ['198.20.0.0'];
+        yield 'after IETF IPv4 block' => ['192.0.1.0'];
+        yield 'before IETF IPv6 block' => ['2000:ffff:ffff:ffff:ffff:ffff:ffff:ffff'];
+        yield 'after IETF IPv6 block' => ['2001:200::'];
+        yield 'before IPv6 documentation block' => ['2001:db7:ffff:ffff:ffff:ffff:ffff:ffff'];
+        yield 'after IPv6 documentation block' => ['2001:db9::'];
+        yield 'after 6to4 IPv6 block' => ['2003::'];
+    }
+
+    #[DataProvider('unsafeLiteralOriginProvider')]
+    public function test_literal_special_or_ambiguous_ip_origins_are_rejected_immediately(
+        string $origin,
+        bool $allowPrivateNetworks,
+    ): void {
+        $this->expectException(InvalidArgumentException::class);
+
+        new IntegrationEndpointPolicy([$origin], $allowPrivateNetworks);
+    }
+
+    /** @return iterable<string, array{string, bool}> */
+    public static function unsafeLiteralOriginProvider(): iterable
+    {
+        yield 'private IPv4 without opt-in' => ['https://127.0.0.1', false];
+        yield 'private IPv6 without opt-in' => ['https://[::1]', false];
+        yield 'shared IPv4 despite opt-in' => ['https://100.64.0.1', true];
+        yield 'NAT64 IPv6 despite opt-in' => ['https://[64:ff9b::1]', true];
+        yield 'integer IPv4' => ['https://2130706433', true];
+        yield 'octal IPv4' => ['https://0177.0.0.1', true];
+        yield 'hex IPv4' => ['https://0x7f000001', true];
+        yield 'mapped private IPv6' => ['https://[::ffff:10.0.0.1]', false];
+        yield 'mapped special IPv6' => ['https://[::ffff:192.0.2.1]', true];
+        yield 'IPv6 zone identifier' => ['https://[fe80::1%25eth0]', true];
+    }
+
+    public function test_literal_private_origins_are_allowed_only_with_opt_in(): void
+    {
+        $ipv4 = new IntegrationEndpointPolicy(['https://127.0.0.1'], true);
+        $ipv6 = new IntegrationEndpointPolicy(['https://[::1]'], true);
+
+        self::assertSame('https://127.0.0.1/api', $ipv4->assertAllowedEndpoint('https://127.0.0.1/api'));
+        self::assertSame('https://[::1]/api', $ipv6->assertAllowedEndpoint('https://[::1]/api'));
+    }
+
+    public function test_mapped_public_ipv6_inherits_the_ipv4_class(): void
+    {
+        $policy = new IntegrationEndpointPolicy(['https://[::ffff:8.8.8.8]'], false);
+
+        self::assertSame(
+            'https://[::ffff:8.8.8.8]/api',
+            $policy->assertAllowedEndpoint('https://[::ffff:8.8.8.8]/api'),
+        );
     }
 
     #[DataProvider('internalAddressProvider')]

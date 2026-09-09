@@ -11,6 +11,67 @@ final class IntegrationEndpointPolicy
 {
     public const string VERSION = '1';
 
+    private const string ADDRESS_PUBLIC = 'public';
+
+    private const string ADDRESS_INTERNAL = 'internal';
+
+    private const string ADDRESS_FORBIDDEN = 'forbidden';
+
+    /** IANA IPv4 Special-Purpose Address Space; private/loopback are the only opt-in classes. @var list<array{string, int}> */
+    private const array IPV4_INTERNAL_RANGES = [
+        ['10.0.0.0', 8],
+        ['127.0.0.0', 8],
+        ['172.16.0.0', 12],
+        ['192.168.0.0', 16],
+    ];
+
+    /** IANA IPv4 special-purpose ranges rejected fail-closed. @var list<array{string, int}> */
+    private const array IPV4_SPECIAL_RANGES = [
+        ['0.0.0.0', 8],
+        ['100.64.0.0', 10],
+        ['169.254.0.0', 16],
+        ['192.0.0.0', 24],
+        ['192.0.2.0', 24],
+        ['192.31.196.0', 24],
+        ['192.52.193.0', 24],
+        ['192.88.99.0', 24],
+        ['192.175.48.0', 24],
+        ['198.18.0.0', 15],
+        ['198.51.100.0', 24],
+        ['203.0.113.0', 24],
+        ['224.0.0.0', 4],
+        ['240.0.0.0', 4],
+    ];
+
+    /** IANA IPv6 Special-Purpose Address Space; unique-local/loopback are the only opt-in classes. @var list<array{string, int}> */
+    private const array IPV6_INTERNAL_RANGES = [
+        ['::1', 128],
+        ['fc00::', 7],
+    ];
+
+    /**
+     * IANA special-purpose ranges are rejected conservatively, including the
+     * small globally reachable exceptions nested inside broader special blocks.
+     *
+     * @var list<array{string, int}>
+     */
+    private const array IPV6_SPECIAL_RANGES = [
+        ['::', 96],
+        ['64:ff9b::', 96],
+        ['64:ff9b:1::', 48],
+        ['100::', 64],
+        ['100:0:0:1::', 64],
+        ['2001::', 23],
+        ['2001:db8::', 32],
+        ['2002::', 16],
+        ['2620:4f:8000::', 48],
+        ['3fff::', 20],
+        ['5f00::', 16],
+        ['fd00:ec2::254', 128],
+        ['fe80::', 10],
+        ['ff00::', 8],
+    ];
+
     /** @var list<string> */
     private array $allowedOrigins;
 
@@ -166,7 +227,8 @@ final class IntegrationEndpointPolicy
             throw new InvalidArgumentException('Integration endpoint scheme is not allowed.');
         }
 
-        $host = $this->canonicalHost($parts['host']);
+        $hostData = $this->canonicalHost($parts['host']);
+        $host = $hostData['host'];
         $port = $parts['port'] ?? null;
         if ($port !== null && ($port < 1 || $port > 65535)) {
             throw new InvalidArgumentException('Integration endpoint port is invalid.');
@@ -176,6 +238,20 @@ final class IntegrationEndpointPolicy
             'scheme' => $scheme,
             'host' => $host,
         ];
+
+        if (isset($hostData['address_class'])) {
+            if ($hostData['address_class'] === self::ADDRESS_FORBIDDEN) {
+                throw new InvalidArgumentException('Integration endpoint literal address is not globally routable.');
+            }
+
+            if ($hostData['address_class'] === self::ADDRESS_INTERNAL && ! $this->allowPrivateNetworks) {
+                throw new InvalidArgumentException('Private and loopback literal addresses require provider opt-in.');
+            }
+
+            if ($scheme === 'http' && $hostData['address_class'] === self::ADDRESS_PUBLIC) {
+                throw new InvalidArgumentException('Plain HTTP endpoints must use opted-in private addresses.');
+            }
+        }
 
         if ($port !== null) {
             $normalized['port'] = $port;
@@ -192,7 +268,8 @@ final class IntegrationEndpointPolicy
         return $normalized;
     }
 
-    private function canonicalHost(string $host): string
+    /** @return array{host: string, address_class?: string} */
+    private function canonicalHost(string $host): array
     {
         $host = strtolower($host);
 
@@ -204,7 +281,22 @@ final class IntegrationEndpointPolicy
                 throw new InvalidArgumentException('Integration endpoint host is invalid.');
             }
 
-            return '['.inet_ntop($packed).']';
+            return [
+                'host' => '['.inet_ntop($packed).']',
+                'address_class' => $this->classifyPackedAddress($packed),
+            ];
+        }
+
+        $packed = @inet_pton($host);
+        if ($packed !== false && strlen($packed) === 4) {
+            return [
+                'host' => inet_ntop($packed),
+                'address_class' => $this->classifyPackedAddress($packed),
+            ];
+        }
+
+        if (preg_match('/^(?:0x[0-9a-f]+|[0-9]+)(?:\.(?:0x[0-9a-f]+|[0-9]+))*$/i', $host) === 1) {
+            throw new InvalidArgumentException('Ambiguous numeric IPv4 hosts are not allowed.');
         }
 
         $host = rtrim($host, '.');
@@ -215,7 +307,7 @@ final class IntegrationEndpointPolicy
             throw new InvalidArgumentException('Integration endpoint host is invalid.');
         }
 
-        return $host;
+        return ['host' => $host];
     }
 
     /**
@@ -259,7 +351,7 @@ final class IntegrationEndpointPolicy
             }
 
             $normalized = inet_ntop($packed);
-            if ($this->isAlwaysForbidden($normalized)) {
+            if ($this->classifyPackedAddress($packed) === self::ADDRESS_FORBIDDEN) {
                 throw new InvalidArgumentException('Integration endpoint resolved to a forbidden address.');
             }
 
@@ -272,27 +364,51 @@ final class IntegrationEndpointPolicy
         return $canonical;
     }
 
-    private function isAlwaysForbidden(string $address): bool
-    {
-        return $this->matchesCidr($address, '0.0.0.0', 8)
-            || $this->matchesCidr($address, '169.254.0.0', 16)
-            || $this->matchesCidr($address, '224.0.0.0', 4)
-            || $this->matchesCidr($address, '240.0.0.0', 4)
-            || $address === '100.100.100.200'
-            || $address === '::'
-            || $this->matchesCidr($address, 'fe80::', 10)
-            || $this->matchesCidr($address, 'ff00::', 8)
-            || $address === 'fd00:ec2::254';
-    }
-
     private function isInternal(string $address): bool
     {
-        return $this->matchesCidr($address, '10.0.0.0', 8)
-            || $this->matchesCidr($address, '172.16.0.0', 12)
-            || $this->matchesCidr($address, '192.168.0.0', 16)
-            || $this->matchesCidr($address, '127.0.0.0', 8)
-            || $this->matchesCidr($address, 'fc00::', 7)
-            || $address === '::1';
+        $packed = @inet_pton($address);
+
+        return $packed !== false && $this->classifyPackedAddress($packed) === self::ADDRESS_INTERNAL;
+    }
+
+    private function classifyPackedAddress(string $packedAddress): string
+    {
+        if (strlen($packedAddress) === 16
+            && substr($packedAddress, 0, 10) === str_repeat("\0", 10)
+            && substr($packedAddress, 10, 2) === "\xff\xff"
+        ) {
+            return $this->classifyPackedAddress(substr($packedAddress, 12, 4));
+        }
+
+        $address = inet_ntop($packedAddress);
+        $internalRanges = strlen($packedAddress) === 4
+            ? self::IPV4_INTERNAL_RANGES
+            : self::IPV6_INTERNAL_RANGES;
+        $specialRanges = strlen($packedAddress) === 4
+            ? self::IPV4_SPECIAL_RANGES
+            : self::IPV6_SPECIAL_RANGES;
+
+        if (strlen($packedAddress) === 16 && $this->matchesCidr($address, 'fd00:ec2::254', 128)) {
+            return self::ADDRESS_FORBIDDEN;
+        }
+
+        foreach ($internalRanges as [$network, $prefixLength]) {
+            if ($this->matchesCidr($address, $network, $prefixLength)) {
+                return self::ADDRESS_INTERNAL;
+            }
+        }
+
+        foreach ($specialRanges as [$network, $prefixLength]) {
+            if ($this->matchesCidr($address, $network, $prefixLength)) {
+                return self::ADDRESS_FORBIDDEN;
+            }
+        }
+
+        if (strlen($packedAddress) === 16 && ! $this->matchesCidr($address, '2000::', 3)) {
+            return self::ADDRESS_FORBIDDEN;
+        }
+
+        return self::ADDRESS_PUBLIC;
     }
 
     private function matchesCidr(string $address, string $network, int $prefixLength): bool

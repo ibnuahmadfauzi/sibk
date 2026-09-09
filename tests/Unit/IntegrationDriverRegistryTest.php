@@ -10,9 +10,11 @@ use App\Integrations\Etatib\EtatibUnavailableException;
 use App\Integrations\Etatib\UnavailableEtatibDriver;
 use App\Integrations\IntegrationDriver;
 use App\Integrations\IntegrationDriverRegistry;
+use App\Integrations\IntegrationProbeResult;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 final class IntegrationDriverRegistryTest extends TestCase
@@ -110,6 +112,35 @@ final class IntegrationDriverRegistryTest extends TestCase
             'response_too_large',
             'configuration_changed',
         ], IntegrationDriver::RESULT_CODES);
+    }
+
+    #[DataProvider('unknownProbeCodeProvider')]
+    public function test_probe_result_rejects_unknown_codes_without_echoing_the_input(string $unsafeCode): void
+    {
+        try {
+            new IntegrationProbeResult(
+                code: $unsafeCode,
+                driverId: 'unavailable',
+                adapterVersion: 'adapter-v1',
+                contractVersion: 'contract-v1',
+                reportedSourceIdentifier: null,
+                schemaValid: false,
+                completenessVerified: false,
+            );
+
+            self::fail('Unknown probe result code was accepted.');
+        } catch (InvalidArgumentException $exception) {
+            self::assertStringNotContainsString($unsafeCode, $exception->getMessage());
+            self::assertSame('Integration probe result code is not allowed.', $exception->getMessage());
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function unknownProbeCodeProvider(): iterable
+    {
+        yield 'provider name' => ['dapodik'];
+        yield 'generic error' => ['error'];
+        yield 'secret-bearing error' => ["provider_error:secret-token-123\nsecond-line"];
     }
 
     private function configuration(string $provider): IntegrationRuntimeConfiguration
