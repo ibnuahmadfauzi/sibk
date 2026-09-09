@@ -591,15 +591,15 @@ git commit -m "docs: define delayed Dapodik fallback workflow"
 - Create: `app/Services/ProvisionalRosterImportResult.php`
 - Test: `tests/Feature/DelayedDapodikPreparationTest.php`
 
-- [ ] **Step 1: Tulis failing tests domain persiapan**
+- [x] **Step 1: Tulis failing tests domain persiapan**
 
 Uji pembuatan tahun ajaran belum aktif, nama/periode unik, dasar resmi wajib, penanda `school_provisional`, pemisahan asal data dari `is_active`, backfill data lama yang aman, exact-NISN terhadap Student `dapodik` dan `legacy_unclassified` tanpa reklasifikasi/putus relasi BK, duplicate local NISN yang gagal tertutup, dan audit tersanitasi. Uji bahwa Admin IT tidak dapat mengaktifkan tahun ajaran melalui module ini.
 
-- [ ] **Step 2: Tambahkan status verifikasi secara additive**
+- [x] **Step 2: Tambahkan status verifikasi secara additive**
 
 Tambahkan `master_source` (`school_provisional|dapodik|legacy_unclassified`) dan `source_confirmed_at` pada `academic_years`, `classrooms`, `students`, dan `student_class_memberships`. Backfill baris lama yang memiliki `dapodik_id` menjadi `dapodik` dan baris tanpa identitas sumber menjadi `legacy_unclassified`; tidak ada baris lama yang otomatis dianggap persiapan baru. Tambahkan `prepared_by`, `preparation_reference`, `activated_by`, serta `activated_at` pada tahun ajaran. Jangan gunakan enum/check database agar SQLite dan MySQL konsisten. Migrasi lama tidak diubah.
 
-- [ ] **Step 3: Implementasikan module persiapan tahun ajaran**
+- [x] **Step 3: Implementasikan module persiapan tahun ajaran**
 
 Interface publik minimum:
 
@@ -611,19 +611,19 @@ public function activate(AcademicYear $academicYear, User $actor): AcademicYear;
 
 `prepareAcademicYear` dan `importRoster` hanya menerima Admin IT aktif. `activate` hanya menerima Koordinator BK aktif. Pemeriksaan dilakukan kembali pada Service Layer, bukan hanya controller/policy.
 
-- [ ] **Step 4: Implementasikan parser CSV ketat**
+- [x] **Step 4: Implementasikan parser CSV ketat**
 
 Terima hanya CSV UTF-8 maksimum 2 MiB dengan header exact `nisn,nama,rombel`. NISN wajib 10 digit; nama dan rombel wajib. Tolak BOM selain UTF-8, baris ekstra/tidak lengkap, NISN duplikat, formula/control character pada field teks, jumlah baris melebihi 5.000, dan file yang tidak dapat diparse. Jangan menyimpan file mentah.
 
-- [ ] **Step 5: Import atomik dan idempotent**
+- [x] **Step 5: Import atomik dan idempotent**
 
 Validasi seluruh file sebelum transaksi. Pencocokan murid mensyaratkan satu NISN exact dan tepat satu kandidat lokal; nol kandidat membuat `Student` baru berstatus `school_provisional`, sedangkan lebih dari satu kandidat ditolak sebagai konflik walaupun database normalnya memiliki unique constraint. Jika `Student` sudah ada—baik `dapodik`, `legacy_unclassified`, maupun `school_provisional`—impor tidak mengubah nama, `dapodik_id`, `master_source`, atau field konfirmasi sumbernya; impor hanya menambah keanggotaan persiapan pada ID internal yang sama. Aturan yang sama mempertahankan provenance tahun/rombel yang sudah ada. Buat atau perbarui hanya baris baru yang memang berasal dari daftar persiapan tanpa menonaktifkan data lain. Pasangan tahun–rombel wajib konsisten. Impor persiapan hanya boleh dilakukan ketika tahun belum aktif. Semua hasil dan perubahan dicatat pada audit tanpa isi file mentah.
 
-- [ ] **Step 6: Aktivasi operasional yang aman**
+- [x] **Step 6: Aktivasi operasional yang aman**
 
 Koordinator hanya dapat mengaktifkan tahun ajaran bila tanggal lengkap, terdapat rombel dan murid aktif, serta setiap rombel memiliki tepat satu penugasan Guru BK yang mencakup tanggal mulai tahun ajaran. Aktivasi menutup `is_active` tahun ajaran lain, tidak menghapus histori, dan tidak mengubah `master_source`. Scope Guru BK wajib memeriksa `academic_years.is_active=true`, sehingga penugasan yang disiapkan lebih awal belum membuka akses murid sebelum aktivasi.
 
-- [ ] **Step 7: Verifikasi migration dan test**
+- [x] **Step 7: Verifikasi migration dan test**
 
 ```bash
 php artisan test --filter DelayedDapodikPreparationTest
@@ -634,7 +634,7 @@ git diff --check
 
 Jalankan migration additive pada SQLite test dan MySQL disposable yang telah divalidasi sebagai database uji. Jangan memakai `migrate:fresh`, rollback, atau reset pada database shared.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add database/migrations app/Models app/Services tests/Feature/DelayedDapodikPreparationTest.php
@@ -661,23 +661,23 @@ git commit -m "feat: prepare provisional academic year data"
 - Extend: `tests/Feature/AuthorizationMatrixTest.php`
 - Extend: `tests/Feature/FrontendPreviewTest.php`
 
-- [ ] **Step 1: Tulis failing authorization dan validation tests**
+- [x] **Step 1: Tulis failing authorization dan validation tests**
 
 Uji guest, Guru BK, Koordinator, Waka, Admin IT nonaktif, dan Admin IT aktif pada create/import. Uji aktivasi hanya untuk Koordinator aktif. Direct request dengan role salah, tahun lain, pasangan tahun–rombel palsu, file terlalu besar, atau field invalid harus ditolak server.
 
-- [ ] **Step 2: Tambahkan alur Admin IT pada Data Master**
+- [x] **Step 2: Tambahkan alur Admin IT pada Data Master**
 
 Susun section dengan pola `sibk-panel`: status tahun ajaran → buat tahun sementara → impor daftar → ringkasan isi dan penanda Sementara/Terverifikasi Dapodik. Form tidak memakai JavaScript baru dan tidak menampilkan isi file setelah validation error.
 
-- [ ] **Step 3: Tambahkan alur Koordinator pada Penugasan**
+- [x] **Step 3: Tambahkan alur Koordinator pada Penugasan**
 
 Tampilkan penanda status sumber, daftar kesiapan rombel, penugasan yang belum lengkap, serta tombol `Aktifkan Tahun Ajaran` hanya ketika prasyarat domain terpenuhi. Controller tetap tipis dan Service mengulang seluruh pemeriksaan.
 
-- [ ] **Step 4: Pastikan Guru BK langsung memperoleh scope**
+- [x] **Step 4: Pastikan Guru BK langsung memperoleh scope**
 
 Sebelum aktivasi, penugasan yang masih disiapkan tidak boleh membuka pencarian, profil, atau aksi layanan murid kepada Guru BK. Setelah Koordinator mengaktifkan dan penugasan efektif, murid hasil impor muncul pada pencarian/form Guru BK yang ditugaskan dan tetap ditolak bagi Guru BK kelas lain. Uji aksi Service/endpoint sebenarnya—bukan hanya tampilan—untuk membuat, membaca, dan memperbarui kasus serta konsultasi, dan membuat prestasi: Guru yang ditugaskan berhasil hanya setelah aktivasi; sebelum aktivasi dan untuk kelas lain harus ditolak. Penanda Sementara tampil pada daftar, profil, dan form tanpa mengubah aturan akses atau memperluas akses Waka/Admin IT ke isi layanan BK.
 
-- [ ] **Step 5: Jalankan verification**
+- [x] **Step 5: Jalankan verification**
 
 ```bash
 php artisan test --filter DelayedDapodikPreparationTest
@@ -690,7 +690,7 @@ npm run build
 git diff --check
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/Http routes/web.php resources/views tests/Feature
