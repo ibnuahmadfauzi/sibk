@@ -203,6 +203,37 @@ final class IntegrationEndpointPolicyTest extends TestCase
         yield 'IPv6 zone identifier' => ['https://[fe80::1%25eth0]', true];
     }
 
+    #[DataProvider('dottedNumericOriginProvider')]
+    public function test_numeric_hosts_with_trailing_dots_are_rejected(string $origin): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new IntegrationEndpointPolicy([$origin], false);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function dottedNumericOriginProvider(): iterable
+    {
+        yield 'literal IPv4 with trailing dot' => ['https://127.0.0.1.'];
+        yield 'literal IPv4 with repeated trailing dots' => ['https://127.0.0.1..'];
+        yield 'integer IPv4 with trailing dot' => ['https://2130706433.'];
+        yield 'hex IPv4 with trailing dot' => ['https://0x7f000001.'];
+    }
+
+    public function test_normal_fqdn_trailing_dot_keeps_canonical_exact_origin_matching(): void
+    {
+        $policy = new IntegrationEndpointPolicy(['https://api.example.sch.id.'], false);
+
+        self::assertSame(
+            'https://api.example.sch.id/v1',
+            $policy->assertAllowedEndpoint('https://api.example.sch.id./v1'),
+        );
+        self::assertSame(
+            'https://api.example.sch.id/v1',
+            $policy->assertAllowedEndpoint('https://api.example.sch.id/v1'),
+        );
+    }
+
     public function test_literal_private_origins_are_allowed_only_with_opt_in(): void
     {
         $ipv4 = new IntegrationEndpointPolicy(['https://127.0.0.1'], true);

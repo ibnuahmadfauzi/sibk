@@ -287,6 +287,10 @@ final class IntegrationEndpointPolicy
             ];
         }
 
+        // A DNS absolute-name marker is not part of the canonical host. Remove
+        // it before detecting literal and ambiguous numeric address forms.
+        $host = rtrim($host, '.');
+
         $packed = @inet_pton($host);
         if ($packed !== false && strlen($packed) === 4) {
             return [
@@ -299,7 +303,6 @@ final class IntegrationEndpointPolicy
             throw new InvalidArgumentException('Ambiguous numeric IPv4 hosts are not allowed.');
         }
 
-        $host = rtrim($host, '.');
         if ($host === ''
             || strlen($host) > 253
             || preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/', $host) !== 1
