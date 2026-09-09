@@ -15,6 +15,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use JsonSerializable;
+use LogicException;
+use ReflectionClass;
+use SensitiveParameterValue;
 use Tests\TestCase;
 
 class IntegrationSettingTest extends TestCase
@@ -176,20 +179,62 @@ class IntegrationSettingTest extends TestCase
             completenessVerified: true,
         );
 
-        $this->assertObjectNotHasProperty('credentials', $state);
-        $this->assertObjectNotHasProperty('rawBody', $probe);
-        $this->assertObjectNotHasProperty('credentials', $probe);
+        $stateProperties = array_map(
+            static fn (\ReflectionProperty $property): string => $property->getName(),
+            (new ReflectionClass($state))->getProperties(),
+        );
+        $expectedStateProperties = [
+            'baseUrl',
+            'configurationVersion',
+            'expectedSourceIdentifier',
+            'hasCredentials',
+            'isEnabled',
+            'lastTestCode',
+            'lastTestedAt',
+            'lastTestStatus',
+            'operationFenceVersion',
+            'provider',
+            'state',
+            'timeoutSeconds',
+            'verifiedAdapterVersion',
+            'verifiedConfigurationVersion',
+            'verifiedContractVersion',
+            'verifiedDriverId',
+            'verifiedEndpointPolicyDigest',
+        ];
+        sort($stateProperties);
+        sort($expectedStateProperties);
+
+        $probeProperties = array_map(
+            static fn (\ReflectionProperty $property): string => $property->getName(),
+            (new ReflectionClass($probe))->getProperties(),
+        );
+        $expectedProbeProperties = [
+            'adapterVersion',
+            'code',
+            'completenessVerified',
+            'contractVersion',
+            'driverId',
+            'reportedSourceIdentifier',
+            'schemaValid',
+        ];
+        sort($probeProperties);
+        sort($expectedProbeProperties);
+
+        $this->assertSame($expectedStateProperties, $stateProperties);
+        $this->assertSame($expectedProbeProperties, $probeProperties);
     }
 
-    public function test_runtime_configuration_has_no_serialization_or_logging_contract(): void
+    public function test_runtime_configuration_redacts_debug_and_export_representations(): void
     {
+        $token = Str::random(64);
         $configuration = new IntegrationRuntimeConfiguration(
             provider: IntegrationSetting::PROVIDER_DAPODIK,
             baseUrl: 'https://dapodik.example.test',
             expectedSourceIdentifier: 'school-id',
             credentials: [
                 'type' => 'api_token',
-                'token' => Str::random(64),
+                'token' => $token,
             ],
             timeoutSeconds: 30,
             configurationVersion: 1,
@@ -197,10 +242,67 @@ class IntegrationSettingTest extends TestCase
             endpointPolicyDigest: hash('sha256', 'policy'),
         );
 
+        ob_start();
+        var_dump($configuration);
+        $dump = ob_get_clean();
+
+        $this->assertIsString($dump);
+
+        $representations = [
+            'print_r' => print_r($configuration, true),
+            'var_dump' => $dump,
+            'var_export' => var_export($configuration, true),
+            'json' => json_encode($configuration, JSON_THROW_ON_ERROR),
+            'log_context' => json_encode(['configuration' => $configuration], JSON_THROW_ON_ERROR),
+        ];
+
+        foreach ($representations as $surface => $representation) {
+            $this->assertFalse(
+                str_contains($representation, $token),
+                "Credential leaked through {$surface} representation.",
+            );
+        }
+
+        $credentialsProperty = (new ReflectionClass($configuration))->getProperty('credentials');
+
+        $this->assertTrue($credentialsProperty->isPrivate());
+        $this->assertTrue(
+            $credentialsProperty->getValue($configuration) instanceof SensitiveParameterValue,
+            'Credential must be wrapped in SensitiveParameterValue.',
+        );
         $this->assertNotInstanceOf(JsonSerializable::class, $configuration);
         $this->assertFalse(method_exists($configuration, 'toArray'));
         $this->assertFalse(method_exists($configuration, 'jsonSerialize'));
         $this->assertFalse(method_exists($configuration, '__toString'));
         $this->assertSame('api_token', $configuration->credentials()['type']);
+    }
+
+    public function test_runtime_configuration_rejects_native_serialization(): void
+    {
+        $token = Str::random(64);
+        $configuration = new IntegrationRuntimeConfiguration(
+            provider: IntegrationSetting::PROVIDER_ETATIB,
+            baseUrl: 'https://etatib.example.test',
+            expectedSourceIdentifier: 'school-id',
+            credentials: [
+                'type' => 'api_token',
+                'token' => $token,
+            ],
+            timeoutSeconds: 30,
+            configurationVersion: 1,
+            operationFenceVersion: 0,
+            endpointPolicyDigest: hash('sha256', 'policy'),
+        );
+
+        try {
+            serialize($configuration);
+            $this->fail('Native serialization must be rejected.');
+        } catch (LogicException $exception) {
+            $this->assertSame(
+                'Integration runtime configuration cannot be serialized.',
+                $exception->getMessage(),
+            );
+            $this->assertFalse(str_contains($exception->getMessage(), $token));
+        }
     }
 }
