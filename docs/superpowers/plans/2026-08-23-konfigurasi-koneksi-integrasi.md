@@ -419,11 +419,11 @@ git commit -m "feat: add encrypted integration setting state"
 - Test: `tests/Unit/IntegrationEndpointPolicyTest.php`
 - Test: `tests/Unit/IntegrationDriverRegistryTest.php`
 
-- [ ] **Step 1: Tulis failing tests URL policy**
+- [x] **Step 1: Tulis failing tests URL policy**
 
 Uji exact origin match dan penolakan user-info, query/fragment, wildcard/suffix host, port berbeda, origin di luar allowlist, driver selain whitelist, allowlist kosong, metadata/link-local/multicast/unspecified, private/loopback tanpa opt-in, jawaban DNS campuran, jawaban berubah, serta canonical endpoint-policy digest. Origin internal HTTP hanya boleh diterima bila seluruh origin tersebut tercantum eksplisit di deployment config dan private-network flag aktif.
 
-- [ ] **Step 2: Tambahkan deployment configuration**
+- [x] **Step 2: Tambahkan deployment configuration**
 
 ```env
 SIBK_DAPODIK_DRIVER=unavailable
@@ -436,13 +436,13 @@ SIBK_ETATIB_ALLOW_PRIVATE_NETWORKS=false
 
 Format allowlist adalah comma-separated exact origins.
 
-- [ ] **Step 3: Implementasikan endpoint policy**
+- [x] **Step 3: Implementasikan endpoint policy**
 
 Policy harus memerlukan URL absolut, membandingkan scheme/host/effective port, menolak username/password/query/fragment, menormalisasi URL, dan dipanggil saat save, test, activate, serta setiap penggunaan sync. Pisahkan validasi origin dari validasi target hasil resolusi DNS agar keduanya dapat diuji. Semua alamat hasil resolusi harus diperiksa tepat sebelum koneksi; metadata/link-local/multicast/unspecified selalu ditolak, sedangkan loopback/private hanya dapat dipakai bila origin tercantum exact dan flag private-network provider aktif. Driver production fase berikutnya wajib mengikat koneksi ke alamat yang telah divalidasi sambil mempertahankan Host/SNI, serta menolak jawaban DNS campuran atau berubah; resolve-then-re-resolve oleh HTTP client tidak diperbolehkan. Redirect tetap dimatikan, TLS verification tidak boleh dinonaktifkan, dan proxy environment tidak boleh dipercaya secara implisit.
 
 Policy menyediakan digest SHA-256 atas versi implementasi policy dan konfigurasi deployment provider yang sudah dikanonisasi (allowed origins serta private-network flag). Test harus membuktikan urutan allowlist yang ekuivalen menghasilkan digest sama, sedangkan perubahan efektif menghasilkan digest berbeda.
 
-- [ ] **Step 4: Implementasikan driver interfaces dan registry**
+- [x] **Step 4: Implementasikan driver interfaces dan registry**
 
 Registry hanya mengenal nama driver yang ditulis eksplisit di kode. Pada fase ini satu-satunya driver adalah `unavailable`. Registry dan hasil probe membawa `driver_id`, `adapter_version`, dan `contract_version` secara terpisah.
 
@@ -466,21 +466,23 @@ response_too_large
 configuration_changed
 ```
 
-- [ ] **Step 5: Pastikan driver unavailable tidak menghasilkan outbound request**
+- [x] **Step 5: Pastikan driver unavailable tidak menghasilkan outbound request**
 
-- [ ] **Step 6: Jalankan test**
+- [x] **Step 6: Jalankan test**
 
 ```bash
 php artisan test tests/Unit/IntegrationEndpointPolicyTest.php
 php artisan test tests/Unit/IntegrationDriverRegistryTest.php
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add config/sibk.php .env.example app/Integrations tests/Unit
 git commit -m "feat: gate integration drivers with deployment policy"
 ```
+
+**Gate selesai 9 September 2026:** commits `07f2fb8`, `bdd7ab0`, dan `dbc751f`; endpoint policy 84/84 test (92 assertion), registry/probe 10/10 (22), regresi penyimpanan 11/11 (43), Pint, dan diff-check lulus. Review memastikan alamat non-global/special-use, literal/format numerik tersamar, hasil DNS campuran/berubah, serta kode hasil di luar daftar aman ditolak; driver `unavailable` tidak membuat koneksi keluar.
 
 ---
 
