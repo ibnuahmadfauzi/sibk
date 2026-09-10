@@ -72,7 +72,7 @@ class DataMasterController extends Controller
         /** @var User $actor */
         $actor = $request->user();
         try {
-            $run = $syncService->requestPreview($actor);
+            $run = $syncService->synchronize($actor);
         } catch (IntegrationConfigurationException $exception) {
             return back()->withErrors(['sync' => $exception->getMessage()]);
         }

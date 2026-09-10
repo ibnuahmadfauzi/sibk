@@ -313,6 +313,37 @@ class EtatibSyncTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'etatib.sync_completed']);
     }
 
+    public function test_failure_audit_failure_keeps_import_rolled_back_and_run_terminal(): void
+    {
+        Exceptions::fake();
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $this->app->instance(AuditService::class, new class extends AuditService
+        {
+            public function record(
+                string $action,
+                Model $auditable,
+                string $summary,
+                ?User $actor = null,
+                ?array $before = null,
+                ?array $after = null,
+                ?Request $request = null,
+            ): AuditLog {
+                throw new RuntimeException('Synthetic persistent audit failure.');
+            }
+        });
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertNotNull($run->finished_at);
+        $this->assertDatabaseMissing('external_tatib_records', ['source_identifier' => 'tatib-1']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'etatib.sync_completed']);
+    }
+
     public function test_deadline_change_before_success_completion_rolls_back_entire_etatib_import(): void
     {
         $now = CarbonImmutable::parse('2026-09-10 08:00:00');
@@ -341,16 +372,86 @@ class EtatibSyncTest extends TestCase
         $this->seedActiveSetting($driver);
 
         try {
-            app(EtatibSyncService::class)->synchronize($admin);
-            $this->fail('Deadline yang berubah sebelum completion harus membatalkan sinkronisasi.');
-        } catch (IntegrationConfigurationException $exception) {
-            $this->assertSame('timeout', $exception->resultCode());
+            $run = app(EtatibSyncService::class)->synchronize($admin);
         } finally {
             CarbonImmutable::setTestNow();
         }
 
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertNotNull($run->finished_at);
+        $this->assertSame('Batas waktu operasi integrasi terlampaui.', $run->summary);
         $this->assertDatabaseMissing('external_tatib_records', ['source_identifier' => 'tatib-1']);
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'etatib.sync_completed']);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'etatib.sync_completed',
+            'auditable_id' => $run->getKey(),
+        ]);
+    }
+
+    public function test_fence_change_before_success_completion_rolls_back_import_and_settles_own_run(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $audit = new class extends AuditService
+        {
+            private bool $changedFence = false;
+
+            public function record(
+                string $action,
+                Model $auditable,
+                string $summary,
+                ?User $actor = null,
+                ?array $before = null,
+                ?array $after = null,
+                ?Request $request = null,
+            ): AuditLog {
+                if (! $this->changedFence) {
+                    $this->changedFence = true;
+                    IntegrationSetting::query()
+                        ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+                        ->increment('operation_fence_version');
+                }
+
+                return parent::record($action, $auditable, $summary, $actor, $before, $after, $request);
+            }
+        };
+        $this->app->instance(AuditService::class, $audit);
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertNotNull($run->finished_at);
+        $this->assertSame('Konfigurasi integrasi telah berubah.', $run->summary);
+        $this->assertDatabaseMissing('external_tatib_records', ['source_identifier' => 'tatib-1']);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'etatib.sync_completed',
+            'auditable_id' => $run->getKey(),
+        ]);
+    }
+
+    public function test_failure_settlement_does_not_overwrite_a_terminal_run(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $driver->onFetch = static function (): never {
+            ExternalSyncRun::query()->latest('id')->firstOrFail()->update([
+                'status' => ExternalSyncRun::STATUS_SUCCEEDED,
+                'summary' => 'Sudah diselesaikan proses lain.',
+                'finished_at' => now(),
+            ]);
+
+            throw new IntegrationConfigurationException('configuration_changed');
+        };
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertSame('Sudah diselesaikan proses lain.', $run->summary);
+        $this->assertDatabaseMissing('audit_logs', ['auditable_id' => $run->getKey()]);
     }
 
     public function test_busy_sync_fails_safely_without_writing_outside_the_operation_lock(): void

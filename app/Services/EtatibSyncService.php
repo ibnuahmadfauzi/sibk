@@ -147,24 +147,45 @@ class EtatibSyncService
                 : ($exception instanceof EtatibUnavailableException
                     ? $exception->getMessage()
                     : 'Sinkronisasi e-Tatib gagal. Data lama tetap dipertahankan.');
-            $this->complete($context, $run, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
+            $this->settleFailure($run, $summary, $actor);
         }
 
         return $run->refresh();
     }
 
-    private function complete(
-        IntegrationOperationContext $context,
+    private function settleFailure(
         ExternalSyncRun $run,
-        string $status,
         string $summary,
         ?User $actor,
-        ?int $processed = null,
-        ?int $conflicts = null,
     ): void {
-        $this->mutate($context, function () use ($run, $status, $summary, $actor, $processed, $conflicts): void {
-            $this->finalizeRun($run, $status, $summary, $actor, $processed, $conflicts);
-        });
+        try {
+            DB::transaction(function () use ($run, $summary, $actor): void {
+                $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                if ($current->source !== IntegrationSetting::PROVIDER_ETATIB
+                    || $current->status !== ExternalSyncRun::STATUS_RUNNING
+                ) {
+                    return;
+                }
+
+                $this->finalizeRun($current, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
+            });
+        } catch (Throwable) {
+            report(new RuntimeException('Unexpected e-Tatib failure audit failure.'));
+            DB::transaction(function () use ($run, $summary): void {
+                $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                if ($current->source !== IntegrationSetting::PROVIDER_ETATIB
+                    || $current->status !== ExternalSyncRun::STATUS_RUNNING
+                ) {
+                    return;
+                }
+
+                $current->update([
+                    'status' => ExternalSyncRun::STATUS_FAILED,
+                    'summary' => $summary,
+                    'finished_at' => now(),
+                ]);
+            });
+        }
     }
 
     private function finalizeRun(
@@ -208,6 +229,7 @@ class EtatibSyncService
             $this->operationLock->assertCurrent($context, $setting);
 
             $result = $mutation();
+            $setting->refresh();
             $this->operationLock->assertCurrent($context, $setting);
 
             return $result;

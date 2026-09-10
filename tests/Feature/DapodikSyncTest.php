@@ -26,6 +26,7 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\DapodikSnapshotImporter;
 use App\Services\DapodikSyncService;
 use App\Services\IntegrationSettingService;
 use App\Services\StudentIdentityService;
@@ -47,13 +48,9 @@ class DapodikSyncTest extends TestCase
     public function test_full_snapshot_imports_master_data_and_is_idempotent(): void
     {
         $admin = $this->userWithRole('admin_it');
-        $this->fakeConnector($this->snapshot());
+        $this->importSnapshot($this->snapshot(), $admin);
+        $this->importSnapshot($this->snapshot(), $admin);
 
-        $first = app(DapodikSyncService::class)->synchronize($admin);
-        $second = app(DapodikSyncService::class)->synchronize($admin);
-
-        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $first->status);
-        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $second->status);
         $this->assertDatabaseCount('academic_years', 1);
         $this->assertDatabaseCount('classrooms', 1);
         $this->assertDatabaseCount('students', 1);
@@ -177,6 +174,23 @@ class DapodikSyncTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'dapodik.sync_completed']);
     }
 
+    public function test_public_dapodik_sync_service_rejects_configured_connector_before_fetch_or_import(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $driver = new Task10DapodikDriver($this->evidencedSnapshot());
+        $this->app->instance(DapodikConnector::class, $this->configuredConnector($driver));
+        $this->seedActiveSetting($driver);
+
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertSame(0, $driver->fetchCalls);
+        $this->assertDatabaseCount('academic_years', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+    }
+
     public function test_configured_connector_rejects_nisn_bound_to_another_dapodik_source_id(): void
     {
         Student::query()->create([
@@ -226,12 +240,10 @@ class DapodikSyncTest extends TestCase
         ]);
 
         $partial = $this->snapshot(isFull: false);
-        $this->fakeConnector($partial);
-        app(DapodikSyncService::class)->synchronize($admin);
+        $this->importSnapshot($partial, $admin);
         $this->assertTrue($existing->refresh()->is_active);
 
-        $this->fakeConnector($this->snapshot(isFull: true));
-        app(DapodikSyncService::class)->synchronize($admin);
+        $this->importSnapshot($this->snapshot(isFull: true), $admin);
         $this->assertFalse($existing->refresh()->is_active);
     }
 
@@ -254,11 +266,8 @@ class DapodikSyncTest extends TestCase
             ],
             memberships: [],
         );
-        $this->fakeConnector($snapshot);
+        $run = $this->importSnapshot($snapshot, $admin);
 
-        $run = app(DapodikSyncService::class)->synchronize($admin);
-
-        $this->assertSame(ExternalSyncRun::STATUS_WARNING, $run->status);
         $this->assertSame('Nama Sah', $existing->refresh()->name);
         $this->assertDatabaseCount('students', 1);
         $this->assertDatabaseCount('external_sync_issues', 2);
@@ -270,9 +279,7 @@ class DapodikSyncTest extends TestCase
         $teacher = $this->userWithRole('guru_bk');
         $temporary = app(StudentIdentityService::class)
             ->createTemporary('0012345678', 'Nama Masukan Awal', $teacher);
-        $this->fakeConnector($this->snapshot());
-
-        app(DapodikSyncService::class)->synchronize($admin);
+        $this->importSnapshot($this->snapshot(), $admin);
 
         $temporary->refresh();
         $this->assertNotNull($temporary->reconciled_student_id);
@@ -312,17 +319,17 @@ class DapodikSyncTest extends TestCase
         ]);
     }
 
-    private function fakeConnector(DapodikSnapshot $snapshot): void
+    private function importSnapshot(DapodikSnapshot $snapshot, User $actor): ExternalSyncRun
     {
-        $this->app->instance(DapodikConnector::class, new class($snapshot) implements DapodikConnector
-        {
-            public function __construct(private readonly DapodikSnapshot $snapshot) {}
+        $run = ExternalSyncRun::query()->create([
+            'source' => 'dapodik',
+            'status' => ExternalSyncRun::STATUS_RUNNING,
+            'triggered_by' => $actor->getKey(),
+            'started_at' => now(),
+        ]);
+        app(DapodikSnapshotImporter::class)->import($snapshot, $run, $actor);
 
-            public function fetchSnapshot(IntegrationOperationContext $context): DapodikSnapshot
-            {
-                return $this->snapshot;
-            }
-        });
+        return $run;
     }
 
     private function snapshot(bool $isFull = true): DapodikSnapshot
