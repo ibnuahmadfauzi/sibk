@@ -35,6 +35,47 @@ class EtatibSyncService
         );
     }
 
+    public function reconcileStudentLinks(?User $actor = null): int
+    {
+        $linked = 0;
+        ExternalTatibRecord::query()
+            ->whereNull('student_id')
+            ->orderBy('id')
+            ->each(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
+                $students = Student::query()
+                    ->where('nisn', $record->nisn)
+                    ->where('master_source', Student::MASTER_SOURCE_DAPODIK)
+                    ->whereNotNull('dapodik_id')
+                    ->whereNotNull('source_confirmed_at')
+                    ->get();
+                if ($students->count() !== 1) {
+                    return;
+                }
+
+                $student = $students->firstOrFail();
+                $record->update(['student_id' => $student->getKey()]);
+                ExternalSyncIssue::query()
+                    ->where('entity_type', 'etatib_record')
+                    ->where('source_identifier', $record->source_identifier)
+                    ->whereNull('resolved_at')
+                    ->update([
+                        'resolved_student_id' => $student->getKey(),
+                        'resolved_by' => $actor?->getKey(),
+                        'resolved_at' => now(),
+                    ]);
+                $this->auditService->record(
+                    action: 'etatib.student_relinked',
+                    auditable: $record,
+                    summary: 'Record e-Tatib ditautkan kembali melalui NISN exact tanpa write-back.',
+                    actor: $actor,
+                    after: ['student_id' => $student->getKey()],
+                );
+                $linked++;
+            });
+
+        return $linked;
+    }
+
     private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
     {
         $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([

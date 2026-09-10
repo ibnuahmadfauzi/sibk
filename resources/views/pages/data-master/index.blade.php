@@ -24,6 +24,18 @@
             </div>
         </div>
 
+        @if($latestDapodikPreview)
+            <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
+                <div>
+                    <strong>Pratinjau Dapodik menunggu penerapan.</strong>
+                    Periksa hasil pencocokan sebelum data resmi diterapkan.
+                </div>
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('data-master.dapodik.previews.show', $latestDapodikPreview) }}">
+                    Buka Pratinjau
+                </a>
+            </div>
+        @endif
+
         @include('pages.data-master._academic-year-preparation')
 
         <!-- Sync 3 Cards -->
@@ -48,6 +60,8 @@
                                 $dapodikStatus = match($lastDapodikRun?->status) {
                                     'succeeded' => 'Data terakhir tersedia',
                                     'warning' => 'Data perlu diperiksa',
+                                    'preview_ready' => 'Pratinjau siap diperiksa',
+                                    'superseded' => 'Pratinjau telah diganti',
                                     'failed' => 'Pembaruan terakhir gagal',
                                     'running' => 'Pembaruan sedang berjalan',
                                     default => 'Belum ada data',
@@ -212,6 +226,8 @@
                                 [$statusLabel, $statusTone] = match($run->status) {
                                     'succeeded' => ['Berhasil', 'success'],
                                     'warning' => ['Perlu diperiksa', 'warning'],
+                                    'preview_ready' => ['Siap diperiksa', 'warning'],
+                                    'superseded' => ['Diganti pratinjau baru', 'neutral'],
                                     'failed' => ['Gagal', 'danger'],
                                     'running' => ['Berjalan', 'info'],
                                     default => ['Tidak diketahui', 'neutral'],

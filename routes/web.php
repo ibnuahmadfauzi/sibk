@@ -6,6 +6,7 @@ use App\Http\Controllers\AcademicYearActivationController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
+use App\Http\Controllers\Admin\DapodikReconciliationController;
 use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
 use App\Http\Controllers\Admin\UserManagementController;
@@ -102,6 +103,15 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
         ->name('data-master.academic-years.roster-imports.store');
     Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');
+    Route::get('/data-master/dapodik/previews/{syncRun}', [DapodikReconciliationController::class, 'show'])
+        ->middleware('cache.headers:no_store')
+        ->name('data-master.dapodik.previews.show');
+    Route::patch('/data-master/dapodik/previews/{syncRun}/items/{item}', [DapodikReconciliationController::class, 'update'])
+        ->middleware('cache.headers:no_store')
+        ->name('data-master.dapodik.previews.items.update');
+    Route::post('/data-master/dapodik/previews/{syncRun}/apply', [DapodikReconciliationController::class, 'apply'])
+        ->middleware('cache.headers:no_store')
+        ->name('data-master.dapodik.previews.apply');
     Route::post('/data-master/etatib/sync', [DataMasterController::class, 'synchronizeEtatib'])->name('data-master.etatib.sync');
     Route::patch('/data-master/integrations/{provider}', [IntegrationSettingController::class, 'update'])
         ->whereIn('provider', IntegrationSetting::PROVIDERS)

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Integrations\Dapodik\ConfiguredDapodikConnector;
+use App\Integrations\Dapodik\DapodikConnector;
+use App\Integrations\Dapodik\DapodikUnavailableException;
 use App\Integrations\IntegrationConfigurationException;
 use App\Integrations\IntegrationOperationContext;
 use App\Integrations\IntegrationOperationLock;
@@ -11,30 +14,76 @@ use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use RuntimeException;
+use Throwable;
 
 class DapodikSyncService
 {
     public function __construct(
+        private readonly DapodikConnector $connector,
+        private readonly DapodikReconciliationService $reconciliationService,
         private readonly AuditService $auditService,
         private readonly IntegrationOperationLock $operationLock,
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
     {
+        if ($actor !== null) {
+            Gate::forUser($actor)->authorize('manageDataMaster');
+        }
+
         return $this->operationLock->run(
             IntegrationSetting::PROVIDER_DAPODIK,
-            function (IntegrationOperationContext $context) use ($actor): ExternalSyncRun {
-                $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
-                    'source' => 'dapodik',
-                    'status' => ExternalSyncRun::STATUS_RUNNING,
-                    'triggered_by' => $actor?->getKey(),
-                    'started_at' => now(),
-                ]));
-                $summary = (new IntegrationConfigurationException('preview_unavailable'))->getMessage();
-
-                return $this->settleFailure($context, $run, $summary, $actor);
-            },
+            fn (IntegrationOperationContext $context): ExternalSyncRun => $this->synchronizeLocked($context, $actor),
         );
+    }
+
+    private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
+    {
+        $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
+            'source' => IntegrationSetting::PROVIDER_DAPODIK,
+            'status' => ExternalSyncRun::STATUS_RUNNING,
+            'triggered_by' => $actor?->getKey(),
+            'started_at' => now(),
+        ]));
+
+        try {
+            if (! $this->connector instanceof ConfiguredDapodikConnector) {
+                throw new IntegrationConfigurationException('preview_unavailable');
+            }
+            $snapshot = $this->connector->fetchSnapshot($context);
+
+            return $this->mutate($context, function () use ($snapshot, $run, $actor, $context): ExternalSyncRun {
+                $currentRun = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                $setting = IntegrationSetting::query()
+                    ->where('provider', IntegrationSetting::PROVIDER_DAPODIK)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                return $this->reconciliationService->createPreview(
+                    $snapshot,
+                    $currentRun,
+                    $setting,
+                    $context,
+                    $actor,
+                );
+            });
+        } catch (Throwable $exception) {
+            if (! $exception instanceof DapodikUnavailableException
+                && ! $exception instanceof IntegrationConfigurationException
+            ) {
+                report(new RuntimeException('Unexpected Dapodik integration failure.'));
+            }
+
+            $summary = $exception instanceof IntegrationConfigurationException
+                ? $exception->getMessage()
+                : ($exception instanceof DapodikUnavailableException
+                    ? $exception->getMessage()
+                    : 'Sinkronisasi Dapodik gagal. Data lama tetap dipertahankan.');
+
+            return $this->settleFailure($context, $run, $summary, $actor);
+        }
     }
 
     private function settleFailure(
@@ -53,7 +102,7 @@ class DapodikSyncService
 
                 return $current->refresh();
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return $this->mutate($context, function () use ($run, $summary): ExternalSyncRun {
                 $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
                 if ($current->status === ExternalSyncRun::STATUS_RUNNING) {

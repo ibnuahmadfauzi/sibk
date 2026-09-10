@@ -47,6 +47,58 @@ class EtatibSyncTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
+    public function test_reconciliation_links_only_a_unique_verified_dapodik_nisn_without_fetching_etatib(): void
+    {
+        $connector = new class implements EtatibConnector
+        {
+            public int $fetchCalls = 0;
+
+            public function fetchSnapshot(IntegrationOperationContext $context): EtatibSnapshot
+            {
+                $this->fetchCalls++;
+
+                throw new RuntimeException('Konektor tidak boleh dipanggil saat relink lokal.');
+            }
+        };
+        $this->app->instance(EtatibConnector::class, $connector);
+
+        $verified = Student::query()->create([
+            'dapodik_id' => 'dapodik-student-verified',
+            'nisn' => '0012345678',
+            'name' => 'Murid Terverifikasi',
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+            'source_confirmed_at' => now(),
+        ]);
+        $provisional = Student::query()->create([
+            'nisn' => '0098765432',
+            'name' => 'Murid Sementara',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $verifiedRecord = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'tatib-verified',
+            'nisn' => $verified->nisn,
+            'occurred_at' => now(),
+            'violation_type' => 'Terlambat',
+            'category' => 'Disiplin',
+            'points' => 5,
+        ]);
+        $provisionalRecord = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'tatib-provisional',
+            'nisn' => $provisional->nisn,
+            'occurred_at' => now(),
+            'violation_type' => 'Terlambat',
+            'category' => 'Disiplin',
+            'points' => 5,
+        ]);
+
+        $linked = app(EtatibSyncService::class)->reconcileStudentLinks();
+
+        $this->assertSame(1, $linked);
+        $this->assertSame($verified->id, $verifiedRecord->refresh()->student_id);
+        $this->assertNull($provisionalRecord->refresh()->student_id);
+        $this->assertSame(0, $connector->fetchCalls);
+    }
+
     public function test_full_and_partial_sync_are_idempotent_and_only_full_deactivates_missing_records(): void
     {
         $admin = $this->userWithRole('admin_it');

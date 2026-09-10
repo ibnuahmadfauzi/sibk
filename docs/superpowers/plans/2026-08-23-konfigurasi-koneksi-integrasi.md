@@ -1017,33 +1017,33 @@ git commit -m "feat: enforce verified integration settings during sync"
 - Extend: `tests/Feature/DelayedDapodikPreparationTest.php`
 - Extend: `tests/Feature/EtatibSyncTest.php`
 
-- [ ] **Step 1: Tulis failing tests pratinjau tanpa mutasi**
+- [x] **Step 1: Tulis failing tests pratinjau tanpa mutasi**
 
 Uji bahwa snapshot hanya dapat diambil melalui configured connector, validator, dan operation lock Task 10. Hasilnya hanya membuat run serta item pratinjau ter-normalisasi; cache tahun, rombel, murid, keanggotaan, penugasan, dan data BK belum berubah sebelum Admin IT menerapkan hasil. Driver `unavailable`, konfigurasi tidak aktif, atau lock sibuk harus gagal tertutup tanpa membuat pratinjau palsu.
 
-- [ ] **Step 2: Buat pratinjau immutable dan klasifikasi pencocokan**
+- [x] **Step 2: Buat pratinjau immutable dan klasifikasi pencocokan**
 
 Setiap item memiliki salah satu hasil aman: `exact_match`, `new_record`, `changed`, `needs_mapping`, atau `conflict`. `exact_match` murid hanya sah bila satu NISN valid muncul tepat sekali pada snapshot dan menghasilkan tepat satu kandidat `Student` lokal. Nol kandidat menjadi `new_record`; lebih dari satu kandidat atau konflik NISN/source ID menjadi `conflict` dan tidak dapat dipaksa melalui UI. Pertahankan unique constraint NISN dan tambahkan pemeriksaan aplikasi untuk data historis yang rusak.
 
 Simpan hanya field snapshot internal minimum yang sudah divalidasi, bukan body mentah. Run menyimpan fingerprint seluruh snapshot, nomor generasi, configuration version, driver ID, adapter version, contract version, endpoint-policy digest, waktu kedaluwarsa, dan waktu apply. Item menyimpan jenis entitas, source ID, kandidat ID internal, status, field aman, hash item ter-normalisasi, generasi preview, decision revision, keputusan Admin IT, dan waktu keputusan.
 
-- [ ] **Step 3: Sediakan pemetaan manual terbatas**
+- [x] **Step 3: Sediakan pemetaan manual terbatas**
 
 Admin IT dapat memilih kandidat tahun/rombel `school_provisional` yang belum dikonfirmasi atau memilih membuat baris resmi baru. Kandidat wajib berada pada konteks tahun yang benar. Murid tidak dapat dipetakan berdasarkan nama. Konflik NISN/source ID tidak dapat dipaksa melalui UI. Pembuatan ulang preview menaikkan generasi, membatalkan keputusan lama, dan dicatat pada audit.
 
-- [ ] **Step 4: Terapkan hasil secara atomik setelah konfirmasi**
+- [x] **Step 4: Terapkan hasil secara atomik setelah konfirmasi**
 
 Kunci run dan seluruh baris target. Tolak run yang bukan milik Dapodik, sudah diterapkan, kedaluwarsa, bukan generasi terbaru, belum lengkap, masih memiliki konflik, atau konfigurasi/policy/fencing/fingerprint/hash item/decision revision/row target telah berubah. Tempelkan `dapodik_id`, field resmi, `master_source=dapodik`, `source_confirmed_at`, dan `synced_at` pada ID internal yang sama. Nama sementara yang berubah disimpan pada audit. Jangan mengubah `is_active` tahun ajaran.
 
-- [ ] **Step 5: Lindungi provenance dan data yang belum cocok**
+- [x] **Step 5: Lindungi provenance dan data yang belum cocok**
 
 Impor roster maupun apply tidak pernah mengubah `master_source` Student `dapodik` atau `legacy_unclassified` menjadi `school_provisional`. Snapshot penuh hanya menonaktifkan record `master_source=dapodik` yang terbukti hilang. Record `school_provisional` atau `legacy_unclassified` yang belum cocok tetap aktif sesuai keputusan operasional dan muncul sebagai masalah yang perlu diperiksa. Gagal atau rollback mempertahankan cache lama dan histori BK.
 
-- [ ] **Step 6: Pertahankan penautan identitas dan e-Tatib**
+- [x] **Step 6: Pertahankan penautan identitas dan e-Tatib**
 
 Identitas kasus sementara dan record e-Tatib dicocokkan kembali melalui NISN exact setelah penerapan. Pesan UI membedakan `belum terverifikasi Dapodik` dari `NISN tidak ditemukan`; tidak ada write-back ke provider. Test harus membuktikan `students.id` dan seluruh foreign key kasus, konsultasi, tindak lanjut, prestasi, serta penugasan tetap sama sebelum/sesudah apply.
 
-- [ ] **Step 7: Jalankan verification**
+- [x] **Step 7: Jalankan verification**
 
 ```bash
 php artisan test tests/Feature/DapodikSyncTest.php
@@ -1056,12 +1056,14 @@ php vendor/bin/pint --test
 git diff --check
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add database/migrations app/Models app/Services app/Http routes/web.php resources/views/pages/data-master tests/Feature
-git commit -m "feat: reconcile provisional data with Dapodik preview"
+git commit -m "feat: cocokkan data sementara lewat pratinjau Dapodik"
 ```
+
+**Gate selesai 11 September 2026:** pratinjau immutable tanpa mutasi cache, klasifikasi dan pemetaan terbatas, apply atomik dengan configuration/policy/fencing/fingerprint/hash/revision/row-target guard, perlindungan provenance, serta relink identitas sementara dan e-Tatib telah diverifikasi. Focused gate lulus: Dapodik 24/24 (198 assertion), fallback keterlambatan Dapodik 34/34 (269 assertion), e-Tatib 20/20 (73 assertion), kasus 14/14 (99 assertion), konsultasi 6/6 (38 assertion), dan penugasan 7/7 (48 assertion). Probe migration SQLite pada urutan `2026_09_09_000200` lulus; Pint dan diff-check bersih; suite PHP penuh lulus 326/326 dengan 2.587 assertion. Driver production tetap `unavailable`; pekerjaan berikutnya adalah Task 12.
 
 ---
 

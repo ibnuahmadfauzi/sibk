@@ -66,12 +66,24 @@ class StudentIdentityService
     {
         return DB::transaction(function () use ($temporary, $actor): IdentityReconciliation {
             $temporary = TemporaryStudent::query()->lockForUpdate()->findOrFail($temporary->getKey());
-            $student = Student::query()->where('nisn', $temporary->nisn)->first();
+            $students = Student::query()->where('nisn', $temporary->nisn)->get();
+            $student = $students->count() === 1 ? $students->first() : null;
+            $reconciledStudent = null;
             $unresolvedIssues = ExternalSyncIssue::query()
                 ->where('nisn', $temporary->nisn)
                 ->whereNull('resolved_at');
 
-            if ($student !== null) {
+            if ($students->count() > 1) {
+                $status = $this->status('ditahan_konflik');
+                $result = 'Rekonsiliasi ditahan karena terdapat lebih dari satu murid dengan NISN yang sama.';
+                $conflict = ['duplicate_local_nisn'];
+                $temporary->update(['reconciliation_status_id' => $status->getKey()]);
+            } elseif ($student !== null
+                && $student->master_source === Student::MASTER_SOURCE_DAPODIK
+                && $student->dapodik_id !== null
+                && $student->source_confirmed_at !== null
+            ) {
+                $reconciledStudent = $student;
                 $status = $this->status('terekonsiliasi');
                 $result = 'Identitas sementara berhasil ditautkan ke data master Dapodik.';
                 $conflict = null;
@@ -86,6 +98,11 @@ class StudentIdentityService
                     'reconciled_by' => $actor?->getKey(),
                     'reconciled_at' => now(),
                 ]);
+            } elseif ($student !== null) {
+                $status = $this->status('menunggu_rekonsiliasi');
+                $result = 'NISN ditemukan pada data persiapan, tetapi belum terverifikasi Dapodik.';
+                $conflict = null;
+                $temporary->update(['reconciliation_status_id' => $status->getKey()]);
             } elseif ($unresolvedIssues->exists()) {
                 $status = $this->status('ditahan_konflik');
                 $result = 'Rekonsiliasi ditahan karena terdapat konflik NISN pada data sumber.';
@@ -93,7 +110,7 @@ class StudentIdentityService
                 $temporary->update(['reconciliation_status_id' => $status->getKey()]);
             } else {
                 $status = $this->status('menunggu_rekonsiliasi');
-                $result = 'NISN belum ditemukan pada data master Dapodik.';
+                $result = 'NISN tidak ditemukan pada data master Dapodik.';
                 $conflict = null;
                 $temporary->update(['reconciliation_status_id' => $status->getKey()]);
             }
@@ -101,8 +118,8 @@ class StudentIdentityService
             $reconciliation = IdentityReconciliation::query()->create([
                 'temporary_student_id' => $temporary->getKey(),
                 'source_nisn' => $temporary->nisn,
-                'student_id' => $student?->getKey(),
-                'official_name' => $student?->name,
+                'student_id' => $reconciledStudent?->getKey(),
+                'official_name' => $reconciledStudent?->name,
                 'status_id' => $status->getKey(),
                 'result' => $result,
                 'checked_by' => $actor?->getKey(),
@@ -118,8 +135,8 @@ class StudentIdentityService
                 before: ['nisn' => $temporary->nisn, 'input_name' => $temporary->input_name],
                 after: [
                     'status' => $status->code,
-                    'student_id' => $student?->getKey(),
-                    'official_name' => $student?->name,
+                    'student_id' => $reconciledStudent?->getKey(),
+                    'official_name' => $reconciledStudent?->name,
                 ],
             );
 

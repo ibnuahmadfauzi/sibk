@@ -46,6 +46,8 @@ final class DapodikSnapshotRegressionImporter
                     'ends_on' => $item['ends_on'] ?? null,
                     'is_active' => $item['is_active'] ?? true,
                     'synced_at' => $syncedAt,
+                    'master_source' => AcademicYear::MASTER_SOURCE_DAPODIK,
+                    'source_confirmed_at' => $syncedAt,
                 ],
             );
             $yearIds[$item['source_id']] = $year->getKey();
@@ -73,6 +75,8 @@ final class DapodikSnapshotRegressionImporter
                     'major' => $item['major'] ?? null,
                     'is_active' => $item['is_active'] ?? true,
                     'synced_at' => $syncedAt,
+                    'master_source' => Classroom::MASTER_SOURCE_DAPODIK,
+                    'source_confirmed_at' => $syncedAt,
                 ],
             );
             $classroomIds[$item['source_id']] = $classroom->getKey();
@@ -115,6 +119,8 @@ final class DapodikSnapshotRegressionImporter
                 'name' => $item['name'],
                 'is_active' => $item['is_active'] ?? true,
                 'synced_at' => $syncedAt,
+                'master_source' => Student::MASTER_SOURCE_DAPODIK,
+                'source_confirmed_at' => $syncedAt,
             ])->save();
             $studentIds[$item['source_id']] = $student->getKey();
             $processed++;
@@ -144,6 +150,8 @@ final class DapodikSnapshotRegressionImporter
                     'effective_until' => $item['effective_until'] ?? null,
                     'is_active' => $item['is_active'] ?? true,
                     'synced_at' => $syncedAt,
+                    'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
+                    'source_confirmed_at' => $syncedAt,
                 ],
             );
             $membershipIds[] = $membership->getKey();

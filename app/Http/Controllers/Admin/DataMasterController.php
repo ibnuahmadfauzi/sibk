@@ -36,6 +36,11 @@ class DataMasterController extends Controller
                 ->where('processed_count', '>', 0)
                 ->latest('finished_at')
                 ->first(),
+            'latestDapodikPreview' => ExternalSyncRun::query()
+                ->where('source', 'dapodik')
+                ->where('status', ExternalSyncRun::STATUS_PREVIEW_READY)
+                ->latest('preview_generation')
+                ->first(),
             'lastEtatibRun' => ExternalSyncRun::query()->where('source', 'etatib')->latest('started_at')->first(),
             'lastSuccessfulEtatibRun' => ExternalSyncRun::query()
                 ->where('source', 'etatib')
@@ -79,6 +84,12 @@ class DataMasterController extends Controller
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['sync' => $run->summary ?? 'Sinkronisasi Dapodik gagal.']);
+        }
+
+        if ($run->status === ExternalSyncRun::STATUS_PREVIEW_READY) {
+            return redirect()
+                ->route('data-master.dapodik.previews.show', $run)
+                ->with('success', $run->summary);
         }
 
         return back()->with(
