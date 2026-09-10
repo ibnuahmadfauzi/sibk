@@ -291,7 +291,7 @@ class CorrectionService
         }
     }
 
-    private function resolveTarget(string $type, int $id, bool $lock = false): Model
+    private function resolveTarget(string $type, int|string $id, bool $lock = false): Model
     {
         $class = match ($type) {
             'case' => BkCase::class,

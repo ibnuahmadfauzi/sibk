@@ -45,7 +45,7 @@ class AccountSeeder extends Seeder
                     ['email' => $account['email']],
                     [
                         'name' => $account['name'],
-                        'password' => $password,
+                        'password' => \Illuminate\Support\Facades\Hash::make($password),
                         'email_verified_at' => now(),
                         'is_active' => true,
                         'deactivated_at' => null,

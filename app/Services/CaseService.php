@@ -24,7 +24,7 @@ class CaseService
     ) {}
 
     /**
-     * @param  array{student_id?: int|null, temporary_nisn?: string|null, temporary_name?: string|null, case_source_id: int, service_field_id: int, service_date: string, referrer?: string|null, initial_info: string, initial_action: string, internal_note?: string|null, etatib_record_ids?: list<int>}  $data
+     * @param  array{student_id?: int|string|null, temporary_nisn?: string|null, temporary_name?: string|null, case_source_id: int|string, service_field_id: int|string, service_date: string, referrer?: string|null, initial_info: string, initial_action: string, internal_note?: string|null, etatib_record_ids?: list<int|string>}  $data
      */
     public function createCase(array $data, User $actor): BkCase
     {
@@ -33,7 +33,7 @@ class CaseService
             $temporaryStudent = null;
 
             if (($data['student_id'] ?? null) !== null) {
-                $student = Student::query()->findOrFail($data['student_id']);
+                $student = Student::query()->findOrFail((int) $data['student_id']);
                 $inScope = Student::query()
                     ->forActiveTeacherAssignment($actor, now())
                     ->whereKey($student->getKey())
@@ -52,8 +52,8 @@ class CaseService
                 );
             }
 
-            $source = $this->reference('case_source', $data['case_source_id']);
-            $this->reference('service_field', $data['service_field_id']);
+            $source = $this->reference('case_source', (int) $data['case_source_id']);
+            $this->reference('service_field', (int) $data['service_field_id']);
             $status = $this->referenceByCode('case_status', 'baru');
             $nisn = $student?->nisn ?? $temporaryStudent?->nisn ?? '';
             $etatibIds = $data['etatib_record_ids'] ?? [];
@@ -79,7 +79,7 @@ class CaseService
                 'student_id' => $student?->getKey(),
                 'temporary_student_id' => $temporaryStudent?->getKey(),
                 'case_source_id' => $source->getKey(),
-                'service_field_id' => $data['service_field_id'],
+                'service_field_id' => (int) $data['service_field_id'],
                 'status_id' => $status->getKey(),
                 'service_date' => $data['service_date'],
                 'referrer' => $data['referrer'] ?? null,
@@ -271,7 +271,7 @@ class CaseService
         });
     }
 
-    /** @param array{status_id: int, result?: string|null} $data */
+    /** @param array{status_id: int|string, result?: string|null} $data */
     public function updateCoordination(
         BkCase $case,
         CaseCoordination $coordination,
@@ -288,7 +288,7 @@ class CaseService
                 throw ValidationException::withMessages(['status_id' => 'Koordinasi ini sudah ditutup.']);
             }
 
-            $status = $this->reference('coordination_status', $data['status_id']);
+            $status = $this->reference('coordination_status', (int) $data['status_id']);
             if (! in_array($status->code, ['selesai', 'dibatalkan'], true)) {
                 throw ValidationException::withMessages([
                     'status_id' => 'Status koordinasi hanya dapat diselesaikan atau dibatalkan.',
@@ -333,7 +333,7 @@ class CaseService
         return ReferenceValue::query()
             ->active()
             ->where('category', $category)
-            ->findOrFail($id);
+            ->findOrFail((int) $id);
     }
 
     private function referenceByCode(string $category, string $code): ReferenceValue
