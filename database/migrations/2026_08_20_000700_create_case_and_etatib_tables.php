@@ -15,14 +15,14 @@ return new class extends Migration
             $table->string('source_identifier')->unique();
             $table->string('nisn', 20)->index();
             $table->foreignId('student_id')->nullable()->constrained()->nullOnDelete();
-            $table->timestamp('occurred_at')->nullable();
+            $table->timestamp('occurred_at');
             $table->string('violation_type', 200);
             $table->string('category', 100);
             $table->integer('points')->default(0);
             $table->string('source_status', 100)->nullable();
             $table->boolean('is_active')->default(true)->index();
             $table->timestamp('source_synced_at')->nullable();
-            $table->timestamp('synced_at')->useCurrent();
+            $table->timestamp('synced_at');
             $table->timestamps();
         });
 
@@ -73,7 +73,7 @@ return new class extends Migration
             $table->text('coordination_need');
             $table->text('result')->nullable();
             $table->foreignId('recorded_by')->constrained('users')->restrictOnDelete();
-            $table->timestamp('coordinated_at')->nullable();
+            $table->timestamp('coordinated_at');
             $table->timestamps();
             $table->softDeletes();
             $table->index(['case_id', 'waka_user_id', 'status_id'], 'case_coordination_access_index');

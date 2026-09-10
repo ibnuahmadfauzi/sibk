@@ -48,6 +48,30 @@ class AuthenticationTest extends TestCase
         $this->assertSame(0, AuditLog::query()->count());
     }
 
+    public function test_invalid_credentials_are_rendered_and_described_by_login_fields(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->followingRedirects()
+            ->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => 'incorrect-password',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('id="credentialsError"', false)
+            ->assertSee(
+                'aria-describedby="identifierError credentialsError"',
+                false,
+            )
+            ->assertSee(
+                'aria-describedby="passwordError credentialsError"',
+                false,
+            );
+    }
+
     public function test_inactive_user_cannot_login_or_keep_an_existing_session(): void
     {
         $user = User::factory()->inactive()->create();

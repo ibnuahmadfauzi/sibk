@@ -63,6 +63,10 @@ final class ProvisionalRosterCsvParser
             $seenNisn = [];
 
             while (($row = fgetcsv($stream, separator: ',', enclosure: '"', escape: '')) !== false) {
+                if (count($row) === 1 && trim((string) ($row[0] ?? '')) === '') {
+                    continue;
+                }
+
                 if (count($row) !== 3 || ! is_string($row[0]) || ! is_string($row[1]) || ! is_string($row[2])) {
                     $this->fail('Setiap baris CSV harus memiliki tepat tiga kolom.');
                 }
