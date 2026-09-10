@@ -1,0 +1,2 @@
+<img src="<?php echo e(asset('assets/images/logo.png')); ?>" alt="Logo Aplikasi BK" <?php echo e($attributes->merge(['class' => 'sibk-logo'])); ?>>
+<?php /**PATH D:\cadangan\Tugas Kuliah\PGG\Sesmter 2\PK\Website BK\sibk\resources\views/components/logo.blade.php ENDPATH**/ ?>
