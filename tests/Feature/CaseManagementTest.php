@@ -237,6 +237,24 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'case.resolved', 'auditable_id' => $case->id]);
     }
 
+    public function test_teacher_creates_case_with_string_request_payload(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+
+        $response = $this->actingAs($teacher)->post(route('cases.store'), [
+            'case_source_id' => (string) $this->reference('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => (string) $this->reference('service_field', 'pribadi')->id,
+            'service_date' => '2026-08-01',
+            'initial_info' => 'Informasi awal layanan string.',
+            'initial_action' => 'Asesmen awal string.',
+            'student_id' => (string) $student->id,
+        ]);
+
+        $case = BkCase::query()->where('initial_info', 'Informasi awal layanan string.')->firstOrFail();
+        $response->assertRedirect(route('cases.show', $case));
+        $this->assertSame($student->id, $case->student_id);
+    }
+
     /** @return array{User, Student} */
     private function teacherAndScopedStudent(): array
     {
