@@ -3,10 +3,17 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\ProtectIntegrationLifecycle;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,12 +22,99 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
-        $middleware->alias([
-            'account.active' => EnsureActiveUser::class,
-        ]);
+    // Cloudflare Tunnel lokal meneruskan request ke loopback.
+    // Jangan mempercayai forwarded headers ini di production.
+    if (env('APP_ENV', 'production') === 'local') {
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+    }
+
+    $middleware->prepend(ProtectIntegrationLifecycle::class);
+
+    $middleware->alias([
+        'account.active' => EnsureActiveUser::class,
+    ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash([
+            'dapodik.api_key',
+            'dapodik.current_password',
+            'etatib.api_key',
+            'etatib.current_password',
+        ]);
+        $exceptions->reportable(static function (Throwable $exception): ?bool {
+            $request = request();
+
+            if (! $request->is('data-master/integrations', 'data-master/integrations/*')) {
+                return null;
+            }
+
+            ProtectIntegrationLifecycle::redactForExceptionReporting($request);
+            Log::error('Kegagalan tak terduga pada konfigurasi koneksi.', [
+                'exception_class' => $exception::class,
+                'exception_code' => $exception->getCode(),
+            ]);
+
+            return false;
+        });
+        $exceptions->render(function (ValidationException $exception, Request $request) {
+            if (! $request->routeIs('data-master.integrations.*')) {
+                return null;
+            }
+
+            if ($request->expectsJson()) {
+                return response()
+                    ->json([
+                        'message' => 'Data konfigurasi koneksi tidak valid.',
+                        'errors' => $exception->errors(),
+                    ], 422)
+                    ->header('Cache-Control', 'no-store');
+            }
+
+            $oldInput = [];
+            if ($request->routeIs('data-master.integrations.update')) {
+                $provider = (string) $request->route('provider');
+                $providerInput = $request->input($provider);
+                if (is_array($providerInput)) {
+                    $oldInput[$provider] = array_intersect_key($providerInput, array_flip([
+                        'base_url',
+                        'expected_source_identifier',
+                        'remove_api_key',
+                        'timeout_seconds',
+                    ]));
+                }
+            }
+
+            return redirect()
+                ->to(route('data-master.index').'#integration-'.(string) $request->route('provider'))
+                ->withInput($oldInput)
+                ->withErrors($exception->errors(), $exception->errorBag)
+                ->header('Cache-Control', 'no-store');
+        });
+        $exceptions->render(function (Throwable $exception, Request $request): ?Response {
+            if (! $request->is('data-master/integrations', 'data-master/integrations/*')
+                || $exception instanceof AuthenticationException
+                || $exception instanceof HttpResponseException
+            ) {
+                return null;
+            }
+
+            $status = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 500;
+            $headers = $exception instanceof HttpExceptionInterface ? $exception->getHeaders() : [];
+            $message = $status === 500
+                ? 'Terjadi kesalahan pada konfigurasi koneksi.'
+                : 'Permintaan konfigurasi koneksi tidak dapat diproses.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $message], $status, $headers)
+                : response($message, $status, $headers);
+        });
+        $exceptions->respond(static function (Response $response, Throwable $exception, Request $request): Response {
+            if ($request->is('data-master/integrations', 'data-master/integrations/*')) {
+                $response->headers->set('Cache-Control', 'no-store');
+            }
+
+            return $response;
+        });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool => $request->is('api/*') || $request->expectsJson(),
         );

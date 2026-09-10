@@ -4,17 +4,32 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Integrations\Etatib\ConfiguredEtatibConnector;
 use App\Integrations\Etatib\EtatibConnector;
+use App\Integrations\Etatib\EtatibDriver;
 use App\Integrations\Etatib\EtatibSnapshot;
+use App\Integrations\Etatib\EtatibSnapshotValidator;
+use App\Integrations\IntegrationConfigurationException;
+use App\Integrations\IntegrationDriverRegistry;
+use App\Integrations\IntegrationEndpointPolicy;
+use App\Integrations\IntegrationOperationContext;
+use App\Integrations\IntegrationOperationLock;
+use App\Integrations\IntegrationProbeResult;
+use App\Integrations\IntegrationRuntimeConfiguration;
+use App\Integrations\IntegrationSnapshotEvidence;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
+use App\Models\IntegrationSetting;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\EtatibSyncService;
+use App\Services\IntegrationSettingService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Tests\TestCase;
 
 class EtatibSyncTest extends TestCase
@@ -81,13 +96,131 @@ class EtatibSyncTest extends TestCase
         $this->assertDatabaseHas('external_sync_runs', ['source' => 'etatib', 'status' => ExternalSyncRun::STATUS_FAILED]);
     }
 
+    public function test_unavailable_driver_fails_safely_without_outbound_or_data_change(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $old = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'old', 'nisn' => '0000000001', 'occurred_at' => now(),
+            'violation_type' => 'Data lama', 'category' => 'Lama', 'points' => 1,
+            'is_active' => true, 'synced_at' => now(),
+        ]);
+        IntegrationSetting::query()->create([
+            'provider' => 'etatib',
+            'is_enabled' => true,
+        ]);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertSame('Adapter integrasi belum tersedia.', $run->summary);
+        $this->assertTrue($old->refresh()->is_active);
+    }
+
+    public function test_validator_requires_admitted_contract_limits_and_revision_rules(): void
+    {
+        $snapshot = $this->evidencedSnapshot();
+
+        $this->expectException(IntegrationConfigurationException::class);
+        (new EtatibSnapshotValidator)->validate($snapshot, $this->runtimeConfiguration());
+    }
+
+    public function test_configured_sync_validates_then_imports_under_current_fence(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertSame(1, $driver->fetchCalls);
+        $this->assertDatabaseHas('external_tatib_records', ['source_identifier' => 'tatib-1', 'points' => 5]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'etatib.sync_completed']);
+    }
+
+    public function test_configuration_change_during_fetch_rejects_snapshot_and_keeps_old_data(): void
+    {
+        Exceptions::fake();
+        $admin = $this->userWithRole('admin_it');
+        $old = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'old', 'nisn' => '0000000001', 'occurred_at' => now(),
+            'violation_type' => 'Data lama', 'category' => 'Lama', 'points' => 1,
+            'is_active' => true, 'synced_at' => now(),
+        ]);
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $driver->onFetch = static fn () => IntegrationSetting::query()
+            ->where('provider', 'etatib')
+            ->increment('configuration_version');
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertTrue($old->refresh()->is_active);
+        $this->assertDatabaseMissing('external_tatib_records', ['source_identifier' => 'tatib-1']);
+        $this->assertStringNotContainsString('secret', (string) $run->summary);
+        Exceptions::assertNothingReported();
+    }
+
+    public function test_invalid_oversized_or_colliding_snapshot_is_rejected_before_import(): void
+    {
+        ExternalTatibRecord::query()->create([
+            'source_identifier' => 'tatib-1', 'nisn' => '0099999999', 'occurred_at' => now(),
+            'violation_type' => 'Data lama', 'category' => 'Lama', 'points' => 1,
+            'is_active' => true, 'synced_at' => now(),
+        ]);
+        $snapshot = $this->evidencedSnapshot(bytes: 2049);
+        $validator = $this->admittedValidator();
+
+        try {
+            $validator->validate($snapshot, $this->runtimeConfiguration());
+            $this->fail('Snapshot oversized harus ditolak.');
+        } catch (IntegrationConfigurationException $exception) {
+            $this->assertSame('response_too_large', $exception->resultCode());
+        }
+
+        $valid = $this->evidencedSnapshot();
+        $records = $valid->records;
+        $records[0]['points'] = '5';
+        $invalid = new EtatibSnapshot(true, $records, $valid->evidence);
+        try {
+            $validator->validate($invalid, $this->runtimeConfiguration());
+            $this->fail('Tipe data yang salah harus ditolak.');
+        } catch (IntegrationConfigurationException $exception) {
+            $this->assertSame('contract_invalid', $exception->resultCode());
+        }
+
+        $this->expectException(IntegrationConfigurationException::class);
+        $validator->validate($this->evidencedSnapshot(), $this->runtimeConfiguration());
+    }
+
+    public function test_busy_sync_fails_safely_without_writing_outside_the_operation_lock(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $lock = cache()->lock('sibk:integration:etatib:operation', 60);
+        $this->assertTrue($lock->get());
+
+        try {
+            $this->actingAs($admin)->post(route('data-master.etatib.sync'))
+                ->assertRedirect()
+                ->assertSessionHasErrors('etatib_sync');
+            $this->assertDatabaseCount('external_sync_runs', 0);
+            $this->assertDatabaseCount('audit_logs', 0);
+        } finally {
+            $lock->release();
+        }
+    }
+
     private function fakeConnector(EtatibSnapshot $snapshot): void
     {
         $this->app->instance(EtatibConnector::class, new class($snapshot) implements EtatibConnector
         {
             public function __construct(private readonly EtatibSnapshot $snapshot) {}
 
-            public function fetchSnapshot(): EtatibSnapshot
+            public function fetchSnapshot(IntegrationOperationContext $context): EtatibSnapshot
             {
                 return $this->snapshot;
             }
@@ -108,11 +241,123 @@ class EtatibSyncTest extends TestCase
         ]]);
     }
 
+    private function evidencedSnapshot(int $bytes = 512): EtatibSnapshot
+    {
+        $snapshot = $this->snapshot(true);
+
+        return new EtatibSnapshot(
+            true,
+            $snapshot->records,
+            new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'full', 1, 1, $bytes),
+        );
+    }
+
+    private function admittedValidator(): EtatibSnapshotValidator
+    {
+        return new EtatibSnapshotValidator(
+            'contract-v1',
+            ['full' => true, 'partial' => false],
+            2,
+            10,
+            2048,
+            ['source_id', 'nisn'],
+            ['occurred_at', 'violation_type', 'category', 'points', 'source_status', 'source_synced_at'],
+            'synthetic-revision-v1',
+        );
+    }
+
+    private function bindConfiguredConnector(Task10EtatibDriver $driver): void
+    {
+        $registry = new IntegrationDriverRegistry(etatibDriver: $driver);
+        $service = new IntegrationSettingService($registry, app(IntegrationOperationLock::class), app(AuditService::class));
+        $this->app->instance(IntegrationDriverRegistry::class, $registry);
+        $this->app->instance(EtatibConnector::class, new ConfiguredEtatibConnector($registry, $service, $this->admittedValidator()));
+    }
+
+    private function seedActiveSetting(Task10EtatibDriver $driver): void
+    {
+        config()->set('sibk.integrations.etatib', [
+            'driver' => 'unavailable',
+            'allowed_origins' => ['https://etatib.example.test'],
+            'allow_private_networks' => false,
+        ]);
+        IntegrationSetting::query()->updateOrCreate(['provider' => 'etatib'], [
+            'base_url' => 'https://etatib.example.test',
+            'expected_source_identifier' => 'school-01',
+            'credentials' => ['type' => 'api_token', 'token' => 'secret'],
+            'configuration_version' => 1,
+            'verified_configuration_version' => 1,
+            'verified_driver_id' => $driver->id(),
+            'verified_adapter_version' => $driver->adapterVersion(),
+            'verified_contract_version' => $driver->contractVersion(),
+            'verified_endpoint_policy_digest' => (new IntegrationEndpointPolicy(['https://etatib.example.test'], false))->digest(),
+            'last_test_status' => 'success',
+            'last_test_code' => 'success',
+            'is_enabled' => true,
+        ]);
+    }
+
+    private function runtimeConfiguration(): IntegrationRuntimeConfiguration
+    {
+        return new IntegrationRuntimeConfiguration(
+            provider: 'etatib',
+            baseUrl: 'https://etatib.example.test',
+            expectedSourceIdentifier: 'school-01',
+            credentials: ['type' => 'api_token', 'token' => 'secret'],
+            timeoutSeconds: 30,
+            configurationVersion: 1,
+            operationFenceVersion: 1,
+            endpointPolicyDigest: str_repeat('a', 64),
+        );
+    }
+
     private function userWithRole(string $slug): User
     {
         $user = User::factory()->create();
         $user->roles()->attach(Role::query()->where('slug', $slug)->firstOrFail());
 
         return $user;
+    }
+}
+
+final class Task10EtatibDriver implements EtatibDriver
+{
+    public int $fetchCalls = 0;
+
+    public ?\Closure $onFetch = null;
+
+    public function __construct(private readonly EtatibSnapshot $snapshot) {}
+
+    public function id(): string
+    {
+        return 'synthetic-etatib';
+    }
+
+    public function adapterVersion(): string
+    {
+        return 'synthetic-adapter-v1';
+    }
+
+    public function contractVersion(): string
+    {
+        return 'contract-v1';
+    }
+
+    public function isAvailable(): bool
+    {
+        return true;
+    }
+
+    public function probe(IntegrationRuntimeConfiguration $configuration): IntegrationProbeResult
+    {
+        throw new \LogicException('Not used.');
+    }
+
+    public function fetchSnapshot(IntegrationRuntimeConfiguration $configuration): EtatibSnapshot
+    {
+        $this->fetchCalls++;
+        ($this->onFetch ?? static fn (): null => null)();
+
+        return $this->snapshot;
     }
 }

@@ -106,6 +106,44 @@ class StudentProfileTest extends TestCase
             ->assertRedirect(route('students.show', ['student' => $student, 'tab' => 'kasus']));
     }
 
+    public function test_profile_has_no_current_class_after_year_end_even_when_membership_is_open_ended(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $year = AcademicYear::query()->create([
+            'name' => '2026/2027',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => true,
+        ]);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'X AKL Histori',
+            'is_active' => true,
+        ]);
+        $student = Student::query()->create([
+            'nisn' => '0066666666',
+            'name' => 'Murid Masa Transisi',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-01',
+            'effective_until' => null,
+            'is_active' => true,
+        ]);
+
+        $this->travelTo('2027-07-15 08:00:00');
+
+        $this->actingAs($coordinator)->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee('Tanpa kelas aktif')
+            ->assertSee('X AKL Histori')
+            ->assertSee('30-06-2027')
+            ->assertDontSee('s.d. sekarang');
+    }
+
     /** @return array{User, Student} */
     private function teacherAndScopedStudent(): array
     {

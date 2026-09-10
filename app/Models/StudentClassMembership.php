@@ -4,14 +4,21 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['dapodik_id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until', 'is_active', 'synced_at'])]
+#[Fillable(['dapodik_id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class StudentClassMembership extends Model
 {
+    public const MASTER_SOURCE_SCHOOL_PROVISIONAL = 'school_provisional';
+
+    public const MASTER_SOURCE_DAPODIK = 'dapodik';
+
+    public const MASTER_SOURCE_LEGACY_UNCLASSIFIED = 'legacy_unclassified';
+
     /** @return BelongsTo<Student, $this> */
     public function student(): BelongsTo
     {
@@ -31,19 +38,48 @@ class StudentClassMembership extends Model
     }
 
     /** @param Builder<StudentClassMembership> $query */
-    public function scopeEffectiveOn(Builder $query, string $date): Builder
+    public function scopeEffectiveOn(Builder $query, CarbonInterface|string $date): Builder
     {
         return $query
             ->whereDate('effective_from', '<=', $date)
             ->where(fn (Builder $builder): Builder => $builder
                 ->whereNull('effective_until')
-                ->orWhereDate('effective_until', '>=', $date));
+                ->orWhereDate('effective_until', '>=', $date))
+            ->whereHas('academicYear', fn (Builder $academicYear): Builder => $academicYear
+                ->where(fn (Builder $periodStart): Builder => $periodStart
+                    ->whereNull('starts_on')
+                    ->orWhereDate('starts_on', '<=', $date))
+                ->where(fn (Builder $periodEnd): Builder => $periodEnd
+                    ->whereNull('ends_on')
+                    ->orWhereDate('ends_on', '>=', $date)));
     }
 
     /** @param Builder<StudentClassMembership> $query */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /** @param Builder<StudentClassMembership> $query */
+    public function scopeActiveOn(Builder $query, CarbonInterface|string $date): Builder
+    {
+        return $query->active()->effectiveOn($date);
+    }
+
+    public function effectiveEnd(): ?CarbonInterface
+    {
+        $membershipEnd = $this->effective_until;
+        $academicYearEnd = $this->academicYear?->ends_on;
+
+        if ($membershipEnd === null) {
+            return $academicYearEnd;
+        }
+
+        if ($academicYearEnd === null) {
+            return $membershipEnd;
+        }
+
+        return $membershipEnd->lte($academicYearEnd) ? $membershipEnd : $academicYearEnd;
     }
 
     /** @return array<string, string> */
@@ -54,6 +90,7 @@ class StudentClassMembership extends Model
             'effective_until' => 'date',
             'is_active' => 'boolean',
             'synced_at' => 'datetime',
+            'source_confirmed_at' => 'datetime',
         ];
     }
 }

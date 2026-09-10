@@ -11,9 +11,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-#[Fillable(['dapodik_id', 'nisn', 'name', 'is_active', 'synced_at'])]
+#[Fillable(['dapodik_id', 'nisn', 'name', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class Student extends Model
 {
+    public const MASTER_SOURCE_SCHOOL_PROVISIONAL = 'school_provisional';
+
+    public const MASTER_SOURCE_DAPODIK = 'dapodik';
+
+    public const MASTER_SOURCE_LEGACY_UNCLASSIFIED = 'legacy_unclassified';
+
     /** @return HasMany<StudentClassMembership, $this> */
     public function classMemberships(): HasMany
     {
@@ -69,8 +75,10 @@ class Student extends Model
                     $join->on('assignments.classroom_id', '=', 'memberships.classroom_id')
                         ->on('assignments.academic_year_id', '=', 'memberships.academic_year_id');
                 })
+                ->join('academic_years as years', 'years.id', '=', 'memberships.academic_year_id')
                 ->whereColumn('memberships.student_id', 'students.id')
                 ->where('memberships.is_active', true)
+                ->where('years.is_active', true)
                 ->where('assignments.user_id', $teacher->getKey())
                 ->whereNull('assignments.deleted_at')
                 ->whereDate('memberships.effective_from', '<=', $date)
@@ -82,6 +90,14 @@ class Student extends Model
                 ->where(function ($period) use ($date): void {
                     $period->whereNull('assignments.effective_until')
                         ->orWhereDate('assignments.effective_until', '>=', $date);
+                })
+                ->where(function ($period) use ($date): void {
+                    $period->whereNull('years.starts_on')
+                        ->orWhereDate('years.starts_on', '<=', $date);
+                })
+                ->where(function ($period) use ($date): void {
+                    $period->whereNull('years.ends_on')
+                        ->orWhereDate('years.ends_on', '>=', $date);
                 });
         });
     }
@@ -122,12 +138,19 @@ class Student extends Model
         return $query->whereRaw('1 = 0');
     }
 
+    public function usesProvisionalData(?StudentClassMembership $membership = null): bool
+    {
+        return $this->master_source === self::MASTER_SOURCE_SCHOOL_PROVISIONAL
+            || $membership?->master_source === StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL;
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
             'synced_at' => 'datetime',
+            'source_confirmed_at' => 'datetime',
         ];
     }
 }

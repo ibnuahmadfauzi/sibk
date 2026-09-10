@@ -5,11 +5,12 @@ Ruang BK adalah aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Sura
 ## Source of Truth
 
 Kebutuhan dan perilaku sistem:
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` — baseline final manusia.
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.md` — mirror AI-readable.
-- `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` — baseline final manusia.
-- `docs/requirements/SRS_Aplikasi_BK_v1.0.md` — mirror AI-readable.
+- `docs/requirements/PRD_Aplikasi_BK_v1.1.md` — baseline kebutuhan produk aktif.
+- `docs/requirements/SRS_Aplikasi_BK_v1.1.md` — baseline spesifikasi aktif.
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` dan `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` — arsip baseline manusia sebelumnya sekaligus referensi struktur/visual; jangan diubah.
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.md` dan `docs/requirements/SRS_Aplikasi_BK_v1.0.md` — arsip mirror AI baseline sebelumnya; jangan diubah.
 - `docs/requirements-index.md` — indeks ringan untuk menentukan bagian requirement yang perlu dibuka.
+- `CONTEXT.md` — glosarium ringkas untuk istilah data persiapan sementara, terverifikasi Dapodik, aktivasi operasional, dan pratinjau pencocokan; bukan pengganti PRD/SRS.
 
 Referensi visual frontend:
 - Penpot page `22 — UI High-Fidelity Final`.
@@ -26,14 +27,14 @@ Page `21 — Wireframe Low-Fidelity Final` adalah artefak proses desain dan buka
 - Integrasi Dapodik/e-Tatib: disiapkan melalui cache read-only, pemetaan NISN, dan log sinkronisasi terkelola.
 - API contract: aktif disusun dan diselaraskan dengan kebutuhan web controller & service layer.
 
-## Pending Implementation Plan — Wajib Ditinjau
+## Approved Implementation Plan — Wajib Diikuti
 
-- Terdapat plan berstatus **menunggu review dan konfirmasi pengguna** di `docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md`.
-- Pada awal sesi kerja baru, setiap agent/model AI harus membaca plan tersebut secara lengkap, memberitahu pengguna bahwa plan masih pending, lalu menanyakan satu kali apakah implementasi akan dilanjutkan.
-- Jangan menjalankan Task 1–Task 8, mengubah PRD/SRS, membuat migration, atau mengubah kode dalam scope plan hanya karena plan tersedia.
-- Implementasi hanya boleh dimulai setelah pengguna memberikan persetujuan eksplisit dalam percakapan aktif.
-- Jika pengguna memilih belum/tidak melanjutkan, pertahankan plan tanpa perubahan dan kerjakan hanya permintaan lain yang diberikan secara eksplisit.
-- Saat implementasi disetujui, gunakan workflow dan sub-skill yang diwajibkan pada header plan serta kerjakan task secara berurutan dengan verification gate per task.
+- Plan `docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md` telah disetujui pengguna untuk implementasi bertahap pada 8 September 2026 di branch `integrasi-api-plan`.
+- Pada awal sesi kerja baru, setiap agent/model AI harus membaca plan tersebut secara lengkap dan melanjutkan dari task/verification gate terakhir; persetujuan tidak perlu diminta ulang selama scope Fase A tidak berubah.
+- Amandemen 9 September 2026 pada baseline v1.1 menetapkan fallback keterlambatan Dapodik 2–3 bulan; nama file v1.1 tetap dipertahankan.
+- Gunakan workflow dan sub-skill yang diwajibkan pada header plan, kerjakan Task 0–Task 12 secara berurutan, dan selesaikan verification gate setiap task sebelum berpindah.
+- Adapter production nyata Dapodik/e-Tatib tetap di luar scope. Jangan membuatnya sebelum kontrak provider tersedia dan lolos contract admission gate.
+- Perluasan scope, perubahan arsitektur material, atau tindakan eksternal/destruktif tetap memerlukan persetujuan baru.
 
 ## Aturan Umum
 

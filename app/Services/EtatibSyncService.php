@@ -6,12 +6,17 @@ namespace App\Services;
 
 use App\Integrations\Etatib\EtatibConnector;
 use App\Integrations\Etatib\EtatibUnavailableException;
+use App\Integrations\IntegrationConfigurationException;
+use App\Integrations\IntegrationOperationContext;
+use App\Integrations\IntegrationOperationLock;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
+use App\Models\IntegrationSetting;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Throwable;
 
 class EtatibSyncService
@@ -19,25 +24,34 @@ class EtatibSyncService
     public function __construct(
         private readonly EtatibConnector $connector,
         private readonly AuditService $auditService,
+        private readonly IntegrationOperationLock $operationLock,
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
     {
-        $run = ExternalSyncRun::query()->create([
+        return $this->operationLock->run(
+            IntegrationSetting::PROVIDER_ETATIB,
+            fn (IntegrationOperationContext $context): ExternalSyncRun => $this->synchronizeLocked($context, $actor),
+        );
+    }
+
+    private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
+    {
+        $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
             'source' => 'etatib',
             'status' => ExternalSyncRun::STATUS_RUNNING,
             'triggered_by' => $actor?->getKey(),
             'started_at' => now(),
-        ]);
+        ]));
 
         try {
-            $snapshot = $this->connector->fetchSnapshot();
-            $run->update([
+            $snapshot = $this->connector->fetchSnapshot($context);
+            $this->mutate($context, fn () => $run->update([
                 'is_full_snapshot' => $snapshot->isFullSnapshot,
                 'received_count' => count($snapshot->records),
-            ]);
+            ]));
 
-            $processed = DB::transaction(function () use ($snapshot, $run): int {
+            $processed = $this->mutate($context, function () use ($snapshot, $run): int {
                 $syncedAt = now();
                 $processed = 0;
                 $keptIds = [];
@@ -113,44 +127,83 @@ class EtatibSyncService
             });
 
             $conflicts = $run->issues()->whereNull('resolved_at')->count();
-            $run->update([
-                'status' => $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
-                'processed_count' => $processed,
-                'conflict_count' => $conflicts,
-                'summary' => $conflicts > 0
+            $this->complete(
+                $context,
+                $run,
+                $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
+                $conflicts > 0
                     ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
                     : 'Sinkronisasi e-Tatib berhasil.',
-                'finished_at' => now(),
-            ]);
+                $actor,
+                $processed,
+                $conflicts,
+            );
         } catch (Throwable $exception) {
-            if (! $exception instanceof EtatibUnavailableException) {
-                report($exception);
+            if (! $exception instanceof EtatibUnavailableException
+                && ! $exception instanceof IntegrationConfigurationException
+            ) {
+                report(new RuntimeException('Unexpected e-Tatib integration failure.'));
             }
 
-            $run->update([
-                'status' => ExternalSyncRun::STATUS_FAILED,
-                'summary' => $exception instanceof EtatibUnavailableException
+            $summary = $exception instanceof IntegrationConfigurationException
+                ? $exception->getMessage()
+                : ($exception instanceof EtatibUnavailableException
                     ? $exception->getMessage()
-                    : 'Sinkronisasi e-Tatib gagal. Data lama tetap dipertahankan.',
-                'finished_at' => now(),
-            ]);
+                    : 'Sinkronisasi e-Tatib gagal. Data lama tetap dipertahankan.');
+            $this->complete($context, $run, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
         }
 
-        $run->refresh();
-        $this->auditService->record(
-            action: 'etatib.sync_completed',
-            auditable: $run,
-            summary: $run->summary ?? 'Sinkronisasi e-Tatib selesai.',
-            actor: $actor,
-            after: [
-                'status' => $run->status,
-                'received_count' => $run->received_count,
-                'processed_count' => $run->processed_count,
-                'conflict_count' => $run->conflict_count,
-            ],
-        );
+        return $run->refresh();
+    }
 
-        return $run;
+    private function complete(
+        IntegrationOperationContext $context,
+        ExternalSyncRun $run,
+        string $status,
+        string $summary,
+        ?User $actor,
+        ?int $processed = null,
+        ?int $conflicts = null,
+    ): void {
+        $this->mutate($context, function () use ($run, $status, $summary, $actor, $processed, $conflicts): void {
+            $run->update(array_filter([
+                'status' => $status,
+                'processed_count' => $processed,
+                'conflict_count' => $conflicts,
+                'summary' => $summary,
+                'finished_at' => now(),
+            ], static fn (mixed $value): bool => $value !== null));
+            $run->refresh();
+            $this->auditService->record(
+                action: 'etatib.sync_completed',
+                auditable: $run,
+                summary: $summary,
+                actor: $actor,
+                after: [
+                    'status' => $run->status,
+                    'received_count' => $run->received_count,
+                    'processed_count' => $run->processed_count,
+                    'conflict_count' => $run->conflict_count,
+                ],
+            );
+        });
+    }
+
+    /** @template TResult @param \Closure(): TResult $mutation @return TResult */
+    private function mutate(IntegrationOperationContext $context, \Closure $mutation): mixed
+    {
+        return DB::transaction(function () use ($context, $mutation): mixed {
+            $setting = IntegrationSetting::query()
+                ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            $result = $mutation();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            return $result;
+        });
     }
 
     /** @param array{source_id: string, nisn: string, occurred_at: string, violation_type: string, category: string, points: int, source_status?: string|null, source_synced_at?: string|null} $item */

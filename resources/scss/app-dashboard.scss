@@ -2052,6 +2052,21 @@ small, .small {
   }
 }
 
+.sibk-student-stat-value {
+  font-size: 1.25rem;
+}
+
+.sibk-student-stat-sub {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+@media (min-width: 576px) {
+  .sibk-student-stat-value {
+    font-size: 1.5rem;
+  }
+}
+
 .sibk-security-info {
   display: flex;
   align-items: center;
@@ -2316,6 +2331,46 @@ small, .small {
   &--warning {
     background-color: #fdf3eb;
     color: #d16b24;
+  }
+
+  &--danger {
+    background-color: var(--sibk-color-danger-soft);
+    color: var(--sibk-color-danger-strong);
+  }
+
+  &--neutral {
+    background-color: var(--sibk-color-field);
+    color: var(--sibk-color-text-muted);
+  }
+}
+
+.integration-setting {
+  scroll-margin-top: 1rem;
+
+  &__action-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+
+    & + & {
+      border-top: 1px dashed var(--sibk-color-border-light);
+    }
+
+    .btn {
+      min-width: 8.5rem;
+    }
+  }
+}
+
+@media (max-width: 575.98px) {
+  .integration-setting__action-row {
+    align-items: stretch;
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+    }
   }
 }
 
@@ -2965,6 +3020,3 @@ small, .small {
     width: 50%;
   }
 }
-
-
-

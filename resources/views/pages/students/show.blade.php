@@ -4,7 +4,6 @@
 
 @section('body')
     @php
-        $currentMembership = $memberships->first(fn ($membership) => $membership->is_active && $membership->effective_from->lte(today()) && ($membership->effective_until === null || $membership->effective_until->gte(today())));
         $initials = collect(explode(' ', $student->name))->filter()->take(2)->map(fn ($word) => mb_substr($word, 0, 1))->join('');
     @endphp
     <div class="sibk-dashboard" data-page-id="PG-202">
@@ -19,7 +18,7 @@
         </div>
 
         @if($isWakaSummary)<div class="alert alert-info">Profil ini dibatasi pada ringkasan dan kasus yang dikoordinasikan kepada Anda.</div>@endif
-        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4 d-flex align-items-center gap-3"><div class="sibk-student-avatar">{{ $initials }}</div><div><h2 class="fs-4 mb-1">{{ $student->name }}</h2><div class="text-muted small">NISN {{ $student->nisn }} &bull; {{ $currentMembership?->classroom?->name ?? 'Tanpa kelas aktif' }} &bull; {{ $currentMembership?->academicYear?->name ?? 'Tahun ajaran tidak tersedia' }}</div></div></div></div>
+        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4 d-flex align-items-center gap-3"><div class="sibk-student-avatar">{{ $initials }}</div><div><div class="d-flex flex-wrap align-items-center gap-2"><h2 class="fs-4 mb-1">{{ $student->name }}</h2>@if($student->usesProvisionalData($currentMembership))<span class="sibk-badge sibk-badge--warning">Sementara</span>@endif</div><div class="text-muted small">NISN {{ $student->nisn }} &bull; {{ $currentMembership?->classroom?->name ?? 'Tanpa kelas aktif' }} &bull; {{ $currentMembership?->academicYear?->name ?? 'Tahun ajaran tidak tersedia' }}</div></div></div></div>
 
         <ul class="nav nav-pills mb-4 gap-2">
             @foreach(['ringkasan' => 'Ringkasan', 'kasus' => 'Kasus dan Layanan', 'etatib' => 'Data e-Tatib'] as $key => $label)<li class="nav-item"><a class="nav-link {{ $activeTab === $key ? 'active' : '' }}" href="{{ route('students.show', ['student' => $student, 'tab' => $key]) }}">{{ $label }}</a></li>@endforeach
@@ -34,7 +33,7 @@
                 ['Tindak Lanjut', $stats['follow_ups'], 'info', 'Terjadwal'],
                 ['Prestasi', $stats['achievements'], 'secondary', 'Sesuai kewenangan'],
             ] as [$label, $value, $tone, $sub])
-                <div class="col-6 col-xl-3"><div class="sibk-stat-card p-2 p-sm-3 border bg-white h-100"><div class="text-muted small text-truncate">{{ $label }}</div><div class="fs-5 fs-sm-4 fw-bold text-{{ $tone }} my-1">{{ $value }}</div><div class="small text-muted" style="font-size: 0.75rem; line-height: 1.2;">{{ $sub }}</div></div></div>
+                <div class="col-6 col-xl-3"><div class="sibk-stat-card p-2 p-sm-3 border bg-white h-100"><div class="text-muted small text-truncate">{{ $label }}</div><div class="sibk-student-stat-value fw-bold text-{{ $tone }} my-1">{{ $value }}</div><div class="sibk-student-stat-sub text-muted">{{ $sub }}</div></div></div>
             @endforeach
         </div>
 
@@ -43,7 +42,7 @@
                 <div class="col-12 col-lg-7"><div class="sibk-panel h-100"><div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Ringkasan Operasional</h2></div><div class="sibk-panel__body p-4">
                     <p><span class="text-muted small d-block">Kasus terakhir</span>@if($cases->first())<a href="{{ route('cases.show', $cases->first()) }}" class="fw-semibold">{{ $cases->first()->registration_number }} &bull; {{ $cases->first()->status->label }}</a>@else Belum ada @endif</p>
                     <p><span class="text-muted small d-block">Tindak lanjut berikutnya</span>@php $next = $cases->flatMap->followUps->filter(fn ($item) => $item->planned_date->gte(today()) && $item->status?->code !== 'dibatalkan')->sortBy('planned_date')->first(); @endphp {{ $next?->planned_date?->locale('id')->translatedFormat('d F Y') ?? 'Belum ada' }}</p>
-                    <div><span class="text-muted small d-block mb-2">Histori kelas</span>@forelse($memberships as $membership)<div class="border-bottom py-2"><strong>{{ $membership->classroom->name }}</strong><span class="small text-muted d-block">{{ $membership->academicYear->name }} &bull; {{ $membership->effective_from->format('d-m-Y') }} s.d. {{ $membership->effective_until?->format('d-m-Y') ?? 'sekarang' }}</span></div>@empty Belum ada histori kelas. @endforelse</div>
+                    <div><span class="text-muted small d-block mb-2">Histori kelas</span>@forelse($memberships as $membership)<div class="border-bottom py-2"><strong>{{ $membership->classroom->name }}</strong><span class="small text-muted d-block">{{ $membership->academicYear->name }} &bull; {{ $membership->effective_from->format('d-m-Y') }} s.d. {{ $membership->effectiveEnd()?->format('d-m-Y') ?? 'sekarang' }}</span></div>@empty Belum ada histori kelas. @endforelse</div>
                 </div></div></div>
                 <div class="col-12 col-lg-5"><div class="sibk-panel h-100"><div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Aktivitas Terbaru</h2></div><div class="sibk-panel__body p-4">@forelse($recentActivities as $activity)<div class="border-bottom py-2"><strong>{{ $activity['date']?->locale('id')->translatedFormat('d M Y') }}</strong><span class="text-muted d-block">{{ $activity['label'] }}</span></div>@empty<p class="text-muted mb-0">Belum ada aktivitas.</p>@endforelse</div></div></div>
             </div>

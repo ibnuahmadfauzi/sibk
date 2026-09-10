@@ -30,7 +30,7 @@
 - PG-404 — Daftar Koreksi Data
 - PG-405 — Detail dan Verifikasi Koreksi
 - PG-406 — Riwayat Perubahan
-- PG-501 — Data Master dan Status Sinkronisasi
+- PG-501 — Data Master, Status Sinkronisasi, dan Pengaturan Koneksi; konfigurasi diimplementasikan langsung dengan komponen dan style aplikasi yang sudah ada.
 
 ## Sistem
 - PG-901 — Akses Ditolak

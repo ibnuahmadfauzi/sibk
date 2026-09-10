@@ -1,2 +1,0 @@
-<?php echo $__env->make('pages.system.access-denied', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-<?php /**PATH D:\Tugas\pepe g\smt 2\pk\sibk\sibk\resources\views\errors\403.blade.php ENDPATH**/ ?>

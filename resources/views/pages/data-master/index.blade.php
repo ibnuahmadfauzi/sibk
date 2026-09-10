@@ -16,7 +16,6 @@
         @error('etatib_sync')
             <div class="alert alert-danger" role="alert">{{ $message }}</div>
         @enderror
-
         <!-- Header -->
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
@@ -24,6 +23,8 @@
                 <p class="mb-0">Pantau pembaruan data murid, kelas, dan data e-Tatib.</p>
             </div>
         </div>
+
+        @include('pages.data-master._academic-year-preparation')
 
         <!-- Sync 3 Cards -->
         <div class="row g-4 mb-4">
@@ -45,11 +46,11 @@
                             <span class="sibk-stat-card__label">Dapodik</span>
                             @php
                                 $dapodikStatus = match($lastDapodikRun?->status) {
-                                    'succeeded' => 'Sinkron Aktif',
-                                    'warning' => 'Perlu Diperiksa',
-                                    'failed' => 'Sinkronisasi Gagal',
-                                    'running' => 'Sedang Sinkronisasi',
-                                    default => 'Belum Dikonfigurasi',
+                                    'succeeded' => 'Data terakhir tersedia',
+                                    'warning' => 'Data perlu diperiksa',
+                                    'failed' => 'Pembaruan terakhir gagal',
+                                    'running' => 'Pembaruan sedang berjalan',
+                                    default => 'Belum ada data',
                                 };
                             @endphp
                             <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $dapodikStatus }}</span>
@@ -78,11 +79,11 @@
                             <span class="sibk-stat-card__label">e-Tatib</span>
                             @php
                                 $etatibStatus = match($lastEtatibRun?->status) {
-                                    'succeeded' => 'Sinkron Aktif',
-                                    'warning' => 'Perlu Diperiksa',
-                                    'failed' => 'Sinkronisasi Gagal',
-                                    'running' => 'Sedang Sinkronisasi',
-                                    default => 'Belum Dikonfigurasi',
+                                    'succeeded' => 'Data terakhir tersedia',
+                                    'warning' => 'Data perlu diperiksa',
+                                    'failed' => 'Pembaruan terakhir gagal',
+                                    'running' => 'Pembaruan sedang berjalan',
+                                    default => 'Belum ada data',
                                 };
                             @endphp
                             <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $etatibStatus }}</span>
@@ -139,21 +140,37 @@
         </div>
 
         <!-- Sync Button Row -->
-        <div class="d-flex flex-wrap justify-content-end gap-2 mb-4">
+        <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
             <form action="{{ route('data-master.etatib.sync') }}" method="POST">
                 @csrf
-                <button type="submit" class="btn btn-outline-primary">Sinkronkan e-Tatib</button>
+                <button
+                    type="submit"
+                    class="btn btn-outline-primary"
+                    data-sync-unavailable="etatib"
+                    disabled
+                    aria-describedby="sync-unavailable-message"
+                >Sinkronkan e-Tatib</button>
             </form>
             <form action="{{ route('data-master.dapodik.sync') }}" method="POST">
                 @csrf
-            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" id="btn-sync-all">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                </svg>
-                Perbarui Data
-            </button>
+                <button
+                    type="submit"
+                    class="btn btn-primary d-inline-flex align-items-center gap-2"
+                    id="btn-sync-all"
+                    data-sync-unavailable="dapodik"
+                    disabled
+                    aria-describedby="sync-unavailable-message"
+                >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                    Perbarui Data
+                </button>
             </form>
         </div>
+        <p class="text-muted small text-end mb-4" id="sync-unavailable-message">
+            Sinkronisasi baru dapat digunakan setelah adapter resmi tersedia dan koneksi berhasil diaktifkan.
+        </p>
 
         <!-- Status Sinkronisasi Box -->
         <div class="sibk-panel mb-4 border-0">
@@ -173,6 +190,8 @@
                 </div>
             </div>
         </div>
+
+        @include('pages.data-master._integration-setting')
 
         <!-- Sync Log Table Card -->
         <div class="sibk-panel border-0 mb-4">
@@ -217,7 +236,7 @@
 
         <!-- Action Button below Table -->
         <div class="d-flex justify-content-end mb-4">
-            <a href="{{ route('students.index') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2" style="border-radius: var(--sibk-radius-md);">
+            <a href="{{ route('students.index') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
                 </svg>

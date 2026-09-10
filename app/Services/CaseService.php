@@ -33,13 +33,12 @@ class CaseService
             $temporaryStudent = null;
 
             if (($data['student_id'] ?? null) !== null) {
-                $student = Student::query()->findOrFail((int) $data['student_id']);
-                $inScope = Student::query()
+                $student = Student::query()
+                    ->active()
                     ->forActiveTeacherAssignment($actor, now())
-                    ->whereKey($student->getKey())
-                    ->exists();
+                    ->find((int) $data['student_id']);
 
-                if (! $inScope) {
+                if ($student === null) {
                     throw ValidationException::withMessages([
                         'student_id' => 'Murid tidak berada dalam scope aktif Anda.',
                     ]);
@@ -60,10 +59,14 @@ class CaseService
             $etatibRecords = ExternalTatibRecord::query()
                 ->active()
                 ->whereIn('id', $etatibIds)
+                ->when(
+                    $student !== null,
+                    fn ($records) => $records->where('student_id', $student->getKey()),
+                    fn ($records) => $records->whereNull('student_id')->where('nisn', $nisn),
+                )
                 ->get();
 
-            if ($etatibRecords->count() !== count(array_unique($etatibIds))
-                || $etatibRecords->contains(fn (ExternalTatibRecord $record): bool => $record->nisn !== $nisn)) {
+            if ($etatibRecords->count() !== count(array_unique($etatibIds))) {
                 throw ValidationException::withMessages([
                     'etatib_record_ids' => 'Data e-Tatib tidak tersedia atau tidak sesuai dengan NISN murid.',
                 ]);
@@ -333,7 +336,7 @@ class CaseService
         return ReferenceValue::query()
             ->active()
             ->where('category', $category)
-            ->findOrFail((int) $id);
+            ->findOrFail($id);
     }
 
     private function referenceByCode(string $category, string $code): ReferenceValue

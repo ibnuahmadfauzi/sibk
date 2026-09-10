@@ -48,7 +48,8 @@
                         <select class="form-select sibk-form-select" id="status" name="status">
                             <option value="">Semua status</option>
                             <option value="aktif" @selected(request('status') === 'aktif')>Aktif</option>
-                            <option value="nonaktif" @selected(request('status') === 'nonaktif')>Tidak Aktif</option>
+                            <option value="terjadwal" @selected(request('status') === 'terjadwal')>Terjadwal</option>
+                            <option value="berakhir" @selected(in_array(request('status'), ['berakhir', 'nonaktif'], true))>Berakhir</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-2">
@@ -78,15 +79,22 @@
                 </thead>
                 <tbody>
                     @forelse($assignments as $assignment)
-                        @php($isActive = $assignment->effective_from->lte(now()) && ($assignment->effective_until === null || $assignment->effective_until->gte(now())))
+                        @php
+                            $assignmentStatus = $assignment->statusOn(now());
+                            [$statusLabel, $statusTone] = match ($assignmentStatus) {
+                                \App\Models\TeacherAssignment::STATUS_ACTIVE => ['Aktif', 'success'],
+                                \App\Models\TeacherAssignment::STATUS_SCHEDULED => ['Terjadwal', 'info'],
+                                default => ['Berakhir', 'neutral'],
+                            };
+                        @endphp
                         <tr>
                             <td class="fw-bold text-dark">{{ $assignment->classroom->name }}</td>
                             <td class="fw-semibold text-primary">{{ $assignment->teacher->name }}</td>
                             <td>{{ $assignment->effective_from->locale('id')->translatedFormat('d M Y') }}</td>
-                            <td class="text-muted">{{ $assignment->effective_until?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td>
+                            <td class="text-muted">{{ $assignment->effectiveEnd()?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td>
                             <td>
-                                <span class="sibk-badge sibk-badge--{{ $isActive ? 'success' : 'neutral' }}">
-                                    {{ $isActive ? 'Aktif' : 'Tidak Aktif' }}
+                                <span class="sibk-badge sibk-badge--{{ $statusTone }}">
+                                    {{ $statusLabel }}
                                 </span>
                             </td>
                             <td>

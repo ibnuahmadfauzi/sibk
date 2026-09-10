@@ -4,6 +4,8 @@ Status: **AKTIF — IMPLEMENTASI BACKEND**
 
 Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penanganan data untuk modul-modul P0 Ruang BK.
 
+Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik yang disetujui 9 September 2026.
+
 ### Perangkat Pengujian RBAC Penelitian
 
 - **Reset command:** `php artisan rbac:scenario-reset` dengan opsi `--force` untuk eksekusi noninteraktif. Reset memvalidasi baseline sebelum menerbitkan CSV.
@@ -174,6 +176,12 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 - **Request:** `user_id`, `classroom_id`, `academic_year_id`, `decision_number`, `effective_date`, `effective_until` (opsional), dan `notes` (opsional).
 - **Business Logic:** `AssignmentService::assignClass()` menolak overlap, menutup periode lama ketika terjadi pergantian tengah tahun, serta mencatat histori dan audit tanpa memindahkan kasus aktif.
 
+### Aktivasi Operasional Tahun Ajaran
+- **Endpoint:** `POST /assignments/academic-years/{academicYear}/activate`.
+- **Authorization:** hanya Koordinator BK aktif.
+- **Business Logic:** `AcademicYearPreparationService::activate()` memeriksa tahun, rombel, murid aktif, dan tepat satu penugasan Guru BK per rombel yang mencakup tanggal mulai tahun ajaran. Aktivasi menutup tahun ajaran aktif sebelumnya tanpa menghapus histori atau mengubah `master_source`.
+- **Batas provider:** nilai tahun aktif dari Dapodik tidak pernah mengaktifkan atau mengganti tahun ajaran Ruang BK.
+
 ### Pengalihan / Penugasan Kasus Khusus
 - **Endpoint:** `GET /assignments/cases`, `POST /cases/{case}/assign`
 - **Controller:** `AssignmentController@assignCase`
@@ -185,15 +193,62 @@ Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penan
 
 ## 6. Modul Koreksi Data & Rekonsiliasi (`COR`, `MD`)
 
+### Persiapan Tahun Ajaran saat Dapodik Terlambat
+- **Endpoint:**
+  - `POST /data-master/academic-years` untuk membuat tahun ajaran persiapan.
+  - `POST /data-master/academic-years/{academicYear}/roster-imports` untuk mengimpor daftar minimum.
+- **Authorization:** hanya Admin IT aktif melalui capability `manageDataMaster`. Modul ini tidak memberi Admin IT hak aktivasi operasional atau akses isi layanan BK.
+- **Request tahun ajaran:** nama/periode, tanggal mulai dan selesai, serta dasar resmi sekolah. Tahun baru selalu dibuat dengan `is_active=false`.
+- **Request roster:** CSV UTF-8 maksimum 2 MiB dengan header exact `nisn,nama,rombel`, NISN 10 digit unik per berkas, field wajib aman, dan maksimum 5.000 baris. Berkas mentah tidak disimpan.
+- **Business Logic:** `AcademicYearPreparationService::prepareAcademicYear()` dan `importRoster()` memvalidasi seluruh input sebelum transaksi. Impor memakai NISN exact, mempertahankan ID serta provenance data yang sudah ada, memproses seluruh hasil secara atomik, dan tidak menonaktifkan baris yang tidak disebutkan.
+- **Status:** data baru memakai `master_source=school_provisional`; data lama tanpa identitas sumber tetap `legacy_unclassified`; data terverifikasi memakai `dapodik`. Ketiganya terpisah dari `is_active`.
+- **Scope layanan:** Guru BK belum memperoleh akses dari penugasan tahun yang belum aktif. Setelah aktivasi Koordinator, scope mengikuti tahun aktif dan penugasan tanpa membedakan `school_provisional` atau `dapodik`; data sementara tetap diberi penanda.
+
+### Konfigurasi Koneksi Dapodik dan e-Tatib
+- **Halaman:** `GET /data-master`, area PG-501 khusus Admin IT aktif melalui capability `manageDataMaster`.
+- **Endpoint:**
+  - `PATCH /data-master/integrations/{provider}` untuk menyimpan konfigurasi.
+  - `POST /data-master/integrations/{provider}/test` untuk menguji tanpa mengimpor data.
+  - `POST /data-master/integrations/{provider}/activate` untuk mengaktifkan hasil uji yang masih current.
+  - `POST /data-master/integrations/{provider}/deactivate` untuk menonaktifkan koneksi.
+- **Provider:** `{provider}` hanya menerima `dapodik` atau `etatib`; pemilihan driver berasal dari registry/whitelist deployment, bukan class dari database atau input pengguna.
+- **Payload namespaced:** `{provider}[base_url]`, `{provider}[expected_source_identifier]`, `{provider}[api_key]`, `{provider}[remove_api_key]`, `{provider}[timeout_seconds]`, dan `{provider}[current_password]`.
+- **Step-up:** seluruh aksi konfigurasi memerlukan kata sandi saat ini. API key kosong mempertahankan credential; nilai baru mengganti; checkbox hapus menghapus. Ganti dan hapus sekaligus ditolak.
+- **Secret-safe response:** credential dan current password tidak masuk HTML, JSON, session/old input, audit, log, exception, atau response eksternal. Halaman dan response aksi konfigurasi memakai `Cache-Control: no-store`; DTO view hanya membawa boolean `has_credentials`.
+- **State:** `unconfigured`, `draft`, `blocked`, `test_failed`, `ready`, dan `active`. Simpan perubahan material menaikkan `configuration_version`, membatalkan verifikasi, serta menonaktifkan koneksi. Simpan tanpa perubahan tidak mengubah version/state.
+- **Uji koneksi:** browser hanya mengirim trigger. Backend memanggil probe server-to-server dan tidak membuat `external_sync_runs` atau mengubah cache master. Hasil `success` harus membuktikan autentikasi, contract/schema minimum, serta reported source identifier yang cocok; HTTP 2xx saja tidak cukup.
+- **Activation invariant:** configuration version, `driver_id`, `adapter_version`, `contract_version`, dan endpoint-policy digest harus sama dengan hasil uji. Perubahan konfigurasi, driver, adapter, contract, allowlist, atau policy membuat koneksi efektif terblokir sampai diuji ulang.
+- **Endpoint policy:** base URL harus cocok exact dengan allowlist origin deployment. Alamat metadata/link-local/multicast/unspecified selalu ditolak; alamat private/loopback hanya boleh digunakan bila origin cocok exact dengan allowlist provider dan flag opt-in private-network provider tersebut aktif. User-info, query/fragment, redirect, origin drift, proxy tak tepercaya, TLS invalid, serta DNS campuran/berubah ditolak fail-closed. Setiap resolusi alamat diperiksa tepat sebelum koneksi dan transport production wajib diikat ke alamat tervalidasi dengan Host/SNI yang benar. Endpoint-policy digest mencakup versi implementasi policy, daftar exact origin yang dikanonisasi, dan nilai flag private-network provider.
+- **Concurrency:** save/test/activate/deactivate/sync diserialisasi per provider. Operation context memakai lock, fencing token persisten, row-lock recheck sebelum write, dan hard deadline dengan safety margin di bawah lease; hasil stale tidak boleh diterapkan.
+- **Admission gate:** driver production tetap `unavailable` sampai kontrak resmi provider mengesahkan autentikasi, origin/endpoint/method, identitas sumber, schema/type/nullability, pagination, full/partial dan deletion semantics, timezone, fixture sintetis, payload/page limits, timeout, retry/backoff, rate limit, concurrency/backpressure/queue, TLS/proxy/jaringan, mapping snapshot, bukti credential read-only, serta prosedur gangguan.
+- **Rate limit uji:** maksimum lima permintaan per menit untuk kombinasi pengguna dan provider.
+
 ### Status dan Sinkronisasi Master Eksternal
 - **Endpoint:** `GET /data-master`, `POST /data-master/dapodik/sync`, `POST /data-master/etatib/sync`.
 - **Controller:** `Admin\DataMasterController@index`, `Admin\DataMasterController@synchronize`.
 - **Authorization:** hanya Admin IT; akses ini tidak membuka data layanan BK.
-- **Business Logic:** `DapodikSyncService` membaca payload ter-normalisasi melalui `DapodikConnector`, melakukan upsert cache master, menyimpan log sinkronisasi/konflik, lalu menjalankan rekonsiliasi NISN.
+- **Business Logic Dapodik:** `DapodikSyncService` kelak mengambil dan memvalidasi snapshot melalui connector terjaga, lalu meminta `DapodikReconciliationService` membentuk pratinjau pencocokan. Endpoint sync tidak melakukan upsert cache operasional.
+- **Business Logic e-Tatib:** `EtatibSyncService` memvalidasi snapshot dan memperbarui mirror read-only sesuai kontrak yang sudah disahkan.
 - **Mode connector:** production memakai connector tidak tersedia sampai mekanisme resmi `DEP-02` dikonfigurasi; fake connector digunakan pada test.
-- **Snapshot:** data yang tidak hadir hanya dinonaktifkan pada snapshot penuh. Payload parsial tidak menonaktifkan data lama.
+- **Snapshot:** payload parsial tidak menonaktifkan data lama. Snapshot penuh Dapodik hanya dapat menonaktifkan baris yang sebelumnya sudah terverifikasi Dapodik; data persiapan sementara dan data lama yang belum terklasifikasi tetap ditahan untuk pemeriksaan.
+- **Guard konfigurasi:** sinkronisasi production hanya berjalan dengan setting `active` yang masih current terhadap configuration version, driver ID, adapter version, contract version, endpoint-policy digest, dan fencing token. Driver `unavailable` atau konfigurasi stale gagal aman tanpa mengubah data lama.
+- **Evidence dan validator:** driver memetakan field resmi yang diperlukan ke snapshot internal tanpa menyimpan raw payload. Evidence membawa reported source identifier, contract marker/provenance, page count, record count, dan processed byte count. Validator executable menolak schema/type/nullability salah, completeness tidak terbukti, source identity mismatch, identity collision, atau limit terlampaui sebelum transaksi import.
+- **Batas adapter:** response/page bytes, total bytes/records/pages, pagination, timeout, retry/backoff, rate limit, concurrency, backpressure, hard deadline, dan kebutuhan queue harus berasal dari kontrak yang sudah disahkan.
 - **Konflik:** data bermasalah ditahan di `external_sync_issues` dan tidak menimpa data master yang sah.
 - **e-Tatib:** `EtatibSyncService` menyimpan mirror read-only berdasarkan NISN. Snapshot penuh dapat menonaktifkan record lama; payload parsial hanya upsert. Connector production tetap tidak tersedia sampai `DEP-01` disahkan dan tidak ada endpoint write-back.
+
+### Pratinjau dan Penerapan Dapodik
+- **Endpoint:**
+  - `GET /data-master/dapodik/previews/{syncRun}` untuk melihat hasil pencocokan.
+  - `PATCH /data-master/dapodik/previews/{syncRun}/items/{item}` untuk menetapkan keputusan pemetaan yang diizinkan.
+  - `POST /data-master/dapodik/previews/{syncRun}/apply` untuk menerapkan hasil setelah konfirmasi Admin IT.
+- **Authorization:** hanya Admin IT aktif melalui capability `manageDataMaster`; setiap item wajib milik `syncRun` Dapodik yang sama.
+- **Pratinjau:** menampilkan hasil `exact_match`, `new_record`, `changed`, `needs_mapping`, atau `conflict`. Pencocokan murid otomatis hanya memakai satu NISN exact; nama tidak menjadi kunci. Tahun ajaran dan rombel hanya dipetakan otomatis jika pasangan identitasnya unik. Konflik ditahan dan tidak dapat dipaksa melalui UI.
+- **Pemetaan manual:** hanya kandidat tahun/rombel `school_provisional` pada konteks yang benar atau pembuatan baris resmi baru yang dapat dipilih. Keputusan meragukan dicatat untuk Admin IT.
+- **Penerapan:** `DapodikReconciliationService::apply()` memvalidasi ulang run, keputusan, konfigurasi, fencing, fingerprint, hash item, dan target, lalu menerapkan seluruh hasil dalam satu transaksi. Cache operasional baru berubah pada endpoint `apply` setelah konfirmasi Admin IT.
+- **Kesinambungan:** baris cocok memperoleh identitas sumber, field resmi, `master_source=dapodik`, waktu konfirmasi, dan audit lama/baru pada ID internal yang sama. Kasus, konsultasi, tindak lanjut, prestasi, penugasan, serta histori BK tidak dipindahkan atau dibuat ulang; `is_active` tidak berubah.
+- **Data yang tidak cocok:** snapshot penuh hanya dapat menonaktifkan baris yang sudah `master_source=dapodik`. Data `school_provisional` dan `legacy_unclassified` yang belum cocok tetap ditahan untuk pemeriksaan.
+- **Arah data:** tidak ada write-back ke Dapodik atau e-Tatib.
 
 ### Identitas Murid Sementara
 - **Endpoint:** tidak memiliki endpoint mandiri; dibuat sebagai bagian dari `POST /cases` bila murid belum tersedia pada cache Dapodik.

@@ -98,7 +98,7 @@ class AuthorizationResearchScenarioTest extends TestCase
         $this->post(route('login.store'), [
             'email' => AuthorizationScenarioCatalog::actors()['guru_inactive']['email'],
             'password' => 'RBAC-Test-Password-2026',
-        ])->assertSessionHasErrors(['email' => 'Email atau kata sandi tidak sesuai.']);
+        ])->assertSessionHasErrors(['credentials' => 'Email atau kata sandi tidak sesuai.']);
     }
 
     public function test_auth_02_guru_scope_and_special_assignment_apply_to_direct_urls(): void

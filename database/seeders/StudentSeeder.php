@@ -14,14 +14,18 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * Menyediakan 20 data murid contoh untuk keperluan pengembangan dan demo.
+ * Menyediakan 35 data murid contoh untuk keperluan pengembangan dan demo.
  * Hanya boleh dijalankan pada environment local atau testing.
  */
 class StudentSeeder extends Seeder
 {
     private const PREFIX_DAPODIK = 'SEED-STUDENT-';
-    private const PREFIX_YEAR    = 'SEED-ACADEMIC-YEAR';
-    private const PREFIX_CLASS   = 'SEED-CLASS-';
+
+    private const PREFIX_YEAR = 'SEED-ACADEMIC-YEAR';
+
+    private const PREFIX_CLASS = 'SEED-CLASS-';
+
+    private const PREFIX_MEMBERSHIP = 'SEED-MEMBERSHIP-';
 
     public function run(): void
     {
@@ -30,65 +34,52 @@ class StudentSeeder extends Seeder
         }
 
         DB::transaction(function (): void {
-            $this->removeExisting();
             $this->seedStudents();
         });
-    }
-
-    private function removeExisting(): void
-    {
-        $studentIds = DB::table('students')
-            ->where('dapodik_id', 'like', self::PREFIX_DAPODIK.'%')
-            ->pluck('id');
-
-        // Hapus membership lewat student_id karena tabel tidak memiliki dapodik_id
-        DB::table('student_class_memberships')
-            ->whereIn('student_id', $studentIds)
-            ->delete();
-
-        DB::table('students')->whereIn('id', $studentIds)->delete();
-
-        DB::table('classrooms')
-            ->where('dapodik_id', 'like', self::PREFIX_CLASS.'%')
-            ->delete();
-
-        DB::table('academic_years')
-            ->where('dapodik_id', self::PREFIX_YEAR)
-            ->delete();
     }
 
     private function seedStudents(): void
     {
         $today = CarbonImmutable::today();
-        $start = $today->startOfYear();
-        $end   = $today->endOfYear();
+        $startYear = $today->month >= 7 ? $today->year : $today->year - 1;
+        $start = CarbonImmutable::create($startYear, 7, 1)->startOfDay();
+        $end = $start->addYear()->subDay();
+        $hasOfficialActiveYear = AcademicYear::query()
+            ->active()
+            ->where(function ($query): void {
+                $query->whereNull('dapodik_id')
+                    ->orWhere('dapodik_id', '<>', self::PREFIX_YEAR);
+            })
+            ->exists();
 
         // ----------------------------------------------------------------
         // Tahun Ajaran
         // ----------------------------------------------------------------
-        $year = AcademicYear::query()->create([
-            'dapodik_id' => self::PREFIX_YEAR,
-            'name'       => 'Demo '.$start->format('Y').'/'.$end->format('Y'),
-            'starts_on'  => $start,
-            'ends_on'    => $end,
-            'is_active'  => true,
-            'synced_at'  => now(),
-        ]);
+        $year = AcademicYear::query()->updateOrCreate(
+            ['dapodik_id' => self::PREFIX_YEAR],
+            [
+                'name' => sprintf('Demo %d/%d', $startYear, $startYear + 1),
+                'starts_on' => $start,
+                'ends_on' => $end,
+                'is_active' => ! $hasOfficialActiveYear,
+                'synced_at' => now(),
+            ],
+        );
 
         // ----------------------------------------------------------------
-        // Kelas (4 kelas: X-RPL-1, XI-RPL-1, XII-RPL-1, XII-TKJ-1)
+        // Enam kelas demo untuk tingkat X, XI, dan XII.
         // ----------------------------------------------------------------
         $classes = [
-            'x_rpl_1'   => $this->classroom($year, 'X-RPL-1', 10, 'Rekayasa Perangkat Lunak'),
-            'xi_rpl_1'  => $this->classroom($year, 'XI-RPL-1', 11, 'Rekayasa Perangkat Lunak'),
+            'x_rpl_1' => $this->classroom($year, 'X-RPL-1', 10, 'Rekayasa Perangkat Lunak'),
+            'xi_rpl_1' => $this->classroom($year, 'XI-RPL-1', 11, 'Rekayasa Perangkat Lunak'),
             'xii_rpl_1' => $this->classroom($year, 'XII-RPL-1', 12, 'Rekayasa Perangkat Lunak'),
             'xii_tkj_1' => $this->classroom($year, 'XII-TKJ-1', 12, 'Teknik Komputer dan Jaringan'),
-            'x_tkj_1'   => $this->classroom($year, 'X-TKJ-1', 10, 'Teknik Komputer dan Jaringan'),
-            'xi_tkj_1'  => $this->classroom($year, 'XI-TKJ-1', 11, 'Teknik Komputer dan Jaringan'),
+            'x_tkj_1' => $this->classroom($year, 'X-TKJ-1', 10, 'Teknik Komputer dan Jaringan'),
+            'xi_tkj_1' => $this->classroom($year, 'XI-TKJ-1', 11, 'Teknik Komputer dan Jaringan'),
         ];
 
         // ----------------------------------------------------------------
-        // 20 Data Murid
+        // 35 data murid.
         // ----------------------------------------------------------------
         $muridData = [
             // Kelas X-RPL-1 (5 murid)
@@ -135,21 +126,35 @@ class StudentSeeder extends Seeder
         ];
 
         foreach ($muridData as [$no, $nisn, $nama, $classKey]) {
-            $student = Student::query()->create([
+            $student = Student::query()->updateOrCreate([
                 'dapodik_id' => self::PREFIX_DAPODIK.$no,
-                'nisn'       => $nisn,
-                'name'       => $nama,
-                'is_active'  => true,
-                'synced_at'  => now(),
+            ], [
+                'nisn' => $nisn,
+                'name' => $nama,
+                'is_active' => true,
+                'synced_at' => now(),
             ]);
 
-            StudentClassMembership::query()->create([
-                'student_id'       => $student->id,
-                'classroom_id'     => $classes[$classKey]->id,
+            $membership = StudentClassMembership::query()
+                ->where('dapodik_id', self::PREFIX_MEMBERSHIP.$no)
+                ->first()
+                ?? StudentClassMembership::query()
+                    ->where('student_id', $student->id)
+                    ->where('classroom_id', $classes[$classKey]->id)
+                    ->whereNull('dapodik_id')
+                    ->first()
+                ?? new StudentClassMembership;
+
+            $membership->fill([
+                'dapodik_id' => self::PREFIX_MEMBERSHIP.$no,
+                'student_id' => $student->id,
+                'classroom_id' => $classes[$classKey]->id,
                 'academic_year_id' => $year->id,
-                'effective_from'   => $start,
-                'effective_until'  => null,
-            ]);
+                'effective_from' => $start,
+                'effective_until' => null,
+                'is_active' => true,
+                'synced_at' => now(),
+            ])->save();
         }
     }
 
@@ -159,14 +164,16 @@ class StudentSeeder extends Seeder
         int $gradeLevel,
         string $major,
     ): Classroom {
-        return Classroom::query()->create([
-            'dapodik_id'       => self::PREFIX_CLASS.$suffix,
-            'academic_year_id' => $year->id,
-            'name'             => $suffix,
-            'grade_level'      => $gradeLevel,
-            'major'            => $major,
-            'is_active'        => true,
-            'synced_at'        => now(),
-        ]);
+        return Classroom::query()->updateOrCreate(
+            ['dapodik_id' => self::PREFIX_CLASS.$suffix],
+            [
+                'academic_year_id' => $year->id,
+                'name' => $suffix,
+                'grade_level' => $gradeLevel,
+                'major' => $major,
+                'is_active' => true,
+                'synced_at' => now(),
+            ],
+        );
     }
 }

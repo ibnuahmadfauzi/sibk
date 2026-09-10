@@ -68,6 +68,221 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'case.created', 'auditable_id' => $case->id]);
     }
 
+    public function test_dual_role_teacher_only_sees_and_links_etatib_for_students_in_teacher_scope(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $teacher->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
+        $outsideStudent = Student::query()->create([
+            'nisn' => '0099999999',
+            'name' => 'Murid Di Luar Scope',
+            'is_active' => true,
+        ]);
+        $scopedRecord = $this->etatibRecord($student, 'ET-SCOPE', 'Pelanggaran Dalam Scope');
+        $outsideRecord = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'ET-FORGED',
+            'nisn' => $student->nisn,
+            'student_id' => $outsideStudent->id,
+            'occurred_at' => '2026-08-18 10:00:00',
+            'violation_type' => 'Pelanggaran Di Luar Scope',
+            'category' => 'Kedisiplinan',
+            'points' => 10,
+            'is_active' => true,
+            'synced_at' => now(),
+        ]);
+
+        $this->actingAs($teacher)->get(route('cases.create'))
+            ->assertOk()
+            ->assertSee($scopedRecord->violation_type)
+            ->assertDontSee($outsideRecord->violation_type);
+
+        $this->actingAs($teacher)
+            ->from(route('cases.create'))
+            ->post(route('cases.store'), [
+                ...$this->casePayload('e_tatib'),
+                'student_id' => $student->id,
+                'etatib_record_ids' => [$outsideRecord->id],
+            ])
+            ->assertSessionHasErrors('etatib_record_ids.0');
+
+        try {
+            app(CaseService::class)->createCase([
+                ...$this->casePayload('e_tatib'),
+                'student_id' => $student->id,
+                'etatib_record_ids' => [$outsideRecord->id],
+            ], $teacher);
+            $this->fail('Service menerima ID e-Tatib hasil forge dari murid di luar scope.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('etatib_record_ids', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('cases', 0);
+    }
+
+    public function test_temporary_identity_only_links_active_unmapped_etatib_with_exact_nisn(): void
+    {
+        [$teacher] = $this->teacherAndScopedStudent();
+        $mappedStudent = Student::query()->create([
+            'nisn' => '0077777777',
+            'name' => 'Murid Master Lain',
+            'is_active' => true,
+        ]);
+        $mappedRecord = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'ET-MAPPED',
+            'nisn' => '0088888888',
+            'student_id' => $mappedStudent->id,
+            'occurred_at' => '2026-08-18 10:00:00',
+            'violation_type' => 'Record Sudah Dipetakan',
+            'category' => 'Kedisiplinan',
+            'points' => 10,
+            'is_active' => true,
+            'synced_at' => now(),
+        ]);
+
+        $this->actingAs($teacher)
+            ->from(route('cases.create'))
+            ->post(route('cases.store'), [
+                ...$this->casePayload('e_tatib'),
+                'temporary_nisn' => '0088888888',
+                'temporary_name' => 'Identitas Sementara',
+                'etatib_record_ids' => [$mappedRecord->id],
+            ])
+            ->assertSessionHasErrors('etatib_record_ids.0');
+
+        try {
+            app(CaseService::class)->createCase([
+                ...$this->casePayload('e_tatib'),
+                'temporary_nisn' => '0088888888',
+                'temporary_name' => 'Identitas Sementara',
+                'etatib_record_ids' => [$mappedRecord->id],
+            ], $teacher);
+            $this->fail('Service menerima record e-Tatib yang sudah dipetakan melalui identitas sementara.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('etatib_record_ids', $exception->errors());
+        }
+
+        $unmappedRecord = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'ET-UNMAPPED',
+            'nisn' => '0088888888',
+            'student_id' => null,
+            'occurred_at' => '2026-08-18 11:00:00',
+            'violation_type' => 'Record Belum Dipetakan',
+            'category' => 'Kedisiplinan',
+            'points' => 5,
+            'is_active' => true,
+            'synced_at' => now(),
+        ]);
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload('e_tatib'),
+            'temporary_nisn' => '0088888888',
+            'temporary_name' => 'Identitas Sementara',
+            'etatib_record_ids' => [$unmappedRecord->id],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('case_etatib_links', [
+            'external_tatib_record_id' => $unmappedRecord->id,
+        ]);
+        $this->assertDatabaseCount('cases', 1);
+    }
+
+    public function test_unmapped_etatib_is_only_rendered_for_an_exact_valid_nisn_filter(): void
+    {
+        [$teacher] = $this->teacherAndScopedStudent();
+        $matching = $this->unmappedEtatibRecord('ET-FILTER-MATCH', '0088888888', 'Filter Cocok');
+        $other = $this->unmappedEtatibRecord('ET-FILTER-OTHER', '0077777777', 'Filter NISN Lain');
+        $inactive = $this->unmappedEtatibRecord('ET-FILTER-INACTIVE', '0088888888', 'Filter Tidak Aktif', false);
+
+        $this->actingAs($teacher)->get(route('cases.create'))
+            ->assertOk()
+            ->assertDontSee($matching->violation_type)
+            ->assertDontSee($other->violation_type)
+            ->assertDontSee($inactive->violation_type);
+
+        $this->actingAs($teacher)->get(route('cases.create', ['temporary_nisn' => '0088888888']))
+            ->assertOk()
+            ->assertSee($matching->violation_type)
+            ->assertDontSee($other->violation_type)
+            ->assertDontSee($inactive->violation_type)
+            ->assertSee('value="0088888888"', false);
+
+        $this->actingAs($teacher)->get(route('cases.create', ['temporary_nisn' => '0088x']))
+            ->assertOk()
+            ->assertDontSee($matching->violation_type)
+            ->assertDontSee('value="0088x"', false);
+    }
+
+    public function test_case_form_caps_rendered_etatib_candidates(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+
+        for ($index = 0; $index <= 200; $index++) {
+            $this->etatibRecord(
+                $student,
+                sprintf('ET-CAP-%03d', $index),
+                sprintf('Pelanggaran Cap %03d', $index),
+            );
+        }
+
+        $response = $this->actingAs($teacher)->get(route('cases.create'));
+
+        $response->assertOk()
+            ->assertSee('Pelanggaran Cap 200')
+            ->assertDontSee('Pelanggaran Cap 000')
+            ->assertSee('Daftar data e-Tatib dibatasi');
+        $this->assertSame(200, substr_count($response->getContent(), 'name="etatib_record_ids[]"'));
+    }
+
+    public function test_inactive_master_student_is_rejected_by_http_and_case_service(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $student->update(['is_active' => false]);
+        $payload = [...$this->casePayload(), 'student_id' => $student->id];
+
+        $this->actingAs($teacher)
+            ->from(route('cases.create'))
+            ->post(route('cases.store'), $payload)
+            ->assertSessionHasErrors('student_id');
+
+        try {
+            app(CaseService::class)->createCase($payload, $teacher);
+            $this->fail('Service menerima murid master yang tidak aktif.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('student_id', $exception->errors());
+        }
+
+        $this->assertDatabaseCount('cases', 0);
+    }
+
+    public function test_temporary_identity_rejects_wrong_nisn_and_inactive_unmapped_rows_at_both_boundaries(): void
+    {
+        [$teacher] = $this->teacherAndScopedStudent();
+        $wrongNisn = $this->unmappedEtatibRecord('ET-WRONG-NISN', '0077777777', 'NISN Tidak Cocok');
+        $inactive = $this->unmappedEtatibRecord('ET-INACTIVE', '0088888888', 'Record Tidak Aktif', false);
+
+        foreach ([$wrongNisn, $inactive] as $record) {
+            $payload = [
+                ...$this->casePayload('e_tatib'),
+                'temporary_nisn' => '0088888888',
+                'temporary_name' => 'Identitas Sementara',
+                'etatib_record_ids' => [$record->id],
+            ];
+
+            $this->actingAs($teacher)
+                ->from(route('cases.create'))
+                ->post(route('cases.store'), $payload)
+                ->assertSessionHasErrors('etatib_record_ids.0');
+
+            try {
+                app(CaseService::class)->createCase($payload, $teacher);
+                $this->fail('Service menerima record e-Tatib sementara yang tidak aktif atau berbeda NISN.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('etatib_record_ids', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('cases', 0);
+    }
+
     public function test_case_identity_and_scope_invariants_are_enforced(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
@@ -209,6 +424,68 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseCount('case_assignments', 3);
     }
 
+    public function test_academic_year_rollover_does_not_transfer_active_case_ownership_automatically(): void
+    {
+        $this->travelTo('2026-08-20 08:00:00');
+        [$oldTeacher, $student] = $this->teacherAndScopedStudent();
+        $newTeacher = $this->userWithRole('guru_bk');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $case = $this->createCase($oldTeacher, $student, 'Catatan tetap milik penanggung jawab kasus.');
+        $newYear = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'is_active' => true,
+        ]);
+        $newClass = Classroom::query()->create([
+            'academic_year_id' => $newYear->id,
+            'name' => 'XI RPL 1',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $newClass->id,
+            'academic_year_id' => $newYear->id,
+            'effective_from' => '2027-07-01',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $newTeacher->id,
+            'classroom_id' => $newClass->id,
+            'academic_year_id' => $newYear->id,
+            'effective_from' => '2027-07-01',
+            'decision_number' => 'SK-GURU-BK-2027',
+            'assigned_by' => $coordinator->id,
+        ]);
+
+        $this->travelTo('2027-07-01 08:00:00');
+
+        $this->assertTrue($oldTeacher->can('update', $case));
+        $this->assertTrue($newTeacher->can('view', $case));
+        $this->assertFalse($newTeacher->can('update', $case));
+        $this->assertDatabaseCount('case_assignments', 1);
+
+        app(AssignmentService::class)->assignCase($case, [
+            'assignment_type' => 'transfer',
+            'to_user_id' => $newTeacher->id,
+            'reason' => 'Alih tanggung jawab setelah pergantian tahun ajaran.',
+            'effective_date' => '2027-07-01',
+        ], $coordinator);
+
+        $this->assertFalse($oldTeacher->can('update', $case));
+        $this->assertTrue($newTeacher->can('update', $case));
+        $this->assertDatabaseHas('case_assignments', [
+            'case_id' => $case->id,
+            'user_id' => $oldTeacher->id,
+            'effective_until' => '2027-06-30 00:00:00',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'case.transferred',
+            'auditable_id' => $case->id,
+        ]);
+        $this->assertDatabaseCount('case_assignments', 2);
+    }
+
     public function test_resolution_keeps_history_and_blocks_further_mutation_or_transfer(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
@@ -275,6 +552,40 @@ class CaseManagementTest extends TestCase
             'student_id' => $student->id,
             'internal_note' => $internalNote,
         ], $teacher);
+    }
+
+    private function etatibRecord(Student $student, string $identifier, string $violation): ExternalTatibRecord
+    {
+        return ExternalTatibRecord::query()->create([
+            'source_identifier' => $identifier,
+            'nisn' => $student->nisn,
+            'student_id' => $student->id,
+            'occurred_at' => '2026-08-18 09:00:00',
+            'violation_type' => $violation,
+            'category' => 'Kedisiplinan',
+            'points' => 5,
+            'is_active' => true,
+            'synced_at' => now(),
+        ]);
+    }
+
+    private function unmappedEtatibRecord(
+        string $identifier,
+        string $nisn,
+        string $violation,
+        bool $active = true,
+    ): ExternalTatibRecord {
+        return ExternalTatibRecord::query()->create([
+            'source_identifier' => $identifier,
+            'nisn' => $nisn,
+            'student_id' => null,
+            'occurred_at' => '2026-08-18 11:00:00',
+            'violation_type' => $violation,
+            'category' => 'Kedisiplinan',
+            'points' => 5,
+            'is_active' => $active,
+            'synced_at' => now(),
+        ]);
     }
 
     /** @return array<string, mixed> */

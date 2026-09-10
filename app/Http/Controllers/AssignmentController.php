@@ -11,6 +11,7 @@ use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\AcademicYearPreparationService;
 use App\Services\AssignmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -39,12 +40,11 @@ class AssignmentController extends Controller
             ));
 
         if ($request->string('status')->toString() === 'aktif') {
-            $query->effectiveOn(now());
-        } elseif ($request->string('status')->toString() === 'nonaktif') {
-            $query->where(function ($status): void {
-                $status->whereDate('effective_from', '>', now())
-                    ->orWhereDate('effective_until', '<', now());
-            });
+            $query->activeOn(now());
+        } elseif ($request->string('status')->toString() === 'terjadwal') {
+            $query->scheduledOn(now());
+        } elseif (in_array($request->string('status')->toString(), ['berakhir', 'nonaktif'], true)) {
+            $query->endedOn(now());
         }
 
         return view('pages.assignments.classes.index', [
@@ -54,8 +54,10 @@ class AssignmentController extends Controller
         ]);
     }
 
-    public function manage(Request $request): View
-    {
+    public function manage(
+        Request $request,
+        AcademicYearPreparationService $preparationService,
+    ): View {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('create', TeacherAssignment::class), 403);
@@ -67,7 +69,7 @@ class AssignmentController extends Controller
         $classes = Classroom::query()
             ->with('academicYear')
             ->active()
-            ->orderByDesc('academic_year_id')
+            ->when($selectedYear !== null, fn ($query) => $query->where('academic_year_id', $selectedYear->getKey()))
             ->orderBy('name')
             ->get();
         $selectedClass = $classes->firstWhere('id', $request->integer('classroom_id'))
@@ -78,12 +80,17 @@ class AssignmentController extends Controller
             ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
             ->orderBy('name')
             ->get();
-        $currentAssignment = $selectedClass === null ? null : TeacherAssignment::query()
-            ->with('teacher')
-            ->where('classroom_id', $selectedClass->getKey())
-            ->effectiveOn(now())
-            ->latest('effective_from')
-            ->first();
+        $currentAssignment = null;
+        if ($selectedClass !== null) {
+            $assignmentQuery = TeacherAssignment::query()
+                ->with(['teacher', 'academicYear', 'classroom'])
+                ->where('classroom_id', $selectedClass->getKey());
+            $currentAssignment = (clone $assignmentQuery)->activeOn(now())->latest('effective_from')->first()
+                ?? (clone $assignmentQuery)->scheduledOn(now())->oldest('effective_from')->first();
+        }
+        $activationReadiness = $selectedYear !== null
+            ? $preparationService->activationReadiness($selectedYear)
+            : ['ready' => false, 'issues' => ['Tahun ajaran belum tersedia.'], 'classrooms' => collect()];
 
         return view('pages.assignments.classes.manage', compact(
             'academicYears',
@@ -92,6 +99,7 @@ class AssignmentController extends Controller
             'selectedClass',
             'counselors',
             'currentAssignment',
+            'activationReadiness',
         ));
     }
 

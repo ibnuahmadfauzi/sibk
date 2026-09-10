@@ -9,9 +9,28 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['dapodik_id', 'name', 'starts_on', 'ends_on', 'is_active', 'synced_at'])]
+#[Fillable([
+    'dapodik_id',
+    'name',
+    'starts_on',
+    'ends_on',
+    'is_active',
+    'synced_at',
+    'master_source',
+    'source_confirmed_at',
+    'prepared_by',
+    'preparation_reference',
+    'activated_by',
+    'activated_at',
+])]
 class AcademicYear extends Model
 {
+    public const MASTER_SOURCE_SCHOOL_PROVISIONAL = 'school_provisional';
+
+    public const MASTER_SOURCE_DAPODIK = 'dapodik';
+
+    public const MASTER_SOURCE_LEGACY_UNCLASSIFIED = 'legacy_unclassified';
+
     /** @return HasMany<Classroom, $this> */
     public function classrooms(): HasMany
     {
@@ -44,6 +63,8 @@ class AcademicYear extends Model
             'ends_on' => 'date',
             'is_active' => 'boolean',
             'synced_at' => 'datetime',
+            'source_confirmed_at' => 'datetime',
+            'activated_at' => 'datetime',
         ];
     }
 }

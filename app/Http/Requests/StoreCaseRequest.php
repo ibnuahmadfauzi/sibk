@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\BkCase;
+use App\Models\Student;
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +20,35 @@ class StoreCaseRequest extends FormRequest
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {
+        /** @var User|null $actor */
+        $actor = $this->user();
+        $studentId = $this->integer('student_id') ?: null;
+        $temporaryNisn = $this->string('temporary_nisn')->trim()->toString();
+        $etatibRecordExists = Rule::exists('external_tatib_records', 'id')->where(
+            function ($records) use ($actor, $studentId, $temporaryNisn): void {
+                $records->where('is_active', true);
+
+                if ($studentId !== null && $actor !== null) {
+                    $records
+                        ->where('student_id', $studentId)
+                        ->whereIn('student_id', Student::query()
+                            ->active()
+                            ->forActiveTeacherAssignment($actor, now())
+                            ->select('students.id'));
+
+                    return;
+                }
+
+                if ($temporaryNisn !== '') {
+                    $records->whereNull('student_id')->where('nisn', $temporaryNisn);
+
+                    return;
+                }
+
+                $records->whereRaw('1 = 0');
+            },
+        );
+
         return [
             'student_id' => ['nullable', 'integer', 'required_without:temporary_nisn', 'prohibits:temporary_nisn,temporary_name', Rule::exists('students', 'id')],
             'temporary_nisn' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/', 'required_without:student_id', 'prohibits:student_id'],
@@ -30,7 +61,7 @@ class StoreCaseRequest extends FormRequest
             'initial_action' => ['required', 'string', 'max:10000'],
             'internal_note' => ['nullable', 'string', 'max:10000'],
             'etatib_record_ids' => ['sometimes', 'array'],
-            'etatib_record_ids.*' => ['integer', 'distinct', Rule::exists('external_tatib_records', 'id')->where('is_active', true)],
+            'etatib_record_ids.*' => ['integer', 'distinct', $etatibRecordExists],
         ];
     }
 

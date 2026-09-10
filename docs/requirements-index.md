@@ -2,14 +2,19 @@
 
 Tujuan file ini adalah membantu agent menentukan apakah PRD/SRS perlu dibuka. Jangan membaca dokumen requirement penuh pada setiap task.
 
-## Baseline Final
+## Baseline Final Saat Ini
 
-- Product Requirement Document (baseline manusia): `docs/requirements/PRD_Aplikasi_BK_v1.0.docx`
-- Product Requirement Document (mirror AI): `docs/requirements/PRD_Aplikasi_BK_v1.0.md`
-- Software Requirements Specification (baseline manusia): `docs/requirements/SRS_Aplikasi_BK_v1.0.docx`
-- Software Requirements Specification (mirror AI): `docs/requirements/SRS_Aplikasi_BK_v1.0.md`
-- Status keduanya: baseline final untuk pengembangan MVP.
-- Tanggal baseline: 15 Agustus 2026.
+- Product Requirement Document: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
+- Software Requirements Specification: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
+- Status keduanya: baseline Markdown final untuk pengembangan MVP.
+- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026 tanpa mengubah versi atau nama file v1.1.
+
+## Arsip Baseline Sebelumnya
+
+- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` dan `.md`.
+- `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` dan `.md`.
+- Tanggal baseline arsip: 15 Agustus 2026.
+- DOCX v1.0 tetap menjadi baseline manusia sebelumnya dan referensi struktur/visual; seluruh arsip dipertahankan byte-for-byte dan tidak menjadi source of truth perilaku aktif.
 
 ## Aturan Penggunaan Context
 
@@ -52,32 +57,28 @@ Untuk task tersebut gunakan:
 - jangan menyalin requirement ke file rule lain;
 - simpan keputusan implementasi hanya bila benar-benar diperlukan.
 
-## Peta Cepat PRD v1.0
+## Peta Cepat PRD v1.1
 
-- Hal. 1–2: ringkasan produk, masalah, dasar kebutuhan, visi, tujuan.
-- Hal. 3: indikator keberhasilan, pengguna dan tata kelola.
-- Hal. 4–5: cakupan P0/P0 bertahap/P1, di luar scope, aturan produk utama.
-- Hal. 5–6: arsitektur informasi, laporan P0, risiko.
-- Hal. 7: dependensi yang belum dikunci dan riwayat versi.
+- Bagian awal: ringkasan produk, masalah, dasar kebutuhan, visi, tujuan, dan indikator keberhasilan.
+- Bagian tengah: pengguna/tata kelola, cakupan P0/P0 bertahap/P1, di luar scope, aturan produk utama, data persiapan sementara, dan aktivasi operasional.
+- Bagian akhir: arsitektur informasi, laporan P0, risiko integrasi, dependensi kontrak, dan riwayat versi.
 
-## Peta Cepat SRS v1.0
+## Peta Cepat SRS v1.1
 
-- Hal. 1–2: batas sistem, hak akses/tata kelola, AUTH.
-- Hal. 3: akun, data master, identitas sementara, penugasan.
-- Hal. 3–4: CASE dan aturan kasus/tindak lanjut/koordinasi.
-- Hal. 4–5: integrasi, konsultasi, profil murid, prestasi, dashboard, laporan, notifikasi, audit, koreksi.
-- Hal. 6–7: kebutuhan data, entitas konseptual, status/perubahan, privasi.
-- Hal. 8–9: keamanan, NFR, integrasi e-Tatib/Dapodik, ketertelusuran.
-- Hal. 10: dependensi yang belum dikunci dan riwayat versi.
+- Bagian awal: batas sistem, hak akses/tata kelola, dan `AUTH-*`.
+- Kebutuhan fungsional: akun, data master, identitas sementara, penugasan, kasus/tindak lanjut/koordinasi, integrasi, konsultasi, profil, prestasi, dashboard, laporan, notifikasi, audit, dan koreksi.
+- Bagian data/privasi: field minimum, entitas konseptual, status/perubahan, privasi, keamanan, dan audit.
+- Bagian integrasi/keamanan: `INT-05`–`INT-11`, `MD-05`–`MD-12`, `NFR-09`–`NFR-13`, identitas sumber, data persiapan sementara, aktivasi operasional, pratinjau pencocokan, secret-safe workflow, endpoint/DNS binding, snapshot evidence/validator, limits, fencing/deadline, dan driver admission gate.
+- Bagian akhir: integrasi e-Tatib/Dapodik, ketertelusuran, dependensi yang belum dikunci, dan riwayat versi.
 
 ## Requirement ID penting menurut area
 
 - Access/authorization: `AUTH-*`, `GOV-01`
-- Account/master: `ACC-*`, `MD-*`
+- Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik: `MD-05`–`MD-12`, `NFR-13`
 - Assignment: `ASN-*`
 - Reference values: `REF-01`
 - Case/follow-up/coordination: `CASE-*`
-- Integration e-Tatib: `INT-*`
+- Integration Dapodik/e-Tatib: `INT-*`, `DEP-01`, `DEP-02`
 - Consultation: `CONS-*`
 - Student profile/history: `STU-*`
 - Achievement: `ACH-*`
@@ -91,11 +92,15 @@ Untuk task tersebut gunakan:
 ## Source of Truth Priority
 
 Behavior:
-1. SRS v1.0
-2. PRD v1.0
+1. SRS v1.1
+2. PRD v1.1
 
 Visual:
 1. Penpot `22 — UI High-Fidelity Final`
 2. Penpot `22.5 — Style Guide`
+
+Halaman pengaturan koneksi PG-501 diimplementasikan langsung menggunakan komponen dan style aplikasi yang sudah ada; tidak memerlukan artefak Penpot baru.
+
+Istilah lintas dokumen tersedia secara ringkas pada `CONTEXT.md`. Keputusan pemisahan verifikasi sumber dan aktivasi operasional dicatat pada `docs/adr/0001-separate-data-verification-from-operational-activation.md`.
 
 Jika visual dan behavior tampak bertentangan, jangan menebak. Periksa requirement terkait dan laporkan konflik.

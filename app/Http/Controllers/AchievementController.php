@@ -91,7 +91,14 @@ class AchievementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $achievement->load(['student', 'verificationStatus']);
+        $achievement->load([
+            'student.classMemberships' => fn ($memberships) => $memberships
+                ->active()
+                ->effectiveOn(now()->toDateString())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->with('classroom'),
+            'verificationStatus',
+        ]);
         abort_unless($user->can('update', $achievement), 403);
 
         return $this->form($user, $achievement, $request);
@@ -121,7 +128,11 @@ class AchievementController extends Controller
             'achievement' => $achievement,
             'isEdit' => $achievement !== null,
             'students' => Student::query()->active()->professionallyAccessibleTo($user)
-                ->with(['classMemberships' => fn ($memberships) => $memberships->active()->effectiveOn(now()->toDateString())->with('classroom')])
+                ->with(['classMemberships' => fn ($memberships) => $memberships
+                    ->active()
+                    ->effectiveOn(now()->toDateString())
+                    ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                    ->with('classroom')])
                 ->orderBy('name')->get(),
             'types' => ReferenceValue::query()->active()->forCategory('achievement_type')->orderBy('sort_order')->get(),
             'levels' => ReferenceValue::query()->active()->forCategory('achievement_level')->orderBy('sort_order')->get(),

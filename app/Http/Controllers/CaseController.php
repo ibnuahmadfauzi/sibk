@@ -21,6 +21,8 @@ use Illuminate\Http\Request;
 
 class CaseController extends Controller
 {
+    private const ETATIB_RECORD_LIMIT = 200;
+
     public function index(Request $request): View
     {
         /** @var User $user */
@@ -87,21 +89,47 @@ class CaseController extends Controller
         $user = $request->user();
         abort_unless($user->can('create', BkCase::class), 403);
 
-        $students = Student::query()
+        $accessibleStudents = Student::query()
             ->active()
-            ->forActiveTeacherAssignment($user, now())
+            ->forActiveTeacherAssignment($user, now());
+        $temporaryNisnCandidate = $request->string('temporary_nisn')->trim()->toString();
+        $temporaryNisnFilter = preg_match('/^[0-9]{1,20}$/D', $temporaryNisnCandidate) === 1
+            ? $temporaryNisnCandidate
+            : null;
+        $students = (clone $accessibleStudents)
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
                 ->effectiveOn(now()->toDateString())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom')])
             ->orderBy('name')
             ->get();
+        $etatibRecords = ExternalTatibRecord::query()
+            ->active()
+            ->where(function ($records) use ($accessibleStudents, $temporaryNisnFilter): void {
+                $records->whereIn('student_id', (clone $accessibleStudents)->select('students.id'));
+
+                if ($temporaryNisnFilter !== null) {
+                    $records->orWhere(fn ($unmapped) => $unmapped
+                        ->whereNull('student_id')
+                        ->where('nisn', $temporaryNisnFilter));
+                }
+            })
+            ->when($temporaryNisnFilter !== null, fn ($records) => $records->where('nisn', $temporaryNisnFilter))
+            ->latest('occurred_at')
+            ->latest('id')
+            ->limit(self::ETATIB_RECORD_LIMIT + 1)
+            ->get();
+        $etatibRecordsCapped = $etatibRecords->count() > self::ETATIB_RECORD_LIMIT;
+        $etatibRecords = $etatibRecords->take(self::ETATIB_RECORD_LIMIT);
 
         return view('pages.cases.create', [
             'students' => $students,
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
-            'etatibRecords' => ExternalTatibRecord::query()->active()->latest('occurred_at')->limit(200)->get(),
+            'etatibRecords' => $etatibRecords,
+            'etatibRecordsCapped' => $etatibRecordsCapped,
+            'temporaryNisnFilter' => $temporaryNisnFilter,
             'preselectedStudentId' => $request->integer('student_id') ?: null,
         ]);
     }

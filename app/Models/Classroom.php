@@ -10,9 +10,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['dapodik_id', 'academic_year_id', 'name', 'grade_level', 'major', 'is_active', 'synced_at'])]
+#[Fillable(['dapodik_id', 'academic_year_id', 'name', 'grade_level', 'major', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class Classroom extends Model
 {
+    public const MASTER_SOURCE_SCHOOL_PROVISIONAL = 'school_provisional';
+
+    public const MASTER_SOURCE_DAPODIK = 'dapodik';
+
+    public const MASTER_SOURCE_LEGACY_UNCLASSIFIED = 'legacy_unclassified';
+
     /** @return BelongsTo<AcademicYear, $this> */
     public function academicYear(): BelongsTo
     {
@@ -44,6 +50,7 @@ class Classroom extends Model
             'grade_level' => 'integer',
             'is_active' => 'boolean',
             'synced_at' => 'datetime',
+            'source_confirmed_at' => 'datetime',
         ];
     }
 }

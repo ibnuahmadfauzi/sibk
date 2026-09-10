@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Integrations\Dapodik;
 
+use App\Integrations\IntegrationSnapshotEvidence;
+
 final readonly class DapodikSnapshot
 {
     /**
@@ -18,6 +20,7 @@ final readonly class DapodikSnapshot
         public array $classrooms,
         public array $students,
         public array $memberships,
+        public ?IntegrationSnapshotEvidence $evidence = null,
     ) {}
 
     public function recordCount(): int

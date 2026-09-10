@@ -31,6 +31,7 @@ class StudentController extends Controller
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
                     ->effectiveOn(now()->toDateString())
+                    ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom.academicYear'),
                 'cases' => fn ($cases) => $cases
                     ->accessibleTo($user)
@@ -44,11 +45,16 @@ class StudentController extends Controller
             ->whereHas('classMemberships', fn ($memberships) => $memberships
                 ->where('classroom_id', $classroomId)
                 ->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->effectiveOn(now()->toDateString())));
 
         return view('pages.students.index', [
             'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
-            'classrooms' => Classroom::query()->active()->orderBy('name')->get(),
+            'classrooms' => Classroom::query()
+                ->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -58,6 +64,12 @@ class StudentController extends Controller
         $user = $request->user();
         abort_unless($user->can('view', $student), 403);
         $student->load(['classMemberships.classroom.academicYear']);
+        $currentMembership = $student->classMemberships()
+            ->activeOn(now()->toDateString())
+            ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+            ->with(['classroom', 'academicYear'])
+            ->latest('effective_from')
+            ->first();
 
         $activeTab = $request->string('tab', 'ringkasan')->toString();
         $allowedTabs = ['ringkasan', 'kasus', 'etatib', 'konsultasi', 'prestasi'];
@@ -111,6 +123,7 @@ class StudentController extends Controller
             'etatibRecords' => $etatibRecords,
             'consultations' => $consultations,
             'memberships' => $student->classMemberships->sortByDesc('effective_from'),
+            'currentMembership' => $currentMembership,
             'stats' => [
                 'active_cases' => $cases->whereNull('closed_at')->count(),
                 'points' => $etatibRecords->sum('points'),
