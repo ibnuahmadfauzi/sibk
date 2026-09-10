@@ -210,32 +210,33 @@ class DelayedDapodikPreparationTest extends TestCase
             'classroom' => 'X RPL 1',
         ], $parsed[0]);
     }
-    #[Test]
-public function strict_csv_parser_ignores_blank_rows_between_and_after_records(): void
-{
-    $parsed = app(ProvisionalRosterCsvParser::class)->parse(
-        $this->csv(
-            "nisn,nama,rombel\n"
-            ."0012345678,Nama Murid A,X RPL 1\n"
-            ."\n"
-            ."0098765432,Nama Murid B,X RPL 2\n"
-            ."\n"
-        ),
-    );
 
-    $this->assertSame([
-        [
-            'nisn' => '0012345678',
-            'name' => 'Nama Murid A',
-            'classroom' => 'X RPL 1',
-        ],
-        [
-            'nisn' => '0098765432',
-            'name' => 'Nama Murid B',
-            'classroom' => 'X RPL 2',
-        ],
-    ], $parsed);
-}
+    #[Test]
+    public function strict_csv_parser_ignores_blank_rows_between_and_after_records(): void
+    {
+        $parsed = app(ProvisionalRosterCsvParser::class)->parse(
+            $this->csv(
+                "nisn,nama,rombel\n"
+                ."0012345678,Nama Murid A,X RPL 1\n"
+                ."\n"
+                ."0098765432,Nama Murid B,X RPL 2\n"
+                ."\n"
+            ),
+        );
+
+        $this->assertSame([
+            [
+                'nisn' => '0012345678',
+                'name' => 'Nama Murid A',
+                'classroom' => 'X RPL 1',
+            ],
+            [
+                'nisn' => '0098765432',
+                'name' => 'Nama Murid B',
+                'classroom' => 'X RPL 2',
+            ],
+        ], $parsed);
+    }
 
     /** @param array{name?: string, content: string} $fixture */
     #[Test]

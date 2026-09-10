@@ -47,6 +47,7 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $this->assertSame(0, AuditLog::query()->count());
     }
+
     public function test_invalid_credentials_are_rendered_and_described_by_login_fields(): void
     {
         $user = User::factory()->create();

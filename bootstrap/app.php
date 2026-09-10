@@ -22,17 +22,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-    // Cloudflare Tunnel lokal meneruskan request ke loopback.
-    // Jangan mempercayai forwarded headers ini di production.
-    if (env('APP_ENV', 'production') === 'local') {
-        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
-    }
+        // Cloudflare Tunnel lokal meneruskan request ke loopback.
+        // Jangan mempercayai forwarded headers ini di production.
+        if (env('APP_ENV', 'production') === 'local') {
+            $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        }
 
-    $middleware->prepend(ProtectIntegrationLifecycle::class);
+        $middleware->prepend(ProtectIntegrationLifecycle::class);
 
-    $middleware->alias([
-        'account.active' => EnsureActiveUser::class,
-    ]);
+        $middleware->alias([
+            'account.active' => EnsureActiveUser::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([

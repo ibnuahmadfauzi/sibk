@@ -16,8 +16,8 @@ use Database\Seeders\AccountSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\StudentSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use LogicException;
@@ -134,6 +134,7 @@ class FoundationDataTest extends TestCase
             AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->firstOrFail()->is_active,
         );
     }
+
     public function test_case_and_etatib_timestamp_changes_use_a_forward_migration(): void
     {
         $migrationPath = database_path(
