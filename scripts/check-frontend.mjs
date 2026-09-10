@@ -44,6 +44,14 @@ const assert = (condition, message) => {
     if (!condition) failures.push(message);
 };
 
+const inputReferencesError = (markup, inputId, errorId) => {
+    const describedBy = markup.match(new RegExp(
+        `<input\\b[\\s\\S]*?\\bid="${inputId}"[\\s\\S]*?\\baria-describedby="([^"]*)"`,
+    ))?.[1] ?? '';
+
+    return new RegExp(`\\b${errorId}\\b`).test(describedBy);
+};
+
 const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package'].includes(key));
 for (const key of bladeKeys) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
@@ -55,8 +63,8 @@ assert(contents.login.includes('data-page-id="PG-001"'), 'PG-001 belum dapat dit
 assert(contents.login.includes('name="email"'), 'Field email PG-001 belum mengikuti kontrak autentikasi.');
 assert(contents.login.includes('autocomplete="username"'), 'PG-001 belum menetapkan autocomplete username.');
 assert(contents.login.includes('autocomplete="current-password"'), 'PG-001 belum menetapkan autocomplete kata sandi.');
-assert(contents.login.includes('aria-describedby="identifierError"'), 'Error email PG-001 belum terhubung.');
-assert(contents.login.includes('aria-describedby="passwordError"'), 'Error kata sandi PG-001 belum terhubung.');
+assert(inputReferencesError(contents.login, 'identifier', 'identifierError'), 'Error email PG-001 belum terhubung.');
+assert(inputReferencesError(contents.login, 'password', 'passwordError'), 'Error kata sandi PG-001 belum terhubung.');
 assert(contents.login.includes("route('login.store')"), 'Form PG-001 belum terhubung ke endpoint login.');
 assert(contents.login.includes('@csrf'), 'Form PG-001 belum memiliki perlindungan CSRF.');
 assert(contents.login.includes('id="loginSpinner"'), 'State loading PG-001 belum tersedia.');

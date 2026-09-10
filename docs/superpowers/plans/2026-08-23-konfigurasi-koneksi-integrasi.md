@@ -925,11 +925,11 @@ git commit -m "feat: add secure integration settings to data master"
 - Extend: `tests/Feature/DapodikSyncTest.php`
 - Extend: `tests/Feature/EtatibSyncTest.php`
 
-- [ ] **Step 1: Tulis failing guard tests**
+- [x] **Step 1: Tulis failing guard tests**
 
 Uji configured connector tanpa konfigurasi aktif, stale verification, unavailable driver, config change selama fetch, invalid/oversized snapshot, Dapodik source-ID collision lintas tahun ajaran, safe failure/audit, direct POST Dapodik yang masih gagal tertutup, dan data lama tetap aktif. Uji duplicate apply, expiry, serta state pratinjau baru ditambahkan pada Task 11 setelah module tersebut tersedia.
 
-- [ ] **Step 2: Implementasikan configured connector**
+- [x] **Step 2: Implementasikan configured connector**
 
 ```php
 public function fetchSnapshot(): DapodikSnapshot
@@ -963,21 +963,21 @@ Driver menerapkan batas byte dan pagination sebelum dan selama mapping, lalu men
 
 Validator harus executable dan berjalan sebelum transaksi import. Ia memeriksa evidence dan menolak collection/type/nullability yang salah, marker completeness yang tidak terbukti, source identity mismatch, limit record/payload yang dilanggar, dan identity collision. Dapodik `source_id` rombel tidak boleh memindahkan record historis ke tahun ajaran lain. Untuk e-Tatib, kontrak admission wajib menetapkan field immutable/mutable dan strategi revision provenance sebelum adapter production diaktifkan.
 
-- [ ] **Step 3: Bind connector domain ke configured connector**
+- [x] **Step 3: Bind connector domain ke configured connector**
 
 Driver internal tetap `unavailable`, sehingga tidak ada outbound production pada fase ini. Hasil Dapodik kelak diteruskan ke module pratinjau pada Task 11, bukan langsung ke transaksi import. Sampai Task 11 selesai, direct POST Dapodik tetap gagal tertutup. e-Tatib tetap memakai alur sinkronisasi tervalidasi karena tidak mengubah status tahun ajaran/rombel.
 
-- [ ] **Step 4: Sediakan operation lock untuk seluruh operasi provider**
+- [x] **Step 4: Sediakan operation lock untuk seluruh operasi provider**
 
 Lock/fencing context pada task ini meliputi fetch, validation, import e-Tatib, status run, dan audit. Configured Dapodik connector menghasilkan snapshot tervalidasi, tetapi belum memiliki endpoint yang mengimpor atau membuat preview. Interface operation context harus dapat dipakai Task 11 untuk memperluas cakupan ke pembuatan pratinjau, penerapan, rekonsiliasi, dan audit. Service memverifikasi fencing token di dalam transaksi sebelum setiap mutasi; cache lease yang kedaluwarsa tidak boleh membuat proses lama tetap berhak menulis.
 
-- [ ] **Step 5: Perlakukan configuration/busy exception sebagai expected integration failure**
+- [x] **Step 5: Perlakukan configuration/busy exception sebagai expected integration failure**
 
 Jangan `report()` expected failure dan jangan tampilkan secret/raw response.
 
-- [ ] **Step 6: Pertahankan seluruh test domain lama**
+- [x] **Step 6: Pertahankan seluruh test domain lama**
 
-- [ ] **Step 7: Jalankan tests**
+- [x] **Step 7: Jalankan tests**
 
 ```bash
 php artisan test tests/Feature/DapodikSyncTest.php
@@ -986,12 +986,14 @@ php artisan test tests/Feature/EtatibSyncTest.php
 php artisan test --filter IntegrationSettingTest
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/Integrations app/Providers app/Services tests/Feature
 git commit -m "feat: enforce verified integration settings during sync"
 ```
+
+**Gate selesai 10 September 2026:** guard connector, validasi evidence, operation lock/fencing, dan fail-closed direct POST Dapodik telah diverifikasi; focused tests 101/101, suite PHP penuh 309/309 dengan 2.416 assertion, Pint, frontend checker, dan diff-check lulus. Driver production tetap `unavailable`; pekerjaan berikutnya adalah Task 11.
 
 ---
 
