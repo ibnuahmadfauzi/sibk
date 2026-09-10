@@ -51,7 +51,7 @@ class EtatibSyncService
                 'received_count' => count($snapshot->records),
             ]));
 
-            $processed = $this->mutate($context, function () use ($snapshot, $run): int {
+            $this->mutate($context, function () use ($snapshot, $run, $actor): void {
                 $syncedAt = now();
                 $processed = 0;
                 $keptIds = [];
@@ -123,21 +123,18 @@ class EtatibSyncService
                     $missing->update(['is_active' => false]);
                 }
 
-                return $processed;
+                $conflicts = $run->issues()->whereNull('resolved_at')->count();
+                $this->finalizeRun(
+                    $run,
+                    $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
+                    $conflicts > 0
+                        ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
+                        : 'Sinkronisasi e-Tatib berhasil.',
+                    $actor,
+                    $processed,
+                    $conflicts,
+                );
             });
-
-            $conflicts = $run->issues()->whereNull('resolved_at')->count();
-            $this->complete(
-                $context,
-                $run,
-                $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
-                $conflicts > 0
-                    ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
-                    : 'Sinkronisasi e-Tatib berhasil.',
-                $actor,
-                $processed,
-                $conflicts,
-            );
         } catch (Throwable $exception) {
             if (! $exception instanceof EtatibUnavailableException
                 && ! $exception instanceof IntegrationConfigurationException
@@ -166,27 +163,38 @@ class EtatibSyncService
         ?int $conflicts = null,
     ): void {
         $this->mutate($context, function () use ($run, $status, $summary, $actor, $processed, $conflicts): void {
-            $run->update(array_filter([
-                'status' => $status,
-                'processed_count' => $processed,
-                'conflict_count' => $conflicts,
-                'summary' => $summary,
-                'finished_at' => now(),
-            ], static fn (mixed $value): bool => $value !== null));
-            $run->refresh();
-            $this->auditService->record(
-                action: 'etatib.sync_completed',
-                auditable: $run,
-                summary: $summary,
-                actor: $actor,
-                after: [
-                    'status' => $run->status,
-                    'received_count' => $run->received_count,
-                    'processed_count' => $run->processed_count,
-                    'conflict_count' => $run->conflict_count,
-                ],
-            );
+            $this->finalizeRun($run, $status, $summary, $actor, $processed, $conflicts);
         });
+    }
+
+    private function finalizeRun(
+        ExternalSyncRun $run,
+        string $status,
+        string $summary,
+        ?User $actor,
+        ?int $processed = null,
+        ?int $conflicts = null,
+    ): void {
+        $run->update(array_filter([
+            'status' => $status,
+            'processed_count' => $processed,
+            'conflict_count' => $conflicts,
+            'summary' => $summary,
+            'finished_at' => now(),
+        ], static fn (mixed $value): bool => $value !== null));
+        $run->refresh();
+        $this->auditService->record(
+            action: 'etatib.sync_completed',
+            auditable: $run,
+            summary: $summary,
+            actor: $actor,
+            after: [
+                'status' => $run->status,
+                'received_count' => $run->received_count,
+                'processed_count' => $run->processed_count,
+                'conflict_count' => $run->conflict_count,
+            ],
+        );
     }
 
     /** @template TResult @param \Closure(): TResult $mutation @return TResult */

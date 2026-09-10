@@ -133,6 +133,13 @@ final class DapodikSnapshotValidator
             if ($existing !== null && $existing->nisn !== $item['nisn']) {
                 throw new IntegrationConfigurationException('source_identity_mismatch');
             }
+            $existingByNisn = Student::query()->where('nisn', $item['nisn'])->first();
+            if ($existingByNisn !== null
+                && $existingByNisn->dapodik_id !== null
+                && $existingByNisn->dapodik_id !== $item['source_id']
+            ) {
+                throw new IntegrationConfigurationException('source_identity_mismatch');
+            }
             $this->rememberUnique($ids, $item['source_id']);
             $nisns[$item['nisn']] = true;
         }

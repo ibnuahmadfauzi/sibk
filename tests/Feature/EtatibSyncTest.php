@@ -17,6 +17,7 @@ use App\Integrations\IntegrationOperationLock;
 use App\Integrations\IntegrationProbeResult;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use App\Integrations\IntegrationSnapshotEvidence;
+use App\Models\AuditLog;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
@@ -26,10 +27,14 @@ use App\Models\User;
 use App\Services\AuditService;
 use App\Services\EtatibSyncService;
 use App\Services\IntegrationSettingService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Exceptions;
+use RuntimeException;
 use Tests\TestCase;
 
 class EtatibSyncTest extends TestCase
@@ -134,10 +139,83 @@ class EtatibSyncTest extends TestCase
 
         $run = app(EtatibSyncService::class)->synchronize($admin);
 
-        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status, (string) $run->summary);
         $this->assertSame(1, $driver->fetchCalls);
         $this->assertDatabaseHas('external_tatib_records', ['source_identifier' => 'tatib-1', 'points' => 5]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'etatib.sync_completed']);
+    }
+
+    public function test_configured_sync_rejects_immutable_etatib_field_drift(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $existing = $this->existingRecord();
+        $snapshot = $this->evidencedSnapshotWith([
+            'violation_type' => 'Pelanggaran yang diubah',
+            'source_synced_at' => '2026-08-21 08:00:00',
+        ]);
+        $driver = new Task10EtatibDriver($snapshot);
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertSame('Terlambat', $existing->refresh()->violation_type);
+        $this->assertSame('2026-08-20 08:00:00', $existing->source_synced_at?->format('Y-m-d H:i:s'));
+    }
+
+    public function test_configured_sync_rejects_mutable_update_without_revision(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $existing = $this->existingRecord();
+        $snapshot = $this->evidencedSnapshotWith(['source_status' => 'Diperbarui']);
+        $records = $snapshot->records;
+        unset($records[0]['source_synced_at']);
+        $driver = new Task10EtatibDriver(new EtatibSnapshot(true, $records, $snapshot->evidence));
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertSame('Terverifikasi', $existing->refresh()->source_status);
+    }
+
+    public function test_configured_sync_rejects_mutable_update_with_stale_revision(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $existing = $this->existingRecord();
+        $driver = new Task10EtatibDriver($this->evidencedSnapshotWith([
+            'source_status' => 'Diperbarui',
+            'source_synced_at' => '2026-08-19 08:00:00',
+        ]));
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertSame('Terverifikasi', $existing->refresh()->source_status);
+        $this->assertSame('2026-08-20 08:00:00', $existing->source_synced_at?->format('Y-m-d H:i:s'));
+    }
+
+    public function test_configured_sync_accepts_mutable_update_with_newer_revision_and_persists_provenance(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $existing = $this->existingRecord();
+        $snapshot = $this->evidencedSnapshotWith([
+            'source_status' => 'Diperbarui',
+            'source_synced_at' => '2026-08-21 08:00:00',
+        ]);
+        $driver = new Task10EtatibDriver($snapshot);
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status, (string) $run->summary);
+        $this->assertSame('Diperbarui', $existing->refresh()->source_status);
+        $this->assertSame('2026-08-21 08:00:00', $existing->source_synced_at?->format('Y-m-d H:i:s'));
     }
 
     public function test_configuration_change_during_fetch_rejects_snapshot_and_keeps_old_data(): void
@@ -197,6 +275,84 @@ class EtatibSyncTest extends TestCase
         $validator->validate($this->evidencedSnapshot(), $this->runtimeConfiguration());
     }
 
+    public function test_success_audit_failure_rolls_back_etatib_import_before_recording_failure(): void
+    {
+        Exceptions::fake();
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $audit = new class extends AuditService
+        {
+            private int $calls = 0;
+
+            public function record(
+                string $action,
+                Model $auditable,
+                string $summary,
+                ?User $actor = null,
+                ?array $before = null,
+                ?array $after = null,
+                ?Request $request = null,
+            ): AuditLog {
+                $this->calls++;
+                if ($this->calls === 1) {
+                    throw new RuntimeException('Synthetic audit failure.');
+                }
+
+                return parent::record($action, $auditable, $summary, $actor, $before, $after, $request);
+            }
+        };
+        $this->app->instance(AuditService::class, $audit);
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertDatabaseMissing('external_tatib_records', ['source_identifier' => 'tatib-1']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'etatib.sync_completed']);
+    }
+
+    public function test_deadline_change_before_success_completion_rolls_back_entire_etatib_import(): void
+    {
+        $now = CarbonImmutable::parse('2026-09-10 08:00:00');
+        CarbonImmutable::setTestNow($now);
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $audit = new class extends AuditService
+        {
+            public function record(
+                string $action,
+                Model $auditable,
+                string $summary,
+                ?User $actor = null,
+                ?array $before = null,
+                ?array $after = null,
+                ?Request $request = null,
+            ): AuditLog {
+                CarbonImmutable::setTestNow(CarbonImmutable::now()->addMinutes(2));
+
+                return parent::record($action, $auditable, $summary, $actor, $before, $after, $request);
+            }
+        };
+        $this->app->instance(AuditService::class, $audit);
+        $driver = new Task10EtatibDriver($this->evidencedSnapshot());
+        $this->bindConfiguredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        try {
+            app(EtatibSyncService::class)->synchronize($admin);
+            $this->fail('Deadline yang berubah sebelum completion harus membatalkan sinkronisasi.');
+        } catch (IntegrationConfigurationException $exception) {
+            $this->assertSame('timeout', $exception->resultCode());
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+
+        $this->assertDatabaseMissing('external_tatib_records', ['source_identifier' => 'tatib-1']);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'etatib.sync_completed']);
+    }
+
     public function test_busy_sync_fails_safely_without_writing_outside_the_operation_lock(): void
     {
         $admin = $this->userWithRole('admin_it');
@@ -252,6 +408,37 @@ class EtatibSyncTest extends TestCase
         );
     }
 
+    /** @param array<string, mixed> $overrides */
+    private function evidencedSnapshotWith(array $overrides): EtatibSnapshot
+    {
+        $snapshot = $this->evidencedSnapshot();
+        $records = $snapshot->records;
+        $records[0] = array_replace($records[0], $overrides);
+
+        return new EtatibSnapshot(true, $records, $snapshot->evidence);
+    }
+
+    private function existingRecord(): ExternalTatibRecord
+    {
+        Student::query()->firstOrCreate(
+            ['nisn' => '0012345678'],
+            ['name' => 'Murid Resmi', 'is_active' => true],
+        );
+
+        return ExternalTatibRecord::query()->create([
+            'source_identifier' => 'tatib-1',
+            'nisn' => '0012345678',
+            'occurred_at' => '2026-08-18 09:00:00',
+            'violation_type' => 'Terlambat',
+            'category' => 'Kedisiplinan',
+            'points' => 5,
+            'source_status' => 'Terverifikasi',
+            'is_active' => true,
+            'source_synced_at' => '2026-08-20 08:00:00',
+            'synced_at' => now(),
+        ]);
+    }
+
     private function admittedValidator(): EtatibSnapshotValidator
     {
         return new EtatibSnapshotValidator(
@@ -260,9 +447,9 @@ class EtatibSyncTest extends TestCase
             2,
             10,
             2048,
-            ['source_id', 'nisn'],
-            ['occurred_at', 'violation_type', 'category', 'points', 'source_status', 'source_synced_at'],
-            'synthetic-revision-v1',
+            ['source_id', 'nisn', 'occurred_at', 'violation_type', 'category', 'points'],
+            ['source_status', 'source_synced_at'],
+            'source_synced_at_timestamp',
         );
     }
 

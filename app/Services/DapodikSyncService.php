@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Integrations\Dapodik\ConfiguredDapodikConnector;
 use App\Integrations\Dapodik\DapodikConnector;
 use App\Integrations\Dapodik\DapodikSnapshot;
 use App\Integrations\Dapodik\DapodikUnavailableException;
@@ -40,6 +39,30 @@ class DapodikSyncService
         );
     }
 
+    public function requestPreview(?User $actor = null): ExternalSyncRun
+    {
+        return $this->operationLock->run(
+            IntegrationSetting::PROVIDER_DAPODIK,
+            function (IntegrationOperationContext $context) use ($actor): ExternalSyncRun {
+                $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
+                    'source' => 'dapodik',
+                    'status' => ExternalSyncRun::STATUS_RUNNING,
+                    'triggered_by' => $actor?->getKey(),
+                    'started_at' => now(),
+                ]));
+                $this->complete(
+                    $context,
+                    $run,
+                    ExternalSyncRun::STATUS_FAILED,
+                    (new IntegrationConfigurationException('preview_unavailable'))->getMessage(),
+                    $actor,
+                );
+
+                return $run->refresh();
+            },
+        );
+    }
+
     private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
     {
         $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
@@ -50,9 +73,6 @@ class DapodikSyncService
         ]));
 
         try {
-            if ($this->connector instanceof ConfiguredDapodikConnector) {
-                throw new IntegrationConfigurationException('preview_unavailable');
-            }
             $snapshot = $this->connector->fetchSnapshot($context);
             $this->mutate($context, fn () => $run->update([
                 'is_full_snapshot' => $snapshot->isFullSnapshot,

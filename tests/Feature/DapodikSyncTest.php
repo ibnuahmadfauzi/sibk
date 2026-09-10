@@ -147,24 +147,72 @@ class DapodikSyncTest extends TestCase
         app(IntegrationOperationLock::class)->run('dapodik', fn ($context) => $connector->fetchSnapshot($context));
     }
 
-    public function test_direct_configured_dapodik_post_is_blocked_before_fetch_and_keeps_old_data(): void
+    public function test_direct_dapodik_post_is_blocked_for_a_nonconfigured_connector_before_fetch(): void
     {
         $admin = $this->userWithRole('admin_it');
         $old = Student::query()->create(['nisn' => '0090909001', 'name' => 'Data Lama', 'is_active' => true]);
-        $driver = new Task10DapodikDriver($this->evidencedSnapshot());
-        $registry = new IntegrationDriverRegistry(dapodikDriver: $driver);
-        $this->app->instance(IntegrationDriverRegistry::class, $registry);
-        $this->app->instance(DapodikSnapshotValidator::class, $this->admittedValidator());
-        $this->seedActiveSetting($driver);
+        $connector = new class($this->snapshot()) implements DapodikConnector
+        {
+            public int $fetchCalls = 0;
+
+            public function __construct(private readonly DapodikSnapshot $snapshot) {}
+
+            public function fetchSnapshot(IntegrationOperationContext $context): DapodikSnapshot
+            {
+                $this->fetchCalls++;
+
+                return $this->snapshot;
+            }
+        };
+        $this->app->instance(DapodikConnector::class, $connector);
 
         $this->actingAs($admin)->post(route('data-master.dapodik.sync'))
             ->assertRedirect()
             ->assertSessionHasErrors('sync');
 
-        $this->assertSame(0, $driver->fetchCalls);
+        $this->assertSame(0, $connector->fetchCalls);
         $this->assertTrue($old->refresh()->is_active);
+        $this->assertDatabaseCount('academic_years', 0);
         $this->assertDatabaseHas('external_sync_runs', ['source' => 'dapodik', 'status' => 'failed']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'dapodik.sync_completed']);
+    }
+
+    public function test_configured_connector_rejects_nisn_bound_to_another_dapodik_source_id(): void
+    {
+        Student::query()->create([
+            'dapodik_id' => 'student-old',
+            'nisn' => '0012345678',
+            'name' => 'Murid Lama',
+            'is_active' => true,
+        ]);
+        $snapshot = new DapodikSnapshot(
+            isFullSnapshot: false,
+            academicYears: [],
+            classrooms: [],
+            students: [[
+                'source_id' => 'student-new',
+                'nisn' => '0012345678',
+                'name' => 'Murid Baru',
+                'is_active' => true,
+            ]],
+            memberships: [],
+            evidence: new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'partial', 1, 1, 128),
+        );
+        $driver = new Task10DapodikDriver($snapshot);
+        $connector = $this->configuredConnector($driver);
+        $this->seedActiveSetting($driver);
+
+        try {
+            app(IntegrationOperationLock::class)->run(
+                'dapodik',
+                fn (IntegrationOperationContext $context): DapodikSnapshot => $connector->fetchSnapshot($context),
+            );
+            $this->fail('NISN yang sudah terikat ke source ID lain harus ditolak.');
+        } catch (IntegrationConfigurationException $exception) {
+            $this->assertSame('source_identity_mismatch', $exception->resultCode());
+        }
+
+        $this->assertSame(1, $driver->fetchCalls);
     }
 
     public function test_partial_snapshot_does_not_deactivate_missing_data_but_full_snapshot_does(): void
