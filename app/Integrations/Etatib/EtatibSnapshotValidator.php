@@ -64,6 +64,9 @@ final class EtatibSnapshotValidator
 
         $sourceIds = [];
         foreach ($snapshot->records as $item) {
+            if (! is_array($item)) {
+                throw new IntegrationConfigurationException('contract_invalid');
+            }
             $this->assertShape($item);
             if (isset($sourceIds[$item['source_id']])) {
                 throw new IntegrationConfigurationException('source_identity_mismatch');

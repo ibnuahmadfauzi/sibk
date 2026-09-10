@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace Tests\Support;
 
 use App\Integrations\Dapodik\DapodikSnapshot;
 use App\Models\AcademicYear;
@@ -12,8 +12,14 @@ use App\Models\ExternalSyncRun;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
+use App\Services\StudentIdentityService;
 
-final class DapodikSnapshotImporter
+/**
+ * Test-only regression helper for legacy Dapodik cache mapping.
+ *
+ * Production Dapodik changes require the Task 11 preview/apply workflow.
+ */
+final class DapodikSnapshotRegressionImporter
 {
     public function __construct(
         private readonly StudentIdentityService $studentIdentityService,
@@ -48,7 +54,6 @@ final class DapodikSnapshotImporter
 
         foreach ($snapshot->classrooms as $item) {
             $yearId = $yearIds[$item['academic_year_source_id']] ?? null;
-
             if ($yearId === null) {
                 $existing = Classroom::query()->where('dapodik_id', $item['source_id'])->first();
                 if ($existing !== null) {
@@ -74,43 +79,28 @@ final class DapodikSnapshotImporter
             $processed++;
         }
 
-        $duplicateNisns = collect($snapshot->students)
-            ->groupBy('nisn')
-            ->filter(fn ($items): bool => $items->count() > 1)
-            ->keys();
-
+        $duplicateNisns = collect($snapshot->students)->groupBy('nisn')
+            ->filter(fn ($items): bool => $items->count() > 1)->keys();
         foreach ($snapshot->students as $item) {
             if ($duplicateNisns->contains($item['nisn'])) {
-                $existing = Student::query()
-                    ->where('dapodik_id', $item['source_id'])
-                    ->orWhere('nisn', $item['nisn'])
-                    ->first();
+                $existing = Student::query()->where('dapodik_id', $item['source_id'])
+                    ->orWhere('nisn', $item['nisn'])->first();
                 if ($existing !== null) {
                     $protectedStudentIds[] = $existing->getKey();
                 }
-                $this->issue(
-                    $run,
-                    'student',
-                    $item['source_id'],
-                    'duplicate_nisn',
-                    'NISN muncul lebih dari sekali pada payload Dapodik.',
-                    $item['nisn'],
-                    $item['name'],
-                );
+                $this->issue($run, 'student', $item['source_id'], 'duplicate_nisn', 'NISN muncul lebih dari sekali pada payload Dapodik.', $item['nisn'], $item['name']);
 
                 continue;
             }
 
             $bySource = Student::query()->where('dapodik_id', $item['source_id'])->first();
             $byNisn = Student::query()->where('nisn', $item['nisn'])->first();
-
             if ($bySource !== null && $bySource->nisn !== $item['nisn']) {
                 $protectedStudentIds[] = $bySource->getKey();
                 $this->issue($run, 'student', $item['source_id'], 'source_identity_mismatch', 'Identitas sumber menunjuk ke NISN yang berbeda.', $item['nisn'], $item['name']);
 
                 continue;
             }
-
             if ($byNisn !== null && $byNisn->dapodik_id !== null && $byNisn->dapodik_id !== $item['source_id']) {
                 $protectedStudentIds[] = $byNisn->getKey();
                 $this->issue($run, 'student', $item['source_id'], 'nisn_source_conflict', 'NISN telah terhubung dengan identitas sumber lain.', $item['nisn'], $item['name']);
@@ -134,7 +124,6 @@ final class DapodikSnapshotImporter
             $studentId = $studentIds[$item['student_source_id']] ?? null;
             $classroomId = $classroomIds[$item['classroom_source_id']] ?? null;
             $yearId = $yearIds[$item['academic_year_source_id']] ?? null;
-
             if ($studentId === null || $classroomId === null || $yearId === null) {
                 $existing = StudentClassMembership::query()->where('dapodik_id', $item['source_id'])->first();
                 if ($existing !== null) {
@@ -167,7 +156,6 @@ final class DapodikSnapshotImporter
             $this->deactivateMissing(Student::query(), [...array_values($studentIds), ...$protectedStudentIds]);
             $this->deactivateMissing(StudentClassMembership::query(), [...$membershipIds, ...$protectedMembershipIds]);
         }
-
         $this->studentIdentityService->reconcilePending($actor);
 
         return $processed;
@@ -177,23 +165,14 @@ final class DapodikSnapshotImporter
     private function deactivateMissing($query, array $ids): void
     {
         $query->whereNotNull('dapodik_id');
-
         if ($ids !== []) {
             $query->whereNotIn('id', $ids);
         }
-
         $query->update(['is_active' => false]);
     }
 
-    private function issue(
-        ExternalSyncRun $run,
-        string $entityType,
-        ?string $sourceIdentifier,
-        string $code,
-        string $summary,
-        ?string $nisn = null,
-        ?string $inputName = null,
-    ): ExternalSyncIssue {
+    private function issue(ExternalSyncRun $run, string $entityType, ?string $sourceIdentifier, string $code, string $summary, ?string $nisn = null, ?string $inputName = null): ExternalSyncIssue
+    {
         return ExternalSyncIssue::query()->create([
             'external_sync_run_id' => $run->getKey(),
             'entity_type' => $entityType,

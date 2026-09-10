@@ -28,7 +28,7 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 - `[x] [2026-09-10] Task 10 — Guarded Connector dan Sinkronisasi Terkunci`
   - Menyelesaikan configured connector, validasi evidence snapshot, serta operation lock/fencing untuk e-Tatib; POST Dapodik tetap gagal tertutup sampai pratinjau Task 11 tersedia.
-  - Memperbaiki checker frontend agar memverifikasi relasi input–error PG-001 yang dirangkai dinamis oleh Blade; focused tests 101/101 dan suite penuh 309/309 lulus, bersama Pint, frontend checker, dan diff-check.
+  - Memperbaiki checker frontend agar memverifikasi relasi input–error PG-001 yang dirangkai dinamis oleh Blade; fix round 1 menghapus bypass importer Dapodik, memfencing settlement e-Tatib, dan memperketat validator snapshot. Focused tests 105/105 dan suite penuh 313/313 lulus, bersama Pint, frontend checker, dan diff-check.
 
 - `[x] [2026-08-21] Analisis Hasil dan Pembahasan Penelitian RBAC`
   - Menyusun dokumen analisis berbasis workbook final dataset `2026-08-21.1`, mencakup 41/41 Pass, distribusi 18 Allow dan 23 Deny, serta rekap AUTH-01–AUTH-07.

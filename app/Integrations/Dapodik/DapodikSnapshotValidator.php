@@ -54,6 +54,11 @@ final class DapodikSnapshotValidator
             if (! array_is_list($collection)) {
                 throw new IntegrationConfigurationException('contract_invalid');
             }
+            foreach ($collection as $item) {
+                if (! is_array($item)) {
+                    throw new IntegrationConfigurationException('contract_invalid');
+                }
+            }
         }
 
         $yearIds = $this->validateAcademicYears($snapshot->academicYears);

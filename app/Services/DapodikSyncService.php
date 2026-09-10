@@ -31,29 +31,63 @@ class DapodikSyncService
                     'started_at' => now(),
                 ]));
                 $summary = (new IntegrationConfigurationException('preview_unavailable'))->getMessage();
-                $this->mutate($context, function () use ($run, $summary, $actor): void {
-                    $run->update([
+
+                return $this->settleFailure($context, $run, $summary, $actor);
+            },
+        );
+    }
+
+    private function settleFailure(
+        IntegrationOperationContext $context,
+        ExternalSyncRun $run,
+        string $summary,
+        ?User $actor,
+    ): ExternalSyncRun {
+        try {
+            return $this->mutate($context, function () use ($run, $summary, $actor): ExternalSyncRun {
+                $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                if ($current->status !== ExternalSyncRun::STATUS_RUNNING) {
+                    return $current;
+                }
+                $this->finalizeFailure($current, $summary, $actor);
+
+                return $current->refresh();
+            });
+        } catch (\Throwable) {
+            return $this->mutate($context, function () use ($run, $summary): ExternalSyncRun {
+                $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                if ($current->status === ExternalSyncRun::STATUS_RUNNING) {
+                    $current->update([
                         'status' => ExternalSyncRun::STATUS_FAILED,
                         'summary' => $summary,
                         'finished_at' => now(),
                     ]);
-                    $run->refresh();
-                    $this->auditService->record(
-                        action: 'dapodik.sync_completed',
-                        auditable: $run,
-                        summary: $summary,
-                        actor: $actor,
-                        after: [
-                            'status' => $run->status,
-                            'received_count' => $run->received_count,
-                            'processed_count' => $run->processed_count,
-                            'conflict_count' => $run->conflict_count,
-                        ],
-                    );
-                });
+                }
 
-                return $run->refresh();
-            },
+                return $current->refresh();
+            });
+        }
+    }
+
+    private function finalizeFailure(ExternalSyncRun $run, string $summary, ?User $actor): void
+    {
+        $run->update([
+            'status' => ExternalSyncRun::STATUS_FAILED,
+            'summary' => $summary,
+            'finished_at' => now(),
+        ]);
+        $run->refresh();
+        $this->auditService->record(
+            action: 'dapodik.sync_completed',
+            auditable: $run,
+            summary: $summary,
+            actor: $actor,
+            after: [
+                'status' => $run->status,
+                'received_count' => $run->received_count,
+                'processed_count' => $run->processed_count,
+                'conflict_count' => $run->conflict_count,
+            ],
         );
     }
 

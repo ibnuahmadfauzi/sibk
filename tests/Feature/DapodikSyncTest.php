@@ -18,6 +18,7 @@ use App\Integrations\IntegrationProbeResult;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use App\Integrations\IntegrationSnapshotEvidence;
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\Classroom;
 use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
@@ -26,13 +27,16 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\AuditService;
-use App\Services\DapodikSnapshotImporter;
 use App\Services\DapodikSyncService;
 use App\Services\IntegrationSettingService;
 use App\Services\StudentIdentityService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use RuntimeException;
+use Tests\Support\DapodikSnapshotRegressionImporter;
 use Tests\TestCase;
 
 class DapodikSyncTest extends TestCase
@@ -56,6 +60,72 @@ class DapodikSyncTest extends TestCase
         $this->assertDatabaseCount('students', 1);
         $this->assertDatabaseCount('student_class_memberships', 1);
         $this->assertDatabaseHas('students', ['nisn' => '0012345678', 'name' => 'Nama Resmi', 'is_active' => true]);
+    }
+
+    public function test_production_has_no_public_dapodik_snapshot_importer_bypass(): void
+    {
+        $this->assertFileDoesNotExist(app_path('Services/DapodikSnapshotImporter.php'));
+    }
+
+    public function test_dapodik_validator_rejects_scalar_and_null_items_as_contract_invalid(): void
+    {
+        $snapshot = $this->evidencedSnapshot();
+        $collections = [
+            'academicYears' => $snapshot->academicYears,
+            'classrooms' => $snapshot->classrooms,
+            'students' => $snapshot->students,
+            'memberships' => $snapshot->memberships,
+        ];
+
+        foreach (['scalar', null] as $invalidItem) {
+            foreach (array_keys($collections) as $collection) {
+                $invalidCollections = $collections;
+                $invalidCollections[$collection] = [$invalidItem];
+                $invalid = new DapodikSnapshot(
+                    $snapshot->isFullSnapshot,
+                    $invalidCollections['academicYears'],
+                    $invalidCollections['classrooms'],
+                    $invalidCollections['students'],
+                    $invalidCollections['memberships'],
+                    $snapshot->evidence,
+                );
+
+                try {
+                    $this->admittedValidator()->validate($invalid, $this->runtimeConfiguration());
+                    $this->fail(sprintf('Item %s pada %s harus ditolak.', get_debug_type($invalidItem), $collection));
+                } catch (IntegrationConfigurationException $exception) {
+                    $this->assertSame('contract_invalid', $exception->resultCode());
+                }
+            }
+        }
+    }
+
+    public function test_dapodik_audit_failure_leaves_no_running_sync_run(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->app->instance(AuditService::class, new class extends AuditService
+        {
+            public function record(
+                string $action,
+                Model $auditable,
+                string $summary,
+                ?User $actor = null,
+                ?array $before = null,
+                ?array $after = null,
+                ?Request $request = null,
+            ): AuditLog {
+                throw new RuntimeException('Synthetic persistent audit failure.');
+            }
+        });
+
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertNotNull($run->finished_at);
+        $this->assertDatabaseMissing('external_sync_runs', [
+            'source' => 'dapodik',
+            'status' => ExternalSyncRun::STATUS_RUNNING,
+        ]);
     }
 
     public function test_snapshot_validator_fails_closed_without_contract_admission(): void
@@ -327,7 +397,7 @@ class DapodikSyncTest extends TestCase
             'triggered_by' => $actor->getKey(),
             'started_at' => now(),
         ]);
-        app(DapodikSnapshotImporter::class)->import($snapshot, $run, $actor);
+        app(DapodikSnapshotRegressionImporter::class)->import($snapshot, $run, $actor);
 
         return $run;
     }

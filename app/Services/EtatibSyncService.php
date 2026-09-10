@@ -147,19 +147,20 @@ class EtatibSyncService
                 : ($exception instanceof EtatibUnavailableException
                     ? $exception->getMessage()
                     : 'Sinkronisasi e-Tatib gagal. Data lama tetap dipertahankan.');
-            $this->settleFailure($run, $summary, $actor);
+            $this->settleFailure($context, $run, $summary, $actor);
         }
 
         return $run->refresh();
     }
 
     private function settleFailure(
+        IntegrationOperationContext $context,
         ExternalSyncRun $run,
         string $summary,
         ?User $actor,
     ): void {
         try {
-            DB::transaction(function () use ($run, $summary, $actor): void {
+            $this->mutate($context, function () use ($run, $summary, $actor): void {
                 $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
                 if ($current->source !== IntegrationSetting::PROVIDER_ETATIB
                     || $current->status !== ExternalSyncRun::STATUS_RUNNING
@@ -170,8 +171,7 @@ class EtatibSyncService
                 $this->finalizeRun($current, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
             });
         } catch (Throwable) {
-            report(new RuntimeException('Unexpected e-Tatib failure audit failure.'));
-            DB::transaction(function () use ($run, $summary): void {
+            $this->mutate($context, function () use ($run, $summary): void {
                 $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
                 if ($current->source !== IntegrationSetting::PROVIDER_ETATIB
                     || $current->status !== ExternalSyncRun::STATUS_RUNNING
