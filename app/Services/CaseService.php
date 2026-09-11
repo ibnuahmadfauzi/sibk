@@ -167,6 +167,38 @@ class CaseService
         });
     }
 
+    public function deactivate(BkCase $case, User $actor): BkCase
+    {
+        return DB::transaction(function () use ($case, $actor): BkCase {
+            $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
+
+            if ($case->closed_at !== null) {
+                throw ValidationException::withMessages(['case' => 'Kasus yang sudah selesai tidak dapat dinonaktifkan.']);
+            }
+
+            if (! $case->hasActiveAssignmentFor($actor)) {
+                throw ValidationException::withMessages(['case' => 'Anda tidak memiliki penugasan aktif pada kasus ini.']);
+            }
+
+            $before = $this->snapshot($case);
+            $status = $this->referenceByCode('case_status', 'dibatalkan');
+            $case->update([
+                'status_id' => $status->getKey(),
+            ]);
+
+            $this->auditService->record(
+                action: 'case.deactivated',
+                auditable: $case,
+                summary: sprintf('Kasus %s dinonaktifkan.', $case->registration_number),
+                actor: $actor,
+                before: $before,
+                after: $this->snapshot($case->refresh()),
+            );
+
+            return $case->load('status');
+        });
+    }
+
     public function applyApprovedCorrection(BkCase $case, string $field, ?string $value, User $coordinator): BkCase
     {
         return DB::transaction(function () use ($case, $field, $value, $coordinator): BkCase {

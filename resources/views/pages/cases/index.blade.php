@@ -25,10 +25,57 @@
                 <div class="col-12 col-md-2"><label class="form-label" for="case_month">Periode</label><input type="month" class="form-control" id="case_month" name="month" value="{{ request('month') }}"></div>
                 <div class="col-12 col-md-1"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>No. Kasus</th><th>Murid</th><th>Kelas</th><th>Sumber</th><th>Bidang</th><th>Status</th><th>Tindak Lanjut</th><th></th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>No. Kasus</th><th>Murid</th><th>Kelas</th><th>Sumber</th><th>Bidang</th><th>Status</th><th>Tindak Lanjut</th><th></th></tr></thead><tbody>
                 @forelse($cases as $case)
-                    @php $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first(); $next = $case->followUps->first(fn ($item) => $item->planned_date->gte(today()) && $item->status?->code !== 'dibatalkan'); @endphp
-                    <tr><td class="fw-bold text-primary">{{ $case->registration_number }}</td><td class="fw-semibold">{{ $case->identityName() }}@if($case->temporary_student_id) <span class="badge bg-warning-subtle text-warning-emphasis">Sementara</span>@endif</td><td>{{ $membership?->classroom?->name ?? '—' }}</td><td>{{ $case->source->label }}</td><td>{{ $case->serviceField->label }}</td><td><span class="sibk-badge sibk-badge--primary">{{ $case->status->label }}</span></td><td>{{ $next?->planned_date?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td><td><a href="{{ route('cases.show', $case) }}" class="fw-bold text-decoration-none">Buka</a></td></tr>
+                    @php
+                        $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first();
+                        $latestFollowUp = $case->followUps->sortByDesc('planned_date')->first();
+                        $canAct = auth()->user()?->can('update', $case) && $case->status?->code !== 'dibatalkan' && $case->closed_at === null;
+                        $badgeTone = match($case->status?->code) {
+                            'selesai' => 'success',
+                            'dibatalkan' => 'danger',
+                            'dalam_penanganan' => 'warning',
+                            default => 'primary',
+                        };
+                    @endphp
+                    <tr>
+                        <td class="fw-bold text-primary">{{ $case->registration_number }}</td>
+                        <td class="fw-semibold">{{ $case->identityName() }}@if($case->temporary_student_id) <span class="badge bg-warning-subtle text-warning-emphasis">Sementara</span>@endif</td>
+                        <td>{{ $membership?->classroom?->name ?? '—' }}</td>
+                        <td>{{ $case->source->label }}</td>
+                        <td>{{ $case->serviceField->label }}</td>
+                        <td><span class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
+                        <td>
+                            @if($canAct)
+                                <div class="d-flex align-items-center gap-1 flex-nowrap">
+                                    <a href="{{ $latestFollowUp ? route('cases.follow-ups.edit', [$case, $latestFollowUp]) : route('cases.follow-ups.create', $case) }}"
+                                       class="btn btn-sm btn-outline-secondary py-1 px-2 text-nowrap"
+                                       title="{{ $latestFollowUp ? 'Ubah tindak lanjut' : 'Tambah tindak lanjut' }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+                                    </a>
+
+                                    <form action="{{ route('cases.deactivate', $case) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menonaktifkan kasus {{ $case->registration_number }}?');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 text-nowrap">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
+                                        </button>
+                                    </form>
+
+                                    <a href="{{ route('cases.resolve.form', $case) }}" class="btn btn-sm btn-outline-primary py-1 px-2 text-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg>
+                                    </a>
+
+                                    <a href="{{ route('cases.show', $case) }}" class="btn btn-sm btn-outline-info py-1 px-2 text-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        
+                                    </a>
+                                </div>
+                            @else
+                                <span class="text-muted small">—</span>
+                            @endif
+                        </td>
+                        <td></td>
+                    </tr>
                 @empty<tr><td colspan="8" class="text-center text-muted py-4">Belum ada kasus yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
         @else
