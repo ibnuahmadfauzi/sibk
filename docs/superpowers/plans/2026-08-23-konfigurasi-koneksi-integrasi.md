@@ -1077,21 +1077,21 @@ git commit -m "feat: cocokkan data sementara lewat pratinjau Dapodik"
 - Modify: `docs/api-contract.md`
 - Modify: `docs/development-log.md`
 
-- [ ] **Step 1: Dokumentasikan admission gate provider**
+- [x] **Step 1: Dokumentasikan admission gate provider**
 
 Driver selain `unavailable` hanya boleh ditambahkan bila tersedia dokumentasi autentikasi, endpoint, fixture sintetis, field/type/nullability, identitas sekolah/sumber, bukti credential read-only, pagination, completeness, full/partial dan deletion semantics, batas payload/page, rate limit, retry/backoff, timeout, concurrency/backpressure, outage procedure, TLS/proxy/network behavior, mapping snapshot, serta persetujuan Admin IT.
 
-- [ ] **Step 2: Kunci aturan adapter fase berikutnya**
+- [x] **Step 2: Kunci aturan adapter fase berikutnya**
 
 Adapter wajib memakai exact field resmi, menolak missing collection/type salah, mewajibkan full marker eksplisit, memvalidasi seluruh page dan identitas sumber, mematikan redirect, memvalidasi DNS lalu mengikat koneksi ke alamat tervalidasi dengan Host/SNI yang benar, menolak jawaban campuran/berubah, TLS invalid, dan proxy tak tepercaya, memakai `Http::preventStrayRequests()` pada test, membatasi ukuran respons, serta tidak menyimpan/log body.
 
 Dapodik full snapshot tanpa tahun ajaran atau murid wajib ditolak. e-Tatib full snapshot kosong hanya boleh diterima bila kontrak resmi memberikan completeness/total terverifikasi.
 
-- [ ] **Step 3: Dokumentasikan deployment**
+- [x] **Step 3: Dokumentasikan deployment**
 
 Deploy Fase A dengan driver `unavailable`, isi exact origins dan kebijakan jaringan privat, cache config, simpan konfigurasi, verifikasi audit/redaksi/no-store/security headers, dan jangan aktifkan sebelum adapter resmi. Dokumentasikan `APP_PREVIOUS_KEYS` untuk rotasi key serta prosedur rotasi/revokasi credential sumber. Tambahkan panduan awam untuk menyiapkan tahun ajaran sementara, mengimpor daftar, melengkapi penugasan, mengaktifkan operasional, dan kelak memeriksa pratinjau Dapodik.
 
-- [ ] **Step 4: Jalankan final automated verification**
+- [x] **Step 4: Jalankan final automated verification**
 
 ```bash
 php artisan test
@@ -1105,11 +1105,11 @@ php artisan config:clear
 php artisan view:clear
 ```
 
-- [ ] **Step 5: Verifikasi migration secara additive**
+- [x] **Step 5: Verifikasi migration secara additive**
 
 Jalankan pada SQLite test dan database MySQL disposable. Jangan memakai `migrate:fresh`, rollback, atau reset pada database shared/production.
 
-- [ ] **Step 6: Manual acceptance**
+- [x] **Step 6: Manual acceptance**
 
 - Admin IT dapat menyimpan konfigurasi kedua provider; state tetap `blocked` ketika driver `unavailable`, atau `unconfigured` bila expected source identifier belum lengkap.
 - Role lain ditolak.
@@ -1123,12 +1123,14 @@ Jalankan pada SQLite test dan database MySQL disposable. Jangan memakai `migrate
 - Data lama tidak berubah.
 - Desktop/tablet/ponsel konsisten dengan komponen dan style halaman aplikasi yang sudah ada, dengan hierarki informasi yang praktis dan nyaman digunakan.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add README.md docs
 git commit -m "docs: document integration contract and deployment gates"
 ```
+
+**Gate selesai 11 September 2026:** admission provider dan aturan adapter fail-closed didokumentasikan bersama deployment Fase A, rotasi key/credential, fallback data sementara, serta release checklist. Focused acceptance lulus 139/139 test dengan 1.809 assertion. Suite PHP penuh lulus 353/353 dengan 2.736 assertion; Pint, cache konfigurasi/view, frontend checker, build Vite, diff-check, dan cleanup cache lulus. Pada Windows, wrapper `npm.ps1` ditolak execution policy dan executable ekuivalen `npm.cmd` lulus untuk checker/build. Migration additive lulus pada SQLite (20 ran dan run ulang idempotent) serta MySQL disposable terverifikasi `sibk_uji` (18 ran/2 pending menjadi 20 ran/0 pending). Acceptance perilaku terverifikasi oleh focused tests dan inspeksi aman; konsistensi struktur responsif didukung komponen/style existing, test frontend, dan build, sedangkan pemeriksaan visual interaktif pada perangkat desktop/tablet/ponsel tidak tersedia di lingkungan CLI dan tetap menjadi UAT deployment. Driver production Dapodik/e-Tatib tetap `unavailable`.
 
 ---
 

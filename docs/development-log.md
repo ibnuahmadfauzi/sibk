@@ -15,7 +15,6 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## 🚀 Current / Upcoming Tasks
 
-- `[ ] [2026-09-10] Task 11 — Pratinjau dan Penerapan Dapodik`
 - `[ ] [2026-08-20] Eksekusi Migrasi Database & Seeder Ruang BK (Roles, References, AcademicYears, Classrooms, Students, TemporaryStudents, Cases, FollowUps, Consultations, Corrections, AuditLogs)`
 - `[ ] [2026-08-20] Implementasi Eloquent Models, Relations & Query Scopes`
 - `[ ] [2026-08-20] Implementasi Policies & Otorisasi Multi-Role (Guru BK, Koordinator, Waka, Admin IT)`
@@ -25,6 +24,16 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 ---
 
 ## ✅ Completed Tasks
+
+- `[x] [2026-09-11] Task 12 — Contract Admission, Dokumentasi Operasional, dan Release Gate`
+  - Menetapkan admission gate per provider, aturan adapter fail-closed, panduan deployment Fase A, rotasi `APP_KEY`/`APP_PREVIOUS_KEYS` dan credential sumber, serta alur awam data persiapan sementara sampai pratinjau Dapodik.
+  - Focused acceptance lulus 139 test/1.809 assertion. Release gate lulus 353/353 test PHP dengan 2.736 assertion, Pint, cache konfigurasi/view, frontend checker, build Vite, diff-check, dan cleanup cache. Wrapper `npm.ps1` diblokir execution policy Windows; executable ekuivalen `npm.cmd` lulus.
+  - Migration forward-only lulus pada SQLite (20 migration, run ulang idempotent) dan MySQL disposable `sibk_uji` (18 ran/2 pending menjadi 20 ran/0 pending). Driver production tetap `unavailable`.
+  - Acceptance perilaku memiliki bukti otomatis dan inspeksi lokal. Konsistensi struktur responsif didukung komponen/style existing, test frontend, dan build; pemeriksaan visual interaktif pada perangkat desktop/tablet/ponsel tidak dijalankan di lingkungan CLI ini dan tetap menjadi UAT deployment.
+
+- `[x] [2026-09-11] Task 11 — Pratinjau dan Penerapan Dapodik`
+  - Menyelesaikan pratinjau immutable, pemetaan terbatas, apply atomik, penjagaan configuration/policy/fencing/fingerprint/hash/revision/target, perlindungan provenance, dan relink identitas berdasarkan NISN exact tanpa mengubah histori BK.
+  - Focused gate lulus 132 test/874 assertion; suite penuh lulus 353/353 dengan 2.736 assertion, Pint, dan diff-check. Driver production tetap `unavailable`.
 
 - `[x] [2026-09-10] Task 10 — Guarded Connector dan Sinkronisasi Terkunci`
   - Menyelesaikan configured connector, validasi evidence snapshot, serta operation lock/fencing untuk e-Tatib; POST Dapodik tetap gagal tertutup sampai pratinjau Task 11 tersedia.
