@@ -4,18 +4,7 @@
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
 
-    @can('viewAny', App\Models\BkCase::class)
-    <form class="sibk-topbar__search" role="search" action="{{ route('cases.index') }}" method="GET" aria-label="Cari murid atau kasus">
-        <span class="sibk-topbar__search-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-        </span>
-        <input class="form-control sibk-topbar__search-input" id="topbarSearch" name="search" type="search"
-            placeholder="Cari murid atau kasus..."
-            autocomplete="off" aria-label="Cari murid atau kasus">
-    </form>
-    @endcan
-
-    <div class="dropdown sibk-topbar__user-dropdown">
+    <div class="dropdown sibk-topbar__user-dropdown ms-auto">
         <button class="btn sibk-topbar__user" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu pengguna">
             <span class="sibk-topbar__avatar" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>

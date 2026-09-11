@@ -659,7 +659,7 @@ small, .small {
 
 .sibk-content {
   flex: 1;
-  padding: 1.5rem;
+  padding: 0.25rem 1.5rem 1.5rem;
 }
 
 @media (min-width: 992px) {
@@ -695,8 +695,14 @@ small, .small {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding: 1rem 1.5rem;
-  background: var(--sibk-color-page);
+  padding: 0.75rem 1.5rem 0.25rem;
+  background: transparent;
+  pointer-events: none;
+
+  &__menu,
+  &__user-dropdown {
+    pointer-events: auto;
+  }
 
   &__menu {
     display: none;
@@ -817,15 +823,17 @@ small, .small {
     padding: 0.4rem 0.75rem;
     border-radius: 50rem;
     cursor: pointer;
-    transition: background 0.2s;
-    border: none;
-    background: transparent;
+    transition: all 0.2s ease;
+    border: 1.5px solid rgba(47, 103, 170, 0.25);
+    background: var(--sibk-color-surface-raised, #ffffff);
+    box-shadow: var(--sibk-shadow-raised-sm);
 
     &:hover,
     &:focus {
-      background: var(--sibk-color-surface-raised);
+      background: var(--sibk-color-surface-raised, #ffffff);
+      border-color: var(--sibk-color-primary);
+      box-shadow: var(--sibk-shadow-raised);
       outline: none;
-      box-shadow: none;
     }
   }
 
@@ -1102,7 +1110,7 @@ small, .small {
 // â”€â”€â”€ Dashboard Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 .sibk-dashboard {
-  padding: clamp(1.5rem, 4vw, 2.5rem);
+  padding: 0 clamp(1rem, 2vw, 1.5rem) 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
