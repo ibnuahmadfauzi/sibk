@@ -33,7 +33,8 @@ class FoundationDataTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
 
         $this->assertSame(4, Role::query()->count());
-        $this->assertSame(52, ReferenceValue::query()->count());
+        $this->assertSame(53, ReferenceValue::query()->count());
+        $this->assertSame(4, ReferenceValue::query()->forCategory('case_status')->count());
         $this->assertSame(6, ReferenceValue::query()->forCategory('achievement_type')->count());
         $this->assertSame(5, ReferenceValue::query()->forCategory('achievement_level')->count());
         $this->assertSame(3, ReferenceValue::query()->forCategory('achievement_verification_status')->count());

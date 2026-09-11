@@ -54,7 +54,7 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                                     </a>
 
-                                    <form action="{{ route('cases.deactivate', $case) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menonaktifkan kasus {{ $case->registration_number }}?');">
+                                    <form action="{{ route('cases.deactivate', $case) }}" method="POST" class="d-inline" data-confirm-submit data-confirm-message="Apakah Anda yakin ingin menonaktifkan kasus {{ $case->registration_number }}?">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 text-nowrap">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
