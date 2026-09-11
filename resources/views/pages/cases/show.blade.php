@@ -13,18 +13,11 @@
                 <h1 class="mb-1">{{ $case->registration_number }}</h1>
                 <p class="mb-0">{{ $case->identityName() }} &bull; NISN {{ $case->identityNisn() }}</p>
             </div>
-            <div class="d-flex flex-wrap align-items-start gap-2">
-                @if(auth()->user()?->hasRole('guru_bk'))
-                    <a href="{{ route('corrections.create', ['target_type' => 'case', 'target_id' => $case->id]) }}" class="btn btn-outline-secondary">Ajukan Koreksi</a>
-                @endif
-                @if($canAssignCase)
+            @if($canAssignCase)
+                <div class="d-flex flex-wrap align-items-start gap-2">
                     <a href="{{ route('assignments.cases.index', ['case_id' => $case->id]) }}" class="btn btn-outline-secondary">Atur Penugasan</a>
-                @endif
-                @if($canUpdateCase)
-                    <a href="{{ route('cases.follow-ups.create', $case) }}" class="btn btn-outline-primary">Tambah Tindak Lanjut</a>
-                    <a href="{{ route('cases.resolve.form', $case) }}" class="btn btn-primary">Selesaikan Kasus</a>
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
 
         <div class="row g-4">

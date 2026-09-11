@@ -51,6 +51,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::patch('/cases/{case}/follow-ups/{followUp}', [FollowUpController::class, 'update'])->name('cases.follow-ups.update');
     Route::get('/cases/{case}/resolve', [CaseController::class, 'resolveForm'])->name('cases.resolve.form');
     Route::post('/cases/{case}/resolve', [CaseController::class, 'resolve'])->name('cases.resolve');
+    Route::post('/cases/{case}/deactivate', [CaseController::class, 'deactivate'])->name('cases.deactivate');
     Route::post('/cases/{case}/assign', [AssignmentController::class, 'assignCase'])->name('cases.assign');
     Route::post('/cases/{case}/coordinations', [CaseCoordinationController::class, 'store'])->name('cases.coordinations.store');
     Route::patch('/cases/{case}/coordinations/{coordination}', [CaseCoordinationController::class, 'update'])->name('cases.coordinations.update');

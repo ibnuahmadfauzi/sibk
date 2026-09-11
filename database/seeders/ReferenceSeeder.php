@@ -15,6 +15,7 @@ class ReferenceSeeder extends Seeder
             ['category' => 'case_status', 'code' => 'baru', 'label' => 'Baru', 'sort_order' => 10],
             ['category' => 'case_status', 'code' => 'dalam_penanganan', 'label' => 'Dalam Penanganan', 'sort_order' => 20],
             ['category' => 'case_status', 'code' => 'selesai', 'label' => 'Selesai', 'sort_order' => 30],
+            ['category' => 'case_status', 'code' => 'dibatalkan', 'label' => 'Dibatalkan', 'sort_order' => 40],
             ['category' => 'case_source', 'code' => 'e_tatib', 'label' => 'e-Tatib', 'sort_order' => 10],
             ['category' => 'case_source', 'code' => 'murid_datang_sendiri', 'label' => 'Murid datang sendiri', 'sort_order' => 20],
             ['category' => 'case_source', 'code' => 'temuan_guru_bk', 'label' => 'Temuan Guru BK', 'sort_order' => 30],

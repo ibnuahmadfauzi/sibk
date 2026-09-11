@@ -211,6 +211,16 @@ class CaseController extends Controller
         return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil diselesaikan.');
     }
 
+    public function deactivate(Request $request, BkCase $case, CaseService $caseService): RedirectResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        abort_unless($actor->can('update', $case), 403);
+        $caseService->deactivate($case, $actor);
+
+        return redirect()->route('cases.index')->with('success', sprintf('Kasus %s berhasil dinonaktifkan.', $case->registration_number));
+    }
+
     private function consultationIndex(Request $request, User $user): View
     {
         $query = Consultation::query()
