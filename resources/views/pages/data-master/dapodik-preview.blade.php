@@ -20,10 +20,43 @@
         </div>
 
         <div class="alert alert-info" role="status">
+            <strong>{{ $syncRun->is_full_snapshot ? 'Snapshot penuh' : 'Snapshot parsial' }}.</strong>
             Generasi {{ $syncRun->preview_generation }} · {{ $syncRun->received_count }} item ·
             berakhir {{ $syncRun->preview_expires_at?->locale('id')->translatedFormat('d M Y, H.i') }}.
             Data persiapan ditandai <strong>Belum terverifikasi Dapodik</strong> sampai penerapan berhasil.
         </div>
+
+        @if($syncRun->is_full_snapshot)
+            <section class="sibk-panel border-0 mb-4" aria-labelledby="deactivation-plan-title">
+                <div class="sibk-panel__body p-4">
+                    <h2 class="fs-6 fw-bold mb-2" id="deactivation-plan-title">Rencana Penonaktifan</h2>
+                    <p class="text-muted small mb-3">
+                        Snapshot penuh akan menonaktifkan hanya data terverifikasi Dapodik yang tercantum berikut ini.
+                    </p>
+                    @forelse($syncRun->deactivation_plan as $planned)
+                        @php
+                            $plannedEntity = match($planned['entity_type']) {
+                                'classroom' => 'Rombel',
+                                'student' => 'Murid',
+                                default => 'Keanggotaan',
+                            };
+                        @endphp
+                        <div class="border rounded-3 p-3 mb-2">
+                            <strong>{{ $plannedEntity }} internal #{{ $planned['target_id'] }}</strong>
+                            <span class="text-muted small d-block">
+                                Fingerprint: {{ substr($planned['target_fingerprint'], 0, 12) }}
+                            </span>
+                        </div>
+                    @empty
+                        <p class="text-muted small mb-0">Tidak ada data yang direncanakan untuk dinonaktifkan.</p>
+                    @endforelse
+                </div>
+            </section>
+        @else
+            <div class="alert alert-secondary" role="status">
+                Snapshot parsial tidak akan menonaktifkan data yang tidak tercantum.
+            </div>
+        @endif
 
         <div class="sibk-panel border-0 mb-4">
             <div class="table-responsive">

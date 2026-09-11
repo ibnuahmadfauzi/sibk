@@ -222,6 +222,8 @@ class DelayedDapodikPreparationTest extends TestCase
 
             $this->assertTrue($schema->hasColumns('external_sync_runs', [
                 'snapshot_fingerprint',
+                'snapshot_evidence',
+                'deactivation_plan',
                 'preview_generation',
                 'decision_revision',
                 'configuration_version',

@@ -37,43 +37,61 @@ class EtatibSyncService
 
     public function reconcileStudentLinks(?User $actor = null): int
     {
-        $linked = 0;
-        ExternalTatibRecord::query()
-            ->whereNull('student_id')
-            ->orderBy('id')
-            ->each(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
-                $students = Student::query()
-                    ->where('nisn', $record->nisn)
-                    ->where('master_source', Student::MASTER_SOURCE_DAPODIK)
-                    ->whereNotNull('dapodik_id')
-                    ->whereNotNull('source_confirmed_at')
-                    ->get();
-                if ($students->count() !== 1) {
-                    return;
-                }
+        return $this->operationLock->run(
+            IntegrationSetting::PROVIDER_ETATIB,
+            fn (IntegrationOperationContext $context): int => $this->reconcileStudentLinksLocked($context, $actor),
+        );
+    }
 
-                $student = $students->firstOrFail();
-                $record->update(['student_id' => $student->getKey()]);
-                ExternalSyncIssue::query()
-                    ->where('entity_type', 'etatib_record')
-                    ->where('source_identifier', $record->source_identifier)
-                    ->whereNull('resolved_at')
-                    ->update([
-                        'resolved_student_id' => $student->getKey(),
-                        'resolved_by' => $actor?->getKey(),
-                        'resolved_at' => now(),
-                    ]);
-                $this->auditService->record(
-                    action: 'etatib.student_relinked',
-                    auditable: $record,
-                    summary: 'Record e-Tatib ditautkan kembali melalui NISN exact tanpa write-back.',
-                    actor: $actor,
-                    after: ['student_id' => $student->getKey()],
-                );
-                $linked++;
-            });
+    private function reconcileStudentLinksLocked(IntegrationOperationContext $context, ?User $actor): int
+    {
+        return DB::transaction(function () use ($context, $actor): int {
+            $setting = IntegrationSetting::query()
+                ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $this->operationLock->assertCurrent($context, $setting);
 
-        return $linked;
+            $linked = 0;
+            ExternalTatibRecord::query()
+                ->whereNull('student_id')
+                ->eachById(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
+                    $students = Student::query()
+                        ->where('nisn', $record->nisn)
+                        ->where('master_source', Student::MASTER_SOURCE_DAPODIK)
+                        ->whereNotNull('dapodik_id')
+                        ->whereNotNull('source_confirmed_at')
+                        ->get();
+                    if ($students->count() !== 1) {
+                        return;
+                    }
+
+                    $student = $students->firstOrFail();
+                    $record->update(['student_id' => $student->getKey()]);
+                    ExternalSyncIssue::query()
+                        ->where('entity_type', 'etatib_record')
+                        ->where('source_identifier', $record->source_identifier)
+                        ->whereNull('resolved_at')
+                        ->update([
+                            'resolved_student_id' => $student->getKey(),
+                            'resolved_by' => $actor?->getKey(),
+                            'resolved_at' => now(),
+                        ]);
+                    $this->auditService->record(
+                        action: 'etatib.student_relinked',
+                        auditable: $record,
+                        summary: 'Record e-Tatib ditautkan kembali melalui NISN exact tanpa write-back.',
+                        actor: $actor,
+                        after: ['student_id' => $student->getKey()],
+                    );
+                    $linked++;
+                }, 1000);
+
+            $setting->refresh();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            return $linked;
+        });
     }
 
     private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun

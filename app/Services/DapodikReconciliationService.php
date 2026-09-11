@@ -133,7 +133,20 @@ final class DapodikReconciliationService
             );
         }
 
-        $fingerprint = hash('sha256', implode("\n", array_column($items, 'item_hash')));
+        $snapshotEvidence = $this->snapshotEvidence($snapshot);
+        $deactivationPlan = $snapshot->isFullSnapshot
+            ? $this->buildDeactivationPlan([
+                DapodikSyncPreviewItem::ENTITY_CLASSROOM => array_column($snapshot->classrooms, 'source_id'),
+                DapodikSyncPreviewItem::ENTITY_STUDENT => array_column($snapshot->students, 'source_id'),
+                DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => array_column($snapshot->memberships, 'source_id'),
+            ])
+            : [];
+        $fingerprint = $this->previewFingerprint(
+            $snapshot->isFullSnapshot,
+            $snapshotEvidence,
+            array_column($items, 'item_hash'),
+            $deactivationPlan,
+        );
         $conflictCount = count(array_filter(
             $items,
             static fn (array $item): bool => $item['match_status'] === DapodikSyncPreviewItem::MATCH_CONFLICT,
@@ -149,6 +162,8 @@ final class DapodikReconciliationService
                 ? sprintf('Pratinjau Dapodik siap dengan %d konflik yang harus diperiksa.', $conflictCount)
                 : 'Pratinjau Dapodik siap diperiksa sebelum diterapkan.',
             'snapshot_fingerprint' => $fingerprint,
+            'snapshot_evidence' => $snapshotEvidence,
+            'deactivation_plan' => $deactivationPlan,
             'preview_generation' => $generation,
             'decision_revision' => 0,
             'configuration_version' => $setting->configuration_version,
@@ -308,11 +323,14 @@ final class DapodikReconciliationService
                         ->lockForUpdate()
                         ->get();
                     $this->validateItemsForApply($currentRun, $items);
+                    $this->validateResolvedGraph($items);
+                    $this->validateTargetOwnership($items);
+                    $this->validateDeactivationPlan($currentRun, $items);
 
                     $syncedAt = now();
                     $appliedIds = $this->applyItems($currentRun, $items, $actor, $syncedAt);
                     if ($currentRun->is_full_snapshot) {
-                        $this->deactivateMissingVerifiedRows($appliedIds);
+                        $this->applyDeactivationPlan($currentRun, $actor);
                         $this->recordUnmatchedLocalIssues($currentRun, $appliedIds);
                     }
                     $this->studentIdentityService->reconcilePending($actor);
@@ -403,7 +421,15 @@ final class DapodikReconciliationService
                 $this->assertNoSourceTargetAppeared($item);
             }
         }
-        $fingerprint = hash('sha256', implode("\n", $hashes));
+        if (! is_array($run->snapshot_evidence) || ! is_array($run->deactivation_plan)) {
+            $this->validationError('preview', 'Metadata pratinjau Dapodik tidak lengkap.');
+        }
+        $fingerprint = $this->previewFingerprint(
+            $run->is_full_snapshot,
+            $run->snapshot_evidence,
+            $hashes,
+            $run->deactivation_plan,
+        );
         if (! is_string($run->snapshot_fingerprint)
             || ! hash_equals($run->snapshot_fingerprint, $fingerprint)
         ) {
@@ -573,22 +599,194 @@ final class DapodikReconciliationService
         }
     }
 
-    /** @param array<string, list<int>> $appliedIds */
-    private function deactivateMissingVerifiedRows(array $appliedIds): void
+    /** @param Collection<int, DapodikSyncPreviewItem> $items */
+    private function validateResolvedGraph(Collection $items): void
     {
-        foreach ([
-            DapodikSyncPreviewItem::ENTITY_CLASSROOM => Classroom::query(),
-            DapodikSyncPreviewItem::ENTITY_STUDENT => Student::query(),
-            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => StudentClassMembership::query(),
-        ] as $entityType => $query) {
-            $query->where('master_source', AcademicYear::MASTER_SOURCE_DAPODIK);
-            if ($appliedIds[$entityType] !== []) {
-                $query->whereNotIn('id', $appliedIds[$entityType]);
+        $byEntityAndSource = $items->keyBy(
+            fn (DapodikSyncPreviewItem $item): string => $item->entity_type.':'.$item->source_identifier,
+        );
+
+        foreach ($items->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM) as $item) {
+            $targetId = $this->selectedCandidateId($item);
+            if ($targetId === null) {
+                continue;
             }
-            $targetIds = $query->lockForUpdate()->pluck('id')->all();
-            if ($targetIds !== []) {
-                $query->whereKey($targetIds)->update(['is_active' => false]);
+            $yearItem = $byEntityAndSource->get(
+                DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR.':'.$item->safe_fields['academic_year_source_id'],
+            );
+            $yearId = $yearItem instanceof DapodikSyncPreviewItem
+                ? $this->selectedCandidateId($yearItem)
+                : null;
+            /** @var Classroom $target */
+            $target = $this->findTarget(DapodikSyncPreviewItem::ENTITY_CLASSROOM, $targetId, true);
+            if ($yearId === null || $target->academic_year_id !== $yearId) {
+                $this->validationError('preview', 'Keputusan rombel tidak lagi sesuai dengan keputusan tahun ajaran.');
             }
+        }
+
+        foreach ($items->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP) as $item) {
+            $targetId = $this->selectedCandidateId($item);
+            if ($targetId === null) {
+                continue;
+            }
+            $studentItem = $byEntityAndSource->get(
+                DapodikSyncPreviewItem::ENTITY_STUDENT.':'.$item->safe_fields['student_source_id'],
+            );
+            $classroomItem = $byEntityAndSource->get(
+                DapodikSyncPreviewItem::ENTITY_CLASSROOM.':'.$item->safe_fields['classroom_source_id'],
+            );
+            $yearItem = $byEntityAndSource->get(
+                DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR.':'.$item->safe_fields['academic_year_source_id'],
+            );
+            $studentId = $studentItem instanceof DapodikSyncPreviewItem
+                ? $this->selectedCandidateId($studentItem)
+                : null;
+            $classroomId = $classroomItem instanceof DapodikSyncPreviewItem
+                ? $this->selectedCandidateId($classroomItem)
+                : null;
+            $yearId = $yearItem instanceof DapodikSyncPreviewItem
+                ? $this->selectedCandidateId($yearItem)
+                : null;
+            /** @var StudentClassMembership $target */
+            $target = $this->findTarget(DapodikSyncPreviewItem::ENTITY_MEMBERSHIP, $targetId, true);
+            if ($studentId === null
+                || $classroomId === null
+                || $yearId === null
+                || $target->student_id !== $studentId
+                || $target->classroom_id !== $classroomId
+                || $target->academic_year_id !== $yearId
+            ) {
+                $this->validationError('preview', 'Keanggotaan tidak lagi sesuai dengan keputusan murid, rombel, dan tahun ajaran.');
+            }
+        }
+    }
+
+    /** @param Collection<int, DapodikSyncPreviewItem> $items */
+    private function validateTargetOwnership(Collection $items): void
+    {
+        $byEntityAndSource = $items->keyBy(
+            fn (DapodikSyncPreviewItem $item): string => $item->entity_type.':'.$item->source_identifier,
+        );
+
+        foreach ($items as $item) {
+            $candidateId = $this->selectedCandidateId($item);
+            $sourceOwner = $this->targetQuery($item->entity_type)
+                ->where('dapodik_id', $item->source_identifier);
+            if ($candidateId !== null) {
+                $sourceOwner->whereKeyNot($candidateId);
+            }
+            if ($sourceOwner->lockForUpdate()->exists()) {
+                $this->validationError('preview', 'Identitas sumber telah dimiliki data lain setelah pratinjau dibuat.');
+            }
+
+            $naturalOwner = match ($item->entity_type) {
+                DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR => AcademicYear::query()
+                    ->where('name', $item->safe_fields['name']),
+                DapodikSyncPreviewItem::ENTITY_CLASSROOM => $this->classroomNaturalOwnerQuery($item, $byEntityAndSource),
+                DapodikSyncPreviewItem::ENTITY_STUDENT => Student::query()
+                    ->where('nisn', $item->safe_fields['nisn']),
+                DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => $this->membershipNaturalOwnerQuery($item, $byEntityAndSource),
+                default => throw new \LogicException('Jenis item pratinjau tidak dikenal.'),
+            };
+            if ($naturalOwner === null) {
+                continue;
+            }
+            if ($candidateId !== null) {
+                $naturalOwner->whereKeyNot($candidateId);
+            }
+            if ($naturalOwner->lockForUpdate()->exists()) {
+                $this->validationError('preview', 'Natural key telah dimiliki data lain setelah pratinjau dibuat.');
+            }
+        }
+    }
+
+    /** @param Collection<string, DapodikSyncPreviewItem> $byEntityAndSource */
+    private function classroomNaturalOwnerQuery(
+        DapodikSyncPreviewItem $item,
+        Collection $byEntityAndSource,
+    ): mixed {
+        $yearItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR.':'.$item->safe_fields['academic_year_source_id'],
+        );
+        $yearId = $yearItem instanceof DapodikSyncPreviewItem
+            ? $this->selectedCandidateId($yearItem)
+            : null;
+
+        return $yearId === null
+            ? null
+            : Classroom::query()
+                ->where('academic_year_id', $yearId)
+                ->where('name', $item->safe_fields['name']);
+    }
+
+    /** @param Collection<string, DapodikSyncPreviewItem> $byEntityAndSource */
+    private function membershipNaturalOwnerQuery(
+        DapodikSyncPreviewItem $item,
+        Collection $byEntityAndSource,
+    ): mixed {
+        $studentItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_STUDENT.':'.$item->safe_fields['student_source_id'],
+        );
+        $classroomItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_CLASSROOM.':'.$item->safe_fields['classroom_source_id'],
+        );
+        $studentId = $studentItem instanceof DapodikSyncPreviewItem
+            ? $this->selectedCandidateId($studentItem)
+            : null;
+        $classroomId = $classroomItem instanceof DapodikSyncPreviewItem
+            ? $this->selectedCandidateId($classroomItem)
+            : null;
+        if ($studentId === null || $classroomId === null) {
+            return null;
+        }
+
+        return StudentClassMembership::query()
+            ->where('student_id', $studentId)
+            ->where('classroom_id', $classroomId)
+            ->whereDate('effective_from', $item->safe_fields['effective_from']);
+    }
+
+    /** @param Collection<int, DapodikSyncPreviewItem> $items */
+    private function validateDeactivationPlan(ExternalSyncRun $run, Collection $items): void
+    {
+        if (! $run->is_full_snapshot) {
+            if ($run->deactivation_plan !== []) {
+                $this->validationError('preview', 'Snapshot parsial tidak boleh memiliki rencana penonaktifan.');
+            }
+
+            return;
+        }
+
+        $currentPlan = $this->buildDeactivationPlan([
+            DapodikSyncPreviewItem::ENTITY_CLASSROOM => $items
+                ->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)
+                ->pluck('source_identifier')->values()->all(),
+            DapodikSyncPreviewItem::ENTITY_STUDENT => $items
+                ->where('entity_type', DapodikSyncPreviewItem::ENTITY_STUDENT)
+                ->pluck('source_identifier')->values()->all(),
+            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => $items
+                ->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)
+                ->pluck('source_identifier')->values()->all(),
+        ]);
+        if ($this->canonicalJson($currentPlan) !== $this->canonicalJson($run->deactivation_plan)) {
+            $this->validationError('preview', 'Rencana penonaktifan berubah setelah pratinjau dibuat.');
+        }
+    }
+
+    private function applyDeactivationPlan(ExternalSyncRun $run, User $actor): void
+    {
+        foreach ($run->deactivation_plan as $planned) {
+            $target = $this->findTarget($planned['entity_type'], (int) $planned['target_id'], true);
+            $before = $this->auditTarget($target);
+            $target->update(['is_active' => false]);
+            $this->auditService->record(
+                action: "dapodik.{$planned['entity_type']}_deactivated",
+                auditable: $target,
+                summary: 'Data terverifikasi Dapodik dinonaktifkan sesuai rencana snapshot penuh.',
+                actor: $actor,
+                before: $before,
+                after: $this->auditTarget($target),
+            );
         }
     }
 
@@ -692,6 +890,8 @@ final class DapodikReconciliationService
                 || $candidate->master_source !== AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL
                 || $candidate->source_confirmed_at !== null
                 || $candidate->dapodik_id !== null
+                || $this->dateValue($candidate->starts_on) !== ($item->safe_fields['starts_on'] ?? null)
+                || $this->dateValue($candidate->ends_on) !== ($item->safe_fields['ends_on'] ?? null)
             ) {
                 $this->validationError('candidate_id', 'Tahun ajaran sementara tidak dapat dipilih.');
             }
@@ -912,6 +1112,18 @@ final class DapodikReconciliationService
                 ->where('academic_year_id', $yearId)
                 ->whereDate('effective_from', $fields['effective_from'])
                 ->get();
+        if ($byIdentity->isEmpty()
+            && $studentId !== null
+            && (($classroomMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
+                || ($yearMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING)
+        ) {
+            $byIdentity = StudentClassMembership::query()
+                ->where('student_id', $studentId)
+                ->where('master_source', StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                ->whereNull('source_confirmed_at')
+                ->whereNull('dapodik_id')
+                ->get();
+        }
 
         return $this->classifyIdentityCandidate(
             DapodikSyncPreviewItem::ENTITY_MEMBERSHIP,
@@ -1006,19 +1218,24 @@ final class DapodikReconciliationService
 
     private function findTarget(string $entityType, int $id, bool $forUpdate = false): Model
     {
-        $query = match ($entityType) {
-            DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR => AcademicYear::query(),
-            DapodikSyncPreviewItem::ENTITY_CLASSROOM => Classroom::query(),
-            DapodikSyncPreviewItem::ENTITY_STUDENT => Student::query(),
-            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => StudentClassMembership::query(),
-            default => throw new \LogicException('Jenis item pratinjau tidak dikenal.'),
-        };
+        $query = $this->targetQuery($entityType);
 
         if ($forUpdate) {
             $query->lockForUpdate();
         }
 
         return $query->findOrFail($id);
+    }
+
+    private function targetQuery(string $entityType): mixed
+    {
+        return match ($entityType) {
+            DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR => AcademicYear::query(),
+            DapodikSyncPreviewItem::ENTITY_CLASSROOM => Classroom::query(),
+            DapodikSyncPreviewItem::ENTITY_STUDENT => Student::query(),
+            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => StudentClassMembership::query(),
+            default => throw new \LogicException('Jenis item pratinjau tidak dikenal.'),
+        };
     }
 
     private function targetFingerprint(string $entityType, Model $target): string
@@ -1048,9 +1265,94 @@ final class DapodikReconciliationService
             : mb_substr((string) $value, 0, 10);
     }
 
+    /** @return array<string, int|string> */
+    private function snapshotEvidence(DapodikSnapshot $snapshot): array
+    {
+        $evidence = $snapshot->evidence;
+        if ($evidence === null) {
+            throw new \LogicException('Snapshot tervalidasi wajib memiliki evidence.');
+        }
+
+        return [
+            'reported_source_identifier' => $evidence->reportedSourceIdentifier,
+            'contract_marker' => $evidence->contractMarker,
+            'completeness_marker' => $evidence->completenessMarker,
+            'page_count' => $evidence->pageCount,
+            'record_count' => $evidence->recordCount,
+            'processed_bytes' => $evidence->processedBytes,
+        ];
+    }
+
+    /**
+     * @param  array<string, list<string>>  $incomingSourceIds
+     * @return list<array{entity_type: string, target_id: int, target_fingerprint: string}>
+     */
+    private function buildDeactivationPlan(array $incomingSourceIds): array
+    {
+        $plan = [];
+        foreach ([
+            DapodikSyncPreviewItem::ENTITY_CLASSROOM => Classroom::query(),
+            DapodikSyncPreviewItem::ENTITY_STUDENT => Student::query(),
+            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => StudentClassMembership::query(),
+        ] as $entityType => $query) {
+            $query->where('master_source', AcademicYear::MASTER_SOURCE_DAPODIK)
+                ->where('is_active', true)
+                ->whereNotNull('dapodik_id');
+            $sourceIds = $incomingSourceIds[$entityType] ?? [];
+            if ($sourceIds !== []) {
+                $query->whereNotIn('dapodik_id', $sourceIds);
+            }
+            foreach ($query->orderBy('id')->lockForUpdate()->get() as $target) {
+                $plan[] = [
+                    'entity_type' => $entityType,
+                    'target_id' => $target->getKey(),
+                    'target_fingerprint' => $this->targetFingerprint($entityType, $target),
+                ];
+            }
+        }
+
+        return $plan;
+    }
+
     /** @param array<string, mixed> $value */
     private function canonicalJson(array $value): string
     {
-        return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return json_encode(
+            $this->canonicalize($value),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+    }
+
+    private function canonicalize(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+        if (array_is_list($value)) {
+            return array_map(fn (mixed $item): mixed => $this->canonicalize($item), $value);
+        }
+
+        ksort($value, SORT_STRING);
+
+        return array_map(fn (mixed $item): mixed => $this->canonicalize($item), $value);
+    }
+
+    /**
+     * @param  array<string, int|string>  $snapshotEvidence
+     * @param  list<string>  $itemHashes
+     * @param  list<array{entity_type: string, target_id: int, target_fingerprint: string}>  $deactivationPlan
+     */
+    private function previewFingerprint(
+        bool $isFullSnapshot,
+        array $snapshotEvidence,
+        array $itemHashes,
+        array $deactivationPlan,
+    ): string {
+        return hash('sha256', $this->canonicalJson([
+            'is_full_snapshot' => $isFullSnapshot,
+            'snapshot_evidence' => $snapshotEvidence,
+            'item_hashes' => $itemHashes,
+            'deactivation_plan' => $deactivationPlan,
+        ]));
     }
 }

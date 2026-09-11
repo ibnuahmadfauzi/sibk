@@ -9,6 +9,7 @@ use App\Integrations\Etatib\EtatibConnector;
 use App\Integrations\Etatib\EtatibDriver;
 use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\Etatib\EtatibSnapshotValidator;
+use App\Integrations\IntegrationBusyException;
 use App\Integrations\IntegrationConfigurationException;
 use App\Integrations\IntegrationDriverRegistry;
 use App\Integrations\IntegrationEndpointPolicy;
@@ -33,6 +34,7 @@ use Database\Seeders\RoleSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Exceptions;
 use RuntimeException;
 use Tests\TestCase;
@@ -97,6 +99,72 @@ class EtatibSyncTest extends TestCase
         $this->assertSame($verified->id, $verifiedRecord->refresh()->student_id);
         $this->assertNull($provisionalRecord->refresh()->student_id);
         $this->assertSame(0, $connector->fetchCalls);
+    }
+
+    public function test_reconciliation_uses_etatib_operation_lock_before_mutating_links(): void
+    {
+        $student = Student::query()->create([
+            'dapodik_id' => 'dapodik-student-lock',
+            'nisn' => '0000000014',
+            'name' => 'Murid Terkunci',
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+            'source_confirmed_at' => now(),
+        ]);
+        $record = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'tatib-lock',
+            'nisn' => $student->nisn,
+            'occurred_at' => now(),
+            'violation_type' => 'Terlambat',
+            'category' => 'Disiplin',
+            'points' => 5,
+        ]);
+        $lock = Cache::lock('sibk:integration:etatib:operation', 60);
+        $this->assertTrue($lock->get());
+
+        try {
+            app(EtatibSyncService::class)->reconcileStudentLinks();
+            $this->fail('Relink e-Tatib dapat melewati operation lock provider.');
+        } catch (IntegrationBusyException $exception) {
+            $this->assertSame('busy', $exception->resultCode());
+        } finally {
+            $lock->release();
+        }
+
+        $this->assertNull($record->refresh()->student_id);
+    }
+
+    public function test_reconciliation_does_not_skip_records_when_backlog_exceeds_one_chunk(): void
+    {
+        $student = Student::query()->create([
+            'dapodik_id' => 'dapodik-student-backlog',
+            'nisn' => '0000000015',
+            'name' => 'Murid Backlog',
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+            'source_confirmed_at' => now(),
+        ]);
+        $timestamp = now();
+        $rows = [];
+        foreach (range(1, 1001) as $number) {
+            $rows[] = [
+                'source_identifier' => sprintf('tatib-backlog-%04d', $number),
+                'nisn' => $student->nisn,
+                'occurred_at' => $timestamp,
+                'violation_type' => 'Terlambat',
+                'category' => 'Disiplin',
+                'points' => 5,
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+        }
+        foreach (array_chunk($rows, 250) as $chunk) {
+            ExternalTatibRecord::query()->insert($chunk);
+        }
+
+        $linked = app(EtatibSyncService::class)->reconcileStudentLinks();
+
+        $this->assertSame(1001, $linked);
+        $this->assertSame(0, ExternalTatibRecord::query()->whereNull('student_id')->count());
+        $this->assertSame(1001, AuditLog::query()->where('action', 'etatib.student_relinked')->count());
     }
 
     public function test_full_and_partial_sync_are_idempotent_and_only_full_deactivates_missing_records(): void

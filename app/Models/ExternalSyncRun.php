@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'started_at',
     'finished_at',
     'snapshot_fingerprint',
+    'snapshot_evidence',
+    'deactivation_plan',
     'preview_generation',
     'decision_revision',
     'configuration_version',
@@ -71,11 +73,44 @@ class ExternalSyncRun extends Model
         return $this->previewItems();
     }
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $run): void {
+            if ($run->getOriginal('source') !== 'dapodik'
+                || $run->getOriginal('snapshot_fingerprint') === null
+            ) {
+                return;
+            }
+
+            foreach ([
+                'is_full_snapshot',
+                'received_count',
+                'snapshot_fingerprint',
+                'snapshot_evidence',
+                'deactivation_plan',
+                'preview_generation',
+                'configuration_version',
+                'preview_fencing_token',
+                'driver_id',
+                'adapter_version',
+                'contract_version',
+                'endpoint_policy_digest',
+                'preview_expires_at',
+            ] as $immutableAttribute) {
+                if ($run->isDirty($immutableAttribute)) {
+                    throw new \LogicException('Metadata pratinjau Dapodik tidak dapat diubah.');
+                }
+            }
+        });
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
             'is_full_snapshot' => 'boolean',
+            'snapshot_evidence' => 'array',
+            'deactivation_plan' => 'array',
             'received_count' => 'integer',
             'processed_count' => 'integer',
             'conflict_count' => 'integer',
