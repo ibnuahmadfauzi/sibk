@@ -76,12 +76,15 @@ final class DapodikReconciliationService
         $classroomMatches = [];
         /** @var array<string, array{candidate_id: ?int, match_status: string}> $studentMatches */
         $studentMatches = [];
+        /** @var array<string, array<string, mixed>> $yearFields */
+        $yearFields = [];
         $items = [];
 
         foreach ($snapshot->academicYears as $fields) {
             $safeFields = $this->normalizeAcademicYear($fields);
             $match = $this->classifyAcademicYear($safeFields);
             $yearMatches[$safeFields['source_id']] = $match;
+            $yearFields[$safeFields['source_id']] = $safeFields;
             $items[] = $this->previewItem(
                 DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR,
                 $safeFields,
@@ -124,6 +127,7 @@ final class DapodikReconciliationService
                 $studentMatches[$safeFields['student_source_id']] ?? null,
                 $classroomMatches[$safeFields['classroom_source_id']] ?? null,
                 $yearMatches[$safeFields['academic_year_source_id']] ?? null,
+                $yearFields[$safeFields['academic_year_source_id']] ?? null,
             );
             $items[] = $this->previewItem(
                 DapodikSyncPreviewItem::ENTITY_MEMBERSHIP,
@@ -1093,9 +1097,21 @@ final class DapodikReconciliationService
         );
     }
 
-    /** @param array<string, mixed> $fields @param array{candidate_id: ?int, match_status: string}|null $studentMatch @param array{candidate_id: ?int, match_status: string}|null $classroomMatch @param array{candidate_id: ?int, match_status: string}|null $yearMatch @return array{candidate_id: ?int, match_status: string} */
-    private function classifyMembership(array $fields, ?array $studentMatch, ?array $classroomMatch, ?array $yearMatch): array
-    {
+    /**
+     * @param  array<string, mixed>  $fields
+     * @param  array{candidate_id: ?int, match_status: string}|null  $studentMatch
+     * @param  array{candidate_id: ?int, match_status: string}|null  $classroomMatch
+     * @param  array{candidate_id: ?int, match_status: string}|null  $yearMatch
+     * @param  array<string, mixed>|null  $yearFields
+     * @return array{candidate_id: ?int, match_status: string}
+     */
+    private function classifyMembership(
+        array $fields,
+        ?array $studentMatch,
+        ?array $classroomMatch,
+        ?array $yearMatch,
+        ?array $yearFields,
+    ): array {
         $bySource = StudentClassMembership::query()->where('dapodik_id', $fields['source_id'])->get();
         if ($bySource->count() > 1) {
             return $this->match(null, DapodikSyncPreviewItem::MATCH_CONFLICT);
@@ -1117,12 +1133,13 @@ final class DapodikReconciliationService
             && (($classroomMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
                 || ($yearMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING)
         ) {
-            $byIdentity = StudentClassMembership::query()
-                ->where('student_id', $studentId)
-                ->where('master_source', StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL)
-                ->whereNull('source_confirmed_at')
-                ->whereNull('dapodik_id')
-                ->get();
+            $byIdentity = $this->membershipCandidatesForParentContext(
+                $fields,
+                $studentId,
+                $classroomMatch,
+                $yearMatch,
+                $yearFields,
+            );
         }
 
         return $this->classifyIdentityCandidate(
@@ -1132,6 +1149,104 @@ final class DapodikReconciliationService
             $byIdentity,
             false,
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $fields
+     * @param  array{candidate_id: ?int, match_status: string}|null  $classroomMatch
+     * @param  array{candidate_id: ?int, match_status: string}|null  $yearMatch
+     * @param  array<string, mixed>|null  $yearFields
+     * @return Collection<int, StudentClassMembership>
+     */
+    private function membershipCandidatesForParentContext(
+        array $fields,
+        int $studentId,
+        ?array $classroomMatch,
+        ?array $yearMatch,
+        ?array $yearFields,
+    ): Collection {
+        $yearIds = $this->candidateYearIds($yearMatch, $yearFields);
+        $classroomYears = $this->candidateClassroomYears($classroomMatch, $yearIds);
+        if ($yearIds === [] || $classroomYears === []) {
+            return new Collection;
+        }
+
+        return StudentClassMembership::query()
+            ->where('student_id', $studentId)
+            ->whereDate('effective_from', $fields['effective_from'])
+            ->whereIn('academic_year_id', $yearIds)
+            ->whereIn('classroom_id', array_keys($classroomYears))
+            ->where('master_source', StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+            ->whereNull('source_confirmed_at')
+            ->whereNull('dapodik_id')
+            ->get()
+            ->filter(
+                fn (StudentClassMembership $membership): bool => ($classroomYears[$membership->classroom_id] ?? null)
+                    === $membership->academic_year_id,
+            )
+            ->values();
+    }
+
+    /**
+     * @param  array{candidate_id: ?int, match_status: string}|null  $yearMatch
+     * @param  array<string, mixed>|null  $yearFields
+     * @return list<int>
+     */
+    private function candidateYearIds(?array $yearMatch, ?array $yearFields): array
+    {
+        $candidateId = $yearMatch['candidate_id'] ?? null;
+        if ($candidateId !== null) {
+            return [$candidateId];
+        }
+        if (($yearMatch['match_status'] ?? null) !== DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
+            || $yearFields === null
+        ) {
+            return [];
+        }
+
+        return AcademicYear::query()
+            ->whereDate('starts_on', $yearFields['starts_on'])
+            ->whereDate('ends_on', $yearFields['ends_on'])
+            ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+            ->whereNull('source_confirmed_at')
+            ->whereNull('dapodik_id')
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * @param  array{candidate_id: ?int, match_status: string}|null  $classroomMatch
+     * @param  list<int>  $yearIds
+     * @return array<int, int>
+     */
+    private function candidateClassroomYears(
+        ?array $classroomMatch,
+        array $yearIds,
+    ): array {
+        $candidateId = $classroomMatch['candidate_id'] ?? null;
+        if ($candidateId !== null) {
+            return Classroom::query()
+                ->whereKey($candidateId)
+                ->whereIn('academic_year_id', $yearIds)
+                ->pluck('academic_year_id', 'id')
+                ->map(fn (mixed $yearId): int => (int) $yearId)
+                ->all();
+        }
+        if (($classroomMatch['match_status'] ?? null) !== DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
+            || $yearIds === []) {
+            return [];
+        }
+
+        return Classroom::query()
+            ->whereIn('academic_year_id', $yearIds)
+            ->where('master_source', Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+            ->whereNull('source_confirmed_at')
+            ->whereNull('dapodik_id')
+            ->orderBy('id')
+            ->pluck('academic_year_id', 'id')
+            ->map(fn (mixed $yearId): int => (int) $yearId)
+            ->all();
     }
 
     /**

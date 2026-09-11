@@ -458,6 +458,17 @@ class DapodikSyncTest extends TestCase
     public function test_manual_parent_mapping_preserves_existing_provisional_membership_id(): void
     {
         $admin = $this->userWithRole('admin_it');
+        $historicalYear = AcademicYear::query()->create([
+            'name' => 'TA Histori',
+            'starts_on' => '2025-07-01',
+            'ends_on' => '2026-06-30',
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $historicalClassroom = Classroom::query()->create([
+            'academic_year_id' => $historicalYear->id,
+            'name' => 'Rombel Histori',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
         $year = AcademicYear::query()->create([
             'name' => 'TA Persiapan',
             'starts_on' => '2026-07-01',
@@ -474,11 +485,18 @@ class DapodikSyncTest extends TestCase
             'name' => 'Nama Persiapan',
             'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
+        $historicalMembership = StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $historicalClassroom->id,
+            'academic_year_id' => $historicalYear->id,
+            'effective_from' => '2025-07-15',
+            'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
         $membership = StudentClassMembership::query()->create([
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
+            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
@@ -504,11 +522,132 @@ class DapodikSyncTest extends TestCase
         app(DapodikReconciliationService::class)
             ->apply($run, $admin, $run->decision_revision);
 
-        $this->assertDatabaseCount('student_class_memberships', 1);
+        $this->assertDatabaseCount('student_class_memberships', 2);
         $this->assertSame('membership-1', $membership->refresh()->dapodik_id);
         $this->assertSame($student->id, $membership->student_id);
         $this->assertSame($classroom->id, $membership->classroom_id);
         $this->assertSame($year->id, $membership->academic_year_id);
+        $this->assertNull($historicalMembership->refresh()->dapodik_id);
+        $this->assertSame($historicalClassroom->id, $historicalMembership->classroom_id);
+        $this->assertSame($historicalYear->id, $historicalMembership->academic_year_id);
+    }
+
+    public function test_unrelated_historical_membership_is_not_selected_as_preview_candidate(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $historicalYear = AcademicYear::query()->create([
+            'name' => 'TA Histori',
+            'starts_on' => '2025-07-01',
+            'ends_on' => '2026-06-30',
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $historicalClassroom = Classroom::query()->create([
+            'academic_year_id' => $historicalYear->id,
+            'name' => 'Rombel Histori',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $targetYear = AcademicYear::query()->create([
+            'name' => 'TA Target',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $targetClassroom = Classroom::query()->create([
+            'academic_year_id' => $targetYear->id,
+            'name' => 'Rombel Target',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Nama Persiapan',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $historicalMembership = StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $historicalClassroom->id,
+            'academic_year_id' => $historicalYear->id,
+            'effective_from' => '2026-07-15',
+            'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+        $this->assertNull($membershipItem->candidate_id);
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEW, $membershipItem->match_status);
+        app(DapodikReconciliationService::class)->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $targetYear->id,
+            'decision_revision' => 0,
+        ], $admin);
+        app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $targetClassroom->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $run->refresh();
+
+        app(DapodikReconciliationService::class)
+            ->apply($run, $admin, $run->decision_revision);
+
+        $created = StudentClassMembership::query()->where('dapodik_id', 'membership-1')->sole();
+        $this->assertNotSame($historicalMembership->id, $created->id);
+        $this->assertSame($targetYear->id, $created->academic_year_id);
+        $this->assertSame($targetClassroom->id, $created->classroom_id);
+        $this->assertNull($historicalMembership->refresh()->dapodik_id);
+        $this->assertSame(StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL, $historicalMembership->master_source);
+        $this->assertDatabaseCount('student_class_memberships', 2);
+    }
+
+    public function test_multiple_memberships_matching_snapshot_parent_context_are_conflict(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $firstYear = AcademicYear::query()->create([
+            'name' => 'TA Kandidat A',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $secondYear = AcademicYear::query()->create([
+            'name' => 'TA Kandidat B',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $firstClassroom = Classroom::query()->create([
+            'academic_year_id' => $firstYear->id,
+            'name' => 'Rombel Kandidat A',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $secondClassroom = Classroom::query()->create([
+            'academic_year_id' => $secondYear->id,
+            'name' => 'Rombel Kandidat B',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Nama Persiapan',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        foreach ([[$firstYear, $firstClassroom], [$secondYear, $secondClassroom]] as [$year, $classroom]) {
+            StudentClassMembership::query()->create([
+                'student_id' => $student->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id,
+                'effective_from' => '2026-07-15',
+                'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            ]);
+        }
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_CONFLICT, $membershipItem->match_status);
+        $this->assertNull($membershipItem->candidate_id);
+        $this->assertSame(1, $run->conflict_count);
     }
 
     public function test_manual_year_mapping_rejects_a_candidate_outside_snapshot_period(): void

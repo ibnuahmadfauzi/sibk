@@ -12,8 +12,6 @@ return new class extends Migration
     {
         Schema::table('external_sync_runs', function (Blueprint $table): void {
             $table->string('snapshot_fingerprint', 64)->nullable();
-            $table->json('snapshot_evidence')->nullable();
-            $table->json('deactivation_plan')->nullable();
             $table->unsignedInteger('preview_generation')->nullable();
             $table->unsignedInteger('decision_revision')->default(0);
             $table->unsignedInteger('configuration_version')->nullable();
@@ -68,8 +66,6 @@ return new class extends Migration
             $table->dropIndex('sync_run_source_preview_generation_index');
             $table->dropColumn([
                 'snapshot_fingerprint',
-                'snapshot_evidence',
-                'deactivation_plan',
                 'preview_generation',
                 'decision_revision',
                 'configuration_version',

@@ -1002,6 +1002,7 @@ git commit -m "feat: enforce verified integration settings during sync"
 **Files:**
 
 - Create: `database/migrations/2026_09_09_000200_create_dapodik_sync_preview_items.php`
+- Create: `database/migrations/2026_09_11_000100_add_dapodik_preview_evidence_to_external_sync_runs.php`
 - Create: `app/Models/DapodikSyncPreviewItem.php`
 - Create: `app/Services/DapodikReconciliationService.php`
 - Create: `app/Http/Requests/Admin/MapDapodikPreviewItemRequest.php`
@@ -1063,7 +1064,7 @@ git add database/migrations app/Models app/Services app/Http routes/web.php reso
 git commit -m "feat: cocokkan data sementara lewat pratinjau Dapodik"
 ```
 
-**Gate selesai 11 September 2026:** pratinjau immutable tanpa mutasi cache, klasifikasi dan pemetaan terbatas, apply atomik dengan configuration/policy/fencing/fingerprint/hash/revision/row-target guard, perlindungan provenance, serta relink identitas sementara dan e-Tatib telah diverifikasi. Focused gate lulus: Dapodik 24/24 (198 assertion), fallback keterlambatan Dapodik 34/34 (269 assertion), e-Tatib 20/20 (73 assertion), kasus 14/14 (99 assertion), konsultasi 6/6 (38 assertion), dan penugasan 7/7 (48 assertion). Probe migration SQLite pada urutan `2026_09_09_000200` lulus; Pint dan diff-check bersih; suite PHP penuh lulus 326/326 dengan 2.587 assertion. Driver production tetap `unavailable`; pekerjaan berikutnya adalah Task 12.
+**Gate selesai 11 September 2026 (setelah fix round 2):** pratinjau immutable tanpa mutasi cache, klasifikasi dan pemetaan terbatas, apply atomik dengan configuration/policy/fencing/fingerprint/hash/revision/row-target guard, perlindungan provenance, serta relink identitas sementara dan e-Tatib telah diverifikasi. Pencocokan membership persiapan memakai NISN exact, tanggal efektif, periode tahun snapshot, dan graph rombel-tahun kandidat; histori yang tidak terkait tidak dipilih, sedangkan lebih dari satu kandidat yang benar-benar cocok menjadi conflict. Evidence dan deactivation plan ditambahkan melalui forward migration setelah `2026_09_09_000200`, dengan probe upgrade schema lama dan fresh sequence. Focused gate lulus: Dapodik 39/39 (258 assertion), fallback keterlambatan Dapodik 35/35 (280 assertion), e-Tatib 22/22 (79 assertion), kasus 14/14 (99 assertion), konsultasi 6/6 (38 assertion), dan penugasan 7/7 (48 assertion). Pint dan diff-check bersih; suite PHP penuh lulus 344/344 dengan 2.664 assertion. Driver production tetap `unavailable`; pekerjaan berikutnya adalah Task 12.
 
 ---
 
