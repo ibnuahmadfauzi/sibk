@@ -44,7 +44,7 @@ Adapter production dibuat dalam plan terpisah setelah admission disetujui. Imple
 - Hitung page count, record count, dan processed byte count tanpa menyimpan body. Batas diperiksa sebelum decode bila memungkinkan, selama pagination/dekompresi, dan kembali oleh validator sebelum transaksi.
 - Mapping hanya menghasilkan field minimum snapshot internal. Raw body sukses maupun error tidak boleh disimpan, dicatat ke log/audit, dibawa exception, atau ditampilkan pada response.
 - Probe baru sukses bila autentikasi, versi kontrak, schema minimum, completeness yang relevan, dan identitas sumber terbukti; status HTTP 2xx saja tidak cukup.
-- Dapodik full snapshot tanpa collection tahun ajaran atau murid wajib ditolak. Collection ada tetapi bertipe salah juga wajib ditolak.
+- Dapodik full snapshot wajib memiliki collection tahun ajaran dan collection murid yang bertipe benar, serta masing-masing collection wajib memuat sedikitnya satu record valid. Collection yang missing, bertipe salah, atau kosong wajib ditolak sebelum mutasi apa pun.
 - e-Tatib full snapshot kosong hanya boleh diterima bila kontrak resmi memberi marker completeness dan total nol yang dapat diverifikasi. Tanpa keduanya, pertahankan mirror lama dan tandai kegagalan aman.
 - Full snapshot hanya menerapkan deletion/deactivation yang secara eksplisit diizinkan kontrak. Partial/delta tidak boleh menonaktifkan data yang tidak ikut dikirim.
 

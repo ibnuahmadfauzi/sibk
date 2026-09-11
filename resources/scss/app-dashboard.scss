@@ -2364,6 +2364,10 @@ small, .small {
 }
 
 @media (max-width: 575.98px) {
+  .integration-setting .btn {
+    min-height: 44px;
+  }
+
   .integration-setting__action-row {
     align-items: stretch;
     flex-direction: column;
