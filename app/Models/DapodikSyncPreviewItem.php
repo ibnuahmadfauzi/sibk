@@ -58,6 +58,8 @@ class DapodikSyncPreviewItem extends Model
 
     public const string DECISION_CREATE_NEW = 'create_new';
 
+    public const string DECISION_CONFLICT = 'conflict';
+
     /** @return BelongsTo<ExternalSyncRun, $this> */
     public function syncRun(): BelongsTo
     {

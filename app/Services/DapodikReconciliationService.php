@@ -76,15 +76,12 @@ final class DapodikReconciliationService
         $classroomMatches = [];
         /** @var array<string, array{candidate_id: ?int, match_status: string}> $studentMatches */
         $studentMatches = [];
-        /** @var array<string, array<string, mixed>> $yearFields */
-        $yearFields = [];
         $items = [];
 
         foreach ($snapshot->academicYears as $fields) {
             $safeFields = $this->normalizeAcademicYear($fields);
             $match = $this->classifyAcademicYear($safeFields);
             $yearMatches[$safeFields['source_id']] = $match;
-            $yearFields[$safeFields['source_id']] = $safeFields;
             $items[] = $this->previewItem(
                 DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR,
                 $safeFields,
@@ -127,7 +124,6 @@ final class DapodikReconciliationService
                 $studentMatches[$safeFields['student_source_id']] ?? null,
                 $classroomMatches[$safeFields['classroom_source_id']] ?? null,
                 $yearMatches[$safeFields['academic_year_source_id']] ?? null,
-                $yearFields[$safeFields['academic_year_source_id']] ?? null,
             );
             $items[] = $this->previewItem(
                 DapodikSyncPreviewItem::ENTITY_MEMBERSHIP,
@@ -260,6 +256,12 @@ final class DapodikReconciliationService
                         'decided_at' => now(),
                     ]);
                     $currentRun->increment('decision_revision');
+                    $items = DapodikSyncPreviewItem::query()
+                        ->where('external_sync_run_id', $currentRun->getKey())
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get();
+                    $this->refreshDerivedMembershipDecisions($currentRun, $items, $actor);
                     $this->auditService->record(
                         action: 'dapodik.preview_decided',
                         auditable: $currentRun,
@@ -326,6 +328,7 @@ final class DapodikReconciliationService
                         ->orderBy('id')
                         ->lockForUpdate()
                         ->get();
+                    $this->assertDerivedMembershipDecisionsCurrent($items);
                     $this->validateItemsForApply($currentRun, $items);
                     $this->validateResolvedGraph($items);
                     $this->validateTargetOwnership($items);
@@ -372,6 +375,207 @@ final class DapodikReconciliationService
                 });
             },
         );
+    }
+
+    /** @param Collection<int, DapodikSyncPreviewItem> $items */
+    private function refreshDerivedMembershipDecisions(
+        ExternalSyncRun $run,
+        Collection $items,
+        User $actor,
+    ): void {
+        $byEntityAndSource = $items->keyBy(
+            fn (DapodikSyncPreviewItem $item): string => $item->entity_type.':'.$item->source_identifier,
+        );
+        $derivedConflicts = 0;
+        foreach ($items->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP) as $item) {
+            if ($item->match_status !== DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING) {
+                continue;
+            }
+
+            $resolution = $this->derivedMembershipResolution($item, $byEntityAndSource);
+            if ($resolution['decision'] === DapodikSyncPreviewItem::DECISION_CONFLICT) {
+                $derivedConflicts++;
+            }
+            if ($item->decision === $resolution['decision']
+                && $item->decision_candidate_id === $resolution['decision_candidate_id']
+                && $item->decision_target_fingerprint === $resolution['decision_target_fingerprint']
+            ) {
+                continue;
+            }
+
+            $item->update([
+                ...$resolution,
+                'decision_revision' => $item->decision_revision + 1,
+                'decided_by' => $resolution['decision'] === null ? null : $actor->getKey(),
+                'decided_at' => $resolution['decision'] === null ? null : now(),
+            ]);
+        }
+
+        $conflictCount = $items
+            ->where('match_status', DapodikSyncPreviewItem::MATCH_CONFLICT)
+            ->count() + $derivedConflicts;
+        if ($run->conflict_count !== $conflictCount) {
+            $run->update(['conflict_count' => $conflictCount]);
+        }
+    }
+
+    /** @param Collection<int, DapodikSyncPreviewItem> $items */
+    private function assertDerivedMembershipDecisionsCurrent(Collection $items): void
+    {
+        $byEntityAndSource = $items->keyBy(
+            fn (DapodikSyncPreviewItem $item): string => $item->entity_type.':'.$item->source_identifier,
+        );
+        foreach ($items->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP) as $item) {
+            if ($item->match_status !== DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING) {
+                continue;
+            }
+
+            $resolution = $this->derivedMembershipResolution($item, $byEntityAndSource);
+            if ($item->decision !== $resolution['decision']
+                || $item->decision_candidate_id !== $resolution['decision_candidate_id']
+                || $item->decision_target_fingerprint !== $resolution['decision_target_fingerprint']
+            ) {
+                $this->validationError(
+                    'preview',
+                    'Resolusi keanggotaan berubah setelah keputusan parent dibuat. Muat ulang pratinjau.',
+                );
+            }
+        }
+    }
+
+    /**
+     * @param  Collection<string, DapodikSyncPreviewItem>  $byEntityAndSource
+     * @return array{decision: ?string, decision_candidate_id: ?int, decision_target_fingerprint: ?string}
+     */
+    private function derivedMembershipResolution(
+        DapodikSyncPreviewItem $item,
+        Collection $byEntityAndSource,
+    ): array {
+        $fields = $item->safe_fields;
+        $studentItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_STUDENT.':'.$fields['student_source_id'],
+        );
+        $classroomItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_CLASSROOM.':'.$fields['classroom_source_id'],
+        );
+        $yearItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR.':'.$fields['academic_year_source_id'],
+        );
+        if (! $studentItem instanceof DapodikSyncPreviewItem
+            || ! $classroomItem instanceof DapodikSyncPreviewItem
+            || ! $yearItem instanceof DapodikSyncPreviewItem
+        ) {
+            return $this->derivedMembershipConflict();
+        }
+        foreach ([$studentItem, $classroomItem, $yearItem] as $parentItem) {
+            if ($parentItem->match_status === DapodikSyncPreviewItem::MATCH_CONFLICT) {
+                return $this->derivedMembershipConflict();
+            }
+            if ($parentItem->match_status === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
+                && ! in_array($parentItem->decision, [
+                    DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+                    DapodikSyncPreviewItem::DECISION_CREATE_NEW,
+                ], true)
+            ) {
+                return $this->derivedMembershipUnresolved();
+            }
+        }
+
+        $studentId = $this->selectedCandidateId($studentItem);
+        $classroomId = $this->selectedCandidateId($classroomItem);
+        $yearId = $this->selectedCandidateId($yearItem);
+        if ($studentId === null || $classroomId === null || $yearId === null) {
+            return $this->derivedMembershipCreateNew();
+        }
+
+        $classroom = Classroom::query()->whereKey($classroomId)->lockForUpdate()->first();
+        if (! $classroom instanceof Classroom || $classroom->academic_year_id !== $yearId) {
+            return $this->derivedMembershipConflict();
+        }
+
+        $bySource = StudentClassMembership::query()
+            ->where('dapodik_id', $item->source_identifier)
+            ->lockForUpdate()
+            ->get();
+        $byIdentity = StudentClassMembership::query()
+            ->where('student_id', $studentId)
+            ->where('classroom_id', $classroomId)
+            ->where('academic_year_id', $yearId)
+            ->whereDate('effective_from', $fields['effective_from'])
+            ->lockForUpdate()
+            ->get();
+        if ($bySource->count() > 1 || $byIdentity->count() > 1) {
+            return $this->derivedMembershipConflict();
+        }
+
+        $sourceCandidate = $bySource->first();
+        $identityCandidate = $byIdentity->first();
+        if ($sourceCandidate !== null
+            && ($sourceCandidate->student_id !== $studentId
+                || $sourceCandidate->classroom_id !== $classroomId
+                || $sourceCandidate->academic_year_id !== $yearId
+                || $this->dateValue($sourceCandidate->effective_from) !== $fields['effective_from'])
+        ) {
+            return $this->derivedMembershipConflict();
+        }
+        if ($sourceCandidate !== null
+            && $identityCandidate !== null
+            && ! $sourceCandidate->is($identityCandidate)
+        ) {
+            return $this->derivedMembershipConflict();
+        }
+
+        /** @var StudentClassMembership|null $candidate */
+        $candidate = $sourceCandidate ?? $identityCandidate;
+        if ($candidate === null) {
+            return $this->derivedMembershipCreateNew();
+        }
+        if ($sourceCandidate === null
+            && ($candidate->master_source !== StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL
+                || $candidate->source_confirmed_at !== null
+                || $candidate->dapodik_id !== null)
+        ) {
+            return $this->derivedMembershipConflict();
+        }
+
+        return [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'decision_candidate_id' => $candidate->getKey(),
+            'decision_target_fingerprint' => $this->targetFingerprint(
+                DapodikSyncPreviewItem::ENTITY_MEMBERSHIP,
+                $candidate,
+            ),
+        ];
+    }
+
+    /** @return array{decision: null, decision_candidate_id: null, decision_target_fingerprint: null} */
+    private function derivedMembershipUnresolved(): array
+    {
+        return [
+            'decision' => null,
+            'decision_candidate_id' => null,
+            'decision_target_fingerprint' => null,
+        ];
+    }
+
+    /** @return array{decision: string, decision_candidate_id: null, decision_target_fingerprint: null} */
+    private function derivedMembershipCreateNew(): array
+    {
+        return [
+            'decision' => DapodikSyncPreviewItem::DECISION_CREATE_NEW,
+            'decision_candidate_id' => null,
+            'decision_target_fingerprint' => null,
+        ];
+    }
+
+    /** @return array{decision: string, decision_candidate_id: null, decision_target_fingerprint: null} */
+    private function derivedMembershipConflict(): array
+    {
+        return [
+            'decision' => DapodikSyncPreviewItem::DECISION_CONFLICT,
+            'decision_candidate_id' => null,
+            'decision_target_fingerprint' => null,
+        ];
     }
 
     /**
@@ -1102,7 +1306,6 @@ final class DapodikReconciliationService
      * @param  array{candidate_id: ?int, match_status: string}|null  $studentMatch
      * @param  array{candidate_id: ?int, match_status: string}|null  $classroomMatch
      * @param  array{candidate_id: ?int, match_status: string}|null  $yearMatch
-     * @param  array<string, mixed>|null  $yearFields
      * @return array{candidate_id: ?int, match_status: string}
      */
     private function classifyMembership(
@@ -1110,11 +1313,16 @@ final class DapodikReconciliationService
         ?array $studentMatch,
         ?array $classroomMatch,
         ?array $yearMatch,
-        ?array $yearFields,
     ): array {
         $bySource = StudentClassMembership::query()->where('dapodik_id', $fields['source_id'])->get();
         if ($bySource->count() > 1) {
             return $this->match(null, DapodikSyncPreviewItem::MATCH_CONFLICT);
+        }
+
+        if (($classroomMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
+            || ($yearMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
+        ) {
+            return $this->match(null, DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING);
         }
 
         $studentId = $studentMatch['candidate_id'] ?? null;
@@ -1128,19 +1336,6 @@ final class DapodikReconciliationService
                 ->where('academic_year_id', $yearId)
                 ->whereDate('effective_from', $fields['effective_from'])
                 ->get();
-        if ($byIdentity->isEmpty()
-            && $studentId !== null
-            && (($classroomMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
-                || ($yearMatch['match_status'] ?? null) === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING)
-        ) {
-            $byIdentity = $this->membershipCandidatesForParentContext(
-                $fields,
-                $studentId,
-                $classroomMatch,
-                $yearMatch,
-                $yearFields,
-            );
-        }
 
         return $this->classifyIdentityCandidate(
             DapodikSyncPreviewItem::ENTITY_MEMBERSHIP,
@@ -1149,104 +1344,6 @@ final class DapodikReconciliationService
             $byIdentity,
             false,
         );
-    }
-
-    /**
-     * @param  array<string, mixed>  $fields
-     * @param  array{candidate_id: ?int, match_status: string}|null  $classroomMatch
-     * @param  array{candidate_id: ?int, match_status: string}|null  $yearMatch
-     * @param  array<string, mixed>|null  $yearFields
-     * @return Collection<int, StudentClassMembership>
-     */
-    private function membershipCandidatesForParentContext(
-        array $fields,
-        int $studentId,
-        ?array $classroomMatch,
-        ?array $yearMatch,
-        ?array $yearFields,
-    ): Collection {
-        $yearIds = $this->candidateYearIds($yearMatch, $yearFields);
-        $classroomYears = $this->candidateClassroomYears($classroomMatch, $yearIds);
-        if ($yearIds === [] || $classroomYears === []) {
-            return new Collection;
-        }
-
-        return StudentClassMembership::query()
-            ->where('student_id', $studentId)
-            ->whereDate('effective_from', $fields['effective_from'])
-            ->whereIn('academic_year_id', $yearIds)
-            ->whereIn('classroom_id', array_keys($classroomYears))
-            ->where('master_source', StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL)
-            ->whereNull('source_confirmed_at')
-            ->whereNull('dapodik_id')
-            ->get()
-            ->filter(
-                fn (StudentClassMembership $membership): bool => ($classroomYears[$membership->classroom_id] ?? null)
-                    === $membership->academic_year_id,
-            )
-            ->values();
-    }
-
-    /**
-     * @param  array{candidate_id: ?int, match_status: string}|null  $yearMatch
-     * @param  array<string, mixed>|null  $yearFields
-     * @return list<int>
-     */
-    private function candidateYearIds(?array $yearMatch, ?array $yearFields): array
-    {
-        $candidateId = $yearMatch['candidate_id'] ?? null;
-        if ($candidateId !== null) {
-            return [$candidateId];
-        }
-        if (($yearMatch['match_status'] ?? null) !== DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
-            || $yearFields === null
-        ) {
-            return [];
-        }
-
-        return AcademicYear::query()
-            ->whereDate('starts_on', $yearFields['starts_on'])
-            ->whereDate('ends_on', $yearFields['ends_on'])
-            ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
-            ->whereNull('source_confirmed_at')
-            ->whereNull('dapodik_id')
-            ->orderBy('id')
-            ->pluck('id')
-            ->all();
-    }
-
-    /**
-     * @param  array{candidate_id: ?int, match_status: string}|null  $classroomMatch
-     * @param  list<int>  $yearIds
-     * @return array<int, int>
-     */
-    private function candidateClassroomYears(
-        ?array $classroomMatch,
-        array $yearIds,
-    ): array {
-        $candidateId = $classroomMatch['candidate_id'] ?? null;
-        if ($candidateId !== null) {
-            return Classroom::query()
-                ->whereKey($candidateId)
-                ->whereIn('academic_year_id', $yearIds)
-                ->pluck('academic_year_id', 'id')
-                ->map(fn (mixed $yearId): int => (int) $yearId)
-                ->all();
-        }
-        if (($classroomMatch['match_status'] ?? null) !== DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
-            || $yearIds === []) {
-            return [];
-        }
-
-        return Classroom::query()
-            ->whereIn('academic_year_id', $yearIds)
-            ->where('master_source', Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL)
-            ->whereNull('source_confirmed_at')
-            ->whereNull('dapodik_id')
-            ->orderBy('id')
-            ->pluck('academic_year_id', 'id')
-            ->map(fn (mixed $yearId): int => (int) $yearId)
-            ->all();
     }
 
     /**

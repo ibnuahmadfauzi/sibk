@@ -505,8 +505,8 @@ class DapodikSyncTest extends TestCase
         $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
         $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
 
-        $this->assertSame($membership->id, $membershipItem->candidate_id);
-        $this->assertSame(DapodikSyncPreviewItem::MATCH_CHANGED, $membershipItem->match_status);
+        $this->assertNull($membershipItem->candidate_id);
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
         app(DapodikReconciliationService::class)->decide($run, $yearItem, [
             'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
             'candidate_id' => $year->id,
@@ -517,6 +517,9 @@ class DapodikSyncTest extends TestCase
             'candidate_id' => $classroom->id,
             'decision_revision' => 0,
         ], $admin);
+        $membershipItem->refresh();
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_MAP_EXISTING, $membershipItem->decision);
+        $this->assertSame($membership->id, $membershipItem->decision_candidate_id);
         $run->refresh();
 
         app(DapodikReconciliationService::class)
@@ -576,7 +579,7 @@ class DapodikSyncTest extends TestCase
         $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
 
         $this->assertNull($membershipItem->candidate_id);
-        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEW, $membershipItem->match_status);
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
         app(DapodikReconciliationService::class)->decide($run, $yearItem, [
             'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
             'candidate_id' => $targetYear->id,
@@ -587,6 +590,9 @@ class DapodikSyncTest extends TestCase
             'candidate_id' => $targetClassroom->id,
             'decision_revision' => 0,
         ], $admin);
+        $membershipItem->refresh();
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_CREATE_NEW, $membershipItem->decision);
+        $this->assertNull($membershipItem->decision_candidate_id);
         $run->refresh();
 
         app(DapodikReconciliationService::class)
@@ -601,7 +607,7 @@ class DapodikSyncTest extends TestCase
         $this->assertDatabaseCount('student_class_memberships', 2);
     }
 
-    public function test_multiple_memberships_matching_snapshot_parent_context_are_conflict(): void
+    public function test_memberships_across_selectable_parent_graphs_are_not_a_premature_conflict(): void
     {
         $admin = $this->userWithRole('admin_it');
         $firstYear = AcademicYear::query()->create([
@@ -645,9 +651,256 @@ class DapodikSyncTest extends TestCase
         $run = app(DapodikSyncService::class)->synchronize($admin);
         $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
 
-        $this->assertSame(DapodikSyncPreviewItem::MATCH_CONFLICT, $membershipItem->match_status);
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
         $this->assertNull($membershipItem->candidate_id);
-        $this->assertSame(1, $run->conflict_count);
+        $this->assertNull($membershipItem->decision);
+        $this->assertSame(0, $run->conflict_count);
+    }
+
+    public function test_membership_resolution_preserves_graph_a_after_parent_decisions(): void
+    {
+        $this->assertMembershipResolutionUsesSelectedGraph('A');
+    }
+
+    public function test_membership_resolution_preserves_graph_b_after_parent_decisions(): void
+    {
+        $this->assertMembershipResolutionUsesSelectedGraph('B');
+    }
+
+    public function test_parent_decision_changes_recompute_membership_resolution(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $fixture = $this->selectableMembershipGraphs(['A', 'B']);
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+        $service = app(DapodikReconciliationService::class);
+
+        $service->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['years']['A']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $service->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['classrooms']['A']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $this->assertSame($fixture['memberships']['A']->id, $membershipItem->refresh()->decision_candidate_id);
+        $firstFingerprint = $membershipItem->decision_target_fingerprint;
+
+        $service->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['years']['B']->id,
+            'decision_revision' => 1,
+        ], $admin);
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_CONFLICT, $membershipItem->refresh()->decision);
+        $this->assertSame(1, $run->refresh()->conflict_count);
+
+        $service->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['classrooms']['B']->id,
+            'decision_revision' => 1,
+        ], $admin);
+        $membershipItem->refresh();
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_MAP_EXISTING, $membershipItem->decision);
+        $this->assertSame($fixture['memberships']['B']->id, $membershipItem->decision_candidate_id);
+        $this->assertNotSame($firstFingerprint, $membershipItem->decision_target_fingerprint);
+        $this->assertSame(0, $run->refresh()->conflict_count);
+    }
+
+    public function test_apply_rejects_drift_in_derived_membership_target(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $fixture = $this->selectableMembershipGraphs(['A']);
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $service = app(DapodikReconciliationService::class);
+
+        $service->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['years']['A']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $service->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['classrooms']['A']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $fixture['memberships']['A']->update(['effective_until' => '2026-12-31']);
+        $run->refresh();
+
+        $this->assertValidationFailure(
+            fn () => $service->apply($run, $admin, $run->decision_revision),
+            'preview',
+        );
+        $this->assertNull($fixture['memberships']['A']->refresh()->dapodik_id);
+    }
+
+    public function test_membership_resolution_ignores_single_candidate_from_unselected_parent_graph(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $fixture = $this->selectableMembershipGraphs(['A']);
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
+        $this->assertNull($membershipItem->candidate_id);
+        $this->assertNull($membershipItem->decision);
+        app(DapodikReconciliationService::class)->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['years']['B']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['classrooms']['B']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $membershipItem->refresh();
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_CREATE_NEW, $membershipItem->decision);
+        $this->assertNull($membershipItem->decision_candidate_id);
+
+        $run->refresh();
+        app(DapodikReconciliationService::class)->apply($run, $admin, $run->decision_revision);
+
+        $created = StudentClassMembership::query()->where('dapodik_id', 'membership-1')->sole();
+        $this->assertNotSame($fixture['memberships']['A']->id, $created->id);
+        $this->assertSame($fixture['years']['B']->id, $created->academic_year_id);
+        $this->assertSame($fixture['classrooms']['B']->id, $created->classroom_id);
+        $this->assertNull($fixture['memberships']['A']->refresh()->dapodik_id);
+        $this->assertDatabaseCount('student_class_memberships', 2);
+    }
+
+    public function test_membership_resolution_supports_selected_parent_with_nullable_period(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = AcademicYear::query()->create([
+            'name' => 'TA Tanpa Periode',
+            'starts_on' => null,
+            'ends_on' => null,
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'Rombel Tanpa Periode',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Nama Persiapan',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $membership = StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-15',
+            'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $snapshot = new DapodikSnapshot(
+            isFullSnapshot: false,
+            academicYears: [[
+                'source_id' => 'year-2026',
+                'name' => 'Tahun Resmi Tanpa Periode',
+                'starts_on' => null,
+                'ends_on' => null,
+            ]],
+            classrooms: [[
+                'source_id' => 'class-1',
+                'academic_year_source_id' => 'year-2026',
+                'name' => 'X RPL 1',
+            ]],
+            students: [[
+                'source_id' => 'student-1',
+                'nisn' => '0012345678',
+                'name' => 'Nama Resmi',
+            ]],
+            memberships: [[
+                'source_id' => 'membership-1',
+                'student_source_id' => 'student-1',
+                'classroom_source_id' => 'class-1',
+                'academic_year_source_id' => 'year-2026',
+                'effective_from' => '2026-07-15',
+            ]],
+            evidence: new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'partial', 1, 4, 512),
+        );
+        $this->bindConfiguredPipeline($snapshot);
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
+        app(DapodikReconciliationService::class)->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $year->id,
+            'decision_revision' => 0,
+        ], $admin);
+        app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $classroom->id,
+            'decision_revision' => 0,
+        ], $admin);
+
+        $this->assertSame($membership->id, $membershipItem->refresh()->decision_candidate_id);
+        $run->refresh();
+        app(DapodikReconciliationService::class)->apply($run, $admin, $run->decision_revision);
+        $this->assertSame('membership-1', $membership->refresh()->dapodik_id);
+        $this->assertNull($year->refresh()->starts_on);
+        $this->assertNull($year->ends_on);
+    }
+
+    public function test_multiple_memberships_inside_selected_parent_graph_fail_closed(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $fixture = $this->selectableMembershipGraphs([]);
+        Schema::table('student_class_memberships', function (Blueprint $table): void {
+            $table->dropUnique('student_class_membership_period_unique');
+        });
+        foreach ([1, 2] as $number) {
+            StudentClassMembership::query()->create([
+                'student_id' => $fixture['student']->id,
+                'classroom_id' => $fixture['classrooms']['A']->id,
+                'academic_year_id' => $fixture['years']['A']->id,
+                'effective_from' => '2026-07-15',
+                'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            ]);
+        }
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
+        app(DapodikReconciliationService::class)->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['years']['A']->id,
+            'decision_revision' => 0,
+        ], $admin);
+        app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['classrooms']['A']->id,
+            'decision_revision' => 0,
+        ], $admin);
+
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_CONFLICT, $membershipItem->refresh()->decision);
+        $this->assertNull($membershipItem->decision_candidate_id);
+        $this->assertSame(1, $run->refresh()->conflict_count);
+        $this->assertValidationFailure(
+            fn () => app(DapodikReconciliationService::class)
+                ->apply($run, $admin, $run->decision_revision),
+            'preview',
+        );
+        $this->assertDatabaseMissing('student_class_memberships', ['dapodik_id' => 'membership-1']);
     }
 
     public function test_manual_year_mapping_rejects_a_candidate_outside_snapshot_period(): void
@@ -1243,7 +1496,13 @@ class DapodikSyncTest extends TestCase
         $this->bindConfiguredPipeline($this->evidencedSnapshot());
         $run = app(DapodikSyncService::class)->synchronize($admin);
 
-        foreach ($run->previewItems()->where('match_status', DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING)->get() as $item) {
+        foreach ($run->previewItems()
+            ->where('match_status', DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING)
+            ->whereIn('entity_type', [
+                DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR,
+                DapodikSyncPreviewItem::ENTITY_CLASSROOM,
+            ])
+            ->get() as $item) {
             app(DapodikReconciliationService::class)->decide($run, $item, [
                 'decision' => DapodikSyncPreviewItem::DECISION_CREATE_NEW,
                 'decision_revision' => $item->decision_revision,
@@ -1766,6 +2025,96 @@ class DapodikSyncTest extends TestCase
             $snapshot->memberships,
             new IntegrationSnapshotEvidence('school-01', 'contract-v1', $isFull ? 'full' : 'partial', 1, 4, 512),
         );
+    }
+
+    private function assertMembershipResolutionUsesSelectedGraph(string $selectedLabel): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $fixture = $this->selectableMembershipGraphs(['A', 'B']);
+        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+        $run = app(DapodikSyncService::class)->synchronize($admin);
+        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
+        $this->assertNull($membershipItem->candidate_id);
+        $this->assertNull($membershipItem->decision);
+        $this->assertSame(0, $run->conflict_count);
+        app(DapodikReconciliationService::class)->decide($run, $yearItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['years'][$selectedLabel]->id,
+            'decision_revision' => 0,
+        ], $admin);
+        $this->assertNull($membershipItem->refresh()->decision);
+        app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
+            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+            'candidate_id' => $fixture['classrooms'][$selectedLabel]->id,
+            'decision_revision' => 0,
+        ], $admin);
+
+        $membershipItem->refresh();
+        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
+        $this->assertNull($membershipItem->candidate_id);
+        $this->assertSame(DapodikSyncPreviewItem::DECISION_MAP_EXISTING, $membershipItem->decision);
+        $this->assertSame($fixture['memberships'][$selectedLabel]->id, $membershipItem->decision_candidate_id);
+        $this->assertNotNull($membershipItem->decision_target_fingerprint);
+        $run->refresh();
+        app(DapodikReconciliationService::class)->apply($run, $admin, $run->decision_revision);
+
+        $otherLabel = $selectedLabel === 'A' ? 'B' : 'A';
+        $this->assertSame('membership-1', $fixture['memberships'][$selectedLabel]->refresh()->dapodik_id);
+        $this->assertNull($fixture['memberships'][$otherLabel]->refresh()->dapodik_id);
+        $this->assertSame(
+            StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            $fixture['memberships'][$otherLabel]->master_source,
+        );
+        $this->assertDatabaseCount('student_class_memberships', 2);
+    }
+
+    /**
+     * @param  list<string>  $membershipLabels
+     * @return array{
+     *     student: Student,
+     *     years: array<string, AcademicYear>,
+     *     classrooms: array<string, Classroom>,
+     *     memberships: array<string, StudentClassMembership>
+     * }
+     */
+    private function selectableMembershipGraphs(array $membershipLabels): array
+    {
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Nama Persiapan',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $years = [];
+        $classrooms = [];
+        $memberships = [];
+        foreach (['A', 'B'] as $label) {
+            $years[$label] = AcademicYear::query()->create([
+                'name' => 'TA Kandidat '.$label,
+                'starts_on' => '2026-07-01',
+                'ends_on' => '2027-06-30',
+                'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            ]);
+            $classrooms[$label] = Classroom::query()->create([
+                'academic_year_id' => $years[$label]->id,
+                'name' => 'Rombel Kandidat '.$label,
+                'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            ]);
+            if (in_array($label, $membershipLabels, true)) {
+                $memberships[$label] = StudentClassMembership::query()->create([
+                    'student_id' => $student->id,
+                    'classroom_id' => $classrooms[$label]->id,
+                    'academic_year_id' => $years[$label]->id,
+                    'effective_from' => '2026-07-15',
+                    'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                ]);
+            }
+        }
+
+        return compact('student', 'years', 'classrooms', 'memberships');
     }
 
     private function admittedValidator(): DapodikSnapshotValidator

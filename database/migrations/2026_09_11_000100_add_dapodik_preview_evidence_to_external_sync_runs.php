@@ -10,19 +10,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('external_sync_runs', function (Blueprint $table): void {
-            $table->json('snapshot_evidence')->nullable();
-            $table->json('deactivation_plan')->nullable();
-        });
+        if (! Schema::hasColumn('external_sync_runs', 'snapshot_evidence')) {
+            Schema::table('external_sync_runs', function (Blueprint $table): void {
+                $table->json('snapshot_evidence')->nullable();
+            });
+        }
+
+        if (! Schema::hasColumn('external_sync_runs', 'deactivation_plan')) {
+            Schema::table('external_sync_runs', function (Blueprint $table): void {
+                $table->json('deactivation_plan')->nullable();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('external_sync_runs', function (Blueprint $table): void {
-            $table->dropColumn([
-                'snapshot_evidence',
-                'deactivation_plan',
-            ]);
-        });
+        // Intentionally conservative: both columns may have been created by the
+        // historically edited fix-base migration, so ownership cannot be proven.
     }
 };
