@@ -65,6 +65,10 @@ final class DapodikSnapshotValidator
         $classroomYears = $this->validateClassrooms($snapshot->classrooms, $yearIds);
         $studentIds = $this->validateStudents($snapshot->students);
         $this->validateMemberships($snapshot->memberships, $yearIds, $classroomYears, $studentIds);
+
+        if ($snapshot->isFullSnapshot && ($yearIds === [] || $studentIds === [])) {
+            throw new IntegrationConfigurationException('contract_invalid');
+        }
     }
 
     private function assertAdmission(): void

@@ -72,7 +72,8 @@
                     <tbody>
                         @foreach($syncRun->previewItems as $item)
                             @php
-                                [$statusLabel, $statusTone] = match($item->match_status) {
+                                $hasDerivedConflict = $item->decision === 'conflict' && $item->match_status !== 'conflict';
+                                [$statusLabel, $statusTone] = $hasDerivedConflict ? ['Konflik', 'danger'] : match($item->match_status) {
                                     'exact_match' => ['Cocok', 'success'],
                                     'new_record' => ['Baru', 'info'],
                                     'changed' => ['Berubah', 'warning'],
@@ -115,6 +116,8 @@
                                         </form>
                                     @elseif($item->match_status === 'conflict')
                                         <span class="text-danger small">Konflik tidak dapat dipaksa melalui halaman ini.</span>
+                                    @elseif($hasDerivedConflict)
+                                        <span class="text-danger small">Konflik turunan pada keanggotaan murid. Periksa pemetaan tahun ajaran dan rombel; hasil belum dapat diterapkan.</span>
                                     @else
                                         <span class="text-muted small">Tidak memerlukan keputusan manual.</span>
                                     @endif

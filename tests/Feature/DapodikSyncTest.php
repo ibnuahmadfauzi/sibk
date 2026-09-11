@@ -116,6 +116,53 @@ class DapodikSyncTest extends TestCase
         }
     }
 
+    public function test_full_snapshot_with_empty_required_collection_is_rejected_before_preview_state_mutation(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $missingFromSnapshot = Student::query()->create([
+            'dapodik_id' => 'student-historical',
+            'nisn' => '0099999999',
+            'name' => 'Murid Dapodik Lama',
+            'is_active' => true,
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+            'source_confirmed_at' => now()->subDay(),
+        ]);
+        $complete = $this->evidencedSnapshot();
+
+        foreach ([
+            'tahun ajaran' => [[], [], $complete->students, []],
+            'murid' => [$complete->academicYears, [], [], []],
+        ] as $collection => [$academicYears, $classrooms, $students, $memberships]) {
+            $snapshot = new DapodikSnapshot(
+                isFullSnapshot: true,
+                academicYears: $academicYears,
+                classrooms: $classrooms,
+                students: $students,
+                memberships: $memberships,
+                evidence: new IntegrationSnapshotEvidence(
+                    'school-01',
+                    'contract-v1',
+                    'full',
+                    1,
+                    count($academicYears) + count($classrooms) + count($students) + count($memberships),
+                    512,
+                ),
+            );
+            $this->bindConfiguredPipeline($snapshot);
+
+            try {
+                app(DapodikSyncService::class)->synchronize($admin);
+                $this->fail(sprintf('Snapshot penuh tanpa %s dapat membuat pratinjau.', $collection));
+            } catch (IntegrationConfigurationException $exception) {
+                $this->assertSame('contract_invalid', $exception->resultCode());
+            }
+
+            $this->assertDatabaseCount('external_sync_runs', 0);
+            $this->assertDatabaseCount('dapodik_sync_preview_items', 0);
+            $this->assertTrue($missingFromSnapshot->refresh()->is_active);
+        }
+    }
+
     public function test_dapodik_audit_failure_leaves_no_running_sync_run(): void
     {
         $admin = $this->userWithRole('admin_it');
@@ -895,6 +942,11 @@ class DapodikSyncTest extends TestCase
         $this->assertSame(DapodikSyncPreviewItem::DECISION_CONFLICT, $membershipItem->refresh()->decision);
         $this->assertNull($membershipItem->decision_candidate_id);
         $this->assertSame(1, $run->refresh()->conflict_count);
+        $this->actingAs($admin)
+            ->get(route('data-master.dapodik.previews.show', $run))
+            ->assertOk()
+            ->assertSee('Konflik turunan pada keanggotaan murid')
+            ->assertSee('type="submit" class="btn btn-primary" disabled', false);
         $this->assertValidationFailure(
             fn () => app(DapodikReconciliationService::class)
                 ->apply($run, $admin, $run->decision_revision),

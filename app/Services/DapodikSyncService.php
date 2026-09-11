@@ -41,18 +41,14 @@ class DapodikSyncService
 
     private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
     {
-        $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
-            'source' => IntegrationSetting::PROVIDER_DAPODIK,
-            'status' => ExternalSyncRun::STATUS_RUNNING,
-            'triggered_by' => $actor?->getKey(),
-            'started_at' => now(),
-        ]));
+        $run = null;
 
         try {
             if (! $this->connector instanceof ConfiguredDapodikConnector) {
                 throw new IntegrationConfigurationException('preview_unavailable');
             }
             $snapshot = $this->connector->fetchSnapshot($context);
+            $run = $this->createRunningRun($context, $actor);
 
             return $this->mutate($context, function () use ($snapshot, $run, $actor, $context): ExternalSyncRun {
                 $currentRun = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
@@ -70,6 +66,12 @@ class DapodikSyncService
                 );
             });
         } catch (Throwable $exception) {
+            if ($run === null
+                && $exception instanceof IntegrationConfigurationException
+                && $exception->resultCode() === 'contract_invalid'
+            ) {
+                throw $exception;
+            }
             if (! $exception instanceof DapodikUnavailableException
                 && ! $exception instanceof IntegrationConfigurationException
             ) {
@@ -82,8 +84,18 @@ class DapodikSyncService
                     ? $exception->getMessage()
                     : 'Sinkronisasi Dapodik gagal. Data lama tetap dipertahankan.');
 
-            return $this->settleFailure($context, $run, $summary, $actor);
+            return $this->settleFailure($context, $run ?? $this->createRunningRun($context, $actor), $summary, $actor);
         }
+    }
+
+    private function createRunningRun(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
+    {
+        return $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
+            'source' => IntegrationSetting::PROVIDER_DAPODIK,
+            'status' => ExternalSyncRun::STATUS_RUNNING,
+            'triggered_by' => $actor?->getKey(),
+            'started_at' => now(),
+        ]));
     }
 
     private function settleFailure(

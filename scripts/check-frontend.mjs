@@ -44,13 +44,27 @@ const assert = (condition, message) => {
     if (!condition) failures.push(message);
 };
 
-const inputReferencesError = (markup, inputId, errorId) => {
-    const describedBy = markup.match(new RegExp(
-        `<input\\b[\\s\\S]*?\\bid="${inputId}"[\\s\\S]*?\\baria-describedby="([^"]*)"`,
-    ))?.[1] ?? '';
+const inputAttribute = (inputTag, attribute) => inputTag.match(new RegExp(
+    `(?:^|\\s)${attribute}\\s*=\\s*"([^"]*)"`,
+    'i',
+))?.[1] ?? '';
 
-    return new RegExp(`\\b${errorId}\\b`).test(describedBy);
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const inputReferencesError = (markup, inputId, errorId) => {
+    const inputTag = (markup.match(/<input\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi) ?? [])
+        .find((tag) => inputAttribute(tag, 'id') === inputId);
+
+    return new RegExp(`(?:^|\\s)${escapeRegExp(errorId)}(?=\\s|$|\\{)`).test(
+        inputAttribute(inputTag ?? '', 'aria-describedby'),
+    );
 };
+
+assert(!inputReferencesError(
+    '<input id="identifier"><input aria-describedby="identifierError">',
+    'identifier',
+    'identifierError',
+), 'Pemeriksa atribut input tidak boleh mencocokkan atribut lintas tag.');
 
 const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package'].includes(key));
 for (const key of bladeKeys) {
