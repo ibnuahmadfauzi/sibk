@@ -25,6 +25,20 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-09-11] Task 12 — Contract Admission, Dokumentasi Operasional, dan Release Gate`
+  - Menetapkan admission gate per provider, aturan adapter fail-closed, panduan deployment Fase A, rotasi `APP_KEY`/`APP_PREVIOUS_KEYS` dan credential sumber, serta alur awam data persiapan sementara sampai pratinjau Dapodik.
+  - Focused acceptance lulus 139 test/1.809 assertion. Release gate lulus 353/353 test PHP dengan 2.736 assertion, Pint, cache konfigurasi/view, frontend checker, build Vite, diff-check, dan cleanup cache. Wrapper `npm.ps1` diblokir execution policy Windows; executable ekuivalen `npm.cmd` lulus.
+  - Migration forward-only lulus pada SQLite (20 migration, run ulang idempotent) dan MySQL disposable `sibk_uji` (18 ran/2 pending menjadi 20 ran/0 pending). Driver production tetap `unavailable`.
+  - Acceptance perilaku memiliki bukti otomatis dan inspeksi lokal. UAT interaktif lokal yang direkam berhasil pada 1440×900, 768×1024, dan 390×844 setelah sign-in Admin IT melalui UI dan navigasi ke Data Master: hierarki, tidak ada overflow horizontal, fokus Tab, panel Dapodik/e-Tatib, serta state tombol disabled terverifikasi. Temuan tombol panel integrasi ponsel setinggi 39 px diperbaiki terbatas menjadi minimum 44 px; frontend checker dan build Vite lulus kembali. Driver production tetap `unavailable`.
+
+- `[x] [2026-09-11] Task 11 — Pratinjau dan Penerapan Dapodik`
+  - Menyelesaikan pratinjau immutable, pemetaan terbatas, apply atomik, penjagaan configuration/policy/fencing/fingerprint/hash/revision/target, perlindungan provenance, dan relink identitas berdasarkan NISN exact tanpa mengubah histori BK.
+  - Focused gate lulus 132 test/874 assertion; suite penuh lulus 353/353 dengan 2.736 assertion, Pint, dan diff-check. Driver production tetap `unavailable`.
+
+- `[x] [2026-09-10] Task 10 — Guarded Connector dan Sinkronisasi Terkunci`
+  - Menyelesaikan configured connector, validasi evidence snapshot, serta operation lock/fencing untuk e-Tatib; POST Dapodik tetap gagal tertutup sampai pratinjau Task 11 tersedia.
+  - Memperbaiki checker frontend agar memverifikasi relasi input–error PG-001 yang dirangkai dinamis oleh Blade; fix round 1 menghapus bypass importer Dapodik, memfencing settlement e-Tatib, dan memperketat validator snapshot. Focused tests 105/105 dan suite penuh 313/313 lulus, bersama Pint, frontend checker, dan diff-check.
+
 - `[x] [2026-08-21] Analisis Hasil dan Pembahasan Penelitian RBAC`
   - Menyusun dokumen analisis berbasis workbook final dataset `2026-08-21.1`, mencakup 41/41 Pass, distribusi 18 Allow dan 23 Deny, serta rekap AUTH-01–AUTH-07.
   - Merumuskan jawaban RQ1 dan RQ2, desain enforcement berlapis, analisis skenario kunci, pembahasan, validitas evidence, keterbatasan, batas klaim, pemetaan tujuan dan lima aspek Projek Kepemimpinan, serta narasi siap adaptasi ke artikel.

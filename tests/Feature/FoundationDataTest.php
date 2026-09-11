@@ -33,7 +33,8 @@ class FoundationDataTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
 
         $this->assertSame(4, Role::query()->count());
-        $this->assertSame(52, ReferenceValue::query()->count());
+        $this->assertSame(53, ReferenceValue::query()->count());
+        $this->assertSame(4, ReferenceValue::query()->forCategory('case_status')->count());
         $this->assertSame(6, ReferenceValue::query()->forCategory('achievement_type')->count());
         $this->assertSame(5, ReferenceValue::query()->forCategory('achievement_level')->count());
         $this->assertSame(3, ReferenceValue::query()->forCategory('achievement_verification_status')->count());
@@ -135,80 +136,149 @@ class FoundationDataTest extends TestCase
         );
     }
 
-    public function test_case_and_etatib_timestamp_changes_use_a_forward_migration(): void
+    public function test_historical_case_and_etatib_migration_preserves_the_original_timestamp_contract(): void
     {
-        $migrationPath = database_path(
-            'migrations/2026_09_10_000100_relax_case_and_etatib_timestamps.php'
-        );
-
-        $this->assertFileExists($migrationPath);
-
+        $connection = 'historical_case_etatib_probe';
         $originalConnection = DB::getDefaultConnection();
+        $this->configureSqliteMigrationProbe($connection);
 
-        config()->set('database.connections.migration_probe', [
+        try {
+            DB::setDefaultConnection($connection);
+            $this->createCaseAndEtatibMigrationParents();
+            $historicalMigration = require database_path(
+                'migrations/2026_08_20_000700_create_case_and_etatib_tables.php',
+            );
+            $historicalMigration->up();
+
+            $tatibColumns = $this->migrationColumns('external_tatib_records');
+            $coordinationColumns = $this->migrationColumns('case_coordinations');
+
+            $this->assertTrue($tatibColumns['occurred_at']['nullable']);
+            $this->assertTrue($this->usesCurrentTimestamp($tatibColumns['synced_at']['default']));
+            $this->assertTrue($coordinationColumns['coordinated_at']['nullable']);
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge($connection);
+        }
+    }
+
+    public function test_case_and_etatib_timestamp_forward_migration_converges_fresh_and_transient_sqlite_schemas(): void
+    {
+        $fresh = $this->timestampMigrationContract('case_etatib_fresh_probe', false);
+        $upgraded = $this->timestampMigrationContract('case_etatib_upgrade_probe', true);
+
+        $this->assertSame($fresh, $upgraded);
+    }
+
+    private function configureSqliteMigrationProbe(string $connection): void
+    {
+        config()->set('database.connections.'.$connection, [
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
             'foreign_key_constraints' => true,
         ]);
+        DB::purge($connection);
+    }
 
-        DB::purge('migration_probe');
+    private function createCaseAndEtatibMigrationParents(): void
+    {
+        Schema::create('users', function (Blueprint $table): void {
+            $table->id();
+        });
+        Schema::create('students', function (Blueprint $table): void {
+            $table->id();
+        });
+        Schema::create('temporary_students', function (Blueprint $table): void {
+            $table->id();
+        });
+        Schema::create('references', function (Blueprint $table): void {
+            $table->id();
+        });
+    }
+
+    private function createTransientCaseAndEtatibTimestampSchema(): void
+    {
+        Schema::create('external_tatib_records', function (Blueprint $table): void {
+            $table->id();
+            $table->string('source_identifier')->unique();
+            $table->string('nisn', 20)->index();
+            $table->foreignId('student_id')->nullable()->constrained()->nullOnDelete();
+            $table->timestamp('occurred_at');
+            $table->string('violation_type', 200);
+            $table->string('category', 100);
+            $table->integer('points')->default(0);
+            $table->string('source_status', 100)->nullable();
+            $table->boolean('is_active')->default(true)->index();
+            $table->timestamp('source_synced_at')->nullable();
+            $table->timestamp('synced_at');
+            $table->timestamps();
+        });
+        Schema::create('cases', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('case_source_id')->constrained('references')->restrictOnDelete();
+            $table->foreignId('service_field_id')->constrained('references')->restrictOnDelete();
+            $table->foreignId('status_id')->constrained('references')->restrictOnDelete();
+            $table->date('service_date');
+            $table->text('initial_info');
+            $table->text('initial_action');
+            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
+            $table->timestamps();
+        });
+        Schema::create('case_coordinations', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('case_id')->constrained('cases')->restrictOnDelete();
+            $table->foreignId('waka_user_id')->constrained('users')->restrictOnDelete();
+            $table->foreignId('status_id')->constrained('references')->restrictOnDelete();
+            $table->text('coordination_need');
+            $table->text('result')->nullable();
+            $table->foreignId('recorded_by')->constrained('users')->restrictOnDelete();
+            $table->timestamp('coordinated_at');
+            $table->timestamps();
+            $table->softDeletes();
+            $table->index(['case_id', 'waka_user_id', 'status_id'], 'case_coordination_access_index');
+        });
+    }
+
+    /** @return array<string, array{name: string, nullable: bool, default: mixed}> */
+    private function migrationColumns(string $table): array
+    {
+        $columns = [];
+        foreach (Schema::getColumns($table) as $column) {
+            $columns[$column['name']] = $column;
+        }
+
+        return $columns;
+    }
+
+    private function usesCurrentTimestamp(mixed $default): bool
+    {
+        return is_string($default)
+            && preg_replace('/[()\\s]/', '', strtoupper($default)) === 'CURRENT_TIMESTAMP';
+    }
+
+    /** @return array<string, mixed> */
+    private function timestampMigrationContract(string $connection, bool $transientTimestampSchema): array
+    {
+        $originalConnection = DB::getDefaultConnection();
+        $this->configureSqliteMigrationProbe($connection);
 
         try {
-            DB::setDefaultConnection('migration_probe');
+            DB::setDefaultConnection($connection);
+            $this->createCaseAndEtatibMigrationParents();
+            if ($transientTimestampSchema) {
+                $this->createTransientCaseAndEtatibTimestampSchema();
+            } else {
+                $historicalMigration = require database_path(
+                    'migrations/2026_08_20_000700_create_case_and_etatib_tables.php',
+                );
+                $historicalMigration->up();
+            }
 
-            /*
-            * Parent tables yang sudah tersedia sebelum migration
-            * 2026_08_20_000700 dijalankan.
-            */
-            Schema::create('users', function (Blueprint $table): void {
-                $table->id();
+            Schema::table('case_coordinations', function (Blueprint $table): void {
+                $table->index('coordination_need', 'case_coordination_custom_probe_index');
             });
-
-            Schema::create('students', function (Blueprint $table): void {
-                $table->id();
-            });
-
-            Schema::create('temporary_students', function (Blueprint $table): void {
-                $table->id();
-            });
-
-            Schema::create('references', function (Blueprint $table): void {
-                $table->id();
-            });
-
-            /*
-            * Jalankan migration historis asli.
-            * Test harus membuktikan upgrade dari schema lama,
-            * bukan dari schema tiruan yang berbeda.
-            */
-            $historicalMigration = require database_path(
-                'migrations/2026_08_20_000700_create_case_and_etatib_tables.php'
-            );
-
-            $historicalMigration->up();
-
-            DB::table('users')->insert([
-                ['id' => 1],
-                ['id' => 2],
-            ]);
-
-            DB::table('references')->insert([
-                ['id' => 1],
-                ['id' => 2],
-                ['id' => 3],
-            ]);
-
-            DB::table('cases')->insert([
-                'id' => 1,
-                'case_source_id' => 1,
-                'service_field_id' => 2,
-                'status_id' => 3,
-                'service_date' => '2026-08-20',
-                'initial_info' => 'Informasi lama.',
-                'initial_action' => 'Tindakan lama.',
-                'created_by' => 1,
-            ]);
+            $this->insertCaseAndEtatibMigrationParents();
 
             DB::table('external_tatib_records')->insert([
                 'id' => 1,
@@ -219,7 +289,6 @@ class FoundationDataTest extends TestCase
                 'category' => 'Disiplin',
                 'synced_at' => '2026-08-20 09:00:00',
             ]);
-
             DB::table('case_coordinations')->insert([
                 'id' => 1,
                 'case_id' => 1,
@@ -230,16 +299,11 @@ class FoundationDataTest extends TestCase
                 'coordinated_at' => '2026-08-20 10:00:00',
             ]);
 
-            /*
-            * Jalankan forward migration baru.
-            */
-            $migration = require $migrationPath;
+            $migration = require database_path(
+                'migrations/2026_09_10_000100_relax_case_and_etatib_timestamps.php',
+            );
             $migration->up();
 
-            /*
-            * Setelah upgrade, occurred_at boleh NULL
-            * dan synced_at memperoleh default waktu saat ini.
-            */
             DB::table('external_tatib_records')->insert([
                 'id' => 2,
                 'source_identifier' => 'new-2',
@@ -248,10 +312,6 @@ class FoundationDataTest extends TestCase
                 'violation_type' => 'Data baru',
                 'category' => 'Disiplin',
             ]);
-
-            /*
-            * coordinated_at juga boleh NULL setelah upgrade.
-            */
             DB::table('case_coordinations')->insert([
                 'id' => 2,
                 'case_id' => 1,
@@ -262,46 +322,84 @@ class FoundationDataTest extends TestCase
                 'coordinated_at' => null,
             ]);
 
-            $newTatib = DB::table('external_tatib_records')
-                ->where('id', 2)
-                ->first();
+            $contract = $this->currentTimestampMigrationContract();
+            $this->assertTrue($contract['custom_index']);
+            $this->assertSame(['cases', 'references', 'users', 'users'], $contract['foreign_tables']);
 
-            $this->assertNull($newTatib->occurred_at);
-            $this->assertNotNull($newTatib->synced_at);
+            $migration->down();
+            $this->assertSame($contract, $this->currentTimestampMigrationContract());
 
-            $this->assertNull(
-                DB::table('case_coordinations')
-                    ->where('id', 2)
-                    ->value('coordinated_at'),
-            );
-
-            /*
-            * Data yang sudah ada sebelum upgrade harus tetap utuh.
-            */
-            $this->assertSame(
-                '2026-08-20 08:00:00',
-                DB::table('external_tatib_records')
-                    ->where('id', 1)
-                    ->value('occurred_at'),
-            );
-
-            $this->assertSame(
-                '2026-08-20 09:00:00',
-                DB::table('external_tatib_records')
-                    ->where('id', 1)
-                    ->value('synced_at'),
-            );
-
-            $this->assertSame(
-                '2026-08-20 10:00:00',
-                DB::table('case_coordinations')
-                    ->where('id', 1)
-                    ->value('coordinated_at'),
-            );
+            return $contract;
         } finally {
             DB::setDefaultConnection($originalConnection);
-            DB::purge('migration_probe');
+            DB::purge($connection);
         }
+    }
+
+    private function insertCaseAndEtatibMigrationParents(): void
+    {
+        DB::table('users')->insert([
+            ['id' => 1],
+            ['id' => 2],
+        ]);
+        DB::table('references')->insert([
+            ['id' => 1],
+            ['id' => 2],
+            ['id' => 3],
+        ]);
+        DB::table('cases')->insert([
+            'id' => 1,
+            'case_source_id' => 1,
+            'service_field_id' => 2,
+            'status_id' => 3,
+            'service_date' => '2026-08-20',
+            'initial_info' => 'Informasi lama.',
+            'initial_action' => 'Tindakan lama.',
+            'created_by' => 1,
+        ]);
+    }
+
+    /** @return array{columns: array<string, bool>, new_values: array<string, bool>, legacy_values: array<string, string>, custom_index: bool, foreign_tables: list<string>} */
+    private function currentTimestampMigrationContract(): array
+    {
+        $tatibColumns = $this->migrationColumns('external_tatib_records');
+        $coordinationColumns = $this->migrationColumns('case_coordinations');
+        $foreignTables = array_map(
+            static fn (array $foreignKey): string => $foreignKey['foreign_table'],
+            Schema::getForeignKeys('case_coordinations'),
+        );
+        sort($foreignTables);
+
+        return [
+            'columns' => [
+                'occurred_at_nullable' => $tatibColumns['occurred_at']['nullable'],
+                'synced_at_uses_current' => $this->usesCurrentTimestamp($tatibColumns['synced_at']['default']),
+                'coordinated_at_nullable' => $coordinationColumns['coordinated_at']['nullable'],
+            ],
+            'new_values' => [
+                'occurred_at_is_null' => DB::table('external_tatib_records')->where('id', 2)->value('occurred_at') === null,
+                'synced_at_is_present' => DB::table('external_tatib_records')->where('id', 2)->value('synced_at') !== null,
+                'coordinated_at_is_null' => DB::table('case_coordinations')->where('id', 2)->value('coordinated_at') === null,
+            ],
+            'legacy_values' => [
+                'occurred_at' => (string) DB::table('external_tatib_records')->where('id', 1)->value('occurred_at'),
+                'synced_at' => (string) DB::table('external_tatib_records')->where('id', 1)->value('synced_at'),
+                'coordinated_at' => (string) DB::table('case_coordinations')->where('id', 1)->value('coordinated_at'),
+            ],
+            'custom_index' => $this->hasMigrationIndex('case_coordinations', 'case_coordination_custom_probe_index'),
+            'foreign_tables' => $foreignTables,
+        ];
+    }
+
+    private function hasMigrationIndex(string $table, string $name): bool
+    {
+        foreach (Schema::getIndexes($table) as $index) {
+            if ($index['name'] === $name) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function test_audit_log_rejects_updates_and_deletes(): void

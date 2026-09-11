@@ -35,6 +35,65 @@ class EtatibSyncService
         );
     }
 
+    public function reconcileStudentLinks(?User $actor = null): int
+    {
+        return $this->operationLock->run(
+            IntegrationSetting::PROVIDER_ETATIB,
+            fn (IntegrationOperationContext $context): int => $this->reconcileStudentLinksLocked($context, $actor),
+        );
+    }
+
+    private function reconcileStudentLinksLocked(IntegrationOperationContext $context, ?User $actor): int
+    {
+        return DB::transaction(function () use ($context, $actor): int {
+            $setting = IntegrationSetting::query()
+                ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            $linked = 0;
+            ExternalTatibRecord::query()
+                ->whereNull('student_id')
+                ->eachById(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
+                    $students = Student::query()
+                        ->where('nisn', $record->nisn)
+                        ->where('master_source', Student::MASTER_SOURCE_DAPODIK)
+                        ->whereNotNull('dapodik_id')
+                        ->whereNotNull('source_confirmed_at')
+                        ->get();
+                    if ($students->count() !== 1) {
+                        return;
+                    }
+
+                    $student = $students->firstOrFail();
+                    $record->update(['student_id' => $student->getKey()]);
+                    ExternalSyncIssue::query()
+                        ->where('entity_type', 'etatib_record')
+                        ->where('source_identifier', $record->source_identifier)
+                        ->whereNull('resolved_at')
+                        ->update([
+                            'resolved_student_id' => $student->getKey(),
+                            'resolved_by' => $actor?->getKey(),
+                            'resolved_at' => now(),
+                        ]);
+                    $this->auditService->record(
+                        action: 'etatib.student_relinked',
+                        auditable: $record,
+                        summary: 'Record e-Tatib ditautkan kembali melalui NISN exact tanpa write-back.',
+                        actor: $actor,
+                        after: ['student_id' => $student->getKey()],
+                    );
+                    $linked++;
+                }, 1000);
+
+            $setting->refresh();
+            $this->operationLock->assertCurrent($context, $setting);
+
+            return $linked;
+        });
+    }
+
     private function synchronizeLocked(IntegrationOperationContext $context, ?User $actor): ExternalSyncRun
     {
         $run = $this->mutate($context, fn (): ExternalSyncRun => ExternalSyncRun::query()->create([
@@ -51,7 +110,7 @@ class EtatibSyncService
                 'received_count' => count($snapshot->records),
             ]));
 
-            $processed = $this->mutate($context, function () use ($snapshot, $run): int {
+            $this->mutate($context, function () use ($snapshot, $run, $actor): void {
                 $syncedAt = now();
                 $processed = 0;
                 $keptIds = [];
@@ -123,21 +182,18 @@ class EtatibSyncService
                     $missing->update(['is_active' => false]);
                 }
 
-                return $processed;
+                $conflicts = $run->issues()->whereNull('resolved_at')->count();
+                $this->finalizeRun(
+                    $run,
+                    $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
+                    $conflicts > 0
+                        ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
+                        : 'Sinkronisasi e-Tatib berhasil.',
+                    $actor,
+                    $processed,
+                    $conflicts,
+                );
             });
-
-            $conflicts = $run->issues()->whereNull('resolved_at')->count();
-            $this->complete(
-                $context,
-                $run,
-                $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
-                $conflicts > 0
-                    ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
-                    : 'Sinkronisasi e-Tatib berhasil.',
-                $actor,
-                $processed,
-                $conflicts,
-            );
         } catch (Throwable $exception) {
             if (! $exception instanceof EtatibUnavailableException
                 && ! $exception instanceof IntegrationConfigurationException
@@ -150,14 +206,48 @@ class EtatibSyncService
                 : ($exception instanceof EtatibUnavailableException
                     ? $exception->getMessage()
                     : 'Sinkronisasi e-Tatib gagal. Data lama tetap dipertahankan.');
-            $this->complete($context, $run, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
+            $this->settleFailure($context, $run, $summary, $actor);
         }
 
         return $run->refresh();
     }
 
-    private function complete(
+    private function settleFailure(
         IntegrationOperationContext $context,
+        ExternalSyncRun $run,
+        string $summary,
+        ?User $actor,
+    ): void {
+        try {
+            $this->mutate($context, function () use ($run, $summary, $actor): void {
+                $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                if ($current->source !== IntegrationSetting::PROVIDER_ETATIB
+                    || $current->status !== ExternalSyncRun::STATUS_RUNNING
+                ) {
+                    return;
+                }
+
+                $this->finalizeRun($current, ExternalSyncRun::STATUS_FAILED, $summary, $actor);
+            });
+        } catch (Throwable) {
+            $this->mutate($context, function () use ($run, $summary): void {
+                $current = ExternalSyncRun::query()->lockForUpdate()->findOrFail($run->getKey());
+                if ($current->source !== IntegrationSetting::PROVIDER_ETATIB
+                    || $current->status !== ExternalSyncRun::STATUS_RUNNING
+                ) {
+                    return;
+                }
+
+                $current->update([
+                    'status' => ExternalSyncRun::STATUS_FAILED,
+                    'summary' => $summary,
+                    'finished_at' => now(),
+                ]);
+            });
+        }
+    }
+
+    private function finalizeRun(
         ExternalSyncRun $run,
         string $status,
         string $summary,
@@ -165,28 +255,26 @@ class EtatibSyncService
         ?int $processed = null,
         ?int $conflicts = null,
     ): void {
-        $this->mutate($context, function () use ($run, $status, $summary, $actor, $processed, $conflicts): void {
-            $run->update(array_filter([
-                'status' => $status,
-                'processed_count' => $processed,
-                'conflict_count' => $conflicts,
-                'summary' => $summary,
-                'finished_at' => now(),
-            ], static fn (mixed $value): bool => $value !== null));
-            $run->refresh();
-            $this->auditService->record(
-                action: 'etatib.sync_completed',
-                auditable: $run,
-                summary: $summary,
-                actor: $actor,
-                after: [
-                    'status' => $run->status,
-                    'received_count' => $run->received_count,
-                    'processed_count' => $run->processed_count,
-                    'conflict_count' => $run->conflict_count,
-                ],
-            );
-        });
+        $run->update(array_filter([
+            'status' => $status,
+            'processed_count' => $processed,
+            'conflict_count' => $conflicts,
+            'summary' => $summary,
+            'finished_at' => now(),
+        ], static fn (mixed $value): bool => $value !== null));
+        $run->refresh();
+        $this->auditService->record(
+            action: 'etatib.sync_completed',
+            auditable: $run,
+            summary: $summary,
+            actor: $actor,
+            after: [
+                'status' => $run->status,
+                'received_count' => $run->received_count,
+                'processed_count' => $run->processed_count,
+                'conflict_count' => $run->conflict_count,
+            ],
+        );
     }
 
     /** @template TResult @param \Closure(): TResult $mutation @return TResult */
@@ -200,6 +288,7 @@ class EtatibSyncService
             $this->operationLock->assertCurrent($context, $setting);
 
             $result = $mutation();
+            $setting->refresh();
             $this->operationLock->assertCurrent($context, $setting);
 
             return $result;

@@ -5,6 +5,16 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });
 
+document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+        const message = form.dataset.confirmMessage;
+
+        if (message && !window.confirm(message)) {
+            event.preventDefault();
+        }
+    });
+});
+
 // ── Magic Sidebar Indicator ──────────────────────────────────────────────────
 // Menciptakan indikator yang meluncur mulus di antara item menu aktif.
 // Efek "cutout": indikator berwarna halaman sehingga terlihat berlubang.
@@ -48,4 +58,3 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
         indicator.style.opacity = '0';
     }
 })();
-

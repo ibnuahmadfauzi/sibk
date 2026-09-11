@@ -54,12 +54,21 @@ final class DapodikSnapshotValidator
             if (! array_is_list($collection)) {
                 throw new IntegrationConfigurationException('contract_invalid');
             }
+            foreach ($collection as $item) {
+                if (! is_array($item)) {
+                    throw new IntegrationConfigurationException('contract_invalid');
+                }
+            }
         }
 
         $yearIds = $this->validateAcademicYears($snapshot->academicYears);
         $classroomYears = $this->validateClassrooms($snapshot->classrooms, $yearIds);
         $studentIds = $this->validateStudents($snapshot->students);
         $this->validateMemberships($snapshot->memberships, $yearIds, $classroomYears, $studentIds);
+
+        if ($snapshot->isFullSnapshot && ($yearIds === [] || $studentIds === [])) {
+            throw new IntegrationConfigurationException('contract_invalid');
+        }
     }
 
     private function assertAdmission(): void
@@ -131,6 +140,13 @@ final class DapodikSnapshotValidator
             }
             $existing = Student::query()->where('dapodik_id', $item['source_id'])->first();
             if ($existing !== null && $existing->nisn !== $item['nisn']) {
+                throw new IntegrationConfigurationException('source_identity_mismatch');
+            }
+            $existingByNisn = Student::query()->where('nisn', $item['nisn'])->first();
+            if ($existingByNisn !== null
+                && $existingByNisn->dapodik_id !== null
+                && $existingByNisn->dapodik_id !== $item['source_id']
+            ) {
                 throw new IntegrationConfigurationException('source_identity_mismatch');
             }
             $this->rememberUnique($ids, $item['source_id']);

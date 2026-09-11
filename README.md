@@ -4,6 +4,22 @@ Repository ini digunakan untuk pengembangan **SIBK (Sistem Informasi Bimbingan d
 
 Dokumen ini berisi panduan dasar untuk melakukan setup repository, berpindah ke branch `development`, serta mengirim perubahan kode ke repository.
 
+## Status Integrasi Fase A
+
+Fondasi konfigurasi Dapodik dan e-Tatib tersedia untuk Admin IT, termasuk alur Simpan → Uji → Aktifkan, penyimpanan credential terenkripsi, audit tersanitasi, dan fallback data persiapan sementara. Driver production kedua provider tetap `unavailable`; repository ini belum memiliki adapter HTTP production dan tidak melakukan request outbound ke provider.
+
+Jangan mengubah driver sebelum kontrak resmi provider lolos [admission gate](docs/integrations/provider-contract-admission.md). Lembar pengumpulan bukti tersedia untuk [Dapodik](docs/integrations/dapodik-contract-discovery.md) dan [e-Tatib](docs/integrations/etatib-contract-discovery.md). Kontrak endpoint internal tercatat pada [API & Service Contract](docs/api-contract.md).
+
+### Ringkasan deployment aman
+
+1. Pertahankan `SIBK_DAPODIK_DRIVER=unavailable` dan `SIBK_ETATIB_DRIVER=unavailable`.
+2. Isi allowlist dengan exact origin resmi per provider; aktifkan jaringan privat hanya untuk origin yang telah disahkan.
+3. Jalankan migration secara forward-only, kemudian `php artisan config:cache` dan `php artisan view:cache`.
+4. Simpan konfigurasi melalui Data Master dengan akun Admin IT. State tetap `blocked` selama adapter belum tersedia, atau `unconfigured` bila konfigurasi belum lengkap.
+5. Verifikasi RBAC, redaksi credential, audit append-only, `Cache-Control: no-store`, security headers, tombol sinkronisasi disabled, dan direct POST yang gagal aman.
+
+Panduan lengkap deployment, rotasi `APP_KEY`/`APP_PREVIOUS_KEYS`, rotasi credential sumber, release gate, serta alur awam penyiapan tahun ajaran sementara ada di dokumen admission gate di atas.
+
 ---
 
 ## 📋 Persyaratan

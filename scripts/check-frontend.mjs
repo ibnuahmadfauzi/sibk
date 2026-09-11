@@ -44,6 +44,28 @@ const assert = (condition, message) => {
     if (!condition) failures.push(message);
 };
 
+const inputAttribute = (inputTag, attribute) => inputTag.match(new RegExp(
+    `(?:^|\\s)${attribute}\\s*=\\s*"([^"]*)"`,
+    'i',
+))?.[1] ?? '';
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const inputReferencesError = (markup, inputId, errorId) => {
+    const inputTag = (markup.match(/<input\b(?:"[^"]*"|'[^']*'|[^'">])*>/gi) ?? [])
+        .find((tag) => inputAttribute(tag, 'id') === inputId);
+
+    return new RegExp(`(?:^|\\s)${escapeRegExp(errorId)}(?=\\s|$|\\{)`).test(
+        inputAttribute(inputTag ?? '', 'aria-describedby'),
+    );
+};
+
+assert(!inputReferencesError(
+    '<input id="identifier"><input aria-describedby="identifierError">',
+    'identifier',
+    'identifierError',
+), 'Pemeriksa atribut input tidak boleh mencocokkan atribut lintas tag.');
+
 const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package'].includes(key));
 for (const key of bladeKeys) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
@@ -55,8 +77,8 @@ assert(contents.login.includes('data-page-id="PG-001"'), 'PG-001 belum dapat dit
 assert(contents.login.includes('name="email"'), 'Field email PG-001 belum mengikuti kontrak autentikasi.');
 assert(contents.login.includes('autocomplete="username"'), 'PG-001 belum menetapkan autocomplete username.');
 assert(contents.login.includes('autocomplete="current-password"'), 'PG-001 belum menetapkan autocomplete kata sandi.');
-assert(contents.login.includes('aria-describedby="identifierError"'), 'Error email PG-001 belum terhubung.');
-assert(contents.login.includes('aria-describedby="passwordError"'), 'Error kata sandi PG-001 belum terhubung.');
+assert(inputReferencesError(contents.login, 'identifier', 'identifierError'), 'Error email PG-001 belum terhubung.');
+assert(inputReferencesError(contents.login, 'password', 'passwordError'), 'Error kata sandi PG-001 belum terhubung.');
 assert(contents.login.includes("route('login.store')"), 'Form PG-001 belum terhubung ke endpoint login.');
 assert(contents.login.includes('@csrf'), 'Form PG-001 belum memiliki perlindungan CSRF.');
 assert(contents.login.includes('id="loginSpinner"'), 'State loading PG-001 belum tersedia.');

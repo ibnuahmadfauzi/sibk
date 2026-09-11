@@ -7,6 +7,7 @@ namespace App\Integrations\Etatib;
 use App\Integrations\IntegrationConfigurationException;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use App\Models\ExternalTatibRecord;
+use DateTimeImmutable;
 
 final class EtatibSnapshotValidator
 {
@@ -63,6 +64,9 @@ final class EtatibSnapshotValidator
 
         $sourceIds = [];
         foreach ($snapshot->records as $item) {
+            if (! is_array($item)) {
+                throw new IntegrationConfigurationException('contract_invalid');
+            }
             $this->assertShape($item);
             if (isset($sourceIds[$item['source_id']])) {
                 throw new IntegrationConfigurationException('source_identity_mismatch');
@@ -73,6 +77,13 @@ final class EtatibSnapshotValidator
                 ->first();
             if ($existing !== null && $existing->nisn !== $item['nisn']) {
                 throw new IntegrationConfigurationException('source_identity_mismatch');
+            }
+            $incomingRevision = $this->normalizedRevision($item['source_synced_at'] ?? null);
+            if ($incomingRevision === null) {
+                throw new IntegrationConfigurationException('contract_invalid');
+            }
+            if ($existing !== null) {
+                $this->validateExistingRecord($item, $existing, $incomingRevision);
             }
         }
     }
@@ -91,7 +102,8 @@ final class EtatibSnapshotValidator
             || array_intersect($this->immutableFields, $this->mutableFields) !== []
             || array_diff(self::FIELDS, $fields) !== []
             || array_diff($fields, self::FIELDS) !== []
-            || ! is_string($this->revisionStrategy) || trim($this->revisionStrategy) === ''
+            || $this->revisionStrategy !== 'source_synced_at_timestamp'
+            || ! in_array('source_synced_at', $this->mutableFields, true)
         ) {
             throw new IntegrationConfigurationException('contract_invalid');
         }
@@ -100,6 +112,73 @@ final class EtatibSnapshotValidator
                 throw new IntegrationConfigurationException('contract_invalid');
             }
         }
+    }
+
+    /** @param array<string, mixed> $item */
+    private function validateExistingRecord(
+        array $item,
+        ExternalTatibRecord $existing,
+        DateTimeImmutable $incomingRevision,
+    ): void {
+        foreach ($this->immutableFields ?? [] as $field) {
+            if (! $this->fieldMatches($field, $item[$field] ?? null, $existing)) {
+                throw new IntegrationConfigurationException('source_identity_mismatch');
+            }
+        }
+
+        $storedRevision = $this->normalizedRevision($existing->getRawOriginal('source_synced_at'));
+        if ($storedRevision === null || $incomingRevision < $storedRevision) {
+            throw new IntegrationConfigurationException('contract_invalid');
+        }
+
+        $mutableChanged = collect($this->mutableFields ?? [])
+            ->reject(static fn (string $field): bool => $field === 'source_synced_at')
+            ->contains(fn (string $field): bool => ! $this->fieldMatches($field, $item[$field] ?? null, $existing));
+        if ($mutableChanged && $incomingRevision <= $storedRevision) {
+            throw new IntegrationConfigurationException('contract_invalid');
+        }
+    }
+
+    private function fieldMatches(string $field, mixed $incoming, ExternalTatibRecord $existing): bool
+    {
+        $stored = $field === 'source_id'
+            ? $existing->source_identifier
+            : $existing->getRawOriginal($field);
+
+        if ($field === 'occurred_at') {
+            $incomingTimestamp = $this->normalizedTimestamp($incoming);
+            $storedTimestamp = $this->normalizedTimestamp($stored);
+
+            return $incomingTimestamp !== null
+                && $storedTimestamp !== null
+                && $incomingTimestamp->getTimestamp() === $storedTimestamp->getTimestamp();
+        }
+        if ($field === 'points') {
+            return is_int($incoming) && $incoming === (int) $stored;
+        }
+
+        return $incoming === $stored;
+    }
+
+    private function normalizedRevision(mixed $value): ?DateTimeImmutable
+    {
+        return $this->normalizedTimestamp($value);
+    }
+
+    private function normalizedTimestamp(mixed $value): ?DateTimeImmutable
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        $timestamp = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value);
+        $errors = DateTimeImmutable::getLastErrors();
+
+        return $timestamp !== false
+            && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))
+            && $timestamp->format('Y-m-d H:i:s') === $value
+                ? $timestamp
+                : null;
     }
 
     /** @param array<string, mixed> $item */

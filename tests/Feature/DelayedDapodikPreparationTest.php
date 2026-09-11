@@ -21,6 +21,7 @@ use App\Services\AchievementService;
 use App\Services\CaseService;
 use App\Services\ConsultationService;
 use App\Services\ProvisionalRosterCsvParser;
+use App\Services\StudentIdentityService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -188,6 +189,293 @@ class DelayedDapodikPreparationTest extends TestCase
         } finally {
             DB::setDefaultConnection($originalConnection);
             DB::purge('migration_probe');
+        }
+    }
+
+    #[Test]
+    public function dapodik_preview_evidence_forward_migration_upgrades_original_preview_schema(): void
+    {
+        $originalConnection = DB::getDefaultConnection();
+        config()->set('database.connections.migration_preview_upgrade_probe', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
+        DB::purge('migration_preview_upgrade_probe');
+
+        try {
+            DB::setDefaultConnection('migration_preview_upgrade_probe');
+            $schema = Schema::connection('migration_preview_upgrade_probe');
+            $schema->create('users', function (Blueprint $table): void {
+                $table->id();
+            });
+            $schema->create('external_sync_runs', function (Blueprint $table): void {
+                $table->id();
+                $table->string('source');
+                $table->string('status');
+                $table->string('snapshot_fingerprint', 64)->nullable();
+                $table->unsignedInteger('preview_generation')->nullable();
+                $table->unsignedInteger('decision_revision')->default(0);
+                $table->timestamps();
+            });
+            $schema->create('dapodik_sync_preview_items', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('external_sync_run_id')->constrained()->cascadeOnDelete();
+                $table->string('entity_type', 30);
+                $table->string('source_identifier', 100);
+                $table->string('match_status', 30);
+                $table->json('safe_fields');
+                $table->string('item_hash', 64);
+                $table->unsignedInteger('preview_generation');
+                $table->unsignedInteger('decision_revision')->default(0);
+                $table->timestamps();
+            });
+            $this->assertFalse($schema->hasColumn('external_sync_runs', 'snapshot_evidence'));
+            $this->assertFalse($schema->hasColumn('external_sync_runs', 'deactivation_plan'));
+
+            $migrationPath = database_path(
+                'migrations/2026_09_11_000100_add_dapodik_preview_evidence_to_external_sync_runs.php',
+            );
+            $this->assertFileExists($migrationPath);
+            $migration = require $migrationPath;
+            $migration->up();
+
+            $this->assertTrue($schema->hasColumns('external_sync_runs', [
+                'snapshot_evidence',
+                'deactivation_plan',
+            ]));
+            $runId = DB::table('external_sync_runs')->insertGetId([
+                'source' => 'dapodik',
+                'status' => 'preview_ready',
+                'snapshot_fingerprint' => str_repeat('a', 64),
+                'snapshot_evidence' => json_encode(['completeness_marker' => 'partial'], JSON_THROW_ON_ERROR),
+                'deactivation_plan' => json_encode([], JSON_THROW_ON_ERROR),
+                'preview_generation' => 1,
+                'decision_revision' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('dapodik_sync_preview_items')->insert([
+                'external_sync_run_id' => $runId,
+                'entity_type' => 'student',
+                'source_identifier' => 'student-1',
+                'match_status' => 'new_record',
+                'safe_fields' => json_encode(['nisn' => '0012345678'], JSON_THROW_ON_ERROR),
+                'item_hash' => str_repeat('b', 64),
+                'preview_generation' => 1,
+                'decision_revision' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->assertSame('partial', json_decode(
+                DB::table('external_sync_runs')->where('id', $runId)->value('snapshot_evidence'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            )['completeness_marker']);
+            $this->assertSame(1, DB::table('dapodik_sync_preview_items')->count());
+
+            $migration->down();
+            $this->assertTrue($schema->hasColumn('external_sync_runs', 'snapshot_evidence'));
+            $this->assertTrue($schema->hasColumn('external_sync_runs', 'deactivation_plan'));
+            $this->assertSame('partial', json_decode(
+                DB::table('external_sync_runs')->where('id', $runId)->value('snapshot_evidence'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            )['completeness_marker']);
+            $this->assertSame(1, DB::table('dapodik_sync_preview_items')->count());
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge('migration_preview_upgrade_probe');
+        }
+    }
+
+    #[Test]
+    public function dapodik_preview_evidence_forward_migration_is_safe_when_fix_base_already_has_both_columns(): void
+    {
+        $originalConnection = DB::getDefaultConnection();
+        config()->set('database.connections.migration_preview_fix_base_probe', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
+        DB::purge('migration_preview_fix_base_probe');
+
+        try {
+            DB::setDefaultConnection('migration_preview_fix_base_probe');
+            $schema = Schema::connection('migration_preview_fix_base_probe');
+            $schema->create('external_sync_runs', function (Blueprint $table): void {
+                $table->id();
+                $table->json('snapshot_evidence')->nullable();
+                $table->json('deactivation_plan')->nullable();
+            });
+            $runId = DB::table('external_sync_runs')->insertGetId([
+                'snapshot_evidence' => json_encode(['sentinel' => 'fix-base'], JSON_THROW_ON_ERROR),
+                'deactivation_plan' => json_encode([['entity_type' => 'student']], JSON_THROW_ON_ERROR),
+            ]);
+            $migration = require database_path(
+                'migrations/2026_09_11_000100_add_dapodik_preview_evidence_to_external_sync_runs.php',
+            );
+
+            try {
+                $migration->up();
+            } catch (\Throwable $exception) {
+                $this->fail('Forward migration harus no-op pada schema fix-base: '.$exception->getMessage());
+            }
+
+            $this->assertSame(
+                ['sentinel' => 'fix-base'],
+                json_decode(
+                    DB::table('external_sync_runs')->where('id', $runId)->value('snapshot_evidence'),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                ),
+            );
+            $migration->down();
+            $this->assertTrue($schema->hasColumn('external_sync_runs', 'snapshot_evidence'));
+            $this->assertTrue($schema->hasColumn('external_sync_runs', 'deactivation_plan'));
+            $this->assertSame(
+                [['entity_type' => 'student']],
+                json_decode(
+                    DB::table('external_sync_runs')->where('id', $runId)->value('deactivation_plan'),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                ),
+            );
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge('migration_preview_fix_base_probe');
+        }
+    }
+
+    #[Test]
+    public function dapodik_preview_evidence_forward_migration_adds_only_the_missing_column(): void
+    {
+        $originalConnection = DB::getDefaultConnection();
+        config()->set('database.connections.migration_preview_partial_probe', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
+        DB::purge('migration_preview_partial_probe');
+
+        try {
+            DB::setDefaultConnection('migration_preview_partial_probe');
+            $schema = Schema::connection('migration_preview_partial_probe');
+            $schema->create('external_sync_runs', function (Blueprint $table): void {
+                $table->id();
+                $table->json('snapshot_evidence')->nullable();
+            });
+            $runId = DB::table('external_sync_runs')->insertGetId([
+                'snapshot_evidence' => json_encode(['sentinel' => 'partial'], JSON_THROW_ON_ERROR),
+            ]);
+            $migration = require database_path(
+                'migrations/2026_09_11_000100_add_dapodik_preview_evidence_to_external_sync_runs.php',
+            );
+
+            try {
+                $migration->up();
+            } catch (\Throwable $exception) {
+                $this->fail('Forward migration harus menambah hanya kolom yang hilang: '.$exception->getMessage());
+            }
+
+            $this->assertTrue($schema->hasColumns('external_sync_runs', [
+                'snapshot_evidence',
+                'deactivation_plan',
+            ]));
+            $this->assertSame(
+                ['sentinel' => 'partial'],
+                json_decode(
+                    DB::table('external_sync_runs')->where('id', $runId)->value('snapshot_evidence'),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                ),
+            );
+            $migration->down();
+            $this->assertTrue($schema->hasColumn('external_sync_runs', 'snapshot_evidence'));
+            $this->assertTrue($schema->hasColumn('external_sync_runs', 'deactivation_plan'));
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge('migration_preview_partial_probe');
+        }
+    }
+
+    #[Test]
+    public function dapodik_preview_migration_applies_after_provenance_and_before_timestamp_relaxation(): void
+    {
+        $originalConnection = DB::getDefaultConnection();
+        config()->set('database.connections.migration_preview_probe', [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ]);
+        DB::purge('migration_preview_probe');
+
+        try {
+            DB::setDefaultConnection('migration_preview_probe');
+            $schema = Schema::connection('migration_preview_probe');
+            $schema->create('users', function (Blueprint $table): void {
+                $table->id();
+            });
+            $schema->create('external_sync_runs', function (Blueprint $table): void {
+                $table->id();
+                $table->string('source');
+                $table->string('status');
+                $table->timestamps();
+            });
+
+            $migration = require database_path('migrations/2026_09_09_000200_create_dapodik_sync_preview_items.php');
+            $migration->up();
+            $this->assertFalse($schema->hasColumn('external_sync_runs', 'snapshot_evidence'));
+            $this->assertFalse($schema->hasColumn('external_sync_runs', 'deactivation_plan'));
+
+            $evidenceMigration = require database_path(
+                'migrations/2026_09_11_000100_add_dapodik_preview_evidence_to_external_sync_runs.php',
+            );
+            $evidenceMigration->up();
+
+            $this->assertTrue($schema->hasColumns('external_sync_runs', [
+                'snapshot_fingerprint',
+                'snapshot_evidence',
+                'deactivation_plan',
+                'preview_generation',
+                'decision_revision',
+                'configuration_version',
+                'preview_fencing_token',
+                'endpoint_policy_digest',
+                'preview_expires_at',
+                'applied_at',
+                'superseded_at',
+            ]));
+            $this->assertTrue($schema->hasTable('dapodik_sync_preview_items'));
+
+            $runId = DB::table('external_sync_runs')->insertGetId([
+                'source' => 'dapodik',
+                'status' => 'preview_ready',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            DB::table('dapodik_sync_preview_items')->insert([
+                'external_sync_run_id' => $runId,
+                'entity_type' => 'student',
+                'source_identifier' => 'student-1',
+                'match_status' => 'new_record',
+                'safe_fields' => json_encode(['nisn' => '0012345678'], JSON_THROW_ON_ERROR),
+                'item_hash' => str_repeat('a', 64),
+                'preview_generation' => 1,
+                'decision_revision' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->assertSame(1, DB::table('dapodik_sync_preview_items')->count());
+        } finally {
+            DB::setDefaultConnection($originalConnection);
+            DB::purge('migration_preview_probe');
         }
     }
 
@@ -642,6 +930,36 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertSame('0012345678 ', $legacyStudent->refresh()->nisn);
         $this->assertDatabaseCount('students', 1);
         $this->assertDatabaseCount('student_class_memberships', 0);
+    }
+
+    #[Test]
+    public function temporary_identity_distinguishes_unverified_provisional_data_from_a_missing_nisn(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $service = app(StudentIdentityService::class);
+        $temporary = $service->createTemporary('0012345678', 'Nama Masukan', $teacher);
+
+        $missing = $service->reconcile($temporary, $teacher);
+        $this->assertStringContainsString('NISN tidak ditemukan', $missing->result);
+        $this->assertNull($temporary->refresh()->reconciled_student_id);
+
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Nama Persiapan',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $unverified = $service->reconcile($temporary, $teacher);
+        $this->assertStringContainsString('belum terverifikasi Dapodik', $unverified->result);
+        $this->assertNull($temporary->refresh()->reconciled_student_id);
+
+        $student->update([
+            'dapodik_id' => 'student-official',
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+            'source_confirmed_at' => now(),
+        ]);
+        $verified = $service->reconcile($temporary, $teacher);
+        $this->assertStringContainsString('berhasil ditautkan', $verified->result);
+        $this->assertSame($student->id, $temporary->refresh()->reconciled_student_id);
     }
 
     #[Test]
