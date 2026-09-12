@@ -16,7 +16,7 @@
         </ul>
 
         @if($activeTab === 'kasus')
-            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
+            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="kasus">
                 <div class="col-12 col-md-3"><label class="form-label" for="case_search">Cari kasus</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nomor kasus atau nama murid"></div>
                 <div class="col-12 col-md-2"><label class="form-label" for="case_class">Kelas</label><select class="form-select" id="case_class" name="classroom_id"><option value="">Semua kelas</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected((string) request('classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>
@@ -79,7 +79,7 @@
                 @empty<tr><td colspan="8" class="text-center text-muted py-4">Belum ada kasus yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
         @else
-            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
+            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="konsultasi">
                 <div class="col-12 col-lg-3"><label class="form-label" for="consultation_search">Cari sesi</label><input class="form-control" id="consultation_search" name="search" value="{{ request('search') }}" placeholder="Nomor, nama, NISN, atau topik"></div>
                 <div class="col-6 col-lg-2"><label class="form-label" for="consultation_class">Kelas</label><select class="form-select" id="consultation_class" name="classroom_id"><option value="">Semua kelas</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected((string) request('classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>

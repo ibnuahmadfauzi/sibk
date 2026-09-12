@@ -572,6 +572,12 @@ small, .small {
   }
 }
 
+.form-select,
+.sibk-form-select {
+  padding-right: 2.25rem !important;
+  background-position: right 0.75rem center !important;
+}
+
 .input-group {
   background-color: var(--sibk-color-field) !important;
   border: 1px solid var(--sibk-color-border-light) !important;
@@ -2221,25 +2227,50 @@ small, .small {
 // ==========================================================================
 
 .sibk-filter-form {
-  .sibk-form-label {
-    font-size: 0.85rem;
-    font-weight: 700;
+  .sibk-form-label,
+  .form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
     color: var(--sibk-color-text-dark);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
   }
 
   .sibk-form-control,
-  .sibk-form-select {
+  .sibk-form-select,
+  .form-control,
+  .form-select {
     background-color: var(--sibk-color-surface);
     border: 1px solid var(--sibk-color-border-light);
-    font-size: 0.9rem;
-    padding: 0.65rem 1rem;
+    font-size: 0.8125rem !important;
+    padding: 0.45rem 0.65rem !important;
     border-radius: var(--sibk-radius-md);
+    min-height: 38px;
+
+    &::placeholder {
+      font-size: 0.8125rem;
+    }
 
     &:focus {
       border-color: var(--sibk-color-primary-soft);
       box-shadow: 0 0 0 0.2rem rgba(64, 114, 178, 0.15);
     }
+  }
+
+  .form-select,
+  .sibk-form-select {
+    padding-right: 1.85rem !important;
+    background-position: right 0.6rem center !important;
+    background-size: 13px 9px !important;
+    text-overflow: ellipsis;
+  }
+
+  .btn {
+    font-size: 0.8125rem;
+    padding: 0.45rem 0.75rem;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
