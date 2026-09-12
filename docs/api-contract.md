@@ -14,6 +14,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - `selesai` dan `dibatalkan` adalah status terminal. Mutasi biasa ditolak oleh policy dan service; perubahan sesudahnya hanya melalui koreksi operasional terverifikasi.
 - Kode registrasi kasus tetap dibuat dan disimpan backend, tetapi tidak menjadi field response/view pengguna, parameter pencarian pengguna, kolom laporan/CSV, teks notifikasi, atau ringkasan audit yang terlihat pengguna.
 - Data master memuat seluruh murid aktif beserta penempatan tahun ajarannya. Kasus/konsultasi hanya dibuat ketika pelayanan benar-benar terjadi.
+- `cases.waka_summary` adalah satu-satunya narasi kasus yang boleh masuk proyeksi seluruh kasus untuk Waka. Nilai opsional pada status `baru`, wajib saat status mulai diproses, maksimal 500 karakter, ditulis pemilik aktif tanpa approval tambahan, dan terkunci bersama status terminal.
 - Route baru lifecycle pelayanan dimiliki `routes/bk-services.php`; route portal Waka dimiliki `routes/waka.php`. Keduanya dimuat di dalam middleware `auth` dan `account.active`.
 - Jalur B memakai nama route `cases.edit` untuk `GET /cases/{case}/edit` dan `cases.update` untuk `PATCH /cases/{case}`.
 - Jalur C memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases` dan `waka.monitoring.handling` untuk `GET /waka/handling-reports`.
@@ -84,6 +85,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
   - `service_date` (required, date)
   - `initial_info` (required, string)
   - `initial_action` (required, string)
+  - `waka_summary` (nullable pada status awal, string, max:500)
   - `internal_note` (nullable, string)
   - `etatib_record_ids[]` (opsional; wajib untuk sumber e-Tatib dan harus sesuai NISN)
 - **Business Logic:** `CaseService::createCase()`
@@ -97,7 +99,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Endpoint:** `GET /cases/{case}/edit`, `PATCH /cases/{case}`.
 - **Controller:** `CaseController@edit`, `CaseController@update`.
 - **Form Request:** `UpdateCaseRequest`.
-- **Field:** `status_id` nonterminal, `service_date`, `service_field_id`, `referral_source`, `initial_info`, `initial_action`, dan `internal_note`.
+- **Field:** `status_id` nonterminal, `service_date`, `service_field_id`, `referral_source`, `initial_info`, `initial_action`, `waka_summary`, dan `internal_note`.
 - **Field tetap:** murid/identitas sementara, kode internal, sumber kasus, serta tautan e-Tatib tidak dapat diubah melalui form ini.
 - **Authorization:** hanya Guru BK pemilik aktif dan hanya ketika status kasus belum terminal. Koordinator mengatur penugasan tetapi tidak mengubah catatan profesional.
 - **Koreksi:** kasus `selesai` atau `dibatalkan` menolak endpoint ini dan memakai alur koreksi terverifikasi.
@@ -203,7 +205,9 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 ### Aktivasi Operasional Tahun Ajaran
 - **Endpoint:** `POST /assignments/academic-years/{academicYear}/activate`.
 - **Authorization:** hanya Koordinator BK aktif.
-- **Business Logic:** `AcademicYearPreparationService::activate()` memeriksa tahun, rombel, murid aktif, tepat satu penugasan Guru BK per rombel yang mencakup tanggal mulai, dan memastikan tanggal mulai telah tiba. Tahun lengkap sebelum tanggal mulai berstatus `scheduled`; direct request aktivasi ditolak. Aktivasi yang sah menutup tahun ajaran aktif sebelumnya tanpa menghapus histori atau mengubah `master_source`.
+- **Blocking readiness:** target belum aktif; `starts_on`/`ends_on` valid dan tanggal sekarang berada di dalam periode; minimal satu rombel aktif; setiap rombel aktif mempunyai minimal satu keanggotaan murid aktif; setiap murid hanya mempunyai satu keanggotaan aktif pada tahun target; serta setiap rombel mempunyai tepat satu Guru BK aktif yang penugasannya mencakup tanggal mulai.
+- **Warning nonblocking:** murid **Perlu Konfirmasi**, `master_source=school_provisional`, dan identitas sementara yang menunggu rekonsiliasi tidak menggagalkan aktivasi.
+- **Business Logic:** `AcademicYearPreparationService::activate()` memakai pemeriksaan blocking yang sama dengan `activationReadiness()`. Tahun lengkap sebelum tanggal mulai berstatus `scheduled`; direct request aktivasi ditolak. Aktivasi yang sah menutup tahun ajaran aktif sebelumnya tanpa menghapus histori atau mengubah `master_source`.
 - **Batas provider:** nilai tahun aktif dari Dapodik tidak pernah mengaktifkan atau mengganti tahun ajaran Ruang BK.
 
 ### Pengalihan / Penugasan Kasus Khusus
@@ -211,7 +215,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Controller:** `AssignmentController@assignCase`
 - **Authorization:** `Koordinator BK` only.
 - **Request:** `assignment_type=transfer`, `to_user_id`, `reason`, `effective_date`.
-- **Business Logic:** `AssignmentService::assignCase()` menutup histori pemilik lama saat transfer dan membuat satu pemilik aktif baru. Assignment `additional` lama dipertahankan sebagai histori/akses baca tetapi tidak dapat mengubah kasus dan tidak dibuat lagi. Target wajib Guru BK aktif dan kasus terminal tidak dapat dialihkan.
+- **Business Logic:** `AssignmentService::assignCase()` menjalankan pengalihan dalam satu transaksi: lock kasus; tolak status terminal; lock seluruh assignment owner; pastikan satu owner aktif pada tanggal berlaku; tutup owner lama satu hari sebelum tanggal berlaku; buat satu owner baru; lalu tulis audit dan notifikasi. Kegagalan tahap mana pun me-rollback seluruh perubahan. Assignment `additional` lama dipertahankan sebagai histori/akses baca tetapi tidak dapat mengubah kasus dan tidak dibuat lagi. Target wajib Guru BK aktif.
 
 ---
 
@@ -286,7 +290,10 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 ### Identitas Murid Sementara
 - **Endpoint:** tidak memiliki endpoint mandiri; dibuat sebagai bagian dari `POST /cases` bila murid belum tersedia pada cache Dapodik.
 - **Service:** `StudentIdentityService::createTemporary()` dan `StudentIdentityService::reconcilePending()`.
-- **Aturan:** hanya NISN dan nama masukan yang disimpan; kecocokan memakai NISN, nama resmi berasal dari Dapodik, dan nilai awal dipertahankan dalam histori/audit.
+- **Aturan pencatatan:** bila NISN sudah ada pada master, identitas sementara ditolak dan Guru BK harus memilih murid master. Hanya NISN dan nama masukan yang disimpan.
+- **Aturan nama:** perbedaan nama saja tidak membuat identitas baru. Setelah tersedia tepat satu murid Dapodik terverifikasi dengan NISN sama, identitas sementara ditautkan ke murid tersebut, nama resmi dipakai, dan nama masukan tetap berada pada histori/audit.
+- **Konflik:** beberapa identitas sementara dengan NISN sama tetapi nama berbeda sebelum data resmi tersedia, lebih dari satu kandidat lokal, atau pertentangan `dapodik_id` dan NISN menghasilkan `ditahan_konflik`. Tidak ada relasi yang diubah otomatis; Admin IT menyelesaikan berdasarkan sumber resmi.
+- **Atomicity:** rekonsiliasi mengunci identitas sementara, kandidat murid, dan issue sumber yang relevan dalam satu transaksi agar impor dan rekonsiliasi bersamaan tidak menghasilkan tautan ganda.
 
 ### Ajukan Koreksi
 - **Endpoint:** `GET /corrections`, `GET /corrections/create`, `POST /corrections`, dan `GET /corrections/{correction}`.
@@ -356,9 +363,13 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Form Request:** `WakaMonitoringRequest`.
 - **Authorization:** hanya Waka Kesiswaan aktif melalui policy khusus; seluruh response hanya-baca dan akses dicatat pada audit.
 - **Query Params:** `period` (`YYYY-MM`), `status`, `sort`, `direction`, dan `page` sesuai allowlist kontrak bersama.
-- **Field aman:** nama murid, kelas historis, bidang layanan, status, Guru BK penanggung jawab, tanggal pelayanan, ringkasan tindakan yang disahkan, tindak lanjut berikutnya, dan hasil akhir.
+- **Field aman:** nama murid, kelas historis, bidang layanan, status, Guru BK penanggung jawab, tanggal pelayanan, `waka_summary`, serta jenis/tanggal tindak lanjut berikutnya. Pada kasus terminal, `waka_summary` memuat hasil umum yang sudah diringkas pemilik aktif.
 - **Field terlarang:** NISN, kode kasus, informasi awal sensitif, catatan internal, isi konsultasi, catatan pribadi konselor, dokumen sensitif, dan narasi di luar allowlist.
 - **Detail:** baris kasus nonterkoordinasi tidak memiliki tautan detail; direct request ke detail tetap `403`.
+- **Audit pembacaan:** setiap response sukses mencatat `waka.monitoring.viewed` dengan actor, waktu, mode halaman, parameter `period/status/sort/direction/page` yang sudah dinormalisasi, jumlah hasil halaman, IP, dan user agent.
+- **Audit ekspor:** setiap dataset ekspor yang berhasil disiapkan mencatat `waka.monitoring.exported` dengan actor, waktu, parameter tervalidasi, format, jumlah baris, IP, dan user agent sebelum response stream dikirim.
+- **Audit detail:** detail kasus terkoordinasi tetap memakai `case.viewed_by_waka`.
+- **Data terlarang pada audit:** nama/NISN murid, kode kasus, `waka_summary`, dan narasi pelayanan tidak boleh masuk summary maupun before/after audit. Audit bersifat append-only dan disimpan minimum tiga tahun.
 
 ### Pusat, Pratinjau, dan Ekspor Laporan
 - **Endpoint:** `GET /reports`, `GET /reports/preview`, dan `GET /reports/export`.

@@ -169,6 +169,7 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Aktivasi operasional | Koordinator BK mengaktifkan tahun ajaran hanya setelah data dan penugasan lengkap serta tanggal mulai telah tiba. Sebelum tanggal mulai, tahun lengkap berstatus siap tetapi belum dapat diaktifkan. Guru BK memperoleh scope murid berdasarkan tahun ajaran aktif dan penugasan, terlepas dari asal data. Provider tidak dapat mengubah status aktif. |
 | Pergantian tahun ajaran | Sistem tidak menaikkan kelas atau menetapkan status akademik otomatis. Impor daftar target membuat histori penempatan baru berdasarkan NISN exact; murid lama tanpa penempatan target hanya ditandai **Perlu Konfirmasi** secara read-only dan tidak memblokir aktivasi keseluruhan. |
 | Pratinjau pencocokan | Tarik Dapodik hanya menyiapkan hasil cocok, baru, berubah, dan konflik. Cache operasional berubah setelah konfirmasi Admin IT; pencocokan otomatis murid hanya melalui NISN exact. |
+| Konflik identitas sementara | NISN exact tetap menjadi kunci. Nama berbeda tidak membuat murid baru; konflik kandidat NISN/identitas sumber ditahan untuk Admin IT dan tidak mengubah relasi sampai data resmi memastikan target. |
 | Alur koneksi        | Admin IT mengelola konfigurasi melalui PG-501 dengan urutan Simpan, Uji, lalu Aktifkan; perubahan material membatalkan verifikasi dan menonaktifkan koneksi. |
 | Pemrosesan integrasi | Browser hanya mengirim konfigurasi dan trigger; fetch, mapping, validasi snapshot, dan penyimpanan dilakukan backend secara server-to-server. |
 | Credential sumber  | Credential provider wajib least-privilege/read-only, disimpan terenkripsi, tidak ditampilkan kembali, dan tidak masuk response, session, audit, atau log. |
@@ -185,10 +186,11 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Histori murid       | Guru BK dengan scope aktif dapat membaca histori layanan/konsultasi murid lintas kelas dan pergantian guru, tetapi tidak mengubah catatan lama. |
 | Pelayanan BK        | Kasus dan konsultasi memakai status **Baru dicatat**, **Sedang diproses**, **Membutuhkan tindak lanjut**, **Selesai**, atau **Dibatalkan**. Catatan selesai/dibatalkan terkunci dan hanya dapat diperbaiki melalui koreksi terverifikasi. |
 | Kode kasus          | Kode kasus tetap dibuat untuk kebutuhan internal, relasi, audit teknis, dan integritas data, tetapi tidak ditampilkan pada UI, pencarian pengguna, laporan, ekspor, dashboard, notifikasi, atau audit yang terlihat pengguna. |
+| Ringkasan untuk Waka | Penanggung jawab aktif menulis satu ringkasan penanganan yang singkat dan aman. Ringkasan tidak memerlukan persetujuan Koordinator, wajib setelah kasus mulai diproses, dan terkunci bersama kasus terminal. |
 | Koordinasi Waka     | Waka membaca proyeksi aman seluruh kasus; detail hanya tersedia setelah koordinasi dicatat. Koordinasi dilakukan di luar aplikasi dan Guru BK/Koordinator hanya mencatat tanggal, pihak, ringkasan hasil, serta tindak lanjut yang disepakati. |
-| Penugasan           | Setiap kasus memiliki satu penanggung jawab aktif. Perubahan menyimpan tanggal efektif dan dasar keputusan; kasus aktif tidak berpindah otomatis akibat pergantian kelas atau tahun ajaran. |
+| Penugasan           | Setiap kasus memiliki satu penanggung jawab aktif. Pengalihan menutup pemilik lama dan membuka pemilik baru secara atomik dalam satu transaksi; perubahan menyimpan tanggal efektif dan dasar keputusan. Kasus aktif tidak berpindah otomatis akibat pergantian kelas atau tahun ajaran. |
 | Koreksi             | Koordinator memverifikasi koreksi operasional catatan pelayanan. Koreksi data master dikoordinasikan dengan Admin IT di luar aplikasi dan diproses pada sumber resmi; fitur laporan koreksi master baru tidak dibuat pada MVP. |
-| Audit               | Perubahan status, hasil akhir, penugasan, koordinasi, kewenangan, akun, koreksi, dan rekonsiliasi dicatat otomatis.                             |
+| Audit               | Perubahan penting serta pembacaan/ekspor portal Waka dicatat otomatis tanpa menyalin identitas murid atau narasi sensitif ke audit.             |
 | Retensi             | Kasus, layanan, konsultasi, prestasi, dan audit disimpan minimum tiga tahun; prosedur penghapusan tetap memerlukan kebijakan operasional.       |
 
 # Arsitektur informasi dan laporan

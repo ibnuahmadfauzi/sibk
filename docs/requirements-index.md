@@ -77,7 +77,7 @@ Untuk task tersebut gunakan:
 - Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik, rollover, dan cakupan murid aktif: `MD-05`–`MD-14`, `NFR-13`
 - Assignment: `ASN-*`
 - Reference values: `REF-01`
-- Case/follow-up/coordination: `CASE-*`; penanggung jawab, penguncian terminal, dan kode internal: `CASE-13`–`CASE-15`
+- Case/follow-up/coordination: `CASE-*`; penanggung jawab, penguncian terminal, kode internal, dan ringkasan aman Waka: `CASE-13`–`CASE-16`
 - Integration Dapodik/e-Tatib: `INT-*`, `DEP-01`, `DEP-02`
 - Consultation: `CONS-*`; status dan penguncian terminal: `CONS-03`
 - Student profile/history: `STU-*`
