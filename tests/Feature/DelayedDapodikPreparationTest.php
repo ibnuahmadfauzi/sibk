@@ -965,6 +965,7 @@ class DelayedDapodikPreparationTest extends TestCase
     #[Test]
     public function coordinator_activation_requires_complete_single_teacher_assignments_and_controls_teacher_scope(): void
     {
+        $this->travelTo('2027-07-01 09:00:00');
         $service = app(AcademicYearPreparationService::class);
         $admin = $this->userWithRole('admin_it');
         $coordinator = $this->userWithRole('koordinator_bk');
@@ -1040,6 +1041,7 @@ class DelayedDapodikPreparationTest extends TestCase
     #[Test]
     public function preparation_endpoints_enforce_roles_input_and_year_classroom_pairs(): void
     {
+        $this->travelTo('2027-07-01 09:00:00');
         $admin = $this->userWithRole('admin_it');
         $inactiveAdmin = $this->userWithRole('admin_it', false);
         $coordinator = $this->userWithRole('koordinator_bk');
