@@ -4,6 +4,7 @@
 **Branch integrasi:** `cobasidebar`  
 **Branch production:** `main` — tidak disentuh selama pengembangan  
 **Kapasitas tim:** 3 pengembang, masing-masing bekerja pada laptop dan branch terpisah
+**Status:** Gate Pembuka Bersama selesai; tiga branch fitur belum dibuat
 
 ## 1. Tujuan
 
@@ -509,4 +510,3 @@ Pekerjaan dinyatakan selesai apabila:
 6. Tidak ada perluasan akses detail sensitif untuk Waka.
 7. Tidak ada perubahan pada `main`.
 8. Hasil smoke test dan UAT dicatat dalam dokumen verifikasi integrasi.
-

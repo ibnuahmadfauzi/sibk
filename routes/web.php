@@ -32,6 +32,9 @@ Route::get('/login', [AuthController::class, 'create'])->middleware('guest')->na
 Route::post('/login', [AuthController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('login.store');
 
 Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (): void {
+    require __DIR__.'/bk-services.php';
+    require __DIR__.'/waka.php';
+
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
     Route::get('/account', [AccountController::class, 'index'])->name('account.index');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');

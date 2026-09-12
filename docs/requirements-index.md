@@ -7,7 +7,7 @@ Tujuan file ini adalah membantu agent menentukan apakah PRD/SRS perlu dibuka. Ja
 - Product Requirement Document: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
 - Software Requirements Specification: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
 - Status keduanya: baseline Markdown final untuk pengembangan MVP.
-- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026 tanpa mengubah versi atau nama file v1.1.
+- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026 dan amandemen alur operasional BK disetujui 12 September 2026 tanpa mengubah versi atau nama file v1.1.
 
 ## Arsip Baseline Sebelumnya
 
@@ -60,7 +60,7 @@ Untuk task tersebut gunakan:
 ## Peta Cepat PRD v1.1
 
 - Bagian awal: ringkasan produk, masalah, dasar kebutuhan, visi, tujuan, dan indikator keberhasilan.
-- Bagian tengah: pengguna/tata kelola, cakupan P0/P0 bertahap/P1, di luar scope, aturan produk utama, data persiapan sementara, dan aktivasi operasional.
+- Bagian tengah: pengguna/tata kelola, cakupan P0/P0 bertahap/P1, di luar scope, aturan produk utama, data persiapan sementara, aktivasi operasional, rollover, status pelayanan, kode kasus internal, dan pemantauan Waka.
 - Bagian akhir: arsitektur informasi, laporan P0, risiko integrasi, dependensi kontrak, dan riwayat versi.
 
 ## Peta Cepat SRS v1.1
@@ -74,16 +74,16 @@ Untuk task tersebut gunakan:
 ## Requirement ID penting menurut area
 
 - Access/authorization: `AUTH-*`, `GOV-01`
-- Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik: `MD-05`–`MD-12`, `NFR-13`
+- Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik, rollover, dan cakupan murid aktif: `MD-05`–`MD-14`, `NFR-13`
 - Assignment: `ASN-*`
 - Reference values: `REF-01`
-- Case/follow-up/coordination: `CASE-*`
+- Case/follow-up/coordination: `CASE-*`; penanggung jawab, penguncian terminal, dan kode internal: `CASE-13`–`CASE-15`
 - Integration Dapodik/e-Tatib: `INT-*`, `DEP-01`, `DEP-02`
-- Consultation: `CONS-*`
+- Consultation: `CONS-*`; status dan penguncian terminal: `CONS-03`
 - Student profile/history: `STU-*`
 - Achievement: `ACH-*`
 - Dashboard: `DASH-*`
-- Reports: `REP-*`
+- Reports: `REP-*`; pemantauan aman Waka: `REP-05`
 - Notification: `NOT-01`
 - Audit: `AUD-01`
 - Correction: `COR-*`
