@@ -25,6 +25,12 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## ✅ Completed Tasks
 
+- `[x] [2026-09-14] Portal Waka Berbasis Tujuan - Task 1 sampai Task 7`
+  - Memisahkan portal Waka dari workspace Guru BK menjadi Dashboard, Murid dengan Kasus, serta Laporan bertab Monitoring Penanganan, Rekap Periode, dan Laporan Akhir yang masih berstatus Dalam pengembangan.
+  - Menyediakan proyeksi sekolah yang aman, agregasi murid, dashboard tujuan, rekap periode, CSV terlindung formula injection, audit tersanitasi, navigasi role-aware, dan responsive table/card tanpa membuka NISN, kode kasus, atau narasi konseling sensitif.
+  - UAT Browser Use lulus pada 1440 x 900, 1024 x 768, 768 x 1024, dan 390 x 844. Tiga temuan UAT diperbaiki: overflow teks sort, focus ring tombol, dan tab terlarang pada halaman Laporan Akhir Koordinator.
+  - Gate akhir lulus 55 focused test/448 assertion dan 411 full-suite test/3.148 assertion, bersama Pint, cache Laravel, frontend checker, build Vite, privacy scan, audit scan, dan `git diff --check`. Bukti: `docs/testing/2026-09-13-uat-portal-waka.md`.
+
 - `[x] [2026-09-11] Task 12 — Contract Admission, Dokumentasi Operasional, dan Release Gate`
   - Menetapkan admission gate per provider, aturan adapter fail-closed, panduan deployment Fase A, rotasi `APP_KEY`/`APP_PREVIOUS_KEYS` dan credential sumber, serta alur awam data persiapan sementara sampai pratinjau Dapodik.
   - Focused acceptance lulus 139 test/1.809 assertion. Release gate lulus 353/353 test PHP dengan 2.736 assertion, Pint, cache konfigurasi/view, frontend checker, build Vite, diff-check, dan cleanup cache. Wrapper `npm.ps1` diblokir execution policy Windows; executable ekuivalen `npm.cmd` lulus.
