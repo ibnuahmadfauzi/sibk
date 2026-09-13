@@ -12,6 +12,7 @@ use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
 use App\Services\EtatibSyncService;
 use App\Services\IntegrationSettingService;
@@ -22,11 +23,18 @@ use Illuminate\Support\Facades\Gate;
 
 class DataMasterController extends Controller
 {
-    public function index(Request $request, IntegrationSettingService $integrationSettings): Response
-    {
+    public function index(
+        Request $request,
+        IntegrationSettingService $integrationSettings,
+        AcademicYearRolloverQuery $rolloverQuery,
+    ): Response {
         $this->authorizeAdmin($request);
 
         $activeYear = AcademicYear::query()->active()->orderByDesc('starts_on')->first();
+        $rolloverTargetYear = AcademicYear::query()
+            ->orderByDesc('starts_on')
+            ->orderByDesc('id')
+            ->first();
 
         return response()->view('pages.data-master.index', [
             'lastDapodikRun' => ExternalSyncRun::query()->where('source', 'dapodik')->latest('started_at')->first(),
@@ -56,6 +64,9 @@ class DataMasterController extends Controller
                 ->when($activeYear, fn ($query) => $query->where('academic_year_id', $activeYear->getKey()))
                 ->count(),
             'activeYear' => $activeYear,
+            'rolloverSummary' => $rolloverTargetYear === null
+                ? null
+                : $rolloverQuery->summarize($rolloverTargetYear),
             'preparationYears' => AcademicYear::query()
                 ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
                 ->withCount([

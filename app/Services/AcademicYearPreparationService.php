@@ -9,6 +9,7 @@ use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
+use App\Models\TemporaryStudent;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
@@ -23,6 +24,7 @@ class AcademicYearPreparationService
     public function __construct(
         private readonly ProvisionalRosterCsvParser $csvParser,
         private readonly AuditService $auditService,
+        private readonly AcademicYearRolloverQuery $rolloverQuery,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -278,47 +280,19 @@ class AcademicYearPreparationService
             if ($year->starts_on === null || $year->ends_on === null || $year->ends_on->lte($year->starts_on)) {
                 throw ValidationException::withMessages(['period' => 'Tanggal tahun ajaran harus lengkap dan berurutan.']);
             }
-
-            /** @var Collection<int, Classroom> $classrooms */
-            $classrooms = Classroom::query()
-                ->where('academic_year_id', $year->getKey())
-                ->where('is_active', true)
-                ->lockForUpdate()
-                ->get();
-            if ($classrooms->isEmpty()) {
-                throw ValidationException::withMessages(['classrooms' => 'Tahun ajaran belum memiliki rombel aktif.']);
+            if (now()->startOfDay()->lt($year->starts_on) || now()->startOfDay()->gt($year->ends_on)) {
+                throw ValidationException::withMessages([
+                    'period' => 'Tahun ajaran hanya dapat diaktifkan selama periode berlakunya.',
+                ]);
             }
 
-            $hasActiveStudent = StudentClassMembership::query()
-                ->where('academic_year_id', $year->getKey())
-                ->whereIn('classroom_id', $classrooms->modelKeys())
-                ->where('is_active', true)
-                ->whereHas('student', fn ($students) => $students->where('is_active', true))
-                ->exists();
-            if (! $hasActiveStudent) {
-                throw ValidationException::withMessages(['students' => 'Tahun ajaran belum memiliki murid aktif.']);
-            }
+            $assessment = $this->activationStructure($year, lockForUpdate: true);
+            if ($assessment['blocking'] !== []) {
+                $field = array_key_first($assessment['blocking']);
 
-            foreach ($classrooms as $classroom) {
-                $assignments = TeacherAssignment::query()
-                    ->with('teacher.roles')
-                    ->where('classroom_id', $classroom->getKey())
-                    ->where('academic_year_id', $year->getKey())
-                    ->whereDate('effective_from', '<=', $year->starts_on->toDateString())
-                    ->where(function ($period) use ($year): void {
-                        $period->whereNull('effective_until')
-                            ->orWhereDate('effective_until', '>=', $year->starts_on->toDateString());
-                    })
-                    ->lockForUpdate()
-                    ->get();
-
-                if ($assignments->count() !== 1
-                    || ! $assignments->first()->teacher->is_active
-                    || ! $assignments->first()->teacher->hasRole('guru_bk')) {
-                    throw ValidationException::withMessages([
-                        'assignments' => 'Setiap rombel harus memiliki tepat satu Guru BK aktif pada awal tahun ajaran.',
-                    ]);
-                }
+                throw ValidationException::withMessages([
+                    $field => $assessment['blocking'][$field],
+                ]);
             }
 
             $previousYears = AcademicYear::query()
@@ -361,7 +335,11 @@ class AcademicYearPreparationService
     /**
      * @return array{
      *     ready: bool,
+     *     state: 'active'|'ended'|'not_ready'|'ready'|'scheduled',
+     *     available_from: ?string,
      *     issues: list<string>,
+     *     warnings: list<string>,
+     *     rollover: AcademicYearRolloverSummary,
      *     classrooms: Collection<int, array{
      *         classroom: Classroom,
      *         student_count: int,
@@ -373,31 +351,107 @@ class AcademicYearPreparationService
      */
     public function activationReadiness(AcademicYear $academicYear): array
     {
-        $issues = [];
-        if ($academicYear->starts_on === null
-            || $academicYear->ends_on === null
-            || $academicYear->ends_on->lte($academicYear->starts_on)) {
-            $issues[] = 'Tanggal tahun ajaran belum lengkap atau belum berurutan.';
+        $blocking = [];
+        $warnings = [];
+        $hasValidPeriod = $academicYear->starts_on !== null
+            && $academicYear->ends_on !== null
+            && $academicYear->ends_on->gt($academicYear->starts_on);
+        if (! $hasValidPeriod) {
+            $blocking['period'] = 'Tanggal tahun ajaran belum lengkap atau belum berurutan.';
+        }
+
+        $assessment = $this->activationStructure($academicYear);
+        $blocking += $assessment['blocking'];
+        $issues = array_values($blocking);
+        $readinessRows = $assessment['classrooms'];
+
+        $rollover = $this->rolloverQuery->summarize($academicYear);
+        if ($rollover->needsConfirmationCount() > 0) {
+            $warnings[] = sprintf(
+                '%d murid dari tahun ajaran sebelumnya perlu dikonfirmasi.',
+                $rollover->needsConfirmationCount(),
+            );
+        }
+        $usesProvisionalData = $academicYear->master_source === AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL
+            || Classroom::query()
+                ->where('academic_year_id', $academicYear->getKey())
+                ->where('master_source', Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                ->exists()
+            || StudentClassMembership::query()
+                ->where('academic_year_id', $academicYear->getKey())
+                ->where(function ($memberships): void {
+                    $memberships
+                        ->where('master_source', StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                        ->orWhereHas('student', fn ($students) => $students
+                            ->where('master_source', Student::MASTER_SOURCE_SCHOOL_PROVISIONAL));
+                })
+                ->exists();
+        if ($usesProvisionalData) {
+            $warnings[] = 'Data tahun ajaran masih menggunakan sumber persiapan sementara.';
+        }
+        if (TemporaryStudent::query()->whereNull('reconciled_student_id')->exists()) {
+            $warnings[] = 'Identitas sementara masih menunggu rekonsiliasi.';
+        }
+
+        $today = now()->startOfDay();
+        $state = match (true) {
+            $academicYear->is_active => 'active',
+            $hasValidPeriod && $academicYear->ends_on->lt($today) => 'ended',
+            $issues !== [] => 'not_ready',
+            $hasValidPeriod && $academicYear->starts_on->gt($today) => 'scheduled',
+            default => 'ready',
+        };
+
+        return [
+            'ready' => $state === 'ready',
+            'state' => $state,
+            'available_from' => $state === 'scheduled'
+                ? $academicYear->starts_on?->toDateString()
+                : null,
+            'issues' => $issues,
+            'warnings' => $warnings,
+            'rollover' => $rollover,
+            'classrooms' => $readinessRows,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     blocking: array<string, string>,
+     *     classrooms: Collection<int, array{
+     *         classroom: Classroom,
+     *         student_count: int,
+     *         assignment_count: int,
+     *         teacher_name: ?string,
+     *         ready: bool
+     *     }>
+     * }
+     */
+    private function activationStructure(AcademicYear $academicYear, bool $lockForUpdate = false): array
+    {
+        $classroomsQuery = Classroom::query()
+            ->where('academic_year_id', $academicYear->getKey())
+            ->where('is_active', true)
+            ->orderBy('name');
+        if ($lockForUpdate) {
+            $classroomsQuery->lockForUpdate();
         }
 
         /** @var Collection<int, Classroom> $classrooms */
-        $classrooms = Classroom::query()
+        $classrooms = $classroomsQuery->get();
+        $membershipsQuery = StudentClassMembership::query()
             ->where('academic_year_id', $academicYear->getKey())
+            ->whereIn('classroom_id', $classrooms->modelKeys())
             ->where('is_active', true)
-            ->orderBy('name')
-            ->get();
-        if ($classrooms->isEmpty()) {
-            $issues[] = 'Belum ada rombel aktif pada tahun ajaran ini.';
+            ->whereHas('student', fn ($students) => $students->where('is_active', true));
+        if ($lockForUpdate) {
+            $membershipsQuery->lockForUpdate();
         }
+        $activeMemberships = $membershipsQuery->get();
 
-        $readinessRows = $classrooms->map(function (Classroom $classroom) use ($academicYear): array {
-            $studentCount = StudentClassMembership::query()
-                ->where('academic_year_id', $academicYear->getKey())
-                ->where('classroom_id', $classroom->getKey())
-                ->where('is_active', true)
-                ->whereHas('student', fn ($students) => $students->where('is_active', true))
-                ->count();
-            $assignments = TeacherAssignment::query()
+        $readinessRows = $classrooms->map(function (Classroom $classroom) use ($academicYear, $activeMemberships, $lockForUpdate): array {
+            $studentCount = $activeMemberships->where('classroom_id', $classroom->getKey())->count();
+            $assignmentsQuery = TeacherAssignment::query()
                 ->with('teacher.roles')
                 ->where('classroom_id', $classroom->getKey())
                 ->where('academic_year_id', $academicYear->getKey())
@@ -410,8 +464,11 @@ class AcademicYearPreparationService
                                 ->orWhereDate('effective_until', '>=', $academicYear->starts_on->toDateString());
                         }),
                     fn ($query) => $query->whereRaw('1 = 0'),
-                )
-                ->get();
+                );
+            if ($lockForUpdate) {
+                $assignmentsQuery->lockForUpdate();
+            }
+            $assignments = $assignmentsQuery->get();
             $assignment = $assignments->first();
             $assignmentReady = $assignments->count() === 1
                 && $assignment !== null
@@ -423,20 +480,30 @@ class AcademicYearPreparationService
                 'student_count' => $studentCount,
                 'assignment_count' => $assignments->count(),
                 'teacher_name' => $assignmentReady ? $assignment->teacher->name : null,
-                'ready' => $assignmentReady,
+                'ready' => $studentCount > 0 && $assignmentReady,
             ];
         });
 
-        if ($readinessRows->sum('student_count') === 0) {
-            $issues[] = 'Belum ada murid aktif dalam daftar persiapan.';
+        $blocking = [];
+        if ($classrooms->isEmpty()) {
+            $blocking['classrooms'] = 'Belum ada rombel aktif pada tahun ajaran ini.';
         }
-        if ($readinessRows->contains(fn (array $row): bool => ! $row['ready'])) {
-            $issues[] = 'Setiap rombel harus memiliki tepat satu Guru BK aktif sejak awal tahun ajaran.';
+        if ($readinessRows->contains(fn (array $row): bool => $row['student_count'] === 0)) {
+            $blocking['students'] = 'Setiap rombel aktif harus memiliki minimal satu murid aktif.';
+        }
+        if ($activeMemberships->groupBy('student_id')->contains(
+            fn (Collection $memberships): bool => $memberships->count() > 1,
+        )) {
+            $blocking['memberships'] = 'Setiap murid hanya boleh memiliki satu keanggotaan aktif pada tahun ajaran target.';
+        }
+        if ($readinessRows->contains(
+            fn (array $row): bool => $row['assignment_count'] !== 1 || $row['teacher_name'] === null,
+        )) {
+            $blocking['assignments'] = 'Setiap rombel harus memiliki tepat satu Guru BK aktif sejak awal tahun ajaran.';
         }
 
         return [
-            'ready' => ! $academicYear->is_active && $issues === [],
-            'issues' => $issues,
+            'blocking' => $blocking,
             'classrooms' => $readinessRows,
         ];
     }
