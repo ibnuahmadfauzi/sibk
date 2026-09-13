@@ -25,7 +25,12 @@
 
     <nav class="mb-4" aria-label="Jenis laporan Waka">
         <div class="nav sibk-waka-tabs">
-            @foreach(['penanganan' => 'Monitoring Penanganan', 'rekap' => 'Rekap Periode', 'laporan-akhir' => 'Laporan Akhir'] as $key => $label)
+            @can('viewWakaMonitoring')
+                @foreach(['penanganan' => 'Monitoring Penanganan', 'rekap' => 'Rekap Periode'] as $key => $label)
+                    <a class="nav-link text-nowrap @if($tab === $key) active @endif" href="{{ route('waka.reports', ['tab' => $key]) }}" @if($tab === $key) aria-current="page" @endif>{{ $label }}</a>
+                @endforeach
+            @endcan
+            @foreach(['laporan-akhir' => 'Laporan Akhir'] as $key => $label)
                 <a class="nav-link text-nowrap @if($tab === $key) active @endif" href="{{ route('waka.reports', ['tab' => $key]) }}" @if($tab === $key) aria-current="page" @endif>{{ $label }}</a>
             @endforeach
         </div>

@@ -91,6 +91,19 @@ final class WakaReportPageTest extends TestCase
         }
     }
 
+    public function test_coordinator_final_report_does_not_offer_forbidden_waka_tabs(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Laporan Akhir');
+
+        $this->actingAs($coordinator)
+            ->get(route('waka.reports', ['tab' => 'laporan-akhir']))
+            ->assertOk()
+            ->assertSee('Laporan Akhir')
+            ->assertSee('Dalam pengembangan')
+            ->assertDontSee('Monitoring Penanganan')
+            ->assertDontSee('Rekap Periode');
+    }
+
     public function test_period_recap_filter_lists_available_academic_years(): void
     {
         $waka = $this->userWithRole('waka_kesiswaan', 'Waka Pilih Tahun');
