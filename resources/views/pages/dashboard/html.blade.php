@@ -1,3 +1,6 @@
+@if($dashboard['role_key'] === 'waka')
+    @include('pages.waka.dashboard')
+@else
 <div class="sibk-dashboard" data-page-id="PG-002" data-dashboard-role="{{ $dashboard['role_key'] }}">
 
     <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
@@ -165,3 +168,4 @@
             </div>
         </div>
 </div>
+@endif

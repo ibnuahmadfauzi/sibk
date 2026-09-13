@@ -68,19 +68,17 @@ final class WakaMonitoringService
             throw new InvalidArgumentException('Mode audit portal Waka tidak valid.');
         }
 
+        $safeFilters = $this->safeAuditFilters($mode, $filters);
+
         AuditLog::query()->create([
             'actor_id' => $actor->getKey(),
             'action' => 'waka.monitoring.viewed',
             'auditable_type' => 'waka_monitoring',
             'auditable_id' => $actor->getKey(),
             'summary' => sprintf(
-                'Waka membaca portal monitoring. Mode: %s, Periode: %s, Status: %s, Urutan: %s %s, Halaman: %s, Hasil: %d baris.',
+                'Waka membaca portal monitoring. Mode: %s, Parameter: %s, Hasil: %d baris.',
                 $mode,
-                $filters['period'] ?? 'semua',
-                $filters['status'] ?? 'semua',
-                $filters['sort'] ?? 'tanggal',
-                $filters['direction'] ?? 'desc',
-                $filters['page'] ?? '1',
+                json_encode($safeFilters, JSON_THROW_ON_ERROR),
                 $resultCount,
             ),
             'before_values' => null,
@@ -168,5 +166,21 @@ final class WakaMonitoringService
     private static function escapeCsvFormula(string $value): string
     {
         return preg_match('/^[=+\-@\t\r]/u', $value) === 1 ? "'{$value}" : $value;
+    }
+
+    /**
+     * @param  array<string, string|null>  $filters
+     * @return array<string, string|null>
+     */
+    private function safeAuditFilters(string $mode, array $filters): array
+    {
+        $keys = match ($mode) {
+            'dashboard' => ['academic_year_id'],
+            'students', 'reports.penanganan' => ['period', 'status', 'sort', 'direction', 'page'],
+            'reports.rekap' => ['academic_year_id', 'date_start', 'date_end'],
+            'reports.laporan-akhir' => [],
+        };
+
+        return collect($filters)->only($keys)->all();
     }
 }

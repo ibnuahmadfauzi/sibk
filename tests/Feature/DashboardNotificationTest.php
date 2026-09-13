@@ -82,9 +82,9 @@ class DashboardNotificationTest extends TestCase
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
-        $this->assertSame('2', $this->stat($wakaDashboard, 'Seluruh kasus aktif'));
-        $this->assertStringContainsString($studentA->name, json_encode($wakaDashboard, JSON_THROW_ON_ERROR));
-        $this->assertStringContainsString($studentB->name, json_encode($wakaDashboard, JSON_THROW_ON_ERROR));
+        $this->assertSame('2', $this->stat($wakaDashboard, 'Kasus berjalan'));
+        $this->assertStringContainsString($studentA->name, json_encode($wakaDashboard['latest'], JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString($studentB->name, json_encode($wakaDashboard['latest'], JSON_THROW_ON_ERROR));
 
         $admin = $this->userWithRole('admin_it', 'Admin IT');
         $adminDashboard = $service->forUser($admin, $this->year);
@@ -262,7 +262,7 @@ class DashboardNotificationTest extends TestCase
     /** @param array<string, mixed> $dashboard */
     private function stat(array $dashboard, string $label): string
     {
-        return collect($dashboard['stats'])->firstWhere('label', $label)['value'];
+        return collect($dashboard['stats'] ?? $dashboard['metrics'])->firstWhere('label', $label)['value'];
     }
 
     private function reference(string $category, string $code): ReferenceValue

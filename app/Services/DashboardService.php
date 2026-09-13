@@ -19,6 +19,8 @@ use Illuminate\Support\Collection;
 
 class DashboardService
 {
+    public function __construct(private readonly WakaDashboardService $wakaDashboard) {}
+
     /** @return array<string, mixed> */
     public function forUser(User $user, ?AcademicYear $academicYear): array
     {
@@ -29,7 +31,7 @@ class DashboardService
             return $this->operational($user, $academicYear, 'teacher');
         }
         if ($user->hasRole('waka_kesiswaan')) {
-            return $this->operational($user, $academicYear, 'waka');
+            return $this->wakaDashboard->build($user, $academicYear);
         }
 
         return $this->technical($user);

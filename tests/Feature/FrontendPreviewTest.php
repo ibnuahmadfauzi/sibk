@@ -57,8 +57,8 @@ class FrontendPreviewTest extends TestCase
 
         $this->get('/dashboard')
             ->assertOk()
-            ->assertSee('Tampilan koordinasi hanya-baca')
-            ->assertSee('Kasus aktif sekolah')
+            ->assertSee('Tampilan hanya-baca')
+            ->assertSee('Penanganan Terbaru')
             ->assertDontSee('Cari profil murid');
     }
 
@@ -171,7 +171,7 @@ class FrontendPreviewTest extends TestCase
         return [
             'guru' => ['guru_bk', 'Murid dalam cakupan'],
             'coordinator' => ['koordinator_bk', 'Rekap tata kelola'],
-            'waka' => ['waka_kesiswaan', 'Tampilan koordinasi hanya-baca'],
+            'waka' => ['waka_kesiswaan', 'Dashboard Waka Kesiswaan'],
         ];
     }
 }
