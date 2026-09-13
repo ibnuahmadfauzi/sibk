@@ -62,6 +62,54 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Cari profil murid');
     }
 
+    public function test_waka_only_sidebar_contains_monitoring_navigation(): void
+    {
+        $this->authenticateAs('waka_kesiswaan');
+
+        $this->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Dashboard',
+                'PEMANTAUAN WAKA',
+                'Murid dengan Kasus',
+                'Laporan',
+                'UTILITAS',
+            ])
+            ->assertSee('href="'.route('waka.monitoring.students').'"', false)
+            ->assertSee('href="'.route('waka.reports').'"', false)
+            ->assertDontSee('Layanan BK')
+            ->assertDontSee('Data Murid')
+            ->assertDontSee('Penugasan Kelas')
+            ->assertDontSee('Pengalihan Kasus')
+            ->assertDontSee('Laporan Penanganan');
+    }
+
+    public function test_waka_coordinator_sidebar_keeps_operational_and_monitoring_navigation(): void
+    {
+        $user = $this->authenticateAs('koordinator_bk');
+        $user->roles()->attach(Role::query()->where('slug', 'waka_kesiswaan')->firstOrFail());
+
+        $this->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSee('Layanan BK')
+            ->assertSee('Penugasan Kelas')
+            ->assertSee('PEMANTAUAN WAKA')
+            ->assertSee('Murid dengan Kasus')
+            ->assertSee('href="'.route('waka.reports').'"', false);
+    }
+
+    public function test_waka_reports_use_accessible_tabs_and_decorative_empty_state(): void
+    {
+        $this->authenticateAs('waka_kesiswaan');
+
+        $this->get(route('waka.reports', ['tab' => 'laporan-akhir']))
+            ->assertOk()
+            ->assertSee('class="nav sibk-waka-tabs"', false)
+            ->assertSee('aria-current="page"', false)
+            ->assertSee('class="sibk-empty-state__icon" aria-hidden="true"', false)
+            ->assertDontSee('onclick=', false);
+    }
+
     public function test_academic_year_preparation_pages_follow_the_existing_panel_hierarchy(): void
     {
         $year = AcademicYear::query()->create([

@@ -68,18 +68,18 @@
             <x-empty-state title="Belum ada murid dengan kasus" description="Tidak ada data yang sesuai dengan periode atau status terpilih." />
             @if($hasFilters)<div class="text-center pb-4"><a href="{{ route('waka.monitoring.students') }}" class="btn btn-outline-secondary">Reset filter</a></div>@endif
         @else
-            <div class="table-responsive d-none d-lg-block">
+            <div class="table-responsive sibk-waka-table--desktop">
                 <table class="table sibk-table align-middle">
                     <thead><tr>
                         @foreach($columns as $key => $label)
                             @php $activeSort = ($params['sort'] ?? 'murid') === $key; @endphp
-                            <th @if($activeSort) aria-sort="{{ ($params['direction'] ?? 'asc') === 'asc' ? 'ascending' : 'descending' }}" @endif>
+                            <th scope="col" @if($activeSort) aria-sort="{{ ($params['direction'] ?? 'asc') === 'asc' ? 'ascending' : 'descending' }}" @endif>
                                 <a class="text-decoration-none text-reset" href="{{ route('waka.monitoring.students', array_merge($params, ['sort' => $key, 'direction' => $activeSort && ($params['direction'] ?? 'asc') === 'asc' ? 'desc' : 'asc', 'page' => 1])) }}">
                                     {{ $label }}@if($activeSort)<span class="visually-hidden">, diurutkan {{ ($params['direction'] ?? 'asc') === 'asc' ? 'naik' : 'turun' }}</span>@endif
                                 </a>
                             </th>
                         @endforeach
-                        <th>Kasus</th><th>Aktif</th><th>Akses</th>
+                        <th scope="col">Kasus</th><th scope="col">Aktif</th><th scope="col">Akses</th>
                     </tr></thead>
                     <tbody>
                         @foreach($rows as $row)
@@ -97,9 +97,9 @@
                 </table>
             </div>
 
-            <div class="d-lg-none p-3">
+            <div class="sibk-waka-card-list p-3">
                 @foreach($rows as $row)
-                    <article class="sibk-panel sibk-panel--inset p-3 mb-3">
+                    <article class="sibk-panel sibk-panel--inset p-3">
                         <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3>
                         <p class="text-muted small mb-3">{{ $row['kelas'] }}</p>
                         <p class="mb-2"><strong>{{ $row['jumlah_kasus'] }} kasus</strong> - {{ $row['jumlah_aktif'] }} masih aktif</p>

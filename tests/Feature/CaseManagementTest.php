@@ -327,6 +327,9 @@ class CaseManagementTest extends TestCase
         $waka = $this->userWithRole('waka_kesiswaan');
         $admin = $this->userWithRole('admin_it');
         $case = $this->createCase($teacher, $student, 'CATATAN-RAHASIA');
+        $case->update(['waka_summary' => 'RINGKASAN-AMAN-WAKA']);
+        $etatib = $this->etatibRecord($student, 'ET-WAKA-RAHASIA', 'PELANGGARAN-RAHASIA-WAKA');
+        $case->etatibRecords()->attach($etatib->id, ['linked_by' => $teacher->id]);
 
         $coordination = app(CaseService::class)->coordinate($case, [
             'waka_user_id' => $waka->id,
@@ -335,7 +338,18 @@ class CaseManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('cases.show', $case))->assertOk()->assertSee('CATATAN-RAHASIA');
         $this->actingAs($coordinator)->get(route('cases.show', $case))->assertOk()->assertDontSee('CATATAN-RAHASIA');
-        $this->actingAs($waka)->get(route('cases.show', $case))->assertOk()->assertDontSee('CATATAN-RAHASIA')->assertDontSee('Tambah Tindak Lanjut');
+        $this->actingAs($waka)->get(route('cases.show', $case))
+            ->assertOk()
+            ->assertSee('Detail penanganan terkoordinasi')
+            ->assertSee('RINGKASAN-AMAN-WAKA')
+            ->assertDontSee('Informasi awal layanan.')
+            ->assertDontSee('Asesmen awal.')
+            ->assertDontSee('CATATAN-RAHASIA')
+            ->assertDontSee('PELANGGARAN-RAHASIA-WAKA')
+            ->assertDontSee('Waka dan Guru BK menyepakati pemantauan kehadiran selama dua pekan.')
+            ->assertDontSee($case->registration_number)
+            ->assertDontSee($student->nisn)
+            ->assertDontSee('Tambah Tindak Lanjut');
         $this->actingAs($admin)->get(route('cases.show', $case))->assertForbidden();
         $this->actingAs($admin)->get(route('cases.index'))->assertForbidden();
         $this->actingAs($waka)->patch(route('cases.coordinations.update', [$case, $coordination]), [

@@ -30,26 +30,26 @@ class AuthorizationMatrixTest extends TestCase
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
             '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 403,
+            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
         ]];
         yield 'Koordinator BK' => ['koordinator_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 200, '/assignments/cases' => 200, '/corrections' => 200,
             '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 403,
+            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 200,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
-            '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
+            '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
             '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 403,
-            '/history' => 200, '/achievements' => 200, '/consultations/create' => 403,
+            '/history' => 200, '/achievements' => 403, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 200,
+            '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 200,
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
             '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
             '/history' => 200, '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
-            '/waka/students-with-cases' => 403,
+            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
         ]];
     }
 
@@ -65,7 +65,7 @@ class AuthorizationMatrixTest extends TestCase
 
     public function test_guest_and_inactive_sessions_cannot_access_any_operational_family(): void
     {
-        $uris = ['/dashboard', '/cases', '/students', '/reports', '/assignments/classes', '/corrections', '/history', '/achievements', '/data-master', '/admin/users', '/waka/students-with-cases'];
+        $uris = ['/dashboard', '/cases', '/students', '/reports', '/assignments/classes', '/corrections', '/history', '/achievements', '/data-master', '/admin/users', '/waka/students-with-cases', '/waka/reports?tab=laporan-akhir'];
         foreach ($uris as $uri) {
             $this->get($uri)->assertRedirect(route('login'));
         }
@@ -88,6 +88,16 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Penugasan Kelas')
             ->assertDontSee('Pengalihan Kasus')
             ->assertSee('Data Master');
+    }
+
+    public function test_waka_multi_role_keeps_authority_from_the_non_waka_role(): void
+    {
+        $user = $this->userWithRole('guru_bk');
+        $user->roles()->attach(Role::query()->where('slug', 'waka_kesiswaan')->firstOrFail());
+
+        foreach (['/cases', '/students', '/reports', '/achievements'] as $uri) {
+            $this->actingAs($user)->get($uri)->assertOk();
+        }
     }
 
     public function test_preparation_and_activation_controls_are_visible_only_to_the_responsible_roles(): void

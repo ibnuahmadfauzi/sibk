@@ -53,7 +53,7 @@ class StudentProfileTest extends TestCase
         $this->actingAs($otherTeacher)->get(route('students.show', $student))->assertForbidden();
     }
 
-    public function test_waka_profile_is_limited_to_coordinated_case_and_linked_etatib_without_consultation(): void
+    public function test_waka_uses_safe_portal_instead_of_generic_student_profile(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $waka = $this->userWithRole('waka_kesiswaan');
@@ -71,15 +71,16 @@ class StudentProfileTest extends TestCase
         $unlinkedRecord = $this->etatibRecord($student, 'ET-LAIN', 'Pelanggaran lain');
         $case->etatibRecords()->attach($linkedRecord->id, ['linked_by' => $teacher->id]);
 
-        $this->actingAs($waka)->get(route('students.index'))
+        $this->actingAs($waka)->get(route('waka.monitoring.students'))
             ->assertOk()
-            ->assertSee($student->name);
-        $this->actingAs($waka)->get(route('students.show', ['student' => $student, 'tab' => 'etatib']))
-            ->assertOk()
-            ->assertSee('Pelanggaran terkait')
+            ->assertSee($student->name)
+            ->assertDontSee($student->nisn)
+            ->assertDontSee('Pelanggaran terkait')
             ->assertDontSee('Pelanggaran lain')
             ->assertDontSee('Konsultasi dan Tindak Lanjut')
             ->assertDontSee('Ringkasan konsultasi aman');
+        $this->actingAs($waka)->get(route('students.index'))->assertForbidden();
+        $this->actingAs($waka)->get(route('students.show', ['student' => $student, 'tab' => 'etatib']))->assertForbidden();
 
         $this->assertNotSame($linkedRecord->id, $unlinkedRecord->id);
     }

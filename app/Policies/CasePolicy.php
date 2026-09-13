@@ -13,7 +13,7 @@ class CasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
     }
 
     public function view(User $user, BkCase $case): bool

@@ -11,12 +11,13 @@ class StudentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
     }
 
     public function view(User $user, Student $student): bool
     {
-        return Student::query()->accessibleTo($user)->whereKey($student->getKey())->exists();
+        return $this->viewAny($user)
+            && Student::query()->accessibleTo($user)->whereKey($student->getKey())->exists();
     }
 
     public function viewSensitive(User $user, Student $student): bool

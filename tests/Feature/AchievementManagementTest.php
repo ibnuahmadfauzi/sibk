@@ -94,7 +94,7 @@ class AchievementManagementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_role_matrix_profile_and_waka_only_expose_verified_coordinated_achievement(): void
+    public function test_role_matrix_keeps_generic_achievement_workspace_closed_for_waka(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent('Murid Koordinasi Prestasi', '0044444444');
         $coordinator = $this->userWithRole('koordinator_bk');
@@ -110,15 +110,14 @@ class AchievementManagementTest extends TestCase
 
         $this->actingAs($waka)->get(route('achievements.show', $pending))->assertForbidden();
         app(AchievementService::class)->verify($pending, ['decision' => 'terverifikasi'], $coordinator);
-        $this->actingAs($waka)->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
-            ->assertOk()->assertSee('Prestasi Menunggu')->assertDontSee('Catat Prestasi');
+        $this->actingAs($waka)->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))->assertForbidden();
+        $this->actingAs($waka)->get(route('achievements.index'))->assertForbidden();
+        $this->actingAs($waka)->get(route('achievements.show', $pending))->assertForbidden();
         $this->actingAs($admin)->get(route('achievements.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('achievements.show', $pending))->assertForbidden();
         $this->actingAs($coordinator)->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Menunggu');
         app(AchievementService::class)->create($this->payload($student, 'Prestasi Belum Disahkan'), $teacher);
-        $wakaReport = app(ReportService::class)->build($waka, ['type' => ReportService::TYPE_ACHIEVEMENTS], false);
-        $this->assertCount(1, $wakaReport['rows']);
-        $this->assertStringNotContainsString('Prestasi Belum Disahkan', collect($wakaReport['rows']->first()['cells'])->pluck('value')->join('|'));
+        $this->actingAs($waka)->get(route('reports.preview', ['type' => ReportService::TYPE_ACHIEVEMENTS]))->assertForbidden();
     }
 
     public function test_multi_role_uses_teacher_scope_for_creation_and_coordinator_function_for_review(): void

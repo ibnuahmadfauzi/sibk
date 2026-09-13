@@ -36,18 +36,18 @@
         <x-empty-state title="Belum ada penanganan" description="Tidak ada kasus yang sesuai dengan periode atau status terpilih." />
         @if($hasFilters)<div class="text-center pb-4"><a href="{{ route('waka.reports', ['tab' => 'penanganan']) }}" class="btn btn-outline-secondary">Reset filter</a></div>@endif
     @else
-        <div class="table-responsive d-none d-lg-block">
+        <div class="table-responsive sibk-waka-table--desktop">
             <table class="table sibk-table align-middle">
                 <thead><tr>
                     @foreach($columns as $key => $label)
                         @php $activeSort = ($params['sort'] ?? 'tanggal') === $key; @endphp
-                        <th @if($activeSort) aria-sort="{{ ($params['direction'] ?? 'desc') === 'asc' ? 'ascending' : 'descending' }}" @endif>
+                        <th scope="col" @if($activeSort) aria-sort="{{ ($params['direction'] ?? 'desc') === 'asc' ? 'ascending' : 'descending' }}" @endif>
                             <a class="text-decoration-none text-reset" href="{{ route('waka.reports', array_merge(['tab' => 'penanganan'], $params, ['sort' => $key, 'direction' => $activeSort && ($params['direction'] ?? 'desc') === 'asc' ? 'desc' : 'asc', 'page' => 1])) }}">
                                 {{ $label }}@if($activeSort)<span class="visually-hidden">, diurutkan {{ ($params['direction'] ?? 'desc') === 'asc' ? 'naik' : 'turun' }}</span>@endif
                             </a>
                         </th>
                     @endforeach
-                    <th>Akses</th>
+                    <th scope="col">Akses</th>
                 </tr></thead>
                 <tbody>
                     @foreach($rows as $row)
@@ -69,9 +69,9 @@
             </table>
         </div>
 
-        <div class="d-lg-none p-3">
+        <div class="sibk-waka-card-list p-3">
             @foreach($rows as $row)
-                <article class="sibk-panel sibk-panel--inset p-3 mb-3">
+                <article class="sibk-panel sibk-panel--inset p-3">
                     <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-2">{{ $row['kelas'] }} - {{ $row['tanggal'] }}</p>
                     <p class="mb-2"><span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span></p>
                     <p class="small mb-2">{{ $row['bidang'] }} - Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>

@@ -12,12 +12,13 @@ class AchievementPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
     }
 
     public function view(User $user, Achievement $achievement): bool
     {
-        return Achievement::query()->accessibleTo($user)->whereKey($achievement->getKey())->exists();
+        return $this->viewAny($user)
+            && Achievement::query()->accessibleTo($user)->whereKey($achievement->getKey())->exists();
     }
 
     public function create(User $user): bool

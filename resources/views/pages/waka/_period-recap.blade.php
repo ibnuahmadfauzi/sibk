@@ -90,7 +90,7 @@
     @else
         <div class="table-responsive">
             <table class="table sibk-table align-middle">
-                <thead><tr><th>Kelas</th><th>Murid ditangani</th><th>Kasus aktif</th><th>Selesai</th><th>Perlu tindak lanjut</th></tr></thead>
+                <thead><tr><th scope="col">Kelas</th><th scope="col">Murid ditangani</th><th scope="col">Kasus aktif</th><th scope="col">Selesai</th><th scope="col">Perlu tindak lanjut</th></tr></thead>
                 <tbody>@foreach($recap['classes'] as $class)<tr><td class="fw-semibold">{{ $class['classroom'] }}</td><td>{{ $class['served_students'] }}</td><td>{{ $class['active_cases'] }}</td><td>{{ $class['completed'] }}</td><td>{{ $class['needs_follow_up'] }}</td></tr>@endforeach</tbody>
             </table>
         </div>

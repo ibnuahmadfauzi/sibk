@@ -3063,3 +3063,38 @@ small, .small {
     width: 50%;
   }
 }
+
+.sibk-waka-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    white-space: nowrap;
+  }
+}
+
+.sibk-waka-card-list {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .sibk-waka-table--desktop {
+    display: none;
+  }
+
+  .sibk-waka-card-list {
+    display: grid;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .sibk-waka-table--desktop {
+    display: block;
+  }
+}

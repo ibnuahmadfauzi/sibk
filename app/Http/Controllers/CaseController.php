@@ -16,6 +16,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\CaseService;
+use App\Services\WakaMonitoringService;
 use App\Support\ServiceRecordStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -144,11 +145,30 @@ class CaseController extends Controller
         return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil dibuat.');
     }
 
-    public function show(Request $request, BkCase $case, AuditService $auditService): View
-    {
+    public function show(
+        Request $request,
+        BkCase $case,
+        AuditService $auditService,
+        WakaMonitoringService $wakaMonitoring,
+    ): View {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('view', $case), 403);
+        $isWakaOnly = $user->hasRole('waka_kesiswaan')
+            && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
+
+        if ($isWakaOnly) {
+            $detail = $wakaMonitoring->detailSafe($user, (int) $case->getKey());
+            $auditService->record(
+                action: 'case.viewed_by_waka',
+                auditable: $case,
+                summary: 'Detail kasus terkoordinasi dilihat oleh Waka Kesiswaan.',
+                actor: $user,
+            );
+
+            return view('pages.waka.case-detail', ['detail' => $detail]);
+        }
+
         $case->load([
             'student.classMemberships.classroom',
             'temporaryStudent',
@@ -163,15 +183,6 @@ class CaseController extends Controller
             'followUps.recorder',
             'etatibRecords',
         ]);
-
-        if ($user->hasRole('waka_kesiswaan')) {
-            $auditService->record(
-                action: 'case.viewed_by_waka',
-                auditable: $case,
-                summary: 'Detail kasus terkoordinasi dilihat oleh Waka Kesiswaan.',
-                actor: $user,
-            );
-        }
 
         return view('pages.cases.show', [
             'case' => $case,

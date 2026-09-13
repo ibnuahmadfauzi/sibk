@@ -56,6 +56,19 @@ final class WakaMonitoringService
             ->map(fn (BkCase $case): array => $this->toCsvRow($case));
     }
 
+    /** @return array<string, mixed> */
+    public function detailSafe(User $waka, int $caseId): array
+    {
+        $case = $this->projectionQuery
+            ->build($waka)
+            ->whereKey($caseId)
+            ->whereHas('coordinations', static fn ($coordinations) => $coordinations
+                ->where('waka_user_id', $waka->getKey()))
+            ->firstOrFail();
+
+        return $this->toSafeRow($case);
+    }
+
     /** @param array<string, string|null> $filters */
     public function auditViewed(
         User $actor,

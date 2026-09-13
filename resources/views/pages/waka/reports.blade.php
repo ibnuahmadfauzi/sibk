@@ -24,7 +24,7 @@
     @endif
 
     <nav class="mb-4" aria-label="Jenis laporan Waka">
-        <div class="nav nav-pills flex-nowrap overflow-auto gap-2">
+        <div class="nav sibk-waka-tabs">
             @foreach(['penanganan' => 'Monitoring Penanganan', 'rekap' => 'Rekap Periode', 'laporan-akhir' => 'Laporan Akhir'] as $key => $label)
                 <a class="nav-link text-nowrap @if($tab === $key) active @endif" href="{{ route('waka.reports', ['tab' => $key]) }}" @if($tab === $key) aria-current="page" @endif>{{ $label }}</a>
             @endforeach
