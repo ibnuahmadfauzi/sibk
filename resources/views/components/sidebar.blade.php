@@ -92,6 +92,15 @@
                 </a>
             @endcan
 
+            @can('viewWakaMonitoring')
+            <p class="sibk-sidebar__section">PEMANTAUAN WAKA</p>
+            <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.*') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.handling') }}"
+                aria-current="{{ request()->routeIs('waka.monitoring.*') ? 'page' : 'false' }}">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"/></svg>
+                <span>Laporan Penanganan</span>
+            </a>
+            @endcan
+
             <p class="sibk-sidebar__section">UTILITAS</p>
 
             <a class="sibk-nav-link {{ request()->routeIs('notifications.preview') ? 'is-active' : '' }}" href="{{ route('notifications.preview') }}" 

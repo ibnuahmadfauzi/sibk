@@ -58,8 +58,7 @@ class DashboardService
                                     ->whereBetween('service_date', [$start, $end])));
                     }));
         } else {
-            $cases->whereHas('coordinations', fn (Builder $coordinations): Builder => $coordinations
-                ->where('waka_user_id', $user->getKey()));
+            // Waka melihat SELURUH kasus aktif sekolah — bukan hanya yang terkoordinasi
             $cases->whereBetween('service_date', [$start, $end]);
             $students = Student::query()->active()->whereIn('id', (clone $cases)
                 ->whereNotNull('student_id')->select('student_id'));
@@ -88,12 +87,12 @@ class DashboardService
         $scopeText = match ($mode) {
             'coordinator' => sprintf('Rekap tata kelola %d Guru BK aktif', User::query()->active()->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))->count()),
             'teacher' => $this->teacherScope($user, $year),
-            default => 'Kasus yang secara eksplisit dikoordinasikan kepada Anda',
+            default => 'Tampilan koordinasi hanya-baca dari seluruh kasus aktif sekolah',
         };
         $activeCases = (clone $cases)->whereNull('closed_at')->count();
         $stats = [
-            ['label' => $mode === 'waka' ? 'Murid terkoordinasi' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
-            ['label' => $mode === 'waka' ? 'Kasus terkoordinasi' : 'Kasus aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Seluruhnya hanya-baca' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
+            ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan kasus aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
+            ['label' => $mode === 'waka' ? 'Seluruh kasus aktif' : 'Kasus aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
             ['label' => 'Tindak lanjut terdekat', 'value' => (string) $upcomingCount, 'meta' => 'Dalam tujuh hari ke depan', 'tone' => 'success', 'kind' => 'schedule'],
             ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Mirror read-only dalam kewenangan', 'tone' => 'info', 'kind' => 'etatib'],
         ];
@@ -106,10 +105,10 @@ class DashboardService
             'user_name' => $user->name,
             'scope' => $scopeText,
             'read_only' => $mode === 'waka',
-            'description' => $mode === 'waka' ? 'Ringkasan kasus yang dikoordinasikan tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
+            'description' => $mode === 'waka' ? 'Ringkasan seluruh kasus aktif sekolah — tampilan hanya-baca tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
             'stats' => $stats,
-            'schedule_title' => $mode === 'waka' ? 'Kasus terkoordinasi' : 'Tindak lanjut terdekat',
-            'schedule_url' => route('cases.index'),
+            'schedule_title' => $mode === 'waka' ? 'Kasus aktif sekolah' : 'Tindak lanjut terdekat',
+            'schedule_url' => $mode === 'waka' ? route('waka.monitoring.handling') : route('cases.index'),
             'tindak_lanjut' => $mode === 'waka'
                 ? $this->coordinatedCaseItems((clone $cases)->latest('updated_at')->limit(6)->get(), $user)
                 : $this->followUpItems($upcoming->limit(6)->get()),
