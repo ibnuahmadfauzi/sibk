@@ -4,7 +4,7 @@
 **Branch integrasi:** `cobasidebar`  
 **Branch production:** `main` — tidak disentuh selama pengembangan  
 **Kapasitas tim:** 3 pengembang, masing-masing bekerja pada laptop dan branch terpisah
-**Status:** Gate Pembuka Bersama dan addendum selesai; tiga branch fitur belum dibuat
+**Status:** Gate pembuka, Jalur A, Jalur B, dan implementasi awal Jalur C telah digabung ke `cobasidebar`; struktur Portal Waka disempurnakan melalui plan 13 September 2026
 **Integrator final:** Pengembang 1/pemilik Jalur A
 
 ## 1. Tujuan
@@ -214,7 +214,7 @@ Pengembang Jalur B dan C mengirim PR dan tidak menggabungkannya sendiri ke `coba
 ### 3.3 UI
 
 - Koordinator melihat status tahun ajaran: `Belum siap`, `Siap diaktifkan mulai ...`, `Aktif`, atau `Periode selesai`.
-- Waka mendapat menu khusus: Ringkasan, Murid dengan Kasus, Laporan Penanganan, dan Laporan Sekolah.
+- Waka mendapat menu khusus: Dashboard, Murid dengan Kasus, Laporan, Notifikasi, dan Akun Saya.
 - Filter laporan penanganan Waka hanya periode dan status.
 - Kolom lain diurutkan melalui header tabel dengan daftar sorting yang dibatasi server.
 - Kode kasus dihilangkan dari seluruh tampilan pengguna, tetapi ID/kode internal tetap bekerja di backend.
@@ -410,6 +410,20 @@ refactor: sembunyikan kode kasus dari tampilan kerja
 
 **Branch:** `fitur/monitoring-waka`
 
+**Status lanjutan:** implementasi awal Jalur C telah digabung. Struktur satu halaman yang dipakai bersama untuk Murid dengan Kasus dan Laporan Penanganan digantikan oleh `docs/superpowers/plans/2026-09-13-portal-waka-berbasis-tujuan.md` dengan arsitektur informasi berikut:
+
+```text
+Dashboard
+PEMANTAUAN WAKA
+- Murid dengan Kasus
+- Laporan
+UTILITAS
+- Notifikasi
+- Akun Saya
+```
+
+Halaman Laporan memakai tab Monitoring Penanganan, Rekap Periode, dan Laporan Akhir. Laporan Akhir hanya menyediakan tempat berstatus **Dalam pengembangan** sampai format resmi sekolah disepakati.
+
 Tujuan:
 
 - menyediakan pemantauan seluruh kasus dalam bentuk ringkasan aman;
@@ -445,7 +459,7 @@ Urutan kerja:
 2. Buat `WakaMonitoringRequest` dengan allowlist periode, status, sort, dan direction.
 3. Buat policy khusus Waka.
 4. Buat query service yang hanya menghasilkan array/DTO field aman dan membaca `waka_summary` sebagai satu-satunya narasi.
-5. Buat satu halaman tabel yang dapat dipakai untuk Murid dengan Kasus dan Laporan Penanganan.
+5. Buat fondasi awal portal; pemisahan satu row per murid dan satu row per kasus dilanjutkan pada plan Portal Waka berbasis tujuan.
 6. Tambahkan menu Waka tanpa membuka menu kerja Guru BK.
 7. Selaraskan dashboard Waka menjadi ringkasan seluruh kasus.
 8. Hapus kode kasus dari preview laporan, CSV, dashboard, dan keluaran lain milik jalur ini.
@@ -587,6 +601,11 @@ Setiap PR menargetkan `cobasidebar`, bukan `main`.
 - Kode internal di database tetap tidak berubah.
 - Portal hanya membaca `waka_summary` sebagai narasi kasus; sentinel pada field naratif lain tidak tampil.
 - Pembacaan dan ekspor menghasilkan event audit dengan parameter aman tanpa identitas/narasi murid.
+- Dashboard Waka menampilkan empat metric kasus, daftar perhatian, komposisi status, dan penanganan terbaru.
+- Murid dengan Kasus memakai satu row per identitas murid; Monitoring Penanganan memakai satu row per kasus.
+- Halaman Laporan hanya mempunyai tab Monitoring Penanganan, Rekap Periode, dan Laporan Akhir.
+- Rekap Periode hanya menampilkan agregat; pelanggaran per murid/per kelas, poin, tindak lanjut, dan prestasi bukan menu terpisah bagi Waka.
+- Laporan Akhir hanya menampilkan **Dalam pengembangan** tanpa workflow penerbitan atau ekspor.
 
 ### Gate integrasi akhir
 

@@ -1,6 +1,6 @@
 <!--
 Canonical Markdown baseline for version 1.1.
-Derived from SRS_Aplikasi_BK_v1.0 with approved integration decisions through 9 September 2026.
+Derived from SRS_Aplikasi_BK_v1.0 with approved amendments through 13 September 2026.
 The version 1.0 Markdown and DOCX artifacts remain immutable archives.
 -->
 
@@ -16,7 +16,7 @@ Baseline spesifikasi MVP layanan Bimbingan dan Konseling
 
 **Tanggal:** 23 Agustus 2026
 
-**Amandemen disetujui:** 9 September 2026
+**Amandemen disetujui:** 9, 12, dan 13 September 2026
 
 **Konteks:** Acuan produk: PRD Aplikasi BK v1.1
 
@@ -156,12 +156,12 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 |---------|-------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------------------------------------------------------|
 | DASH-01 | Dashboard harus mengikuti peran, scope murid, penugasan kasus, dan koordinasi Waka.                               | P0       | Hitungan dan tautan tidak memuat data di luar kewenangan.                                        |
 | DASH-02 | Dashboard Guru BK harus menampilkan ringkasan operasional utama.                                                  | P0       | Jumlah murid, pelanggaran, kasus, jadwal, dan aktivitas relevan tersedia.                        |
-| DASH-03 | Dashboard Waka harus menampilkan ringkasan aman seluruh kasus sekolah.                                             | P0       | Ringkasan tidak memuat field sensitif; tautan detail hanya tersedia untuk kasus yang dikoordinasikan dan tidak menyediakan aksi ubah. |
+| DASH-03 | Dashboard Waka harus menampilkan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh kasus.              | P0       | Dashboard menampilkan empat metric kasus, daftar perhatian, komposisi status, dan penanganan terbaru; tidak memuat field sensitif, tautan detail hanya tersedia untuk kasus yang dikoordinasikan, dan tidak menyediakan aksi ubah. |
 | REP-01  | Laporan harus menyediakan filter sesuai jenis data dan kewenangan.                                                | P0       | Parameter menghasilkan data konsisten.                                                           |
 | REP-02  | Laporan harus mencakup pelanggaran, poin, konsultasi, tindak lanjut, prestasi minimum, dan rekap layanan.         | P0       | Rekap terbentuk tanpa penggabungan file manual.                                                  |
 | REP-03  | Cetak dan ekspor harus mengikuti batas akses dan kerahasiaan.                                                     | P0       | Hasil tidak memuat data di luar kewenangan atau field terlarang.                                 |
 | REP-04  | Koordinator harus dapat membuat rekap/cetak gabungan seluruh Guru BK aktif, sedangkan Guru BK hanya sesuai scope. | P0       | Saat baseline terdapat tujuh Guru BK; jumlah pengguna dihitung dinamis.                          |
-| REP-05  | Waka harus memiliki satu halaman laporan penanganan seluruh kasus dengan filter sederhana.                        | P0       | Filter hanya periode dan status; sorting header memakai allowlist server; keluaran memakai `waka_summary`, status, jenis/tanggal tindak lanjut terdekat, dan hasil umum tanpa membaca narasi privat serta mengecualikan NISN, kode kasus, konsultasi sensitif, catatan internal, dan dokumen. |
+| REP-05  | Portal Waka harus mempunyai daftar Murid dengan Kasus dan satu halaman Laporan bertab.                             | P0       | Monitoring Penanganan memakai filter bulan/status dan sorting allowlist; Rekap Periode hanya menampilkan agregat kasus, konteks e-Tatib, prestasi terverifikasi, serta ringkasan kelas; Laporan Akhir menampilkan status Dalam pengembangan tanpa tindakan penerbitan atau ekspor. Seluruh keluaran mengecualikan NISN, kode kasus, konsultasi sensitif, catatan internal, dokumen, dan narasi di luar `waka_summary`. |
 | NOT-01  | Sistem harus menampilkan pemberitahuan operasional yang terkait pengguna.                                         | P0       | Jadwal, penugasan, koordinasi, koreksi, dan perubahan penting hanya dikirim kepada pihak berhak. |
 | AUD-01  | Perubahan penting serta pembacaan/ekspor portal Waka harus menghasilkan jejak audit otomatis.                    | P0       | Audit Waka memuat event, pelaku, waktu, jenis halaman, parameter tervalidasi, halaman/jumlah hasil atau format/jumlah ekspor, IP, dan user agent tanpa nama/NISN/kode kasus/narasi; audit append-only disimpan minimum tiga tahun. |
 | COR-01  | Koreksi data operasional harus diverifikasi Koordinator BK.                                                       | P0       | Simpan pengaju, pemeriksa, alasan, nilai lama/usulan, waktu, dan hasil.                          |
@@ -378,10 +378,10 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 
 # Sumber dan riwayat versi
 
-Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, serta keputusan alur operasional tahun ajaran, pelayanan BK, dan pemantauan Waka yang disetujui 12 September 2026.
+Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional yang disetujui 12 September 2026, serta penyederhanaan Portal Waka berbasis tujuan yang disetujui 13 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                  |
 |-----------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 0.3       | 12 Agustus 2026 | Menyelaraskan kebutuhan fungsional, data, nonfungsional, integrasi, dan ketertelusuran dengan PRD v0.5.                                                                                                                        |
 | 1.0       | 15 Agustus 2026 | Menambahkan tata kelola Koordinator, detail kasus terkoordinasi untuk Waka, histori lintas guru, identitas sementara dan rekonsiliasi, akun Admin IT, laporan gabungan, rolling nonotomatis, serta retensi minimum tiga tahun. |
-| 1.1       | 23 Agustus 2026; diamandemen 9 dan 12 September 2026 | Menambahkan fondasi konfigurasi/integrasi, fallback data persiapan, aktivasi sesuai tanggal mulai, rollover tanpa keputusan akademik otomatis, lima status pelayanan, satu penanggung jawab kasus, penguncian terminal, kode kasus internal, dan proyeksi aman seluruh kasus untuk Waka. |
+| 1.1       | 23 Agustus 2026; diamandemen 9, 12, dan 13 September 2026 | Menambahkan fondasi konfigurasi/integrasi, fallback data persiapan, aktivasi sesuai tanggal mulai, rollover tanpa keputusan akademik otomatis, lima status pelayanan, satu penanggung jawab kasus, penguncian terminal, kode kasus internal, proyeksi aman seluruh kasus, serta Portal Waka berbasis tujuan dengan Laporan Akhir berstatus Dalam pengembangan. |
