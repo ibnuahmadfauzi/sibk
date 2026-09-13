@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\TemporaryStudent;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -84,6 +85,12 @@ class ConsultationService
     {
         return DB::transaction(function () use ($consultation, $data, $actor): Consultation {
             $consultation = Consultation::query()->lockForUpdate()->findOrFail($consultation->getKey());
+            $consultation->loadMissing('status');
+            if (ServiceRecordStatus::isTerminal($consultation->status?->code)) {
+                throw ValidationException::withMessages([
+                    'consultation' => 'Konsultasi terminal hanya dapat diubah melalui koreksi terverifikasi.',
+                ]);
+            }
             if ($consultation->counselor_id !== $actor->getKey() || ! $consultation->isProfessionallyAccessibleTo($actor)) {
                 throw ValidationException::withMessages([
                     'consultation' => 'Konsultasi hanya dapat diubah oleh pencatat yang masih memiliki kewenangan.',
@@ -239,8 +246,8 @@ class ConsultationService
         }
 
         $case = BkCase::query()->lockForUpdate()->findOrFail((int) $caseId);
-        if (! $case->hasActiveAssignmentFor($actor)) {
-            throw ValidationException::withMessages(['case_id' => 'Kasus terkait tidak berada dalam penugasan aktif Anda.']);
+        if (! $case->hasActiveOwnerFor($actor)) {
+            throw ValidationException::withMessages(['case_id' => 'Kasus terkait bukan tanggung jawab aktif Anda.']);
         }
 
         $sameIdentity = ($student !== null && $case->student_id === $student->getKey())
@@ -264,7 +271,7 @@ class ConsultationService
             }
         }
 
-        if ($status->code === 'terlaksana') {
+        if ($status->code === ServiceRecordStatus::COMPLETED) {
             if ($sessionDate->isFuture()) {
                 throw ValidationException::withMessages(['session_date' => 'Sesi terlaksana tidak boleh berada di masa depan.']);
             }

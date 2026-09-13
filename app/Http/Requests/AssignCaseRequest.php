@@ -21,7 +21,7 @@ class AssignCaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'assignment_type' => ['required', Rule::in(['transfer', 'additional'])],
+            'assignment_type' => ['required', Rule::in(['transfer'])],
             'to_user_id' => ['required', 'integer', Rule::exists('users', 'id')],
             'reason' => ['required', 'string', 'max:5000'],
             'effective_date' => ['required', 'date'],

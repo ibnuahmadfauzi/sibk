@@ -4,7 +4,7 @@
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-403">
-        <div class="sibk-page-header mb-4"><div class="sibk-page-header__copy"><h1>Penugasan dan Pengalihan Kasus</h1><p>Atur penanggung jawab atau kewenangan tambahan untuk kasus aktif.</p></div></div>
+        <div class="sibk-page-header mb-4"><div class="sibk-page-header__copy"><h1>Pengalihan Penanggung Jawab Kasus</h1><p>Alihkan satu penanggung jawab aktif kepada Guru BK penerus.</p></div></div>
         @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
         <div class="sibk-panel mb-4">
@@ -13,7 +13,7 @@
                     <label class="form-label" for="case_id">Kasus target</label>
                     <select class="form-select" id="case_id" name="case_id" required>
                         @forelse($cases as $caseOption)
-                            <option value="{{ $caseOption->id }}" @selected($selectedCase?->is($caseOption))>{{ $caseOption->registration_number }} — {{ $caseOption->identityName() }} ({{ $caseOption->status->label }})</option>
+                            <option value="{{ $caseOption->id }}" @selected($selectedCase?->is($caseOption))>{{ $caseOption->identityName() }} — {{ $caseOption->service_date->format('d-m-Y') }} ({{ $caseOption->status->label }})</option>
                         @empty
                             <option value="">Tidak ada kasus aktif</option>
                         @endforelse
@@ -28,7 +28,7 @@
                 <div class="sibk-panel__header p-4 pb-2"><h2 class="sibk-panel__title">Kasus Terpilih</h2></div>
                 <div class="sibk-panel__body p-4 pt-2">
                     <div class="d-flex flex-wrap justify-content-between gap-3">
-                        <div><strong class="text-primary">{{ $selectedCase->registration_number }}</strong><span class="mx-2">&bull;</span>{{ $selectedCase->identityName() }}<span class="mx-2">&bull;</span>NISN {{ $selectedCase->identityNisn() }}</div>
+                        <div><strong class="text-primary">{{ $selectedCase->identityName() }}</strong><span class="mx-2">&bull;</span>{{ $selectedCase->service_date->format('d-m-Y') }}<span class="mx-2">&bull;</span>NISN {{ $selectedCase->identityNisn() }}</div>
                         <span class="sibk-badge sibk-badge--primary">{{ $selectedCase->status->label }}</span>
                     </div>
                     <div class="mt-3 small text-muted">
@@ -48,8 +48,7 @@
                     <div class="col-12 col-md-4">
                         <label class="form-label" for="assignment_type">Jenis perubahan <span class="text-danger">*</span></label>
                         <select class="form-select" id="assignment_type" name="assignment_type" required>
-                            <option value="transfer" @selected(old('assignment_type') === 'transfer')>Pengalihan penanggung jawab</option>
-                            <option value="additional" @selected(old('assignment_type') === 'additional')>Kewenangan tambahan</option>
+                            <option value="transfer" selected>Pengalihan penanggung jawab</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-4">

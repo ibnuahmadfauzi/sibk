@@ -11,6 +11,7 @@ use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -136,8 +137,8 @@ class AssignmentService
     {
         return DB::transaction(function () use ($case, $data, $actor): CaseAssignment {
             $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
-            if ($case->closed_at !== null || $case->status->code === 'selesai') {
-                throw ValidationException::withMessages(['case' => 'Kasus yang sudah selesai tidak dapat dialihkan.']);
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat dialihkan.']);
             }
 
             $teacher = User::query()->with('roles')->lockForUpdate()->findOrFail($data['to_user_id']);
@@ -155,8 +156,10 @@ class AssignmentService
             }
 
             $type = $data['assignment_type'];
-            if (! in_array($type, ['transfer', 'additional'], true)) {
-                throw ValidationException::withMessages(['assignment_type' => 'Jenis penugasan kasus tidak valid.']);
+            if ($type !== 'transfer') {
+                throw ValidationException::withMessages([
+                    'assignment_type' => 'Kasus hanya dapat dipindahkan melalui pengalihan penanggung jawab.',
+                ]);
             }
 
             $assignments = CaseAssignment::query()
@@ -166,77 +169,66 @@ class AssignmentService
                 ->get();
             $previousTeacher = null;
 
-            if ($type === 'transfer') {
-                $current = $assignments->first(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
-                    && $assignment->effective_from->lte($effectiveDate)
-                    && ($assignment->effective_until === null || $assignment->effective_until->gte($effectiveDate))
-                );
-
-                if ($current === null) {
-                    throw ValidationException::withMessages(['effective_date' => 'Pemilik kasus pada tanggal tersebut tidak ditemukan.']);
-                }
-
-                if ($current->user_id === $teacher->getKey()) {
-                    throw ValidationException::withMessages(['to_user_id' => 'Penerima sudah menjadi pemilik kasus.']);
-                }
-
-                if ($current->effective_from->equalTo($effectiveDate)) {
-                    throw ValidationException::withMessages(['effective_date' => 'Tanggal berlaku harus setelah awal penugasan pemilik saat ini.']);
-                }
-
-                $futureOwnerExists = $assignments->contains(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
-                    && $assignment->effective_from->gt($effectiveDate)
-                );
-                if ($futureOwnerExists) {
-                    throw ValidationException::withMessages(['effective_date' => 'Sudah ada pengalihan pemilik yang dijadwalkan setelah tanggal tersebut.']);
-                }
-
-                $before = $this->caseAssignmentSnapshot($current);
-                $previousTeacher = $current->teacher;
-                $current->update(['effective_until' => $effectiveDate->subDay()->toDateString()]);
-                $this->auditService->record(
-                    action: 'case_assignment.closed',
-                    auditable: $current,
-                    summary: sprintf('Penugasan pemilik kasus %s ditutup.', $case->registration_number),
-                    actor: $actor,
-                    before: $before,
-                    after: $this->caseAssignmentSnapshot($current->refresh()),
-                );
-                $assignmentType = CaseAssignment::TYPE_OWNER;
-            } else {
-                $duplicate = $assignments->contains(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_ADDITIONAL
-                    && $assignment->user_id === $teacher->getKey()
-                    && ($assignment->effective_until === null || $assignment->effective_until->gte($effectiveDate))
-                );
-                if ($duplicate) {
-                    throw ValidationException::withMessages(['to_user_id' => 'Guru BK sudah memiliki kewenangan tambahan aktif.']);
-                }
-                $assignmentType = CaseAssignment::TYPE_ADDITIONAL;
+            $activeOwners = $assignments->filter(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
+                && $assignment->effective_from->lte($effectiveDate)
+                && ($assignment->effective_until === null || $assignment->effective_until->gte($effectiveDate))
+            );
+            if ($activeOwners->count() !== 1) {
+                throw ValidationException::withMessages([
+                    'effective_date' => 'Kasus harus memiliki tepat satu penanggung jawab aktif pada tanggal pengalihan.',
+                ]);
             }
+
+            $current = $activeOwners->first();
+
+            if ($current->user_id === $teacher->getKey()) {
+                throw ValidationException::withMessages(['to_user_id' => 'Penerima sudah menjadi pemilik kasus.']);
+            }
+
+            if ($current->effective_from->equalTo($effectiveDate)) {
+                throw ValidationException::withMessages(['effective_date' => 'Tanggal berlaku harus setelah awal penugasan pemilik saat ini.']);
+            }
+
+            $futureOwnerExists = $assignments->contains(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
+                && $assignment->effective_from->gt($effectiveDate)
+            );
+            if ($futureOwnerExists) {
+                throw ValidationException::withMessages(['effective_date' => 'Sudah ada pengalihan pemilik yang dijadwalkan setelah tanggal tersebut.']);
+            }
+
+            $before = $this->caseAssignmentSnapshot($current);
+            $previousTeacher = $current->teacher;
+            $current->update(['effective_until' => $effectiveDate->subDay()->toDateString()]);
+            $this->auditService->record(
+                action: 'case_assignment.closed',
+                auditable: $current,
+                summary: sprintf('Penugasan pemilik kasus untuk %s ditutup.', $case->identityName()),
+                actor: $actor,
+                before: $before,
+                after: $this->caseAssignmentSnapshot($current->refresh()),
+            );
 
             $assignment = CaseAssignment::query()->create([
                 'case_id' => $case->getKey(),
                 'user_id' => $teacher->getKey(),
-                'assignment_type' => $assignmentType,
+                'assignment_type' => CaseAssignment::TYPE_OWNER,
                 'effective_from' => $effectiveDate->toDateString(),
                 'reason' => $data['reason'],
                 'assigned_by' => $actor->getKey(),
             ]);
 
             $this->auditService->record(
-                action: $type === 'transfer' ? 'case.transferred' : 'case.access_granted',
+                action: 'case.transferred',
                 auditable: $case,
-                summary: $type === 'transfer'
-                    ? sprintf('Kasus %s dialihkan kepada Guru BK lain.', $case->registration_number)
-                    : sprintf('Kewenangan tambahan kasus %s diberikan.', $case->registration_number),
+                summary: sprintf('Kasus untuk %s dialihkan kepada Guru BK lain.', $case->identityName()),
                 actor: $actor,
                 after: $this->caseAssignmentSnapshot($assignment),
             );
             $this->notificationService->send(
                 recipients: collect([$teacher]),
                 category: UserNotification::CATEGORY_ASSIGNMENT,
-                title: sprintf('Penugasan kasus %s diperbarui.', $case->registration_number),
-                message: $type === 'transfer' ? 'Anda ditetapkan sebagai pemilik kasus.' : 'Anda memperoleh kewenangan tambahan pada kasus.',
+                title: sprintf('Penugasan kasus untuk %s diperbarui.', $case->identityName()),
+                message: 'Anda ditetapkan sebagai pemilik kasus.',
                 target: $case,
                 actionRoute: 'cases.show',
                 actionParameters: ['case' => $case->getKey()],
@@ -246,7 +238,7 @@ class AssignmentService
                 $this->notificationService->send(
                     recipients: collect([$previousTeacher]),
                     category: UserNotification::CATEGORY_CHANGE,
-                    title: sprintf('Kepemilikan kasus %s dialihkan.', $case->registration_number),
+                    title: sprintf('Kepemilikan kasus untuk %s dialihkan.', $case->identityName()),
                     message: 'Penugasan pemilik Anda telah ditutup melalui pengalihan eksplisit.',
                     target: $case,
                     actionRoute: 'cases.show',

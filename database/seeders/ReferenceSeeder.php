@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\ReferenceValue;
+use App\Support\ServiceRecordStatus;
 use Illuminate\Database\Seeder;
 
 class ReferenceSeeder extends Seeder
 {
     public function run(): void
     {
-        $values = [
-            ['category' => 'case_status', 'code' => 'baru', 'label' => 'Baru', 'sort_order' => 10],
-            ['category' => 'case_status', 'code' => 'dalam_penanganan', 'label' => 'Dalam Penanganan', 'sort_order' => 20],
-            ['category' => 'case_status', 'code' => 'selesai', 'label' => 'Selesai', 'sort_order' => 30],
-            ['category' => 'case_status', 'code' => 'dibatalkan', 'label' => 'Dibatalkan', 'sort_order' => 40],
+        $values = $this->serviceStatusValues();
+        $values = [...$values,
             ['category' => 'case_source', 'code' => 'e_tatib', 'label' => 'e-Tatib', 'sort_order' => 10],
             ['category' => 'case_source', 'code' => 'murid_datang_sendiri', 'label' => 'Murid datang sendiri', 'sort_order' => 20],
             ['category' => 'case_source', 'code' => 'temuan_guru_bk', 'label' => 'Temuan Guru BK', 'sort_order' => 30],
@@ -38,10 +36,6 @@ class ReferenceSeeder extends Seeder
             ['category' => 'coordination_status', 'code' => 'menunggu', 'label' => 'Menunggu', 'sort_order' => 10],
             ['category' => 'coordination_status', 'code' => 'selesai', 'label' => 'Selesai', 'sort_order' => 20],
             ['category' => 'coordination_status', 'code' => 'dibatalkan', 'label' => 'Dibatalkan', 'sort_order' => 30],
-            ['category' => 'consultation_status', 'code' => 'dijadwalkan', 'label' => 'Dijadwalkan', 'sort_order' => 10],
-            ['category' => 'consultation_status', 'code' => 'menunggu_konfirmasi', 'label' => 'Menunggu Konfirmasi', 'sort_order' => 20],
-            ['category' => 'consultation_status', 'code' => 'terlaksana', 'label' => 'Terlaksana', 'sort_order' => 30],
-            ['category' => 'consultation_status', 'code' => 'dibatalkan', 'label' => 'Dibatalkan', 'sort_order' => 40],
             ['category' => 'correction_status', 'code' => 'menunggu', 'label' => 'Menunggu', 'sort_order' => 10],
             ['category' => 'correction_status', 'code' => 'diproses', 'label' => 'Diproses', 'sort_order' => 20],
             ['category' => 'correction_status', 'code' => 'disetujui', 'label' => 'Disetujui', 'sort_order' => 30],
@@ -73,5 +67,24 @@ class ReferenceSeeder extends Seeder
                 [...$value, 'is_active' => true],
             );
         }
+    }
+
+    /** @return list<array{category: string, code: string, label: string, sort_order: int}> */
+    private function serviceStatusValues(): array
+    {
+        $values = [];
+
+        foreach (['case_status', 'consultation_status'] as $category) {
+            foreach (ServiceRecordStatus::codes() as $index => $code) {
+                $values[] = [
+                    'category' => $category,
+                    'code' => $code,
+                    'label' => ServiceRecordStatus::label($code) ?? $code,
+                    'sort_order' => ($index + 1) * 10,
+                ];
+            }
+        }
+
+        return $values;
     }
 }

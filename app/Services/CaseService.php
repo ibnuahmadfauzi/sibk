@@ -12,7 +12,9 @@ use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\ServiceRecordStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class CaseService
@@ -53,7 +55,7 @@ class CaseService
 
             $source = $this->reference('case_source', (int) $data['case_source_id']);
             $this->reference('service_field', (int) $data['service_field_id']);
-            $status = $this->referenceByCode('case_status', 'baru');
+            $status = $this->referenceByCode('case_status', ServiceRecordStatus::NEW);
             $nisn = $student?->nisn ?? $temporaryStudent?->nisn ?? '';
             $etatibIds = $data['etatib_record_ids'] ?? [];
             $etatibRecords = ExternalTatibRecord::query()
@@ -115,7 +117,7 @@ class CaseService
             $this->auditService->record(
                 action: 'case.created',
                 auditable: $case,
-                summary: sprintf('Kasus %s dibuat.', $case->registration_number),
+                summary: sprintf('Kasus untuk %s dibuat.', $case->identityName()),
                 actor: $actor,
                 after: $this->snapshot($case),
             );
@@ -124,18 +126,26 @@ class CaseService
         });
     }
 
-    /** @param array{closed_at: string, final_result: string, resolution_summary: string, continued_plan?: string|null} $data */
+    /** @param array{closed_at: string, final_result: string, resolution_summary: string, continued_plan?: string|null, waka_summary: string} $data */
     public function resolve(BkCase $case, array $data, User $actor): BkCase
     {
         return DB::transaction(function () use ($case, $data, $actor): BkCase {
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
 
-            if ($case->closed_at !== null) {
-                throw ValidationException::withMessages(['case' => 'Kasus sudah selesai.']);
+            $case->loadMissing('status');
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat diubah.']);
             }
 
-            if (! $case->hasActiveAssignmentFor($actor)) {
-                throw ValidationException::withMessages(['case' => 'Anda tidak memiliki penugasan aktif pada kasus ini.']);
+            if (! $case->hasActiveOwnerFor($actor)) {
+                throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
+            }
+
+            $wakaSummary = trim((string) ($data['waka_summary'] ?? ''));
+            if ($wakaSummary === '' || mb_strlen($wakaSummary) > 500) {
+                throw ValidationException::withMessages([
+                    'waka_summary' => 'Ringkasan Penanganan untuk Waka wajib diisi dan maksimal 500 karakter.',
+                ]);
             }
 
             if ($data['closed_at'] < $case->service_date->toDateString()) {
@@ -145,19 +155,20 @@ class CaseService
             }
 
             $before = $this->snapshot($case);
-            $status = $this->referenceByCode('case_status', 'selesai');
+            $status = $this->referenceByCode('case_status', ServiceRecordStatus::COMPLETED);
             $case->update([
                 'status_id' => $status->getKey(),
                 'closed_at' => $data['closed_at'],
                 'final_result' => $data['final_result'],
                 'resolution_summary' => $data['resolution_summary'],
                 'continued_plan' => $data['continued_plan'] ?? null,
+                'waka_summary' => $wakaSummary,
             ]);
 
             $this->auditService->record(
                 action: 'case.resolved',
                 auditable: $case,
-                summary: sprintf('Kasus %s diselesaikan.', $case->registration_number),
+                summary: sprintf('Kasus untuk %s diselesaikan.', $case->identityName()),
                 actor: $actor,
                 before: $before,
                 after: $this->snapshot($case->refresh()),
@@ -167,21 +178,102 @@ class CaseService
         });
     }
 
+    /**
+     * @param  array{case_source_id: int|string, service_field_id: int|string, status_id: int|string, service_date: string, referrer?: string|null, initial_info: string, initial_action: string, internal_note?: string|null, waka_summary?: string|null}  $data
+     */
+    public function update(BkCase $case, array $data, User $actor): BkCase
+    {
+        return DB::transaction(function () use ($case, $data, $actor): BkCase {
+            $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
+            $case->loadMissing('status');
+
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat diubah langsung.']);
+            }
+
+            if (! $case->hasActiveOwnerFor($actor)) {
+                throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
+            }
+
+            $validated = Validator::make($data, [
+                'case_source_id' => ['required', 'integer'],
+                'service_field_id' => ['required', 'integer'],
+                'status_id' => ['required', 'integer'],
+                'service_date' => ['required', 'date', 'before_or_equal:today'],
+                'referrer' => ['nullable', 'string', 'max:150'],
+                'initial_info' => ['required', 'string', 'max:10000'],
+                'initial_action' => ['required', 'string', 'max:10000'],
+                'internal_note' => ['nullable', 'string', 'max:10000'],
+                'waka_summary' => ['nullable', 'string', 'max:500'],
+            ])->validate();
+
+            $source = $this->reference('case_source', (int) $validated['case_source_id']);
+            $this->reference('service_field', (int) $validated['service_field_id']);
+            $status = $this->reference('case_status', (int) $validated['status_id']);
+            if ($source->code === 'e_tatib' && ! $case->etatibRecords()->exists()) {
+                throw ValidationException::withMessages([
+                    'case_source_id' => 'Sumber e-Tatib hanya dapat dipilih jika kasus memiliki record resmi tertaut.',
+                ]);
+            }
+            if (ServiceRecordStatus::isTerminal($status->code)) {
+                throw ValidationException::withMessages([
+                    'status_id' => 'Gunakan tindakan penyelesaian atau pembatalan untuk status terminal.',
+                ]);
+            }
+            if ($status->code !== ServiceRecordStatus::NEW && blank($validated['waka_summary'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'waka_summary' => 'Ringkasan Penanganan untuk Waka wajib diisi ketika kasus mulai diproses.',
+                ]);
+            }
+
+            $before = $this->snapshot($case);
+            $case->update([
+                'case_source_id' => $validated['case_source_id'],
+                'service_field_id' => $validated['service_field_id'],
+                'status_id' => $status->getKey(),
+                'service_date' => $validated['service_date'],
+                'referrer' => $validated['referrer'] ?? null,
+                'initial_info' => $validated['initial_info'],
+                'initial_action' => $validated['initial_action'],
+                'internal_note' => $validated['internal_note'] ?? null,
+                'waka_summary' => filled($validated['waka_summary'] ?? null) ? trim((string) $validated['waka_summary']) : null,
+            ]);
+
+            $this->auditService->record(
+                action: 'case.updated',
+                auditable: $case,
+                summary: sprintf('Kasus untuk %s diperbarui.', $case->identityName()),
+                actor: $actor,
+                before: $before,
+                after: $this->snapshot($case->refresh()),
+            );
+
+            return $case->load(['source', 'serviceField', 'status']);
+        });
+    }
+
     public function deactivate(BkCase $case, User $actor): BkCase
     {
         return DB::transaction(function () use ($case, $actor): BkCase {
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
 
-            if ($case->closed_at !== null) {
-                throw ValidationException::withMessages(['case' => 'Kasus yang sudah selesai tidak dapat dinonaktifkan.']);
+            $case->loadMissing('status');
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat dinonaktifkan.']);
             }
 
-            if (! $case->hasActiveAssignmentFor($actor)) {
-                throw ValidationException::withMessages(['case' => 'Anda tidak memiliki penugasan aktif pada kasus ini.']);
+            if (! $case->hasActiveOwnerFor($actor)) {
+                throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
+            }
+
+            if ($case->status?->code === ServiceRecordStatus::NEW && blank($case->waka_summary)) {
+                throw ValidationException::withMessages([
+                    'waka_summary' => 'Ringkasan Penanganan untuk Waka wajib diisi sebelum kasus dibatalkan.',
+                ]);
             }
 
             $before = $this->snapshot($case);
-            $status = $this->referenceByCode('case_status', 'dibatalkan');
+            $status = $this->referenceByCode('case_status', ServiceRecordStatus::CANCELLED);
             $case->update([
                 'status_id' => $status->getKey(),
             ]);
@@ -189,7 +281,7 @@ class CaseService
             $this->auditService->record(
                 action: 'case.deactivated',
                 auditable: $case,
-                summary: sprintf('Kasus %s dinonaktifkan.', $case->registration_number),
+                summary: sprintf('Kasus untuk %s dinonaktifkan.', $case->identityName()),
                 actor: $actor,
                 before: $before,
                 after: $this->snapshot($case->refresh()),
@@ -207,7 +299,7 @@ class CaseService
             }
 
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
-            if (! in_array($field, ['service_date', 'service_field_id', 'initial_action'], true)) {
+            if (! in_array($field, ['service_date', 'service_field_id', 'initial_action', 'waka_summary'], true)) {
                 throw ValidationException::withMessages(['field_name' => 'Atribut kasus tidak dapat dikoreksi melalui alur ini.']);
             }
 
@@ -218,16 +310,19 @@ class CaseService
             if ($field === 'initial_action' && blank($value)) {
                 throw ValidationException::withMessages(['proposed_value' => 'Penanganan awal tidak boleh kosong.']);
             }
+            if ($field === 'waka_summary' && (blank($value) || mb_strlen(trim((string) $value)) > 500)) {
+                throw ValidationException::withMessages(['proposed_value' => 'Ringkasan Penanganan untuk Waka wajib diisi dan maksimal 500 karakter.']);
+            }
             if ($field === 'service_date' && $case->closed_at !== null && $value > $case->closed_at->toDateString()) {
                 throw ValidationException::withMessages(['proposed_value' => 'Tanggal layanan tidak boleh setelah tanggal penyelesaian kasus.']);
             }
 
             $before = [$field => $this->correctionValue($case, $field)];
-            $case->update([$field => $value]);
+            $case->update([$field => $field === 'waka_summary' ? trim((string) $value) : $value]);
             $this->auditService->record(
                 action: 'case.corrected',
                 auditable: $case,
-                summary: sprintf('Atribut %s pada kasus %s dikoreksi melalui pengajuan terverifikasi.', $field, $case->registration_number),
+                summary: sprintf('Atribut %s pada kasus untuk %s dikoreksi melalui pengajuan terverifikasi.', $field, $case->identityName()),
                 actor: $coordinator,
                 before: $before,
                 after: [$field => $this->correctionValue($case->refresh(), $field)],
@@ -246,12 +341,22 @@ class CaseService
         return $case->{$field} === null ? null : (string) $case->{$field};
     }
 
-    /** @param array{waka_user_id: int, coordination_need: string} $data */
+    /** @param array{waka_user_id: int, result?: string, coordination_need?: string} $data */
     public function coordinate(BkCase $case, array $data, User $actor): CaseCoordination
     {
         return DB::transaction(function () use ($case, $data, $actor): CaseCoordination {
-            if ($case->closed_at !== null) {
-                throw ValidationException::withMessages(['case' => 'Kasus yang sudah selesai tidak dapat dikoordinasikan.']);
+            $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
+            $case->loadMissing('status');
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat dikoordinasikan.']);
+            }
+            if (! $actor->hasRole('koordinator_bk') && ! $case->hasActiveOwnerFor($actor)) {
+                throw ValidationException::withMessages(['case' => 'Koordinasi hanya dapat dicatat oleh penanggung jawab aktif atau Koordinator BK.']);
+            }
+
+            $result = trim((string) ($data['result'] ?? $data['coordination_need'] ?? ''));
+            if ($result === '') {
+                throw ValidationException::withMessages(['result' => 'Ringkasan hasil koordinasi wajib diisi.']);
             }
 
             $waka = User::query()->with('roles')->findOrFail($data['waka_user_id']);
@@ -261,21 +366,14 @@ class CaseService
                 ]);
             }
 
-            $waiting = $this->referenceByCode('coordination_status', 'menunggu');
-            if ($case->coordinations()
-                ->where('waka_user_id', $waka->getKey())
-                ->where('status_id', $waiting->getKey())
-                ->exists()) {
-                throw ValidationException::withMessages([
-                    'waka_user_id' => 'Koordinasi aktif kepada Waka tersebut sudah tersedia.',
-                ]);
-            }
+            $completed = $this->referenceByCode('coordination_status', 'selesai');
 
             $coordination = CaseCoordination::query()->create([
                 'case_id' => $case->getKey(),
                 'waka_user_id' => $waka->getKey(),
-                'status_id' => $waiting->getKey(),
-                'coordination_need' => $data['coordination_need'],
+                'status_id' => $completed->getKey(),
+                'coordination_need' => 'Koordinasi dilakukan di luar aplikasi.',
+                'result' => $result,
                 'recorded_by' => $actor->getKey(),
                 'coordinated_at' => now(),
             ]);
@@ -283,19 +381,19 @@ class CaseService
             $this->auditService->record(
                 action: 'case.coordinated',
                 auditable: $case,
-                summary: sprintf('Kasus %s dikoordinasikan kepada Waka Kesiswaan.', $case->registration_number),
+                summary: sprintf('Hasil koordinasi kasus untuk %s dicatat.', $case->identityName()),
                 actor: $actor,
                 after: [
                     'coordination_id' => $coordination->getKey(),
                     'waka_user_id' => $waka->getKey(),
-                    'status' => $waiting->code,
+                    'status' => $completed->code,
                 ],
             );
             $this->notificationService->send(
                 recipients: collect([$waka]),
                 category: UserNotification::CATEGORY_COORDINATION,
-                title: sprintf('Koordinasi kasus %s diterima.', $case->registration_number),
-                message: 'Kasus dikoordinasikan kepada Anda dalam mode hanya-baca.',
+                title: sprintf('Hasil koordinasi untuk %s dicatat.', $case->identityName()),
+                message: 'Ringkasan hasil koordinasi eksternal tersedia dalam mode hanya-baca.',
                 target: $case,
                 actionRoute: 'cases.show',
                 actionParameters: ['case' => $case->getKey()],
@@ -316,6 +414,10 @@ class CaseService
         return DB::transaction(function () use ($case, $coordination, $data, $actor): CaseCoordination {
             if ($coordination->case_id !== $case->getKey()) {
                 abort(404);
+            }
+
+            if (! $actor->hasRole('koordinator_bk') && ! $case->hasActiveOwnerFor($actor)) {
+                throw ValidationException::withMessages(['case' => 'Koordinasi hanya dapat diperbarui oleh penanggung jawab aktif atau Koordinator BK.']);
             }
 
             $coordination->loadMissing('status');
@@ -342,7 +444,7 @@ class CaseService
             $this->auditService->record(
                 action: 'case.coordination_updated',
                 auditable: $case,
-                summary: sprintf('Status koordinasi kasus %s diperbarui.', $case->registration_number),
+                summary: sprintf('Status koordinasi kasus untuk %s diperbarui.', $case->identityName()),
                 actor: $actor,
                 before: $before,
                 after: ['status_id' => $status->getKey(), 'result' => $coordination->result],
@@ -351,7 +453,7 @@ class CaseService
             $this->notificationService->send(
                 recipients: collect([$coordination->waka]),
                 category: UserNotification::CATEGORY_CHANGE,
-                title: sprintf('Koordinasi kasus %s diperbarui.', $case->registration_number),
+                title: sprintf('Koordinasi untuk %s diperbarui.', $case->identityName()),
                 message: sprintf('Status koordinasi berubah menjadi %s.', $status->label),
                 target: $case,
                 actionRoute: 'cases.show',

@@ -19,7 +19,7 @@
                     <p><span class="text-muted small d-block">Guru BK Pencatat</span>{{ $consultation->counselor->name }}</p>
                     <p><span class="text-muted small d-block">Jenis Layanan</span>{{ $consultation->serviceField->label }}</p>
                     <p><span class="text-muted small d-block">Sumber Rujukan</span>{{ $consultation->referral_source ?: '—' }}</p>
-                    <p><span class="text-muted small d-block">Kasus Terkait</span>@if($consultation->case)<a href="{{ route('cases.show', $consultation->case) }}">{{ $consultation->case->registration_number }}</a>@else — @endif</p>
+                    <p><span class="text-muted small d-block">Kasus Terkait</span>@if($consultation->case)<a href="{{ route('cases.show', $consultation->case) }}">{{ $consultation->case->identityName() }} &bull; {{ $consultation->case->service_date->format('d-m-Y') }}</a>@else — @endif</p>
                     <p class="mb-0"><span class="text-muted small d-block">Tindak Lanjut</span>{{ $consultation->follow_up_date?->locale('id')->translatedFormat('d F Y') ?? '—' }}</p>
                 </div></div>
             </div>

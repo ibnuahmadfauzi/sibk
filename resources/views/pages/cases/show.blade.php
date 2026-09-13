@@ -10,12 +10,13 @@
         <div class="sibk-page-header mb-4 d-flex flex-wrap justify-content-between gap-3">
             <div class="sibk-page-header__copy">
                 <a href="{{ route('cases.index') }}" class="text-decoration-none small">&larr; Kembali ke daftar</a>
-                <h1 class="mb-1">{{ $case->registration_number }}</h1>
-                <p class="mb-0">{{ $case->identityName() }} &bull; NISN {{ $case->identityNisn() }}</p>
+                <h1 class="mb-1">Detail Kasus</h1>
+                <p class="mb-0">{{ $case->identityName() }} &bull; {{ $case->service_date->locale('id')->translatedFormat('d F Y') }}</p>
             </div>
-            @if($canAssignCase)
+            @if($canUpdateCase || $canAssignCase)
                 <div class="d-flex flex-wrap align-items-start gap-2">
-                    <a href="{{ route('assignments.cases.index', ['case_id' => $case->id]) }}" class="btn btn-outline-secondary">Atur Penugasan</a>
+                    @if($canUpdateCase)<a href="{{ route('cases.edit', $case) }}" class="btn btn-primary">Ubah Kasus</a>@endif
+                    @if($canAssignCase)<a href="{{ route('assignments.cases.index', ['case_id' => $case->id]) }}" class="btn btn-outline-secondary">Atur Penugasan</a>@endif
                 </div>
             @endif
         </div>
@@ -35,7 +36,9 @@
                         <h3 class="fs-6 fw-bold">Informasi awal</h3>
                         <p class="text-break">{{ $case->initial_info }}</p>
                         <h3 class="fs-6 fw-bold">Tindakan awal</h3>
-                        <p class="text-break mb-0">{{ $case->initial_action ?: '-' }}</p>
+                        <p class="text-break">{{ $case->initial_action ?: '-' }}</p>
+                        <h3 class="fs-6 fw-bold">Ringkasan Penanganan untuk Waka</h3>
+                        <p class="text-break mb-0">{{ $case->waka_summary ?: '-' }}</p>
                         @if($canViewInternal)
                             <hr>
                             <h3 class="fs-6 fw-bold">Catatan internal</h3>
@@ -115,19 +118,7 @@
                         @forelse($case->coordinations->sortByDesc('coordinated_at') as $coordination)
                             <div class="border-bottom py-3">
                                 <div class="d-flex justify-content-between gap-2"><strong>{{ $coordination->waka->name }}</strong><span class="sibk-badge sibk-badge--primary">{{ $coordination->status->label }}</span></div>
-                                <p class="small mt-2 mb-1">{{ $coordination->coordination_need }}</p>
-                                @if($coordination->result)<p class="small text-muted mb-1">Hasil: {{ $coordination->result }}</p>@endif
-                                @if($canCoordinateCase && $coordination->status->code === 'menunggu')
-                                    <form action="{{ route('cases.coordinations.update', [$case, $coordination]) }}" method="POST" class="mt-2">
-                                        @csrf @method('PATCH')
-                                        <select name="status_id" class="form-select form-select-sm mb-2" required>
-                                            <option value="">Pilih status akhir</option>
-                                            @foreach($coordinationEndStatuses as $status)<option value="{{ $status->id }}">{{ $status->label }}</option>@endforeach
-                                        </select>
-                                        <textarea name="result" class="form-control form-control-sm mb-2" rows="2" placeholder="Hasil koordinasi atau alasan pembatalan"></textarea>
-                                        <button class="btn btn-outline-primary btn-sm" type="submit">Perbarui</button>
-                                    </form>
-                                @endif
+                                <p class="small mt-2 mb-1">{{ $coordination->result ?: $coordination->coordination_need }}</p>
                             </div>
                         @empty
                             <p class="text-muted">Belum ada koordinasi.</p>
@@ -141,8 +132,9 @@
                                     <option value="">Pilih Waka Kesiswaan</option>
                                     @foreach($wakaUsers as $waka)<option value="{{ $waka->id }}">{{ $waka->name }}</option>@endforeach
                                 </select>
-                                <textarea class="form-control mb-2" name="coordination_need" rows="3" placeholder="Kebutuhan koordinasi" required></textarea>
-                                <button type="submit" class="btn btn-outline-primary w-100">Catat Koordinasi</button>
+                                <textarea class="form-control mb-2" name="result" rows="3" placeholder="Ringkasan hasil koordinasi yang dilakukan di luar aplikasi" required></textarea>
+                                <div class="form-text mb-2">Aplikasi hanya menyimpan ringkasan hasil. Percakapan dan persetujuan dilakukan di luar aplikasi.</div>
+                                <button type="submit" class="btn btn-outline-primary w-100">Simpan Hasil Koordinasi</button>
                             </form>
                         @endif
                     </div>

@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ResolveCaseRequest;
 use App\Http\Requests\StoreCaseRequest;
+use App\Http\Requests\UpdateCaseRequest;
 use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\Consultation;
@@ -15,6 +16,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\CaseService;
+use App\Support\ServiceRecordStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,8 +55,7 @@ class CaseController extends Controller
 
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($cases) => $cases->where(function ($filter) use ($search): void {
-            $filter->where('registration_number', 'like', '%'.$search.'%')
-                ->orWhereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
+            $filter->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
                 ->orWhereHas('temporaryStudent', fn ($students) => $students->where('input_name', 'like', '%'.$search.'%'));
         }));
         $query->when($request->integer('classroom_id'), fn ($cases, int $classroomId) => $cases->whereHas(
@@ -167,7 +168,7 @@ class CaseController extends Controller
             $auditService->record(
                 action: 'case.viewed_by_waka',
                 auditable: $case,
-                summary: sprintf('Detail kasus %s dilihat oleh Waka Kesiswaan.', $case->registration_number),
+                summary: 'Detail kasus terkoordinasi dilihat oleh Waka Kesiswaan.',
                 actor: $user,
             );
         }
@@ -182,13 +183,36 @@ class CaseController extends Controller
                 'roles',
                 fn ($roles) => $roles->where('slug', 'waka_kesiswaan')->where('is_active', true),
             )->orderBy('name')->get(),
-            'coordinationEndStatuses' => ReferenceValue::query()
+        ]);
+    }
+
+    public function edit(Request $request, BkCase $case): View
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless($user->can('update', $case), 403);
+        $case->load(['student', 'temporaryStudent', 'source', 'serviceField', 'status']);
+
+        return view('pages.cases.edit', [
+            'case' => $case,
+            'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
+            'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
+            'caseStatuses' => ReferenceValue::query()
                 ->active()
-                ->forCategory('coordination_status')
-                ->whereIn('code', ['selesai', 'dibatalkan'])
+                ->forCategory('case_status')
+                ->whereNotIn('code', ServiceRecordStatus::terminalCodes())
                 ->orderBy('sort_order')
                 ->get(),
         ]);
+    }
+
+    public function update(UpdateCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        $caseService->update($case, $request->validated(), $actor);
+
+        return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil diperbarui.');
     }
 
     public function resolveForm(Request $request, BkCase $case): View
@@ -218,7 +242,7 @@ class CaseController extends Controller
         abort_unless($actor->can('update', $case), 403);
         $caseService->deactivate($case, $actor);
 
-        return redirect()->route('cases.index')->with('success', sprintf('Kasus %s berhasil dinonaktifkan.', $case->registration_number));
+        return redirect()->route('cases.index')->with('success', 'Kasus berhasil dinonaktifkan.');
     }
 
     private function consultationIndex(Request $request, User $user): View
