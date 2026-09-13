@@ -132,6 +132,33 @@ class WakaMonitoringTest extends TestCase
             ->assertDontSee('Catatan internal BK rahasia');
     }
 
+    public function test_sort_links_expose_direction_without_absolute_hidden_text(): void
+    {
+        [$waka, $case, $owner] = $this->wakaCaseFixture();
+        $this->assignOwner($case, $owner);
+
+        $this->actingAs($waka)
+            ->get(route('waka.monitoring.students', [
+                'sort' => 'murid',
+                'direction' => 'asc',
+            ]))
+            ->assertOk()
+            ->assertSee('aria-sort="ascending"', false)
+            ->assertSee('aria-label="Murid, diurutkan naik"', false)
+            ->assertDontSee('<span class="visually-hidden">, diurutkan', false);
+
+        $this->actingAs($waka)
+            ->get(route('waka.reports', [
+                'tab' => 'penanganan',
+                'sort' => 'tanggal',
+                'direction' => 'desc',
+            ]))
+            ->assertOk()
+            ->assertSee('aria-sort="descending"', false)
+            ->assertSee('aria-label="Tanggal, diurutkan turun"', false)
+            ->assertDontSee('<span class="visually-hidden">, diurutkan', false);
+    }
+
     public function test_waka_monitoring_creates_audit_log_events(): void
     {
         $waka = $this->createUserWithRole('waka_kesiswaan');

@@ -42,8 +42,10 @@
                     @foreach($columns as $key => $label)
                         @php $activeSort = ($params['sort'] ?? 'tanggal') === $key; @endphp
                         <th scope="col" @if($activeSort) aria-sort="{{ ($params['direction'] ?? 'desc') === 'asc' ? 'ascending' : 'descending' }}" @endif>
-                            <a class="text-decoration-none text-reset" href="{{ route('waka.reports', array_merge(['tab' => 'penanganan'], $params, ['sort' => $key, 'direction' => $activeSort && ($params['direction'] ?? 'desc') === 'asc' ? 'desc' : 'asc', 'page' => 1])) }}">
-                                {{ $label }}@if($activeSort)<span class="visually-hidden">, diurutkan {{ ($params['direction'] ?? 'desc') === 'asc' ? 'naik' : 'turun' }}</span>@endif
+                            <a class="text-decoration-none text-reset"
+                                @if($activeSort) aria-label="{{ $label }}, diurutkan {{ ($params['direction'] ?? 'desc') === 'asc' ? 'naik' : 'turun' }}" @endif
+                                href="{{ route('waka.reports', array_merge(['tab' => 'penanganan'], $params, ['sort' => $key, 'direction' => $activeSort && ($params['direction'] ?? 'desc') === 'asc' ? 'desc' : 'asc', 'page' => 1])) }}">
+                                {{ $label }}
                             </a>
                         </th>
                     @endforeach

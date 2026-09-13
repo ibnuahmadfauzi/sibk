@@ -181,6 +181,11 @@ small, .small {
   }
 }
 
+.btn:focus-visible {
+  outline: 0.2rem solid var(--sibk-focus-ring) !important;
+  outline-offset: 0.125rem;
+}
+
 .btn-icon {
   display: inline-flex;
   align-items: center;
