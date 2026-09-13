@@ -22,7 +22,7 @@ class WakaMonitoringController extends Controller
     public function index(WakaMonitoringRequest $request): View
     {
         /** @var User $user */
-        $user   = $request->user();
+        $user = $request->user();
         $params = $request->normalizedParams();
 
         $paginator = $this->service->paginate($params);
@@ -35,11 +35,11 @@ class WakaMonitoringController extends Controller
         );
 
         return view('pages.waka.monitoring', [
-            'rows'         => $rows,
-            'paginator'    => $paginator->withPath(route('waka.monitoring.handling'))->appends($request->except('page')),
-            'params'       => $params,
-            'statuses'     => ServiceRecordStatus::labels(),
-            'sortOptions'  => WakaMonitoringRequest::SORT_ALLOWLIST,
+            'rows' => $rows,
+            'paginator' => $paginator->withPath(route('waka.monitoring.handling'))->appends($request->except('page')),
+            'params' => $params,
+            'statuses' => ServiceRecordStatus::labels(),
+            'sortOptions' => WakaMonitoringRequest::SORT_ALLOWLIST,
         ]);
     }
 
@@ -50,17 +50,17 @@ class WakaMonitoringController extends Controller
     public function export(WakaMonitoringRequest $request): StreamedResponse
     {
         /** @var User $user */
-        $user   = $request->user();
+        $user = $request->user();
         $params = $request->normalizedParams();
 
         $collection = $this->service->export($params);
-        $rows       = $collection->map(fn ($case) => $this->service->toCsvRow($case));
+        $rows = $collection->map(fn ($case) => $this->service->toCsvRow($case));
 
         // Audit SEBELUM stream dikirim ke client
         $this->service->auditExported($user, $params, $rows->count(), 'csv', $request);
 
         $filename = sprintf('monitoring-waka-%s.csv', now()->format('Ymd-His'));
-        $headers  = $rows->isNotEmpty() ? array_keys($rows->first()) : [];
+        $headers = $rows->isNotEmpty() ? array_keys($rows->first()) : [];
 
         return response()->streamDownload(function () use ($rows, $headers): void {
             $output = fopen('php://output', 'wb');

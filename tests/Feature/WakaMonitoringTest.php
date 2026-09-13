@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
-use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\ReferenceValue;
 use App\Models\Role;

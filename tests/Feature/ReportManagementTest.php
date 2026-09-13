@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\CaseService;
 use App\Services\ConsultationService;
 use App\Services\ReportService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -154,7 +155,7 @@ class ReportManagementTest extends TestCase
         $consultation = app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', 'terlaksana')->id,
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
             'topic' => 'Topik yang tidak masuk laporan',
             'session_date' => '2026-08-19',
             'general_summary' => 'RINGKASAN-UMUM-TIDAK-DIEKSPOR',
