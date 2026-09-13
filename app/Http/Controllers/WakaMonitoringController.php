@@ -6,10 +6,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\WakaMonitoringRequest;
 use App\Http\Requests\WakaReportRequest;
+use App\Models\AcademicYear;
 use App\Models\User;
 use App\Services\WakaMonitoringService;
+use App\Services\WakaPeriodReportService;
 use App\Services\WakaStudentCaseService;
 use App\Support\ServiceRecordStatus;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
@@ -20,6 +23,7 @@ class WakaMonitoringController extends Controller
     public function __construct(
         private readonly WakaMonitoringService $service,
         private readonly WakaStudentCaseService $students,
+        private readonly WakaPeriodReportService $periodReports,
     ) {}
 
     /**
@@ -51,6 +55,8 @@ class WakaMonitoringController extends Controller
         $tab = $request->tab();
         $paginator = null;
         $params = [];
+        $recap = null;
+        $academicYears = collect();
 
         if ($tab === 'penanganan') {
             $params = $request->monitoringParams();
@@ -60,7 +66,19 @@ class WakaMonitoringController extends Controller
             $this->service->auditViewed($user, 'reports.penanganan', $params, $paginator->count(), $request);
         } elseif ($tab === 'rekap') {
             $params = $request->recapParams();
-            $this->service->auditViewed($user, 'reports.rekap', $params, 0, $request);
+            $year = AcademicYear::query()->findOrFail($params['academic_year_id']);
+            $academicYears = AcademicYear::query()->orderByDesc('starts_on')->get();
+            $recap = $this->periodReports->build(
+                $year,
+                CarbonImmutable::parse($params['date_start']),
+                CarbonImmutable::parse($params['date_end']),
+            );
+            $aggregateCount = count($recap['metrics'])
+                + count($recap['service_fields'])
+                + count($recap['statuses'])
+                + count($recap['student_affairs'])
+                + count($recap['classes']);
+            $this->service->auditViewed($user, 'reports.rekap', $params, $aggregateCount, $request);
         } else {
             $this->service->auditViewed($user, 'reports.laporan-akhir', [], 0, $request);
         }
@@ -70,6 +88,8 @@ class WakaMonitoringController extends Controller
             'rows' => $paginator?->getCollection() ?? collect(),
             'paginator' => $paginator,
             'params' => $params,
+            'recap' => $recap,
+            'academicYears' => $academicYears,
             'statuses' => ServiceRecordStatus::labels(),
         ]);
     }

@@ -34,9 +34,9 @@
     @if($tab === 'penanganan')
         @include('pages.waka._handling-report')
     @elseif($tab === 'rekap')
-        <section class="sibk-panel"><x-empty-state title="Rekap Periode" description="Ringkasan agregat periode sedang disiapkan pada tahap berikutnya." /></section>
+        @include('pages.waka._period-recap')
     @else
-        <section class="sibk-panel"><x-empty-state title="Dalam pengembangan" description="Susunan laporan akhir sedang disiapkan bersama pihak BK dan sekolah. Halaman ini tersedia setelah format laporan disepakati." /></section>
+        @include('pages.waka._final-report-development')
     @endif
 </div>
 @endsection

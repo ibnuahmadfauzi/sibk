@@ -10,7 +10,7 @@ class ReportPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->is_active && $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
+        return $user->is_active && $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
     }
 
     public function viewType(User $user, string $type): bool

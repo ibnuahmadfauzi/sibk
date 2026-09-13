@@ -7,11 +7,9 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
 use App\Models\ConsultationPrivateNote;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -57,7 +55,8 @@ class ReportManagementTest extends TestCase
         $this->get(route('reports.index'))->assertRedirect(route('login'));
         $this->actingAs($teacher)->get(route('reports.index'))->assertOk()->assertSee('data-page-id="PG-301"', false);
         $this->actingAs($coordinator)->get(route('reports.index'))->assertOk()->assertSee('Konsultasi');
-        $this->actingAs($waka)->get(route('reports.index'))->assertOk()->assertDontSee('Rekap konsultasi tanpa isi sensitif');
+        $this->actingAs($waka)->get(route('reports.index'))->assertForbidden();
+        $this->actingAs($waka)->get(route('reports.preview', ['type' => ReportService::TYPE_STUDENT_VIOLATIONS]))->assertForbidden();
         $this->actingAs($waka)->get(route('reports.preview', ['type' => ReportService::TYPE_CONSULTATIONS]))->assertForbidden();
         $this->actingAs($admin)->get(route('reports.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('reports.preview', ['type' => ReportService::TYPE_SERVICE_RECAP]))->assertForbidden();
@@ -102,50 +101,26 @@ class ReportManagementTest extends TestCase
         $this->assertSame('10 poin', $pointsReport['rows']->first()['cells'][3]['value']);
     }
 
-    public function test_coordinator_combines_scopes_while_waka_only_sees_linked_coordination_data(): void
+    public function test_coordinator_combines_scopes_while_waka_generic_report_is_forbidden(): void
     {
         $teacherA = $this->userWithRole('guru_bk', 'Guru A');
         $teacherB = $this->userWithRole('guru_bk', 'Guru B');
         [$studentA] = $this->scopedStudent($teacherA, 'Murid Koordinasi A', '0011111111', 'X AKL 1');
         [$studentB] = $this->scopedStudent($teacherB, 'Murid Koordinasi B', '0022222222', 'X AKL 2');
-        $caseA = $this->caseFor($teacherA, $studentA);
-        $caseB = $this->caseFor($teacherB, $studentB);
-        $recordA = $this->etatib($studentA, 'ET-KOOR-A', 'Terlambat A', 'Kedisiplinan', 5, '2026-08-10');
+        $this->caseFor($teacherA, $studentA);
+        $this->caseFor($teacherB, $studentB);
+        $this->etatib($studentA, 'ET-KOOR-A', 'Terlambat A', 'Kedisiplinan', 5, '2026-08-10');
         $this->etatib($studentB, 'ET-KOOR-B', 'Terlambat B', 'Kedisiplinan', 7, '2026-08-11');
         $waka = $this->userWithRole('waka_kesiswaan', 'Waka Terbatas');
-        CaseCoordination::query()->create([
-            'case_id' => $caseA->id,
-            'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Koordinasi kebijakan.',
-            'recorded_by' => $teacherA->id,
-            'coordinated_at' => now(),
-        ]);
-        $caseA->etatibRecords()->attach($recordA->id, ['linked_by' => $teacherA->id]);
-        FollowUp::query()->create([
-            'case_id' => $caseA->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-22',
-            'result' => 'HASIL-PRIVAT-WAKA',
-            'next_plan' => 'RENCANA-PRIVAT-WAKA',
-            'recorded_by' => $teacherA->id,
-        ]);
 
         $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Gabungan');
         $coordinatorReport = app(ReportService::class)->build($coordinator, ['type' => ReportService::TYPE_STUDENT_VIOLATIONS], false);
-        $wakaReport = app(ReportService::class)->build($waka, ['type' => ReportService::TYPE_STUDENT_VIOLATIONS], false);
         $recap = app(ReportService::class)->build($coordinator, ['type' => ReportService::TYPE_SERVICE_RECAP], false);
         $this->assertCount(2, $coordinatorReport['rows']);
-        $this->assertCount(1, $wakaReport['rows']);
         $this->assertCount(2, $recap['rows']);
 
         $this->actingAs($waka)->get(route('reports.preview', ['type' => ReportService::TYPE_FOLLOW_UPS]))
-            ->assertOk()
-            ->assertSee($caseA->registration_number)
-            ->assertDontSee($caseB->registration_number)
-            ->assertDontSee('HASIL-PRIVAT-WAKA')
-            ->assertDontSee('RENCANA-PRIVAT-WAKA');
+            ->assertForbidden();
     }
 
     public function test_consultation_report_never_loads_private_or_general_narrative(): void
