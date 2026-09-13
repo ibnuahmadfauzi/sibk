@@ -16,7 +16,10 @@ class WakaMonitoringRequest extends FormRequest
      *
      * @var list<string>
      */
-    public const array SORT_ALLOWLIST = ['murid', 'kelas', 'bidang', 'status', 'guru_bk', 'tanggal'];
+    public const array HANDLING_SORT_ALLOWLIST = ['murid', 'kelas', 'bidang', 'status', 'guru_bk', 'tanggal'];
+
+    /** @var list<string> */
+    public const array STUDENT_SORT_ALLOWLIST = ['murid', 'kelas', 'status', 'guru_bk'];
 
     public function authorize(): bool
     {
@@ -28,10 +31,14 @@ class WakaMonitoringRequest extends FormRequest
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {
+        $sortAllowlist = $this->routeIs('waka.monitoring.students')
+            ? self::STUDENT_SORT_ALLOWLIST
+            : self::HANDLING_SORT_ALLOWLIST;
+
         return [
             'period' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
             'status' => ['nullable', 'string', Rule::in(ServiceRecordStatus::codes())],
-            'sort' => ['nullable', 'string', Rule::in(self::SORT_ALLOWLIST)],
+            'sort' => ['nullable', 'string', Rule::in($sortAllowlist)],
             'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
             'page' => ['nullable', 'integer', 'min:1'],
             'format' => ['nullable', 'string', Rule::in(['csv'])],
@@ -57,10 +64,12 @@ class WakaMonitoringRequest extends FormRequest
      */
     public function normalizedParams(): array
     {
+        $defaultSort = $this->routeIs('waka.monitoring.students') ? 'murid' : 'tanggal';
+
         return [
             'period' => $this->input('period'),
             'status' => $this->input('status'),
-            'sort' => $this->input('sort', 'tanggal'),
+            'sort' => $this->input('sort', $defaultSort),
             'direction' => $this->input('direction', 'desc'),
             'page' => (string) $this->input('page', 1),
         ];

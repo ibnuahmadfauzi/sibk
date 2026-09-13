@@ -25,21 +25,18 @@ class WakaMonitoringController extends Controller
         $user = $request->user();
         $params = $request->normalizedParams();
 
-        $paginator = $this->service->paginate($params);
+        $paginator = $this->service->paginateSafe($user, $params);
+        $mode = $request->routeIs('waka.monitoring.students') ? 'students' : 'reports.penanganan';
 
         // Catat audit setelah query berhasil, sebelum render view
-        $this->service->auditViewed($user, $params, $paginator->total(), $request);
-
-        $rows = $paginator->getCollection()->map(
-            fn ($case) => $this->service->toSafeRow($case)
-        );
+        $this->service->auditViewed($user, $mode, $params, $paginator->count(), $request);
 
         return view('pages.waka.monitoring', [
-            'rows' => $rows,
+            'rows' => $paginator->getCollection(),
             'paginator' => $paginator->withPath(route('waka.monitoring.handling'))->appends($request->except('page')),
             'params' => $params,
             'statuses' => ServiceRecordStatus::labels(),
-            'sortOptions' => WakaMonitoringRequest::SORT_ALLOWLIST,
+            'sortOptions' => WakaMonitoringRequest::HANDLING_SORT_ALLOWLIST,
         ]);
     }
 
@@ -53,8 +50,7 @@ class WakaMonitoringController extends Controller
         $user = $request->user();
         $params = $request->normalizedParams();
 
-        $collection = $this->service->export($params);
-        $rows = $collection->map(fn ($case) => $this->service->toCsvRow($case));
+        $rows = $this->service->exportCsvRows($user, $params);
 
         // Audit SEBELUM stream dikirim ke client
         $this->service->auditExported($user, $params, $rows->count(), 'csv', $request);

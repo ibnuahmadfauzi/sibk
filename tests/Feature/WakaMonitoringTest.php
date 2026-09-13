@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Requests\WakaMonitoringRequest;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
+use App\Models\CaseAssignment;
+use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\User;
+use App\Services\WakaMonitoringService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use InvalidArgumentException;
 use Tests\TestCase;
 
 class WakaMonitoringTest extends TestCase
@@ -34,10 +40,13 @@ class WakaMonitoringTest extends TestCase
         ]);
     }
 
-    private function createUserWithRole(string $roleSlug): User
+    private function createUserWithRole(string $roleSlug, ?string $name = null): User
     {
         $role = Role::query()->where('slug', $roleSlug)->firstOrFail();
-        $user = User::factory()->create(['is_active' => true]);
+        $user = User::factory()->create(array_filter([
+            'name' => $name,
+            'is_active' => true,
+        ], static fn (mixed $value): bool => $value !== null));
         $user->roles()->attach($role->id);
 
         return $user;
@@ -170,5 +179,166 @@ class WakaMonitoringTest extends TestCase
         $this->assertStringContainsString('Murid', $content);
         $this->assertStringContainsString('Siti Aminah', $content);
         $this->assertStringNotContainsString('1122334455', $content);
+    }
+
+    public function test_handling_projection_with_real_owner_is_safe(): void
+    {
+        [$waka, $case, $owner] = $this->wakaCaseFixture();
+        $this->assignOwner($case, $owner);
+
+        $paginator = app(WakaMonitoringService::class)->paginateSafe($waka, [
+            'period' => '2026-09',
+            'sort' => 'tanggal',
+            'direction' => 'desc',
+            'page' => '1',
+        ]);
+        $row = $paginator->items()[0];
+
+        $this->assertSame($owner->name, $row['guru_bk']);
+        $this->assertArrayNotHasKey('registration_number', $row);
+        $this->assertArrayNotHasKey('initial_info', $row);
+        $this->assertArrayNotHasKey('internal_note', $row);
+        $this->assertStringNotContainsString('SENTINEL-INTERNAL', json_encode($row, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_handling_projection_uses_class_effective_on_service_date(): void
+    {
+        [$waka, $case, $owner, $student] = $this->wakaCaseFixture(serviceDate: '2026-08-15');
+        $this->assignOwner($case, $owner);
+        $oldClass = Classroom::query()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'name' => 'X RPL Historis',
+            'is_active' => false,
+        ]);
+        $newClass = Classroom::query()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'name' => 'XI RPL Sekarang',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $oldClass->id,
+            'academic_year_id' => $this->academicYear->id,
+            'effective_from' => '2026-07-01',
+            'effective_until' => '2026-08-31',
+            'is_active' => false,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $newClass->id,
+            'academic_year_id' => $this->academicYear->id,
+            'effective_from' => '2026-09-01',
+            'is_active' => true,
+        ]);
+
+        $row = app(WakaMonitoringService::class)->paginateSafe($waka, [
+            'period' => '2026-08',
+            'sort' => 'kelas',
+            'direction' => 'asc',
+            'page' => '1',
+        ])->items()[0];
+
+        $this->assertSame('X RPL Historis', $row['kelas']);
+    }
+
+    public function test_handling_projection_executes_only_allowed_sort_keys(): void
+    {
+        [$waka, $case, $owner] = $this->wakaCaseFixture();
+        $this->assignOwner($case, $owner);
+
+        foreach (WakaMonitoringRequest::HANDLING_SORT_ALLOWLIST as $sort) {
+            $rows = app(WakaMonitoringService::class)->paginateSafe($waka, [
+                'sort' => $sort,
+                'direction' => 'asc',
+                'page' => '1',
+            ]);
+
+            $this->assertGreaterThanOrEqual(1, $rows->total(), "Sort {$sort} gagal dieksekusi.");
+        }
+
+        $this->expectException(InvalidArgumentException::class);
+        app(WakaMonitoringService::class)->paginateSafe($waka, [
+            'sort' => 'cases.registration_number',
+        ]);
+    }
+
+    public function test_csv_formula_cells_are_escaped(): void
+    {
+        [$waka, $case, $owner, $student] = $this->wakaCaseFixture(
+            studentName: '=Murid Berbahaya',
+            wakaSummary: "\rRingkasan Berbahaya",
+        );
+        $owner->update(['name' => '-Guru Berbahaya']);
+        $this->assignOwner($case, $owner);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'name' => '+Kelas Berbahaya',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->academicYear->id,
+            'effective_from' => '2026-07-01',
+            'is_active' => true,
+        ]);
+        $case->serviceField()->update(['label' => '@Bidang Berbahaya']);
+        $case->status()->update(['label' => "\tStatus Berbahaya"]);
+
+        $row = app(WakaMonitoringService::class)->exportCsvRows($waka, [
+            'period' => '2026-09',
+            'sort' => 'tanggal',
+            'direction' => 'desc',
+        ])->firstOrFail();
+
+        $this->assertSame("'=Murid Berbahaya", $row['Murid']);
+        $this->assertSame("'+Kelas Berbahaya", $row['Kelas']);
+        $this->assertSame("'@Bidang Berbahaya", $row['Bidang Layanan']);
+        $this->assertSame("'\tStatus Berbahaya", $row['Status']);
+        $this->assertSame("'-Guru Berbahaya", $row['Guru BK']);
+        $this->assertSame("'\rRingkasan Berbahaya", $row['Ringkasan Waka']);
+    }
+
+    /** @return array{User, BkCase, User, Student} */
+    private function wakaCaseFixture(
+        string $studentName = 'Murid Aman',
+        string $serviceDate = '2026-09-05',
+        string $wakaSummary = 'Ringkasan aman untuk Waka.',
+    ): array {
+        $waka = $this->createUserWithRole('waka_kesiswaan', 'Waka Kesiswaan');
+        $owner = $this->createUserWithRole('guru_bk', 'Guru BK Pemilik');
+        $student = Student::query()->create([
+            'nisn' => '9911223344',
+            'name' => $studentName,
+            'is_active' => true,
+        ]);
+        $case = BkCase::query()->create([
+            'registration_number' => 'K-2026-WAKA-01',
+            'student_id' => $student->id,
+            'academic_year_id' => $this->academicYear->id,
+            'case_source_id' => $this->ref('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->ref('service_field', 'pribadi')->id,
+            'status_id' => $this->ref('case_status', 'sedang_diproses')->id,
+            'service_date' => $serviceDate,
+            'initial_info' => 'Informasi awal rahasia.',
+            'initial_action' => 'Asesmen awal.',
+            'waka_summary' => $wakaSummary,
+            'internal_note' => 'SENTINEL-INTERNAL',
+            'created_by' => $owner->id,
+        ]);
+
+        return [$waka, $case, $owner, $student];
+    }
+
+    private function assignOwner(BkCase $case, User $owner): void
+    {
+        CaseAssignment::query()->create([
+            'case_id' => $case->id,
+            'user_id' => $owner->id,
+            'assignment_type' => CaseAssignment::TYPE_OWNER,
+            'effective_from' => '2026-07-01',
+            'reason' => 'Penanggung jawab awal.',
+            'assigned_by' => $owner->id,
+        ]);
     }
 }
