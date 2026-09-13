@@ -7,6 +7,7 @@ namespace App\Policies;
 use App\Models\BkCase;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\ServiceRecordStatus;
 
 class CasePolicy
 {
@@ -41,7 +42,7 @@ class CasePolicy
 
     public function viewInternal(User $user, BkCase $case): bool
     {
-        return $user->hasRole('guru_bk') && $case->hasActiveAssignmentFor($user);
+        return $user->hasRole('guru_bk') && $case->hasActiveOwnerFor($user);
     }
 
     public function create(User $user): bool
@@ -51,9 +52,9 @@ class CasePolicy
 
     public function update(User $user, BkCase $case): bool
     {
-        return $case->closed_at === null
+        return ! ServiceRecordStatus::isTerminal($case->status?->code)
             && $user->hasRole('guru_bk')
-            && $case->hasActiveAssignmentFor($user);
+            && $case->hasActiveOwnerFor($user);
     }
 
     public function resolve(User $user, BkCase $case): bool
@@ -63,12 +64,13 @@ class CasePolicy
 
     public function assign(User $user, BkCase $case): bool
     {
-        return $case->closed_at === null && $user->hasRole('koordinator_bk');
+        return ! ServiceRecordStatus::isTerminal($case->status?->code)
+            && $user->hasRole('koordinator_bk');
     }
 
     public function coordinate(User $user, BkCase $case): bool
     {
-        return $case->closed_at === null
+        return ! ServiceRecordStatus::isTerminal($case->status?->code)
             && ($user->hasRole('koordinator_bk') || $this->update($user, $case));
     }
 }

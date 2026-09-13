@@ -18,6 +18,7 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\CaseService;
 use App\Services\ConsultationService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,7 +89,7 @@ class ConsultationManagementTest extends TestCase
         ])->assertSessionHasErrors('case_id');
 
         $this->actingAs($teacher)->post(route('consultations.store'), [
-            ...$this->payload('dijadwalkan'),
+            ...$this->payload(ServiceRecordStatus::NEW),
             'temporary_nisn' => '0088888888',
             'temporary_name' => 'Identitas Sementara',
             'general_summary' => null,
@@ -153,11 +154,13 @@ class ConsultationManagementTest extends TestCase
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $consultation = app(ConsultationService::class)->create([
-            ...$this->payload(), 'student_id' => $student->id, 'sensitive_content' => 'Versi awal',
+            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
+            'student_id' => $student->id,
+            'sensitive_content' => 'Versi awal',
         ], $teacher);
 
         $this->actingAs($teacher)->patch(route('consultations.update', $consultation), [
-            ...$this->payload(),
+            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
             'sensitive_content' => 'Versi diperbarui',
             'internal_note' => 'Rahasia baru',
         ])->assertRedirect(route('consultations.show', $consultation));
@@ -202,6 +205,38 @@ class ConsultationManagementTest extends TestCase
         $this->actingAs($successor)->get(route('consultations.edit', $consultation))->assertForbidden();
     }
 
+    public function test_completed_and_cancelled_consultations_require_verified_correction(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $coordinator = $this->userWithRole('koordinator_bk');
+
+        foreach (ServiceRecordStatus::terminalCodes() as $terminalCode) {
+            $consultation = app(ConsultationService::class)->create([
+                ...$this->payload($terminalCode),
+                'student_id' => $student->id,
+            ], $teacher);
+            $payload = [...$this->payload(ServiceRecordStatus::IN_PROGRESS), 'topic' => 'Perubahan langsung ditolak'];
+
+            $this->actingAs($teacher)->get(route('consultations.edit', $consultation))->assertForbidden();
+            $this->actingAs($teacher)->patch(route('consultations.update', $consultation), $payload)->assertForbidden();
+
+            try {
+                app(ConsultationService::class)->update($consultation, $payload, $teacher);
+                $this->fail('Service menerima perubahan langsung pada konsultasi terminal.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('consultation', $exception->errors());
+            }
+
+            app(ConsultationService::class)->applyApprovedCorrection(
+                $consultation,
+                'topic',
+                'Topik hasil koreksi terverifikasi '.$terminalCode,
+                $coordinator,
+            );
+            $this->assertSame('Topik hasil koreksi terverifikasi '.$terminalCode, $consultation->refresh()->topic);
+        }
+    }
+
     /** @return array{User, Student}|array{User, Student, AcademicYear, Classroom, TeacherAssignment} */
     private function teacherAndScopedStudent(bool $full = false): array
     {
@@ -228,7 +263,7 @@ class ConsultationManagementTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function payload(string $statusCode = 'terlaksana'): array
+    private function payload(string $statusCode = ServiceRecordStatus::COMPLETED): array
     {
         return [
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,

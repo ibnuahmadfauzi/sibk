@@ -24,6 +24,7 @@ class ResolveCaseRequest extends FormRequest
             'final_result' => ['required', 'string', 'max:10000'],
             'resolution_summary' => ['required', 'string', 'max:10000'],
             'continued_plan' => ['nullable', 'string', 'max:10000'],
+            'waka_summary' => ['required', 'string', 'max:500'],
         ];
     }
 
@@ -35,6 +36,8 @@ class ResolveCaseRequest extends FormRequest
             'closed_at.before_or_equal' => 'Tanggal selesai tidak boleh berada di masa depan.',
             'final_result.required' => 'Hasil akhir wajib diisi.',
             'resolution_summary.required' => 'Ringkasan penyelesaian wajib diisi.',
+            'waka_summary.required' => 'Ringkasan Penanganan untuk Waka wajib diisi sebelum kasus diselesaikan.',
+            'waka_summary.max' => 'Ringkasan Penanganan untuk Waka maksimal 500 karakter.',
         ];
     }
 }

@@ -140,11 +140,6 @@ class CorrectionController extends Controller
 
             return $student === null ? [null, null] : ['student', (int) $student->id];
         }
-        if (mb_strtolower($request->string('object_type')->toString()) === 'kasus') {
-            $case = $cases->firstWhere('registration_number', $request->string('object_id')->toString());
-
-            return $case === null ? [null, null] : ['case', (int) $case->id];
-        }
 
         return [null, null];
     }

@@ -24,6 +24,7 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Support\AuthorizationScenarioCatalog;
+use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -460,7 +461,7 @@ class AuthorizationScenarioSeeder extends Seeder
             'follow_up_type' => $find('follow_up_type', 'konsultasi_individual'),
             'follow_up_scheduled' => $find('follow_up_status', 'terjadwal'),
             'follow_up_done' => $find('follow_up_status', 'terlaksana'),
-            'consultation_done' => $find('consultation_status', 'terlaksana'),
+            'consultation_done' => $find('consultation_status', ServiceRecordStatus::COMPLETED),
             'achievement_type' => $find('achievement_type', 'akademik'),
             'achievement_level' => $find('achievement_level', 'sekolah'),
             'achievement_pending' => $find('achievement_verification_status', 'menunggu'),

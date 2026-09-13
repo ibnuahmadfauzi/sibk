@@ -21,6 +21,7 @@ use App\Services\CaseService;
 use App\Services\ConsultationService;
 use App\Services\CorrectionService;
 use App\Services\FollowUpService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -200,6 +201,7 @@ class CorrectionManagementTest extends TestCase
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $coordinator = $this->userWithRole('koordinator_bk');
         $case = $this->createCase($teacher, $student);
+        $case->update(['waka_summary' => 'Asesmen awal selesai dan tindak lanjut telah dijadwalkan.']);
         $followUp = app(FollowUpService::class)->record($case, [
             'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
             'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
@@ -208,7 +210,7 @@ class CorrectionManagementTest extends TestCase
         $consultation = app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', 'terlaksana')->id,
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
             'topic' => 'Koreksi layanan',
             'session_date' => '2026-08-20',
             'general_summary' => 'Ringkasan umum.',

@@ -45,7 +45,7 @@
                         <select class="form-select" id="case_id" name="case_id">
                             <option value="">Tidak terkait kasus khusus</option>
                             @foreach($cases as $case)
-                                <option value="{{ $case->id }}" data-nisn="{{ $case->identityNisn() }}" @selected((string) old('case_id', $consultation?->case_id) === (string) $case->id)>{{ $case->registration_number }} — {{ $case->identityName() }} ({{ $case->status->label }})</option>
+                                <option value="{{ $case->id }}" data-nisn="{{ $case->identityNisn() }}" @selected((string) old('case_id', $consultation?->case_id) === (string) $case->id)>{{ $case->identityName() }} — {{ $case->service_date->format('d-m-Y') }} ({{ $case->status->label }})</option>
                             @endforeach
                         </select>
                     </div>

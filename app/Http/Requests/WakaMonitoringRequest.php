@@ -29,12 +29,12 @@ class WakaMonitoringRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'period'    => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
-            'status'    => ['nullable', 'string', Rule::in(ServiceRecordStatus::codes())],
-            'sort'      => ['nullable', 'string', Rule::in(self::SORT_ALLOWLIST)],
+            'period' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            'status' => ['nullable', 'string', Rule::in(ServiceRecordStatus::codes())],
+            'sort' => ['nullable', 'string', Rule::in(self::SORT_ALLOWLIST)],
             'direction' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
-            'page'      => ['nullable', 'integer', 'min:1'],
-            'format'    => ['nullable', 'string', Rule::in(['csv'])],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'format' => ['nullable', 'string', Rule::in(['csv'])],
         ];
     }
 
@@ -42,11 +42,11 @@ class WakaMonitoringRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'period.regex'    => 'Format periode harus YYYY-MM.',
-            'status.in'       => 'Status tidak dikenali.',
-            'sort.in'         => 'Pilihan urutan tidak tersedia.',
-            'direction.in'    => 'Arah urutan harus asc atau desc.',
-            'format.in'       => 'Format ekspor tidak tersedia.',
+            'period.regex' => 'Format periode harus YYYY-MM.',
+            'status.in' => 'Status tidak dikenali.',
+            'sort.in' => 'Pilihan urutan tidak tersedia.',
+            'direction.in' => 'Arah urutan harus asc atau desc.',
+            'format.in' => 'Format ekspor tidak tersedia.',
         ];
     }
 
@@ -58,11 +58,11 @@ class WakaMonitoringRequest extends FormRequest
     public function normalizedParams(): array
     {
         return [
-            'period'    => $this->input('period'),
-            'status'    => $this->input('status'),
-            'sort'      => $this->input('sort', 'tanggal'),
+            'period' => $this->input('period'),
+            'status' => $this->input('status'),
+            'sort' => $this->input('sort', 'tanggal'),
             'direction' => $this->input('direction', 'desc'),
-            'page'      => (string) $this->input('page', 1),
+            'page' => (string) $this->input('page', 1),
         ];
     }
 }

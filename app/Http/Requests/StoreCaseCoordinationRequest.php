@@ -22,7 +22,7 @@ class StoreCaseCoordinationRequest extends FormRequest
     {
         return [
             'waka_user_id' => ['required', 'integer', Rule::exists('users', 'id')],
-            'coordination_need' => ['required', 'string', 'max:10000'],
+            'result' => ['required', 'string', 'max:10000'],
         ];
     }
 
@@ -32,7 +32,7 @@ class StoreCaseCoordinationRequest extends FormRequest
         return [
             'waka_user_id.required' => 'Waka Kesiswaan tujuan wajib dipilih.',
             'waka_user_id.exists' => 'Waka Kesiswaan tujuan tidak tersedia.',
-            'coordination_need.required' => 'Kebutuhan koordinasi wajib diisi.',
+            'result.required' => 'Ringkasan hasil koordinasi wajib diisi.',
         ];
     }
 }

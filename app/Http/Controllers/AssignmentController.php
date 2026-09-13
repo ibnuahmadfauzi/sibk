@@ -127,9 +127,7 @@ class AssignmentController extends Controller
             ->with(['student.classMemberships.classroom', 'temporaryStudent', 'status', 'assignments.teacher'])
             ->latest('service_date')
             ->get();
-        $selectedCase = $cases->firstWhere('id', $request->integer('case_id'))
-            ?? $cases->firstWhere('registration_number', $request->string('case_no')->toString())
-            ?? $cases->first();
+        $selectedCase = $cases->firstWhere('id', $request->integer('case_id')) ?? $cases->first();
         $counselors = User::query()
             ->active()
             ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))

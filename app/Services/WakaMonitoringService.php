@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Http\Requests\WakaMonitoringRequest;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\User;
@@ -29,12 +28,12 @@ class WakaMonitoringService
      * @var array<string, string>
      */
     private const array SORT_MAP = [
-        'murid'    => 'students.name',
-        'kelas'    => 'classrooms.name',
-        'bidang'   => 'bidang.label',
-        'status'   => 'status_ref.label',
-        'guru_bk'  => 'users.name',
-        'tanggal'  => 'cases.service_date',
+        'murid' => 'students.name',
+        'kelas' => 'classrooms.name',
+        'bidang' => 'bidang.label',
+        'status' => 'status_ref.label',
+        'guru_bk' => 'users.name',
+        'tanggal' => 'cases.service_date',
     ];
 
     /**
@@ -69,7 +68,7 @@ class WakaMonitoringService
      */
     private function baseQuery(array $normalizedParams): Builder
     {
-        $sortColumn   = self::SORT_MAP[$normalizedParams['sort'] ?? 'tanggal'] ?? 'cases.service_date';
+        $sortColumn = self::SORT_MAP[$normalizedParams['sort'] ?? 'tanggal'] ?? 'cases.service_date';
         $sortDirection = ($normalizedParams['direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
 
         $query = BkCase::query()
@@ -110,6 +109,7 @@ class WakaMonitoringService
             ])
             ->when($normalizedParams['period'] ?? null, static function (Builder $q, string $period): Builder {
                 [$year, $month] = explode('-', $period);
+
                 return $q->whereYear('cases.service_date', $year)
                     ->whereMonth('cases.service_date', $month);
             })
@@ -130,11 +130,11 @@ class WakaMonitoringService
     public function auditViewed(User $actor, array $normalizedParams, int $resultCount, Request $request): void
     {
         AuditLog::query()->create([
-            'actor_id'       => $actor->getKey(),
-            'action'         => 'waka.monitoring.viewed',
+            'actor_id' => $actor->getKey(),
+            'action' => 'waka.monitoring.viewed',
             'auditable_type' => 'waka_monitoring',
-            'auditable_id'   => $actor->getKey(),
-            'summary'        => sprintf(
+            'auditable_id' => $actor->getKey(),
+            'summary' => sprintf(
                 'Waka membaca portal monitoring. Periode: %s, Status: %s, Urutan: %s %s, Halaman: %s, Hasil: %d baris.',
                 $normalizedParams['period'] ?? 'semua',
                 $normalizedParams['status'] ?? 'semua',
@@ -143,10 +143,10 @@ class WakaMonitoringService
                 $normalizedParams['page'] ?? '1',
                 $resultCount,
             ),
-            'before_values'  => null,
-            'after_values'   => null,
-            'ip_address'     => $request->ip(),
-            'user_agent'     => $request->userAgent(),
+            'before_values' => null,
+            'after_values' => null,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
     }
 
@@ -159,21 +159,21 @@ class WakaMonitoringService
     public function auditExported(User $actor, array $normalizedParams, int $rowCount, string $format, Request $request): void
     {
         AuditLog::query()->create([
-            'actor_id'       => $actor->getKey(),
-            'action'         => 'waka.monitoring.exported',
+            'actor_id' => $actor->getKey(),
+            'action' => 'waka.monitoring.exported',
             'auditable_type' => 'waka_monitoring',
-            'auditable_id'   => $actor->getKey(),
-            'summary'        => sprintf(
+            'auditable_id' => $actor->getKey(),
+            'summary' => sprintf(
                 'Waka mengekspor data monitoring. Periode: %s, Status: %s, Format: %s, Jumlah baris: %d.',
                 $normalizedParams['period'] ?? 'semua',
                 $normalizedParams['status'] ?? 'semua',
                 $format,
                 $rowCount,
             ),
-            'before_values'  => null,
-            'after_values'   => null,
-            'ip_address'     => $request->ip(),
-            'user_agent'     => $request->userAgent(),
+            'before_values' => null,
+            'after_values' => null,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
     }
 
@@ -185,24 +185,24 @@ class WakaMonitoringService
      */
     public function toSafeRow(BkCase $case): array
     {
-        $membership   = $case->student?->classMemberships->first();
-        $activeOwner  = $case->assignments->first()?->user;
+        $membership = $case->student?->classMemberships->first();
+        $activeOwner = $case->assignments->first()?->user;
         $nextFollowUp = $case->followUps->first();
 
         return [
-            'nama_murid'      => $case->student?->name ?? $case->temporaryStudent?->input_name ?? 'Identitas tidak tersedia',
-            'kelas'           => $membership?->classroom?->name ?? '—',
-            'bidang'          => $case->serviceField?->label ?? '—',
-            'status'          => $case->status?->label ?? '—',
-            'status_code'     => $case->status?->code ?? '',
-            'guru_bk'         => $activeOwner?->name ?? '—',
-            'tanggal'         => $case->service_date?->locale('id')->translatedFormat('d M Y') ?? '—',
-            'waka_summary'    => $case->waka_summary,
-            'tindak_lanjut'   => $nextFollowUp ? [
-                'jenis'   => $nextFollowUp->type?->label ?? '—',
+            'nama_murid' => $case->student?->name ?? $case->temporaryStudent?->input_name ?? 'Identitas tidak tersedia',
+            'kelas' => $membership?->classroom?->name ?? '—',
+            'bidang' => $case->serviceField?->label ?? '—',
+            'status' => $case->status?->label ?? '—',
+            'status_code' => $case->status?->code ?? '',
+            'guru_bk' => $activeOwner?->name ?? '—',
+            'tanggal' => $case->service_date?->locale('id')->translatedFormat('d M Y') ?? '—',
+            'waka_summary' => $case->waka_summary,
+            'tindak_lanjut' => $nextFollowUp ? [
+                'jenis' => $nextFollowUp->type?->label ?? '—',
                 'tanggal' => $nextFollowUp->planned_date?->locale('id')->translatedFormat('d M Y') ?? '—',
             ] : null,
-            'is_terminal'     => $case->closed_at !== null,
+            'is_terminal' => $case->closed_at !== null,
         ];
     }
 
@@ -213,17 +213,17 @@ class WakaMonitoringService
      */
     public function toCsvRow(BkCase $case): array
     {
-        $row          = $this->toSafeRow($case);
-        $followUp     = $row['tindak_lanjut'];
+        $row = $this->toSafeRow($case);
+        $followUp = $row['tindak_lanjut'];
 
         return [
-            'Murid'             => $row['nama_murid'],
-            'Kelas'             => $row['kelas'],
-            'Bidang Layanan'    => $row['bidang'],
-            'Status'            => $row['status'],
-            'Guru BK'           => $row['guru_bk'],
+            'Murid' => $row['nama_murid'],
+            'Kelas' => $row['kelas'],
+            'Bidang Layanan' => $row['bidang'],
+            'Status' => $row['status'],
+            'Guru BK' => $row['guru_bk'],
             'Tanggal Pelayanan' => $row['tanggal'],
-            'Ringkasan Waka'    => $row['waka_summary'] ?? '',
+            'Ringkasan Waka' => $row['waka_summary'] ?? '',
             'Jenis Tindak Lanjut' => $followUp['jenis'] ?? '',
             'Tgl Tindak Lanjut' => $followUp['tanggal'] ?? '',
         ];

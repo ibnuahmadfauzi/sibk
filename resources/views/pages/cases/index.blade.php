@@ -18,14 +18,14 @@
         @if($activeTab === 'kasus')
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="kasus">
-                <div class="col-12 col-md-3"><label class="form-label" for="case_search">Cari kasus</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nomor kasus atau nama murid"></div>
+                <div class="col-12 col-md-3"><label class="form-label" for="case_search">Cari kasus</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
                 <div class="col-12 col-md-2"><label class="form-label" for="case_class">Kelas</label><select class="form-select" id="case_class" name="classroom_id"><option value="">Semua kelas</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected((string) request('classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>
                 <div class="col-12 col-md-2"><label class="form-label" for="case_source">Sumber</label><select class="form-select" id="case_source" name="case_source_id"><option value="">Semua sumber</option>@foreach($caseSources as $source)<option value="{{ $source->id }}" @selected((string) request('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach</select></div>
                 <div class="col-12 col-md-2"><label class="form-label" for="case_status">Status</label><select class="form-select" id="case_status" name="status_id"><option value="">Semua status</option>@foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
                 <div class="col-12 col-md-2"><label class="form-label" for="case_month">Periode</label><input type="month" class="form-control" id="case_month" name="month" value="{{ request('month') }}"></div>
                 <div class="col-12 col-md-1"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
-            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>No. Kasus</th><th>Murid</th><th>Kelas</th><th>Sumber</th><th>Bidang</th><th>Status</th><th>Tindak Lanjut</th><th></th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>Murid</th><th>Kelas</th><th>Tanggal</th><th>Sumber</th><th>Bidang</th><th>Status</th><th>Tindak Lanjut</th></tr></thead><tbody>
                 @forelse($cases as $case)
                     @php
                         $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first();
@@ -34,14 +34,14 @@
                         $badgeTone = match($case->status?->code) {
                             'selesai' => 'success',
                             'dibatalkan' => 'danger',
-                            'dalam_penanganan' => 'warning',
+                            'sedang_diproses', 'membutuhkan_tindak_lanjut' => 'warning',
                             default => 'primary',
                         };
                     @endphp
                     <tr>
-                        <td class="fw-bold text-primary">{{ $case->registration_number }}</td>
                         <td class="fw-semibold">{{ $case->identityName() }}@if($case->temporary_student_id) <span class="badge bg-warning-subtle text-warning-emphasis">Sementara</span>@endif</td>
                         <td>{{ $membership?->classroom?->name ?? '—' }}</td>
+                        <td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td>
                         <td>{{ $case->source->label }}</td>
                         <td>{{ $case->serviceField->label }}</td>
                         <td><span class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
@@ -54,7 +54,7 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                                     </a>
 
-                                    <form action="{{ route('cases.deactivate', $case) }}" method="POST" class="d-inline" data-confirm-submit data-confirm-message="Apakah Anda yakin ingin menonaktifkan kasus {{ $case->registration_number }}?">
+                                    <form action="{{ route('cases.deactivate', $case) }}" method="POST" class="d-inline" data-confirm-submit data-confirm-message="Apakah Anda yakin ingin menonaktifkan kasus murid ini?">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 text-nowrap">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
@@ -74,9 +74,8 @@
                                 <span class="text-muted small">—</span>
                             @endif
                         </td>
-                        <td></td>
                     </tr>
-                @empty<tr><td colspan="8" class="text-center text-muted py-4">Belum ada kasus yang dapat Anda akses.</td></tr>@endforelse
+                @empty<tr><td colspan="7" class="text-center text-muted py-4">Belum ada kasus yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
         @else
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">

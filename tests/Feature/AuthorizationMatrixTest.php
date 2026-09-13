@@ -30,26 +30,26 @@ class AuthorizationMatrixTest extends TestCase
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
             '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
-            '/waka/monitoring/students' => 403,
+            '/waka/students-with-cases' => 403,
         ]];
         yield 'Koordinator BK' => ['koordinator_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 200, '/assignments/cases' => 200, '/corrections' => 200,
             '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
-            '/waka/monitoring/students' => 403,
+            '/waka/students-with-cases' => 403,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 403,
             '/history' => 200, '/achievements' => 200, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
-            '/waka/monitoring/students' => 200,
+            '/waka/students-with-cases' => 200,
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
             '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
             '/history' => 200, '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
-            '/waka/monitoring/students' => 403,
+            '/waka/students-with-cases' => 403,
         ]];
     }
 
@@ -65,7 +65,7 @@ class AuthorizationMatrixTest extends TestCase
 
     public function test_guest_and_inactive_sessions_cannot_access_any_operational_family(): void
     {
-        $uris = ['/dashboard', '/cases', '/students', '/reports', '/assignments/classes', '/corrections', '/history', '/achievements', '/data-master', '/admin/users', '/waka/monitoring/students'];
+        $uris = ['/dashboard', '/cases', '/students', '/reports', '/assignments/classes', '/corrections', '/history', '/achievements', '/data-master', '/admin/users', '/waka/students-with-cases'];
         foreach ($uris as $uri) {
             $this->get($uri)->assertRedirect(route('login'));
         }

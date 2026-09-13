@@ -58,7 +58,7 @@ class FrontendPreviewTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertSee('Tampilan koordinasi hanya-baca')
-            ->assertSee('Kasus terkoordinasi')
+            ->assertSee('Kasus aktif sekolah')
             ->assertDontSee('Cari profil murid');
     }
 

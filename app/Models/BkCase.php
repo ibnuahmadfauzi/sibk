@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'internal_note', 'final_result', 'resolution_summary', 'continued_plan', 'closed_at', 'created_by'])]
+#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'waka_summary', 'internal_note', 'final_result', 'resolution_summary', 'continued_plan', 'closed_at', 'created_by'])]
 class BkCase extends Model
 {
     use SoftDeletes;
@@ -139,6 +140,25 @@ class BkCase extends Model
             ->where('user_id', $user->getKey())
             ->effectiveOn(now())
             ->exists();
+    }
+
+    public function hasActiveOwnerFor(User $user, CarbonInterface|string|null $date = null): bool
+    {
+        return $this->assignments()
+            ->where('assignment_type', CaseAssignment::TYPE_OWNER)
+            ->where('user_id', $user->getKey())
+            ->effectiveOn($date ?? now())
+            ->exists();
+    }
+
+    public function activeOwnerAssignment(CarbonInterface|string|null $date = null): ?CaseAssignment
+    {
+        return $this->assignments()
+            ->where('assignment_type', CaseAssignment::TYPE_OWNER)
+            ->effectiveOn($date ?? now())
+            ->latest('effective_from')
+            ->latest('id')
+            ->first();
     }
 
     /** @return array<string, string> */

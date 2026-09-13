@@ -22,6 +22,7 @@ use App\Services\CaseService;
 use App\Services\ConsultationService;
 use App\Services\ProvisionalRosterCsvParser;
 use App\Services\StudentIdentityService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -1250,6 +1251,7 @@ class DelayedDapodikPreparationTest extends TestCase
             'closed_at' => '2027-07-10',
             'final_result' => 'Selesai',
             'resolution_summary' => 'Pendampingan sudah selesai.',
+            'waka_summary' => 'Pendampingan selesai dan kondisi murid telah ditinjau.',
         ];
         $this->assertValidationError(
             fn () => app(CaseService::class)->resolve($case, $caseResolution, $otherTeacher),
@@ -1310,7 +1312,7 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $student->id,
             'case_id' => null,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', 'terlaksana')->id,
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::IN_PROGRESS)->id,
             'topic' => 'Penyesuaian diri',
             'referral_source' => 'Inisiatif murid',
             'session_date' => '2027-07-10',

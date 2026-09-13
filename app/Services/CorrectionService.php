@@ -230,6 +230,7 @@ class CorrectionService
                 'service_date' => ['label' => 'Tanggal Layanan', 'type' => 'date'],
                 'service_field_id' => ['label' => 'Bidang Layanan', 'type' => 'reference', 'category' => 'service_field'],
                 'initial_action' => ['label' => 'Penanganan Awal', 'type' => 'text'],
+                'waka_summary' => ['label' => 'Ringkasan Penanganan untuk Waka', 'type' => 'text'],
             ],
             'follow_up' => [
                 'planned_date' => ['label' => 'Tanggal Rencana', 'type' => 'date'],
@@ -425,8 +426,8 @@ class CorrectionService
     private function targetLabel(Model $target): string
     {
         return match (true) {
-            $target instanceof BkCase => 'Kasus '.$target->registration_number,
-            $target instanceof FollowUp => 'Tindak lanjut kasus '.$target->case?->registration_number,
+            $target instanceof BkCase => sprintf('Kasus %s - %s', $target->identityName(), $target->service_date?->format('d-m-Y')),
+            $target instanceof FollowUp => sprintf('Tindak lanjut %s - %s', $target->case?->identityName(), $target->planned_date?->format('d-m-Y')),
             $target instanceof Consultation => 'Konsultasi '.$target->registration_number,
             $target instanceof Achievement => 'Prestasi '.$target->activity_name,
             $target instanceof Student => sprintf('Murid %s (%s)', $target->name, $target->nisn),

@@ -8,7 +8,7 @@
             <div class="sibk-page-header__copy">
                 <a href="{{ route('cases.show', $case) }}" class="text-decoration-none small">&larr; Kembali ke detail kasus</a>
                 <h1>{{ $isEdit ? 'Ubah' : 'Tambah' }} Tindak Lanjut</h1>
-                <p>{{ $case->registration_number }} &bull; {{ $case->identityName() }}</p>
+                <p>{{ $case->identityName() }} &bull; {{ $case->service_date->locale('id')->translatedFormat('d F Y') }}</p>
             </div>
         </div>
         @if($errors->any())

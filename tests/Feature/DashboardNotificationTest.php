@@ -82,9 +82,9 @@ class DashboardNotificationTest extends TestCase
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
-        $this->assertSame('1', $this->stat($wakaDashboard, 'Kasus terkoordinasi'));
+        $this->assertSame('2', $this->stat($wakaDashboard, 'Seluruh kasus aktif'));
         $this->assertStringContainsString($studentA->name, json_encode($wakaDashboard, JSON_THROW_ON_ERROR));
-        $this->assertStringNotContainsString($studentB->name, json_encode($wakaDashboard, JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString($studentB->name, json_encode($wakaDashboard, JSON_THROW_ON_ERROR));
 
         $admin = $this->userWithRole('admin_it', 'Admin IT');
         $adminDashboard = $service->forUser($admin, $this->year);
@@ -204,6 +204,7 @@ class DashboardNotificationTest extends TestCase
             'initial_info' => 'Informasi awal.',
             'initial_action' => 'Asesmen.',
         ], $teacher);
+        $case->update(['waka_summary' => 'Asesmen awal selesai dan tindak lanjut telah dijadwalkan.']);
         app(CaseService::class)->coordinate($case, [
             'waka_user_id' => $waka->id,
             'coordination_need' => 'Dukungan kesiswaan.',

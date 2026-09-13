@@ -9,6 +9,7 @@ use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Support\ServiceRecordStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,6 +26,11 @@ class FollowUpService
         return DB::transaction(function () use ($case, $data, $actor): FollowUp {
             $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
             $this->validateOpenCase($case, $actor);
+            if ($case->status->code === ServiceRecordStatus::NEW && blank($case->waka_summary)) {
+                throw ValidationException::withMessages([
+                    'waka_summary' => 'Ringkasan Penanganan untuk Waka wajib diisi sebelum tindak lanjut pertama dicatat.',
+                ]);
+            }
             $status = $this->validateReferencesAndResult($data);
 
             $followUp = FollowUp::query()->create([
@@ -38,26 +44,26 @@ class FollowUpService
                 'recorded_by' => $actor->getKey(),
             ]);
 
-            if ($case->status->code === 'baru') {
+            if ($case->status->code === ServiceRecordStatus::NEW) {
                 $handling = ReferenceValue::query()
                     ->where('category', 'case_status')
-                    ->where('code', 'dalam_penanganan')
+                    ->where('code', ServiceRecordStatus::IN_PROGRESS)
                     ->firstOrFail();
                 $case->update(['status_id' => $handling->getKey()]);
                 $this->auditService->record(
                     action: 'case.handling_started',
                     auditable: $case,
-                    summary: sprintf('Penanganan kasus %s dimulai.', $case->registration_number),
+                    summary: sprintf('Penanganan kasus untuk %s dimulai.', $case->identityName()),
                     actor: $actor,
-                    before: ['status' => 'baru'],
-                    after: ['status' => 'dalam_penanganan'],
+                    before: ['status' => ServiceRecordStatus::NEW],
+                    after: ['status' => ServiceRecordStatus::IN_PROGRESS],
                 );
             }
 
             $this->auditService->record(
                 action: 'follow_up.created',
                 auditable: $followUp,
-                summary: sprintf('Tindak lanjut kasus %s dicatat.', $case->registration_number),
+                summary: sprintf('Tindak lanjut kasus untuk %s dicatat.', $case->identityName()),
                 actor: $actor,
                 after: $this->snapshot($followUp),
             );
@@ -96,7 +102,7 @@ class FollowUpService
             $this->auditService->record(
                 action: 'follow_up.updated',
                 auditable: $followUp,
-                summary: sprintf('Tindak lanjut kasus %s diperbarui.', $case->registration_number),
+                summary: sprintf('Tindak lanjut kasus untuk %s diperbarui.', $case->identityName()),
                 actor: $actor,
                 before: $before,
                 after: $this->snapshot($followUp->refresh()),
@@ -135,7 +141,7 @@ class FollowUpService
             $this->auditService->record(
                 action: 'follow_up.corrected',
                 auditable: $followUp,
-                summary: sprintf('Tindak lanjut kasus %s dikoreksi melalui pengajuan terverifikasi.', $followUp->case->registration_number),
+                summary: sprintf('Tindak lanjut kasus untuk %s dikoreksi melalui pengajuan terverifikasi.', $followUp->case->identityName()),
                 actor: $coordinator,
                 before: $before,
                 after: $this->snapshot($followUp->refresh()),
@@ -147,12 +153,13 @@ class FollowUpService
 
     private function validateOpenCase(BkCase $case, User $actor): void
     {
-        if ($case->closed_at !== null) {
-            throw ValidationException::withMessages(['case' => 'Kasus yang sudah selesai tidak dapat diubah.']);
+        $case->loadMissing('status');
+        if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+            throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat diubah.']);
         }
 
-        if (! $case->hasActiveAssignmentFor($actor)) {
-            throw ValidationException::withMessages(['case' => 'Anda tidak memiliki penugasan aktif pada kasus ini.']);
+        if (! $case->hasActiveOwnerFor($actor)) {
+            throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
         }
     }
 
@@ -161,7 +168,7 @@ class FollowUpService
         $this->notificationService->send(
             recipients: $this->notificationService->activeCaseTeachers($case),
             category: UserNotification::CATEGORY_SCHEDULE,
-            title: sprintf('Jadwal tindak lanjut kasus %s.', $case->registration_number),
+            title: sprintf('Jadwal tindak lanjut untuk %s.', $case->identityName()),
             message: sprintf('Tindak lanjut dijadwalkan pada %s.', $followUp->planned_date->format('d-m-Y')),
             target: $followUp,
             actionRoute: 'cases.show',
