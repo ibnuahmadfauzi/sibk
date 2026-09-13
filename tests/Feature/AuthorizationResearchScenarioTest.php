@@ -186,11 +186,16 @@ class AuthorizationResearchScenarioTest extends TestCase
     {
         $waka = $this->actor('waka_a');
         $this->actingAs($waka)->get(route('cases.show', $this->resources['case_b']))
-            ->assertOk()->assertDontSee('RBAC-INTERNAL-CASE-B');
+            ->assertOk()
+            ->assertSee('Detail penanganan terkoordinasi')
+            ->assertDontSee('RBAC-INTERNAL-CASE-B');
         $this->actingAs($waka)->get(route('cases.show', $this->resources['case_a']))->assertForbidden();
         $this->actingAs($this->actor('waka_b'))->get(route('cases.show', $this->resources['case_b']))->assertForbidden();
         $this->actingAs($waka)->get(route('cases.resolve.form', $this->resources['case_b']))->assertForbidden();
-        $this->actingAs($waka)->get(route('achievements.show', $this->resources['achievement_verified']))->assertOk();
+        $this->actingAs($waka)->get(route('cases.index'))->assertForbidden();
+        $this->actingAs($waka)->get(route('students.index'))->assertForbidden();
+        $this->actingAs($waka)->get(route('waka.monitoring.students'))->assertOk();
+        $this->actingAs($waka)->get(route('achievements.show', $this->resources['achievement_verified']))->assertForbidden();
         $this->actingAs($waka)->get(route('achievements.show', $this->resources['achievement_pending']))->assertForbidden();
         $this->actingAs($waka)->get(route('reports.preview', ['type' => 'konsultasi']))->assertForbidden();
     }
