@@ -17,6 +17,7 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\CaseService;
 use App\Services\ConsultationService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -200,7 +201,7 @@ class StudentProfileTest extends TestCase
         app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', 'terlaksana')->id,
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
             'topic' => 'Profil murid',
             'session_date' => '2026-08-20',
             'general_summary' => 'Ringkasan konsultasi aman',
