@@ -22,6 +22,7 @@
 /storage/*.key
 /storage/pail
 /storage/app/testing
+/storage/framework/views-codex-*/
 /vendor
 _ide_helper.php
 Homestead.json

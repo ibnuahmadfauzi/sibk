@@ -58,6 +58,16 @@
                     \App\Models\AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL => ['Sementara', 'warning'],
                     default => ['Data Lama', 'neutral'],
                 };
+                [$activationStateLabel, $activationStateTone] = match ($activationReadiness['state']) {
+                    'active' => ['Aktif', 'success'],
+                    'ended' => ['Periode selesai', 'neutral'],
+                    'ready' => ['Siap diaktifkan', 'success'],
+                    'scheduled' => [
+                        'Siap diaktifkan mulai '.$selectedYear->starts_on?->locale('id')->translatedFormat('j F Y'),
+                        'info',
+                    ],
+                    default => ['Belum siap', 'warning'],
+                };
             @endphp
             <section class="sibk-panel mb-4" aria-labelledby="activation-readiness-title">
                 <div class="sibk-panel__header p-4 border-0 pb-0">
@@ -69,9 +79,7 @@
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         <span class="sibk-badge sibk-badge--{{ $yearSourceTone }}">{{ $yearSourceLabel }}</span>
-                        <span class="sibk-badge sibk-badge--{{ $selectedYear->is_active ? 'success' : 'info' }}">
-                            {{ $selectedYear->is_active ? 'Aktif' : 'Belum Aktif' }}
-                        </span>
+                        <span class="sibk-badge sibk-badge--{{ $activationStateTone }}">{{ $activationStateLabel }}</span>
                     </div>
                 </div>
                 <div class="sibk-panel__body p-4">
@@ -81,6 +89,16 @@
                             <ul class="mb-0 mt-2">
                                 @foreach($activationReadiness['issues'] as $issue)
                                     <li>{{ $issue }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    @if($activationReadiness['warnings'] !== [])
+                        <div class="alert alert-info">
+                            <strong>Perlu diperhatikan:</strong>
+                            <ul class="mb-0 mt-2">
+                                @foreach($activationReadiness['warnings'] as $warning)
+                                    <li>{{ $warning }}</li>
                                 @endforeach
                             </ul>
                         </div>
@@ -124,6 +142,12 @@
                         </form>
                     @elseif($selectedYear->is_active)
                         <p class="small text-success mb-0 mt-3">Tahun ajaran ini sudah digunakan untuk layanan BK.</p>
+                    @elseif($activationReadiness['state'] === 'scheduled')
+                        <p class="small text-info mb-0 mt-3">
+                            Siap diaktifkan mulai {{ $selectedYear->starts_on?->locale('id')->translatedFormat('j F Y') }}.
+                        </p>
+                    @elseif($activationReadiness['state'] === 'ended')
+                        <p class="small text-muted mb-0 mt-3">Periode tahun ajaran telah selesai dan tidak dapat diaktifkan.</p>
                     @else
                         <p class="small text-muted mb-0 mt-3">Tombol aktivasi tersedia setelah semua syarat di atas terpenuhi.</p>
                     @endif
