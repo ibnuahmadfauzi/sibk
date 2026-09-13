@@ -17,4 +17,14 @@ class WakaMonitoringPolicy
     {
         return $this->viewMonitoring($user);
     }
+
+    public function viewReportTab(User $user, string $tab): bool
+    {
+        if (! $user->is_active || ! in_array($tab, ['penanganan', 'rekap', 'laporan-akhir'], true)) {
+            return false;
+        }
+
+        return $user->hasRole('waka_kesiswaan')
+            || ($tab === 'laporan-akhir' && $user->hasRole('koordinator_bk'));
+    }
 }

@@ -15,6 +15,7 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\WakaMonitoringService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,12 +65,16 @@ class WakaMonitoringTest extends TestCase
         $this->actingAs($waka)
             ->get(route('waka.monitoring.students'))
             ->assertStatus(200)
-            ->assertSee('Pemantauan Kasus');
+            ->assertSee('Murid dengan Kasus');
 
         $this->actingAs($waka)
             ->get(route('waka.monitoring.handling'))
+            ->assertRedirect(route('waka.reports', ['tab' => 'penanganan']));
+
+        $this->actingAs($waka)
+            ->get(route('waka.reports', ['tab' => 'penanganan']))
             ->assertStatus(200)
-            ->assertSee('Pemantauan Kasus');
+            ->assertSee('Monitoring Penanganan');
     }
 
     public function test_other_roles_cannot_access_waka_monitoring(): void
@@ -299,6 +304,92 @@ class WakaMonitoringTest extends TestCase
         $this->assertSame("'\rRingkasan Berbahaya", $row['Ringkasan Waka']);
     }
 
+    public function test_students_page_groups_multiple_cases_into_one_student_row(): void
+    {
+        [$waka, $student] = $this->wakaStudentWithCases();
+
+        $this->actingAs($waka)
+            ->get('/waka/students-with-cases')
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertSee('2 kasus')
+            ->assertSee('1 masih aktif');
+    }
+
+    public function test_reports_page_uses_goal_based_tabs(): void
+    {
+        $waka = $this->createUserWithRole('waka_kesiswaan');
+
+        $this->actingAs($waka)
+            ->get('/waka/reports?tab=penanganan')
+            ->assertOk()
+            ->assertSeeInOrder(['Monitoring Penanganan', 'Rekap Periode', 'Laporan Akhir'])
+            ->assertDontSee('Pelanggaran per Murid')
+            ->assertDontSee('Poin Pelanggaran');
+    }
+
+    public function test_waka_portal_access_rules_are_enforced_per_page(): void
+    {
+        $this->get('/waka/students-with-cases')->assertRedirect(route('login'));
+        $this->get('/waka/reports?tab=penanganan')->assertRedirect(route('login'));
+
+        $inactiveWaka = $this->createUserWithRole('waka_kesiswaan');
+        $inactiveWaka->update(['is_active' => false, 'deactivated_at' => now()]);
+        $this->actingAs($inactiveWaka)
+            ->get('/waka/reports?tab=penanganan')
+            ->assertRedirect(route('login'));
+
+        foreach (['guru_bk', 'admin_it'] as $role) {
+            $user = $this->createUserWithRole($role);
+            $this->actingAs($user)->get('/waka/students-with-cases')->assertForbidden();
+            $this->actingAs($user)->get('/waka/reports?tab=penanganan')->assertForbidden();
+            $this->actingAs($user)->get('/waka/handling-reports/export')->assertForbidden();
+        }
+
+        $coordinator = $this->createUserWithRole('koordinator_bk');
+        $this->actingAs($coordinator)->get('/waka/students-with-cases')->assertForbidden();
+        $this->actingAs($coordinator)->get('/waka/reports?tab=penanganan')->assertForbidden();
+        $this->actingAs($coordinator)->get('/waka/reports?tab=rekap')->assertForbidden();
+        $this->actingAs($coordinator)->get('/waka/handling-reports/export')->assertForbidden();
+        $this->actingAs($coordinator)
+            ->get('/waka/reports?tab=laporan-akhir')
+            ->assertOk()
+            ->assertSee('Dalam pengembangan');
+    }
+
+    public function test_legacy_bookmark_preserves_validated_monitoring_filters(): void
+    {
+        $waka = $this->createUserWithRole('waka_kesiswaan');
+        $query = [
+            'period' => '2026-09',
+            'status' => ServiceRecordStatus::IN_PROGRESS,
+            'sort' => 'murid',
+            'direction' => 'asc',
+            'page' => 2,
+        ];
+
+        $this->actingAs($waka)
+            ->get('/waka/handling-reports?'.http_build_query($query))
+            ->assertRedirect('/waka/reports?'.http_build_query(['tab' => 'penanganan', ...$query]));
+    }
+
+    public function test_forged_sort_identifiers_are_rejected_per_page(): void
+    {
+        $waka = $this->createUserWithRole('waka_kesiswaan');
+
+        $this->actingAs($waka)
+            ->from('/waka/reports?tab=penanganan')
+            ->get('/waka/reports?tab=penanganan&sort=cases.registration_number')
+            ->assertRedirect('/waka/reports?tab=penanganan')
+            ->assertSessionHasErrors('sort');
+
+        $this->actingAs($waka)
+            ->from('/waka/students-with-cases')
+            ->get('/waka/students-with-cases?sort=bidang')
+            ->assertRedirect('/waka/students-with-cases')
+            ->assertSessionHasErrors('sort');
+    }
+
     /** @return array{User, BkCase, User, Student} */
     private function wakaCaseFixture(
         string $studentName = 'Murid Aman',
@@ -340,5 +431,51 @@ class WakaMonitoringTest extends TestCase
             'reason' => 'Penanggung jawab awal.',
             'assigned_by' => $owner->id,
         ]);
+    }
+
+    /** @return array{User, Student} */
+    private function wakaStudentWithCases(): array
+    {
+        $waka = $this->createUserWithRole('waka_kesiswaan', 'Waka Daftar Murid');
+        $owner = $this->createUserWithRole('guru_bk', 'Guru BK Daftar Murid');
+        $student = Student::query()->create([
+            'nisn' => '8877665544',
+            'name' => 'Murid Dua Kasus',
+            'is_active' => true,
+        ]);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'name' => 'XI RPL 1',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->academicYear->id,
+            'effective_from' => '2026-07-01',
+            'is_active' => true,
+        ]);
+
+        foreach ([
+            ['number' => 'K-2026-GROUP-01', 'status' => 'sedang_diproses', 'date' => '2026-09-10', 'closed_at' => null],
+            ['number' => 'K-2026-GROUP-02', 'status' => 'selesai', 'date' => '2026-09-05', 'closed_at' => '2026-09-06'],
+        ] as $item) {
+            $case = BkCase::query()->create([
+                'registration_number' => $item['number'],
+                'student_id' => $student->id,
+                'case_source_id' => $this->ref('case_source', 'temuan_guru_bk')->id,
+                'service_field_id' => $this->ref('service_field', 'pribadi')->id,
+                'status_id' => $this->ref('case_status', $item['status'])->id,
+                'service_date' => $item['date'],
+                'initial_info' => 'Informasi rahasia.',
+                'initial_action' => 'Asesmen awal.',
+                'waka_summary' => 'Ringkasan aman.',
+                'closed_at' => $item['closed_at'],
+                'created_by' => $owner->id,
+            ]);
+            $this->assignOwner($case, $owner);
+        }
+
+        return [$waka, $student];
     }
 }

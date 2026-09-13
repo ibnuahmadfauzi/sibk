@@ -25,7 +25,15 @@ class WakaMonitoringRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && app(WakaMonitoringPolicy::class)->viewMonitoring($user);
+        if ($user === null) {
+            return false;
+        }
+
+        $policy = app(WakaMonitoringPolicy::class);
+
+        return $this->routeIs('waka.monitoring.export')
+            ? $policy->exportMonitoring($user)
+            : $policy->viewMonitoring($user);
     }
 
     /** @return array<string, list<mixed>> */

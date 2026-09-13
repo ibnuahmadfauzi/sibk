@@ -5,39 +5,80 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\WakaMonitoringRequest;
+use App\Http\Requests\WakaReportRequest;
 use App\Models\User;
 use App\Services\WakaMonitoringService;
+use App\Services\WakaStudentCaseService;
 use App\Support\ServiceRecordStatus;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WakaMonitoringController extends Controller
 {
-    public function __construct(private readonly WakaMonitoringService $service) {}
+    public function __construct(
+        private readonly WakaMonitoringService $service,
+        private readonly WakaStudentCaseService $students,
+    ) {}
 
     /**
      * Tampilkan halaman portal monitoring Waka.
      * Mencatat audit event waka.monitoring.viewed setelah response siap.
      */
-    public function index(WakaMonitoringRequest $request): View
+    public function students(WakaMonitoringRequest $request): View
     {
         /** @var User $user */
         $user = $request->user();
         $params = $request->normalizedParams();
 
-        $paginator = $this->service->paginateSafe($user, $params);
-        $mode = $request->routeIs('waka.monitoring.students') ? 'students' : 'reports.penanganan';
+        $paginator = $this->students->paginateSafe($user, $params)
+            ->appends($request->except('page'));
+        $this->service->auditViewed($user, 'students', $params, $paginator->count(), $request);
 
-        // Catat audit setelah query berhasil, sebelum render view
-        $this->service->auditViewed($user, $mode, $params, $paginator->count(), $request);
-
-        return view('pages.waka.monitoring', [
+        return view('pages.waka.students', [
             'rows' => $paginator->getCollection(),
-            'paginator' => $paginator->withPath(route('waka.monitoring.handling'))->appends($request->except('page')),
+            'paginator' => $paginator,
             'params' => $params,
             'statuses' => ServiceRecordStatus::labels(),
-            'sortOptions' => WakaMonitoringRequest::HANDLING_SORT_ALLOWLIST,
         ]);
+    }
+
+    public function reports(WakaReportRequest $request): View
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $tab = $request->tab();
+        $paginator = null;
+        $params = [];
+
+        if ($tab === 'penanganan') {
+            $params = $request->monitoringParams();
+            $paginator = $this->service->paginateSafe($user, $params)
+                ->withPath(route('waka.reports'))
+                ->appends(['tab' => 'penanganan', ...$request->except(['page', 'tab'])]);
+            $this->service->auditViewed($user, 'reports.penanganan', $params, $paginator->count(), $request);
+        } elseif ($tab === 'rekap') {
+            $params = $request->recapParams();
+            $this->service->auditViewed($user, 'reports.rekap', $params, 0, $request);
+        } else {
+            $this->service->auditViewed($user, 'reports.laporan-akhir', [], 0, $request);
+        }
+
+        return view('pages.waka.reports', [
+            'tab' => $tab,
+            'rows' => $paginator?->getCollection() ?? collect(),
+            'paginator' => $paginator,
+            'params' => $params,
+            'statuses' => ServiceRecordStatus::labels(),
+        ]);
+    }
+
+    public function legacyHandling(WakaMonitoringRequest $request): RedirectResponse
+    {
+        $params = Arr::only($request->validated(), ['period', 'status', 'sort', 'direction', 'page']);
+
+        return redirect()->route('waka.reports', ['tab' => 'penanganan', ...$params]);
     }
 
     /**
