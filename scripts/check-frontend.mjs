@@ -6,6 +6,10 @@ const files = {
     dashboard: 'resources/views/pages/dashboard/html.blade.php',
     notifications: 'resources/views/pages/notifications/index.blade.php',
     reportIndex: 'resources/views/pages/reports/index.blade.php',
+    reportFilters: 'resources/views/pages/reports/_filters.blade.php',
+    reportDesktop: 'resources/views/pages/reports/_desktop-table.blade.php',
+    reportMobile: 'resources/views/pages/reports/_mobile-cards.blade.php',
+    operationalReportService: 'app/Services/OperationalReportRecapService.php',
     reportPreview: 'resources/views/pages/reports/preview.blade.php',
     casesIndex: 'resources/views/pages/cases/index.blade.php',
     casesCreate: 'resources/views/pages/cases/create.blade.php',
@@ -66,7 +70,7 @@ assert(!inputReferencesError(
     'identifierError',
 ), 'Pemeriksa atribut input tidak boleh mencocokkan atribut lintas tag.');
 
-const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package'].includes(key));
+const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package', 'operationalReportService'].includes(key));
 for (const key of bladeKeys) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
     assert(!/\son\w+\s*=/.test(contents[key]), `${files[key]} masih memakai inline event handler.`);
@@ -94,6 +98,20 @@ assert(contents.notifications.includes('@csrf'), 'Aksi PG-003 belum memiliki per
 assert(contents.routes.includes('DashboardController::class'), 'Dashboard belum memakai controller database.');
 assert(contents.routes.includes('NotificationController::class'), 'Notifikasi belum memakai controller database.');
 assert(contents.reportIndex.includes('data-page-id="PG-301"'), 'PG-301 belum dapat ditelusuri dari markup.');
+const operationalReport = contents.reportIndex + contents.reportFilters + contents.reportDesktop + contents.reportMobile;
+for (const label of ['Pelanggaran & Poin', 'Layanan BK', 'Prestasi']) {
+    assert(contents.operationalReportService.includes(label), `Tab ${label} PG-301 belum tersedia.`);
+}
+assert(contents.reportIndex.includes('aria-current="page"'), 'Tab aktif PG-301 belum dapat dikenali.');
+assert(contents.reportFilters.includes('name="tab"'), 'Filter PG-301 belum mempertahankan tab aktif.');
+assert(contents.reportFilters.includes('name="q"'), 'Pencarian PG-301 belum tersedia.');
+assert(contents.reportFilters.includes('name="classroom_id"'), 'Filter kelas PG-301 belum tersedia.');
+assert(contents.reportFilters.includes("route('reports.index', ['tab' => $report['tab']])"), 'Reset filter PG-301 belum kembali ke tab aktif.');
+assert(contents.reportDesktop.includes('sibk-operational-report-table'), 'Tabel desktop PG-301 belum tersedia.');
+assert(contents.reportMobile.includes('sibk-operational-report-cards'), 'Kartu mobile PG-301 belum tersedia.');
+assert(contents.reportIndex.includes("route('reports.export', $exportFilters)"), 'Ekspor PG-301 belum memakai filter tervalidasi.');
+assert(contents.reportIndex.includes('data-print-report') && contents.reportIndex.includes('data-print-area'), 'Trigger atau area cetak PG-301 belum tersedia.');
+assert(!operationalReport.includes('$reports as $report'), 'PG-301 masih melakukan loop katalog laporan lama.');
 assert(contents.reportPreview.includes('data-page-id="PG-302"'), 'PG-302 belum dapat ditelusuri dari markup.');
 assert(contents.reportPreview.includes("route('reports.export'"), 'Ekspor CSV PG-302 belum terhubung.');
 assert(contents.reportPreview.includes('data-print-report'), 'Aksi cetak PG-302 belum tersedia.');

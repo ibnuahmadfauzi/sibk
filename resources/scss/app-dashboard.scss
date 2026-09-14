@@ -2553,6 +2553,19 @@ small, .small {
   }
 }
 
+.sibk-operational-report-cards {
+  display: none;
+}
+
+.sibk-operational-report-card dl > div + div {
+  border-top: 1px solid var(--sibk-color-border-light);
+}
+
+.sibk-report-actions .btn,
+.sibk-report-actions a {
+  min-height: 44px;
+}
+
 .sibk-print-header {
   display: none;
 }
@@ -2682,6 +2695,15 @@ small, .small {
     font-weight: 600 !important;
     padding: 0.15rem 0.4rem !important;
     font-size: 7.5pt !important;
+  }
+
+  .sibk-operational-report-table {
+    display: block !important;
+  }
+
+  .sibk-operational-report-cards,
+  .sibk-report-tabs {
+    display: none !important;
   }
 
   .sibk-print-footer {
@@ -3069,6 +3091,7 @@ small, .small {
   }
 }
 
+.sibk-report-tabs,
 .sibk-waka-tabs {
   display: flex;
   gap: 0.5rem;
@@ -3088,10 +3111,12 @@ small, .small {
 }
 
 @media (max-width: 767.98px) {
+  .sibk-operational-report-table,
   .sibk-waka-table--desktop {
     display: none;
   }
 
+  .sibk-operational-report-cards,
   .sibk-waka-card-list {
     display: grid;
     gap: 1rem;

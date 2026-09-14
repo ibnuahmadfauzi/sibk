@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\OperationalReportRequest;
 use App\Http\Requests\ReportRequest;
 use App\Models\User;
 use App\Policies\ReportPolicy;
+use App\Services\OperationalReportRecapService;
 use App\Services\ReportService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function index(Request $request, ReportService $service, ReportPolicy $policy): View
+    public function index(OperationalReportRequest $request, OperationalReportRecapService $service): View
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($policy->viewAny($user), 403);
 
-        return view('pages.reports.index', ['reports' => $service->catalogFor($user)]);
+        return view('pages.reports.index', ['report' => $service->build($user, $request->filters())]);
     }
 
     public function preview(ReportRequest $request, ReportService $service): View
@@ -31,14 +31,24 @@ class ReportController extends Controller
         return view('pages.reports.preview', ['report' => $service->build($user, $request->validated())]);
     }
 
-    public function export(ReportRequest $request, ReportService $service, ReportPolicy $policy): StreamedResponse
-    {
+    public function export(
+        OperationalReportRequest $request,
+        ReportService $legacyReports,
+        OperationalReportRecapService $operationalReports,
+        ReportPolicy $policy,
+    ): StreamedResponse {
         /** @var User $user */
         $user = $request->user();
-        $data = $request->validated();
-        abort_unless($policy->export($user, (string) $data['type']), 403);
-        $report = $service->exportRows($user, $data);
-        $filename = sprintf('%s-%s.csv', $report['id'], now()->format('Ymd-His'));
+        $data = $request->filters();
+        if (isset($data['tab'])) {
+            abort_unless($policy->exportTab($user, (string) $data['tab']), 403);
+            $report = $operationalReports->exportRows($user, $data);
+        } else {
+            abort_unless($policy->export($user, (string) $data['type']), 403);
+            $report = $legacyReports->exportRows($user, $data);
+        }
+        $format = (string) $request->validated('format');
+        $filename = sprintf('%s-%s.%s', $report['id'], now()->format('Ymd-His'), $format);
 
         return response()->streamDownload(function () use ($report): void {
             $output = fopen('php://output', 'wb');

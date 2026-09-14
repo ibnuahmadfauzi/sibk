@@ -110,6 +110,20 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('onclick=', false);
     }
 
+    public function test_operational_reports_use_accessible_responsive_markup(): void
+    {
+        $this->authenticateAs('guru_bk');
+
+        $this->get(route('reports.index', ['tab' => 'layanan']))
+            ->assertOk()
+            ->assertSee('class="nav sibk-report-tabs"', false)
+            ->assertSee('aria-current="page"', false)
+            ->assertSee('sibk-operational-report-table', false)
+            ->assertSee('sibk-operational-report-cards', false)
+            ->assertSee('data-print-area', false)
+            ->assertDontSee('onclick=', false);
+    }
+
     public function test_academic_year_preparation_pages_follow_the_existing_panel_hierarchy(): void
     {
         $year = AcademicYear::query()->create([

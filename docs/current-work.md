@@ -2,11 +2,11 @@
 
 ## Status
 
-- Checkpoint selesai: 3 — Sederhanakan pengujian RBAC dan audit plan.
-- Checkpoint berikutnya: 4 — Penyederhanaan laporan, Task 1–7.
-- Branch kerja berikutnya belum dibuat; buat dari `cobasidebar` setelah cleanup terintegrasi.
+- Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
+- Checkpoint berikutnya: 5 — Penyederhanaan operasional, akun, dan skema mulai Task 8.
+- Branch kerja: `checkpoint-4-laporan`, dibuat dari `cobasidebar` setelah PR #11 terintegrasi.
 - Worktree: root repository.
-- Commit task terakhir: `59606d4` (audit); RBAC `9119b01`. Commit penutup dapat dilihat dengan `git log -1`.
+- Commit aplikasi terakhir: `af9e69a` (UI dan ekspor tiga tab).
 
 ## Hasil dan gate terakhir
 
@@ -27,6 +27,15 @@
 - Cache PHPUnit dan build Vite membutuhkan eksekusi di luar sandbox karena izin
   tulis worktree; pengulangan lulus.
 - Verifikasi memakai PHP 8.4.12; runtime PHP 8.3 belum diuji langsung.
+- Halaman laporan Guru BK/Koordinator sekarang memakai tiga tab: Pelanggaran &
+  Poin, Layanan BK, dan Prestasi; tujuh endpoint legacy tetap tersedia.
+- Gate Checkpoint 4 lulus pada SQLite: 418 test/3.293 assertion, Pint, checker
+  frontend, build, Composer strict, cache, dan diff-check.
+- Focused rekap juga lulus pada MySQL disposable `sibk_report_gate`: 16 test/148
+  assertion; instance dan folder sementara sudah dihapus.
+- Scan field sensitif dan dependency tabel terlarang tidak menemukan kecocokan.
+- UAT manusia oleh `ui` melalui Chrome pada tiga viewport dinyatakan PASS;
+  versi browser tidak dilaporkan dan tidak ada temuan gagal.
 
 ## Arsip
 
@@ -37,17 +46,16 @@
 
 ## Langkah berikutnya
 
-1. Selesaikan integrasi PR #10 sebelum pekerjaan Checkpoint 4.
-2. Setelah PR di-merge, verifikasi `MERGED` dan hapus branch remote `checkpoint-3-rbac` hanya
-   bila tidak ada commit/PR baru yang belum digabung. Pertahankan worktree.
-3. Mulai Checkpoint 4 dari Task 1–7 plan penyederhanaan yang sudah diaudit.
-   Audit bukan bukti implementasi; seluruh 15 task masih belum selesai.
-4. Task 7 menyiapkan UAT laporan. Hasil manual manusia diperlukan sebelum Task 8.
-5. Adapter production tetap menunggu kontrak resmi dan admission gate.
+1. Buat PR Checkpoint 4 ke `cobasidebar` dan tunggu seluruh check lulus.
+2. Setelah PR di-merge, verifikasi status `MERGED`, pastikan tidak ada commit
+   atau PR baru pada branch sumber, lalu hapus branch sumber remote.
+3. Mulai Checkpoint 5 Task 8 dari `cobasidebar` yang sudah memuat Checkpoint 4.
+4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 
 - Plan checkpoint: `docs/superpowers/plans/2026-09-15-checkpoint-3-rbac.md`
 - Plan berikutnya: `docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md`
+- UAT aktif: `docs/testing/2026-09-14-uat-laporan-guru-koordinator.md`
 - Matriks umum: `docs/testing/authorization-matrix.md`
 - Spec: `docs/superpowers/specs/2026-09-14-baseline-cobasidebar-arsip-dan-penyederhanaan-design.md`

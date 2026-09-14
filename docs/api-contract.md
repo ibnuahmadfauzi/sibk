@@ -370,15 +370,20 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Data terlarang pada audit:** nama/NISN murid, kode kasus, `waka_summary`, dan narasi pelayanan tidak boleh masuk summary maupun before/after audit. Audit bersifat append-only dan disimpan minimum tiga tahun.
 
 ### Pusat, Pratinjau, dan Ekspor Laporan
-- **Endpoint:** `GET /reports`, `GET /reports/preview`, dan `GET /reports/export`.
+- **Endpoint tab:** `GET /reports?tab=pelanggaran|layanan|prestasi` dan `GET /reports/export?tab=pelanggaran|layanan|prestasi&format=csv`; tab default adalah `layanan`.
+- **Endpoint legacy:** `GET /reports/preview?type={legacy-type}` dan `GET /reports/export?type={legacy-type}&format=csv`.
 - **Controller:** `ReportController@index/preview/export`.
-- **Form Request:** `ReportRequest`.
+- **Form Request:** `OperationalReportRequest` untuk halaman/ekspor tab dan ekspor legacy; `ReportRequest` tetap melayani pratinjau legacy.
 - **Query Params:**
+  - `tab`: `pelanggaran`, `layanan`, atau `prestasi`; mode `tab` dan mode legacy `type` tidak boleh dikirim bersamaan.
   - `type`: `pelanggaran-murid`, `pelanggaran-kelas`, `poin-pelanggaran`, `konsultasi`, `status-tindak-lanjut`, `rekap-layanan-bk`, atau `prestasi`.
-  - `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `student_id`, `category`, `service_field_id`, `status_id`, `counselor_id`, `minimum_points`, `achievement_type_id`, `achievement_level_id`, dan `page` sesuai tipe.
+  - Mode tab menerima `q`, `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `page`, dan `counselor_id` khusus Koordinator pada tab Layanan.
+  - Mode legacy menerima `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `student_id`, `category`, `service_field_id`, `status_id`, `counselor_id`, `minimum_points`, `achievement_type_id`, `achievement_level_id`, dan `page` sesuai tipe.
   - `format=csv` wajib pada endpoint ekspor. XLSX dan PDF server belum tersedia sampai `DEP-07` disahkan.
 - **Authorization:** `ReportPolicy` mengizinkan Guru BK dan Koordinator BK; Admin IT dan akun Waka murni ditolak. Akun multi-role memakai fungsi Guru BK/Koordinator yang sah, sedangkan fungsi Waka tersedia melalui `/waka/reports`.
-- **Business Logic:** `ReportService` memakai scope objek yang sama dengan daftar/detail. Guru BK dibatasi scope profesional atau kasus khusus, Koordinator memperoleh rekap gabungan, dan akun multi-role dihitung berdasarkan fungsi yang sah.
+- **Business Logic:** `OperationalReportRecapService` menghasilkan tiga rekap satu baris per murid; identitas sementara yang sah hanya muncul pada tab Layanan. `ReportService` mempertahankan tujuh tipe legacy. Keduanya memakai scope objek yang sama dengan daftar/detail. Guru BK dibatasi scope profesional atau kasus khusus, Koordinator memperoleh rekap gabungan, dan akun multi-role dihitung berdasarkan fungsi yang sah.
+- **Filter Guru BK:** pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan atau tindak lanjut serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record.
+- **Teknologi:** Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan existing, dan Laravel Pagination; tidak ada dependency tabel baru.
 - **Periode dan kelas:** periode default mengikuti tahun ajaran aktif. Kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kejadian, sesi, layanan, atau tindak lanjut.
 - **Privasi:** laporan umum Guru BK/Koordinator memakai inisial murid dan NISN tersamarkan. Portal Waka boleh memakai nama murid dan kelas untuk kebutuhan pemantauan, tetapi tidak memuat NISN, kode kasus, catatan privat konsultasi, catatan internal kasus, dokumen, atau narasi sensitif.
 - **Pratinjau:** KPI dihitung dari seluruh dataset terfilter dan tabel dipaginasi 20 baris.

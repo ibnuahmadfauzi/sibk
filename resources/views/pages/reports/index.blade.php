@@ -1,34 +1,107 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Pusat Laporan - Ruang BK')
+@section('page-title', 'Laporan Operasional - Ruang BK')
 
 @section('body')
+@php
+    $commonFilters = array_filter([
+        'q' => $report['filters']['q'] ?? null,
+        'academic_year_id' => $report['filters']['academic_year_id'] ?? null,
+        'date_start' => $report['filters']['date_start'] ?? null,
+        'date_end' => $report['filters']['date_end'] ?? null,
+        'classroom_id' => $report['filters']['classroom_id'] ?? null,
+    ], fn ($value) => $value !== null && $value !== '');
+    $exportFilters = array_filter([
+        ...$report['filters'],
+        'page' => null,
+        'format' => 'csv',
+    ], fn ($value) => $value !== null && $value !== '');
+    $statLabels = match ($report['tab']) {
+        'pelanggaran' => ['student_count' => 'Murid', 'violation_count' => 'Pelanggaran', 'total_points' => 'Total poin'],
+        'layanan' => ['student_count' => 'Murid', 'service_count' => 'Layanan', 'open_follow_up_count' => 'Perlu tindak lanjut'],
+        'prestasi' => ['student_count' => 'Murid', 'achievement_count' => 'Prestasi', 'verified_count' => 'Terverifikasi'],
+    };
+@endphp
 <div class="sibk-dashboard" data-page-id="PG-301">
-    <div class="sibk-page-header mb-4"><div class="sibk-page-header__copy"><h1>Pusat Laporan</h1><p>Pilih laporan yang tersedia sesuai kewenangan Anda.</p></div></div>
-    <div class="row g-4 sibk-report-grid">
-        @foreach($reports as $report)
-            <div class="{{ $loop->last && $loop->count % 2 !== 0 ? 'col-12 col-md-6 mx-auto' : 'col-12 col-md-6' }}">
-                <article class="sibk-report-card sibk-report-card--{{ $report['tone'] }} h-100">
-                    <div class="sibk-report-card__body">
-                        <div class="sibk-report-card__icon-wrapper sibk-icon-tone--{{ $report['tone'] }}" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                @switch($report['icon'])
-                                    @case('student')<circle cx="12" cy="7" r="3"/><path d="M5.5 19c.7-3.1 2.6-4.5 6.5-4.5s5.8 1.4 6.5 4.5"/>@break
-                                    @case('classroom')<path d="M4 6h16v12H4V6zM8 3v5M16 3v5M4 10h16"/>@break
-                                    @case('points')<path d="M7 4v16M17 4v16M4 9h16M4 15h16"/>@break
-                                    @case('consultation')<path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v8a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4H5.5A1.5 1.5 0 0 1 4 14.5v-8z"/>@break
-                                    @case('follow-up')<rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 15l2.5 2.5 5.5-5"/>@break
-                                    @case('recap')<path d="M6 3.5h7.5L18 8v12.5H6V3.5zM13.5 3.5V8H18M9 12h5M9 16h5"/>@break
-                                    @default<path d="M8 4h8v4.5a4 4 0 0 1-8 0V4zM8 5.5H5a1.5 1.5 0 0 0 1.5 2.5H8M16 5.5h3a1.5 1.5 0 0 1-1.5 2.5H16M12 12.5v4.5M8.5 19.5h7"/>
-                                @endswitch
-                            </svg>
-                        </div>
-                        <div class="sibk-report-card__content"><div class="d-flex align-items-center gap-2 mb-1"><h2 class="sibk-report-card__title mb-0">{{ $report['title'] }}</h2><span class="badge bg-light text-dark">{{ $report['badge'] }}</span></div><p class="sibk-report-card__desc">{{ $report['description'] }}</p></div>
-                    </div>
-                    <div class="sibk-report-card__footer"><a href="{{ route('reports.preview', ['type' => $report['id']]) }}" class="sibk-report-card__action" aria-label="Buka {{ $report['title'] }}"><span>{{ ($report['pending'] ?? false) ? 'Lihat status' : 'Buka' }}</span><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
-                </article>
+    <header class="sibk-page-header mb-4">
+        <div class="sibk-page-header__copy">
+            <h1>Laporan Operasional</h1>
+            <p>Rekap aman per murid sesuai periode dan kewenangan Anda.</p>
+        </div>
+    </header>
+
+    @if($errors->any())
+        <div class="alert alert-danger" role="alert" tabindex="-1">
+            <strong>Periksa kembali filter laporan.</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->getMessages() as $field => $messages)
+                    <li><a href="#{{ $field }}">{{ $messages[0] }}</a></li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <nav class="mb-4" aria-label="Jenis laporan operasional">
+        <div class="nav sibk-report-tabs" role="tablist">
+            @foreach($report['tabs'] as $tab)
+                @php
+                    $tabFilters = ['tab' => $tab['id'], ...$commonFilters];
+                    if ($tab['id'] === 'layanan' && $report['tab'] === 'layanan' && isset($report['filters']['counselor_id'])) {
+                        $tabFilters['counselor_id'] = $report['filters']['counselor_id'];
+                    }
+                @endphp
+                <a class="nav-link @if($report['tab'] === $tab['id']) active @endif"
+                    href="{{ route('reports.index', $tabFilters) }}"
+                    role="tab"
+                    @if($report['tab'] === $tab['id']) aria-current="page" aria-selected="true" @else aria-selected="false" @endif>
+                    {{ $tab['label'] }}
+                </a>
+            @endforeach
+        </div>
+    </nav>
+
+    @include('pages.reports._filters')
+
+    <section class="sibk-operational-report" aria-labelledby="operational-report-title" data-print-area>
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+            <div>
+                <h2 id="operational-report-title" class="h4 mb-1">{{ $report['title'] }}</h2>
+                <p class="text-muted mb-0">
+                    {{ $report['period_start']->locale('id')->translatedFormat('d M Y') }}–{{ $report['period_end']->locale('id')->translatedFormat('d M Y') }}
+                    · {{ $report['academic_year']['name'] ?? 'Tanpa tahun ajaran' }}
+                </p>
+                <p class="text-muted small mb-0">Dibuat {{ $report['generated_at']->locale('id')->translatedFormat('d M Y H:i') }} oleh {{ $report['generated_by'] }}</p>
             </div>
-        @endforeach
-    </div>
+            <div class="d-flex flex-wrap gap-2 no-print sibk-report-actions">
+                <button type="button" class="btn btn-outline-secondary" data-print-report>Cetak</button>
+                <a class="btn btn-primary" href="{{ route('reports.export', $exportFilters) }}">Unduh CSV</a>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            @foreach($report['stats'] as $key => $value)
+                <div class="col-12 col-sm-4">
+                    <article class="sibk-stat-card p-3 h-100">
+                        <h3 class="sibk-stat-card__label text-muted small fw-semibold mb-1">{{ $statLabels[$key] }}</h3>
+                        <div class="sibk-stat-card__value fs-2 fw-bold text-dark">{{ $value }}</div>
+                    </article>
+                </div>
+            @endforeach
+        </div>
+
+        @include('pages.reports._desktop-table')
+        @include('pages.reports._mobile-cards')
+
+        @if($report['rows']->isEmpty())
+            <div class="sibk-panel p-4 text-center">
+                <x-empty-state title="Tidak ada murid pada periode atau filter terpilih" description="Ubah filter atau pilih periode lain untuk melihat rekap." />
+                <a class="btn btn-outline-secondary mt-3" href="{{ route('reports.index', ['tab' => $report['tab']]) }}">Reset filter</a>
+            </div>
+        @endif
+    </section>
+
+    @if($report['rows']->hasPages())
+        <div class="mt-4 no-print">{{ $report['rows']->links() }}</div>
+    @endif
 </div>
 @endsection
