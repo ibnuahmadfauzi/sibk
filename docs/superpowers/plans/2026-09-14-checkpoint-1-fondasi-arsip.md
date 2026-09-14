@@ -40,7 +40,7 @@
 - Consumes: worktree bersih pada branch `checkpoint-1-arsip`.
 - Produces: satu petunjuk aktif yang dapat dibaca pengembang pengganti.
 
-- [ ] **Step 1: Pastikan worktree implementasi benar**
+- [x] **Step 1: Pastikan worktree implementasi benar**
 
 Run:
 
@@ -53,7 +53,7 @@ git merge-base --is-ancestor 4b2d370 HEAD
 Expected: branch adalah `checkpoint-1-arsip`, status kosong, dan pemeriksaan
 ancestor exit code 0.
 
-- [ ] **Step 2: Buat catatan pekerjaan aktif**
+- [x] **Step 2: Buat catatan pekerjaan aktif**
 
 Buat `docs/current-work.md` dengan isi:
 
@@ -96,7 +96,7 @@ Buat `docs/current-work.md` dengan isi:
 - Plan: `docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md`
 ```
 
-- [ ] **Step 3: Commit dan bagikan titik awal handoff**
+- [x] **Step 3: Commit dan bagikan titik awal handoff**
 
 Run:
 
