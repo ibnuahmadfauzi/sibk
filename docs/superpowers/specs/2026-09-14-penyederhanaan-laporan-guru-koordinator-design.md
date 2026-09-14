@@ -171,6 +171,9 @@ Kolom desktop:
 Filter Guru BK pada akun Koordinator membatasi seluruh hitungan pada layanan
 yang menjadi kewenangan Guru BK terpilih. Hitungan lintas jenis data tidak boleh
 menduplikasi satu record atau memindahkan kepemilikan kasus.
+Untuk kasus dan tindak lanjut, kepemilikan ditentukan dari penanggung jawab yang
+efektif pada tanggal aktivitas; konsultasi memakai `consultations.counselor_id`.
+Filter tidak memakai pengguna yang pertama membuat atau terakhir mencatat record.
 
 ## 7. Tab Prestasi
 

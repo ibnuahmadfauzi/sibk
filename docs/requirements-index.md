@@ -7,7 +7,7 @@ Tujuan file ini adalah membantu agent menentukan apakah PRD/SRS perlu dibuka. Ja
 - Product Requirement Document: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
 - Software Requirements Specification: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
 - Status keduanya: baseline Markdown final untuk pengembangan MVP.
-- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026, alur operasional BK disetujui 12 September 2026, dan Portal Waka berbasis tujuan disetujui 13 September 2026 tanpa mengubah versi atau nama file v1.1.
+- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026, alur operasional BK disetujui 12 September 2026, Portal Waka berbasis tujuan disetujui 13 September 2026, dan laporan tiga tab Guru BK/Koordinator disetujui 14 September 2026 tanpa mengubah versi atau nama file v1.1.
 
 ## Arsip Baseline Sebelumnya
 
@@ -82,7 +82,7 @@ Untuk task tersebut gunakan:
 - Student profile/history: `STU-*`
 - Achievement: `ACH-*`
 - Dashboard: `DASH-*`
-- Reports: `REP-*`; Dashboard, Murid dengan Kasus, Monitoring Penanganan, Rekap Periode, dan placeholder Laporan Akhir Waka: `DASH-03`, `REP-05`
+- Reports: `REP-01`–`REP-04` untuk tiga tab Pelanggaran & Poin, Layanan BK, dan Prestasi; `DASH-03`, `REP-05` untuk Dashboard, Murid dengan Kasus, Monitoring Penanganan, Rekap Periode, dan placeholder Laporan Akhir Waka.
 - Notification: `NOT-01`
 - Audit: `AUD-01`
 - Correction: `COR-*`
