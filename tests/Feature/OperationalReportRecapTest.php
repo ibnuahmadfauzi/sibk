@@ -20,6 +20,7 @@ use App\Models\TeacherAssignment;
 use App\Models\TemporaryStudent;
 use App\Models\User;
 use App\Services\OperationalReportRecapService;
+use App\Services\ReportService;
 use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -403,6 +404,119 @@ class OperationalReportRecapTest extends TestCase
         $this->assertSame(1, $report['rows']->total());
         $this->assertSame('student:'.$studentA->id, $report['rows']->items()[0]['identity_key']);
         $this->assertSame($historicalClass->name, $report['rows']->items()[0]['classroom']);
+    }
+
+    public function test_reports_index_uses_three_deep_links_without_legacy_cards(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru UI');
+
+        $this->actingAs($teacher)->get(route('reports.index'))
+            ->assertOk()
+            ->assertSee('Layanan BK')
+            ->assertSee('aria-current="page"', false)
+            ->assertSee(route('reports.index', ['tab' => 'pelanggaran']), false)
+            ->assertSee(route('reports.index', ['tab' => 'prestasi']), false)
+            ->assertDontSee('Pelanggaran per Murid')
+            ->assertDontSee('Pelanggaran per Kelas')
+            ->assertDontSee('Poin Pelanggaran')
+            ->assertDontSee('sibk-report-grid');
+
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator UI');
+        $this->actingAs($teacher)->get(route('reports.index', ['tab' => 'layanan']))
+            ->assertDontSee('name="counselor_id"', false);
+        $this->actingAs($coordinator)->get(route('reports.index', ['tab' => 'layanan']))
+            ->assertSee('name="counselor_id"', false);
+        $this->actingAs($coordinator)->get(route('reports.index', ['tab' => 'prestasi']))
+            ->assertDontSee('name="counselor_id"', false);
+    }
+
+    public function test_each_tab_renders_one_table_mobile_cards_and_preserves_valid_filters(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Markup');
+        [, $classroom] = $this->scopedStudent($teacher, 'Murid Markup', '0099999999', 'X Markup');
+
+        foreach (['pelanggaran', 'layanan', 'prestasi'] as $tab) {
+            $response = $this->actingAs($teacher)->get(route('reports.index', [
+                'tab' => $tab,
+                'q' => 'Markup',
+                'academic_year_id' => $this->year->id,
+                'classroom_id' => $classroom->id,
+            ]));
+            $response->assertOk()
+                ->assertSee('name="tab" value="'.$tab.'"', false)
+                ->assertSee('name="q"', false)
+                ->assertSee('name="classroom_id"', false)
+                ->assertSee('sibk-operational-report-table', false)
+                ->assertSee('sibk-operational-report-cards', false)
+                ->assertSee('data-print-report', false)
+                ->assertSee('q=Markup', false)
+                ->assertSee('classroom_id='.$classroom->id, false)
+                ->assertDontSee('onclick=', false);
+        }
+
+        foreach (range(1, 21) as $index) {
+            $this->studentWithViolation($classroom, 100 + $index);
+        }
+        $this->actingAs($teacher)->get(route('reports.index', [
+            'tab' => 'pelanggaran',
+            'academic_year_id' => $this->year->id,
+            'classroom_id' => $classroom->id,
+        ]))->assertOk()->assertSee('page=2', false)->assertSee('tab=pelanggaran', false);
+    }
+
+    public function test_operational_csv_and_legacy_contract_use_their_own_validated_modes(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru CSV Baru');
+        [$student] = $this->scopedStudent($teacher, 'Nama CSV Baru', '0010101010', 'X CSV');
+        $this->etatib($student, 'ET-CSV-BARU', '=SUM(1+1)', 9, '2026-08-10');
+
+        $operational = $this->actingAs($teacher)->get(route('reports.export', [
+            'tab' => 'pelanggaran',
+            'format' => 'csv',
+        ]));
+        $operational->assertOk()->assertDownload()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $csv = $operational->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
+        $this->assertStringContainsString('Jumlah pelanggaran', $csv);
+        $this->assertStringContainsString('N.C.B.', $csv);
+        $this->assertStringContainsString("'=SUM(1+1)", $csv);
+        $this->assertStringNotContainsString($student->name, $csv);
+        $this->assertStringNotContainsString($student->nisn, $csv);
+
+        $this->actingAs($teacher)->get(route('reports.preview', [
+            'type' => ReportService::TYPE_STUDENT_VIOLATIONS,
+        ]))->assertOk();
+        $this->actingAs($teacher)->get(route('reports.export', [
+            'type' => ReportService::TYPE_STUDENT_VIOLATIONS,
+            'format' => 'csv',
+        ]))->assertOk()->assertDownload();
+        $this->actingAs($teacher)->get(route('reports.export', [
+            'tab' => 'layanan',
+            'type' => ReportService::TYPE_SERVICE_RECAP,
+            'format' => 'csv',
+        ]))->assertSessionHasErrors(['tab', 'type']);
+        $this->actingAs($teacher)->get(route('reports.export', ['format' => 'csv']))
+            ->assertSessionHasErrors(['tab', 'type']);
+    }
+
+    public function test_invalid_and_empty_states_are_accessible_and_reset_active_tab(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru State');
+
+        $invalid = $this->actingAs($teacher)->followingRedirects()->get(route('reports.index', [
+            'tab' => 'prestasi',
+            'date_start' => '2026-08-20',
+            'date_end' => '2026-08-01',
+        ]));
+        $invalid->assertOk()
+            ->assertSee('role="alert"', false)
+            ->assertSee('tabindex="-1"', false)
+            ->assertSee('Tanggal akhir tidak boleh sebelum tanggal awal.');
+
+        $this->actingAs($teacher)->get(route('reports.index', ['tab' => 'prestasi', 'q' => 'Tidak Ada']))
+            ->assertOk()
+            ->assertSee('Tidak ada murid pada periode atau filter terpilih')
+            ->assertSee(route('reports.index', ['tab' => 'prestasi']), false);
     }
 
     private function userWithRole(string $slug, string $name): User

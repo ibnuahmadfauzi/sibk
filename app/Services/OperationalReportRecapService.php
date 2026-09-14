@@ -47,11 +47,25 @@ final class OperationalReportRecapService implements OperationalReportRecap
     {
         abort_unless($this->policy->viewTab($actor, (string) $filters['tab']), 403);
 
-        return match ($filters['tab']) {
+        $report = match ($filters['tab']) {
             self::TAB_VIOLATIONS => $this->buildViolations($actor, $filters),
             self::TAB_SERVICES => $this->buildServices($actor, $filters),
             self::TAB_ACHIEVEMENTS => $this->buildAchievements($actor, $filters),
         };
+
+        return [
+            ...$report,
+            'tabs' => [
+                ['id' => self::TAB_VIOLATIONS, 'label' => 'Pelanggaran & Poin'],
+                ['id' => self::TAB_SERVICES, 'label' => 'Layanan BK'],
+                ['id' => self::TAB_ACHIEVEMENTS, 'label' => 'Prestasi'],
+            ],
+            'filter_options' => $this->filterOptions($actor, $report),
+            'academic_year' => $report['academic_year'] === null ? null : [
+                'id' => $report['academic_year']->id,
+                'name' => $report['academic_year']->name,
+            ],
+        ];
     }
 
     /** @param array<string, mixed> $filters @return array{id: string, columns: list<string>, rows: iterable<int, array<string, mixed>>} */
@@ -124,7 +138,15 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->orderBy('identity_value')
             ->lazy(500)
             ->chunk(500)
-            ->flatMap(fn (LazyCollection $chunk): Collection => $this->violationRows($chunk->collect(), $year));
+            ->flatMap(fn (LazyCollection $chunk): Collection => $this->violationRows($chunk->collect(), $year))
+            ->map(fn (array $row): array => $this->csvRow([
+                $row['initials'],
+                $row['masked_nisn'],
+                $row['classroom'],
+                $row['violation_count'],
+                $row['total_points'],
+                $row['latest_violation'].' · '.$row['latest_date'],
+            ]));
 
         return [
             'id' => self::TAB_VIOLATIONS,
@@ -191,7 +213,17 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->orderBy('identity_id')
             ->lazy(500)
             ->chunk(500)
-            ->flatMap(fn (LazyCollection $chunk): Collection => $this->serviceRows($chunk->collect(), $year));
+            ->flatMap(fn (LazyCollection $chunk): Collection => $this->serviceRows($chunk->collect(), $year))
+            ->map(fn (array $row): array => $this->csvRow([
+                $row['initials'],
+                $row['masked_nisn'],
+                $row['classroom'],
+                $row['case_count'],
+                $row['consultation_count'],
+                $row['follow_up_count'],
+                $row['open_follow_up_count'],
+                $row['latest_service_date'],
+            ]));
 
         return [
             'id' => self::TAB_SERVICES,
@@ -256,7 +288,16 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->orderBy('student_id')
             ->lazy(500)
             ->chunk(500)
-            ->flatMap(fn (LazyCollection $chunk): Collection => $this->achievementRows($chunk->collect(), $year));
+            ->flatMap(fn (LazyCollection $chunk): Collection => $this->achievementRows($chunk->collect(), $year))
+            ->map(fn (array $row): array => $this->csvRow([
+                $row['initials'],
+                $row['masked_nisn'],
+                $row['classroom'],
+                $row['achievement_count'],
+                $row['verified_count'],
+                $row['highest_verified_level'],
+                $row['latest_achievement'].' · '.$row['latest_date'],
+            ]));
 
         return [
             'id' => self::TAB_ACHIEVEMENTS,
@@ -727,6 +768,30 @@ final class OperationalReportRecapService implements OperationalReportRecap
     {
         return User::query()->active()->whereHas('roles', fn (Builder $roles): Builder => $roles
             ->where('slug', 'guru_bk')->where('is_active', true));
+    }
+
+    /** @param array<string, mixed> $report @return array<string, list<array{id: int, name: string}>> */
+    private function filterOptions(User $actor, array $report): array
+    {
+        /** @var AcademicYear|null $year */
+        $year = $report['academic_year'];
+
+        return [
+            'academic_years' => AcademicYear::query()->orderByDesc('starts_on')->get(['id', 'name'])
+                ->map(fn (AcademicYear $item): array => ['id' => $item->id, 'name' => $item->name])->all(),
+            'classrooms' => $this->accessibleClassrooms($actor, $year)->active()->orderBy('name')->get(['id', 'name'])
+                ->map(fn (Classroom $item): array => ['id' => $item->id, 'name' => $item->name])->all(),
+            'counselors' => $actor->hasRole('koordinator_bk') && $report['tab'] === self::TAB_SERVICES
+                ? $this->activeCounselors()->orderBy('name')->get(['users.id', 'users.name'])
+                    ->map(fn (User $item): array => ['id' => $item->id, 'name' => $item->name])->all()
+                : [],
+        ];
+    }
+
+    /** @param list<mixed> $values @return array{cells: list<array{value: string}>} */
+    private function csvRow(array $values): array
+    {
+        return ['cells' => array_map(fn (mixed $value): array => ['value' => (string) $value], $values)];
     }
 
     private function escapeLike(string $value): string
