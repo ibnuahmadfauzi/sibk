@@ -87,9 +87,9 @@
 **Files:** plan ini, `docs/current-work.md`, `docs/development-log.md`.
 **Interfaces:** menghasilkan baseline dokumentasi yang siap ditinjau melalui PR ke `cobasidebar`.
 
-- [ ] Jalankan `composer test`, `php vendor/bin/pint --test`, `npm.cmd run check:frontend`, `npm.cmd run build`, `composer validate --strict`, dan `git diff --check`. Semua wajib exit 0; catat PHP runtime yang dipakai (8.4.12), jangan mengklaim test telah berjalan di PHP 8.3.
-- [ ] Periksa diff hanya dokumentasi/aturan dan penghapusan artefak; tidak ada perubahan kode fitur/dependency.
-- [ ] Pastikan sumber historis sudah hilang, v1.1/manual/CSV/test auth tetap tersedia. Tidak ada link Markdown lokal yang rusak dalam dokumen aktif yang diubah; inventaris path dalam backtick bukan tautan navigasi.
-- [ ] Handoff maksimum sekitar 100 baris: checkpoint selesai, branch/path kerja, arsip/SHA/undangan, gate lulus, Checkpoint 3 berikutnya (audit test reguler sebelum menghapus perangkat penelitian).
-- [ ] Catat ringkasan selesai di development log, centang plan, lalu commit `docs: selesaikan pembersihan baseline tahap kedua`.
-- [ ] Push `git push -u origin checkpoint-2-baseline`. Gunakan skill finishing-a-development-branch untuk pilihan integrasi; jangan otomatis merge/main.
+- [x] Jalankan `composer test`, `php vendor/bin/pint --test`, `npm.cmd run check:frontend`, `npm.cmd run build`, `composer validate --strict`, dan `git diff --check`. Semua wajib exit 0; catat PHP runtime yang dipakai (8.4.12), jangan mengklaim test telah berjalan di PHP 8.3.
+- [x] Periksa diff hanya dokumentasi/aturan dan penghapusan artefak; tidak ada perubahan kode fitur/dependency.
+- [x] Pastikan sumber historis sudah hilang, v1.1/manual/CSV/test auth tetap tersedia. Tidak ada link Markdown lokal yang rusak dalam dokumen aktif yang diubah; inventaris path dalam backtick bukan tautan navigasi.
+- [x] Handoff maksimum sekitar 100 baris: checkpoint selesai, branch/path kerja, arsip/SHA/undangan, gate lulus, Checkpoint 3 berikutnya (audit test reguler sebelum menghapus perangkat penelitian).
+- [x] Catat ringkasan selesai di development log, centang plan, lalu commit `docs: selesaikan pembersihan baseline tahap kedua`.
+- [x] Push `git push -u origin checkpoint-2-baseline`. Gunakan skill finishing-a-development-branch untuk pilihan integrasi; jangan otomatis merge/main.

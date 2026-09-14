@@ -5,10 +5,22 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 2 — pembersihan baseline dan dokumentasi, pada branch `checkpoint-2-baseline`.
+- Checkpoint 3 berikutnya: audit test umum, pensiun perangkat penelitian, dan audit plan 15 task.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 14 September 2026 — Checkpoint 2: pembersihan baseline
+
+- README, AGENTS, dan aturan aktif menunjuk `cobasidebar`, PRD/SRS v1.1, serta minimum PHP 8.3.
+- Sembilan dokumen historis dikeluarkan setelah sepuluh hash sumber/arsip diverifikasi;
+  development log aktif diringkas dan log asli tetap di arsip.
+- 41 screenshot, satu workbook, dan analisis artikel RBAC dipensiunkan tanpa arsip;
+  dapat dipulihkan lewat histori Git. Manual/CSV/kode penelitian tetap sampai Checkpoint 3.
+- Gate lulus 411 test/3.148 assertion, focused 14 test/120 assertion, Pint,
+  checker frontend, build, Composer strict, diff-check, dan pemeriksaan tautan lokal.
+- Verifikasi berjalan di PHP 8.4.12; runtime PHP 8.3 belum diuji langsung.
+- Tidak ada perubahan kode aplikasi, dependency, database, atau hak akses.
 
 ### 14 September 2026 — Checkpoint 1: fondasi arsip
 
