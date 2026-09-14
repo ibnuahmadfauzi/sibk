@@ -14,9 +14,8 @@ class ReportRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        $type = $this->string('type', ReportService::TYPE_SERVICE_RECAP)->toString();
 
-        return $user !== null && app(ReportPolicy::class)->viewType($user, $type);
+        return $user !== null && app(ReportPolicy::class)->viewAny($user);
     }
 
     /** @return array<string, list<mixed>> */
@@ -24,6 +23,7 @@ class ReportRequest extends FormRequest
     {
         return [
             'type' => ['required', Rule::in(ReportService::types())],
+            'tab' => ['prohibited'],
             'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
             'date_start' => ['nullable', 'date'],
             'date_end' => ['nullable', 'date', 'after_or_equal:date_start'],
@@ -36,7 +36,7 @@ class ReportRequest extends FormRequest
             'achievement_level_id' => ['nullable', 'integer', 'exists:references,id'],
             'counselor_id' => ['nullable', 'integer', 'exists:users,id'],
             'minimum_points' => ['nullable', 'integer', 'min:0', 'max:1000000'],
-            'format' => [Rule::requiredIf($this->routeIs('reports.export')), 'nullable', Rule::in(['csv'])],
+            'format' => ['prohibited'],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
@@ -47,6 +47,7 @@ class ReportRequest extends FormRequest
         return [
             'type.required' => 'Jenis laporan wajib dipilih.',
             'type.in' => 'Jenis laporan tidak tersedia.',
+            'tab.prohibited' => 'Mode tab tidak dapat digabungkan dengan laporan lama.',
             'academic_year_id.exists' => 'Tahun ajaran tidak tersedia.',
             'date_start.date' => 'Tanggal awal harus berupa tanggal yang valid.',
             'date_end.date' => 'Tanggal akhir harus berupa tanggal yang valid.',
@@ -59,15 +60,7 @@ class ReportRequest extends FormRequest
             'achievement_level_id.exists' => 'Tingkat prestasi tidak tersedia.',
             'counselor_id.exists' => 'Guru BK tidak tersedia.',
             'minimum_points.integer' => 'Ambang poin harus berupa angka bulat.',
-            'format.in' => 'Format ekspor belum tersedia. Sprint 7 hanya menyediakan CSV.',
-            'format.required' => 'Format ekspor wajib dipilih.',
+            'format.prohibited' => 'Format ekspor tidak digunakan pada pratinjau.',
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        if (! $this->has('type')) {
-            $this->merge(['type' => ReportService::TYPE_SERVICE_RECAP]);
-        }
     }
 }

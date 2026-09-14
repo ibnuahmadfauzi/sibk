@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\User;
+use App\Services\OperationalReportRecapService;
 
 class ReportPolicy
 {
@@ -24,6 +25,17 @@ class ReportPolicy
         }
 
         return true;
+    }
+
+    public function viewTab(User $user, string $tab): bool
+    {
+        return $this->viewAny($user)
+            && in_array($tab, OperationalReportRecapService::tabs(), true);
+    }
+
+    public function exportTab(User $user, string $tab): bool
+    {
+        return $this->viewTab($user, $tab);
     }
 
     public function export(User $user, string $type): bool
