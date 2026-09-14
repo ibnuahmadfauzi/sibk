@@ -84,6 +84,16 @@ git push -u origin perbaikan-nama-pekerjaan
 Buat PR dengan target `cobasidebar`. Gunakan pesan commit Bahasa Indonesia yang
 mudah dipahami. Jangan langsung push ke `main`; kesiapan produksi ditinjau terpisah.
 
+Setelah PR berstatus `MERGED`, hapus branch checkpoint/fitur dari GitHub bila
+tidak ada commit baru atau PR terbuka yang belum digabung. Jangan hapus
+`cobasidebar`, `main`, atau branch yang belum di-merge. Branch lokal dan worktree
+yang masih dipakai tidak harus dihapus.
+
+Pemilik/admin repository dapat mengaktifkan **Settings → General → Pull Requests
+→ Automatically delete head branches** untuk merge berikutnya. Jika belum aktif,
+pengembang menghapus branch lewat tombol **Delete branch** pada PR yang sudah
+di-merge, setelah pemeriksaan di atas. Pengaturan ini membutuhkan izin admin.
+
 ## Pemeriksaan umum
 
 ```bash

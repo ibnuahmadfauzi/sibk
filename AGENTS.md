@@ -13,6 +13,12 @@ Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 Kerjakan di feature branch/worktree, gunakan PR ke `cobasidebar`, tanpa force push.
 Gunakan Bahasa Indonesia sederhana untuk dokumentasi dan pesan commit.
 
+Setelah PR berhasil di-merge, verifikasi status `MERGED` dan pastikan branch
+checkpoint/fitur tidak berisi commit baru atau PR terbuka yang belum digabung.
+Hapus branch sumber dari GitHub agar tidak menumpuk; jangan hapus `cobasidebar`
+atau `main`. Jangan menghapus branch yang belum di-merge. Branch lokal/worktree
+tidak otomatis ikut dihapus, terutama bila masih digunakan untuk checkpoint berikutnya.
+
 ## Source of truth
 
 - `docs/requirements/SRS_Aplikasi_BK_v1.1.md`: spesifikasi perilaku aktif.

@@ -30,6 +30,8 @@
 ## Langkah berikutnya
 
 1. Selesaikan integrasi branch Checkpoint 2 sebelum pekerjaan berikutnya.
+   Setelah PR berhasil di-merge, hapus branch remote `checkpoint-2-baseline`
+   bila tidak ada commit/PR baru yang belum digabung; pertahankan worktree untuk kelanjutan.
 2. Buat plan rinci Checkpoint 3 dari spec baseline yang disetujui.
 3. Audit cakupan empat role dan scope data pada test reguler.
 4. Pindahkan assertion penting sebelum menghapus command/seeder/katalog/verifier/test penelitian.
