@@ -4,12 +4,17 @@
 
 - Checkpoint selesai: 3 — Sederhanakan pengujian RBAC dan audit plan.
 - Checkpoint berikutnya: 4 — Penyederhanaan laporan, Task 1–7.
-- Branch kerja: `checkpoint-3-rbac`, menunggu integrasi [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) ke `cobasidebar`.
-- Worktree: `.worktrees/checkpoint-1-arsip` (folder lama digunakan ulang)
+- Branch kerja berikutnya belum dibuat; buat dari `cobasidebar` setelah cleanup terintegrasi.
+- Worktree: root repository.
 - Commit task terakhir: `59606d4` (audit); RBAC `9119b01`. Commit penutup dapat dilihat dengan `git log -1`.
 
 ## Hasil dan gate terakhir
 
+- Cleanup menghapus fixture config tanpa consumer, empat aset tanpa referensi,
+  satu test trivial, dan dua file publik kosong/percobaan. `laravel/pao` serta
+  fallback `Unavailable*Connector` dipertahankan.
+- Gate cleanup lulus: 401 test/3.138 assertion, Pint, checker frontend, build,
+  Composer strict, dan diff-check.
 - PR #9 Checkpoint 2 terverifikasi `MERGED`; branch sumber remote sudah tidak ada.
 - Matriks umum menunjuk test empat role, scope data, histori, privasi, dan ekspor.
 - Lima test reguler ditambahkan sebelum delapan file perangkat penelitian dihapus.

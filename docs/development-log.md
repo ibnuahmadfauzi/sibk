@@ -5,11 +5,21 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 3 selesai pada branch fitur; [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) menunggu integrasi ke `cobasidebar`.
+- Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
+- Cleanup file trivial selesai dan siap diintegrasikan ke `cobasidebar`.
 - Berikutnya Checkpoint 4: Task 1–7 plan penyederhanaan laporan yang sudah diaudit.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 15 September 2026 — Cleanup file trivial
+
+- Menghapus fixture config tanpa consumer, empat aset tanpa referensi, test bawaan
+  trivial, serta dua file publik kosong/percobaan.
+- `laravel/pao` dipertahankan karena aktif merangkum output test; dua
+  `Unavailable*Connector` dipertahankan sesuai keputusan.
+- Gate lulus 401 test/3.138 assertion, Pint, checker frontend, build,
+  Composer strict, dan diff-check.
 
 ### 15 September 2026 — Checkpoint 3: pengujian otorisasi umum
 
