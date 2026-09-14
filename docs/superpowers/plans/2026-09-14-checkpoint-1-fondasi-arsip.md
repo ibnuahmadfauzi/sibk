@@ -12,7 +12,8 @@
 
 ## Global Constraints
 
-- Branch pengembangan aktif adalah `cobasidebar`; `main` tidak disentuh.
+- Baseline pengembangan aktif adalah `cobasidebar`; pekerjaan checkpoint
+  dilakukan pada branch `checkpoint-1-arsip`; `main` tidak disentuh.
 - Repository arsip wajib private dan berada di `Aflahul/sibk-docs-archive`.
 - Arsip memakai snapshot bersih dengan satu initial commit.
 - Perangkat penelitian RBAC tidak dimasukkan ke arsip.
@@ -22,6 +23,91 @@
 - Gunakan Bahasa Indonesia yang mudah dipahami pada commit dan dokumentasi.
 - Gunakan path literal dan verifikasi target sebelum memindahkan clone di Windows.
 - Bila remote, hash, atau undangan collaborator gagal diverifikasi, checkpoint tetap aktif dan repository sumber tidak diubah.
+- `docs/current-work.md` dibuat sebelum tindakan eksternal dan diperbarui setelah
+  setiap task.
+- Setelah satu task selesai, centang seluruh step task tersebut, commit catatan
+  progres, lalu push branch `checkpoint-1-arsip` agar pengembang lain dapat
+  melanjutkan dari remote.
+
+---
+
+### Task 0: Buat catatan handoff sebelum tindakan eksternal
+
+**Files:**
+- Create: `docs/current-work.md`
+
+**Interfaces:**
+- Consumes: worktree bersih pada branch `checkpoint-1-arsip`.
+- Produces: satu petunjuk aktif yang dapat dibaca pengembang pengganti.
+
+- [ ] **Step 1: Pastikan worktree implementasi benar**
+
+Run:
+
+```powershell
+git branch --show-current
+git status --short
+git merge-base --is-ancestor 4b2d370 HEAD
+```
+
+Expected: branch adalah `checkpoint-1-arsip`, status kosong, dan pemeriksaan
+ancestor exit code 0.
+
+- [ ] **Step 2: Buat catatan pekerjaan aktif**
+
+Buat `docs/current-work.md` dengan isi:
+
+```markdown
+# Pekerjaan Aktif Ruang BK
+
+## Status
+
+- Checkpoint: 1 — Fondasi arsip
+- Status checkpoint: Sedang dikerjakan
+- Branch kerja: `checkpoint-1-arsip`
+- Baseline pengembangan: `cobasidebar`
+- Task terakhir selesai: Belum ada
+- Task berikutnya: Task 1 — Verifikasi keadaan awal dan sumber arsip
+- Commit acuan plan: `4b2d370`
+
+## Keadaan eksternal
+
+- Repository `Aflahul/sibk-docs-archive`: Belum dibuat
+- Snapshot arsip: Belum disusun
+- Undangan `ibnuahmadfauzi`: Belum dikirim
+- Clone akhir di luar proyek: Belum tersedia
+
+## Verifikasi terakhir
+
+- Branch kerja dan status bersih sudah diperiksa.
+- Belum ada tindakan eksternal.
+
+## Cara melanjutkan
+
+1. Baca `AGENTS.md`.
+2. Baca file ini.
+3. Baca plan Checkpoint 1 mulai dari Task 1.
+4. Jalankan `git status` dan `git log -1 --oneline` sebelum melanjutkan.
+5. Jangan mengulang tindakan eksternal tanpa memeriksa keadaannya lebih dahulu.
+
+## Acuan
+
+- Spec: `docs/superpowers/specs/2026-09-14-baseline-cobasidebar-arsip-dan-penyederhanaan-design.md`
+- Plan: `docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md`
+```
+
+- [ ] **Step 3: Commit dan bagikan titik awal handoff**
+
+Run:
+
+```powershell
+git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
+git commit -m "docs: mulai tahap pertama pengarsipan"
+git push -u origin checkpoint-1-arsip
+```
+
+Expected: branch `checkpoint-1-arsip` tersedia pada remote dan worktree kembali
+bersih.
 
 ---
 
@@ -54,7 +140,7 @@ git merge-base --is-ancestor b4310e1 HEAD
 git log -4 --oneline
 ```
 
-Expected: branch adalah `cobasidebar`, status kosong, pemeriksaan ancestor exit
+Expected: branch adalah `checkpoint-1-arsip`, status kosong, pemeriksaan ancestor exit
 code 0, dan riwayat memuat commit `b4310e1 docs: rapikan catatan dan rencana
 pengembangan`.
 
@@ -103,6 +189,27 @@ gh repo view Aflahul/sibk-docs-archive --json nameWithOwner,isPrivate
 
 Expected: command menyatakan repository belum ditemukan. Bila repository sudah
 ada, hentikan task dan periksa isinya; jangan menimpa remote.
+
+- [ ] **Step 5: Catat hasil Task 1 untuk handoff**
+
+Update `docs/current-work.md`:
+
+```text
+Task terakhir selesai: Task 1 — Verifikasi keadaan awal dan sumber arsip
+Task berikutnya: Task 2 — Buat repository private dan clone sementara
+Repository arsip: Belum dibuat
+Verifikasi terakhir: Sepuluh sumber arsip tersedia; remote belum digunakan.
+```
+
+Centang Step 1 sampai Step 5 pada Task 1, lalu jalankan:
+
+```powershell
+git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
+git commit -m "docs: catat pemeriksaan sumber arsip"
+git push
+```
+
+Expected: commit dan push berhasil; status worktree bersih.
 
 ---
 
@@ -165,6 +272,28 @@ git clone https://github.com/Aflahul/sibk-docs-archive.git .worktrees/sibk-docs-
 
 Expected: clone berhasil dan `.worktrees/sibk-docs-archive/.git` tersedia.
 
+- [ ] **Step 5: Catat hasil Task 2 untuk handoff**
+
+Update `docs/current-work.md`:
+
+```text
+Task terakhir selesai: Task 2 — Buat repository private dan clone sementara
+Task berikutnya: Task 3 — Susun snapshot arsip
+Repository arsip: Sudah dibuat dan terverifikasi private
+Verifikasi terakhir: Remote private tersedia dan clone sementara berhasil dibuat.
+```
+
+Centang Step 1 sampai Step 5 pada Task 2, lalu jalankan:
+
+```powershell
+git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
+git commit -m "docs: catat repository arsip sudah dibuat"
+git push
+```
+
+Expected: commit dan push berhasil. Clone arsip tetap tidak ikut status
+repository `sibk`.
+
 ---
 
 ### Task 3: Susun snapshot arsip
@@ -221,7 +350,7 @@ Expected: sepuluh file hasil salinan tersedia.
 
 - [ ] **Step 3: Buat README arsip**
 
-Create `.worktrees/sibk-docs-archive/README.md` with:
+Buat `.worktrees/sibk-docs-archive/README.md` dengan isi:
 
 ```markdown
 # Arsip Dokumentasi Ruang BK
@@ -243,7 +372,7 @@ build tidak disimpan dalam arsip ini.
 
 - [ ] **Step 4: Buat indeks arsip**
 
-Create `.worktrees/sibk-docs-archive/archive-index.md` with:
+Buat `.worktrees/sibk-docs-archive/archive-index.md` dengan isi:
 
 ```markdown
 # Indeks Arsip
@@ -271,6 +400,27 @@ rg -n -i "RBAC-Test-Results|bukti-rbac|rbac-results-analysis|rbac:scenario" .wor
 ```
 
 Expected: tidak ada hasil.
+
+- [ ] **Step 6: Catat hasil Task 3 untuk handoff**
+
+Update `docs/current-work.md`:
+
+```text
+Task terakhir selesai: Task 3 — Susun snapshot arsip
+Task berikutnya: Task 4 — Verifikasi, commit, dan push snapshot
+Snapshot arsip: Sudah disusun pada clone sementara
+Verifikasi terakhir: Sepuluh file tersalin dan perangkat penelitian tidak ikut.
+```
+
+Centang Step 1 sampai Step 6 pada Task 3, lalu jalankan:
+
+```powershell
+git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
+git commit -m "docs: catat snapshot arsip sudah disusun"
+git push
+```
+
+Expected: commit dan push berhasil; snapshot masih tersedia pada clone arsip.
 
 ---
 
@@ -356,6 +506,27 @@ Expected: repository tetap private, default branch `main`, dan root berisi
 `README.md`, `archive-index.md`, `requirements`, `plans`, `specs`, serta
 `testing`.
 
+- [ ] **Step 6: Catat hasil Task 4 untuk handoff**
+
+Update `docs/current-work.md`:
+
+```text
+Task terakhir selesai: Task 4 — Verifikasi, commit, dan push snapshot
+Task berikutnya: Task 5 — Undang collaborator dan pindahkan clone keluar proyek
+Snapshot arsip: Sudah di-commit, di-push, dan diverifikasi
+Verifikasi terakhir: Sepuluh hash sesuai dan isi remote private lengkap.
+```
+
+Centang Step 1 sampai Step 6 pada Task 4, lalu jalankan:
+
+```powershell
+git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
+git commit -m "docs: catat snapshot arsip sudah disimpan"
+git push
+```
+
+Expected: commit dan push berhasil.
+
 ---
 
 ### Task 5: Undang collaborator dan pindahkan clone keluar proyek
@@ -386,8 +557,7 @@ Run:
 ```powershell
 $workspacePath = (Resolve-Path -LiteralPath '.').Path
 $temporaryArchivePath = (Resolve-Path -LiteralPath '.worktrees\sibk-docs-archive').Path
-$parentPath = (Resolve-Path -LiteralPath '..').Path
-$finalArchivePath = Join-Path $parentPath 'sibk-docs-archive'
+$finalArchivePath = 'D:\PPG 2026\SEMESTER 2\sibk-docs-archive'
 if (-not $temporaryArchivePath.StartsWith((Join-Path $workspacePath '.worktrees'), [System.StringComparison]::OrdinalIgnoreCase)) {
     throw 'Sumber move berada di luar folder sementara yang diizinkan.'
 }
@@ -408,8 +578,7 @@ Run:
 ```powershell
 $workspacePath = (Resolve-Path -LiteralPath '.').Path
 $temporaryArchivePath = (Resolve-Path -LiteralPath '.worktrees\sibk-docs-archive').Path
-$parentPath = (Resolve-Path -LiteralPath '..').Path
-$finalArchivePath = Join-Path $parentPath 'sibk-docs-archive'
+$finalArchivePath = 'D:\PPG 2026\SEMESTER 2\sibk-docs-archive'
 Move-Item -LiteralPath $temporaryArchivePath -Destination $finalArchivePath
 ```
 
@@ -428,20 +597,42 @@ git -C "D:\PPG 2026\SEMESTER 2\sibk-docs-archive" remote -v
 Expected: branch `main` bersih dan remote menunjuk
 `Aflahul/sibk-docs-archive`.
 
+- [ ] **Step 5: Catat hasil Task 5 untuk handoff**
+
+Update `docs/current-work.md`:
+
+```text
+Task terakhir selesai: Task 5 — Undang collaborator dan pindahkan clone keluar proyek
+Task berikutnya: Task 6 — Tutup Checkpoint 1 pada repository aktif
+Undangan ibnuahmadfauzi: Sudah dikirim; penerimaan mengikuti status GitHub
+Clone akhir di luar proyek: D:\PPG 2026\SEMESTER 2\sibk-docs-archive
+Verifikasi terakhir: Clone akhir bersih dan remote menunjuk repository arsip.
+```
+
+Centang Step 1 sampai Step 5 pada Task 5, lalu jalankan:
+
+```powershell
+git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
+git commit -m "docs: catat akses dan lokasi repository arsip"
+git push
+```
+
+Expected: commit dan push berhasil.
+
 ---
 
-### Task 6: Catat hasil Checkpoint 1 pada repository aktif
+### Task 6: Tutup Checkpoint 1 pada repository aktif
 
 **Files:**
-- Create: `docs/current-work.md`
+- Modify: `docs/current-work.md`
 
 **Interfaces:**
 - Consumes: hasil verifikasi remote, lokasi clone akhir, dan status undangan.
 - Produces: petunjuk pendek untuk memulai Checkpoint 2.
 
-- [ ] **Step 1: Buat catatan pekerjaan aktif**
+- [ ] **Step 1: Perbarui catatan pekerjaan aktif**
 
-Create `docs/current-work.md` with:
+Ganti bagian status di `docs/current-work.md` dengan isi:
 
 ```markdown
 # Pekerjaan Aktif Ruang BK
@@ -461,6 +652,8 @@ Create `docs/current-work.md` with:
 - Sepuluh dokumen historis disalin dan hash-nya sesuai.
 - Perangkat penelitian RBAC tidak dimasukkan ke arsip.
 - Dokumen sumber di `sibk` belum dihapus.
+- Undangan collaborator sudah dikirim; status penerimaan diperiksa kembali pada
+  Checkpoint 2.
 
 ## Langkah berikutnya
 
@@ -491,7 +684,7 @@ git diff --check
 ```
 
 Expected: remote private, clone arsip bersih, dan repository `sibk` hanya
-menampilkan `docs/current-work.md` serta file plan bila belum di-commit.
+menampilkan perubahan `docs/current-work.md` serta checkbox plan.
 
 - [ ] **Step 3: Commit plan dan catatan checkpoint**
 
@@ -499,7 +692,8 @@ Run:
 
 ```powershell
 git add docs/current-work.md docs/superpowers/plans/2026-09-14-checkpoint-1-fondasi-arsip.md
-git commit -m "docs: catat hasil tahap pembuatan arsip"
+git commit -m "docs: selesaikan tahap pertama pengarsipan"
+git push
 ```
 
 Expected: commit berhasil dan tidak memuat penghapusan dokumen lama.
