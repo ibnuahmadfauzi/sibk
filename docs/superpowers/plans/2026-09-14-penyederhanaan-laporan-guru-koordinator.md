@@ -15,7 +15,10 @@
 ## Global Constraints
 
 - Jangan menambahkan Spatie Query Builder, Yajra DataTables, Livewire Tables, Livewire PowerGrid, Filament Tables, jQuery, Alpine, atau framework tabel lain.
-- Pertahankan `GET /reports/preview?type=...` dan ekspor legacy berbasis `type`.
+- Pertahankan tujuh nilai `type` pada `GET /reports/preview?type=...` dan
+  `GET /reports/export?type=...&format=csv`. `ReportRequest`/`ReportService`
+  tetap melayani mode ini; halaman `/reports` hanya mengganti katalog UI dengan
+  tiga tab dan tidak menghapus consumer legacy.
 - `GET /reports` memakai tab `pelanggaran|layanan|prestasi`; tab default adalah `layanan`.
 - Guru BK hanya menerima data dalam scope profesional/kasus khusus; Koordinator BK menerima rekap gabungan; Admin IT dan Waka murni ditolak.
 - View dan CSV hanya menerima inisial murid, NISN tersamarkan, kelas historis, dan nilai agregat aman.
@@ -26,7 +29,7 @@
 - Identitas sementara yang belum direkonsiliasi hanya muncul pada tab Layanan bila actor berwenang; grouping memakai ID, bukan nama.
 - Semua PHP baru memakai `declare(strict_types=1);`.
 - Gunakan Bahasa Indonesia dan istilah `murid`.
-- Task 1-7 tidak membuat migration. Task 8 dan seterusnya hanya membuat migration lanjutan yang disebutkan pada plan; file migration lama tidak dihapus atau ditulis ulang.
+- Task 1-7 tidak membuat migration. Task 8 dan seterusnya hanya membuat migration lanjutan yang disebutkan pada plan; file migration lama tidak dihapus atau ditulis ulang. Migration baru bersifat forward-only: `down()` tidak memulihkan data, reference, atau tabel retired.
 - Jangan menjalankan `migrate:fresh`, reset, rollback destruktif, atau purge pada database lokal/shared tanpa persetujuan terpisah.
 - Hasil akhir skema adalah 30 tabel termasuk `migrations`; pertahankan `sessions`, `cache`, `cache_locks`, dan `audit_logs`.
 - Queue MVP memakai `QUEUE_CONNECTION=sync`; jangan membuat adapter production Dapodik/e-Tatib pada plan ini.
@@ -42,6 +45,45 @@
   kenyamanan interaksi, dan hasil cetak diuji manual oleh pengguna atau tester
   manusia melalui browser biasa. Agent tidak boleh menandai UAT manual PASS
   tanpa hasil yang dilaporkan pelaksana manual.
+
+## Hasil Audit Checkpoint 3 — 15 September 2026
+
+Status faktual pada branch `checkpoint-3-rbac`: seluruh checkbox Task 1-15
+masih kosong. Pipeline rekap tiga tab, proses keluar murid, password sementara,
+dan target skema belum diimplementasikan; lifecycle/route dasar yang sudah ada
+bukan bukti Task 9-15 telah selesai. Tabel ini adalah audit plan, bukan bukti
+task telah selesai.
+
+| Task | Hasil audit dan kontrak antartask |
+|---|---|
+| 1 | Tetap menjadi sumber kontrak tab dan legacy sebelum perubahan kode. |
+| 2 | Memisahkan `OperationalReportRequest` dari `ReportRequest`; request lama tetap untuk preview dan ekspor legacy berbasis `type`. |
+| 3 | Bergantung pada fondasi filter dan output aman Task 2. |
+| 4 | Bergantung pada Task 2; identitas sementara tetap khusus tab Layanan. |
+| 5 | Bergantung pada Task 2; tidak menambah sumber data rekap. |
+| 6 | Menghubungkan tiga builder Task 3-5 sambil memilih pipeline ekspor tab atau legacy secara eksplisit. |
+| 7 | Memverifikasi Task 1-6 dan menghentikan fase laporan pada `PENDING MANUAL` sampai UAT manusia tersedia. |
+| 8 | Mengunci requirement operasional sebelum perubahan lifecycle dan skema Task 9-13. |
+| 9 | Menjadi prasyarat soft delete dan status layanan untuk Task 10, 13, dan 14; migration dibuat forward-only. |
+| 10 | Menghapus fitur retired berikut bookmark `_preview` terkait, sambil mempertahankan audit backend dan preview legacy lain. |
+| 11 | Menyediakan satu proses keluar murid serta scope layanan aktif untuk Task 14. |
+| 12 | Menambahkan password sementara tanpa mengirim nilai password ke audit atau log. |
+| 13 | Baru dijalankan setelah consumer Task 10 hilang; hanya menghapus tabel retired secara forward-only dan memverifikasi fresh/incremental pada database disposable. |
+| 14 | Menyatukan scope Task 9 dan 11 ke laporan, dashboard, serta Portal Waka tanpa mengubah route Waka. |
+| 15 | Menggabungkan gate Task 1-14; tidak dapat menutup plan sebelum hasil UAT manual PASS. |
+
+Keputusan route hasil audit:
+
+| Route/kelompok | Keputusan |
+|---|---|
+| `GET /reports` | Dipertahankan sebagai halaman tiga tab (`pelanggaran`, `layanan`, `prestasi`). |
+| `GET /reports/preview?type=...` | Dipertahankan untuk tujuh `type` legacy. |
+| `GET /reports/export?type=...&format=csv` | Dipertahankan; mode ini tidak boleh bercampur dengan `tab`. |
+| `GET /reports/export?tab=...&format=csv` | Ditambahkan sebagai ekspor tiga tab. |
+| `GET /students/show?nisn={nisn}&tab=...` dan `/_preview/students/show` | Dipertahankan sebagai bookmark legacy yang melakukan policy check lalu redirect ke `/students/{student}` dengan tab tervalidasi. |
+| `GET /waka/reports`, `GET /waka/handling-reports`, dan `GET /waka/handling-reports/export` | Dipertahankan dengan policy, redirect, dan kontrak CSV Waka yang ada; Task 6 tidak memakai route ekspor ini. |
+| Preview Dapodik serta `/_preview` selain fitur retired | Dipertahankan sesuai destination legacy saat ini. |
+| `/corrections`, `/notifications`, `/history`, `_preview/notifications`, `_preview/corrections*`, `_preview/history` | Dihentikan pada Task 10 dan wajib 404/tidak terdaftar. |
 
 ---
 
@@ -1576,6 +1618,7 @@ Expected: 0 failure dan 0 error.
 ```powershell
 php artisan test
 php vendor/bin/pint --test
+composer validate --strict
 php artisan config:cache
 php artisan view:cache
 npm.cmd run check:frontend
@@ -1954,10 +1997,11 @@ DB::table('references')->whereIn('id', $cancelledIds)
     ->update(['is_active' => false, 'updated_at' => now()]);
 ```
 
-`down()` hanya mengaktifkan kembali reference; jangan mengosongkan `deleted_at`
-karena migration tidak dapat membedakan arsip lama dari arsip hasil konversi
-secara aman. `ReferenceSeeder` tidak lagi membuat `dibatalkan` untuk category
-kasus/konsultasi dan menonaktifkan row legacy bila seeder dijalankan incremental.
+`down()` kosong dengan komentar forward-only; jangan mengaktifkan kembali
+reference atau mengosongkan `deleted_at`, karena migration tidak dapat
+membedakan arsip lama dari arsip hasil konversi secara aman. `ReferenceSeeder`
+tidak lagi membuat `dibatalkan` untuk category kasus/konsultasi dan
+menonaktifkan row legacy bila seeder dijalankan incremental.
 Perbarui `ServiceRecordStatusMigrationTest` agar membuktikan kasus/konsultasi
 legacy diarsipkan, reference inactive, dan follow-up/coordination cancellation
 tetap tersedia.
@@ -2147,7 +2191,12 @@ public function test_retired_feature_routes_are_not_registered(): void
 {
     $user = $this->userWithRole('admin_it');
 
-    foreach (['/corrections', '/notifications', '/history'] as $uri) {
+    foreach ([
+        '/corrections', '/notifications', '/history',
+        '/_preview/notifications', '/_preview/corrections',
+        '/_preview/corrections/create', '/_preview/corrections/show',
+        '/_preview/history',
+    ] as $uri) {
         $this->actingAs($user)->get($uri)->assertNotFound();
     }
 
@@ -2156,6 +2205,9 @@ public function test_retired_feature_routes_are_not_registered(): void
         str_starts_with($name, 'corrections.')
         || str_starts_with($name, 'notifications.')
         || str_starts_with($name, 'history.')
+        || str_starts_with($name, 'fixtures.notifications')
+        || str_starts_with($name, 'fixtures.corrections')
+        || str_starts_with($name, 'fixtures.history')
     ));
 }
 ```
@@ -2191,8 +2243,12 @@ php artisan test tests/Feature/DashboardNotificationTest.php --filter=role_conte
 
 - [ ] **Step 3: Hapus route, policy registration, dan view composer**
 
-Hapus seluruh route koreksi/notifikasi/riwayat beserta fixture preview-nya.
-Hapus policy model tersebut, gate `viewAuditHistory`, dan composer
+Hapus seluruh route koreksi/notifikasi/riwayat beserta route fixture
+`/_preview/notifications`, `/_preview/corrections`,
+`/_preview/corrections/create`, `/_preview/corrections/show`, dan
+`/_preview/history`. `LegacyPreviewController` tetap dipakai untuk bookmark
+`/_preview` lain yang destination-nya masih sah. Hapus policy model tersebut,
+gate `viewAuditHistory`, dan composer
 `unreadNotificationCount` dari `AppServiceProvider`. Sidebar tidak boleh
 mengandung label, badge, atau route retired.
 
@@ -2476,7 +2532,9 @@ Schema::create('student_departures', function (Blueprint $table): void {
 ```
 
 Jangan menambah departure flag/date pada `students` dan jangan memakai soft
-delete pada process record.
+delete pada process record. `down()` migration ini kosong dengan komentar
+forward-only; jangan menghapus `student_departures` atau memulihkan state
+sebelumnya melalui rollback.
 
 - [ ] **Step 5: Buat model dan state contract**
 
@@ -2780,7 +2838,9 @@ Schema::table('users', function (Blueprint $table): void {
 ```
 
 Tambahkan fillable/cast pada User, tetapi jangan pernah menghapus `password`
-dari hidden attributes.
+dari hidden attributes. `down()` migration ini kosong dengan komentar
+forward-only; jangan menghapus field lifecycle password atau mengubah kembali
+data akun melalui rollback.
 
 - [ ] **Step 5: Buat service hasil password sementara**
 
@@ -2901,12 +2961,15 @@ php artisan test tests/Feature/AuthenticationTest.php
 php artisan test tests/Feature/AdminPasswordRecoveryCommandTest.php
 php artisan route:list --name=account.password
 php vendor/bin/pint --test database/migrations/2026_09_14_000200_add_temporary_password_fields_to_users.php app/Data/TemporaryPasswordResult.php app/Services/TemporaryPasswordService.php app/Http/Requests/Admin/ResetUserPasswordRequest.php app/Http/Requests/Auth/ChangePasswordRequest.php app/Http/Controllers/Admin/UserPasswordResetController.php app/Http/Controllers/AccountPasswordController.php app/Http/Middleware/EnsurePasswordChanged.php app/Console/Commands/ResetAdminPassword.php app/Services/AccountService.php app/Models/User.php tests/Feature/AccountManagementTest.php tests/Feature/AuthenticationTest.php tests/Feature/AdminPasswordRecoveryCommandTest.php
-rg -n "plainTextPassword|temporary_password|password" storage/logs app/Services/AuditService.php
+git grep -n -E "plainTextPassword|temporary_password|password" -- app/Services/AuditService.php
 git diff --check
 ```
 
-Expected: log/audit tidak mengandung password test; response satu kali memakai
-`no-store`; semua test PASS.
+Expected: test membuktikan log/audit tidak memuat password, response satu kali
+memakai `no-store`, dan source `AuditService` tidak menerima field password.
+Bila log lokal perlu dibaca saat investigasi, gunakan hanya data test dan catat
+jumlah/hasil teredaksi; jangan men-dump payload atau isi `storage/logs` ke
+terminal maupun evidence.
 
 - [ ] **Step 11: Commit**
 
@@ -2927,7 +2990,8 @@ git commit -m "feat: wajibkan pergantian password sementara"
 
 **Interfaces:**
 - Consumes: tidak adanya consumer koreksi/notifikasi dari Task 10, migration status Task 9, serta migration departures/password Task 11-12.
-- Produces: database fresh dan incremental dengan 30 tabel termasuk `migrations`.
+- Produces: verifikasi migration fresh dan incremental pada database disposable
+  dengan 30 tabel termasuk `migrations`; database shared tidak di-reset.
 
 - [ ] **Step 1: Tulis failing schema test**
 
@@ -2976,18 +3040,11 @@ Schema::dropIfExists('job_batches');
 Schema::dropIfExists('failed_jobs');
 ```
 
-`down()` membuat ulang struktur kosong dengan definisi kolom/foreign key yang
-sama persis dari:
-
-```text
-database/migrations/0001_01_01_000000_create_users_table.php
-database/migrations/0001_01_01_000002_create_jobs_table.php
-database/migrations/2026_08_20_000900_create_corrections_table.php
-database/migrations/2026_08_20_001000_create_user_notifications_table.php
-```
-
-Rollback hanya memulihkan struktur, bukan isi record retired. Jangan memanggil
-migration lama dari migration baru.
+`down()` kosong dengan komentar forward-only. Jangan membuat ulang struktur
+atau isi `corrections`, `user_notifications`, `password_reset_tokens`, `jobs`,
+`job_batches`, atau `failed_jobs`; pemulihan tabel retired memerlukan keputusan
+dan migration baru terpisah. Jangan memanggil migration lama dari migration
+baru.
 
 - [ ] **Step 4: Kunci queue synchronous**
 
@@ -3003,32 +3060,77 @@ CACHE_STORE=database
 `env('QUEUE_CONNECTION', 'sync')`. Jangan menghapus konfigurasi driver karena
 queue dapat kembali setelah adapter production diterima.
 
-- [ ] **Step 5: Verifikasi fresh dan incremental SQLite**
+- [ ] **Step 5: Verifikasi fresh dan incremental SQLite disposable**
 
-Buat database SQLite disposable di direktori temporary, bukan database lokal:
+Gate fresh memakai file SQLite kosong yang dibuat snippet ini dan
+`php artisan migrate --force`; larangan fresh/reset tetap berlaku untuk
+database lokal, shared, dan production. File harus tetap ada sebelum Laravel
+membuka koneksi SQLite. Simpan lalu pulihkan nilai environment yang sebelumnya
+ada, termasuk nilai kosong, dan teruskan exit code command pertama yang gagal.
 
 ```powershell
-$schemaDb = Join-Path $env:TEMP 'sibk-operational-schema.sqlite'
-New-Item -ItemType File -Force -Path $schemaDb | Out-Null
-$env:DB_CONNECTION = 'sqlite'
-$env:DB_DATABASE = $schemaDb
-php artisan migrate --force
-php artisan test tests/Feature/OperationalSchemaTest.php tests/Feature/ServiceRecordStatusMigrationTest.php
-Remove-Item -LiteralPath $schemaDb
-Remove-Item Env:DB_CONNECTION
-Remove-Item Env:DB_DATABASE
+$freshDb = (New-TemporaryFile).FullName
+$hadConnection = Test-Path Env:DB_CONNECTION
+$oldConnection = $env:DB_CONNECTION
+$hadDatabase = Test-Path Env:DB_DATABASE
+$oldDatabase = $env:DB_DATABASE
+$hadUrl = Test-Path Env:DB_URL
+$oldUrl = $env:DB_URL
+$gateExit = 0
+php artisan config:clear
+if ($LASTEXITCODE -ne 0) { $gateExit = $LASTEXITCODE }
+try {
+    $env:DB_CONNECTION = 'sqlite'
+    $env:DB_DATABASE = $freshDb
+    $env:DB_URL = '(null)'
+    if ($gateExit -eq 0) {
+        php artisan tinker --execute="if (Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'sqlite' || Illuminate\Support\Facades\DB::connection()->getDatabaseName() !== getenv('DB_DATABASE')) { throw new RuntimeException('Koneksi bukan SQLite disposable yang ditentukan.'); }"
+        if ($LASTEXITCODE -ne 0) { $gateExit = $LASTEXITCODE }
+    }
+    if ($gateExit -eq 0) {
+        php artisan migrate --force
+        if ($LASTEXITCODE -ne 0) { $gateExit = $LASTEXITCODE }
+    }
+    if ($gateExit -eq 0) {
+        php artisan tinker --execute="if (count(Illuminate\Support\Facades\Schema::getTableListing()) !== 30) { throw new RuntimeException('Jumlah tabel tidak sesuai.'); }"
+        if ($LASTEXITCODE -ne 0) { $gateExit = $LASTEXITCODE }
+    }
+} finally {
+    Remove-Item -LiteralPath $freshDb -ErrorAction SilentlyContinue
+    if ($hadConnection) { $env:DB_CONNECTION = $oldConnection } else { Remove-Item Env:DB_CONNECTION -ErrorAction SilentlyContinue }
+    if ($hadDatabase) { $env:DB_DATABASE = $oldDatabase } else { Remove-Item Env:DB_DATABASE -ErrorAction SilentlyContinue }
+    if ($hadUrl) { $env:DB_URL = $oldUrl } else { Remove-Item Env:DB_URL -ErrorAction SilentlyContinue }
+    php artisan config:clear
+    if ($LASTEXITCODE -ne 0 -and $gateExit -eq 0) { $gateExit = $LASTEXITCODE }
+}
+if ($gateExit -ne 0) { exit $gateExit }
 ```
 
-Untuk incremental test, jalankan migration sampai batch sebelum
-`2026_09_14_000050`, masukkan fixture cancelled, lalu jalankan seluruh migration
-14 September berurutan. Buktikan row layanan diarsipkan/reference inactive dan
-enam tabel retired hilang.
+Nilai `(null)` dipahami Laravel sebagai URL kosong, termasuk pada PowerShell
+5.1 yang menghapus environment variable bila diisi string kosong. Probe
+koneksi harus lulus sebelum migration; gagal membersihkan config juga
+menghentikan migration.
+
+Pada fixture incremental dalam `ServiceRecordStatusMigrationTest`, jalankan
+migration baseline sampai tepat sebelum `2026_09_14_000050`, masukkan fixture
+`dibatalkan`, lalu jalankan migration 14 September berurutan. Buktikan row
+layanan diarsipkan, reference inactive, dan enam tabel retired hilang.
+`OperationalSchemaTest` dan `ServiceRecordStatusMigrationTest` tetap dijalankan
+dengan konfigurasi test mereka sendiri: yang pertama membuktikan schema fresh,
+yang kedua membangun baseline lalu menjalankan migration baru secara langsung
+untuk fixture incremental. Jangan mengklaim file `$freshDb` sebagai evidence
+incremental atau memaksa PHPUnit yang memakai `:memory:` ke database ini.
+Catat hanya nama file sementara serta hasilnya, tanpa credential.
+
 
 - [ ] **Step 6: Verifikasi MySQL disposable**
 
-Gunakan database MySQL test yang telah diverifikasi bukan shared/production.
-Jalankan `php artisan migrate --force` dan query `information_schema.tables`
-untuk memastikan 30 tabel. Jangan mencetak credential pada output/evidence.
+Gunakan database MySQL test yang kosong, disposable, dan telah diverifikasi
+bukan shared/production. Jalankan `php artisan migrate --force` untuk gate
+fresh lalu query `information_schema.tables` untuk memastikan 30 tabel.
+Jalankan juga `ServiceRecordStatusMigrationTest` dengan fixture incremental
+yang membangun baseline sebelum migration 14 September. Jangan menjalankan
+reset/rollback dan jangan mencetak credential pada output/evidence.
 
 - [ ] **Step 7: Jalankan focused tests**
 
@@ -3182,6 +3284,14 @@ Dashboard role-aware menghitung murid aktif menggunakan
 `availableForService($periodEnd)` dan tidak menjadikan `student_departures`
 sebagai sumber narasi sensitif.
 
+Pertahankan `StudentController::legacy()` untuk bookmark
+`/students/show?nisn={nisn}&tab=...`: policy tetap diperiksa sebelum redirect
+ke profile canonical. Jangan mengubah `WakaMonitoringController::legacyHandling`
+atau `export`; `/waka/handling-reports` harus tetap redirect ke tab Waka yang
+setara dan `/waka/handling-reports/export` tetap menghasilkan CSV hanya untuk
+Waka yang berwenang. Tambahkan/pertahankan assertion pada
+`StudentProfileTest` dan `WakaMonitoringTest` untuk kontrak tersebut.
+
 - [ ] **Step 5: Verifikasi query consistency**
 
 ```powershell
@@ -3236,9 +3346,16 @@ Expected: 0 failure dan 0 error.
 
 - [ ] **Step 2: Jalankan full automated gate melalui CLI**
 
+Jalankan cache command hanya pada konfigurasi worktree/local, bukan aplikasi
+shared/production. Bila satu command gagal, tetap jalankan tiga command clear
+sebelum keluar dengan error agar cache hasil verifikasi tidak tertinggal.
+
 ```powershell
 php artisan test
 php vendor/bin/pint --test
+composer validate --strict
+composer audit --locked
+npm.cmd audit --audit-level=high
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -3256,12 +3373,16 @@ Expected: seluruh command exit code 0 dan cache dibersihkan setelah verifikasi.
 
 ```powershell
 rg -n "Correction|UserNotification|NotificationService|corrections\.|notifications\.|history\." app routes resources tests scripts
-rg -n "change_reason|plainTextPassword|temporary_password|initial_info|internal_note|sensitive_content|final_result" resources/views/pages/reports resources/views/pages/waka app/Services/OperationalReportRecapService.php app/Services/WakaCaseProjectionQuery.php storage/logs
-rg -n "API Data Siswa|https://xxxx|api_key|credential" docs app config tests
+git grep -n -E "change_reason|plainTextPassword|temporary_password|initial_info|internal_note|sensitive_content|final_result" -- resources/views/pages/reports resources/views/pages/waka app/Services/OperationalReportRecapService.php app/Services/WakaCaseProjectionQuery.php
+git grep -n -i -E "API Data Siswa|https://xxxx|api_key|credential" -- docs app config tests
 ```
 
-Expected: fitur retired tidak mempunyai consumer runtime; field sensitif tidak
-masuk laporan/Waka/log; alamat API dan credential tidak masuk repository.
+Expected: fitur retired tidak mempunyai consumer runtime dan field sensitif
+tidak masuk laporan/Waka. Hasil keyword credential adalah kandidat yang wajib
+ditriase: kebijakan generik, placeholder tersamarkan, dan fixture test boleh
+tetap ada; nilai credential nyata tidak boleh ada. Evidence mencatat file,
+baris, dan keputusan tanpa menyalin nilai kandidat. Bila log lokal perlu dibaca
+untuk investigasi, gunakan data test dan keluarkan hasil yang telah disensor.
 
 - [ ] **Step 4: Verifikasi schema dan queue**
 

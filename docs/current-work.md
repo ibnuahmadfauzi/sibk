@@ -2,23 +2,26 @@
 
 ## Status
 
-- Checkpoint selesai: 2 — Bersihkan baseline `cobasidebar`
-- Checkpoint berikutnya: 3 — Sederhanakan pengujian RBAC dan audit plan
-- Branch kerja: `checkpoint-2-baseline` (menunggu integrasi ke `cobasidebar`)
+- Checkpoint selesai: 3 — Sederhanakan pengujian RBAC dan audit plan.
+- Checkpoint berikutnya: 4 — Penyederhanaan laporan, Task 1–7.
+- Branch kerja: `checkpoint-3-rbac`, menunggu integrasi [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) ke `cobasidebar`.
 - Worktree: `.worktrees/checkpoint-1-arsip` (folder lama digunakan ulang)
-- Commit task terakhir: `51fa0bc`; commit penutup dapat dilihat dengan `git log -1`.
+- Commit task terakhir: `59606d4` (audit); RBAC `9119b01`. Commit penutup dapat dilihat dengan `git log -1`.
 
 ## Hasil dan gate terakhir
 
-- README/AGENTS/aturan menunjuk PRD/SRS v1.1, minimum PHP 8.3, dan baseline `cobasidebar`.
-- Sembilan sumber historis dikeluarkan; development log aktif diringkas.
-- 41 screenshot, satu workbook, dan analisis artikel dihapus tanpa diarsipkan.
-- Histori Git tidak ditulis ulang; artefak lama tetap dapat dipulihkan.
-- Manual/CSV dan kode penelitian masih tersedia sebagai input test sampai Checkpoint 3.
-- Gate lulus: 411 test/3.148 assertion, Pint, checker frontend, build, Composer strict, diff-check.
-- Focused test penelitian lulus 14 test/120 assertion.
-- Tautan lokal pada 14 dokumen yang diubah valid; kode/dependency tidak berubah.
-- Test berjalan pada PHP 8.4.12; belum membuktikan runtime PHP 8.3 secara langsung.
+- PR #9 Checkpoint 2 terverifikasi `MERGED`; branch sumber remote sudah tidak ada.
+- Matriks umum menunjuk test empat role, scope data, histori, privasi, dan ekspor.
+- Lima test reguler ditambahkan sebelum delapan file perangkat penelitian dihapus.
+- Policy, Gate, service, controller, UI, dependency, dan migration produk tidak diubah.
+- Command penelitian tidak terdaftar; tidak ada consumer penelitian pada app/database/tests/routes.
+- Audit 15 task selesai; route legacy, migration forward-only, dan gate disposable diperjelas.
+- Review independen RBAC serta audit plan selesai tanpa blocker material.
+- Gate lulus: 402 test/3.139 assertion, Pint, checker frontend, build,
+  Composer strict, dan diff-check. Focused sebelum penghapusan: 61 test/615 assertion.
+- Cache PHPUnit dan build Vite membutuhkan eksekusi di luar sandbox karena izin
+  tulis worktree; pengulangan lulus.
+- Verifikasi memakai PHP 8.4.12; runtime PHP 8.3 belum diuji langsung.
 
 ## Arsip
 
@@ -29,16 +32,17 @@
 
 ## Langkah berikutnya
 
-1. Selesaikan integrasi branch Checkpoint 2 sebelum pekerjaan berikutnya.
-   Setelah PR berhasil di-merge, hapus branch remote `checkpoint-2-baseline`
-   bila tidak ada commit/PR baru yang belum digabung; pertahankan worktree untuk kelanjutan.
-2. Buat plan rinci Checkpoint 3 dari spec baseline yang disetujui.
-3. Audit cakupan empat role dan scope data pada test reguler.
-4. Pindahkan assertion penting sebelum menghapus command/seeder/katalog/verifier/test penelitian.
-5. Audit route legacy dan plan penyederhanaan 15 task; jangan menganggapnya sudah selesai.
-6. Adapter production tetap ditahan sampai kontrak resmi lolos admission gate.
+1. Selesaikan integrasi PR #10 sebelum pekerjaan Checkpoint 4.
+2. Setelah PR di-merge, verifikasi `MERGED` dan hapus branch remote `checkpoint-3-rbac` hanya
+   bila tidak ada commit/PR baru yang belum digabung. Pertahankan worktree.
+3. Mulai Checkpoint 4 dari Task 1–7 plan penyederhanaan yang sudah diaudit.
+   Audit bukan bukti implementasi; seluruh 15 task masih belum selesai.
+4. Task 7 menyiapkan UAT laporan. Hasil manual manusia diperlukan sebelum Task 8.
+5. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 
-- Plan selesai: `docs/superpowers/plans/2026-09-14-checkpoint-2-baseline.md`
+- Plan checkpoint: `docs/superpowers/plans/2026-09-15-checkpoint-3-rbac.md`
+- Plan berikutnya: `docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md`
+- Matriks umum: `docs/testing/authorization-matrix.md`
 - Spec: `docs/superpowers/specs/2026-09-14-baseline-cobasidebar-arsip-dan-penyederhanaan-design.md`

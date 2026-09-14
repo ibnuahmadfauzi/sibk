@@ -5,10 +5,26 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 3 berikutnya: audit test umum, pensiun perangkat penelitian, dan audit plan 15 task.
+- Checkpoint 3 selesai pada branch fitur; [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) menunggu integrasi ke `cobasidebar`.
+- Berikutnya Checkpoint 4: Task 1–7 plan penyederhanaan laporan yang sudah diaudit.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 15 September 2026 — Checkpoint 3: pengujian otorisasi umum
+
+- Matriks umum menggantikan manual/CSV penelitian dan menunjuk test empat role,
+  scope data, histori, privasi, serta ekspor.
+- Lima test reguler ditambahkan sebelum delapan file command/seeder/katalog/
+  verifier/test/manual/CSV penelitian dipensiunkan; policy dan Gate produk tetap.
+- Audit 15 task memperjelas route legacy, migration forward-only, gate
+  disposable, dan verifikasi CLI; seluruh 15 task masih belum selesai.
+- Gate lulus 402 test/3.139 assertion, Pint, checker frontend, build,
+  Composer strict, diff-check, dan tautan lokal enam dokumen.
+- Review independen RBAC serta audit plan tidak menemukan blocker material.
+- Runtime PHP 8.4.12; PHP 8.3 belum diuji langsung. Probe koneksi disposable
+  pada petunjuk migration lulus tanpa menjalankan migration.
+- Commit RBAC `9119b01`, audit `59606d4`; PR #10 ke `cobasidebar`.
 
 ### 14 September 2026 — Checkpoint 2: pembersihan baseline
 

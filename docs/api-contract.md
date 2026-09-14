@@ -21,17 +21,10 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - Filter daftar murid dan Monitoring Penanganan menerima `period` (`YYYY-MM`), `status`, `sort`, `direction`, dan `page`. Daftar murid hanya menerima sort `murid`, `kelas`, `status`, atau `guru_bk`; Monitoring Penanganan juga menerima `bidang` dan `tanggal`. `direction` hanya `asc` atau `desc`. Rekap Periode menerima `academic_year_id`, `date_start`, dan `date_end` di dalam batas tahun ajaran terpilih.
 - Detail kasus nonterkoordinasi tetap ditolak. Route portal Waka tidak memperluas scope model umum dan tidak menyediakan tindakan mutasi.
 
-### Perangkat Pengujian RBAC Penelitian
+### Otorisasi Produk
 
-- **Reset command:** `php artisan rbac:scenario-reset` dengan opsi `--force` untuk eksekusi noninteraktif. Reset memvalidasi baseline sebelum menerbitkan CSV.
-- **Verify command:** `php artisan rbac:scenario-verify` bersifat read-only dan memeriksa baseline database serta CSV terbaru; opsi `--csv=path` memilih lembar tertentu.
-- **Environment:** hanya `local` dan `testing`; pemanggilan pada production gagal tanpa membuat atau menghapus data.
-- **Credential:** memakai `SIBK_SEED_ACCOUNT_PASSWORD` yang wajib minimal delapan karakter dan tidak pernah dicetak ke terminal/CSV.
-- **Efek:** menghapus lalu membuat ulang hanya aktor dan resource penelitian berpenanda/kepemilikan RBAC dalam satu transaksi.
-- **Output:** lembar hasil pada `storage/app/testing/rbac-results-YYYYMMDD-HHMMSS.csv` berisi versi dataset, tanggal baseline, label/prasyarat resource, URL/primary key aktual, serta marker yang wajib tampil atau disembunyikan.
-- **Seeder:** `AuthorizationScenarioSeeder` tidak dipanggil oleh `DatabaseSeeder`; production seeding tetap hanya membuat role dan referensi.
 - **Model otorisasi:** capability global diperiksa oleh Gate/Policy, sedangkan hak atas data diperiksa oleh query scope, periode efektif, penugasan, kepemilikan, koordinasi, dan policy per objek. Tidak tersedia tabel maupun endpoint permission generik.
-- **Kontrak HTTP:** perangkat penelitian tidak menambah endpoint. Semua skenario memakai endpoint aplikasi yang sudah ada agar enforcement server yang sesungguhnya ikut diuji.
+- **Pengujian:** [matriks otorisasi umum](testing/authorization-matrix.md) menunjuk feature test reguler untuk empat role, URL langsung, scope data, histori, privasi, dan ekspor.
 
 ---
 

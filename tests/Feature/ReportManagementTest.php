@@ -211,6 +211,48 @@ class ReportManagementTest extends TestCase
         }
     }
 
+    public function test_service_recap_html_and_csv_share_scope_and_exclude_private_narratives(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Rekap');
+        $other = $this->userWithRole('guru_bk', 'Guru Lain');
+        [$student] = $this->scopedStudent($teacher, 'Murid Rekap Dalam', '0011111111', 'X Dalam');
+        [$outside] = $this->scopedStudent($other, 'Murid Rekap Luar', '0022222222', 'X Luar');
+        [$special] = $this->scopedStudent($other, 'Murid Kasus Khusus', '0033333333', 'X Khusus');
+        $allowedCase = $this->caseFor($teacher, $student);
+        $allowedCase->update(['internal_note' => 'PRIVAT-KASUS-REKAP']);
+        $outsideCase = $this->caseFor($other, $outside);
+        $specialCase = $this->caseFor($other, $special);
+        CaseAssignment::query()->create([
+            'case_id' => $specialCase->id, 'user_id' => $teacher->id,
+            'assignment_type' => CaseAssignment::TYPE_ADDITIONAL, 'effective_from' => '2026-08-01',
+            'reason' => 'Pendampingan khusus.', 'assigned_by' => $other->id,
+        ]);
+        $consultations = [];
+        foreach ([[$teacher, $student], [$other, $outside]] as [$actor, $member]) {
+            $consultations[] = app(ConsultationService::class)->create([
+                'student_id' => $member->id,
+                'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+                'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
+                'topic' => 'TOPIK-PRIVAT-REKAP', 'session_date' => '2026-08-19',
+                'general_summary' => 'NARASI-UMUM-REKAP', 'sensitive_content' => 'PRIVAT-KONSULTASI-REKAP',
+            ], $actor);
+        }
+        $query = ['type' => ReportService::TYPE_SERVICE_RECAP, 'date_start' => '2026-08-01', 'date_end' => '2026-08-20'];
+        $preview = $this->actingAs($teacher)->get(route('reports.preview', $query))->assertOk();
+        $csv = $this->get(route('reports.export', [...$query, 'format' => 'csv']))->assertOk()->streamedContent();
+
+        foreach ([$allowedCase->registration_number, $specialCase->registration_number, $consultations[0]->registration_number] as $allowed) {
+            $preview->assertSee($allowed);
+            $this->assertStringContainsString($allowed, $csv);
+        }
+        foreach ([$outsideCase->registration_number, $consultations[1]->registration_number,
+            'PRIVAT-KASUS-REKAP', 'PRIVAT-KONSULTASI-REKAP', 'TOPIK-PRIVAT-REKAP', 'NARASI-UMUM-REKAP',
+            $student->name, $student->nisn, $outside->name, $outside->nisn] as $forbidden) {
+            $preview->assertDontSee($forbidden);
+            $this->assertStringNotContainsString($forbidden, $csv);
+        }
+    }
+
     public function test_all_seven_report_definitions_can_be_built_without_fixture_rows(): void
     {
         $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Seluruh Laporan');
