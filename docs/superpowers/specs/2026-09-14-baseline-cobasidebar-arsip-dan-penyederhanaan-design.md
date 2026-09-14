@@ -191,7 +191,8 @@ diverifikasi. Semua tautan aktif harus diperbarui sebelum commit penghapusan.
 - Pensiunkan koreksi, notifikasi, riwayat, dan route terkait sesuai keputusan
   produk final.
 - Implementasikan proses keluar murid.
-- Capai target akhir 30 tabel termasuk tabel `migrations`.
+- Rapikan skema berdasarkan satu sumber kebenaran dan consumer nyata; angka 30
+  tabel hanya sasaran, sedangkan penghapusan fisik yang berisiko ditunda.
 - Verifikasi migration pada SQLite dan MySQL disposable.
 
 ### Checkpoint 6 — Refactor dan baseline praproduksi

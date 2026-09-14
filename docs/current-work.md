@@ -4,9 +4,9 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint berikutnya: 5 — Penyederhanaan operasional, akun, dan skema mulai Task 8.
-- Branch kerja: `checkpoint-4-laporan`, dibuat dari `cobasidebar` setelah PR #11 terintegrasi.
+- Branch kerja: `checkpoint-5-operasional`, dibuat dari `cobasidebar` setelah PR #12 terintegrasi.
 - Worktree: root repository.
-- Commit aplikasi terakhir: `af9e69a` (UI dan ekspor tiga tab).
+- Baseline `cobasidebar`: `7f604416` (merge PR #12).
 
 ## Hasil dan gate terakhir
 
@@ -36,6 +36,15 @@
 - Scan field sensitif dan dependency tabel terlarang tidak menemukan kecocokan.
 - UAT manusia oleh `ui` melalui Chrome pada tiga viewport dinyatakan PASS;
   versi browser tidak dilaporkan dan tidak ada temuan gagal.
+- PR #12 terverifikasi `MERGED`; branch `checkpoint-4-laporan` sudah dihapus
+  lokal/remote dan `cobasidebar` lokal sama dengan origin.
+- Keputusan Checkpoint 5: angka 30 tabel hanya sasaran, bukan gate. Tabel
+  kandidat retired tidak dihapus secara fisik pada checkpoint ini.
+- Waka Kesiswaan berwenang membaca daftar/detail operasional proses keluar
+  murid, termasuk identitas, kelas, status, tanggal, ringkasan, dan petugas;
+  tidak mempunyai aksi mutasi.
+- `migrate:fresh --seed` boleh pada database lokal/pengembangan yang sudah
+  dipastikan bukan shared/production.
 
 ## Arsip
 
@@ -46,16 +55,15 @@
 
 ## Langkah berikutnya
 
-1. Buat PR Checkpoint 4 ke `cobasidebar` dan tunggu seluruh check lulus.
-2. Setelah PR di-merge, verifikasi status `MERGED`, pastikan tidak ada commit
-   atau PR baru pada branch sumber, lalu hapus branch sumber remote.
-3. Mulai Checkpoint 5 Task 8 dari `cobasidebar` yang sudah memuat Checkpoint 4.
+1. Lanjutkan pada sesi berikutnya dari Task 8: selaraskan requirement, kontrak
+   API, dan batas skema memakai keputusan terbaru di plan/spec aktif.
+2. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5.
+3. Task 11 wajib menyediakan daftar/detail proses keluar read-only untuk Waka.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 
-- Plan checkpoint: `docs/superpowers/plans/2026-09-15-checkpoint-3-rbac.md`
-- Plan berikutnya: `docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md`
+- Plan aktif: `docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md`
 - UAT aktif: `docs/testing/2026-09-14-uat-laporan-guru-koordinator.md`
 - Matriks umum: `docs/testing/authorization-matrix.md`
-- Spec: `docs/superpowers/specs/2026-09-14-baseline-cobasidebar-arsip-dan-penyederhanaan-design.md`
+- Spec aktif: `docs/superpowers/specs/2026-09-14-penyederhanaan-operasional-akun-dan-skema-data-design.md`

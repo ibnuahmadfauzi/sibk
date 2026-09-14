@@ -20,7 +20,7 @@
   tetap melayani mode ini; halaman `/reports` hanya mengganti katalog UI dengan
   tiga tab dan tidak menghapus consumer legacy.
 - `GET /reports` memakai tab `pelanggaran|layanan|prestasi`; tab default adalah `layanan`.
-- Guru BK hanya menerima data dalam scope profesional/kasus khusus; Koordinator BK menerima rekap gabungan; Admin IT dan Waka murni ditolak.
+- Guru BK hanya menerima data dalam scope profesional/kasus khusus; Koordinator BK menerima rekap gabungan; Admin IT dan Waka murni ditolak dari laporan BK. Waka Kesiswaan tetap mempunyai akses baca ke daftar dan detail operasional proses keluar murid sesuai kewenangannya.
 - View dan CSV hanya menerima inisial murid, NISN tersamarkan, kelas historis, dan nilai agregat aman.
 - Jangan mengirim model Eloquent mentah ke Blade.
 - Query tabel dan CSV wajib memakai filter serta scope yang sama.
@@ -30,8 +30,8 @@
 - Semua PHP baru memakai `declare(strict_types=1);`.
 - Gunakan Bahasa Indonesia dan istilah `murid`.
 - Task 1-7 tidak membuat migration. Task 8 dan seterusnya hanya membuat migration lanjutan yang disebutkan pada plan; file migration lama tidak dihapus atau ditulis ulang. Migration baru bersifat forward-only: `down()` tidak memulihkan data, reference, atau tabel retired.
-- Jangan menjalankan `migrate:fresh`, reset, rollback destruktif, atau purge pada database lokal/shared tanpa persetujuan terpisah.
-- Hasil akhir skema adalah 30 tabel termasuk `migrations`; pertahankan `sessions`, `cache`, `cache_locks`, dan `audit_logs`.
+- `migrate:fresh --seed` boleh dipakai pada database lokal/pengembangan selama target sudah dipastikan bukan shared/production. Reset, rollback destruktif, atau purge tetap dilarang pada database shared/production.
+- Angka 30 tabel hanya sasaran penyederhanaan, bukan acceptance criterion. Pertahankan `sessions`, `cache`, `cache_locks`, `audit_logs`, dan tabel lain yang belum aman dihapus; ukuran keberhasilan adalah satu sumber kebenaran, consumer jelas, dan tidak ada skema spaghetti.
 - Queue MVP memakai `QUEUE_CONNECTION=sync`; jangan membuat adapter production Dapodik/e-Tatib pada plan ini.
 - API sekolah hanya menjadi sumber roster dan pelanggaran sesuai field yang tersedia; API tidak menentukan status keluar murid.
 - Tidak ada perubahan Penpot atau format XLSX/PDF server.
@@ -68,7 +68,7 @@ task telah selesai.
 | 10 | Menghapus fitur retired berikut bookmark `_preview` terkait, sambil mempertahankan audit backend dan preview legacy lain. |
 | 11 | Menyediakan satu proses keluar murid serta scope layanan aktif untuk Task 14. |
 | 12 | Menambahkan password sementara tanpa mengirim nilai password ke audit atau log. |
-| 13 | Baru dijalankan setelah consumer Task 10 hilang; hanya menghapus tabel retired secara forward-only dan memverifikasi fresh/incremental pada database disposable. |
+| 13 | Mengaudit kesehatan skema setelah Task 10. Tidak menghapus tabel fisik pada checkpoint ini; kandidat retired dipertahankan bila penghapusan belum mempunyai bukti aman, backup, dan jalur pemulihan. |
 | 14 | Menyatukan scope Task 9 dan 11 ke laporan, dashboard, serta Portal Waka tanpa mengubah route Waka. |
 | 15 | Menggabungkan gate Task 1-14; tidak dapat menutup plan sebelum hasil UAT manual PASS. |
 
@@ -1723,7 +1723,7 @@ git commit -m "docs: catat verifikasi laporan Guru BK"
 
 **Interfaces:**
 - Consumes: kedua spec pada header plan dan batas API sekolah yang telah dikonfirmasi pengguna.
-- Produces: requirement final untuk seluruh Task 9-15, termasuk lifecycle layanan, proses keluar murid, password sementara, fitur yang dihentikan, dan target 30 tabel.
+- Produces: requirement final untuk seluruh Task 9-15, termasuk lifecycle layanan, proses keluar murid, password sementara, fitur yang dihentikan, dan batas skema anti-spaghetti tanpa target jumlah tabel yang kaku.
 
 - [ ] **Step 1: Tulis failing documentation contract test**
 
@@ -2358,20 +2358,24 @@ git commit -m "refactor: hentikan fitur koreksi dan notifikasi"
 - Create: `app/Http/Requests/FinalizeStudentDepartureRequest.php`
 - Create: `app/Services/StudentDepartureService.php`
 - Create: `app/Http/Controllers/StudentDepartureController.php`
+- Create: `app/Services/WakaStudentDepartureService.php`
+- Create: `app/Http/Controllers/WakaStudentDepartureController.php`
 - Modify: `app/Models/Student.php`
 - Modify: `app/Policies/StudentPolicy.php`
 - Modify: `app/Providers/AppServiceProvider.php`
 - Modify: `app/Http/Controllers/StudentController.php`
 - Modify: `routes/web.php`
 - Create: `resources/views/pages/students/_departure-process.blade.php`
+- Create: `resources/views/pages/waka/student-departures/index.blade.php`
 - Modify: `resources/views/pages/students/show.blade.php`
 - Create: `tests/Feature/StudentDepartureTest.php`
+- Create: `tests/Feature/WakaStudentDepartureTest.php`
 - Modify: `tests/Feature/DapodikSyncTest.php`
 - Modify: `tests/Feature/DelayedDapodikPreparationTest.php`
 
 **Interfaces:**
 - Consumes: `Student::professionallyAccessibleTo()`, role `guru_bk`/`koordinator_bk`, dan `AuditService`.
-- Produces: `StudentDeparture`, `StudentDepartureService::record()`, `updateDraft()`, `finalize()`, dan scope `Student::availableForService()`.
+- Produces: `StudentDeparture`, `StudentDepartureService::record()`, `updateDraft()`, `finalize()`, scope `Student::availableForService()`, serta daftar/detail proses keluar read-only untuk Waka Kesiswaan.
 
 - [ ] **Step 1: Tulis failing migration/model tests**
 
@@ -2446,6 +2450,7 @@ public function test_only_coordinator_finalizes_and_official_exit_stops_new_serv
 Tambahkan test `batal` tidak menonaktifkan, proses batal dapat dibuka kembali
 pada row yang sama, forged student di luar scope ditolak, Waka/Admin IT tidak
 dapat mencatat/finalisasi, dan request paralel tidak menghasilkan row kedua.
+Waka Kesiswaan tetap wajib dapat membaca daftar serta detail proses keluar.
 
 Gunakan fixture konkret berikut pada test class baru:
 
@@ -2673,8 +2678,14 @@ Route::post('/students/{student}/departure/finalize', [StudentDepartureControlle
 
 Profil murid menampilkan satu panel `Proses keluar murid`. Guru BK dalam scope
 melihat form catatan minimal; Koordinator melihat tombol `Tetapkan Batal` dan
-`Tetapkan Resmi Keluar`. Jangan membuat menu atau halaman workflow baru, unggah
-dokumen, approval berlapis, atau timeline khusus.
+`Tetapkan Resmi Keluar`. Untuk Guru BK/Koordinator, jangan membuat halaman
+workflow terpisah, unggah dokumen, approval berlapis, atau timeline khusus.
+
+Tambahkan halaman read-only Waka pada `/waka/student-departures`. Waka dapat
+melihat identitas murid, kelas, jenis keluar, status, tanggal pelaporan, tanggal
+efektif, ringkasan rekomendasi, catatan keputusan, pencatat, dan pemutus. Waka
+tidak memperoleh aksi mutasi dan tidak otomatis memperoleh narasi privat kasus
+atau konsultasi yang bukan bagian dari proses keluar.
 
 - [ ] **Step 9: Pastikan API sekolah tidak mengubah departure**
 
@@ -2706,17 +2717,18 @@ Contract ini berlaku untuk data provisional, preview, apply, dan sync ulang.
 
 ```powershell
 php artisan test tests/Feature/StudentDepartureTest.php
+php artisan test tests/Feature/WakaStudentDepartureTest.php
 php artisan test tests/Feature/DapodikSyncTest.php
 php artisan test tests/Feature/DelayedDapodikPreparationTest.php
 php artisan test tests/Feature/StudentProfileTest.php
-php vendor/bin/pint --test database/migrations/2026_09_14_000100_create_student_departures_table.php app/Models/StudentDeparture.php app/Policies/StudentDeparturePolicy.php app/Http/Requests/StoreStudentDepartureRequest.php app/Http/Requests/UpdateStudentDepartureRequest.php app/Http/Requests/FinalizeStudentDepartureRequest.php app/Services/StudentDepartureService.php app/Http/Controllers/StudentDepartureController.php app/Models/Student.php app/Http/Controllers/StudentController.php tests/Feature/StudentDepartureTest.php
+php vendor/bin/pint --test database/migrations/2026_09_14_000100_create_student_departures_table.php app/Models/StudentDeparture.php app/Policies/StudentDeparturePolicy.php app/Http/Requests/StoreStudentDepartureRequest.php app/Http/Requests/UpdateStudentDepartureRequest.php app/Http/Requests/FinalizeStudentDepartureRequest.php app/Services/StudentDepartureService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/StudentDepartureController.php app/Http/Controllers/WakaStudentDepartureController.php app/Models/Student.php app/Http/Controllers/StudentController.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaStudentDepartureTest.php
 git diff --check
 ```
 
 - [ ] **Step 11: Commit**
 
 ```powershell
-git add database/migrations/2026_09_14_000100_create_student_departures_table.php app/Models/StudentDeparture.php app/Policies/StudentDeparturePolicy.php app/Http/Requests/StoreStudentDepartureRequest.php app/Http/Requests/UpdateStudentDepartureRequest.php app/Http/Requests/FinalizeStudentDepartureRequest.php app/Services/StudentDepartureService.php app/Http/Controllers/StudentDepartureController.php app/Models/Student.php app/Policies/StudentPolicy.php app/Providers/AppServiceProvider.php app/Http/Controllers/StudentController.php routes/web.php resources/views/pages/students/_departure-process.blade.php resources/views/pages/students/show.blade.php tests/Feature/StudentDepartureTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php
+git add database/migrations/2026_09_14_000100_create_student_departures_table.php app/Models/StudentDeparture.php app/Policies/StudentDeparturePolicy.php app/Http/Requests/StoreStudentDepartureRequest.php app/Http/Requests/UpdateStudentDepartureRequest.php app/Http/Requests/FinalizeStudentDepartureRequest.php app/Services/StudentDepartureService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/StudentDepartureController.php app/Http/Controllers/WakaStudentDepartureController.php app/Models/Student.php app/Policies/StudentPolicy.php app/Providers/AppServiceProvider.php app/Http/Controllers/StudentController.php routes/web.php resources/views/pages/students/_departure-process.blade.php resources/views/pages/students/show.blade.php resources/views/pages/waka/student-departures/index.blade.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaStudentDepartureTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php
 git commit -m "feat: catat proses keluar murid secara terkendali"
 ```
 
@@ -2986,71 +2998,59 @@ git commit -m "feat: wajibkan pergantian password sementara"
 
 ---
 
-### Task 13: Bersihkan Hasil Akhir Skema menjadi 30 Tabel
+### Task 13: Audit dan Rapikan Skema Tanpa Target Jumlah Kaku
 
 **Files:**
-- Create: `database/migrations/2026_09_14_000400_drop_retired_runtime_tables.php`
 - Modify: `config/queue.php`
 - Modify: `.env.example`
 - Create: `tests/Feature/OperationalSchemaTest.php`
 
 **Interfaces:**
 - Consumes: tidak adanya consumer koreksi/notifikasi dari Task 10, migration status Task 9, serta migration departures/password Task 11-12.
-- Produces: verifikasi migration fresh dan incremental pada database disposable
-  dengan 30 tabel termasuk `migrations`; database shared tidak di-reset.
+- Produces: audit fresh dan incremental atas invariant skema, daftar consumer,
+  serta keputusan pertahankan/hapus yang aman; jumlah tabel bukan gate.
 
-- [ ] **Step 1: Tulis failing schema test**
+> Amendemen keputusan produk: jangan membuat migration penghapusan tabel
+> kandidat retired pada checkpoint ini. Task ini hanya melakukan audit
+> kesehatan skema. Tabel hanya boleh dihapus melalui
+> plan terpisah setelah tidak ada consumer, backup tersedia, pemulihan diuji,
+> dan pengguna memberi persetujuan eksplisit.
+
+- [ ] **Step 1: Tulis schema invariant test**
 
 ```php
-public function test_final_schema_contains_exactly_the_approved_tables(): void
+public function test_operational_schema_keeps_required_sources_of_truth(): void
 {
-    $expected = [
-        'academic_years', 'achievements', 'audit_logs', 'cache', 'cache_locks',
-        'case_assignments', 'case_coordinations', 'case_etatib_links', 'cases',
-        'classrooms', 'consultation_private_notes', 'consultations',
-        'dapodik_sync_preview_items', 'external_sync_issues', 'external_sync_runs',
-        'external_tatib_records', 'follow_ups', 'identity_reconciliations',
-        'integration_settings', 'migrations', 'references', 'roles', 'sessions',
-        'student_class_memberships', 'student_departures', 'students',
-        'teacher_assignments', 'temporary_students', 'user_roles', 'users',
-    ];
+    foreach (['students', 'student_departures', 'cases', 'consultations',
+        'sessions', 'cache', 'cache_locks', 'audit_logs'] as $table) {
+        $this->assertTrue(Schema::hasTable($table), "Tabel wajib {$table} hilang.");
+    }
 
-    $actual = collect(DB::select("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"))
-        ->pluck('name')->sort()->values()->all();
-
-    $this->assertSame($expected, $actual);
+    $this->assertTrue(Schema::hasColumns('student_departures', [
+        'student_id', 'departure_type', 'status', 'effective_date',
+    ]));
 }
 ```
 
-Tambahkan assertion `Schema::hasTable()` false untuk keenam tabel retired dan
-true untuk sessions/cache/audit/domain tables.
+Tambahkan pemeriksaan unique `student_departures.student_id`, foreign key
+domain, dan larangan tabel rekap/flag keluar duplikat. Tabel retired boleh
+tetap ada secara fisik selama tidak mempunyai consumer runtime.
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [ ] **Step 2: Jalankan baseline schema test**
 
 ```powershell
 php artisan test tests/Feature/OperationalSchemaTest.php
 ```
 
-Expected: FAIL karena tabel retired masih ada.
+Expected: PASS setelah Task 9–12; kegagalan hanya menunjukkan invariant wajib
+belum terpenuhi, bukan jumlah tabel yang berbeda dari 30.
 
-- [ ] **Step 3: Drop enam tabel retired**
+- [ ] **Step 3: Audit enam tabel kandidat retired**
 
-`up()` memakai urutan:
-
-```php
-Schema::dropIfExists('corrections');
-Schema::dropIfExists('user_notifications');
-Schema::dropIfExists('password_reset_tokens');
-Schema::dropIfExists('jobs');
-Schema::dropIfExists('job_batches');
-Schema::dropIfExists('failed_jobs');
-```
-
-`down()` kosong dengan komentar forward-only. Jangan membuat ulang struktur
-atau isi `corrections`, `user_notifications`, `password_reset_tokens`, `jobs`,
-`job_batches`, atau `failed_jobs`; pemulihan tabel retired memerlukan keputusan
-dan migration baru terpisah. Jangan memanggil migration lama dari migration
-baru.
+Audit `corrections`, `user_notifications`, `password_reset_tokens`, `jobs`,
+`job_batches`, dan `failed_jobs` dengan `rg`, route list, model relation, config,
+serta query runtime. Catat consumer yang sudah hilang dan pertahankan tabel
+fisiknya. Jangan membuat migration drop pada checkpoint ini.
 
 - [ ] **Step 4: Kunci queue synchronous**
 
@@ -3068,9 +3068,9 @@ queue dapat kembali setelah adapter production diterima.
 
 - [ ] **Step 5: Verifikasi fresh dan incremental SQLite disposable**
 
-Gate fresh memakai file SQLite kosong yang dibuat snippet ini dan
-`php artisan migrate --force`; larangan fresh/reset tetap berlaku untuk
-database lokal, shared, dan production. File harus tetap ada sebelum Laravel
+Gate fresh boleh memakai `migrate:fresh --seed` pada database lokal/development
+yang sudah dipastikan bukan shared/production. Gate otomatis tetap memakai file
+SQLite disposable dan `php artisan migrate --force`. File harus tetap ada sebelum Laravel
 membuka koneksi SQLite. Simpan lalu pulihkan nilai environment yang sebelumnya
 ada, termasuk nilai kosong, dan teruskan exit code command pertama yang gagal.
 
@@ -3098,7 +3098,7 @@ try {
         if ($LASTEXITCODE -ne 0) { $gateExit = $LASTEXITCODE }
     }
     if ($gateExit -eq 0) {
-        php artisan tinker --execute="if (count(Illuminate\Support\Facades\Schema::getTableListing()) !== 30) { throw new RuntimeException('Jumlah tabel tidak sesuai.'); }"
+        php artisan tinker --execute="foreach (['students','student_departures','cases','consultations','sessions','cache','cache_locks','audit_logs'] as $table) { if (! Illuminate\Support\Facades\Schema::hasTable($table)) { throw new RuntimeException('Tabel wajib hilang: '.$table); } }"
         if ($LASTEXITCODE -ne 0) { $gateExit = $LASTEXITCODE }
     }
 } finally {
@@ -3120,7 +3120,8 @@ menghentikan migration.
 Pada fixture incremental dalam `ServiceRecordStatusMigrationTest`, jalankan
 migration baseline sampai tepat sebelum `2026_09_14_000050`, masukkan fixture
 `dibatalkan`, lalu jalankan migration 14 September berurutan. Buktikan row
-layanan diarsipkan, reference inactive, dan enam tabel retired hilang.
+layanan diarsipkan dan reference inactive. Keberadaan tabel retired tidak
+menggagalkan gate selama consumer runtime sudah hilang.
 `OperationalSchemaTest` dan `ServiceRecordStatusMigrationTest` tetap dijalankan
 dengan konfigurasi test mereka sendiri: yang pertama membuktikan schema fresh,
 yang kedua membangun baseline lalu menjalankan migration baru secara langsung
@@ -3133,7 +3134,7 @@ Catat hanya nama file sementara serta hasilnya, tanpa credential.
 
 Gunakan database MySQL test yang kosong, disposable, dan telah diverifikasi
 bukan shared/production. Jalankan `php artisan migrate --force` untuk gate
-fresh lalu query `information_schema.tables` untuk memastikan 30 tabel.
+fresh lalu query `information_schema` untuk memastikan tabel/constraint wajib.
 Jalankan juga `ServiceRecordStatusMigrationTest` dengan fixture incremental
 yang membangun baseline sebelum migration 14 September. Jangan menjalankan
 reset/rollback dan jangan mencetak credential pada output/evidence.
@@ -3144,15 +3145,15 @@ reset/rollback dan jangan mencetak credential pada output/evidence.
 php artisan test tests/Feature/OperationalSchemaTest.php
 php artisan test tests/Feature/ServiceRecordStatusMigrationTest.php
 php artisan test tests/Feature/FoundationDataTest.php
-php vendor/bin/pint --test database/migrations/2026_09_14_000400_drop_retired_runtime_tables.php tests/Feature/OperationalSchemaTest.php
+php vendor/bin/pint --test tests/Feature/OperationalSchemaTest.php
 git diff --check
 ```
 
 - [ ] **Step 8: Commit**
 
 ```powershell
-git add database/migrations/2026_09_14_000400_drop_retired_runtime_tables.php config/queue.php .env.example tests/Feature/OperationalSchemaTest.php
-git commit -m "refactor: bersihkan hasil akhir skema database"
+git add config/queue.php .env.example tests/Feature/OperationalSchemaTest.php
+git commit -m "test: audit kesehatan skema operasional"
 ```
 
 ---
@@ -3171,6 +3172,7 @@ git commit -m "refactor: bersihkan hasil akhir skema database"
 - Modify: `app/Services/WakaMonitoringService.php`
 - Modify: `app/Services/WakaPeriodReportService.php`
 - Modify: `app/Services/WakaStudentCaseService.php`
+- Modify: `app/Services/WakaStudentDepartureService.php`
 - Modify: `app/Http/Controllers/CaseController.php`
 - Modify: `app/Http/Controllers/StudentController.php`
 - Modify: `tests/Feature/DashboardTest.php`
@@ -3180,10 +3182,11 @@ git commit -m "refactor: bersihkan hasil akhir skema database"
 - Modify: `tests/Feature/WakaDashboardTest.php`
 - Modify: `tests/Feature/WakaMonitoringTest.php`
 - Modify: `tests/Feature/WakaReportPageTest.php`
+- Modify: `tests/Feature/WakaStudentDepartureTest.php`
 
 **Interfaces:**
 - Consumes: soft delete Task 9, `Student::availableForService()` Task 11, dan service laporan Task 2-6.
-- Produces: semua read model operasional konsisten mengecualikan arsip dan tidak menawarkan layanan baru kepada murid resmi keluar.
+- Produces: semua read model operasional konsisten mengecualikan arsip dan tidak menawarkan layanan baru kepada murid resmi keluar, sedangkan Waka tetap dapat membaca daftar/detail proses keluar sesuai kewenangannya.
 
 - [ ] **Step 1: Tulis failing cross-surface test**
 
@@ -3256,6 +3259,11 @@ rekap; Koordinator masih dapat membuka profil historis melalui route yang sah,
 tetapi tidak dapat membuat layanan baru sebagai Guru BK kecuali mempunyai role
 dan scope yang sesuai.
 
+Tambahkan assertion terpisah bahwa Waka melihat murid berstatus `dalam_proses`,
+`batal`, dan `resmi_keluar` pada halaman proses keluar, termasuk identitas,
+kelas, jenis, status, tanggal, ringkasan rekomendasi/keputusan, dan petugas,
+tetapi tidak memperoleh tombol atau endpoint mutasi.
+
 - [ ] **Step 2: Jalankan tests dan pastikan gagal**
 
 ```powershell
@@ -3290,6 +3298,11 @@ Dashboard role-aware menghitung murid aktif menggunakan
 `availableForService($periodEnd)` dan tidak menjadikan `student_departures`
 sebagai sumber narasi sensitif.
 
+Pengecualian murid resmi keluar dari daftar murid aktif tidak berlaku pada
+`WakaStudentDepartureService`: daftar ini sengaja memuat seluruh status proses
+keluar untuk kebutuhan kesiswaan dan hanya membaca data yang menjadi bagian
+record `student_departures` beserta identitas/kelas terkait.
+
 Pertahankan `StudentController::legacy()` untuk bookmark
 `/students/show?nisn={nisn}&tab=...`: policy tetap diperiksa sebelum redirect
 ke profile canonical. Jangan mengubah `WakaMonitoringController::legacyHandling`
@@ -3308,14 +3321,15 @@ php artisan test tests/Feature/StudentProfileTest.php
 php artisan test tests/Feature/WakaDashboardTest.php
 php artisan test tests/Feature/WakaMonitoringTest.php
 php artisan test tests/Feature/WakaReportPageTest.php
-php vendor/bin/pint --test app/Models/Student.php app/Services/DashboardService.php app/Services/ReportService.php app/Services/OperationalReportRecapService.php app/Services/WakaDashboardService.php app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Services/WakaPeriodReportService.php app/Services/WakaStudentCaseService.php
+php artisan test tests/Feature/WakaStudentDepartureTest.php
+php vendor/bin/pint --test app/Models/Student.php app/Services/DashboardService.php app/Services/ReportService.php app/Services/OperationalReportRecapService.php app/Services/WakaDashboardService.php app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Services/WakaPeriodReportService.php app/Services/WakaStudentCaseService.php app/Services/WakaStudentDepartureService.php
 git diff --check
 ```
 
 - [ ] **Step 6: Commit**
 
 ```powershell
-git add app/Models/Student.php app/Models/BkCase.php app/Models/Consultation.php app/Services/DashboardService.php app/Services/ReportService.php app/Services/OperationalReportRecapService.php app/Services/WakaDashboardService.php app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Services/WakaPeriodReportService.php app/Services/WakaStudentCaseService.php app/Http/Controllers/CaseController.php app/Http/Controllers/StudentController.php tests/Feature/DashboardTest.php tests/Feature/ReportManagementTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaReportPageTest.php
+git add app/Models/Student.php app/Models/BkCase.php app/Models/Consultation.php app/Services/DashboardService.php app/Services/ReportService.php app/Services/OperationalReportRecapService.php app/Services/WakaDashboardService.php app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Services/WakaPeriodReportService.php app/Services/WakaStudentCaseService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/CaseController.php app/Http/Controllers/StudentController.php tests/Feature/DashboardTest.php tests/Feature/ReportManagementTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaReportPageTest.php tests/Feature/WakaStudentDepartureTest.php
 git commit -m "fix: konsistenkan scope arsip dan murid keluar"
 ```
 
@@ -3395,8 +3409,8 @@ untuk investigasi, gunakan data test dan keluarkan hasil yang telah disensor.
 Pada SQLite disposable dan MySQL disposable, catat:
 
 ```text
-Jumlah tabel: 30 termasuk migrations.
-Retired tables: tidak ada.
+Jumlah tabel: dicatat sebagai informasi, bukan gate.
+Tabel kandidat retired: boleh tetap ada; tidak mempunyai consumer runtime.
 student_departures: unique student_id tersedia.
 users: must_change_password, temporary_password_expires_at,
 password_changed_at tersedia.
@@ -3435,6 +3449,7 @@ Guru BK lain, Koordinator, Waka, dan Admin IT gagal edit/arsip direct URL.
 Guru BK mencatat proses keluar tanpa menonaktifkan murid.
 Koordinator memilih Batal dan murid tetap aktif.
 Koordinator memilih Resmi keluar dan layanan baru ditolak sejak effective_date.
+Waka melihat daftar/detail seluruh status proses keluar tanpa aksi mutasi.
 Sinkronisasi roster tidak mengubah keputusan keluar.
 Admin IT membuat/reset akun dan melihat password sementara satu kali.
 Pengguna dengan password sementara hanya dapat membuka Ganti Password/Logout.
@@ -3478,15 +3493,15 @@ Task 1 Requirement contract
     -> Task 10 Retire correction, notification, history, and audit feed UI
     -> Task 11 Student departure process
     -> Task 12 Temporary passwords and admin recovery
-    -> Task 13 Final 30-table schema
+    -> Task 13 Schema health and retired-table audit
     -> Task 14 Cross-surface scope integration
     -> Task 15 Combined CLI verification and manual UAT handoff
 ```
 
 Task 3, Task 4, dan Task 5 menyentuh service yang sama, sehingga eksekusi pada satu branch harus berurutan. Jangan menjalankan ketiganya secara paralel pada worktree yang sama.
 
-Task 9-14 juga harus berurutan. Task 13 baru boleh drop tabel setelah Task 10
-membuktikan tidak ada consumer runtime. Task 14 baru boleh mengubah seluruh
+Task 9-14 juga harus berurutan. Task 13 hanya mengaudit tabel kandidat retired
+dan tidak melakukan drop fisik. Task 14 baru boleh mengubah seluruh
 query baca setelah lifecycle dan schema feature pada Task 9, 11, 12, dan 13
 lulus focused gate.
 
@@ -3510,8 +3525,9 @@ lulus focused gate.
 - API roster/pelanggaran tidak mengubah proses keluar murid.
 - Password sementara unik, expiry, wajib ganti, session invalidation, dan
   command pemulihan Admin IT berfungsi tanpa password masuk log/audit.
-- Hasil akhir skema tepat 30 tabel termasuk `migrations`; tabel retired tidak
-  ada dan tabel runtime/domain yang disetujui tetap tersedia.
+- Skema mempunyai satu sumber kebenaran, constraint domain wajib, tidak memiliki
+  tabel rekap/flag duplikat, dan tabel kandidat retired tidak mempunyai consumer
+  runtime; jumlah tabel tidak menjadi gate dan penghapusan fisik ditunda.
 - Tidak ada tabel rekap UI, flag keluar murid duplikat, atau tabel alasan edit.
 - Focused tests, full suite, Pint, cache, frontend checker, build, SQLite/MySQL
   query gate, privacy scan, dependency scan, dan security scan lulus melalui

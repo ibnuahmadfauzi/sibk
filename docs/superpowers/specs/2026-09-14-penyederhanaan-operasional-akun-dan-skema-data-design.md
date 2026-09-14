@@ -46,8 +46,9 @@ Keputusan produk yang disetujui adalah:
    menetapkan apakah proses batal atau resmi keluar.
 9. Reset akun memakai password sementara unik dan memaksa pengguna mengganti
    password setelah login.
-10. Enam tabel yang tidak lagi diperlukan dikeluarkan dari hasil akhir skema,
-    lalu satu tabel `student_departures` ditambahkan.
+10. Satu tabel `student_departures` ditambahkan sebagai sumber kebenaran. Enam
+    tabel kandidat retired diaudit, tetapi tidak wajib dihapus secara fisik;
+    kesehatan relasi dan ketiadaan consumer lebih penting daripada jumlah tabel.
 
 ## 3. Batas Scope
 
@@ -68,7 +69,9 @@ diterapkan secara implisit.
 
 Seluruh route, controller, request, service, policy, model, relasi model, view,
 sidebar, quick action, fixture preview, dan test khusus Koreksi Data dihapus.
-Tabel `corrections` dikeluarkan melalui migration lanjutan.
+Consumer runtime `corrections` dihentikan. Tabel fisiknya dipertahankan pada
+Checkpoint 5 dan baru boleh dihapus melalui plan terpisah yang mempunyai bukti
+dependency kosong, backup, uji pemulihan, dan persetujuan pengguna.
 
 Kesalahan data master tidak diajukan melalui aplikasi. Guru BK melaporkannya di
 luar aplikasi kepada Admin IT, kemudian perbaikan dilakukan pada sumber resmi
@@ -84,8 +87,9 @@ Seluruh route, controller, service, model, view, badge, sidebar, fixture
 preview, dan test notifikasi dihapus. Pemanggilan `NotificationService` pada
 service kasus, konsultasi, penugasan, dan koordinasi juga dihapus.
 
-Tabel `user_notifications` dikeluarkan melalui migration lanjutan. Penghapusan
-ini tidak menghentikan audit dan tidak mengubah validasi transaksi utama.
+Consumer runtime `user_notifications` dihentikan. Tabel fisiknya dipertahankan
+dengan syarat tidak lagi dibaca/ditulis aplikasi. Keputusan ini tidak
+menghentikan audit dan tidak mengubah validasi transaksi utama.
 Jadwal serta pekerjaan penting tetap terlihat pada dashboard dan halaman
 operasional terkait.
 
@@ -108,7 +112,7 @@ bersifat role-aware:
 | Guru BK | Cakupan kelas aktif, jumlah murid dalam scope, kasus aktif, dan tindak lanjut terdekat. |
 | Koordinator BK | Cakupan penugasan seluruh Guru BK, jumlah kelas aktif, dan kelas yang belum mempunyai pengampu efektif. |
 | Admin IT | Kesiapan akun, status data master, konflik sinkronisasi, dan status integrasi tanpa membuka isi layanan BK. |
-| Waka Kesiswaan | Ringkasan aman tingkat sekolah dari proyeksi kasus yang diizinkan, tanpa aksi mutasi. |
+| Waka Kesiswaan | Ringkasan kasus tingkat sekolah serta daftar/detail operasional proses keluar murid sesuai kewenangan kesiswaan, tanpa aksi mutasi. |
 
 Data panel dihitung dari tabel domain yang sudah menjadi sumber kebenaran.
 Tidak dibuat tabel `dashboard_stats`, cache permanen, atau salinan histori.
@@ -247,8 +251,11 @@ beberapa flag yang dapat saling bertentangan.
   boleh membuat, membatalkan, atau meresmikan `student_departures`.
 - Nama atau kemiripan nama tidak pernah menjadi kunci pencocokan; identitas
   tetap memakai ID murid internal yang telah dipetakan melalui NISN exact.
-- Waka hanya menerima dampak agregat yang aman. Admin IT tidak memperoleh akses
-  isi layanan BK dari fitur ini.
+- Waka dapat membaca daftar dan detail operasional seluruh proses keluar:
+  identitas murid, kelas, jenis, status, tanggal, ringkasan rekomendasi, catatan
+  keputusan, pencatat, dan pemutus. Akses ini sesuai kewenangan kesiswaan dan
+  tidak memberi hak mutasi atau akses otomatis ke narasi privat kasus/konsultasi
+  di luar record proses keluar. Admin IT tidak memperoleh isi layanan BK.
 
 Constraint database menjadi perlindungan terakhir terhadap pencatatan ganda;
 validasi UI dan service memberi pesan Bahasa Indonesia yang lebih ramah.
@@ -331,11 +338,11 @@ IT atau dipulihkan melalui prosedur server untuk Admin IT tunggal.
 Tabel `password_reset_tokens` tidak diperlukan selama reset mandiri melalui
 email tidak disediakan.
 
-## 10. Target Hasil Akhir Skema Database
+## 10. Kesehatan Hasil Akhir Skema Database
 
 Audit migration saat ini menghasilkan 35 tabel termasuk `migrations`.
 
-Tabel yang dikeluarkan:
+Tabel kandidat retired yang tidak lagi mempunyai consumer runtime:
 
 1. `corrections`;
 2. `user_notifications`;
@@ -348,8 +355,12 @@ Tabel yang ditambahkan:
 
 1. `student_departures`.
 
-Target akhir adalah 30 tabel termasuk `migrations`, atau 29 tabel aplikasi dan
-runtime:
+Jumlah 30 tabel merupakan hasil ideal bila seluruh kandidat aman dihapus, bukan
+acceptance criterion. Pada Checkpoint 5 tabel kandidat tetap dipertahankan
+secara fisik. Penghapusan hanya boleh direncanakan terpisah setelah dependency
+kosong, backup tersedia, pemulihan diuji, dan pengguna menyetujui tindakan.
+
+Tabel sumber kebenaran dan runtime yang wajib dipertahankan:
 
 | Domain | Tabel yang dipertahankan |
 |---|---|
@@ -413,13 +424,14 @@ Urutan konseptual:
    nonaktifkan referensinya;
 4. lepaskan foreign key atau relasi yang masih bergantung pada `corrections` dan
    `user_notifications` bila ada;
-5. drop enam tabel yang disetujui;
+5. audit enam tabel kandidat retired tanpa melakukan drop fisik;
 6. sesuaikan seeder dan konfigurasi queue;
-7. verifikasi jumlah serta struktur tabel pada SQLite dan MySQL.
+7. verifikasi invariant, constraint, dan struktur wajib pada SQLite dan MySQL.
 
-Migration tidak menjalankan reset database, tidak menghapus data lokal di luar
-target yang disetujui, dan tidak membaca file API rahasia. Reset/fresh database
-lokal tetap memerlukan persetujuan terpisah.
+Migration tidak mereset database shared/production, tidak menghapus data di luar
+target yang disetujui, dan tidak membaca file API rahasia. `migrate:fresh
+--seed` boleh digunakan pada database lokal/pengembangan yang sudah dipastikan
+bukan shared/production.
 
 ## 13. Dampak Implementasi
 
@@ -544,9 +556,10 @@ Spesifikasi dianggap terpenuhi bila:
   memaksa penggantian password;
 - pemulihan Admin IT tunggal hanya dapat dilakukan melalui command server
   interaktif yang aman;
-- hasil akhir migration menghasilkan 30 tabel termasuk `migrations`;
+- jumlah tabel dicatat sebagai informasi dan bukan gate kelulusan;
 - `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens`, `corrections`,
-  dan `user_notifications` tidak ada pada hasil akhir;
+  dan `user_notifications` boleh tetap ada secara fisik tetapi tidak mempunyai
+  consumer runtime setelah fiturnya dipensiunkan;
 - `sessions`, `cache`, `cache_locks`, `audit_logs`, dan seluruh tabel domain yang
   tercantum pada bagian 10 tetap tersedia;
 - tidak ada tabel rekap dashboard/laporan, flag keluar murid duplikat, atau
@@ -564,8 +577,8 @@ Implementation plan harus memecah pekerjaan menjadi gate berurutan:
 4. student departure lulus constraint, concurrency, transition, authorization,
    dan API non-interference tests;
 5. temporary password dan admin recovery lulus security tests;
-6. setelah consumer retired hilang, migration fresh/incremental menghasilkan
-   target 30 tabel;
+6. setelah consumer retired hilang, migration fresh/incremental membuktikan
+   invariant skema tanpa mewajibkan jumlah tabel tertentu atau drop fisik;
 7. dashboard role-aware lulus scope/privacy tests;
 8. seluruh suite dan pemeriksaan kualitas repository lulus.
 
@@ -577,7 +590,8 @@ dicatat sebagai batas kontrak dan tidak boleh ditutupi dengan asumsi data.
 
 ## 17. Di Luar Scope
 
-- reset atau penghapusan database lokal;
+- reset atau penghapusan database shared/production; `migrate:fresh --seed`
+  pada database lokal/pengembangan yang terverifikasi tetap diperbolehkan;
 - penghapusan atau penulisan ulang file migration lama;
 - penghapusan permanen otomatis sebelum plan retensi disetujui;
 - restore arsip melalui UI;
