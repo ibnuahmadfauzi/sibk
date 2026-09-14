@@ -41,8 +41,9 @@ Keputusan produk yang disetujui adalah:
    mengarsipkan kasus dan konsultasi.
 7. Data berstatus `selesai` tetap dapat diedit setelah konfirmasi tambahan dan
    pengisian alasan. Status terminalnya tidak dapat diubah.
-8. Semua Guru BK aktif dapat mencatat murid lulus, pindah, keluar, atau
-   mengundurkan diri tanpa membuat data murid atau catatan keluar ganda.
+8. Semua Guru BK aktif dapat mencatat rencana murid lulus, pindah, keluar, atau
+   mengundurkan diri tanpa langsung menonaktifkan murid. Koordinator BK
+   menetapkan apakah proses batal atau resmi keluar.
 9. Reset akun memakai password sementara unik dan memaksa pengguna mengganti
    password setelah login.
 10. Enam tabel yang tidak lagi diperlukan dikeluarkan dari hasil akhir skema,
@@ -196,41 +197,54 @@ retensi murid. Restore belum disediakan pada UI MVP.
 
 ### 7.1 Model Data
 
-Tambahkan tabel `student_departures` sebagai satu-satunya sumber fakta bahwa
-seorang murid telah keluar dari sekolah.
+Tambahkan tabel `student_departures` sebagai satu-satunya sumber status proses
+keluar murid. Keberadaan baris tidak berarti murid sudah resmi keluar; keputusan
+akhir ditentukan oleh nilai `status`.
 
 | Kolom | Aturan |
 |---|---|
 | `id` | Primary key. |
 | `student_id` | Foreign key ke `students`, wajib, dan unique. |
 | `departure_type` | Allowlist: `lulus`, `pindah`, `mengundurkan_diri`, atau `keluar_lainnya`. |
-| `effective_date` | Tanggal keluar resmi dan dasar perhitungan retensi. |
-| `source` | `manual_bk` atau `dapodik`. |
-| `source_identifier` | Identifier sumber bila tersedia; nullable dan tidak ditampilkan sebagai data pengguna. |
+| `status` | Allowlist: `dalam_proses`, `batal`, atau `resmi_keluar`. |
+| `reported_at` | Tanggal proses pertama kali dicatat di BK. |
+| `recommendation_summary` | Ringkasan rekomendasi BK; nullable, maksimal 500 karakter, dan tidak memuat narasi sensitif. |
+| `effective_date` | Nullable dan baru wajib saat `resmi_keluar`; menjadi dasar perhitungan retensi. |
 | `recorded_by` | Guru BK pencatat awal; foreign key nullable bila akun kelak dihapus. |
-| `confirmed_at` | Waktu konfirmasi dari sumber resmi; nullable. |
+| `finalized_by` | Koordinator BK yang menetapkan keputusan akhir; nullable selama `dalam_proses`. |
+| `finalized_at` | Waktu keputusan `batal` atau `resmi_keluar`; nullable selama `dalam_proses`. |
+| `decision_note` | Catatan singkat dasar keputusan; nullable, maksimal 500 karakter. |
 | `created_at`, `updated_at` | Timestamp perubahan baris. |
 
 Tidak ditambahkan kolom duplikat seperti `students.departure_type`,
 `students.departure_date`, atau `students.is_graduated`. Status aktif murid
-untuk query operasional diturunkan melalui relasi yang jelas terhadap
-`student_departures` dan membership efektif, bukan dari beberapa flag yang
-dapat saling bertentangan.
+untuk query operasional diturunkan melalui relasi `student_departures` dengan
+status `resmi_keluar` dan membership efektif, bukan dari keberadaan baris atau
+beberapa flag yang dapat saling bertentangan.
 
 ### 7.2 Alur Pencatatan
 
-- Semua akun Guru BK aktif dapat mencatat murid keluar dari halaman murid
+- Semua akun Guru BK aktif dapat mencatat rencana murid keluar dari halaman murid
   selama murid tersebut berada dalam scope profesionalnya.
 - Transaksi mengunci murid dan memeriksa unique `student_id` sebelum menyimpan.
 - Jika catatan sudah ada, sistem menampilkan data existing dan tidak membuat
   baris kedua.
-- Selama belum dikonfirmasi sumber resmi, jenis dan tanggal keluar hanya dapat
-  diperbaiki oleh Guru BK yang masih mempunyai scope profesional atas murid;
-  setiap perubahan diaudit. Setelah dikonfirmasi, data menjadi read-only bagi
-  pengguna dan hanya proses rekonsiliasi resmi yang dapat memperbarui barisnya.
-- Konfirmasi Dapodik memperbarui baris yang sama, mengubah `source` menjadi
-  `dapodik`, mengisi `source_identifier`/`confirmed_at`, dan mencatat nilai
-  sebelum-sesudah pada audit.
+- Pembuatan awal selalu memakai status `dalam_proses`; murid tetap aktif dan
+  seluruh layanan BK tetap dapat berjalan.
+- Guru BK yang masih mempunyai scope profesional dapat memperbarui jenis dan
+  ringkasan rekomendasi selama status `dalam_proses`; setiap perubahan diaudit.
+- Koordinator BK menjadi satu-satunya role yang dapat memilih keputusan
+  `batal` atau `resmi_keluar`. Keputusan dilakukan setelah informasi resmi
+  sekolah tersedia, tanpa memodelkan seluruh alur administrasi pengunduran diri.
+- Keputusan `resmi_keluar` mewajibkan `effective_date`. Mulai tanggal tersebut,
+  murid tidak tampil sebagai murid aktif baru, tetapi histori BK tetap tersedia
+  sesuai kewenangan.
+- Keputusan `batal` mempertahankan murid sebagai aktif. Jika proses serupa
+  muncul kembali, baris yang sama dikembalikan ke `dalam_proses`; histori
+  keputusan sebelumnya tetap tersedia pada audit.
+- API sekolah tidak menyediakan status atau tanggal keluar. Sinkronisasi data
+  murid hanya memperbarui identitas, rombel, dan tahun pelajaran, serta tidak
+  boleh membuat, membatalkan, atau meresmikan `student_departures`.
 - Nama atau kemiripan nama tidak pernah menjadi kunci pencocokan; identitas
   tetap memakai ID murid internal yang telah dipetakan melalui NISN exact.
 - Waka hanya menerima dampak agregat yang aman. Admin IT tidak memperoleh akses
@@ -241,12 +255,16 @@ validasi UI dan service memberi pesan Bahasa Indonesia yang lebih ramah.
 
 ## 8. Retensi dan Penghapusan Permanen
 
-Masa retensi dihitung dari `student_departures.effective_date`, bukan dari:
+Masa retensi hanya dimulai bila `student_departures.status` bernilai
+`resmi_keluar`, lalu dihitung dari `effective_date`, bukan dari:
 
 - tanggal murid pertama kali dimasukkan ke database;
 - tanggal kasus atau konsultasi dibuat;
 - tanggal record diarsipkan;
 - tanggal sinkronisasi terakhir.
+
+Status `dalam_proses` dan `batal` tidak memulai masa retensi dan tidak
+menonaktifkan murid.
 
 Kebutuhan lanjutan adalah menjadikan data layak dipurge ketika tepat mencapai
 tiga tahun setelah tanggal keluar resmi. Eksekusi dapat ditahan hanya oleh
@@ -356,9 +374,10 @@ koordinasi lock, bukan sebagai penyimpanan domain.
 
 Implementation plan wajib mempertahankan aturan berikut:
 
-1. **Satu sumber kebenaran.** Fakta keluar murid hanya berada di
-   `student_departures`; status layanan hanya berasal dari relasi referensi;
-   audit tidak menjadi sumber state operasional.
+1. **Satu sumber kebenaran.** Proses dan keputusan keluar murid hanya berada di
+   `student_departures`; murid baru dianggap keluar ketika statusnya
+   `resmi_keluar`. Status layanan hanya berasal dari relasi referensi; audit
+   tidak menjadi sumber state operasional.
 2. **Tidak ada tabel rekap UI.** Dashboard dan laporan memakai read service dan
    query ter-scope atas tabel domain existing.
 3. **Tidak ada EAV baru.** Field domain penting memakai kolom eksplisit. JSON
@@ -409,7 +428,7 @@ lokal tetap memerlukan persetujuan terpisah.
 - hapus route koreksi, notifikasi, riwayat, fixture terkait, dan aksi
   `cases.deactivate` lama;
 - tambah route arsip kasus dan konsultasi dengan penamaan generik `destroy`;
-- tambah route pencatatan status keluar murid;
+- tambah route pencatatan proses serta finalisasi status keluar murid;
 - tambah route ganti password wajib;
 - tambah middleware `must_change_password`.
 
@@ -417,8 +436,8 @@ lokal tetap memerlukan persetujuan terpisah.
 
 - controller tetap tipis dan hanya mengorkestrasi request, policy, service, dan
   response;
-- tambah Form Request khusus edit terminal, arsip, pencatatan murid keluar, dan
-  ganti/reset password;
+- tambah Form Request khusus edit terminal, arsip, pencatatan proses keluar,
+  finalisasi oleh Koordinator, dan ganti/reset password;
 - hapus controller/request fitur yang dihentikan.
 
 ### Service dan Model
@@ -452,8 +471,9 @@ lokal tetap memerlukan persetujuan terpisah.
 - tambah test edit belum selesai, edit selesai tanpa alasan, edit selesai dengan
   alasan, status immutable, dan concurrent ownership change;
 - tambah test arsip serta pengecualian record dari seluruh query baca;
-- tambah test unique departure, race/duplicate submission, dan konfirmasi
-  Dapodik pada baris yang sama;
+- tambah test unique departure, race/duplicate submission, transisi
+  `dalam_proses`/`batal`/`resmi_keluar`, serta penolakan mutasi status keluar
+  oleh sinkronisasi API sekolah;
 - tambah test password sementara, expiry, wajib ganti, session invalidation,
   dan recovery Admin IT;
 - verifikasi migration fresh dan incremental pada SQLite serta MySQL.
@@ -470,7 +490,8 @@ diselaraskan minimum:
 - `CASE-13` dan aturan konsultasi untuk kepemilikan edit/arsip;
 - `DASH-01` sampai `DASH-03` untuk panel pengganti;
 - `ACC-01` untuk password sementara dan pemulihan akun;
-- `MD-*`, kebutuhan data, dan retensi untuk `student_departures`;
+- `MD-*`, kebutuhan data, retensi, dan batas kontrak API sekolah untuk
+  `student_departures`;
 - `AUTH-*`, privasi, audit, traceability matrix, `docs/requirements-index.md`,
   `docs/api-contract.md`, dan `docs/development-log.md`.
 
@@ -513,9 +534,12 @@ Spesifikasi dianggap terpenuhi bila:
 - audit edit terminal menyimpan actor, alasan, waktu, serta before/after tanpa
   field rahasia;
 - satu murid hanya mempunyai paling banyak satu `student_departures`;
-- input Guru BK dan konfirmasi Dapodik memperbarui baris departure yang sama;
-- perhitungan retensi memakai tanggal keluar resmi dan otomasi purge belum
-  berjalan tanpa plan lanjutan;
+- pencatatan Guru BK selalu dimulai sebagai `dalam_proses` dan tidak langsung
+  menonaktifkan murid;
+- hanya Koordinator BK yang dapat menetapkan `batal` atau `resmi_keluar`;
+- sinkronisasi API sekolah tidak mengubah proses atau keputusan keluar murid;
+- hanya `resmi_keluar` yang menonaktifkan murid dan memulai retensi berdasarkan
+  tanggal keluar resmi; otomasi purge belum berjalan tanpa plan lanjutan;
 - reset akun menghasilkan password sementara unik, memutus sesi lama, dan
   memaksa penggantian password;
 - pemulihan Admin IT tunggal hanya dapat dilakukan melalui command server
@@ -538,14 +562,17 @@ Implementation plan harus memecah pekerjaan menjadi gate berurutan:
 2. migration fresh/incremental menghasilkan target 30 tabel;
 3. fitur UI dan backend yang dihentikan tidak lagi mempunyai consumer;
 4. lifecycle kasus/konsultasi, policy, arsip, dan audit lulus focused tests;
-5. student departure lulus constraint, concurrency, dan reconciliation tests;
+5. student departure lulus constraint, concurrency, transition, authorization,
+   dan API non-interference tests;
 6. temporary password dan admin recovery lulus security tests;
 7. dashboard role-aware lulus scope/privacy tests;
 8. seluruh suite dan pemeriksaan kualitas repository lulus.
 
 Task berikutnya tidak boleh dimulai sebelum gate task sebelumnya selesai.
-Adapter production Dapodik/e-Tatib tetap di luar scope sampai kontrak provider
-tersedia dan lolos contract admission gate.
+Adapter production Dapodik/e-Tatib tetap di luar scope spesifikasi ini sampai
+kontrak provider yang tersedia lolos contract admission gate. Ketiadaan field
+status keluar tidak menggagalkan admission untuk fungsi roster, tetapi wajib
+dicatat sebagai batas kontrak dan tidak boleh ditutupi dengan asumsi data.
 
 ## 17. Di Luar Scope
 
