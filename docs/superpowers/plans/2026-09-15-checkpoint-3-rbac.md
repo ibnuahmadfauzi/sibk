@@ -58,8 +58,8 @@
 
 - [x] Jalankan `composer test`, `php vendor/bin/pint --test`, `npm.cmd run check:frontend`, `npm.cmd run build`, `composer validate --strict`, dan `git diff --check`; semuanya exit 0.
 - [x] Review independen terhadap spec, cakupan assertion, penghapusan consumer, audit plan, dan diff keseluruhan; tidak ada blocker material. Handoff diperbaiki agar menunjuk commit `9119b01`.
-- [ ] Perbarui checkpoint selesai dan langkah Checkpoint 4 pada handoff; catat jumlah test/assertion dan batas runtime PHP yang benar-benar diuji.
-- [ ] Commit dalam Bahasa Indonesia, push branch fitur, dan buat PR ke `cobasidebar`. Merge hanya bila sudah diotorisasi; setelah merge verifikasi `MERGED` sebelum menghapus branch sumber remote.
+- [x] Perbarui checkpoint selesai dan langkah Checkpoint 4 pada handoff; catat jumlah test/assertion dan batas runtime PHP yang benar-benar diuji.
+- [x] Commit dalam Bahasa Indonesia, push branch fitur, dan buat [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) ke `cobasidebar`. Merge hanya bila sudah diotorisasi; setelah merge verifikasi `MERGED` sebelum menghapus branch sumber remote.
 
 ## Keputusan eksekusi
 
@@ -72,3 +72,4 @@
 - Verifikasi akhir setelah commit RBAC: 402 test/3.139 assertion lulus pada PHP 8.4.12. Tautan Markdown lokal pada enam dokumen valid; runtime PHP 8.3 belum diuji langsung.
 - Probe koneksi SQLite disposable pada petunjuk Task 13 lulus di PowerShell 5.1 tanpa menjalankan migration.
 - Review akhir audit plan dan handoff tidak menemukan blocker material; seluruh Task 1–15 tetap belum ditandai selesai.
+- Checkpoint 3 selesai pada branch fitur melalui commit RBAC `9119b01` dan audit `59606d4`; PR #10 menunggu integrasi ke `cobasidebar` sebelum Checkpoint 4.
