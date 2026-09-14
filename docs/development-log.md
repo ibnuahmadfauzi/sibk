@@ -6,8 +6,10 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 ## Sedang berjalan
 
 - Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
-- Cleanup file trivial selesai dan siap diintegrasikan ke `cobasidebar`.
-- Berikutnya Checkpoint 4: Task 1–7 plan penyederhanaan laporan yang sudah diaudit.
+- Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
+- Checkpoint 4 Task 1–6 selesai pada branch `checkpoint-4-laporan`; gate otomatis
+  Task 7 lulus dan UAT manusia tiga viewport berstatus `PENDING MANUAL`.
+- Task 8 belum dimulai sampai UAT laporan dinyatakan PASS.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
