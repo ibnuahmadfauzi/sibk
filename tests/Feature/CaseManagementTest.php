@@ -8,6 +8,7 @@ use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
+use App\Models\CaseCoordination;
 use App\Models\Classroom;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
@@ -370,6 +371,48 @@ class CaseManagementTest extends TestCase
             'actor_id' => $waka->id,
             'auditable_id' => $case->id,
         ]);
+    }
+
+    public function test_follow_up_direct_urls_reject_a_child_from_another_case(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $otherCase = $this->createCase($teacher, $student);
+        $otherCase->update(['waka_summary' => 'Tindak lanjut dijadwalkan.']);
+        $payload = [
+            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
+            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
+            'planned_date' => '2026-08-21', 'next_plan' => 'MARKER-TINDAK-LANJUT-LAIN',
+        ];
+        $followUp = app(FollowUpService::class)->record($otherCase, $payload, $teacher);
+
+        $this->actingAs($teacher)->get(route('cases.follow-ups.edit', [$otherCase, $followUp]))->assertOk();
+        $this->get(route('cases.follow-ups.edit', [$case, $followUp]))
+            ->assertNotFound()->assertDontSee('MARKER-TINDAK-LANJUT-LAIN');
+        $this->patch(route('cases.follow-ups.update', [$case, $followUp]), [
+            ...$payload, 'next_plan' => 'MUTASI-DITOLAK',
+        ])->assertNotFound();
+        $this->assertDatabaseHas('follow_ups', [
+            'id' => $followUp->id, 'case_id' => $otherCase->id, 'next_plan' => 'MARKER-TINDAK-LANJUT-LAIN',
+        ]);
+    }
+
+    public function test_waka_cannot_create_coordination_even_for_a_coordinated_case(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $otherWaka = $this->userWithRole('waka_kesiswaan');
+        app(CaseService::class)->coordinate($case, ['waka_user_id' => $waka->id, 'result' => 'Pemantauan disepakati.'], $teacher);
+        $before = CaseCoordination::query()->count();
+
+        $this->actingAs($waka)->get(route('cases.show', $case))->assertOk();
+        $this->actingAs($otherWaka)->get(route('cases.show', $case))->assertForbidden();
+        $this->actingAs($waka)->post(route('cases.coordinations.store', $case), [
+            'waka_user_id' => $otherWaka->id, 'coordination_need' => 'MUTASI-DITOLAK',
+        ])->assertForbidden();
+        $this->assertSame($before, CaseCoordination::query()->count());
+        $this->assertDatabaseMissing('case_coordinations', ['coordination_need' => 'MUTASI-DITOLAK']);
     }
 
     public function test_first_follow_up_starts_handling_and_successor_cannot_edit_old_note(): void

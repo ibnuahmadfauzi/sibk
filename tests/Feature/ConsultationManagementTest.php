@@ -150,6 +150,41 @@ class ConsultationManagementTest extends TestCase
         $this->actingAs($admin)->get(route('consultations.show', $consultation))->assertForbidden();
     }
 
+    public function test_coordinator_teacher_reads_private_history_only_in_professional_scope(): void
+    {
+        $this->travelTo('2026-08-20 10:00:00');
+        [$author, $student, $year, $classroom, $assignment] = $this->teacherAndScopedStudent(true);
+        $history = app(ConsultationService::class)->create([
+            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
+            'student_id' => $student->id, 'sensitive_content' => 'PRIVAT-HISTORI-DALAM-SCOPE',
+        ], $author);
+        $multi = $this->userWithRole('koordinator_bk');
+        $multi->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $assignment->update(['effective_until' => '2026-08-19']);
+        TeacherAssignment::query()->create([
+            'user_id' => $multi->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id,
+            'effective_from' => '2026-08-20', 'decision_number' => 'SK-GURU-KOORDINATOR', 'assigned_by' => $multi->id,
+        ]);
+        $outside = app(ConsultationService::class)->create([
+            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
+            'temporary_nisn' => '0098765432', 'temporary_name' => 'Murid di Luar Scope',
+            'sensitive_content' => 'PRIVAT-DI-LUAR-SCOPE',
+        ], $author);
+
+        $this->actingAs($multi)->get(route('assignments.classes.manage'))->assertOk();
+        $this->get(route('consultations.show', $history))->assertOk()->assertSee('PRIVAT-HISTORI-DALAM-SCOPE');
+        $this->get(route('consultations.edit', $history))->assertForbidden();
+        $this->patch(route('consultations.update', $history), [
+            ...$this->payload(ServiceRecordStatus::IN_PROGRESS), 'sensitive_content' => 'MUTASI-DITOLAK',
+        ])->assertForbidden();
+        $this->assertDatabaseHas('consultation_private_notes', [
+            'consultation_id' => $history->id, 'sensitive_content' => 'PRIVAT-HISTORI-DALAM-SCOPE',
+        ]);
+        $this->get(route('consultations.show', $outside))->assertOk()
+            ->assertSee('Ringkasan umum yang diizinkan.')->assertDontSee('PRIVAT-DI-LUAR-SCOPE');
+        $this->get(route('consultations.edit', $outside))->assertForbidden();
+    }
+
     public function test_only_original_author_with_current_authority_can_update_private_fields(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();

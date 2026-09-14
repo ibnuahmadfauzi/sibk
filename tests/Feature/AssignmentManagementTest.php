@@ -6,12 +6,14 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AssignmentService;
+use App\Services\CaseService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -356,6 +358,44 @@ class AssignmentManagementTest extends TestCase
             ->assertSessionHasErrors('classroom_id');
 
         $this->assertDatabaseCount('teacher_assignments', 0);
+    }
+
+    public function test_direct_student_and_case_urls_follow_assignment_effective_dates(): void
+    {
+        $this->travelTo('2026-08-20 10:00:00');
+        [$year, $classroom] = $this->masterContext();
+        $owner = $this->userWithRole('guru_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Penugasan Terjadwal']);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id, 'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id, 'effective_from' => '2026-07-01',
+        ]);
+        foreach ([[$owner, '2026-07-01', null], [$teacher, '2026-10-01', '2026-12-01']] as [$actor, $start, $end]) {
+            TeacherAssignment::query()->create([
+                'user_id' => $actor->id, 'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id, 'effective_from' => $start,
+                'effective_until' => $end, 'decision_number' => 'SK-PERIODE', 'assigned_by' => $owner->id,
+            ]);
+        }
+        $case = app(CaseService::class)->createCase([
+            'student_id' => $student->id,
+            'case_source_id' => ReferenceValue::query()->forCategory('case_source')->where('code', 'temuan_guru_bk')->firstOrFail()->id,
+            'service_field_id' => ReferenceValue::query()->forCategory('service_field')->where('code', 'pribadi')->firstOrFail()->id,
+            'service_date' => '2026-08-20', 'initial_info' => 'Informasi awal.', 'initial_action' => 'Asesmen awal.',
+        ], $owner);
+
+        foreach (['2026-09-30' => 403, '2026-10-01' => 200, '2026-12-01' => 200, '2026-12-02' => 403] as $date => $status) {
+            $this->travelTo($date.' 10:00:00');
+            $this->actingAs($teacher)->get(route('students.show', $student))->assertStatus($status);
+            $this->actingAs($teacher)->get(route('cases.show', $case))->assertStatus($status);
+            $list = $this->actingAs($teacher)->get(route('students.index'))->assertOk();
+            if ($status === 200) {
+                $list->assertSee($student->name);
+            } else {
+                $list->assertDontSee($student->name);
+            }
+        }
     }
 
     /** @return array{AcademicYear, Classroom} */
