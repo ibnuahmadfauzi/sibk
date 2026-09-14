@@ -4,8 +4,8 @@
 
 - Checkpoint: 2 — Bersihkan baseline `cobasidebar`
 - Status: Sedang dikerjakan
-- Task terakhir selesai: Task 1 — Verifikasi sumber dan tujuan arsip
-- Task berikutnya: Task 2 — Perbarui panduan aktif
+- Task terakhir selesai: Task 2 — Perbarui panduan aktif
+- Task berikutnya: Task 3 — Keluarkan dokumen historis yang terarsip
 - Branch kerja: `checkpoint-2-baseline`
 - Worktree: `.worktrees/checkpoint-1-arsip` (dipakai ulang sesuai permintaan pengguna)
 - Baseline: `cobasidebar` commit `386cd3c`

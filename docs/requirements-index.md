@@ -11,8 +11,7 @@ Tujuan file ini adalah membantu agent menentukan apakah PRD/SRS perlu dibuka. Ja
 
 ## Arsip Baseline Sebelumnya
 
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` dan `.md`.
-- `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` dan `.md`.
+- [PRD/SRS v1.0 DOCX dan Markdown](https://github.com/Aflahul/sibk-docs-archive/tree/main/requirements/v1.0) tersedia di repository arsip privat, bukan folder aplikasi aktif.
 - Tanggal baseline arsip: 15 Agustus 2026.
 - DOCX v1.0 tetap menjadi baseline manusia sebelumnya dan referensi struktur/visual; seluruh arsip dipertahankan byte-for-byte dan tidak menjadi source of truth perilaku aktif.
 

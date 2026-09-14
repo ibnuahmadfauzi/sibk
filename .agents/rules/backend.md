@@ -3,8 +3,8 @@
 Status: **Backend Aktif Dikembangkan**
 
 ## Source of Truth
-1. `docs/requirements/SRS_Aplikasi_BK_v1.0.md` untuk aturan bisnis, perilaku fungsional, dan matriks hak akses.
-2. `docs/requirements/PRD_Aplikasi_BK_v1.0.md` untuk ruang lingkup dan batasan produk.
+1. `docs/requirements/SRS_Aplikasi_BK_v1.1.md` untuk aturan bisnis, perilaku fungsional, dan matriks hak akses.
+2. `docs/requirements/PRD_Aplikasi_BK_v1.1.md` untuk ruang lingkup dan batasan produk.
 3. `docs/requirements-index.md` sebagai indeks selektif.
 
 ---

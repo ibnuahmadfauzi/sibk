@@ -1,58 +1,65 @@
 # SIBK / Ruang BK
 
-Ruang BK adalah aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
+Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 
-## Source of Truth
+## Mulai dan lanjutkan pekerjaan
 
-Kebutuhan dan perilaku sistem:
-- `docs/requirements/PRD_Aplikasi_BK_v1.1.md` — baseline kebutuhan produk aktif.
-- `docs/requirements/SRS_Aplikasi_BK_v1.1.md` — baseline spesifikasi aktif.
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.docx` dan `docs/requirements/SRS_Aplikasi_BK_v1.0.docx` — arsip baseline manusia sebelumnya sekaligus referensi struktur/visual; jangan diubah.
-- `docs/requirements/PRD_Aplikasi_BK_v1.0.md` dan `docs/requirements/SRS_Aplikasi_BK_v1.0.md` — arsip mirror AI baseline sebelumnya; jangan diubah.
-- `docs/requirements-index.md` — indeks ringan untuk menentukan bagian requirement yang perlu dibuka.
-- `CONTEXT.md` — glosarium ringkas untuk istilah data persiapan sementara, terverifikasi Dapodik, aktivasi operasional, dan pratinjau pencocokan; bukan pengganti PRD/SRS.
+1. Baca `docs/current-work.md` untuk checkpoint, branch, gate, dan task berikutnya.
+2. Periksa `git status` dan `git log -1 --oneline`; pertahankan perubahan milik pengguna.
+3. Baca hanya bagian plan aktif yang dibutuhkan. Selesaikan verifikasi task sebelum lanjut.
+4. Perbarui handoff setelah task; catat ringkasan checkpoint selesai di `docs/development-log.md`.
 
-Referensi visual frontend:
-- Penpot page `22 — UI High-Fidelity Final`.
+`cobasidebar` adalah baseline pengembangan; `main` versi stabil untuk produksi.
+Kerjakan di feature branch/worktree, gunakan PR ke `cobasidebar`, tanpa force push.
+Gunakan Bahasa Indonesia sederhana untuk dokumentasi dan pesan commit.
 
-Design system frontend:
-- Penpot page `22.5 — Style Guide`.
+## Source of truth
 
-Page `21 — Wireframe Low-Fidelity Final` adalah artefak proses desain dan bukan referensi visual implementasi frontend.
+- `docs/requirements/SRS_Aplikasi_BK_v1.1.md`: spesifikasi perilaku aktif.
+- `docs/requirements/PRD_Aplikasi_BK_v1.1.md`: kebutuhan produk aktif.
+- `docs/requirements-index.md`: cari area/ID relevan sebelum membuka requirement.
+- `docs/api-contract.md`: kontrak controller/service.
+- `CONTEXT.md`: istilah ringkas; bukan pengganti PRD/SRS.
+- Arsip v1.0 dan plan selesai: [repository privat terpisah](https://github.com/Aflahul/sibk-docs-archive).
+  Dokumen arsip tidak diubah dan tidak menjadi baseline perilaku aktif.
 
-## Status Pengembangan
+Frontend memakai Penpot `22 — UI High-Fidelity Final` dan
+`22.5 — Style Guide`. Page `21 — Wireframe Low-Fidelity Final` bukan referensi
+implementasi. Jangan mendesain ulang UI yang disetujui; pakai komponen existing.
 
-- Frontend: selesai diimplementasikan (seluruh paket halaman PG Penpot Hi-Fi telah tersedia).
-- Backend: **aktif untuk dikembangkan**. Implementasi mencakup skema database, otorisasi multi-role (Guru BK, Koordinator BK, Waka Kesiswaan, Admin IT), Service/Action layer, audit trail append-only, dan integrasi dengan controller/views.
-- Integrasi Dapodik/e-Tatib: disiapkan melalui cache read-only, pemetaan NISN, dan log sinkronisasi terkelola.
-- API contract: aktif disusun dan diselaraskan dengan kebutuhan web controller & service layer.
+## Status dan scope disetujui
 
-## Approved Implementation Plan — Wajib Diikuti
+- Frontend tersedia; backend aktif dikembangkan.
+- Plan integrasi Fase A Task 0–12 dan Portal Waka sudah selesai serta diarsipkan.
+  Tidak wajib membaca ulang plan selesai pada setiap sesi.
+- Enam checkpoint penyederhanaan disetujui 14 September 2026; spec dan plan aktif
+  ditunjuk oleh `docs/current-work.md`.
+- Data persiapan sementara, verifikasi Dapodik, dan aktivasi operasional tetap
+  dipisahkan; fallback keterlambatan Dapodik 2–3 bulan berlaku pada baseline v1.1.
+- Adapter production Dapodik/e-Tatib tetap di luar scope sampai kontrak resmi
+  tersedia dan lolos `docs/integrations/provider-contract-admission.md`.
+- Perluasan scope, arsitektur material, tindakan eksternal/destruktif di luar
+  persetujuan yang sudah ada memerlukan persetujuan baru.
 
-- Plan `docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md` telah disetujui pengguna untuk implementasi bertahap pada 8 September 2026 di branch `integrasi-api-plan`.
-- Pada awal sesi kerja baru, setiap agent/model AI harus membaca plan tersebut secara lengkap dan melanjutkan dari task/verification gate terakhir; persetujuan tidak perlu diminta ulang selama scope Fase A tidak berubah.
-- Amandemen 9 September 2026 pada baseline v1.1 menetapkan fallback keterlambatan Dapodik 2–3 bulan; nama file v1.1 tetap dipertahankan.
-- Gunakan workflow dan sub-skill yang diwajibkan pada header plan, kerjakan Task 0–Task 12 secara berurutan, dan selesaikan verification gate setiap task sebelum berpindah.
-- Adapter production nyata Dapodik/e-Tatib tetap di luar scope. Jangan membuatnya sebelum kontrak provider tersedia dan lolos contract admission gate.
-- Perluasan scope, perubahan arsitektur material, atau tindakan eksternal/destruktif tetap memerlukan persetujuan baru.
+## Aturan implementasi
 
-## Aturan Umum
+- Pertahankan arsitektur repository; jangan menambah fitur di luar PRD/SRS.
+- Minimum PHP 8.3 atau lebih baru; kode mengikuti fitur PHP 8.3 dan
+  `declare(strict_types=1);`.
+- Thin Controller, Form Request, Service/Action layer, Query Scopes; pisahkan UI,
+  akses data, logika bisnis, dan integrasi.
+- Otorisasi/capability AUTH-01–AUTH-07 wajib di server/policy.
+- Gunakan Bahasa Indonesia pada UI dan istilah `murid`, kecuali kutipan sumber resmi.
+- Jangan menyimpan credential, payload mentah, `.env`, cache, atau build ke Git.
+- Migration forward-only; jangan reset database shared/production.
 
-- Pertahankan arsitektur dan konvensi repository yang sudah ada.
-- Jangan menambah fitur yang tidak tercantum pada requirement (SRS/PRD).
-- Jangan mendesain ulang UI yang sudah disetujui.
-- Gunakan komponen yang sudah ada sebelum membuat komponen baru.
-- Pisahkan UI, akses data, business logic, dan integrasi eksternal.
-- Gunakan Bahasa Indonesia untuk teks yang tampil kepada pengguna.
-- Gunakan istilah `murid`, bukan `siswa`, kecuali sumber resmi yang dirujuk memang menggunakan istilah lain.
-- Terapkan hak akses sesuai authorization/capability (AUTH-01 s.d. AUTH-07) pada server/policy.
-- Ikuti standar PHP 8.3 (`declare(strict_types=1);`), Thin Controller, Form Request, Service Layer, dan Query Scopes.
+## Verifikasi dan efisiensi context
 
-## Context Efficiency
+Gate umum: `composer test`, `php vendor/bin/pint --test`,
+`npm run check:frontend`, `npm run build`, `composer validate --strict`,
+dan `git diff --check`. Tambahan hanya bila relevan dengan perubahan.
 
-- Jangan membuka PRD/SRS lengkap pada setiap task.
-- Jika requirement diperlukan, prioritaskan mirror `.md` dan baca hanya section/ID relevan.
-- Gunakan `docs/requirements-index.md` terlebih dahulu.
-- Buka PRD/SRS hanya ketika task memerlukan keputusan scope, behavior, akses, field, acceptance criteria, integrasi, privacy, atau aturan bisnis.
-- Untuk pekerjaan visual murni, cukup gunakan Penpot Hi-Fi, Style Guide, dan existing code.
-- Jangan menyalin isi PRD/SRS ke rules/workflows karena menambah context berulang.
+Test otorisasi umum tetap wajib; screenshot/workbook penelitian tidak diwajibkan.
+Jangan buka PRD/SRS penuh pada setiap task; gunakan indeks lalu section/ID relevan.
+Pekerjaan visual murni cukup Hi-Fi, Style Guide, dan existing code.
+Jangan menggandakan isi requirement atau log panjang di rules/workflows.

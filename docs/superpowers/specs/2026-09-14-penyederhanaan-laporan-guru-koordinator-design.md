@@ -361,7 +361,7 @@ Implementation plan harus memperbarui:
 - `docs/api-contract.md`;
 - `docs/development-log.md` setelah verification gate selesai.
 
-PRD/SRS v1.0 tetap arsip dan tidak boleh diubah.
+PRD/SRS v1.0 tetap tidak diubah di [repository arsip privat](https://github.com/Aflahul/sibk-docs-archive/tree/main/requirements/v1.0), bukan di repository aplikasi aktif.
 
 ## 15. Acceptance Criteria
 

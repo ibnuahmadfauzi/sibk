@@ -39,14 +39,14 @@
 **Files:** `README.md`, `AGENTS.md`, `docs/requirements-index.md`, `docs/development-log.md`, `.agents/rules/{backend,project,task-tracking}.md`, `.agents/workflows/implement-backend.md`, dua spec penyederhanaan dan plan penyederhanaan aktif.
 **Interfaces:** mengganti pointer lokal arsip dengan URL repository privat, mengarahkan pengembang baru ke v1.1 dan handoff.
 
-- [ ] Ringkas README menjadi setup Laravel/Vite, alur feature branch → PR ke `cobasidebar`, gate dasar, dan tautan dokumentasi/arsip. Minimum PHP 8.3; gunakan `composer install` dan `npm ci`, bukan update dependency. Larang reset database shared.
-- [ ] Ringkas AGENTS: v1.1 aktif, arsip eksternal, `current-work.md` dibaca dulu; plan integrasi Task 0–12 sudah selesai dan tidak wajib dibaca ulang. Pertahankan aturan visual, server authorization, strict typing, serta admission provider.
-- [ ] Ganti pointer v1.0 ke v1.1 di backend/project/workflow. Ubah klaim DOCX aktif menjadi Markdown v1.1 aktif dan DOCX v1.0 di arsip.
-- [ ] Selaraskan task tracking: handoff untuk status berjalan, development log untuk ringkasan selesai; tidak menggandakan progres panjang.
-- [ ] Ringkas development log menjadi integrasi selesai, Portal Waka selesai, Checkpoint 1 selesai, serta checkpoint aktif; tautkan log lama di arsip.
-- [ ] Perbarui indeks arsip dan kalimat perlindungan v1.0 pada kedua spec serta plan penyederhanaan: arsip tetap tidak diubah di repository terpisah.
-- [ ] Periksa tidak ada pointer source-of-truth v1.0 atau petunjuk branch `development` di aturan/README. Periksa `composer.json`/lock menerima PHP 8.3; `composer validate --strict`.
-- [ ] Catat Task 2 selesai/Task 3 berikutnya; `git diff --check`, lalu commit `docs: rapikan panduan pengembangan cobasidebar`.
+- [x] Ringkas README menjadi setup Laravel/Vite, alur feature branch → PR ke `cobasidebar`, gate dasar, dan tautan dokumentasi/arsip. Minimum PHP 8.3; gunakan `composer install` dan `npm ci`, bukan update dependency. Larang reset database shared.
+- [x] Ringkas AGENTS: v1.1 aktif, arsip eksternal, `current-work.md` dibaca dulu; plan integrasi Task 0–12 sudah selesai dan tidak wajib dibaca ulang. Pertahankan aturan visual, server authorization, strict typing, serta admission provider.
+- [x] Ganti pointer v1.0 ke v1.1 di backend/project/workflow. Ubah klaim DOCX aktif menjadi Markdown v1.1 aktif dan DOCX v1.0 di arsip.
+- [x] Selaraskan task tracking: handoff untuk status berjalan, development log untuk ringkasan selesai; tidak menggandakan progres panjang.
+- [x] Ringkas development log menjadi integrasi selesai, Portal Waka selesai, Checkpoint 1 selesai, serta checkpoint aktif; tautkan log lama di arsip.
+- [x] Perbarui indeks arsip dan kalimat perlindungan v1.0 pada kedua spec serta plan penyederhanaan: arsip tetap tidak diubah di repository terpisah.
+- [x] Periksa tidak ada pointer source-of-truth v1.0 atau petunjuk branch `development` di aturan/README. Periksa `composer.json`/lock menerima PHP 8.3; `composer validate --strict`.
+- [x] Catat Task 2 selesai/Task 3 berikutnya; `git diff --check`, lalu commit `docs: rapikan panduan pengembangan cobasidebar`.
 
 ## Task 3 — Keluarkan dokumen historis yang terarsip
 

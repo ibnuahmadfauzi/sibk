@@ -8,7 +8,7 @@ Nama modul / entitas (misal: Kasus, Penugasan, Murid, Konsultasi, Koreksi, Lapor
 ## Steps
 
 1. **Baca Kebutuhan Spesifik:**
-   - Periksa Requirement ID terkait di `docs/requirements/SRS_Aplikasi_BK_v1.0.md` dan `docs/requirements/PRD_Aplikasi_BK_v1.0.md`.
+   - Periksa Requirement ID terkait di `docs/requirements/SRS_Aplikasi_BK_v1.1.md` dan `docs/requirements/PRD_Aplikasi_BK_v1.1.md`.
    - Periksa kebutuhan audit (AUD-01), otorisasi (AUTH-01 s.d. AUTH-07), dan retensi (NFR-08).
 
 2. **Skema Database & Migrasi:**

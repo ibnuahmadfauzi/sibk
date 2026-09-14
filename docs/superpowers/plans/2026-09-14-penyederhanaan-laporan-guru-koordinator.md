@@ -109,7 +109,7 @@ rg -n "Pelanggaran & Poin|Layanan BK|Prestasi|satu baris per murid|REP-01|REP-04
 git diff --check
 ```
 
-Expected: istilah dan kontrak konsisten; PRD/SRS v1.0 tidak berubah.
+Expected: istilah dan kontrak konsisten; PRD/SRS v1.0 di repository arsip privat tidak berubah.
 
 - [ ] **Step 6: Commit**
 
@@ -1726,7 +1726,7 @@ Ubah PRD/SRS v1.1 tanpa mengganti nama versi:
 
 Perbarui traceability matrix dan entitas konseptual. Hapus `Koreksi` serta
 `Notifikasi` dari field minimum/entitas aktif. Tambahkan `Student Departure`
-dengan field persis pada spec. Pertahankan dokumen v1.0 byte-for-byte.
+dengan field persis pada spec. Pertahankan dokumen v1.0 byte-for-byte di repository arsip privat terpisah.
 
 - [ ] **Step 4: Dokumentasikan batas API sekolah**
 
@@ -3257,7 +3257,7 @@ Expected: seluruh command exit code 0 dan cache dibersihkan setelah verifikasi.
 ```powershell
 rg -n "Correction|UserNotification|NotificationService|corrections\.|notifications\.|history\." app routes resources tests scripts
 rg -n "change_reason|plainTextPassword|temporary_password|initial_info|internal_note|sensitive_content|final_result" resources/views/pages/reports resources/views/pages/waka app/Services/OperationalReportRecapService.php app/Services/WakaCaseProjectionQuery.php storage/logs
-rg -n "API Data Siswa|https://xxxx|api_key|credential" docs app config tests --glob '!docs/superpowers/plans/2026-08-23-konfigurasi-koneksi-integrasi.md'
+rg -n "API Data Siswa|https://xxxx|api_key|credential" docs app config tests
 ```
 
 Expected: fitur retired tidak mempunyai consumer runtime; field sensitif tidak
