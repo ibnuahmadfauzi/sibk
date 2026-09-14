@@ -6,15 +6,18 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\OperationalReportRecapService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class OperationalReportRecapTest extends TestCase
@@ -131,6 +134,115 @@ class OperationalReportRecapTest extends TestCase
         ]))->assertSessionHasErrors(['tab', 'type']);
     }
 
+    public function test_violation_tab_groups_searches_filters_and_keeps_scope(): void
+    {
+        $teacherA = $this->userWithRole('guru_bk', 'Guru A');
+        $teacherB = $this->userWithRole('guru_bk', 'Guru B');
+        [$studentA] = $this->scopedStudent($teacherA, 'Murid Alpha Rahasia', '0012345678', 'X RPL 1');
+        [$studentB] = $this->scopedStudent($teacherB, 'Murid Beta Rahasia', '0098765432', 'X RPL 2');
+        $historicalClass = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'X RPL Historis',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->where('student_id', $studentA->id)->update(['effective_from' => '2026-08-03']);
+        StudentClassMembership::query()->create([
+            'student_id' => $studentA->id,
+            'classroom_id' => $historicalClass->id,
+            'academic_year_id' => $this->year->id,
+            'effective_from' => '2026-07-01',
+            'effective_until' => '2026-08-02',
+            'is_active' => true,
+        ]);
+        $this->etatib($studentA, 'ET-A-1', 'Terlambat', 5, '2026-08-01');
+        $this->etatib($studentA, 'ET-A-2', 'Atribut', 7, '2026-08-02');
+        $this->etatib($studentB, 'ET-B-1', 'Guru lain', 9, '2026-08-03');
+
+        $report = app(OperationalReportRecapService::class)->build($teacherA, [
+            'tab' => 'pelanggaran',
+            'academic_year_id' => $this->year->id,
+            'q' => 'Alpha',
+            'classroom_id' => $historicalClass->id,
+        ]);
+        $rows = collect($report['rows']->items());
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(2, $rows->first()['violation_count']);
+        $this->assertSame(12, $rows->first()['total_points']);
+        $this->assertSame('Atribut', $rows->first()['latest_violation']);
+        $this->assertSame('X RPL Historis', $rows->first()['classroom']);
+        $this->assertSame('M.A.R.', $rows->first()['initials']);
+        $this->assertStringNotContainsString($studentA->name, json_encode($rows->all(), JSON_THROW_ON_ERROR));
+
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator');
+        $combined = app(OperationalReportRecapService::class)->build($coordinator, ['tab' => 'pelanggaran']);
+        $this->assertSame(2, $combined['rows']->total());
+    }
+
+    public function test_coordinator_keeps_unlinked_etatib_identity_without_exposing_source_data(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator');
+        $teacher = $this->userWithRole('guru_bk', 'Guru');
+        foreach (['ET-UNLINKED-1', 'ET-UNLINKED-2'] as $index => $identifier) {
+            ExternalTatibRecord::query()->create([
+                'source_identifier' => $identifier,
+                'nisn' => '0088888888',
+                'occurred_at' => '2026-08-'.str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT).' 07:00:00',
+                'violation_type' => '=SUM(1+1)',
+                'category' => 'Kedisiplinan',
+                'points' => 4,
+                'is_active' => true,
+                'synced_at' => now(),
+            ]);
+        }
+
+        $row = collect(app(OperationalReportRecapService::class)
+            ->build($coordinator, ['tab' => 'pelanggaran'])['rows']->items())->first();
+        $encoded = json_encode($row, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('Belum tertaut', $row['initials']);
+        $this->assertSame('00******88', $row['masked_nisn']);
+        $this->assertSame(2, $row['violation_count']);
+        $this->assertStringNotContainsString('ET-UNLINKED', $encoded);
+        $this->assertSame(0, app(OperationalReportRecapService::class)
+            ->build($teacher, ['tab' => 'pelanggaran'])['rows']->total());
+    }
+
+    public function test_violation_query_count_does_not_grow_with_page_rows(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Query');
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'X Query',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->year->id,
+            'effective_from' => '2026-07-01',
+            'decision_number' => 'SK-QUERY',
+            'assigned_by' => $teacher->id,
+        ]);
+        $this->studentWithViolation($classroom, 1);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'pelanggaran']);
+        $singleCount = count(DB::getQueryLog());
+
+        foreach (range(2, 25) as $index) {
+            $this->studentWithViolation($classroom, $index);
+        }
+        DB::flushQueryLog();
+        $report = app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'pelanggaran']);
+        $manyCount = count(DB::getQueryLog());
+
+        $this->assertCount(20, $report['rows']->items());
+        $this->assertSame(25, $report['rows']->total());
+        $this->assertLessThanOrEqual($singleCount + 2, $manyCount);
+    }
+
     private function userWithRole(string $slug, string $name): User
     {
         $user = User::factory()->create(['name' => $name]);
@@ -170,5 +282,39 @@ class OperationalReportRecapTest extends TestCase
         ]);
 
         return [$student, $classroom];
+    }
+
+    private function etatib(Student $student, string $identifier, string $violation, int $points, string $date): ExternalTatibRecord
+    {
+        return ExternalTatibRecord::query()->create([
+            'source_identifier' => $identifier,
+            'nisn' => $student->nisn,
+            'student_id' => $student->id,
+            'occurred_at' => $date.' 07:00:00',
+            'violation_type' => $violation,
+            'category' => 'Kedisiplinan',
+            'points' => $points,
+            'is_active' => true,
+            'synced_at' => now(),
+        ]);
+    }
+
+    private function studentWithViolation(Classroom $classroom, int $index): Student
+    {
+        $student = Student::query()->create([
+            'nisn' => str_pad((string) $index, 10, '0', STR_PAD_LEFT),
+            'name' => 'Murid Query '.$index,
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->year->id,
+            'effective_from' => '2026-07-01',
+            'is_active' => true,
+        ]);
+        $this->etatib($student, 'ET-QUERY-'.$index, 'Pelanggaran '.$index, 1, '2026-08-10');
+
+        return $student;
     }
 }

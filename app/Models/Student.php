@@ -50,6 +50,12 @@ class Student extends Model
         return $this->hasMany(Achievement::class);
     }
 
+    /** @return HasMany<ExternalTatibRecord, $this> */
+    public function etatibRecords(): HasMany
+    {
+        return $this->hasMany(ExternalTatibRecord::class);
+    }
+
     /** @return MorphMany<Correction, $this> */
     public function corrections(): MorphMany
     {
