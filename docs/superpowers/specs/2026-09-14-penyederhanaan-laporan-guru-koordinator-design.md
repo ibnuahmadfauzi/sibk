@@ -40,6 +40,11 @@ Ketiga tab memakai pola yang sama:
 - ekspor CSV tabel aktif;
 - representasi kartu pada layar kecil.
 
+Implementasi memakai teknologi existing: Eloquent, Form Request, Blade,
+Bootstrap, SCSS, JavaScript ringan existing, dan Laravel Pagination. Perubahan
+ini tidak menambahkan Spatie Query Builder, Yajra DataTables, Livewire Tables,
+Livewire PowerGrid, Filament Tables, jQuery, atau framework tabel lain.
+
 Guru BK hanya melihat murid dan data dalam scope profesionalnya. Koordinator BK
 melihat rekap gabungan sesuai kewenangannya dan memperoleh filter Guru BK hanya
 pada tab yang memang mempunyai relasi penanggung jawab layanan.
@@ -141,8 +146,15 @@ serta kapan layanan terakhir dilakukan.
 
 ### 6.2 Kontrak baris
 
-Satu baris mewakili satu `Student` yang mempunyai minimal satu kasus,
-konsultasi, atau tindak lanjut dalam periode dan scope terpilih.
+Satu baris mewakili satu identitas layanan yang mempunyai minimal satu kasus,
+konsultasi, atau tindak lanjut dalam periode dan scope terpilih. Identitas yang
+sudah terverifikasi memakai `student:{students.id}`. Identitas sementara yang
+belum direkonsiliasi memakai `temporary:{temporary_students.id}` dan diberi
+penanda `Belum terverifikasi Dapodik`. Nama tidak pernah menjadi grouping key.
+
+Identitas sementara hanya muncul bila actor memang berwenang atas kasus atau
+konsultasi terkait. Kelasnya ditampilkan sebagai `Belum tersedia` sampai
+rekonsiliasi menghasilkan murid dan membership yang sah.
 
 Kolom desktop:
 
@@ -358,7 +370,10 @@ Spesifikasi dianggap terpenuhi bila:
 - `/reports` tidak lagi menampilkan tujuh kartu laporan;
 - halaman mempunyai tiga tab deep-link: Pelanggaran & Poin, Layanan BK, dan
   Prestasi;
-- setiap tab menampilkan tepat satu tabel rekap, satu baris per murid;
+- setiap tab menampilkan tepat satu tabel rekap, satu baris per murid atau
+  identitas sementara yang masih sah pada tab Layanan;
+- identitas layanan sementara yang masih sah tidak hilang dari tab Layanan dan
+  tidak digabung berdasarkan kemiripan nama;
 - pencarian nama, filter kelas, tahun ajaran, dan periode bekerja konsisten;
 - filter Guru BK hanya tersedia bagi Koordinator pada tab Layanan BK;
 - tab Pelanggaran menampilkan jumlah pelanggaran, total poin, dan pelanggaran
@@ -383,6 +398,8 @@ Spesifikasi dianggap terpenuhi bila:
 ## 16. Di Luar Scope
 
 - perubahan database atau migration;
+- penambahan Spatie Query Builder, Yajra DataTables, Livewire Tables, Livewire
+  PowerGrid, Filament Tables, jQuery, atau framework tabel baru;
 - perubahan Portal Waka;
 - adapter production Dapodik/e-Tatib;
 - penghapusan endpoint laporan legacy;
