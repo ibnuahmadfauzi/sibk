@@ -436,7 +436,7 @@ Expected: commit dan push berhasil; snapshot masih tersedia pada clone arsip.
 - Consumes: snapshot dari Task 3.
 - Produces: initial commit remote yang identik dengan sumber terpilih.
 
-- [ ] **Step 1: Bandingkan hash sumber dan salinan**
+- [x] **Step 1: Bandingkan hash sumber dan salinan**
 
 Run:
 
@@ -464,7 +464,7 @@ foreach ($pair in $hashPairs) {
 
 Expected: `Semua 10 salinan sesuai.`
 
-- [ ] **Step 2: Periksa isi commit**
+- [x] **Step 2: Periksa isi commit**
 
 Run:
 
@@ -475,7 +475,7 @@ git -C .worktrees/sibk-docs-archive diff --check
 
 Expected: hanya file arsip yang direncanakan tampil dan diff-check bersih.
 
-- [ ] **Step 3: Buat initial commit**
+- [x] **Step 3: Buat initial commit**
 
 Run:
 
@@ -486,7 +486,7 @@ git -C .worktrees/sibk-docs-archive commit -m "docs: simpan dokumen lama Ruang B
 
 Expected: satu root commit berhasil dibuat.
 
-- [ ] **Step 4: Push snapshot**
+- [x] **Step 4: Push snapshot**
 
 Run:
 
@@ -496,7 +496,7 @@ git -C .worktrees/sibk-docs-archive push -u origin main
 
 Expected: branch `main` tersedia pada remote private.
 
-- [ ] **Step 5: Verifikasi remote setelah push**
+- [x] **Step 5: Verifikasi remote setelah push**
 
 Run:
 
@@ -509,7 +509,7 @@ Expected: repository tetap private, default branch `main`, dan root berisi
 `README.md`, `archive-index.md`, `requirements`, `plans`, `specs`, serta
 `testing`.
 
-- [ ] **Step 6: Catat hasil Task 4 untuk handoff**
+- [x] **Step 6: Catat hasil Task 4 untuk handoff**
 
 Update `docs/current-work.md`:
 
