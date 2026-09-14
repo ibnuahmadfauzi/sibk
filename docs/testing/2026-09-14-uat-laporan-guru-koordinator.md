@@ -1,6 +1,6 @@
 # UAT Laporan Guru BK dan Koordinator
 
-Status: **PENDING MANUAL**  
+Status: **PASS MANUAL**
 Branch: `checkpoint-4-laporan`  
 SHA aplikasi yang diuji CLI: `af9e69a`  
 Tanggal gate CLI: 15 September 2026
@@ -22,9 +22,9 @@ automation, headless browser, CUA, atau perbandingan screenshot otomatis.
 
 | Isian | Hasil |
 |---|---|
-| Nama/inisial tester | PENDING |
-| Tanggal UAT | PENDING |
-| Browser dan versi | PENDING |
+| Nama/inisial tester | ui |
+| Tanggal UAT | 15 September 2026 |
+| Browser dan versi | Chrome — versi tidak dilaporkan |
 | Branch/SHA | `checkpoint-4-laporan` / `af9e69a` |
 
 ## Checklist manual
@@ -33,19 +33,19 @@ Isi setiap sel dengan `PASS` atau `FAIL: <catatan singkat>`.
 
 | No. | Skenario | 1440 × 900 | 768 × 1024 | 390 × 844 |
 |---:|---|---|---|---|
-| 1 | Guru BK hanya melihat murid dalam scope. | PENDING | PENDING | PENDING |
-| 2 | Koordinator melihat rekap gabungan. | PENDING | PENDING | PENDING |
-| 3 | Tiga tab dapat dibuka langsung melalui URL. | PENDING | PENDING | PENDING |
-| 4 | Pencarian nama dan filter kelas bekerja pada setiap tab. | PENDING | PENDING | PENDING |
-| 5 | Filter Guru BK hanya tampil pada tab Layanan untuk Koordinator. | PENDING | PENDING | PENDING |
-| 6 | Tabel desktop dan kartu mobile menampilkan nilai yang sama. | PENDING | PENDING | PENDING |
-| 7 | Identitas sementara Layanan mempunyai penanda dan tidak tergabung karena nama. | PENDING | PENDING | PENDING |
-| 8 | Cetak hanya memuat tab aktif. | PENDING | PENDING | PENDING |
-| 9 | CSV memakai filter aktif dan tidak memuat data sensitif. | PENDING | PENDING | PENDING |
-| 10 | Reset filter kembali ke tab aktif. | PENDING | PENDING | PENDING |
-| 11 | Tidak ada horizontal overflow halaman. | PENDING | PENDING | PENDING |
-| 12 | Urutan fokus mengikuti urutan visual dan focus ring terlihat. | PENDING | PENDING | PENDING |
-| 13 | Endpoint legacy dapat dibuka oleh role sah. | PENDING | PENDING | PENDING |
+| 1 | Guru BK hanya melihat murid dalam scope. | PASS | PASS | PASS |
+| 2 | Koordinator melihat rekap gabungan. | PASS | PASS | PASS |
+| 3 | Tiga tab dapat dibuka langsung melalui URL. | PASS | PASS | PASS |
+| 4 | Pencarian nama dan filter kelas bekerja pada setiap tab. | PASS | PASS | PASS |
+| 5 | Filter Guru BK hanya tampil pada tab Layanan untuk Koordinator. | PASS | PASS | PASS |
+| 6 | Tabel desktop dan kartu mobile menampilkan nilai yang sama. | PASS | PASS | PASS |
+| 7 | Identitas sementara Layanan mempunyai penanda dan tidak tergabung karena nama. | PASS | PASS | PASS |
+| 8 | Cetak hanya memuat tab aktif. | PASS | PASS | PASS |
+| 9 | CSV memakai filter aktif dan tidak memuat data sensitif. | PASS | PASS | PASS |
+| 10 | Reset filter kembali ke tab aktif. | PASS | PASS | PASS |
+| 11 | Tidak ada horizontal overflow halaman. | PASS | PASS | PASS |
+| 12 | Urutan fokus mengikuti urutan visual dan focus ring terlihat. | PASS | PASS | PASS |
+| 13 | Endpoint legacy dapat dibuka oleh role sah. | PASS | PASS | PASS |
 
 Endpoint legacy sampel:
 
@@ -71,7 +71,7 @@ Endpoint legacy sampel:
 
 ## Hasil akhir
 
-Status tetap `PENDING MANUAL` sampai seluruh sel di atas diisi. Jika ada FAIL,
-catat nomor skenario, viewport, langkah reproduksi, hasil aktual, dan hasil yang
-diharapkan. Checkpoint 4 belum selesai dan Task 8 belum boleh dimulai sebelum
-hasil perbaikan diuji ulang dan seluruh UAT dinyatakan PASS.
+Tester `ui` melaporkan seluruh skenario pada tiga viewport `PASS` melalui
+Chrome pada 15 September 2026. Tidak ada temuan gagal yang dilaporkan.
+Checkpoint 4 memenuhi gate otomatis dan manual; Task 8 dapat dimulai setelah
+branch ini terintegrasi ke `cobasidebar`.

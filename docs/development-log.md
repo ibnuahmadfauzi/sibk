@@ -7,12 +7,23 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 - Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 4 Task 1–6 selesai pada branch `checkpoint-4-laporan`; gate otomatis
-  Task 7 lulus dan UAT manusia tiga viewport berstatus `PENDING MANUAL`.
-- Task 8 belum dimulai sampai UAT laporan dinyatakan PASS.
+- Checkpoint 4 selesai dan siap diajukan ke `cobasidebar`; Checkpoint 5 dimulai
+  setelah integrasi.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 15 September 2026 — Checkpoint 4: penyederhanaan laporan
+
+- Halaman laporan Guru BK/Koordinator disatukan menjadi tiga tab rekap aman;
+  endpoint preview dan ekspor tujuh tipe legacy tetap tersedia.
+- Scope, filter, pagination database, identitas tersamarkan, ekspor CSV aman,
+  tampilan desktop/mobile, empty state, aksesibilitas, dan cetak tab aktif diterapkan.
+- Gate lulus 418 test/3.293 assertion pada SQLite; focused MySQL disposable
+  lulus 16 test/148 assertion; Pint, Composer strict, cache, checker frontend,
+  build, diff-check, scan privasi, dan scan dependency lulus.
+- UAT manual oleh `ui` melalui Chrome pada viewport 1440 × 900, 768 × 1024,
+  dan 390 × 844 dinyatakan PASS tanpa temuan gagal; versi browser tidak dilaporkan.
 
 ### 15 September 2026 — Cleanup file trivial
 

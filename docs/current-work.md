@@ -2,8 +2,8 @@
 
 ## Status
 
-- Checkpoint selesai: 3 — Sederhanakan pengujian RBAC dan audit plan.
-- Checkpoint aktif: 4 — Penyederhanaan laporan, Task 1–6 selesai; Task 7 menunggu UAT manual.
+- Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
+- Checkpoint berikutnya: 5 — Penyederhanaan operasional, akun, dan skema mulai Task 8.
 - Branch kerja: `checkpoint-4-laporan`, dibuat dari `cobasidebar` setelah PR #11 terintegrasi.
 - Worktree: root repository.
 - Commit aplikasi terakhir: `af9e69a` (UI dan ekspor tiga tab).
@@ -34,7 +34,8 @@
 - Focused rekap juga lulus pada MySQL disposable `sibk_report_gate`: 16 test/148
   assertion; instance dan folder sementara sudah dihapus.
 - Scan field sensitif dan dependency tabel terlarang tidak menemukan kecocokan.
-- UAT manusia tiga viewport berstatus `PENDING MANUAL`; Task 8 belum dimulai.
+- UAT manusia oleh `ui` melalui Chrome pada tiga viewport dinyatakan PASS;
+  versi browser tidak dilaporkan dan tidak ada temuan gagal.
 
 ## Arsip
 
@@ -45,11 +46,10 @@
 
 ## Langkah berikutnya
 
-1. Jalankan checklist UAT laporan melalui browser biasa pada tiga viewport dan
-   kirim hasil PASS/FAIL beserta identitas tester serta browser/versi.
-2. Jika UAT lulus, catat hasil akhir Task 7, perbarui checkbox Task 1–7, lalu
-   siapkan PR Checkpoint 4 ke `cobasidebar`.
-3. Jangan mulai Task 8 sebelum seluruh UAT Checkpoint 4 PASS.
+1. Buat PR Checkpoint 4 ke `cobasidebar` dan tunggu seluruh check lulus.
+2. Setelah PR di-merge, verifikasi status `MERGED`, pastikan tidak ada commit
+   atau PR baru pada branch sumber, lalu hapus branch sumber remote.
+3. Mulai Checkpoint 5 Task 8 dari `cobasidebar` yang sudah memuat Checkpoint 4.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan

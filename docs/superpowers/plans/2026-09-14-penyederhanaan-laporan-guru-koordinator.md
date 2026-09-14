@@ -100,7 +100,7 @@ Keputusan route hasil audit:
 - Consumes: keputusan produk pada spec.
 - Produces: kontrak tiga tab, filter, kolom, scope, privasi, dan kompatibilitas legacy untuk seluruh task berikutnya.
 
-- [ ] **Step 1: Amendemen PRD v1.1**
+- [x] **Step 1: Amendemen PRD v1.1**
 
 Ubah bagian `Arsitektur informasi dan laporan` serta `Laporan P0` agar menyatakan:
 
@@ -112,7 +112,7 @@ muncul pada tab Layanan. Tujuh tipe laporan lama tidak lagi menjadi
 katalog navigasi, tetapi kontrak URL-nya dipertahankan sementara.
 ```
 
-- [ ] **Step 2: Amendemen REP-01 sampai REP-04**
+- [x] **Step 2: Amendemen REP-01 sampai REP-04**
 
 Kunci acceptance criteria berikut pada SRS:
 
@@ -127,7 +127,7 @@ REP-04: Guru BK hanya memperoleh scope sah; Koordinator memperoleh rekap
 gabungan dan filter Guru BK yang tidak memperluas akses.
 ```
 
-- [ ] **Step 3: Perbarui kontrak endpoint**
+- [x] **Step 3: Perbarui kontrak endpoint**
 
 Tambahkan ke `docs/api-contract.md`:
 
@@ -140,11 +140,11 @@ Dokumentasikan bahwa mode `tab` dan mode legacy `type` tidak boleh dikirim bersa
 
 Tambahkan riwayat amandemen 14 September 2026 pada PRD/SRS v1.1 tanpa mengganti nama file versi, dan nyatakan bahwa filter Guru BK pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan/tindak lanjut serta `consultations.counselor_id`, bukan sekadar pengguna yang pertama membuat atau terakhir mencatat record.
 
-- [ ] **Step 4: Catat keputusan teknologi**
+- [x] **Step 4: Catat keputusan teknologi**
 
 Dokumentasikan bahwa implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, dan Laravel Pagination tanpa dependency tabel baru.
 
-- [ ] **Step 5: Verifikasi dokumen**
+- [x] **Step 5: Verifikasi dokumen**
 
 ```powershell
 rg -n "Pelanggaran & Poin|Layanan BK|Prestasi|satu baris per murid|REP-01|REP-04|mode legacy|Laravel Pagination" docs/requirements docs/requirements-index.md docs/api-contract.md docs/superpowers/specs/2026-09-14-penyederhanaan-laporan-guru-koordinator-design.md
@@ -153,7 +153,7 @@ git diff --check
 
 Expected: istilah dan kontrak konsisten; PRD/SRS v1.0 di repository arsip privat tidak berubah.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add docs/requirements/PRD_Aplikasi_BK_v1.1.md docs/requirements/SRS_Aplikasi_BK_v1.1.md docs/requirements-index.md docs/api-contract.md docs/superpowers/specs/2026-09-14-penyederhanaan-laporan-guru-koordinator-design.md
@@ -177,7 +177,7 @@ git commit -m "docs: sederhanakan kontrak laporan Guru BK"
 - Consumes: `ReportPolicy::viewAny(User $user): bool`, `AcademicYear`, `Classroom`, dan scope `Student::professionallyAccessibleTo()`.
 - Produces: `OperationalReportRecap`, `OperationalReportRequest::filters(): array`, `ReportPolicy::viewTab()`, serta public dispatch/helper/filter context pada `OperationalReportRecapService`.
 
-- [ ] **Step 1: Tulis failing test authorization dan validasi**
+- [x] **Step 1: Tulis failing test authorization dan validasi**
 
 Buat `OperationalReportRecapTest` dengan `RefreshDatabase` dan fondasi fixture berikut:
 
@@ -294,7 +294,7 @@ public function test_counselor_filter_is_validated_safely(): void
 
 Test membuktikan guest/role authorization, kelas lintas tahun dan di luar scope ditolak, serta Guru BK filter harus berupa akun aktif dengan role `guru_bk`.
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter="authorization|request"
@@ -302,7 +302,7 @@ php artisan test tests/Feature/OperationalReportRecapTest.php --filter="authoriz
 
 Expected: FAIL karena request, policy method, dan service belum tersedia.
 
-- [ ] **Step 3: Implementasikan request tab**
+- [x] **Step 3: Implementasikan request tab**
 
 Gunakan kontrak berikut:
 
@@ -480,7 +480,7 @@ public function index(OperationalReportRequest $request, ReportService $service)
 
 Task 6 mengganti payload view dari katalog legacy menjadi hasil `OperationalReportRecapService`; perubahan kecil di sini hanya memastikan authorization dan validasi tab sudah aktif serta teruji sejak fondasi.
 
-- [ ] **Step 4: Tambahkan policy tab**
+- [x] **Step 4: Tambahkan policy tab**
 
 ```php
 public function viewTab(User $user, string $tab): bool
@@ -495,7 +495,7 @@ public function exportTab(User $user, string $tab): bool
 }
 ```
 
-- [ ] **Step 5: Buat service skeleton dan helper aman**
+- [x] **Step 5: Buat service skeleton dan helper aman**
 
 Buat interface sejak fondasi agar Task 3-5 dapat menguji public dispatch tanpa menunggu integrasi UI:
 
@@ -638,14 +638,14 @@ final class OperationalReportRecapService implements OperationalReportRecap
 `accessibleStudents()` memakai scope model existing untuk cabang Koordinator dan Guru BK. `accessibleClassrooms()` berasal dari kelas tahun terpilih yang mempunyai membership murid dalam scope actor. `activeCounselors()` hanya memuat akun aktif dengan role aktif `guru_bk`. `period()` mempertahankan default `ReportService` existing. Semua pemakaian `escapeLike()` harus memakai binding dan klausa SQL `LIKE ? ESCAPE '\\'` yang kompatibel dengan SQLite dan MySQL; jangan menginterpolasi nilai pencarian ke raw SQL.
 Import `App\Contracts\OperationalReportRecap`, `App\Policies\ReportPolicy`, model yang disebut helper, `Carbon\CarbonImmutable`, dan builder Eloquent. Policy diperiksa lagi pada public `build()`/`exportRows()` sebelum query dibuat.
 
-- [ ] **Step 6: Jalankan focused tests**
+- [x] **Step 6: Jalankan focused tests**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter="authorization|request"
 php vendor/bin/pint --test app/Contracts/OperationalReportRecap.php app/Http/Controllers/ReportController.php app/Http/Requests/OperationalReportRequest.php app/Http/Requests/ReportRequest.php app/Services/OperationalReportRecapService.php app/Policies/ReportPolicy.php tests/Feature/OperationalReportRecapTest.php
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add app/Contracts/OperationalReportRecap.php app/Http/Controllers/ReportController.php app/Http/Requests/OperationalReportRequest.php app/Http/Requests/ReportRequest.php app/Services/OperationalReportRecapService.php app/Policies/ReportPolicy.php tests/Feature/OperationalReportRecapTest.php
@@ -665,7 +665,7 @@ git commit -m "feat: siapkan fondasi rekap laporan operasional"
 - Consumes: `accessibleStudents()`, periode ternormalisasi, `ExternalTatibRecord::active()`.
 - Produces: `buildViolations(User $actor, array $filters): array`, `exportViolations(User $actor, array $filters): array`, dan row aman tab Pelanggaran.
 
-- [ ] **Step 1: Tulis failing tests agregasi**
+- [x] **Step 1: Tulis failing tests agregasi**
 
 ```php
 public function test_violation_tab_groups_searches_filters_and_keeps_scope(): void
@@ -792,7 +792,7 @@ private function studentWithViolation(Classroom $classroom, int $index): Student
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter=violation
@@ -800,7 +800,7 @@ php artisan test tests/Feature/OperationalReportRecapTest.php --filter=violation
 
 Expected: FAIL karena `buildViolations()` belum tersedia.
 
-- [ ] **Step 3: Tambahkan relasi e-Tatib pada Student**
+- [x] **Step 3: Tambahkan relasi e-Tatib pada Student**
 
 ```php
 /** @return HasMany<ExternalTatibRecord, $this> */
@@ -810,7 +810,7 @@ public function etatibRecords(): HasMany
 }
 ```
 
-- [ ] **Step 4: Implementasikan aggregate query**
+- [x] **Step 4: Implementasikan aggregate query**
 
 Bangun dua aggregate query dari `ExternalTatibRecord`, bukan memuat record lalu mengelompokkan di Blade:
 
@@ -851,7 +851,7 @@ $query = DB::query()
 
 Derived `UNION ALL` ini menghindari cast identity lintas SQLite/MySQL. Paginate query aggregate dengan `paginate(20)->withQueryString()`. Ambil identitas, latest record dengan tie-breaker `occurred_at DESC, id DESC`, dan membership historis hanya untuk identity pada halaman menggunakan query batch konstan; jangan membuat query per row.
 
-- [ ] **Step 5: Bentuk kontrak output aman**
+- [x] **Step 5: Bentuk kontrak output aman**
 
 ```php
 [
@@ -881,7 +881,7 @@ Hitung ringkasan dari clone derived aggregate sebelum pagination: jumlah identit
 ]
 ```
 
-- [ ] **Step 6: Verifikasi**
+- [x] **Step 6: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter=violation
@@ -889,7 +889,7 @@ php artisan test tests/Feature/ReportManagementTest.php --filter="teacher_scope|
 php vendor/bin/pint --test app/Models/Student.php app/Services/OperationalReportRecapService.php tests/Feature/OperationalReportRecapTest.php
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add app/Models/Student.php app/Services/OperationalReportRecapService.php tests/Feature/OperationalReportRecapTest.php
@@ -908,7 +908,7 @@ git commit -m "feat: rekap pelanggaran dan poin per murid"
 - Consumes: `BkCase::accessibleTo()`, `Consultation::accessibleTo()`, `FollowUp`, `CaseAssignment::TYPE_OWNER`, dan reference category `follow_up_status`.
 - Produces: `buildServices(User $actor, array $filters): array` dan `exportServices(User $actor, array $filters): array` termasuk identitas sementara.
 
-- [ ] **Step 1: Tulis failing tests layanan**
+- [x] **Step 1: Tulis failing tests layanan**
 
 ```php
 public function test_service_tab_groups_official_reconciled_and_temporary_identities_safely(): void
@@ -1078,13 +1078,13 @@ private function studentWithCase(User $teacher, Classroom $classroom, int $index
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter=service_tab
 ```
 
-- [ ] **Step 3: Agregasikan tiga sumber secara terpisah**
+- [x] **Step 3: Agregasikan tiga sumber secara terpisah**
 
 Gunakan query grouped per `student_id`/`temporary_student_id` untuk kasus dan konsultasi, serta identitas milik kasus untuk tindak lanjut:
 
@@ -1106,7 +1106,7 @@ Terapkan `q` pada ketiga sumber sebelum union: nama `students.name` untuk identi
 
 Filter Koordinator memakai penanggung jawab kasus yang efektif pada tanggal record untuk kasus dan tindak lanjut, serta `consultations.counselor_id` untuk konsultasi. Jangan memakai `cases.created_by` atau `follow_ups.recorded_by` sebagai owner karena keduanya hanya menyatakan pencatat. Untuk kasus gunakan assignment `owner` yang periodenya mencakup `cases.service_date`; untuk tindak lanjut gunakan assignment `owner` yang periodenya mencakup `COALESCE(follow_ups.execution_date, follow_ups.planned_date)`. Filter tersebut wajib diterapkan pada ketiga subquery sebelum union agar seluruh hitungan row benar-benar dibatasi ke Guru BK terpilih.
 
-- [ ] **Step 4: Gabungkan aggregate map dengan identity key stabil**
+- [x] **Step 4: Gabungkan aggregate map dengan identity key stabil**
 
 ```php
 private function identityKey(
@@ -1145,14 +1145,14 @@ $page = (clone $identityQuery)->paginate(20)->withQueryString();
 
 Setiap case event mengisi flag `1,0,0,0`; consultation `0,1,0,0`; follow-up `0,0,1,CASE WHEN follow_up_status.code IN ('terjadwal', 'ditunda') THEN 1 ELSE 0 END`. Dengan demikian hitungan berasal dari seluruh dataset sebelum pagination tanpa query per row. Setelah page diperoleh, hydrate Student/TemporaryStudent dan membership tanggal terakhir dalam query batch konstan. Status follow-up terbuka adalah `terjadwal` atau `ditunda`; `terlaksana` dan `dibatalkan` tidak dihitung terbuka.
 
-- [ ] **Step 5: Terapkan kelas dan layanan terakhir**
+- [x] **Step 5: Terapkan kelas dan layanan terakhir**
 
 Kelas memakai membership efektif pada tanggal aktual terbaru. Untuk follow-up, `execution_date` boleh menjadi layanan aktual; `planned_date` hanya menentukan inklusi hitungan dan urutan row, tetapi tidak boleh menaikkan `latest_service_at`. Bila suatu row hanya mempunyai tindak lanjut terjadwal dan belum mempunyai aktivitas aktual, tampilkan layanan terakhir `Belum terlaksana` dan kelas `Belum tersedia`, bukan memakai tanggal rencana sebagai histori kelas. Identitas sementara yang belum direkonsiliasi memakai `Belum tersedia` dan badge `Belum terverifikasi Dapodik`.
 Hitung ringkasan dari clone `$identityQuery` sebelum pagination: jumlah identitas, jumlah seluruh kasus+konsultasi+tindak lanjut, dan jumlah tindak lanjut terbuka.
 
 `exportServices()` memakai `$identityQuery` dan mapper yang sama tanpa pagination, lalu mengembalikan ID `layanan`, kolom `Murid`, `NISN Tersamarkan`, `Kelas`, `Kasus`, `Konsultasi`, `Tindak lanjut`, `Perlu tindak lanjut`, dan `Layanan terakhir`, serta rows berupa `LazyCollection`/generator.
 
-- [ ] **Step 6: Verifikasi**
+- [x] **Step 6: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter=service_tab
@@ -1162,7 +1162,7 @@ php artisan test --filter ConsultationManagementTest
 php vendor/bin/pint --test app/Services/OperationalReportRecapService.php tests/Feature/OperationalReportRecapTest.php
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add app/Services/OperationalReportRecapService.php tests/Feature/OperationalReportRecapTest.php
@@ -1181,7 +1181,7 @@ git commit -m "feat: rekap layanan BK per murid"
 - Consumes: `Achievement::accessibleTo()`, referensi `achievement_level`, dan `achievement_verification_status`.
 - Produces: `buildAchievements(User $actor, array $filters): array` dan `exportAchievements(User $actor, array $filters): array`.
 
-- [ ] **Step 1: Tulis failing tests prestasi**
+- [x] **Step 1: Tulis failing tests prestasi**
 
 ```php
 public function test_achievement_tab_groups_uses_verified_sort_order_and_hides_private_fields(): void
@@ -1263,13 +1263,13 @@ private function achievementRecord(
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter=achievement_tab
 ```
 
-- [ ] **Step 3: Implementasikan aggregate query**
+- [x] **Step 3: Implementasikan aggregate query**
 
 ```php
 $query = Achievement::query()
@@ -1284,7 +1284,7 @@ Terapkan filter kelas melalui membership efektif pada `achievement_date`. Join t
 
 Ambil prestasi terbaru dengan tie-breaker `achievement_date DESC, achievements.id DESC`. Ambil label tingkat tertinggi melalui pasangan category `achievement_level` dan `sort_order` hasil aggregate; jangan memilih `MAX(label)` atau menganggap ID referensi merepresentasikan tingkat.
 
-- [ ] **Step 4: Bentuk row aman**
+- [x] **Step 4: Bentuk row aman**
 
 ```php
 [
@@ -1305,7 +1305,7 @@ Hitung ringkasan dari clone aggregate sebelum pagination: jumlah murid, `SUM(ach
 
 `exportAchievements()` memakai aggregate dan mapper yang sama tanpa pagination, lalu mengembalikan ID `prestasi`, kolom `Murid`, `NISN Tersamarkan`, `Kelas`, `Jumlah prestasi`, `Terverifikasi`, `Tingkat tertinggi`, dan `Prestasi terbaru`, serta rows berupa `LazyCollection`/generator. Kolom terbaru menggabungkan label aman dan tanggal seperti tabel aktif.
 
-- [ ] **Step 5: Verifikasi**
+- [x] **Step 5: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter=achievement_tab
@@ -1313,7 +1313,7 @@ php artisan test tests/Feature/AchievementManagementTest.php
 php vendor/bin/pint --test app/Services/OperationalReportRecapService.php tests/Feature/OperationalReportRecapTest.php
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/Services/OperationalReportRecapService.php tests/Feature/OperationalReportRecapTest.php
@@ -1343,7 +1343,7 @@ git commit -m "feat: rekap prestasi per murid"
 - Consumes: `OperationalReportRequest`, seluruh `build*()` tab, dan `ReportService` legacy.
 - Produces: halaman `/reports` bertab, CSV tab aktif, serta kompatibilitas URL legacy.
 
-- [ ] **Step 1: Tulis failing HTTP dan view tests**
+- [x] **Step 1: Tulis failing HTTP dan view tests**
 
 ```php
 public function test_reports_index_uses_three_deep_links_without_legacy_cards(): void
@@ -1453,14 +1453,14 @@ public function test_invalid_and_empty_states_are_accessible_and_reset_active_ta
 
 Tambahkan assertion `aria-current="page"`, label field, tombol Reset, `data-print-report`, dan ketiadaan `onclick`.
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php --filter="index|renders|filters|csv|legacy|mobile"
 php artisan test tests/Feature/FrontendPreviewTest.php --filter=report
 ```
 
-- [ ] **Step 3: Hubungkan index ke service rekap**
+- [x] **Step 3: Hubungkan index ke service rekap**
 
 Task 2 sudah membuat interface dan public dispatch, sedangkan Task 3-5 sudah menyediakan pasangan private builder `build*()` dan `export*()`. Pada task ini hubungkan controller ke service concrete tanpa binding container baru.
 
@@ -1480,7 +1480,7 @@ public function index(
 
 `build()` melakukan dispatch berdasarkan tab dan menambahkan daftar tab, filter options, paginator, columns, rows, period, generated_by, serta generated_at. `rows` selalu paginator hasil query database; service tidak boleh mengambil seluruh aggregate ke Collection sebelum pagination.
 
-- [ ] **Step 4: Pisahkan mode ekspor tab dan legacy**
+- [x] **Step 4: Pisahkan mode ekspor tab dan legacy**
 
 Gunakan `OperationalReportRequest` pada route export. Request tersebut sudah menerima tepat satu dari `type` atau `tab`, sedangkan `ReportRequest` tetap hanya dipakai route preview legacy. Controller memilih pipeline secara eksplisit:
 
@@ -1500,7 +1500,7 @@ $format = (string) $request->validated('format');
 
 `OperationalReportRecapService::exportRows()` memakai generator/`LazyCollection` yang memproses identity aggregate secara chunk dengan urutan stabil; jangan memanggil `get()` atas seluruh hasil. Gunakan helper CSV existing untuk UTF-8 BOM dan formula-injection protection. Filename memakai allowlist `pelanggaran|layanan|prestasi` atau legacy type, bukan nilai query mentah.
 
-- [ ] **Step 5: Ganti katalog kartu dengan tab**
+- [x] **Step 5: Ganti katalog kartu dengan tab**
 
 Struktur minimum `index.blade.php`:
 
@@ -1539,7 +1539,7 @@ Letakkan ringkasan validasi sebelum navigasi tab dengan `role="alert"`, heading 
 
 Cetak dibatasi melalui container `data-print-report`: judul, konteks filter, waktu pembuatan, pembuat, ringkasan, dan tabel aktif tetap terlihat; navigasi, form filter, pagination, serta kartu mobile disembunyikan pada media print. JavaScript hanya memanggil `window.print()` dari tombol yang sudah ada dan tidak mengubah data.
 
-- [ ] **Step 6: Terapkan responsive dan aksesibilitas**
+- [x] **Step 6: Terapkan responsive dan aksesibilitas**
 
 Generalisasi style tab tanpa memutus Waka:
 
@@ -1563,11 +1563,11 @@ Generalisasi style tab tanpa memutus Waka:
 Target tombol minimum 44 px, focus ring existing, heading berurutan, dan empty state memakai `<x-empty-state>`.
 Tambahkan `@media print` yang secara eksplisit menampilkan `.sibk-operational-report-table` dan menyembunyikan `.sibk-operational-report-cards`, sehingga cetak dari viewport ponsel tetap menghasilkan tabel aktif.
 
-- [ ] **Step 7: Perbarui frontend checker**
+- [x] **Step 7: Perbarui frontend checker**
 
 Tambahkan pemeriksaan bahwa `reportIndex` mempunyai tiga label tab, `aria-current`, filter bernama `q` dan `classroom_id`, hidden `tab`, Reset tab aktif, desktop table, mobile card list, export route dari filter tervalidasi, print trigger/container, dan tidak lagi melakukan loop katalog kartu.
 
-- [ ] **Step 8: Jalankan verification task**
+- [x] **Step 8: Jalankan verification task**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php
@@ -1580,7 +1580,7 @@ php vendor/bin/pint --test
 git diff --check
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```powershell
 git add app/Http/Controllers/ReportController.php app/Services/OperationalReportRecapService.php routes/web.php resources/views/pages/reports/index.blade.php resources/views/pages/reports/_filters.blade.php resources/views/pages/reports/_desktop-table.blade.php resources/views/pages/reports/_mobile-cards.blade.php resources/scss/app-dashboard.scss scripts/check-frontend.mjs tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php tests/Feature/FrontendPreviewTest.php tests/Feature/AuthorizationMatrixTest.php
@@ -1591,11 +1591,11 @@ git commit -m "feat: satukan laporan Guru BK dalam tiga tab"
 
 ### Task 7: Verification CLI dan Handoff UAT Manual Laporan
 
-> Status 15 September 2026: Task 1–6 sudah diimplementasikan. Gate CLI Task 7
-> lulus pada SQLite (418 test/3.293 assertion) dan focused MySQL disposable
-> (16 test/148 assertion); scan privasi/dependency bersih. Checklist telah
-> diserahkan dengan status `PENDING MANUAL`. Step 6–7 dan seluruh checkbox
-> Task 1–7 tetap menunggu hasil UAT manusia; Task 8 belum dimulai.
+> Status 15 September 2026: Task 1–7 selesai. Gate CLI lulus pada SQLite
+> (418 test/3.293 assertion) dan focused MySQL disposable (16 test/148
+> assertion); scan privasi/dependency bersih. UAT manual oleh `ui` melalui
+> Chrome pada tiga viewport dinyatakan PASS tanpa temuan gagal; versi browser
+> tidak dilaporkan. Task 8 dimulai setelah branch terintegrasi ke `cobasidebar`.
 
 **Files:**
 - Create: `docs/testing/2026-09-14-uat-laporan-guru-koordinator.md`
@@ -1607,7 +1607,7 @@ git commit -m "feat: satukan laporan Guru BK dalam tiga tab"
 - Produces: evidence gate CLI dan checklist UAT manual; fase laporan baru
   selesai setelah hasil manual dilaporkan PASS.
 
-- [ ] **Step 1: Jalankan focused gate melalui CLI**
+- [x] **Step 1: Jalankan focused gate melalui CLI**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php
@@ -1619,7 +1619,7 @@ php artisan test tests/Feature/FrontendPreviewTest.php
 
 Expected: 0 failure dan 0 error.
 
-- [ ] **Step 2: Jalankan full automated gate melalui CLI**
+- [x] **Step 2: Jalankan full automated gate melalui CLI**
 
 ```powershell
 php artisan test
@@ -1636,7 +1636,7 @@ php artisan view:clear
 
 Expected: seluruh command exit code 0 dan cache dibersihkan setelah verifikasi.
 
-- [ ] **Step 3: Jalankan privacy dan dependency scan**
+- [x] **Step 3: Jalankan privacy dan dependency scan**
 
 ```powershell
 rg -n "initial_info|internal_note|final_result|next_plan|evidence_reference|evidence_description|verification_notes" resources/views/pages/reports app/Services/OperationalReportRecapService.php
@@ -1645,7 +1645,7 @@ rg -n "spatie/laravel-query-builder|yajra|livewire|powergrid|filament|jquery" co
 
 Expected: field sensitif tidak diakses oleh view/service output; dependency tabel baru tidak ada.
 
-- [ ] **Step 4: Verifikasi query pada SQLite dan MySQL disposable**
+- [x] **Step 4: Verifikasi query pada SQLite dan MySQL disposable**
 
 Jalankan focused test rekap pada SQLite test dan database MySQL disposable yang telah divalidasi bukan shared/production. Jangan memakai `migrate:fresh`, rollback, atau reset pada database shared.
 
@@ -1655,7 +1655,7 @@ php artisan test tests/Feature/OperationalReportRecapTest.php
 
 Pada MySQL disposable gunakan konfigurasi test yang sudah tersedia dan catat nama database serta hasil tanpa mencetak credential.
 
-- [ ] **Step 5: Siapkan dan serahkan checklist UAT manual**
+- [x] **Step 5: Siapkan dan serahkan checklist UAT manual**
 
 Pelaksana UAT adalah pengguna atau tester manusia yang membuka aplikasi melalui
 browser biasa. Agent hanya menyiapkan data/akun uji, URL awal, dan checklist;
@@ -1689,7 +1689,7 @@ Urutan fokus mengikuti urutan visual dan focus ring terlihat.
 Endpoint legacy masih dapat dibuka oleh role sah.
 ```
 
-- [ ] **Step 6: Terima dan catat hasil UAT manual**
+- [x] **Step 6: Terima dan catat hasil UAT manual**
 
 Setelah pelaksana manual mengirim hasil, isi laporan UAT dengan nama/inisial
 tester, tanggal, browser dan versi, branch/SHA, viewport, skenario PASS/FAIL,
@@ -1701,7 +1701,7 @@ pada `docs/development-log.md` dan tandai hanya checkbox Task 1-7 setelah semua
 gate CLI dan UAT manual PASS; jangan menandai Task 8-15 atau plan gabungan
 sebagai selesai.
 
-- [ ] **Step 7: Commit evidence**
+- [x] **Step 7: Commit evidence**
 
 ```powershell
 git add docs/testing/2026-09-14-uat-laporan-guru-koordinator.md docs/development-log.md docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md
