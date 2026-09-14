@@ -6,8 +6,8 @@
 - Status checkpoint: Sedang dikerjakan
 - Branch kerja: `checkpoint-1-arsip`
 - Baseline pengembangan: `cobasidebar`
-- Task terakhir selesai: Belum ada
-- Task berikutnya: Task 1 — Verifikasi keadaan awal dan sumber arsip
+- Task terakhir selesai: Task 1 — Verifikasi keadaan awal dan sumber arsip
+- Task berikutnya: Task 2 — Buat repository private dan clone sementara
 - Commit acuan plan: `4b2d370`
 
 ## Keadaan eksternal
@@ -19,9 +19,9 @@
 
 ## Verifikasi terakhir
 
-- Branch kerja dan status bersih sudah diperiksa.
+- Sepuluh sumber arsip tersedia dan hash SHA-256 sudah dihitung.
+- Nama remote `Aflahul/sibk-docs-archive` belum digunakan.
 - Baseline lulus 411 test dengan 3.148 assertion.
-- Checker frontend lulus.
 - Belum ada tindakan eksternal.
 
 ## Cara melanjutkan

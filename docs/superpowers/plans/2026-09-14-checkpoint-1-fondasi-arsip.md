@@ -129,7 +129,7 @@ bersih.
 - Consumes: HEAD `cobasidebar` yang bersih dan autentikasi GitHub akun `Aflahul`.
 - Produces: daftar sepuluh file sumber yang ada, SHA sumber `b4310e1`, serta hash SHA-256 pembanding.
 
-- [ ] **Step 1: Pastikan branch dan worktree benar**
+- [x] **Step 1: Pastikan branch dan worktree benar**
 
 Run:
 
@@ -144,7 +144,7 @@ Expected: branch adalah `checkpoint-1-arsip`, status kosong, pemeriksaan ancesto
 code 0, dan riwayat memuat commit `b4310e1 docs: rapikan catatan dan rencana
 pengembangan`.
 
-- [ ] **Step 2: Pastikan autentikasi GitHub aktif**
+- [x] **Step 2: Pastikan autentikasi GitHub aktif**
 
 Run:
 
@@ -155,7 +155,7 @@ gh api user --jq "{login: .login, name: .name}"
 
 Expected: akun aktif adalah `Aflahul` dan token mempunyai scope `repo`.
 
-- [ ] **Step 3: Pastikan seluruh sumber arsip tersedia**
+- [x] **Step 3: Pastikan seluruh sumber arsip tersedia**
 
 Run:
 
@@ -179,7 +179,7 @@ $archiveSources | ForEach-Object { Get-FileHash -Algorithm SHA256 -LiteralPath $
 
 Expected: tidak ada exception dan tepat sepuluh hash ditampilkan.
 
-- [ ] **Step 4: Pastikan remote belum dipakai**
+- [x] **Step 4: Pastikan remote belum dipakai**
 
 Run:
 
@@ -190,7 +190,7 @@ gh repo view Aflahul/sibk-docs-archive --json nameWithOwner,isPrivate
 Expected: command menyatakan repository belum ditemukan. Bila repository sudah
 ada, hentikan task dan periksa isinya; jangan menimpa remote.
 
-- [ ] **Step 5: Catat hasil Task 1 untuk handoff**
+- [x] **Step 5: Catat hasil Task 1 untuk handoff**
 
 Update `docs/current-work.md`:
 
