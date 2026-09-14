@@ -311,7 +311,7 @@ repository `sibk`.
 - Consumes: sepuluh sumber terverifikasi dari Task 1.
 - Produces: snapshot tanpa perangkat penelitian, secret, dan hasil build.
 
-- [ ] **Step 1: Buat struktur tujuan**
+- [x] **Step 1: Buat struktur tujuan**
 
 Run:
 
@@ -328,7 +328,7 @@ $archiveRoot = (Resolve-Path -LiteralPath '.worktrees\sibk-docs-archive').Path
 
 Expected: lima folder tujuan tersedia di clone arsip.
 
-- [ ] **Step 2: Salin dokumen ke kategori yang benar**
+- [x] **Step 2: Salin dokumen ke kategori yang benar**
 
 Run:
 
@@ -348,7 +348,7 @@ Copy-Item -LiteralPath 'docs\development-log.md' -Destination (Join-Path $archiv
 
 Expected: sepuluh file hasil salinan tersedia.
 
-- [ ] **Step 3: Buat README arsip**
+- [x] **Step 3: Buat README arsip**
 
 Buat `.worktrees/sibk-docs-archive/README.md` dengan isi:
 
@@ -370,7 +370,7 @@ Perangkat penelitian RBAC, screenshot, credential, `.env`, cache, dan hasil
 build tidak disimpan dalam arsip ini.
 ```
 
-- [ ] **Step 4: Buat indeks arsip**
+- [x] **Step 4: Buat indeks arsip**
 
 Buat `.worktrees/sibk-docs-archive/archive-index.md` dengan isi:
 
@@ -391,17 +391,20 @@ Buat `.worktrees/sibk-docs-archive/archive-index.md` dengan isi:
 Snapshot berasal dari branch `cobasidebar` pada commit `b4310e1`.
 ```
 
-- [ ] **Step 5: Pastikan perangkat penelitian tidak ikut**
+- [x] **Step 5: Pastikan file perangkat penelitian tidak ikut**
 
 Run:
 
 ```powershell
-rg -n -i "RBAC-Test-Results|bukti-rbac|rbac-results-analysis|rbac:scenario" .worktrees/sibk-docs-archive
+rg --files .worktrees/sibk-docs-archive |
+    rg -i "RBAC-Test-Results|bukti-rbac|rbac-results-analysis|rbac:scenario"
 ```
 
-Expected: tidak ada hasil.
+Expected: tidak ada nama atau path file perangkat penelitian. Development log
+boleh menyebut riwayat pekerjaan RBAC karena bukan perangkat penelitian itu
+sendiri.
 
-- [ ] **Step 6: Catat hasil Task 3 untuk handoff**
+- [x] **Step 6: Catat hasil Task 3 untuk handoff**
 
 Update `docs/current-work.md`:
 
