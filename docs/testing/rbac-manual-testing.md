@@ -1,5 +1,12 @@
 # Panduan Pengujian Manual RBAC Ruang BK
 
+> **Status sementara:** Kebutuhan artikel penelitian dibatalkan. Screenshot dan
+> workbook hasil sudah dikeluarkan dari proyek; tidak perlu membuat bukti visual
+> baru. Manual dan CSV ini masih dipertahankan sebagai input test otomatis sampai
+> audit/pensiun perangkat penelitian pada Checkpoint 3. Aturan evidence di bawah
+> adalah catatan lama, bukan kewajiban pengembangan. Gunakan panduan pengujian
+> umum pada README untuk pekerjaan harian.
+
 Dokumen ini adalah petunjuk eksekusi untuk `RBAC-001` sampai `RBAC-041`. Pengujian membandingkan:
 
 `Role/Capability/Resource → Expected Access → Actual Access → Pass/Fail`

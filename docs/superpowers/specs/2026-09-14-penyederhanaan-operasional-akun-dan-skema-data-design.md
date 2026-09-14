@@ -495,7 +495,7 @@ diselaraskan minimum:
 - `AUTH-*`, privasi, audit, traceability matrix, `docs/requirements-index.md`,
   `docs/api-contract.md`, dan `docs/development-log.md`.
 
-Dokumen v1.0 tetap arsip dan tidak diubah.
+Dokumen v1.0 tetap tidak diubah di [repository arsip privat](https://github.com/Aflahul/sibk-docs-archive/tree/main/requirements/v1.0), bukan di repository aplikasi aktif.
 
 ## 14. Error Handling dan Keamanan
 

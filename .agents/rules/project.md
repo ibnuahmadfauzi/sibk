@@ -2,8 +2,8 @@
 
 ## Source of Truth
 
-1. `docs/requirements/SRS_Aplikasi_BK_v1.0.md` untuk perilaku sistem dan aturan fungsional.
-2. `docs/requirements/PRD_Aplikasi_BK_v1.0.md` untuk ruang lingkup, prioritas, dan tujuan produk.
+1. `docs/requirements/SRS_Aplikasi_BK_v1.1.md` untuk perilaku sistem dan aturan fungsional.
+2. `docs/requirements/PRD_Aplikasi_BK_v1.1.md` untuk ruang lingkup, prioritas, dan tujuan produk.
 3. Gunakan `docs/requirements-index.md` sebelum membuka dokumen penuh.
 
 Visual frontend:
@@ -40,5 +40,5 @@ Jika requirement dan desain bertentangan, laporkan konflik sebelum mengubah peri
 ## Format Requirement
 
 - Gunakan mirror `.md` untuk pencarian/selective reading oleh agent.
-- File `.docx` tetap baseline manusia/final dan disimpan bersama mirror Markdown.
+- Baseline aktif adalah Markdown v1.1; DOCX/Markdown v1.0 disimpan di repository arsip privat terpisah.
 - Jangan mengubah `.md` secara independen bila perubahan belum disahkan pada baseline final.
