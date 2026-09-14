@@ -542,7 +542,7 @@ Expected: commit dan push berhasil.
 - Consumes: remote private terverifikasi dari Task 4.
 - Produces: undangan collaborator dan clone lokal di luar folder `sibk`.
 
-- [ ] **Step 1: Kirim undangan collaborator**
+- [x] **Step 1: Kirim undangan collaborator**
 
 Run:
 
@@ -553,7 +553,7 @@ gh api --method PUT repos/Aflahul/sibk-docs-archive/collaborators/ibnuahmadfauzi
 Expected: GitHub mengembalikan undangan atau status sukses. Penerimaan undangan
 oleh `ibnuahmadfauzi` boleh tetap menunggu dan dicatat pada `current-work.md`.
 
-- [ ] **Step 2: Verifikasi lokasi sumber dan tujuan move**
+- [x] **Step 2: Verifikasi lokasi sumber dan tujuan move**
 
 Run:
 
@@ -574,7 +574,7 @@ if (Test-Path -LiteralPath $finalArchivePath) {
 
 Expected: tidak ada exception.
 
-- [ ] **Step 3: Pindahkan clone ke folder saudara**
+- [x] **Step 3: Pindahkan clone ke folder saudara**
 
 Run:
 
@@ -588,7 +588,7 @@ Move-Item -LiteralPath $temporaryArchivePath -Destination $finalArchivePath
 Expected: `D:\PPG 2026\SEMESTER 2\sibk-docs-archive\.git` tersedia dan
 `.worktrees\sibk-docs-archive` tidak lagi ada.
 
-- [ ] **Step 4: Verifikasi clone akhir**
+- [x] **Step 4: Verifikasi clone akhir**
 
 Run:
 
@@ -600,7 +600,7 @@ git -C "D:\PPG 2026\SEMESTER 2\sibk-docs-archive" remote -v
 Expected: branch `main` bersih dan remote menunjuk
 `Aflahul/sibk-docs-archive`.
 
-- [ ] **Step 5: Catat hasil Task 5 untuk handoff**
+- [x] **Step 5: Catat hasil Task 5 untuk handoff**
 
 Update `docs/current-work.md`:
 
