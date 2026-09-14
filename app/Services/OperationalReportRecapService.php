@@ -6,10 +6,15 @@ namespace App\Services;
 
 use App\Contracts\OperationalReportRecap;
 use App\Models\AcademicYear;
+use App\Models\BkCase;
+use App\Models\CaseAssignment;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
+use App\Models\FollowUp;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\TemporaryStudent;
 use App\Models\User;
 use App\Policies\ReportPolicy;
 use Carbon\CarbonImmutable;
@@ -126,6 +131,271 @@ final class OperationalReportRecapService implements OperationalReportRecap
         ];
     }
 
+    /** @param array<string, mixed> $filters @return array<string, mixed> */
+    private function buildServices(User $actor, array $filters): array
+    {
+        [$year, $start, $end] = $this->period($filters);
+        $filters = [
+            ...$filters,
+            'academic_year_id' => $year?->getKey(),
+            'date_start' => $start->toDateString(),
+            'date_end' => $end->toDateString(),
+        ];
+        $identities = $this->serviceIdentityQuery($actor, $filters, $year, $start, $end);
+        $summary = DB::query()->fromSub(clone $identities, 'service_summary')
+            ->selectRaw('COUNT(*) AS identity_count, COALESCE(SUM(case_count + consultation_count + follow_up_count), 0) AS service_count, COALESCE(SUM(open_follow_up_count), 0) AS open_follow_up_count')
+            ->first();
+        $rows = (clone $identities)
+            ->orderByDesc('latest_included_at')
+            ->orderBy('identity_type')
+            ->orderBy('identity_id')
+            ->paginate(20)
+            ->withQueryString();
+        $rows->setCollection($this->serviceRows($rows->getCollection(), $year));
+
+        return [
+            'id' => self::TAB_SERVICES,
+            'tab' => self::TAB_SERVICES,
+            'title' => 'Layanan BK',
+            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Tindak lanjut', 'Perlu tindak lanjut', 'Layanan terakhir'],
+            'stats' => [
+                'student_count' => (int) ($summary->identity_count ?? 0),
+                'service_count' => (int) ($summary->service_count ?? 0),
+                'open_follow_up_count' => (int) ($summary->open_follow_up_count ?? 0),
+            ],
+            'rows' => $rows,
+            'filters' => $filters,
+            'academic_year' => $year,
+            'period_start' => $start,
+            'period_end' => $end,
+            'generated_by' => $actor->name,
+            'generated_at' => now(),
+        ];
+    }
+
+    /** @param array<string, mixed> $filters @return array{id: string, columns: list<string>, rows: iterable<int, array<string, mixed>>} */
+    private function exportServices(User $actor, array $filters): array
+    {
+        [$year, $start, $end] = $this->period($filters);
+        $filters = [
+            ...$filters,
+            'academic_year_id' => $year?->getKey(),
+            'date_start' => $start->toDateString(),
+            'date_end' => $end->toDateString(),
+        ];
+        $rows = $this->serviceIdentityQuery($actor, $filters, $year, $start, $end)
+            ->orderByDesc('latest_included_at')
+            ->orderBy('identity_type')
+            ->orderBy('identity_id')
+            ->lazy(500)
+            ->chunk(500)
+            ->flatMap(fn (LazyCollection $chunk): Collection => $this->serviceRows($chunk->collect(), $year));
+
+        return [
+            'id' => self::TAB_SERVICES,
+            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Tindak lanjut', 'Perlu tindak lanjut', 'Layanan terakhir'],
+            'rows' => $rows,
+        ];
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function serviceIdentityQuery(
+        User $actor,
+        array $filters,
+        ?AcademicYear $year,
+        CarbonImmutable $start,
+        CarbonImmutable $end,
+    ): QueryBuilder {
+        $caseEvents = BkCase::query()
+            ->accessibleTo($actor)
+            ->leftJoin('temporary_students', 'temporary_students.id', '=', 'cases.temporary_student_id')
+            ->whereBetween('cases.service_date', [$start->toDateString(), $end->toDateString()]);
+        $this->applyCaseIdentityFilters($caseEvents, $filters, $year, 'cases.service_date');
+        $caseEvents
+            ->selectRaw("CASE WHEN cases.student_id IS NOT NULL OR temporary_students.reconciled_student_id IS NOT NULL THEN 'student' ELSE 'temporary' END AS identity_type")
+            ->selectRaw('COALESCE(cases.student_id, temporary_students.reconciled_student_id, cases.temporary_student_id) AS identity_id')
+            ->selectRaw('cases.service_date AS included_at, cases.service_date AS actual_at')
+            ->selectRaw('1 AS case_count, 0 AS consultation_count, 0 AS follow_up_count, 0 AS open_follow_up_count');
+
+        $consultationEvents = Consultation::query()
+            ->accessibleTo($actor)
+            ->leftJoin('temporary_students', 'temporary_students.id', '=', 'consultations.temporary_student_id')
+            ->whereBetween('consultations.session_date', [$start->toDateString(), $end->toDateString()]);
+        $this->applyConsultationIdentityFilters($consultationEvents, $filters, $year);
+        $consultationEvents
+            ->selectRaw("CASE WHEN consultations.student_id IS NOT NULL OR temporary_students.reconciled_student_id IS NOT NULL THEN 'student' ELSE 'temporary' END AS identity_type")
+            ->selectRaw('COALESCE(consultations.student_id, temporary_students.reconciled_student_id, consultations.temporary_student_id) AS identity_id')
+            ->selectRaw('consultations.session_date AS included_at, consultations.session_date AS actual_at')
+            ->selectRaw('0 AS case_count, 1 AS consultation_count, 0 AS follow_up_count, 0 AS open_follow_up_count');
+
+        $followUpDate = 'COALESCE(follow_ups.execution_date, follow_ups.planned_date)';
+        $followUpEvents = FollowUp::query()
+            ->whereHas('case', fn (Builder $cases): Builder => $cases->accessibleTo($actor))
+            ->join('cases', 'cases.id', '=', 'follow_ups.case_id')
+            ->leftJoin('temporary_students', 'temporary_students.id', '=', 'cases.temporary_student_id')
+            ->join('references as follow_up_status', 'follow_up_status.id', '=', 'follow_ups.status_id')
+            ->whereBetween(DB::raw($followUpDate), [$start->toDateString(), $end->toDateString()]);
+        $this->applyFollowUpIdentityFilters($followUpEvents, $filters, $year, $followUpDate);
+        $followUpEvents
+            ->selectRaw("CASE WHEN cases.student_id IS NOT NULL OR temporary_students.reconciled_student_id IS NOT NULL THEN 'student' ELSE 'temporary' END AS identity_type")
+            ->selectRaw('COALESCE(cases.student_id, temporary_students.reconciled_student_id, cases.temporary_student_id) AS identity_id')
+            ->selectRaw($followUpDate.' AS included_at, follow_ups.execution_date AS actual_at')
+            ->selectRaw("0 AS case_count, 0 AS consultation_count, 1 AS follow_up_count, CASE WHEN follow_up_status.code IN ('terjadwal', 'ditunda') THEN 1 ELSE 0 END AS open_follow_up_count");
+
+        return DB::query()
+            ->fromSub($caseEvents->unionAll($consultationEvents)->unionAll($followUpEvents), 'service_events')
+            ->select(['identity_type', 'identity_id'])
+            ->selectRaw('SUM(case_count) AS case_count')
+            ->selectRaw('SUM(consultation_count) AS consultation_count')
+            ->selectRaw('SUM(follow_up_count) AS follow_up_count')
+            ->selectRaw('SUM(open_follow_up_count) AS open_follow_up_count')
+            ->selectRaw('MAX(included_at) AS latest_included_at')
+            ->selectRaw('MAX(actual_at) AS latest_service_at')
+            ->groupBy('identity_type', 'identity_id');
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function applyCaseIdentityFilters(Builder $query, array $filters, ?AcademicYear $year, string $dateColumn): void
+    {
+        $this->applyServiceNameFilter($query, $filters, 'student', 'temporaryStudent');
+        if (isset($filters['classroom_id'])) {
+            $this->whereHistoricClass($query, $dateColumn, (int) $filters['classroom_id'], $year, [
+                'student.classMemberships',
+                'temporaryStudent.reconciledStudent.classMemberships',
+            ]);
+        }
+        if (isset($filters['counselor_id'])) {
+            $query->whereHas('assignments', fn (Builder $assignments): Builder => $assignments
+                ->where('assignment_type', CaseAssignment::TYPE_OWNER)
+                ->where('user_id', (int) $filters['counselor_id'])
+                ->whereRaw('DATE(case_assignments.effective_from) <= DATE('.$dateColumn.')')
+                ->where(function (Builder $period) use ($dateColumn): void {
+                    $period->whereNull('case_assignments.effective_until')
+                        ->orWhereRaw('DATE(case_assignments.effective_until) >= DATE('.$dateColumn.')');
+                }));
+        }
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function applyConsultationIdentityFilters(Builder $query, array $filters, ?AcademicYear $year): void
+    {
+        $this->applyServiceNameFilter($query, $filters, 'student', 'temporaryStudent');
+        if (isset($filters['classroom_id'])) {
+            $this->whereHistoricClass($query, 'consultations.session_date', (int) $filters['classroom_id'], $year, [
+                'student.classMemberships',
+                'temporaryStudent.reconciledStudent.classMemberships',
+            ]);
+        }
+        if (isset($filters['counselor_id'])) {
+            $query->where('consultations.counselor_id', (int) $filters['counselor_id']);
+        }
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function applyFollowUpIdentityFilters(Builder $query, array $filters, ?AcademicYear $year, string $dateColumn): void
+    {
+        $this->applyServiceNameFilter($query, $filters, 'case.student', 'case.temporaryStudent');
+        if (isset($filters['classroom_id'])) {
+            $this->whereHistoricClass($query, $dateColumn, (int) $filters['classroom_id'], $year, [
+                'case.student.classMemberships',
+                'case.temporaryStudent.reconciledStudent.classMemberships',
+            ]);
+        }
+        if (isset($filters['counselor_id'])) {
+            $query->whereHas('case.assignments', fn (Builder $assignments): Builder => $assignments
+                ->where('assignment_type', CaseAssignment::TYPE_OWNER)
+                ->where('user_id', (int) $filters['counselor_id'])
+                ->whereRaw('DATE(case_assignments.effective_from) <= DATE('.$dateColumn.')')
+                ->where(function (Builder $period) use ($dateColumn): void {
+                    $period->whereNull('case_assignments.effective_until')
+                        ->orWhereRaw('DATE(case_assignments.effective_until) >= DATE('.$dateColumn.')');
+                }));
+        }
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function applyServiceNameFilter(Builder $query, array $filters, string $studentPath, string $temporaryPath): void
+    {
+        $q = $filters['q'] ?? null;
+        if (blank($q)) {
+            return;
+        }
+
+        $pattern = '%'.$this->escapeLike((string) $q).'%';
+        $query->where(function (Builder $identities) use ($studentPath, $temporaryPath, $pattern): void {
+            $identities->whereHas($studentPath, fn (Builder $students): Builder => $students
+                ->whereRaw($this->likeClause('students.name'), [$pattern]))
+                ->orWhereHas($temporaryPath.'.reconciledStudent', fn (Builder $students): Builder => $students
+                    ->whereRaw($this->likeClause('students.name'), [$pattern]))
+                ->orWhereHas($temporaryPath, fn (Builder $temporary): Builder => $temporary
+                    ->whereNull('reconciled_student_id')
+                    ->whereRaw($this->likeClause('temporary_students.input_name'), [$pattern]));
+        });
+    }
+
+    /** @param Collection<int, object> $aggregates @return Collection<int, array<string, mixed>> */
+    private function serviceRows(Collection $aggregates, ?AcademicYear $year): Collection
+    {
+        if ($aggregates->isEmpty()) {
+            return collect();
+        }
+
+        $studentIds = $aggregates->where('identity_type', 'student')->pluck('identity_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $temporaryIds = $aggregates->where('identity_type', 'temporary')->pluck('identity_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $students = Student::query()->whereKey($studentIds)->get()->keyBy('id');
+        $temporaryStudents = TemporaryStudent::query()->whereKey($temporaryIds)->get()->keyBy('id');
+        $memberships = StudentClassMembership::query()
+            ->with('classroom')
+            ->whereIn('student_id', $studentIds)
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->id))
+            ->orderByDesc('effective_from')
+            ->get()
+            ->groupBy('student_id');
+
+        return $aggregates->map(function (object $aggregate) use ($students, $temporaryStudents, $memberships): array {
+            $isTemporary = $aggregate->identity_type === 'temporary';
+            $identityId = (int) $aggregate->identity_id;
+            $student = $isTemporary ? null : $students->get($identityId);
+            $temporary = $isTemporary ? $temporaryStudents->get($identityId) : null;
+            $latestServiceAt = $aggregate->latest_service_at === null ? null : CarbonImmutable::parse($aggregate->latest_service_at);
+            $membership = $student === null || $latestServiceAt === null
+                ? null
+                : $memberships->get($student->id, collect())->first(
+                    fn (StudentClassMembership $item): bool => $item->effective_from->startOfDay()->lte($latestServiceAt)
+                        && ($item->effective_until === null || $item->effective_until->endOfDay()->gte($latestServiceAt)),
+                );
+
+            return [
+                'identity_key' => $this->identityKey($student?->id, $temporary?->id, null),
+                'initials' => $this->initials($student?->name ?? $temporary?->input_name),
+                'masked_nisn' => $this->maskNisn($student?->nisn ?? $temporary?->nisn ?? ''),
+                'classroom' => $membership?->classroom?->name ?? 'Belum tersedia',
+                'is_temporary' => $isTemporary,
+                'identity_badge' => $isTemporary ? 'Belum terverifikasi Dapodik' : null,
+                'case_count' => (int) $aggregate->case_count,
+                'consultation_count' => (int) $aggregate->consultation_count,
+                'follow_up_count' => (int) $aggregate->follow_up_count,
+                'open_follow_up_count' => (int) $aggregate->open_follow_up_count,
+                'latest_service_date' => $latestServiceAt === null ? 'Belum terlaksana' : $this->formatDate($latestServiceAt),
+            ];
+        });
+    }
+
+    private function identityKey(?int $studentId, ?int $temporaryStudentId, ?int $reconciledStudentId): string
+    {
+        $officialStudentId = $studentId ?? $reconciledStudentId;
+
+        return $officialStudentId !== null
+            ? 'student:'.$officialStudentId
+            : 'temporary:'.(int) $temporaryStudentId;
+    }
+
+    private function formatDate(mixed $date): string
+    {
+        return str_replace(' Agt ', ' Agu ', CarbonImmutable::parse($date)->locale('id')->translatedFormat('d M Y'));
+    }
+
     /** @param array<string, mixed> $filters */
     private function violationAggregateQuery(
         User $actor,
@@ -200,7 +470,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 'violation_count' => (int) $aggregate->violation_count,
                 'total_points' => (int) $aggregate->total_points,
                 'latest_violation' => $latest?->violation_type ?? '—',
-                'latest_date' => $latest?->occurred_at?->locale('id')->translatedFormat('d M Y') ?? $latestAt->locale('id')->translatedFormat('d M Y'),
+                'latest_date' => $this->formatDate($latest?->occurred_at ?? $latestAt),
             ];
         });
     }

@@ -5,15 +5,21 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\BkCase;
+use App\Models\CaseAssignment;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
+use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
+use App\Models\TemporaryStudent;
 use App\Models\User;
 use App\Services\OperationalReportRecapService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -243,6 +249,104 @@ class OperationalReportRecapTest extends TestCase
         $this->assertLessThanOrEqual($singleCount + 2, $manyCount);
     }
 
+    public function test_service_tab_groups_official_reconciled_and_temporary_identities_safely(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Layanan');
+        [$student, $classroom] = $this->scopedStudent($teacher, 'Murid Layanan Resmi', '0022222222', 'XI RPL 1');
+        $reconciled = $this->temporaryStudent('0022222222', 'Nama Masukan Lama', $teacher, $student);
+        $unreconciled = $this->temporaryStudent('0033333333', 'Murid Sementara', $teacher);
+        $officialCase = $this->caseRecord($teacher, $student, null, '2026-08-10', 'RAHASIA-KASUS');
+        $temporaryCase = $this->caseRecord($teacher, null, $unreconciled, '2026-08-11', 'RAHASIA-SEMENTARA');
+        $this->consultationRecord($teacher, null, $reconciled, '2026-08-18', 'RAHASIA-KONSULTASI');
+        $this->followUpRecord($officialCase, $teacher, 'terlaksana', '2026-08-15', '2026-08-19');
+        $this->followUpRecord($officialCase, $teacher, 'terjadwal', '2026-08-25');
+
+        $report = app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'layanan']);
+        $rows = collect($report['rows']->items())->keyBy('identity_key');
+        $official = $rows->get('student:'.$student->id);
+        $temporary = $rows->get('temporary:'.$unreconciled->id);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame(1, $official['case_count']);
+        $this->assertSame(1, $official['consultation_count']);
+        $this->assertSame(2, $official['follow_up_count']);
+        $this->assertSame(1, $official['open_follow_up_count']);
+        $this->assertSame('19 Agu 2026', $official['latest_service_date']);
+        $this->assertSame($classroom->name, $official['classroom']);
+        $this->assertSame('Belum tersedia', $temporary['classroom']);
+        $this->assertTrue($temporary['is_temporary']);
+        $this->assertStringNotContainsString('RAHASIA-', json_encode($rows->all(), JSON_THROW_ON_ERROR));
+
+        $filtered = app(OperationalReportRecapService::class)->build($teacher, [
+            'tab' => 'layanan',
+            'q' => 'Resmi',
+            'classroom_id' => $classroom->id,
+        ]);
+        $this->assertSame(1, $filtered['rows']->total());
+        $this->assertSame('student:'.$student->id, $filtered['rows']->items()[0]['identity_key']);
+        $this->assertNotNull($temporaryCase->id);
+    }
+
+    public function test_coordinator_counselor_filter_uses_effective_owner_not_recorder(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator');
+        $ownerA = $this->userWithRole('guru_bk', 'Guru A');
+        $ownerB = $this->userWithRole('guru_bk', 'Guru B');
+        [$studentA] = $this->scopedStudent($ownerA, 'Murid Owner A', '0044444444', 'X AKL 1');
+        [$studentB] = $this->scopedStudent($ownerB, 'Murid Owner B', '0055555555', 'X AKL 2');
+        $caseA = $this->caseRecord($ownerA, $studentA, null, '2026-08-10', 'Kasus A');
+        $caseB = $this->caseRecord($ownerB, $studentB, null, '2026-08-10', 'Kasus B');
+        $caseA->update(['created_by' => $ownerB->id]);
+        $this->followUpRecord($caseA, $ownerB, 'terjadwal', '2026-08-22');
+        $this->followUpRecord($caseB, $ownerA, 'terjadwal', '2026-08-22');
+        $this->consultationRecord($ownerA, $studentA, null, '2026-08-12', 'Konsultasi A');
+        $this->consultationRecord($ownerB, $studentB, null, '2026-08-12', 'Konsultasi B');
+
+        $rows = collect(app(OperationalReportRecapService::class)->build($coordinator, [
+            'tab' => 'layanan',
+            'counselor_id' => $ownerA->id,
+        ])['rows']->items());
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('student:'.$studentA->id, $rows->first()['identity_key']);
+        $this->assertSame(1, $rows->first()['case_count']);
+        $this->assertSame(1, $rows->first()['consultation_count']);
+        $this->assertSame(1, $rows->first()['follow_up_count']);
+    }
+
+    public function test_service_identity_query_is_paginated_before_batch_hydration(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Query Layanan');
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'X Layanan',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->year->id,
+            'effective_from' => '2026-07-01',
+            'decision_number' => 'SK-LAYANAN',
+            'assigned_by' => $teacher->id,
+        ]);
+        $this->studentWithCase($teacher, $classroom, 1);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'layanan']);
+        $singleCount = count(DB::getQueryLog());
+        foreach (range(2, 25) as $index) {
+            $this->studentWithCase($teacher, $classroom, $index);
+        }
+        DB::flushQueryLog();
+        $report = app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'layanan']);
+
+        $this->assertSame(25, $report['rows']->total());
+        $this->assertCount(20, $report['rows']->items());
+        $this->assertLessThanOrEqual($singleCount + 3, count(DB::getQueryLog()));
+    }
+
     private function userWithRole(string $slug, string $name): User
     {
         $user = User::factory()->create(['name' => $name]);
@@ -314,6 +418,94 @@ class OperationalReportRecapTest extends TestCase
             'is_active' => true,
         ]);
         $this->etatib($student, 'ET-QUERY-'.$index, 'Pelanggaran '.$index, 1, '2026-08-10');
+
+        return $student;
+    }
+
+    private function temporaryStudent(string $nisn, string $name, User $creator, ?Student $reconciled = null): TemporaryStudent
+    {
+        return TemporaryStudent::query()->create([
+            'nisn' => $nisn,
+            'input_name' => $name,
+            'created_by' => $creator->id,
+            'reconciliation_status_id' => $this->reference(
+                'reconciliation_status',
+                $reconciled === null ? 'menunggu_rekonsiliasi' : 'terekonsiliasi',
+            )->id,
+            'reconciled_student_id' => $reconciled?->id,
+            'reconciled_by' => $reconciled === null ? null : $creator->id,
+            'reconciled_at' => $reconciled === null ? null : now(),
+        ]);
+    }
+
+    private function caseRecord(User $owner, ?Student $student, ?TemporaryStudent $temporary, string $date, string $secret): BkCase
+    {
+        $case = BkCase::query()->create([
+            'student_id' => $student?->id,
+            'temporary_student_id' => $temporary?->id,
+            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEW)->id,
+            'service_date' => $date,
+            'initial_info' => $secret,
+            'initial_action' => 'Asesmen awal',
+            'created_by' => $owner->id,
+        ]);
+        CaseAssignment::query()->create([
+            'case_id' => $case->id,
+            'user_id' => $owner->id,
+            'assignment_type' => CaseAssignment::TYPE_OWNER,
+            'effective_from' => $date,
+            'reason' => 'Penanggung jawab test',
+            'assigned_by' => $owner->id,
+        ]);
+
+        return $case;
+    }
+
+    private function consultationRecord(User $counselor, ?Student $student, ?TemporaryStudent $temporary, string $date, string $secret): Consultation
+    {
+        return Consultation::query()->create([
+            'student_id' => $student?->id,
+            'temporary_student_id' => $temporary?->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
+            'topic' => 'Topik aman',
+            'session_date' => $date,
+            'general_summary' => $secret,
+            'counselor_id' => $counselor->id,
+        ]);
+    }
+
+    private function followUpRecord(BkCase $case, User $recorder, string $status, string $planned, ?string $executed = null): FollowUp
+    {
+        return FollowUp::query()->create([
+            'case_id' => $case->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
+            'status_id' => $this->reference('follow_up_status', $status)->id,
+            'planned_date' => $planned,
+            'execution_date' => $executed,
+            'result' => 'RAHASIA-HASIL',
+            'next_plan' => 'RAHASIA-RENCANA',
+            'recorded_by' => $recorder->id,
+        ]);
+    }
+
+    private function studentWithCase(User $teacher, Classroom $classroom, int $index): Student
+    {
+        $student = Student::query()->create([
+            'nisn' => '1'.str_pad((string) $index, 9, '0', STR_PAD_LEFT),
+            'name' => 'Murid Layanan '.$index,
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->year->id,
+            'effective_from' => '2026-07-01',
+            'is_active' => true,
+        ]);
+        $this->caseRecord($teacher, $student, null, '2026-08-10', 'Fixture');
 
         return $student;
     }
