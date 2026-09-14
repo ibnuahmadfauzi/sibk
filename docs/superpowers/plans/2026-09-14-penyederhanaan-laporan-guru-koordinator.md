@@ -32,6 +32,16 @@
 - Queue MVP memakai `QUEUE_CONNECTION=sync`; jangan membuat adapter production Dapodik/e-Tatib pada plan ini.
 - API sekolah hanya menjadi sumber roster dan pelanggaran sesuai field yang tersedia; API tidak menentukan status keluar murid.
 - Tidak ada perubahan Penpot atau format XLSX/PDF server.
+- Seluruh automated test dan verification dijalankan hanya melalui CLI. Gate
+  otomatis tidak boleh memakai browser automation, headless browser, CUA,
+  screenshot comparison, atau penilaian visual berbasis model.
+- `FrontendPreviewTest`, `scripts/check-frontend.mjs`, dan build Vite tetap
+  termasuk gate CLI karena memeriksa kontrak route/HTML/source/build, bukan
+  kualitas tampilan visual.
+- Tampilan responsif, overflow, focus state yang terlihat, modal/konfirmasi,
+  kenyamanan interaksi, dan hasil cetak diuji manual oleh pengguna atau tester
+  manusia melalui browser biasa. Agent tidak boleh menandai UAT manual PASS
+  tanpa hasil yang dilaporkan pelaksana manual.
 
 ---
 
@@ -1537,7 +1547,7 @@ git commit -m "feat: satukan laporan Guru BK dalam tiga tab"
 
 ---
 
-### Task 7: Verification Laporan, Privacy Audit, dan UAT Fase A
+### Task 7: Verification CLI dan Handoff UAT Manual Laporan
 
 **Files:**
 - Create: `docs/testing/2026-09-14-uat-laporan-guru-koordinator.md`
@@ -1546,9 +1556,10 @@ git commit -m "feat: satukan laporan Guru BK dalam tiga tab"
 
 **Interfaces:**
 - Consumes: seluruh task sebelumnya.
-- Produces: evidence bahwa fase laporan siap dilanjutkan ke penyederhanaan operasional.
+- Produces: evidence gate CLI dan checklist UAT manual; fase laporan baru
+  selesai setelah hasil manual dilaporkan PASS.
 
-- [ ] **Step 1: Jalankan focused gate**
+- [ ] **Step 1: Jalankan focused gate melalui CLI**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php
@@ -1560,7 +1571,7 @@ php artisan test tests/Feature/FrontendPreviewTest.php
 
 Expected: 0 failure dan 0 error.
 
-- [ ] **Step 2: Jalankan full automated gate**
+- [ ] **Step 2: Jalankan full automated gate melalui CLI**
 
 ```powershell
 php artisan test
@@ -1595,7 +1606,13 @@ php artisan test tests/Feature/OperationalReportRecapTest.php
 
 Pada MySQL disposable gunakan konfigurasi test yang sudah tersedia dan catat nama database serta hasil tanpa mencetak credential.
 
-- [ ] **Step 5: Jalankan UAT Guru BK dan Koordinator**
+- [ ] **Step 5: Siapkan dan serahkan checklist UAT manual**
+
+Pelaksana UAT adalah pengguna atau tester manusia yang membuka aplikasi melalui
+browser biasa. Agent hanya menyiapkan data/akun uji, URL awal, dan checklist;
+agent tidak menjalankan browser automation, headless browser, CUA, screenshot
+comparison, atau menyimpulkan kualitas visual. Sebelum hasil dikembalikan,
+catat status UAT sebagai `PENDING MANUAL` dan hentikan eksekusi sebelum Task 8.
 
 Viewport:
 
@@ -1623,13 +1640,17 @@ Urutan fokus mengikuti urutan visual dan focus ring terlihat.
 Endpoint legacy masih dapat dibuka oleh role sah.
 ```
 
-- [ ] **Step 6: Catat evidence dan tutup fase laporan**
+- [ ] **Step 6: Terima dan catat hasil UAT manual**
 
-Isi laporan UAT dengan branch/SHA, viewport, skenario PASS/FAIL, jumlah
-test/assertion, hasil query compatibility, build, privacy scan, dan dependency
-scan. Pindahkan pekerjaan laporan ke Completed pada `docs/development-log.md`
-dan tandai hanya checkbox Task 1-7 setelah evidence tersedia; jangan menandai
-Task 8-15 atau plan gabungan sebagai selesai.
+Setelah pelaksana manual mengirim hasil, isi laporan UAT dengan nama/inisial
+tester, tanggal, browser dan versi, branch/SHA, viewport, skenario PASS/FAIL,
+catatan temuan, jumlah test/assertion CLI, hasil query compatibility, build,
+privacy scan, dan dependency scan. Jika ada skenario FAIL, kembalikan ke task
+implementasi terkait, ulangi gate CLI yang terdampak, lalu serahkan skenario
+manual tersebut untuk diuji ulang. Pindahkan pekerjaan laporan ke Completed
+pada `docs/development-log.md` dan tandai hanya checkbox Task 1-7 setelah semua
+gate CLI dan UAT manual PASS; jangan menandai Task 8-15 atau plan gabungan
+sebagai selesai.
 
 - [ ] **Step 7: Commit evidence**
 
@@ -3184,7 +3205,7 @@ git commit -m "fix: konsistenkan scope arsip dan murid keluar"
 
 ---
 
-### Task 15: Full Verification, Security Audit, dan UAT Gabungan
+### Task 15: Full Verification CLI dan Handoff UAT Manual Gabungan
 
 **Files:**
 - Create: `docs/testing/2026-09-14-uat-penyederhanaan-operasional.md`
@@ -3193,9 +3214,10 @@ git commit -m "fix: konsistenkan scope arsip dan murid keluar"
 
 **Interfaces:**
 - Consumes: seluruh Task 1-14.
-- Produces: evidence bahwa laporan, lifecycle, akun, dashboard, dan skema bekerja bersama tanpa kebocoran akses atau tabel sisa.
+- Produces: evidence gate CLI dan checklist UAT manual gabungan; plan baru
+  selesai setelah hasil manual dilaporkan PASS.
 
-- [ ] **Step 1: Jalankan focused feature gate**
+- [ ] **Step 1: Jalankan focused feature gate melalui CLI**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php
@@ -3212,7 +3234,7 @@ php artisan test tests/Feature/OperationalSchemaTest.php
 
 Expected: 0 failure dan 0 error.
 
-- [ ] **Step 2: Jalankan full automated gate**
+- [ ] **Step 2: Jalankan full automated gate melalui CLI**
 
 ```powershell
 php artisan test
@@ -3258,7 +3280,12 @@ QUEUE_CONNECTION: sync.
 Jangan menjalankan reset pada database shared atau menyertakan credential pada
 evidence.
 
-- [ ] **Step 5: Jalankan UAT role dan lifecycle**
+- [ ] **Step 5: Siapkan dan serahkan checklist UAT manual gabungan**
+
+Pelaksana UAT adalah pengguna atau tester manusia melalui browser biasa. Agent
+hanya menyiapkan akun/data uji, URL awal, expected result, dan checklist; agent
+tidak mengoperasikan browser untuk menilai tampilan. Catat status
+`PENDING MANUAL` dan jangan menutup plan sebelum hasil manual dikembalikan.
 
 Viewport:
 
@@ -3289,12 +3316,16 @@ Dashboard menampilkan panel role-aware tanpa aktivitas audit.
 Tidak ada horizontal overflow dan seluruh focus state terlihat.
 ```
 
-- [ ] **Step 6: Catat evidence dan tutup plan**
+- [ ] **Step 6: Terima hasil manual dan tutup plan**
 
-Isi UAT dengan branch/SHA, database engine, jumlah tabel, jumlah test/assertion,
-hasil tiap role, viewport, privacy scan, build, dan status PASS/FAIL. Tandai
-checkbox plan hanya setelah evidence tersedia dan pindahkan tracker terkait ke
-Completed pada `docs/development-log.md`.
+Setelah pelaksana manual mengirim hasil, isi UAT dengan nama/inisial tester,
+tanggal, browser dan versi, branch/SHA, database engine, jumlah tabel, jumlah
+test/assertion CLI, hasil tiap role, viewport, catatan temuan, privacy scan,
+build, dan status PASS/FAIL. Jika ada skenario FAIL, perbaiki melalui task
+terkait, jalankan ulang gate CLI yang terdampak, dan minta pengujian ulang hanya
+untuk skenario manual terkait. Tandai checkbox plan dan pindahkan tracker ke
+Completed pada `docs/development-log.md` hanya setelah seluruh CLI dan manual
+gate PASS.
 
 - [ ] **Step 7: Commit evidence**
 
@@ -3314,7 +3345,7 @@ Task 1 Requirement contract
     -> Task 4 Service recap
     -> Task 5 Achievement recap
     -> Task 6 HTTP, export, and UI integration
-    -> Task 7 Report verification and UAT
+    -> Task 7 CLI report verification and manual UAT handoff
     -> Task 8 Operational requirement and API boundaries
     -> Task 9 Terminal edit, archive, and status simplification
     -> Task 10 Retire correction, notification, history, and audit feed UI
@@ -3322,7 +3353,7 @@ Task 1 Requirement contract
     -> Task 12 Temporary passwords and admin recovery
     -> Task 13 Final 30-table schema
     -> Task 14 Cross-surface scope integration
-    -> Task 15 Combined verification and UAT
+    -> Task 15 Combined CLI verification and manual UAT handoff
 ```
 
 Task 3, Task 4, dan Task 5 menyentuh service yang sama, sehingga eksekusi pada satu branch harus berurutan. Jangan menjalankan ketiganya secara paralel pada worktree yang sama.
@@ -3356,4 +3387,6 @@ lulus focused gate.
   ada dan tabel runtime/domain yang disetujui tetap tersedia.
 - Tidak ada tabel rekap UI, flag keluar murid duplikat, atau tabel alasan edit.
 - Focused tests, full suite, Pint, cache, frontend checker, build, SQLite/MySQL
-  query gate, privacy scan, dependency scan, security scan, dan UAT lulus.
+  query gate, privacy scan, dependency scan, dan security scan lulus melalui
+  CLI; seluruh checklist tampilan/interaksi mendapat hasil PASS dari UAT manual
+  pengguna atau tester manusia.
