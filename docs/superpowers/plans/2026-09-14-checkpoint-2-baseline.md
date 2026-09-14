@@ -66,10 +66,10 @@
 | `docs/testing/2026-09-13-uat-portal-waka.md` | `testing/completed/2026-09-13-uat-portal-waka.md` |
 | `docs/development-log.md` (versi `b4310e1`) | `testing/completed/development-log-through-2026-09-14.md` |
 
-- [ ] Periksa file yang dipilih benar-benar tracked: `git ls-files docs/requirements docs/superpowers docs/testing`.
-- [ ] Hapus hanya sembilan sumber terarsip, bukan log aktif, dengan `git rm --` dan path eksplisit dari tabel. Tidak ada recursive delete.
-- [ ] Periksa `git diff --name-status` dan referensi lokal file terhapus dengan `rg --hidden -n --glob '*.md'` (abaikan inventaris historis spec/plan checkpoint yang memang mencatat asal arsip).
-- [ ] Catat Task 3 selesai/Task 4 berikutnya; `git diff --check`, lalu commit `docs: keluarkan dokumen lama yang sudah diarsipkan`.
+- [x] Periksa file yang dipilih benar-benar tracked: `git ls-files docs/requirements docs/superpowers docs/testing`.
+- [x] Hapus hanya sembilan sumber terarsip, bukan log aktif, dengan `git rm --` dan path eksplisit dari tabel. Tidak ada recursive delete.
+- [x] Periksa `git diff --name-status` dan referensi lokal file terhapus dengan `rg --hidden -n --glob '*.md'` (abaikan inventaris historis spec/plan checkpoint yang memang mencatat asal arsip).
+- [x] Catat Task 3 selesai/Task 4 berikutnya; `git diff --check`, lalu commit `docs: keluarkan dokumen lama yang sudah diarsipkan`.
 
 ## Task 4 — Hapus bukti visual penelitian
 
