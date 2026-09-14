@@ -1,7 +1,7 @@
 # Penyederhanaan Operasional, Akun, dan Skema Data
 
 **Tanggal:** 14 September 2026
-**Status:** Menunggu review pengguna
+**Status:** Disetujui untuk penyusunan implementation plan
 **Target:** UI operasional, lifecycle kasus dan konsultasi, akun, serta hasil akhir skema database Ruang BK
 **Referensi perilaku:** PRD/SRS Aplikasi BK v1.1, terutama `ACC-*`, `AUTH-*`, `MD-*`, `CASE-*`, `CONS-*`, `DASH-*`, `NOT-01`, `AUD-01`, dan `COR-*`
 
@@ -559,12 +559,13 @@ Spesifikasi dianggap terpenuhi bila:
 Implementation plan harus memecah pekerjaan menjadi gate berurutan:
 
 1. requirement dan API contract telah diamendemen serta tidak kontradiktif;
-2. migration fresh/incremental menghasilkan target 30 tabel;
+2. lifecycle kasus/konsultasi, policy, arsip, dan audit lulus focused tests;
 3. fitur UI dan backend yang dihentikan tidak lagi mempunyai consumer;
-4. lifecycle kasus/konsultasi, policy, arsip, dan audit lulus focused tests;
-5. student departure lulus constraint, concurrency, transition, authorization,
+4. student departure lulus constraint, concurrency, transition, authorization,
    dan API non-interference tests;
-6. temporary password dan admin recovery lulus security tests;
+5. temporary password dan admin recovery lulus security tests;
+6. setelah consumer retired hilang, migration fresh/incremental menghasilkan
+   target 30 tabel;
 7. dashboard role-aware lulus scope/privacy tests;
 8. seluruh suite dan pemeriksaan kualitas repository lulus.
 
