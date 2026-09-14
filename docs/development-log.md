@@ -15,11 +15,8 @@ Setelah pekerjaan selesai, pindahkan/ubah entri tersebut ke **"Completed Tasks"*
 
 ## 🚀 Current / Upcoming Tasks
 
-- `[ ] [2026-08-20] Eksekusi Migrasi Database & Seeder Ruang BK (Roles, References, AcademicYears, Classrooms, Students, TemporaryStudents, Cases, FollowUps, Consultations, Corrections, AuditLogs)`
-- `[ ] [2026-08-20] Implementasi Eloquent Models, Relations & Query Scopes`
-- `[ ] [2026-08-20] Implementasi Policies & Otorisasi Multi-Role (Guru BK, Koordinator, Waka, Admin IT)`
-- `[ ] [2026-08-20] Implementasi Service Layer (CaseService, StudentService, AssignmentService, ConsultationService, CorrectionService, ReportService)`
-- `[ ] [2026-08-20] Integrasi Web Controllers & Form Requests dengan Tampilan Blade`
+- Tidak ada task implementasi aktif yang telah disetujui.
+- Tindak lanjut integrasi production menunggu kontrak resmi Dapodik/e-Tatib dan kelulusan provider contract admission gate.
 
 ---
 
