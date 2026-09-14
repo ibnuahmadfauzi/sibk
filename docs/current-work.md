@@ -4,7 +4,7 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint berikutnya: 5 — Penyederhanaan operasional, akun, dan skema mulai Task 8.
-- Branch kerja: `checkpoint-5-operasional`, dibuat dari `cobasidebar` setelah PR #12 terintegrasi.
+- Branch Checkpoint 5 belum dibuat; mulai nanti dari `cobasidebar` saat pekerjaan dilanjutkan.
 - Worktree: root repository.
 - Baseline `cobasidebar`: `7f604416` (merge PR #12).
 
@@ -55,8 +55,9 @@
 
 ## Langkah berikutnya
 
-1. Lanjutkan pada sesi berikutnya dari Task 8: selaraskan requirement, kontrak
-   API, dan batas skema memakai keputusan terbaru di plan/spec aktif.
+1. Pada sesi berikutnya, buat branch Checkpoint 5 dari `cobasidebar`, lalu mulai
+   Task 8: selaraskan requirement, kontrak API, dan batas skema memakai keputusan
+   terbaru di plan/spec aktif.
 2. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5.
 3. Task 11 wajib menyediakan daftar/detail proses keluar read-only untuk Waka.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
