@@ -6,12 +6,14 @@ namespace App\Services;
 
 use App\Contracts\OperationalReportRecap;
 use App\Models\AcademicYear;
+use App\Models\Achievement;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\FollowUp;
+use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TemporaryStudent;
@@ -196,6 +198,173 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Tindak lanjut', 'Perlu tindak lanjut', 'Layanan terakhir'],
             'rows' => $rows,
         ];
+    }
+
+    /** @param array<string, mixed> $filters @return array<string, mixed> */
+    private function buildAchievements(User $actor, array $filters): array
+    {
+        [$year, $start, $end] = $this->period($filters);
+        $filters = [
+            ...$filters,
+            'academic_year_id' => $year?->getKey(),
+            'date_start' => $start->toDateString(),
+            'date_end' => $end->toDateString(),
+        ];
+        $aggregates = $this->achievementAggregateQuery($actor, $filters, $year, $start, $end);
+        $summary = DB::query()->fromSub(clone $aggregates, 'achievement_summary')
+            ->selectRaw('COUNT(*) AS student_count, COALESCE(SUM(achievement_count), 0) AS achievement_count, COALESCE(SUM(verified_count), 0) AS verified_count')
+            ->first();
+        $rows = (clone $aggregates)
+            ->orderByDesc('latest_at')
+            ->orderBy('student_id')
+            ->paginate(20)
+            ->withQueryString();
+        $rows->setCollection($this->achievementRows($rows->getCollection(), $year));
+
+        return [
+            'id' => self::TAB_ACHIEVEMENTS,
+            'tab' => self::TAB_ACHIEVEMENTS,
+            'title' => 'Prestasi',
+            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Jumlah prestasi', 'Terverifikasi', 'Tingkat tertinggi', 'Prestasi terbaru'],
+            'stats' => [
+                'student_count' => (int) ($summary->student_count ?? 0),
+                'achievement_count' => (int) ($summary->achievement_count ?? 0),
+                'verified_count' => (int) ($summary->verified_count ?? 0),
+            ],
+            'rows' => $rows,
+            'filters' => $filters,
+            'academic_year' => $year,
+            'period_start' => $start,
+            'period_end' => $end,
+            'generated_by' => $actor->name,
+            'generated_at' => now(),
+        ];
+    }
+
+    /** @param array<string, mixed> $filters @return array{id: string, columns: list<string>, rows: iterable<int, array<string, mixed>>} */
+    private function exportAchievements(User $actor, array $filters): array
+    {
+        [$year, $start, $end] = $this->period($filters);
+        $filters = [
+            ...$filters,
+            'academic_year_id' => $year?->getKey(),
+            'date_start' => $start->toDateString(),
+            'date_end' => $end->toDateString(),
+        ];
+        $rows = $this->achievementAggregateQuery($actor, $filters, $year, $start, $end)
+            ->orderByDesc('latest_at')
+            ->orderBy('student_id')
+            ->lazy(500)
+            ->chunk(500)
+            ->flatMap(fn (LazyCollection $chunk): Collection => $this->achievementRows($chunk->collect(), $year));
+
+        return [
+            'id' => self::TAB_ACHIEVEMENTS,
+            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Jumlah prestasi', 'Terverifikasi', 'Tingkat tertinggi', 'Prestasi terbaru'],
+            'rows' => $rows,
+        ];
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function achievementAggregateQuery(
+        User $actor,
+        array $filters,
+        ?AcademicYear $year,
+        CarbonImmutable $start,
+        CarbonImmutable $end,
+    ): Builder {
+        $query = Achievement::query()
+            ->accessibleTo($actor)
+            ->join('references as level_reference', function ($join): void {
+                $join->on('level_reference.id', '=', 'achievements.level_id')
+                    ->where('level_reference.category', 'achievement_level');
+            })
+            ->join('references as verification_reference', function ($join): void {
+                $join->on('verification_reference.id', '=', 'achievements.verification_status_id')
+                    ->where('verification_reference.category', 'achievement_verification_status');
+            })
+            ->whereBetween('achievements.achievement_date', [$start->toDateString(), $end->toDateString()])
+            ->when($filters['q'] ?? null, fn (Builder $items, string $q): Builder => $items
+                ->whereHas('student', fn (Builder $students): Builder => $students
+                    ->whereRaw($this->likeClause('students.name'), ['%'.$this->escapeLike($q).'%'])));
+
+        if (isset($filters['classroom_id'])) {
+            $this->whereHistoricClass($query, 'achievements.achievement_date', (int) $filters['classroom_id'], $year);
+        }
+
+        return $query
+            ->select('achievements.student_id')
+            ->selectRaw('COUNT(*) AS achievement_count')
+            ->selectRaw("SUM(CASE WHEN verification_reference.code = 'terverifikasi' THEN 1 ELSE 0 END) AS verified_count")
+            ->selectRaw('MAX(achievements.achievement_date) AS latest_at')
+            ->selectRaw("MAX(CASE WHEN verification_reference.code = 'terverifikasi' THEN level_reference.sort_order ELSE NULL END) AS highest_verified_sort")
+            ->groupBy('achievements.student_id');
+    }
+
+    /** @param Collection<int, object> $aggregates @return Collection<int, array<string, mixed>> */
+    private function achievementRows(Collection $aggregates, ?AcademicYear $year): Collection
+    {
+        if ($aggregates->isEmpty()) {
+            return collect();
+        }
+
+        $studentIds = $aggregates->pluck('student_id')->map(fn (mixed $id): int => (int) $id)->all();
+        $students = Student::query()->whereKey($studentIds)->get()->keyBy('id');
+        $latest = $this->latestAchievements($aggregates);
+        $levels = ReferenceValue::query()
+            ->forCategory('achievement_level')
+            ->whereIn('sort_order', $aggregates->pluck('highest_verified_sort')->filter()->unique()->all())
+            ->get()
+            ->keyBy('sort_order');
+        $memberships = StudentClassMembership::query()
+            ->with('classroom')
+            ->whereIn('student_id', $studentIds)
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->id))
+            ->orderByDesc('effective_from')
+            ->get()
+            ->groupBy('student_id');
+
+        return $aggregates->map(function (object $aggregate) use ($students, $latest, $levels, $memberships): array {
+            $student = $students->get((int) $aggregate->student_id);
+            $latestAchievement = $latest->get((int) $aggregate->student_id);
+            $latestAt = CarbonImmutable::parse($aggregate->latest_at);
+            $membership = $memberships->get((int) $aggregate->student_id, collect())->first(
+                fn (StudentClassMembership $item): bool => $item->effective_from->startOfDay()->lte($latestAt)
+                    && ($item->effective_until === null || $item->effective_until->endOfDay()->gte($latestAt)),
+            );
+
+            return [
+                'identity_key' => 'student:'.$student->id,
+                'initials' => $this->initials($student->name),
+                'masked_nisn' => $this->maskNisn($student->nisn),
+                'classroom' => $membership?->classroom?->name ?? 'Tanpa kelas',
+                'achievement_count' => (int) $aggregate->achievement_count,
+                'verified_count' => (int) $aggregate->verified_count,
+                'highest_verified_level' => $levels->get((int) $aggregate->highest_verified_sort)?->label ?? 'Belum ada',
+                'latest_achievement' => $latestAchievement?->activity_name ?? '—',
+                'latest_date' => $this->formatDate($latestAchievement?->achievement_date ?? $latestAt),
+            ];
+        });
+    }
+
+    /** @param Collection<int, object> $aggregates @return Collection<int, Achievement> */
+    private function latestAchievements(Collection $aggregates): Collection
+    {
+        return Achievement::query()
+            ->select(['id', 'student_id', 'activity_name', 'achievement_date'])
+            ->where(function (Builder $items) use ($aggregates): void {
+                foreach ($aggregates as $aggregate) {
+                    $items->orWhere(fn (Builder $identity): Builder => $identity
+                        ->where('student_id', (int) $aggregate->student_id)
+                        ->where('achievement_date', $aggregate->latest_at));
+                }
+            })
+            ->orderByDesc('achievement_date')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('student_id')
+            ->keyBy('student_id');
     }
 
     /** @param array<string, mixed> $filters */

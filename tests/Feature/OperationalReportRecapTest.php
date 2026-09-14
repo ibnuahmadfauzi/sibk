@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\Achievement;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
@@ -347,6 +348,63 @@ class OperationalReportRecapTest extends TestCase
         $this->assertLessThanOrEqual($singleCount + 3, count(DB::getQueryLog()));
     }
 
+    public function test_achievement_tab_groups_uses_verified_sort_order_and_hides_private_fields(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Prestasi');
+        [$student, $classroom] = $this->scopedStudent($teacher, 'Murid Prestasi Rahasia', '0066666666', 'XI DKV 1');
+        $this->achievementRecord($student, $teacher, 'Lomba Nasional', 'nasional', 'terverifikasi', '2026-08-10');
+        $this->achievementRecord($student, $teacher, '=SUM(1+1)', 'internasional', 'menunggu', '2026-08-12');
+
+        $report = app(OperationalReportRecapService::class)->build($teacher, [
+            'tab' => 'prestasi',
+            'q' => 'Prestasi',
+            'classroom_id' => $classroom->id,
+        ]);
+        $row = $report['rows']->items()[0];
+        $encoded = json_encode($row, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(2, $row['achievement_count']);
+        $this->assertSame(1, $row['verified_count']);
+        $this->assertSame('Nasional', $row['highest_verified_level']);
+        $this->assertSame('=SUM(1+1)', $row['latest_achievement']);
+        $this->assertStringNotContainsString('BUKTI-RAHASIA', $encoded);
+        $this->assertStringNotContainsString('CATATAN-RAHASIA', $encoded);
+        $this->assertStringNotContainsString($student->name, $encoded);
+    }
+
+    public function test_achievement_tab_keeps_scope_historical_class_and_stable_pagination(): void
+    {
+        $teacherA = $this->userWithRole('guru_bk', 'Guru A');
+        $teacherB = $this->userWithRole('guru_bk', 'Guru B');
+        [$studentA] = $this->scopedStudent($teacherA, 'Prestasi A', '0077777777', 'XI AKL 1');
+        [$studentB] = $this->scopedStudent($teacherB, 'Prestasi B', '0088888888', 'XI AKL 2');
+        $historicalClass = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'X AKL Historis',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->where('student_id', $studentA->id)->update(['effective_from' => '2026-08-11']);
+        StudentClassMembership::query()->create([
+            'student_id' => $studentA->id,
+            'classroom_id' => $historicalClass->id,
+            'academic_year_id' => $this->year->id,
+            'effective_from' => '2026-07-01',
+            'effective_until' => '2026-08-10',
+            'is_active' => true,
+        ]);
+        $this->achievementRecord($studentA, $teacherA, 'Prestasi A', 'sekolah', 'terverifikasi', '2026-08-10');
+        $this->achievementRecord($studentB, $teacherB, 'Prestasi B', 'sekolah', 'terverifikasi', '2026-08-10');
+
+        $report = app(OperationalReportRecapService::class)->build($teacherA, [
+            'tab' => 'prestasi',
+            'classroom_id' => $historicalClass->id,
+        ]);
+
+        $this->assertSame(1, $report['rows']->total());
+        $this->assertSame('student:'.$studentA->id, $report['rows']->items()[0]['identity_key']);
+        $this->assertSame($historicalClass->name, $report['rows']->items()[0]['classroom']);
+    }
+
     private function userWithRole(string $slug, string $name): User
     {
         $user = User::factory()->create(['name' => $name]);
@@ -508,5 +566,30 @@ class OperationalReportRecapTest extends TestCase
         $this->caseRecord($teacher, $student, null, '2026-08-10', 'Fixture');
 
         return $student;
+    }
+
+    private function achievementRecord(
+        Student $student,
+        User $recorder,
+        string $activity,
+        string $level,
+        string $verification,
+        string $date,
+    ): Achievement {
+        return Achievement::query()->create([
+            'student_id' => $student->id,
+            'type_id' => $this->reference('achievement_type', 'akademik')->id,
+            'level_id' => $this->reference('achievement_level', $level)->id,
+            'activity_name' => $activity,
+            'organizer' => 'Sekolah',
+            'achievement_date' => $date,
+            'result' => 'Juara',
+            'evidence_reference' => 'BUKTI-RAHASIA',
+            'evidence_description' => 'DESKRIPSI-RAHASIA',
+            'notes' => 'CATATAN-RAHASIA',
+            'verification_status_id' => $this->reference('achievement_verification_status', $verification)->id,
+            'recorded_by' => $recorder->id,
+            'verification_notes' => 'VERIFIKASI-RAHASIA',
+        ]);
     }
 }
