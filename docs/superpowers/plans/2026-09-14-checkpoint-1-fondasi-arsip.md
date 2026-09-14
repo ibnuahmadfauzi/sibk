@@ -633,7 +633,7 @@ Expected: commit dan push berhasil.
 - Consumes: hasil verifikasi remote, lokasi clone akhir, dan status undangan.
 - Produces: petunjuk pendek untuk memulai Checkpoint 2.
 
-- [ ] **Step 1: Perbarui catatan pekerjaan aktif**
+- [x] **Step 1: Perbarui catatan pekerjaan aktif**
 
 Ganti bagian status di `docs/current-work.md` dengan isi:
 
@@ -675,7 +675,7 @@ Jika undangan collaborator belum diterima, tambahkan satu butir di bagian
 `Hasil terakhir`: `Undangan collaborator sudah dikirim dan masih menunggu
 penerimaan.`
 
-- [ ] **Step 2: Jalankan gate akhir Checkpoint 1**
+- [x] **Step 2: Jalankan gate akhir Checkpoint 1**
 
 Run:
 
@@ -689,7 +689,7 @@ git diff --check
 Expected: remote private, clone arsip bersih, dan repository `sibk` hanya
 menampilkan perubahan `docs/current-work.md` serta checkbox plan.
 
-- [ ] **Step 3: Commit plan dan catatan checkpoint**
+- [x] **Step 3: Commit plan dan catatan checkpoint**
 
 Run:
 
@@ -701,7 +701,7 @@ git push
 
 Expected: commit berhasil dan tidak memuat penghapusan dokumen lama.
 
-- [ ] **Step 4: Pastikan checkpoint berhenti sebelum pembersihan**
+- [x] **Step 4: Pastikan checkpoint berhenti sebelum pembersihan**
 
 Run:
 
