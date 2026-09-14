@@ -76,11 +76,11 @@
 **Files:** 41 PNG dan satu XLSX tracked dalam `docs/testing/bukti-rbac/`; `docs/research/rbac-results-analysis.md`.
 **Interfaces:** screenshot/workbook/analisis artikel bukan input test; manual dan matriks CSV tetap tersedia sampai Checkpoint 3.
 
-- [ ] Inventaris dengan `git ls-files docs/testing/bukti-rbac`; expected: 41 PNG dan satu XLSX. Pastikan tidak ada input test yang membaca file tersebut dengan `rg -n 'bukti-rbac|RBAC-Test-Results|rbac-results-analysis' app tests database`.
-- [ ] Hapus hanya file tracked pada direktori bukti dan analisis artikel dengan `git rm -- docs/testing/bukti-rbac docs/research/rbac-results-analysis.md`. Tidak memindahkan file ke arsip, tidak menulis ulang histori.
-- [ ] Tambahkan catatan singkat di manual penelitian bahwa bukti visual dipensiunkan dan manual/CSV sementara masih dipakai test sampai Checkpoint 3. Jangan hapus 41 bagian skenario yang diverifikasi test.
-- [ ] Jalankan `php artisan test --filter AuthorizationResearchScenarioTest`; expected: seluruh 14 test lulus.
-- [ ] Catat Task 4 selesai/Task 5 berikutnya; `git diff --check`, lalu commit `docs: hapus bukti visual penelitian yang tidak diperlukan`.
+- [x] Inventaris dengan `git ls-files docs/testing/bukti-rbac`; expected: 41 PNG dan satu XLSX. Pastikan tidak ada input test yang membaca file tersebut dengan `rg -n 'bukti-rbac|RBAC-Test-Results|rbac-results-analysis' app tests database`.
+- [x] Validasi path absolut bukti berada tepat di `docs/testing/bukti-rbac` dalam worktree dan berisi 42 file tracked. Hapus dengan `git rm -r -- docs/testing/bukti-rbac` dan `git rm -- docs/research/rbac-results-analysis.md`. Tidak memindahkan file ke arsip, tidak menulis ulang histori.
+- [x] Tambahkan catatan singkat di manual penelitian bahwa bukti visual dipensiunkan dan manual/CSV sementara masih dipakai test sampai Checkpoint 3. Jangan hapus 41 bagian skenario yang diverifikasi test.
+- [x] Jalankan `php artisan test --filter AuthorizationResearchScenarioTest`; expected: seluruh 14 test lulus.
+- [x] Catat Task 4 selesai/Task 5 berikutnya; `git diff --check`, lalu commit `docs: hapus bukti visual penelitian yang tidak diperlukan`.
 
 ## Task 5 — Gate akhir dan handoff Checkpoint 3
 

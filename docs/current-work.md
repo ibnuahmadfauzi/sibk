@@ -4,14 +4,15 @@
 
 - Checkpoint: 2 — Bersihkan baseline `cobasidebar`
 - Status: Sedang dikerjakan
-- Task terakhir selesai: Task 3 — Keluarkan dokumen historis yang terarsip
-- Task berikutnya: Task 4 — Hapus bukti visual penelitian
+- Task terakhir selesai: Task 4 — Hapus bukti visual penelitian
+- Task berikutnya: Task 5 — Gate akhir dan handoff Checkpoint 3
 - Branch kerja: `checkpoint-2-baseline`
 - Worktree: `.worktrees/checkpoint-1-arsip` (dipakai ulang sesuai permintaan pengguna)
 - Baseline: `cobasidebar` commit `386cd3c`
 
 ## Verifikasi terakhir
 
+- Focused test penelitian/hak akses lulus 14 test, 120 assertion setelah bukti visual dihapus.
 - Baseline lulus 411 test, 3.148 assertion pada PHP 8.4.12.
 - Sepuluh hash sumber sesuai arsip commit `dcdd2e9`.
 - Arsip `Aflahul/sibk-docs-archive` tetap private; branch utama `main`.
