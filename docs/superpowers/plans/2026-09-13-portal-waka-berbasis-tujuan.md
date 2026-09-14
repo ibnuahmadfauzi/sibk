@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status: SELESAI 14 SEPTEMBER 2026.** Task 1-Task 7, verification gate, UAT desktop/mobile, dan audit privasi telah selesai. Bukti tercatat pada `docs/testing/2026-09-13-uat-portal-waka.md` dan `docs/development-log.md`.
+
 **Goal:** Menyediakan portal Waka Kesiswaan yang terpisah dari workspace Guru BK, berisi Dashboard, Murid dengan Kasus, serta satu halaman Laporan berbasis tujuan tanpa membuka data konseling sensitif.
 
 **Architecture:** Portal memakai query/read-model khusus Waka yang tidak menggunakan scope profesional Guru BK. Model kasus hanya dipakai di dalam service; controller dan Blade menerima array proyeksi aman. Dashboard, daftar murid, monitoring penanganan, dan rekap periode berbagi fondasi query aman, sedangkan tab Laporan Akhir hanya menampilkan empty state `Dalam pengembangan` sampai format resmi sekolah tersedia.
@@ -98,7 +100,7 @@
 - Consumes: keputusan wireframe pada spec.
 - Produces: kontrak navigasi, route, tab, metric, privasi, dan status Laporan Akhir.
 
-- [ ] **Step 1: Perbarui arsitektur informasi PRD**
+- [x] **Step 1: Perbarui arsitektur informasi PRD**
 
 Ganti daftar portal Waka lama menjadi:
 
@@ -112,7 +114,7 @@ Tegaskan bahwa laporan pelanggaran per murid/per kelas, poin, tindak lanjut, dan
 prestasi bukan menu terpisah bagi Waka. Data tersebut hanya boleh menjadi
 konteks agregat dalam Rekap Periode.
 
-- [ ] **Step 2: Amendemen DASH-03 dan REP-05**
+- [x] **Step 2: Amendemen DASH-03 dan REP-05**
 
 Gunakan acceptance criteria berikut:
 
@@ -127,7 +129,7 @@ terverifikasi, dan ringkasan kelas. Laporan Akhir menampilkan status Dalam
 pengembangan tanpa tindakan penerbitan atau ekspor.
 ```
 
-- [ ] **Step 3: Bekukan metric Rekap Periode**
+- [x] **Step 3: Bekukan metric Rekap Periode**
 
 Metric utama:
 
@@ -146,7 +148,7 @@ Murid terkait pelanggaran
 Prestasi terverifikasi
 ```
 
-- [ ] **Step 4: Perbarui kontrak route dan filter**
+- [x] **Step 4: Perbarui kontrak route dan filter**
 
 ```text
 GET /waka/students-with-cases
@@ -173,7 +175,7 @@ mode `dashboard`, `students`, `reports.penanganan`, `reports.rekap`, atau
 Perbarui `docs/requirements-index.md` agar mencatat amendemen Portal Waka
 13 September 2026 serta tetap menunjuk PRD/SRS v1.1 sebagai baseline aktif.
 
-- [ ] **Step 5: Verifikasi konsistensi dokumen**
+- [x] **Step 5: Verifikasi konsistensi dokumen**
 
 ```powershell
 rg -n "Dashboard, Murid dengan Kasus|Monitoring Penanganan|Rekap Periode|Dalam pengembangan|REP-05|DASH-03" docs/requirements docs/requirements-index.md docs/api-contract.md docs/superpowers/plans/2026-09-12-penyempurnaan-alur-operasional-bk.md
@@ -182,7 +184,7 @@ git diff --check
 
 Expected: istilah baru muncul pada seluruh source of truth dan tidak ada whitespace error.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add docs/requirements/PRD_Aplikasi_BK_v1.1.md docs/requirements/SRS_Aplikasi_BK_v1.1.md docs/requirements-index.md docs/api-contract.md docs/superpowers/plans/2026-09-12-penyempurnaan-alur-operasional-bk.md
@@ -206,7 +208,7 @@ git commit -m "docs: sederhanakan struktur portal Waka"
 - Consumes: `CaseAssignment::teacher()`, `StudentClassMembership::effectiveEnd()`, dan `ServiceRecordStatus`.
 - Produces: `WakaCaseProjectionQuery::build(User $waka, array $filters): Builder`, `WakaMonitoringService::paginateSafe(User $waka, array $filters, int $perPage = 20): LengthAwarePaginator`, `WakaMonitoringService::exportCsvRows(User $waka, array $filters): Collection`, dan `WakaMonitoringService::auditViewed(User $actor, string $mode, array $filters, int $resultCount, Request $request): void`.
 
-- [ ] **Step 1: Tulis regression test owner nyata**
+- [x] **Step 1: Tulis regression test owner nyata**
 
 ```php
 public function test_handling_projection_with_real_owner_is_safe(): void
@@ -238,7 +240,7 @@ public function test_handling_projection_with_real_owner_is_safe(): void
 }
 ```
 
-- [ ] **Step 2: Tulis test kelas historis dan sorting allowlist**
+- [x] **Step 2: Tulis test kelas historis dan sorting allowlist**
 
 Buat dua membership pada periode berbeda. Pastikan kelas yang tampil efektif pada
 `service_date`. Tambahkan nilai nama/ringkasan yang diawali `=`, `+`, `-`, `@`,
@@ -265,7 +267,7 @@ app(WakaMonitoringService::class)->paginateSafe($waka, [
 Service wajib melempar `InvalidArgumentException` untuk sort di luar allowlist;
 Form Request rejection diuji setelah route baru tersedia pada Task 3.
 
-- [ ] **Step 3: Jalankan test untuk memastikan gagal**
+- [x] **Step 3: Jalankan test untuk memastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/WakaMonitoringTest.php --filter="real_owner|historical|sorting"
@@ -274,7 +276,7 @@ php artisan test tests/Feature/WakaMonitoringTest.php --filter="real_owner|histo
 Expected: FAIL karena relasi `user` salah, sorting relasi belum executable, dan
 service belum mengembalikan paginator array aman.
 
-- [ ] **Step 4: Buat query object aman**
+- [x] **Step 4: Buat query object aman**
 
 ```php
 final class WakaCaseProjectionQuery
@@ -347,7 +349,7 @@ fallback owner terakhir, dan tanggal memakai `cases.service_date`. Jangan
 memakai nilai request sebagai identifier SQL. Setiap branch diakhiri tie-breaker
 `cases.id` agar pagination stabil pada SQLite dan MySQL.
 
-- [ ] **Step 5: Perbaiki transformasi row**
+- [x] **Step 5: Perbaiki transformasi row**
 
 ```php
 $membership = $case->student?->classMemberships->first(
@@ -387,14 +389,14 @@ Ubah `auditViewed()` agar menerima `mode` allowlist dan menyimpan jumlah row
 halaman. `auditExported()` tetap menyimpan jumlah seluruh row ekspor. Keduanya
 hanya menerima filter yang telah dinormalisasi untuk mode terkait.
 
-- [ ] **Step 6: Jalankan focused verification**
+- [x] **Step 6: Jalankan focused verification**
 
 ```powershell
 php artisan test tests/Feature/WakaMonitoringTest.php
 php vendor/bin/pint --test app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Http/Requests/WakaMonitoringRequest.php app/Http/Controllers/WakaMonitoringController.php tests/Feature/WakaMonitoringTest.php
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Http/Requests/WakaMonitoringRequest.php app/Http/Controllers/WakaMonitoringController.php tests/Feature/WakaMonitoringTest.php
@@ -424,7 +426,7 @@ git commit -m "fix: bangun proyeksi aman kasus Waka"
 - Consumes: `WakaCaseProjectionQuery::build()`, `WakaMonitoringService::paginateSafe()`, dan `WakaMonitoringService::exportCsvRows()`.
 - Produces: route `waka.monitoring.students`, `waka.reports`, `waka.monitoring.handling`, dan `waka.monitoring.export`.
 
-- [ ] **Step 1: Tulis test dua halaman yang berbeda**
+- [x] **Step 1: Tulis test dua halaman yang berbeda**
 
 ```php
 public function test_students_page_groups_multiple_cases_into_one_student_row(): void
@@ -452,7 +454,7 @@ public function test_reports_page_uses_goal_based_tabs(): void
 }
 ```
 
-- [ ] **Step 2: Tulis test akses dan bookmark lama**
+- [x] **Step 2: Tulis test akses dan bookmark lama**
 
 Uji guest, akun nonaktif, Guru BK, dan Admin IT ditolak. Koordinator ditolak
 dari daftar murid, penanganan, rekap, dan ekspor, tetapi boleh membuka tab
@@ -489,13 +491,13 @@ $this->actingAs($waka)
     ->assertSessionHasErrors('sort');
 ```
 
-- [ ] **Step 3: Jalankan test untuk memastikan gagal**
+- [x] **Step 3: Jalankan test untuk memastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/WakaMonitoringTest.php --filter="groups_multiple|goal_based|access|bookmark|forged"
 ```
 
-- [ ] **Step 4: Implementasikan WakaReportRequest**
+- [x] **Step 4: Implementasikan WakaReportRequest**
 
 ```php
 final class WakaReportRequest extends FormRequest
@@ -539,7 +541,7 @@ berada di dalam tahun ajaran terpilih. `monitoringParams()` hanya mengembalikan
 `period/status/sort/direction/page`; `recapParams()` hanya mengembalikan tiga
 filter rekap. Parameter dari tab lain tidak boleh memengaruhi query atau audit.
 
-- [ ] **Step 5: Implementasikan agregasi satu row per murid**
+- [x] **Step 5: Implementasikan agregasi satu row per murid**
 
 Kelompokkan berdasarkan identitas internal, bukan nama:
 
@@ -575,7 +577,7 @@ Pada `WakaMonitoringRequest::authorize()`, gunakan
 `exportMonitoring()` ketika route adalah `waka.monitoring.export`; route halaman
 memakai `viewMonitoring()`.
 
-- [ ] **Step 6: Pisahkan controller action**
+- [x] **Step 6: Pisahkan controller action**
 
 ```php
 public function students(WakaMonitoringRequest $request): View;
@@ -591,7 +593,7 @@ detail. Setiap response sukses memanggil `auditViewed()` dengan mode halaman
 dan jumlah row pada halaman, bukan total lintas halaman. `legacyHandling()`
 hanya meneruskan parameter hasil `validated()` yang relevan.
 
-- [ ] **Step 7: Tambahkan route**
+- [x] **Step 7: Tambahkan route**
 
 ```php
 Route::get('/waka/students-with-cases', [WakaMonitoringController::class, 'students'])
@@ -604,7 +606,7 @@ Route::get('/waka/handling-reports/export', [WakaMonitoringController::class, 'e
     ->name('waka.monitoring.export');
 ```
 
-- [ ] **Step 8: Buat view desktop dan mobile**
+- [x] **Step 8: Buat view desktop dan mobile**
 
 `students.blade.php` memakai tabel desktop dan kartu mobile. `reports.blade.php`
 menjadi container tiga link deep-link dengan `aria-current="page"`; jangan
@@ -621,7 +623,7 @@ server-rendered tanpa fetch asinkron, tidak dibuat skeleton palsu atau state
 loading JavaScript; header dan ruang panel tetap stabil selama navigasi browser.
 Tampilkan notice hanya-baca tanpa membuat seluruh konten tampak disabled.
 
-- [ ] **Step 9: Verifikasi**
+- [x] **Step 9: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/WakaMonitoringTest.php
@@ -629,7 +631,7 @@ npm run check:frontend
 git diff --check
 ```
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```powershell
 git add app/Http/Controllers/WakaMonitoringController.php app/Http/Requests/WakaMonitoringRequest.php app/Http/Requests/WakaReportRequest.php app/Services/WakaStudentCaseService.php routes/waka.php resources/views/pages/waka tests/Feature/WakaMonitoringTest.php
@@ -656,7 +658,7 @@ git commit -m "feat: pisahkan daftar murid dan laporan Waka"
 - Consumes: `WakaCaseProjectionQuery::build()`, `WakaMonitoringService::auditViewed()`, dan `ServiceRecordStatus`.
 - Produces: `WakaDashboardService::build(User $waka, ?AcademicYear $year): array`.
 
-- [ ] **Step 1: Tulis test metric dan urutan informasi**
+- [x] **Step 1: Tulis test metric dan urutan informasi**
 
 ```php
 public function test_waka_dashboard_shows_school_metrics_without_case_codes(): void
@@ -679,12 +681,12 @@ public function test_waka_dashboard_shows_school_metrics_without_case_codes(): v
 }
 ```
 
-- [ ] **Step 2: Tulis test tautan detail bersyarat**
+- [x] **Step 2: Tulis test tautan detail bersyarat**
 
 Buat satu kasus terkoordinasi dan satu nonterkoordinasi. Hanya kasus
 terkoordinasi yang memiliki `Buka detail koordinasi`.
 
-- [ ] **Step 3: Jalankan test untuk memastikan gagal**
+- [x] **Step 3: Jalankan test untuk memastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/WakaDashboardTest.php
@@ -692,7 +694,7 @@ php artisan test tests/Feature/WakaDashboardTest.php
 
 Expected: FAIL karena dashboard existing memakai kode kasus dan wrapper link.
 
-- [ ] **Step 4: Implementasikan WakaDashboardService**
+- [x] **Step 4: Implementasikan WakaDashboardService**
 
 ```php
 final class WakaDashboardService
@@ -740,7 +742,7 @@ Owner memilih assignment yang efektif saat ini dengan fallback owner terakhir;
 kelas memilih membership efektif pada tanggal layanan. `coordination_url` hanya
 diisi ketika koordinasi kepada actor Waka ditemukan.
 
-- [ ] **Step 5: Delegasikan cabang Waka dari DashboardService**
+- [x] **Step 5: Delegasikan cabang Waka dari DashboardService**
 
 ```php
 public function __construct(private readonly WakaDashboardService $wakaDashboard) {}
@@ -753,7 +755,7 @@ if ($user->hasRole('waka_kesiswaan')) {
 Pertahankan cabang Koordinator dan Guru BK sebelum cabang Waka agar multi-role
 tetap memakai fungsi operasional yang sah.
 
-- [ ] **Step 6: Buat view dashboard Waka**
+- [x] **Step 6: Buat view dashboard Waka**
 
 Pada `dashboard/html.blade.php`:
 
@@ -773,7 +775,7 @@ Setelah data Dashboard Waka berhasil dibangun, `DashboardController` mencatat
 dinormalisasi, dan hitungan row aman. Cabang dashboard role lain tidak mencatat
 event Waka.
 
-- [ ] **Step 7: Verifikasi**
+- [x] **Step 7: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/WakaDashboardTest.php
@@ -782,7 +784,7 @@ php artisan test tests/Feature/FrontendPreviewTest.php --filter=waka
 npm run check:frontend
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add app/Services/WakaDashboardService.php app/Services/DashboardService.php app/Http/Controllers/DashboardController.php resources/views/pages/waka/dashboard.blade.php resources/views/pages/dashboard/html.blade.php tests/Feature/WakaDashboardTest.php tests/Feature/DashboardNotificationTest.php tests/Feature/FrontendPreviewTest.php
@@ -809,7 +811,7 @@ git commit -m "feat: tampilkan dashboard khusus Waka"
 - Consumes: filter tahun ajaran/tanggal tervalidasi.
 - Produces: `WakaPeriodReportService::build(AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array`.
 
-- [ ] **Step 1: Tulis test rekap aggregate-only**
+- [x] **Step 1: Tulis test rekap aggregate-only**
 
 ```php
 public function test_period_recap_contains_aggregates_without_identity_or_narrative(): void
@@ -831,7 +833,7 @@ public function test_period_recap_contains_aggregates_without_identity_or_narrat
 }
 ```
 
-- [ ] **Step 2: Tulis test Laporan Akhir**
+- [x] **Step 2: Tulis test Laporan Akhir**
 
 ```php
 $this->actingAs($waka)
@@ -847,7 +849,7 @@ Ulangi assertion empty state untuk Koordinator BK aktif. Pastikan Koordinator
 tetap menerima `403` pada tab `penanganan`, tab `rekap`, daftar murid, dan
 ekspor Waka.
 
-- [ ] **Step 3: Tulis test laporan generik ditutup untuk Waka murni**
+- [x] **Step 3: Tulis test laporan generik ditutup untuk Waka murni**
 
 ```php
 $this->actingAs($waka)->get(route('reports.index'))->assertForbidden();
@@ -859,14 +861,14 @@ $this->actingAs($waka)->get(route('reports.preview', [
 Akun multi-role Guru BK/Koordinator tetap memakai laporan generik sesuai fungsi
 non-Waka yang sah.
 
-- [ ] **Step 4: Jalankan test untuk memastikan gagal**
+- [x] **Step 4: Jalankan test untuk memastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/WakaReportPageTest.php
 php artisan test tests/Feature/ReportManagementTest.php --filter=waka
 ```
 
-- [ ] **Step 5: Implementasikan WakaPeriodReportService**
+- [x] **Step 5: Implementasikan WakaPeriodReportService**
 
 ```php
 final class WakaPeriodReportService
@@ -912,7 +914,7 @@ terkait. ID internal tidak pernah masuk return array, view, atau audit.
 `classRows()` menentukan kelas dari membership yang efektif pada
 `cases.service_date`, bukan kelas aktif saat request berlangsung.
 
-- [ ] **Step 6: Tutup laporan generik untuk akun Waka murni**
+- [x] **Step 6: Tutup laporan generik untuk akun Waka murni**
 
 ```php
 public function viewAny(User $user): bool
@@ -922,7 +924,7 @@ public function viewAny(User $user): bool
 }
 ```
 
-- [ ] **Step 7: Render dua partial**
+- [x] **Step 7: Render dua partial**
 
 `_period-recap.blade.php` menampilkan metric, distribusi bidang/status, konteks
 kesiswaan, dan rekap kelas. `_final-report-development.blade.php` hanya:
@@ -934,7 +936,7 @@ kesiswaan, dan rekap kelas. `_final-report-development.blade.php` hanya:
 />
 ```
 
-- [ ] **Step 8: Verifikasi**
+- [x] **Step 8: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/WakaReportPageTest.php
@@ -943,7 +945,7 @@ php vendor/bin/pint --test app/Services/WakaPeriodReportService.php app/Policies
 npm run check:frontend
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```powershell
 git add app/Services/WakaPeriodReportService.php app/Http/Controllers/WakaMonitoringController.php app/Policies/ReportPolicy.php resources/views/pages/waka tests/Feature/WakaReportPageTest.php tests/Feature/ReportManagementTest.php
@@ -967,7 +969,7 @@ git commit -m "feat: satukan laporan periodik Waka"
 - Consumes: route `dashboard.preview`, `waka.monitoring.students`, dan `waka.reports`.
 - Produces: menu Waka murni dan class responsive portal.
 
-- [ ] **Step 1: Tulis test sidebar Waka murni**
+- [x] **Step 1: Tulis test sidebar Waka murni**
 
 ```php
 public function test_waka_only_sidebar_contains_monitoring_navigation(): void
@@ -990,19 +992,19 @@ public function test_waka_only_sidebar_contains_monitoring_navigation(): void
 }
 ```
 
-- [ ] **Step 2: Tulis test multi-role**
+- [x] **Step 2: Tulis test multi-role**
 
 Akun Waka + Koordinator tetap memakai menu Koordinator dan memperoleh section
 portal Waka. Akun Waka murni hanya memperoleh navigasi khusus.
 
-- [ ] **Step 3: Jalankan test untuk memastikan gagal**
+- [x] **Step 3: Jalankan test untuk memastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/FrontendPreviewTest.php --filter=waka_only_sidebar
 php artisan test tests/Feature/AuthorizationMatrixTest.php --filter=waka
 ```
 
-- [ ] **Step 4: Implementasikan cabang sidebar**
+- [x] **Step 4: Implementasikan cabang sidebar**
 
 ```blade
 @php
@@ -1029,7 +1031,7 @@ Gunakan ikon SVG existing dan jangan membuat section `UTAMA`. Link Murid aktif
 hanya pada `waka.monitoring.students`; link Laporan aktif pada `waka.reports`.
 Legacy route tidak menjadi target navigasi.
 
-- [ ] **Step 5: Tambahkan responsive classes**
+- [x] **Step 5: Tambahkan responsive classes**
 
 ```scss
 .sibk-waka-tabs {
@@ -1057,13 +1059,13 @@ Legacy route tidak menjadi target navigasi.
 Semua warna, radius, shadow, dan focus memakai `var(--sibk-*)`. Target interaksi
 minimum 44 CSS pixel. Jangan menambahkan motion library.
 
-- [ ] **Step 6: Tambahkan accessibility assertions**
+- [x] **Step 6: Tambahkan accessibility assertions**
 
 Tambahkan `aria-hidden="true"` pada wrapper/ikon dekoratif komponen
 `x-empty-state`. Periksa `aria-current`, `aria-sort`, label field, `aria-hidden`
 pada ikon dekoratif, heading empty state, dan ketiadaan `onclick` pada row.
 
-- [ ] **Step 7: Verifikasi frontend**
+- [x] **Step 7: Verifikasi frontend**
 
 ```powershell
 php artisan test tests/Feature/FrontendPreviewTest.php
@@ -1073,7 +1075,7 @@ npm run build
 git diff --check
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add resources/views/components/sidebar.blade.php resources/views/components/empty-state.blade.php resources/scss/app-dashboard.scss tests/Feature/FrontendPreviewTest.php tests/Feature/AuthorizationMatrixTest.php
@@ -1094,7 +1096,7 @@ git commit -m "feat: sederhanakan navigasi portal Waka"
 - Consumes: seluruh task sebelumnya.
 - Produces: bukti automated verification, UAT desktop/mobile, audit, dan SHA implementasi.
 
-- [ ] **Step 1: Jalankan focused tests**
+- [x] **Step 1: Jalankan focused tests**
 
 ```powershell
 php artisan test tests/Feature/WakaMonitoringTest.php
@@ -1108,7 +1110,7 @@ php artisan test tests/Feature/FrontendPreviewTest.php
 
 Expected: 0 failure dan 0 error.
 
-- [ ] **Step 2: Jalankan full automated gate**
+- [x] **Step 2: Jalankan full automated gate**
 
 ```powershell
 php artisan test
@@ -1124,7 +1126,7 @@ php artisan view:clear
 
 Expected: seluruh command exit code 0.
 
-- [ ] **Step 3: Jalankan privacy repository scan**
+- [x] **Step 3: Jalankan privacy repository scan**
 
 ```powershell
 rg -n "registration_number|initial_info|internal_note|final_result|continued_plan|next_plan" resources/views/pages/waka
@@ -1134,7 +1136,7 @@ rg -n '\$case->(registration_number|initial_info|internal_note|final_result|cont
 Expected: field terlarang tidak muncul pada view atau akses property/data output.
 Nama field boleh muncul di assertion denylist test dan dokumentasi keamanan.
 
-- [ ] **Step 4: Jalankan UAT desktop dan mobile**
+- [x] **Step 4: Jalankan UAT desktop dan mobile**
 
 Verifikasi pada 1440 x 900, 1024 x 768, 768 x 1024, dan 390 x 844:
 
@@ -1153,20 +1155,20 @@ Empty state menjelaskan filter aktif dan menyediakan Reset filter.
 Urutan fokus mengikuti urutan visual dan focus ring tidak tertutup sidebar/header.
 ```
 
-- [ ] **Step 5: Verifikasi audit**
+- [x] **Step 5: Verifikasi audit**
 
 Setelah membuka Dashboard, daftar murid, ketiga tab laporan, dan export CSV,
 periksa `waka.monitoring.viewed` serta `waka.monitoring.exported`. Mode audit
 harus sesuai halaman dan payload tidak boleh mengandung nama murid, NISN, kode
 kasus, `waka_summary`, atau narasi pelayanan.
 
-- [ ] **Step 6: Catat hasil dan SHA**
+- [x] **Step 6: Catat hasil dan SHA**
 
 Isi `docs/testing/2026-09-13-uat-portal-waka.md` dengan branch/SHA, viewport,
 skenario PASS/FAIL, jumlah test/assertion, hasil build/lint, audit privacy, dan
 path rekaman Browser Use jika direkam. Perbarui `docs/development-log.md`.
 
-- [ ] **Step 7: Commit evidence**
+- [x] **Step 7: Commit evidence**
 
 ```powershell
 git add docs/testing/2026-09-13-uat-portal-waka.md docs/development-log.md
