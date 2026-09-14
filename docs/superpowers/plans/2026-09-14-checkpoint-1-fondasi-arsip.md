@@ -223,7 +223,7 @@ Expected: commit dan push berhasil; status worktree bersih.
 - Consumes: autentikasi akun `Aflahul` dan hasil Task 1.
 - Produces: remote private kosong dan clone lokal sementara yang dapat ditulis.
 
-- [ ] **Step 1: Pastikan lokasi clone sementara aman**
+- [x] **Step 1: Pastikan lokasi clone sementara aman**
 
 Run:
 
@@ -241,7 +241,7 @@ $temporaryArchivePath
 
 Expected: target berakhir dengan `.worktrees\sibk-docs-archive` dan belum ada.
 
-- [ ] **Step 2: Buat remote private**
+- [x] **Step 2: Buat remote private**
 
 Run:
 
@@ -251,7 +251,7 @@ gh repo create Aflahul/sibk-docs-archive --private --description "Arsip dokument
 
 Expected: repository berhasil dibuat dan URL GitHub ditampilkan.
 
-- [ ] **Step 3: Verifikasi visibility sebelum menyalin dokumen**
+- [x] **Step 3: Verifikasi visibility sebelum menyalin dokumen**
 
 Run:
 
@@ -262,7 +262,7 @@ gh repo view Aflahul/sibk-docs-archive --json nameWithOwner,isPrivate,url
 Expected: `nameWithOwner` adalah `Aflahul/sibk-docs-archive` dan `isPrivate`
 bernilai `true`. Bila false, hentikan checkpoint tanpa menyalin dokumen.
 
-- [ ] **Step 4: Clone remote ke lokasi sementara**
+- [x] **Step 4: Clone remote ke lokasi sementara**
 
 Run:
 
@@ -272,7 +272,7 @@ git clone https://github.com/Aflahul/sibk-docs-archive.git .worktrees/sibk-docs-
 
 Expected: clone berhasil dan `.worktrees/sibk-docs-archive/.git` tersedia.
 
-- [ ] **Step 5: Catat hasil Task 2 untuk handoff**
+- [x] **Step 5: Catat hasil Task 2 untuk handoff**
 
 Update `docs/current-work.md`:
 

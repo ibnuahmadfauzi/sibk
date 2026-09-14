@@ -6,23 +6,22 @@
 - Status checkpoint: Sedang dikerjakan
 - Branch kerja: `checkpoint-1-arsip`
 - Baseline pengembangan: `cobasidebar`
-- Task terakhir selesai: Task 1 — Verifikasi keadaan awal dan sumber arsip
-- Task berikutnya: Task 2 — Buat repository private dan clone sementara
+- Task terakhir selesai: Task 2 — Buat repository private dan clone sementara
+- Task berikutnya: Task 3 — Susun snapshot arsip
 - Commit acuan plan: `4b2d370`
 
 ## Keadaan eksternal
 
-- Repository `Aflahul/sibk-docs-archive`: Belum dibuat
+- Repository `Aflahul/sibk-docs-archive`: Sudah dibuat dan terverifikasi private
 - Snapshot arsip: Belum disusun
 - Undangan `ibnuahmadfauzi`: Belum dikirim
 - Clone akhir di luar proyek: Belum tersedia
 
 ## Verifikasi terakhir
 
-- Sepuluh sumber arsip tersedia dan hash SHA-256 sudah dihitung.
-- Nama remote `Aflahul/sibk-docs-archive` belum digunakan.
+- Remote private tersedia di `https://github.com/Aflahul/sibk-docs-archive`.
+- Clone sementara berhasil dibuat di `.worktrees/sibk-docs-archive`.
 - Baseline lulus 411 test dengan 3.148 assertion.
-- Belum ada tindakan eksternal.
 
 ## Cara melanjutkan
 
