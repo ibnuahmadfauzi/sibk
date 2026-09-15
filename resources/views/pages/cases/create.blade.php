@@ -49,7 +49,7 @@
             @endif
             <div class="visually-hidden" aria-hidden="true">
                 @foreach($students as $student)
-                    @php($membership = $student->classMemberships->first())
+                    @php $membership = $student->classMemberships->first(); @endphp
                     <span>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->usesProvisionalData($membership) ? ' — Sementara' : '' }}</span>
                 @endforeach
             </div>
@@ -59,27 +59,24 @@
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Kasus</h4>
                     <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
                     <div class="row g-4">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="sumber" class="form-label sibk-form-label">Sumber Kasus</label>
                             <select class="form-select sibk-form-select" id="sumber" name="case_source_id" required>
                                 <option value="">Pilih sumber kasus</option>
                                 @foreach($caseSources as $source)<option value="{{ $source->id }}" data-code="{{ $source->code }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="tanggal" class="form-label sibk-form-label">Tanggal Layanan</label>
                             <input type="date" class="form-control sibk-form-control" id="tanggal" name="service_date" value="{{ old('service_date', today()->toDateString()) }}" required>
                         </div>
-                        <div class="col-md-4">
-                            <label for="bidang" class="form-label sibk-form-label">Bidang Layanan BK</label>
-                            <select class="form-select sibk-form-select" id="bidang" name="service_field_id" required>
-                                <option value="">Pilih bidang layanan</option>
-                                @foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) old('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach
-                            </select>
-                        </div>
-                        <div class="col-12">
+                        @php
+                            $selectedSource = $caseSources->firstWhere('id', old('case_source_id'));
+                            $isRujukanInitial = $selectedSource?->code === 'rujukan';
+                        @endphp
+                        <div @class(['col-12', 'd-none' => ! $isRujukanInitial]) id="referrer-group">
                             <label for="referrer" class="form-label sibk-form-label">Pihak Perujuk</label>
-                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber kasus berasal dari rujukan" disabled>
+                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber kasus berasal dari rujukan">
                         </div>
                     </div>
                 </div>
@@ -146,13 +143,15 @@
                 });
             };
 
+            const referrerGroup = document.getElementById('referrer-group');
+
             const updateReferrerState = () => {
                 const selectedOption = sumber?.selectedOptions[0];
                 const isRujukan = (selectedOption?.dataset?.code === 'rujukan') ||
                                   (selectedOption?.text?.trim().toLowerCase() === 'rujukan');
-                if (referrer) {
-                    referrer.disabled = !isRujukan;
-                    if (!isRujukan) {
+                if (referrerGroup) {
+                    referrerGroup.classList.toggle('d-none', !isRujukan);
+                    if (!isRujukan && referrer) {
                         referrer.value = '';
                     }
                 }
