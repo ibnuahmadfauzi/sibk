@@ -3,13 +3,10 @@
 ## Status
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
-- Checkpoint aktif: 5A — Penyederhanaan operasional, Task 8–10.
-- Task 8–10 selesai; berikutnya gate penuh, review, dan PR Checkpoint 5A.
-- Checkpoint 5B memuat Task 11–15 dan baru dimulai setelah Checkpoint 5A
-  terintegrasi ke `cobasidebar`.
-- Branch: `checkpoint-5a-operasional`.
-- Worktree: `.worktrees/checkpoint-5a-operasional`.
-- Baseline Checkpoint 5A: `b07c741` dari `cobasidebar` setelah PR #13.
+- Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
+- Checkpoint aktif berikutnya: 5B — Task 11–15; belum dimulai.
+- Branch Checkpoint 5B belum dibuat.
+- Baseline berikutnya: `cobasidebar` setelah integrasi Checkpoint 5A.
 
 ## Hasil dan gate terakhir
 
@@ -57,6 +54,8 @@
   audit append-only tetap digunakan. Dashboard memakai panel konteks aman per
   role. Focused gate lulus 25 test/270 assertion, checker frontend, Pint, dan
   diff-check; regresi area terkait lulus 78 test/688 assertion.
+- Gate penuh Checkpoint 5A lulus: 416 test/3.261 assertion, Pint, checker
+  frontend, build, Composer strict, dan diff-check.
 
 ## Arsip
 
@@ -67,12 +66,10 @@
 
 ## Langkah berikutnya
 
-1. Jalankan gate penuh Checkpoint 5A dan self-review diff terhadap Task 8–10.
-2. Buat PR ke `cobasidebar`, merge setelah semua gate lulus, lalu verifikasi
-   status `MERGED` dan hapus branch sumber.
-3. Mulai Checkpoint 5B hanya setelah integrasi Checkpoint 5A terverifikasi.
-4. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5A/5B.
-5. Adapter production tetap menunggu kontrak resmi dan admission gate.
+1. Buat branch/worktree Checkpoint 5B dari `cobasidebar` terbaru.
+2. Kerjakan Task 11–15 secara berurutan sesuai plan aktif.
+3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
+4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 
