@@ -1,9 +1,9 @@
 # Penyederhanaan Operasional, Akun, dan Skema Data
 
 **Tanggal:** 14 September 2026
-**Status:** Disetujui untuk penyusunan implementation plan
+**Status:** Disetujui untuk implementasi bertahap melalui Checkpoint 5A dan 5B
 **Target:** UI operasional, lifecycle kasus dan konsultasi, akun, serta hasil akhir skema database Ruang BK
-**Referensi perilaku:** PRD/SRS Aplikasi BK v1.1, terutama `ACC-*`, `AUTH-*`, `MD-*`, `CASE-*`, `CONS-*`, `DASH-*`, `NOT-01`, `AUD-01`, dan `COR-*`
+**Referensi perilaku:** PRD/SRS Aplikasi BK v1.1, terutama `ACC-*`, `AUTH-*`, `MD-*`, `CASE-*`, `CONS-*`, `DASH-*`, dan `AUD-01`
 
 ## 1. Tujuan
 

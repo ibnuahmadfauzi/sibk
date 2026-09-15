@@ -1729,7 +1729,7 @@ ke `cobasidebar` sebelum Checkpoint 5B dimulai.
 - Consumes: kedua spec pada header plan dan batas API sekolah yang telah dikonfirmasi pengguna.
 - Produces: requirement final untuk seluruh Task 9-15, termasuk lifecycle layanan, proses keluar murid, password sementara, fitur yang dihentikan, dan batas skema anti-spaghetti tanpa target jumlah tabel yang kaku.
 
-- [ ] **Step 1: Tulis failing documentation contract test**
+- [x] **Step 1: Tulis failing documentation contract test**
 
 Tambahkan pemeriksaan pada `tests/Feature/SharedDevelopmentBaselineTest.php`:
 
@@ -1750,7 +1750,7 @@ public function test_active_requirements_publish_the_simplified_operational_cont
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/SharedDevelopmentBaselineTest.php --filter=simplified_operational_contract
@@ -1758,7 +1758,7 @@ php artisan test tests/Feature/SharedDevelopmentBaselineTest.php --filter=simpli
 
 Expected: FAIL karena baseline aktif masih memuat workflow koreksi/notifikasi dan belum memuat kontrak baru.
 
-- [ ] **Step 3: Amendemen requirement aktif**
+- [x] **Step 3: Amendemen requirement aktif**
 
 Ubah PRD/SRS v1.1 tanpa mengganti nama versi:
 
@@ -1781,7 +1781,7 @@ Perbarui traceability matrix dan entitas konseptual. Hapus `Koreksi` serta
 `Notifikasi` dari field minimum/entitas aktif. Tambahkan `Student Departure`
 dengan field persis pada spec. Pertahankan dokumen v1.0 byte-for-byte di repository arsip privat terpisah.
 
-- [ ] **Step 4: Dokumentasikan batas API sekolah**
+- [x] **Step 4: Dokumentasikan batas API sekolah**
 
 Tambahkan kontrak eksplisit berikut pada `docs/api-contract.md`:
 
@@ -1798,7 +1798,7 @@ tetapi dicatat sebagai batas kontrak dan tidak boleh diisi dengan asumsi.
 Jangan menyalin URL, credential, nama file API lokal, atau nilai rahasia ke
 repository.
 
-- [ ] **Step 5: Verifikasi dokumen**
+- [x] **Step 5: Verifikasi dokumen**
 
 ```powershell
 php artisan test tests/Feature/SharedDevelopmentBaselineTest.php --filter=simplified_operational_contract
@@ -1809,7 +1809,7 @@ git diff --check
 Expected: test PASS; istilah lama hanya muncul pada riwayat amandemen atau
 penjelasan penghentian, bukan sebagai fitur aktif.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add docs/requirements/PRD_Aplikasi_BK_v1.1.md docs/requirements/SRS_Aplikasi_BK_v1.1.md docs/requirements-index.md docs/api-contract.md docs/superpowers/specs/2026-09-14-penyederhanaan-operasional-akun-dan-skema-data-design.md tests/Feature/SharedDevelopmentBaselineTest.php
@@ -1851,7 +1851,7 @@ git commit -m "docs: selaraskan kontrak operasional Ruang BK"
 - Consumes: `CaseAssignment::TYPE_OWNER`, `AuditService::record()`, Eloquent `SoftDeletes`, dan status reference existing.
 - Produces: reference kasus/konsultasi tanpa pilihan `dibatalkan`, `CasePolicy::archive()`, `ConsultationPolicy::archive()`, `CaseService::archive()`, `ConsultationService::archive()`, serta edit `selesai` dengan `change_reason`.
 
-- [ ] **Step 1: Tulis failing test lifecycle kasus**
+- [x] **Step 1: Tulis failing test lifecycle kasus**
 
 Ganti test yang mengharuskan koreksi terminal dengan kontrak berikut:
 
@@ -1925,7 +1925,7 @@ public function test_case_delete_archives_and_excludes_record_from_operational_q
 Tambahkan test bahwa Koordinator, Waka, Admin IT, additional assignee, dan Guru
 BK penerus tidak dapat edit/arsip record milik owner lain.
 
-- [ ] **Step 2: Tulis failing test lifecycle konsultasi**
+- [x] **Step 2: Tulis failing test lifecycle konsultasi**
 
 ```php
 public function test_completed_consultation_owner_can_edit_with_reason_and_archive(): void
@@ -1954,7 +1954,7 @@ public function test_completed_consultation_owner_can_edit_with_reason_and_archi
 Tambahkan assertion bahwa `change_reason` 9 karakter ditolak, 10-500 diterima,
 501 ditolak, dan status selesai tidak dapat diganti melalui forged request.
 
-- [ ] **Step 3: Jalankan tests dan pastikan gagal**
+- [x] **Step 3: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php --filter="completed_case|case_delete"
@@ -1963,7 +1963,7 @@ php artisan test tests/Feature/ConsultationManagementTest.php --filter=completed
 
 Expected: FAIL karena policy, route arsip, dan direct terminal edit belum tersedia.
 
-- [ ] **Step 4: Sederhanakan kontrak status layanan**
+- [x] **Step 4: Sederhanakan kontrak status layanan**
 
 Ubah `ServiceRecordStatus` menjadi:
 
@@ -1989,7 +1989,7 @@ final class ServiceRecordStatus
 Hapus constant/label `CANCELLED`. Jangan mengubah status pembatalan pada
 `follow_up_status` atau `coordination_status`.
 
-- [ ] **Step 5: Retire status dibatalkan pada data fresh dan incremental**
+- [x] **Step 5: Retire status dibatalkan pada data fresh dan incremental**
 
 Migration:
 
@@ -2016,7 +2016,7 @@ Perbarui `ServiceRecordStatusMigrationTest` agar membuktikan kasus/konsultasi
 legacy diarsipkan, reference inactive, dan follow-up/coordination cancellation
 tetap tersedia.
 
-- [ ] **Step 6: Ubah policy kepemilikan**
+- [x] **Step 6: Ubah policy kepemilikan**
 
 Gunakan aturan executable berikut:
 
@@ -2042,7 +2042,7 @@ Untuk konsultasi, `update()` dan `archive()` mensyaratkan role `guru_bk`,
 `counselor_id === user.id`, dan `isProfessionallyAccessibleTo($user)`. Method
 assign/coordinate kasus tetap menolak status terminal.
 
-- [ ] **Step 7: Validasi edit selesai di Form Request**
+- [x] **Step 7: Validasi edit selesai di Form Request**
 
 Pada `UpdateCaseRequest`, gunakan `$record = $this->route('case')` dan
 `$category = 'case_status'`. Pada `UpdateConsultationRequest`, gunakan
@@ -2073,7 +2073,7 @@ Tambahkan pesan `Alasan perubahan wajib diisi untuk data yang telah selesai.`.
 Pastikan `closed_at`, identitas, `counselor_id`, dan owner assignment tidak ada
 pada allowlist request edit.
 
-- [ ] **Step 8: Implementasikan service update dan archive**
+- [x] **Step 8: Implementasikan service update dan archive**
 
 Di dalam transaksi, lock row, load status, dan periksa owner kembali sebelum
 mutasi. Kontrak service:
@@ -2098,7 +2098,7 @@ Gunakan pola yang sama untuk `consultation.completed_record_updated`. Sebelum
 `delete()`, audit action `case.archived` atau `consultation.archived`; jangan
 menghapus relasi histori dan jangan mengubah status menjadi nilai lain.
 
-- [ ] **Step 9: Ganti UX Batalkan dengan Edit/Hapus**
+- [x] **Step 9: Ganti UX Batalkan dengan Edit/Hapus**
 
 Ganti route lama:
 
@@ -2124,7 +2124,7 @@ tetap dikirim sebagai hidden input. Semua tombol Hapus memakai form `DELETE`
 dengan `data-confirm-submit` dan pesan `Data akan diarsipkan dan tidak tampil
 pada daftar utama. Lanjutkan?`.
 
-- [ ] **Step 10: Verifikasi lifecycle**
+- [x] **Step 10: Verifikasi lifecycle**
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php
@@ -2135,7 +2135,7 @@ php vendor/bin/pint --test database/migrations/2026_09_14_000050_retire_cancelle
 git diff --check
 ```
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```powershell
 git add database/migrations/2026_09_14_000050_retire_cancelled_service_records.php database/seeders/ReferenceSeeder.php app/Support/ServiceRecordStatus.php app/Policies/CasePolicy.php app/Policies/ConsultationPolicy.php app/Http/Requests/UpdateCaseRequest.php app/Http/Requests/UpdateConsultationRequest.php app/Http/Requests/ArchiveCaseRequest.php app/Http/Requests/ArchiveConsultationRequest.php app/Http/Controllers/CaseController.php app/Http/Controllers/ConsultationController.php app/Services/CaseService.php app/Services/ConsultationService.php routes/web.php routes/bk-services.php resources/views/components/terminal-edit-confirmation.blade.php resources/views/pages/cases/index.blade.php resources/views/pages/cases/show.blade.php resources/views/pages/cases/edit.blade.php resources/views/pages/consultations/create.blade.php resources/views/pages/consultations/show.blade.php tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/ServiceRecordStatusMigrationTest.php tests/Unit/ServiceRecordStatusTest.php
@@ -2192,7 +2192,7 @@ git commit -m "feat: sederhanakan edit dan arsip layanan BK"
 - Consumes: direct terminal edit dari Task 9 dan `AuditService` append-only.
 - Produces: tidak ada consumer runtime untuk tabel `corrections` atau `user_notifications`; dashboard tidak membaca daftar audit.
 
-- [ ] **Step 1: Tulis failing retired-feature tests**
+- [x] **Step 1: Tulis failing retired-feature tests**
 
 Tambahkan ke `AuthorizationMatrixTest`:
 
@@ -2244,14 +2244,14 @@ public function test_dashboard_uses_role_context_instead_of_audit_activity_feed(
 }
 ```
 
-- [ ] **Step 2: Jalankan tests dan pastikan gagal**
+- [x] **Step 2: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/AuthorizationMatrixTest.php --filter=retired_feature
 php artisan test tests/Feature/DashboardNotificationTest.php --filter=role_context
 ```
 
-- [ ] **Step 3: Hapus route, policy registration, dan view composer**
+- [x] **Step 3: Hapus route, policy registration, dan view composer**
 
 Hapus seluruh route koreksi/notifikasi/riwayat beserta route fixture
 `/_preview/notifications`, `/_preview/corrections`,
@@ -2262,7 +2262,7 @@ gate `viewAuditHistory`, dan composer
 `unreadNotificationCount` dari `AppServiceProvider`. Sidebar tidak boleh
 mengandung label, badge, atau route retired.
 
-- [ ] **Step 4: Hapus dependency service dan relasi model**
+- [x] **Step 4: Hapus dependency service dan relasi model**
 
 Hapus constructor dependency `NotificationService` dan seluruh pemanggilan
 `send()` dari Assignment, Case, Consultation, dan koordinasi. Hapus method
@@ -2274,7 +2274,7 @@ User serta trait `Notifiable` bila tidak ada consumer lain.
 Gunakan audit existing untuk mutasi penting; jangan mengganti notifikasi dengan
 event audit yang ditampilkan ke pengguna.
 
-- [ ] **Step 5: Ganti payload dashboard**
+- [x] **Step 5: Ganti payload dashboard**
 
 `DashboardService` tidak lagi mengimpor `AuditLog` atau `Correction`. Payload
 operasional menghasilkan key berikut:
@@ -2314,20 +2314,20 @@ tahun ajaran aktif, serta status provider tanpa credential. Waka tetap memakai
 `WakaDashboardService` dengan ringkasan aman. Hapus key `activities`, method
 `activityItems()`, dan `scopedAuditQuery()`.
 
-- [ ] **Step 6: Ganti view dan frontend checker**
+- [x] **Step 6: Ganti view dan frontend checker**
 
 Pada dashboard, ganti heading `Aktivitas Terbaru` dengan
 `$dashboard['context_panel']['title']` dan render hanya label/value/meta aman.
 Hapus tombol `Ajukan Koreksi` dari profil murid, konsultasi, kasus, dan prestasi.
 Perbarui frontend checker agar memastikan string/route retired tidak ada.
 
-- [ ] **Step 7: Hapus artefak dan sesuaikan tests**
+- [x] **Step 7: Hapus artefak dan sesuaikan tests**
 
 Hapus file yang tercantum sebagai Delete. Pertahankan test dashboard dari
 `DashboardNotificationTest` di file baru `DashboardTest`; hapus seluruh test
 notifikasi. Hapus URI retired dari matrix dan tambahkan assertion 404 terpisah.
 
-- [ ] **Step 8: Verifikasi tidak ada consumer**
+- [x] **Step 8: Verifikasi tidak ada consumer**
 
 ```powershell
 rg -n "Correction|corrections\.|UserNotification|NotificationService|notifications\.|history\.|unreadNotificationCount|Aktivitas Terbaru|Ajukan Koreksi" app routes resources tests scripts
@@ -2342,7 +2342,7 @@ git diff --check
 Expected: `rg` tidak menemukan consumer runtime; kemunculan yang tersisa hanya
 pada migration lama atau dokumentasi histori yang sengaja dipertahankan.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```powershell
 git add -A -- app/Http/Controllers/CorrectionController.php app/Http/Controllers/NotificationController.php app/Http/Controllers/HistoryController.php app/Http/Controllers/LegacyPreviewController.php app/Http/Requests/StoreCorrectionRequest.php app/Http/Requests/VerifyCorrectionRequest.php app/Http/Requests/ProcessMasterCorrectionRequest.php app/Models/Correction.php app/Models/UserNotification.php app/Models/User.php app/Models/Student.php app/Models/BkCase.php app/Models/Consultation.php app/Models/FollowUp.php app/Models/Achievement.php app/Policies/CorrectionPolicy.php app/Policies/UserNotificationPolicy.php app/Providers/AppServiceProvider.php app/Services/CorrectionService.php app/Services/NotificationService.php app/Services/AssignmentService.php app/Services/CaseService.php app/Services/ConsultationService.php app/Services/AchievementService.php app/Services/DashboardService.php routes/web.php resources/views/components/sidebar.blade.php resources/views/pages/corrections/create.blade.php resources/views/pages/corrections/index.blade.php resources/views/pages/corrections/show.blade.php resources/views/pages/notifications/index.blade.php resources/views/pages/history/index.blade.php resources/views/pages/students/show.blade.php resources/views/pages/cases/show.blade.php resources/views/pages/consultations/show.blade.php resources/views/pages/achievements/show.blade.php scripts/check-frontend.mjs tests/Feature/CorrectionManagementTest.php tests/Feature/DashboardNotificationTest.php tests/Feature/DashboardTest.php tests/Feature/AuthorizationMatrixTest.php tests/Feature/FrontendPreviewTest.php

@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_id', 'service_field_id', 'status_id', 'topic', 'referral_source', 'session_date', 'starts_at', 'ends_at', 'follow_up_date', 'general_summary', 'counselor_id'])]
@@ -57,12 +56,6 @@ class Consultation extends Model
     public function privateNote(): HasOne
     {
         return $this->hasOne(ConsultationPrivateNote::class);
-    }
-
-    /** @return MorphMany<Correction, $this> */
-    public function corrections(): MorphMany
-    {
-        return $this->morphMany(Correction::class, 'target');
     }
 
     /** @param Builder<Consultation> $query */

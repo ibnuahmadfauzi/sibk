@@ -34,9 +34,17 @@ final class ServiceRecordStatusMigrationTest extends TestCase
                 $statuses->pluck('label')->all(),
             );
         }
+
+        foreach (['follow_up_status', 'coordination_status'] as $category) {
+            $this->assertDatabaseHas('references', [
+                'category' => $category,
+                'code' => 'dibatalkan',
+                'is_active' => true,
+            ]);
+        }
     }
 
-    public function test_migration_maps_legacy_statuses_without_losing_service_records(): void
+    public function test_migration_archives_legacy_cancelled_service_records(): void
     {
         $connection = 'service_status_migration_probe';
         $originalConnection = DB::getDefaultConnection();
@@ -51,6 +59,10 @@ final class ServiceRecordStatusMigrationTest extends TestCase
                 'migrations/2026_09_13_000100_align_service_record_statuses.php',
             );
             $migration->up();
+            $retirement = require database_path(
+                'migrations/2026_09_14_000050_retire_cancelled_service_records.php',
+            );
+            $retirement->up();
 
             $this->assertSame(4, DB::table('cases')->count());
             $this->assertSame(4, DB::table('consultations')->count());
@@ -77,7 +89,7 @@ final class ServiceRecordStatusMigrationTest extends TestCase
                     ServiceRecordStatus::NEW,
                     ServiceRecordStatus::IN_PROGRESS,
                     ServiceRecordStatus::COMPLETED,
-                    ServiceRecordStatus::CANCELLED,
+                    'dibatalkan',
                 ],
                 $this->recordStatusCodes('cases'),
             );
@@ -86,10 +98,17 @@ final class ServiceRecordStatusMigrationTest extends TestCase
                     ServiceRecordStatus::NEW,
                     ServiceRecordStatus::IN_PROGRESS,
                     ServiceRecordStatus::COMPLETED,
-                    ServiceRecordStatus::CANCELLED,
+                    'dibatalkan',
                 ],
                 $this->recordStatusCodes('consultations'),
             );
+            $this->assertNotNull(DB::table('cases')->where('id', 104)->value('deleted_at'));
+            $this->assertNotNull(DB::table('consultations')->where('id', 204)->value('deleted_at'));
+            $this->assertSame(0, DB::table('references')
+                ->whereIn('category', ['case_status', 'consultation_status'])
+                ->where('code', 'dibatalkan')
+                ->where('is_active', true)
+                ->count());
         } finally {
             DB::setDefaultConnection($originalConnection);
             DB::purge($connection);
@@ -122,10 +141,14 @@ final class ServiceRecordStatusMigrationTest extends TestCase
         Schema::create('cases', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('status_id')->constrained('references')->restrictOnDelete();
+            $table->timestamps();
+            $table->softDeletes();
         });
         Schema::create('consultations', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('status_id')->constrained('references')->restrictOnDelete();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -144,16 +167,16 @@ final class ServiceRecordStatusMigrationTest extends TestCase
         ]);
 
         DB::table('cases')->insert([
-            ['id' => 101, 'status_id' => 1],
-            ['id' => 102, 'status_id' => 2],
-            ['id' => 103, 'status_id' => 3],
-            ['id' => 104, 'status_id' => 4],
+            ['id' => 101, 'status_id' => 1, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 102, 'status_id' => 2, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 103, 'status_id' => 3, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 104, 'status_id' => 4, 'created_at' => $now, 'updated_at' => $now],
         ]);
         DB::table('consultations')->insert([
-            ['id' => 201, 'status_id' => 5],
-            ['id' => 202, 'status_id' => 6],
-            ['id' => 203, 'status_id' => 7],
-            ['id' => 204, 'status_id' => 8],
+            ['id' => 201, 'status_id' => 5, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 202, 'status_id' => 6, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 203, 'status_id' => 7, 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 204, 'status_id' => 8, 'created_at' => $now, 'updated_at' => $now],
         ]);
     }
 

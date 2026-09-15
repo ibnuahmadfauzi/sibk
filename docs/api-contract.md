@@ -4,17 +4,17 @@ Status: **AKTIF — IMPLEMENTASI BACKEND**
 
 Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penanganan data untuk modul-modul P0 Ruang BK.
 
-Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, serta Portal Waka berbasis tujuan 13 September 2026.
+Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, serta penyederhanaan operasional 15 September 2026.
 
 ## Kontrak Bersama Pengembangan Paralel
 
 Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 
-- Status kasus dan konsultasi memakai kode `baru`, `sedang_diproses`, `membutuhkan_tindak_lanjut`, `selesai`, dan `dibatalkan` dari `App\Support\ServiceRecordStatus`.
-- `selesai` dan `dibatalkan` adalah status terminal. Mutasi biasa ditolak oleh policy dan service; perubahan sesudahnya hanya melalui koreksi operasional terverifikasi.
-- Kode registrasi kasus tetap dibuat dan disimpan backend, tetapi tidak menjadi field response/view pengguna, parameter pencarian pengguna, kolom laporan/CSV, teks notifikasi, atau ringkasan audit yang terlihat pengguna.
+- Status kasus dan konsultasi memakai kode `baru`, `sedang_diproses`, `membutuhkan_tindak_lanjut`, dan `selesai` dari `App\Support\ServiceRecordStatus`.
+- `selesai` adalah status terminal. Pemilik yang masih berwenang dapat mengedit setelah konfirmasi dan alasan 10–500 karakter; status, waktu selesai, identitas, dan pemilik tetap tidak berubah.
+- Kode registrasi kasus tetap dibuat dan disimpan backend, tetapi tidak menjadi field response/view pengguna, parameter pencarian pengguna, kolom laporan/CSV, atau ringkasan audit yang terlihat pengguna.
 - Data master memuat seluruh murid aktif beserta penempatan tahun ajarannya. Kasus/konsultasi hanya dibuat ketika pelayanan benar-benar terjadi.
-- `cases.waka_summary` adalah satu-satunya narasi kasus yang boleh masuk proyeksi seluruh kasus untuk Waka. Nilai opsional pada status `baru`, wajib saat status mulai diproses, maksimal 500 karakter, ditulis pemilik aktif tanpa approval tambahan, dan terkunci bersama status terminal.
+- `cases.waka_summary` adalah satu-satunya narasi kasus yang boleh masuk proyeksi seluruh kasus untuk Waka. Nilai opsional pada status `baru`, wajib saat status mulai diproses, maksimal 500 karakter, ditulis pemilik aktif tanpa approval tambahan, dan tetap immutable saat mengedit kasus `selesai`.
 - Route baru lifecycle pelayanan dimiliki `routes/bk-services.php`; route portal Waka dimiliki `routes/waka.php`. Keduanya dimuat di dalam middleware `auth` dan `account.active`.
 - Jalur B memakai nama route `cases.edit` untuk `GET /cases/{case}/edit` dan `cases.update` untuk `PATCH /cases/{case}`.
 - Portal Waka memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases`, `waka.reports` untuk `GET /waka/reports`, serta route kompatibilitas `waka.monitoring.handling` untuk `GET /waka/handling-reports` yang mengarah ke tab penanganan.
@@ -49,11 +49,18 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Controller:** `Admin\\UserManagementController`
 - **Authorization:** `UserPolicy`; hanya role aktif `admin_it`.
 - **Negosiasi respons:** request browser biasa menerima halaman Blade dan redirect dengan flash message; request dengan `Accept: application/json` tetap menerima JSON untuk integrasi/test.
-- **Request buat:** `name`, `email`, `password`, `password_confirmation`, `roles[]` (slug role), `is_active` (opsional).
-- **Request ubah:** Field yang berubah dari `name`, `email`, `password`, `password_confirmation`, `roles[]`, dan `is_active`.
-- **Response:** JSON berisi pesan dan data akun tanpa password atau token sesi.
-- **Business Logic:** `AccountService` menyimpan perubahan akun dan sinkronisasi multi-role dalam transaksi serta membuat audit otomatis.
+- **Request buat:** `name`, `email`, `roles[]` (slug role), dan `is_active` (opsional); password tidak diterima dari form.
+- **Request ubah:** Field yang berubah dari `name`, `email`, `roles[]`, dan `is_active`; password memakai alur reset tersendiri.
+- **Reset password:** `POST /admin/users/{user}/reset-password` hanya untuk Admin IT aktif terhadap target lain.
+- **Response buat/reset:** menampilkan password sementara unik satu kali dengan `Cache-Control: no-store, private`; JSON tidak memuat hash atau token sesi.
+- **Business Logic:** `AccountService` menyimpan akun dan role dalam transaksi; `TemporaryPasswordService` menerbitkan password sementara 24 jam, memutus sesi target, menetapkan `must_change_password`, dan menulis audit tanpa nilai password.
 - **Status akun:** Penonaktifan/pemulihan menggunakan `is_active`; tidak tersedia endpoint hapus akun permanen.
+
+### Pergantian Password Wajib
+- **Endpoint:** `GET /account/change-password`, `PATCH /account/change-password`.
+- **Authorization:** akun aktif dengan sesi sah; middleware `password.changed` membatasi route operasional sampai password sementara diganti.
+- **Request:** `current_password`, `password`, dan `password_confirmation`; password baru minimal delapan karakter serta memuat huruf dan angka.
+- **Business Logic:** password baru mengosongkan `must_change_password` dan `temporary_password_expires_at`, mengisi `password_changed_at`, memutus sesi lain, dan diaudit tanpa nilai password. Password sementara kedaluwarsa ditolak saat login.
 
 ---
 
@@ -88,14 +95,15 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
   - Buat penugasan pemilik awal untuk Guru BK pencatat.
   - Catat jejak audit otomatis.
 
-### Ubah Kasus Berjalan
+### Ubah dan Arsip Kasus
 - **Endpoint:** `GET /cases/{case}/edit`, `PATCH /cases/{case}`.
 - **Controller:** `CaseController@edit`, `CaseController@update`.
 - **Form Request:** `UpdateCaseRequest`.
-- **Field:** `status_id` nonterminal, `service_date`, `service_field_id`, `referral_source`, `initial_info`, `initial_action`, `waka_summary`, dan `internal_note`.
+- **Field:** `status_id`, `service_date`, `service_field_id`, `referral_source`, `initial_info`, `initial_action`, `waka_summary`, `internal_note`, serta `change_reason` wajib hanya untuk kasus `selesai`.
 - **Field tetap:** murid/identitas sementara, kode internal, sumber kasus, serta tautan e-Tatib tidak dapat diubah melalui form ini.
-- **Authorization:** hanya Guru BK pemilik aktif dan hanya ketika status kasus belum terminal. Koordinator mengatur penugasan tetapi tidak mengubah catatan profesional.
-- **Koreksi:** kasus `selesai` atau `dibatalkan` menolak endpoint ini dan memakai alur koreksi terverifikasi.
+- **Authorization:** hanya Guru BK pemilik aktif. Koordinator mengatur penugasan tetapi tidak mengubah catatan profesional.
+- **Edit selesai:** memerlukan konfirmasi dan `change_reason`; `status_id`, `closed_at`, identitas, pemilik, serta tautan e-Tatib tetap immutable dan event audit menyimpan alasan.
+- **Arsip:** `DELETE /cases/{case}` hanya untuk pemilik aktif, memakai soft delete, dan tidak mengubah status bisnis.
 
 ### Detail & Koordinasi Kasus
 - **Endpoint:** `GET /cases/{case}`
@@ -146,9 +154,9 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Filter daftar:** `search` (nama, NISN, atau topik), `classroom_id`, `service_field_id`, `consultation_status_id`, dan `month` (`YYYY-MM`).
 - **Authorization:** Guru BK membaca histori ketika masih memiliki scope profesional atas murid. Koordinator membaca metadata dan ringkasan umum. Waka dan Admin IT tidak memiliki akses. Relasi `privateNote` hanya dimuat setelah `ConsultationPolicy@viewSensitive` disetujui.
 
-### Catat dan ubah konsultasi
-- **Endpoint:** `POST /consultations`; `PATCH /consultations/{consultation}`.
-- **Controller:** `ConsultationController@store`, `ConsultationController@update`.
+### Catat, ubah, dan arsip konsultasi
+- **Endpoint:** `POST /consultations`; `PATCH /consultations/{consultation}`; `DELETE /consultations/{consultation}`.
+- **Controller:** `ConsultationController@store`, `ConsultationController@update`, `ConsultationController@destroy`.
 - **Form Request:** `StoreConsultationRequest`, `UpdateConsultationRequest`.
   - `student_id` atau pasangan `temporary_nisn` + `temporary_name` (salah satu wajib)
   - `case_id` (nullable, kasus dengan identitas sama dan penugasan aktif)
@@ -158,7 +166,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
   - `session_date` (required), `starts_at`, `ends_at`, `follow_up_date` (nullable)
   - `general_summary` (wajib untuk status `selesai`)
   - `internal_note`, `sensitive_content`, `conclusion`, `follow_up_plan` (nullable, disimpan pada tabel privat)
-- **Business Logic:** `ConsultationService` membuat nomor internal `KNS-YYYY-XXXX`, memvalidasi identitas/scope/kasus/jadwal, dan menulis metadata serta catatan privat dalam satu transaksi. Hanya pencatat asli yang masih memiliki kewenangan profesional dapat mengubah sesi berstatus nonterminal; `selesai` dan `dibatalkan` menolak edit biasa. Tidak tersedia endpoint hapus.
+- **Business Logic:** `ConsultationService` membuat nomor internal `KNS-YYYY-XXXX`, memvalidasi identitas/scope/kasus/jadwal, dan menulis metadata serta catatan privat dalam satu transaksi. Hanya pencatat asli yang masih memiliki kewenangan profesional dapat mengubah atau mengarsipkan sesi. Edit `selesai` memerlukan konfirmasi dan `change_reason` tanpa mengubah status; arsip memakai soft delete.
 - **Audit:** hanya metadata umum dan nama field privat yang berubah. Isi catatan privat tidak dicatat pada audit.
 
 ### Daftar dan profil murid
@@ -175,7 +183,15 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Filter daftar:** pencarian, murid, kelas historis, jenis, tingkat, status, tanggal awal/akhir, dan halaman.
 - **Authorization:** Guru BK mencatat murid dalam scope profesional dan hanya dapat mengubah catatannya selama berstatus `menunggu`. Koordinator melihat seluruh prestasi dan menetapkan `terverifikasi` atau `ditolak`. Waka hanya membaca prestasi terverifikasi milik murid dengan kasus terkoordinasi. Admin IT ditolak.
 - **Verifikasi:** `decision` hanya menerima `terverifikasi` atau `ditolak`; `verification_notes` wajib untuk penolakan. Review memakai row lock dan bersifat final.
-- **Audit dan retensi:** pencatatan, perubahan, review, dan koreksi diaudit tanpa menyalin catatan atau referensi bukti. Tidak tersedia endpoint hapus atau penghapusan otomatis.
+- **Audit dan retensi:** pencatatan, perubahan, dan review diaudit tanpa menyalin catatan atau referensi bukti. Tidak tersedia endpoint hapus atau penghapusan otomatis.
+
+### Proses Keluar Murid
+- **Endpoint Guru BK/Koordinator:** `POST /students/{student}/departure`, `PATCH /students/{student}/departure`, dan `POST /students/{student}/departure/finalize`.
+- **Endpoint Waka:** `GET /waka/student-departures` untuk daftar/detail operasional read-only tanpa narasi privat kasus atau konsultasi.
+- **Pencatatan:** Guru BK aktif dalam scope membuat tepat satu baris per murid berstatus `dalam_proses`; `reported_at` tidak dapat diubah setelah pencatatan pertama.
+- **Keputusan:** hanya Koordinator BK memilih `batal` atau `resmi_keluar`; `effective_date` wajib untuk `resmi_keluar`.
+- **Scope layanan:** hanya `resmi_keluar` yang sudah efektif menghentikan layanan baru dan memulai retensi. Data histori tetap tersedia sesuai policy.
+- **Integrasi:** Dapodik/e-Tatib tidak dapat membuat, memperbarui, membatalkan, atau meresmikan proses keluar murid.
 
 ---
 
@@ -208,11 +224,11 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Controller:** `AssignmentController@assignCase`
 - **Authorization:** `Koordinator BK` only.
 - **Request:** `assignment_type=transfer`, `to_user_id`, `reason`, `effective_date`.
-- **Business Logic:** `AssignmentService::assignCase()` menjalankan pengalihan dalam satu transaksi: lock kasus; tolak status terminal; lock seluruh assignment owner; pastikan satu owner aktif pada tanggal berlaku; tutup owner lama satu hari sebelum tanggal berlaku; buat satu owner baru; lalu tulis audit dan notifikasi. Kegagalan tahap mana pun me-rollback seluruh perubahan. Assignment `additional` lama dipertahankan sebagai histori/akses baca tetapi tidak dapat mengubah kasus dan tidak dibuat lagi. Target wajib Guru BK aktif.
+- **Business Logic:** `AssignmentService::assignCase()` menjalankan pengalihan dalam satu transaksi: lock kasus; tolak status terminal; lock seluruh assignment owner; pastikan satu owner aktif pada tanggal berlaku; tutup owner lama satu hari sebelum tanggal berlaku; buat satu owner baru; lalu tulis audit. Kegagalan tahap mana pun me-rollback seluruh perubahan. Assignment `additional` lama dipertahankan sebagai histori/akses baca tetapi tidak dapat mengubah kasus dan tidak dibuat lagi. Target wajib Guru BK aktif.
 
 ---
 
-## 6. Modul Koreksi Data & Rekonsiliasi (`COR`, `MD`)
+## 6. Modul Data Master & Rekonsiliasi (`MD`)
 
 ### Persiapan Tahun Ajaran saat Dapodik Terlambat
 - **Endpoint:**
@@ -266,6 +282,17 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Batas adapter:** response/page bytes, total bytes/records/pages, pagination, timeout, retry/backoff, rate limit, concurrency, backpressure, hard deadline, dan kebutuhan queue harus berasal dari kontrak yang sudah disahkan.
 - **Konflik:** data bermasalah ditahan di `external_sync_issues` dan tidak menimpa data master yang sah.
 - **e-Tatib:** `EtatibSyncService` menyimpan mirror read-only berdasarkan NISN. Snapshot penuh dapat menonaktifkan record lama; payload parsial hanya upsert. Connector production tetap tidak tersedia sampai `DEP-01` disahkan dan tidak ada endpoint write-back.
+- **Proses keluar:** sinkronisasi provider dilarang membuat atau mengubah `student_departures`.
+
+### Batas Field Provider Sekolah
+
+- Provider roster menyediakan nama, NISN, rombel, dan `tahun_pelajaran`.
+- Provider e-Tatib menyediakan NISN, nama, kelas, pelanggaran, poin, pencatat,
+  kategori, `tanggal_pelanggaran`, dan `total_poin`.
+- Kedua provider tidak menyediakan status atau tanggal keluar murid.
+- API sekolah tidak menentukan status keluar murid. Ketiadaan field keluar tidak
+  menggagalkan admission untuk fungsi roster, tetapi dicatat sebagai batas
+  kontrak dan tidak boleh diisi dengan asumsi.
 
 ### Pratinjau dan Penerapan Dapodik
 - **Endpoint:**
@@ -288,63 +315,33 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Konflik:** beberapa identitas sementara dengan NISN sama tetapi nama berbeda sebelum data resmi tersedia, lebih dari satu kandidat lokal, atau pertentangan `dapodik_id` dan NISN menghasilkan `ditahan_konflik`. Tidak ada relasi yang diubah otomatis; Admin IT menyelesaikan berdasarkan sumber resmi.
 - **Atomicity:** rekonsiliasi mengunci identitas sementara, kandidat murid, dan issue sumber yang relevan dalam satu transaksi agar impor dan rekonsiliasi bersamaan tidak menghasilkan tautan ganda.
 
-### Ajukan Koreksi
-- **Endpoint:** `GET /corrections`, `GET /corrections/create`, `POST /corrections`, dan `GET /corrections/{correction}`.
-- **Controller:** `CorrectionController@index/create/store/show`.
-- **Form Request:** `StoreCorrectionRequest`.
-  - `target_type` (`case`, `follow_up`, `consultation`, atau `achievement`)
-  - `target_id` (required, integer)
-  - `field_name` (required, atribut yang diizinkan per jenis objek)
-  - `proposed_value` (present, nullable hanya untuk atribut yang memang opsional)
-  - `reason` (required, string)
-- **Business Logic:** `CorrectionService::submit()` membaca nilai lama langsung dari objek terotorisasi, menormalisasi tanggal/jam/referensi, menolak nilai usulan yang sama, memberi nomor `KR-YYYY-XXXX`, dan mencatat audit. Klien tidak dapat menentukan nilai lama atau jenis koreksi secara sepihak.
-- **Scope daftar/detail:** Guru BK melihat pengajuan operasionalnya; Koordinator melihat seluruh pengajuan operasional untuk tata kelola; Waka tidak memperoleh workflow koreksi; Admin IT hanya dapat melihat/memproses data koreksi master historis yang sudah tersimpan. Multi-role menggabungkan fungsi tanpa membuka objek layanan di luar fungsi yang sah.
-- **Koreksi master baru:** tidak tersedia pada MVP. Guru BK/Koordinator berkoordinasi dengan Admin IT di luar aplikasi; perubahan dilakukan pada sumber resmi lalu masuk melalui sinkronisasi.
+### Penghentian Koreksi Data dan Riwayat Perubahan
 
-### Verifikasi Koreksi Operasional
-- **Endpoint:** `POST /corrections/{correction}/verify`.
-- **Controller:** `CorrectionController@verify`
-- **Form Request:** `VerifyCorrectionRequest`.
-- **Authorization:** `Koordinator BK` only.
-- **Request:** `decision` (`approved`, `rejected`, `revision_requested`) dan `review_notes` (wajib untuk penolakan/permintaan perbaikan).
-- **Business Logic:** approval memakai row lock, memeriksa bahwa nilai objek belum berubah sejak pengajuan, lalu menerapkan perubahan melalui `CaseService`, `FollowUpService`, `ConsultationService`, atau `AchievementService`. Prestasi hanya dapat diajukan setelah terverifikasi. Tidak tersedia mutasi field generik.
-
-### Pemrosesan Koreksi Master
-- **Endpoint:** `POST /corrections/{correction}/process-master`.
-- **Controller:** `CorrectionController@processMaster`.
-- **Form Request:** `ProcessMasterCorrectionRequest`.
-- **Authorization:** hanya Admin IT dan hanya untuk koreksi master berstatus `menunggu` atau `diproses`.
-- **Request:** `action` (`processing`, `completed`, `rejected`), `review_notes`, dan `external_sync_run_id` yang wajib untuk `completed`.
-- **Business Logic:** aplikasi tidak mengubah cache Dapodik melalui koreksi. Status `selesai` hanya diterima bila log sinkronisasi Dapodik berhasil/peringatan terjadi setelah pengajuan dan nilai master hasil sinkronisasi sama dengan nilai usulan.
-
-### Riwayat Perubahan
-- **Endpoint:** `GET /history`.
-- **Controller:** `HistoryController@index`.
-- **Response:** audit append-only terpagina berisi waktu, pelaku, tipe/ID objek, tindakan, dan ringkasan; nilai before/after tidak ditampilkan pada PG-406.
-- **Scope:** Koordinator memperoleh ringkasan tata kelola; Guru BK dan Waka hanya tindakan yang dilakukannya; Admin IT hanya tindakan teknis, sinkronisasi, akun, dan pemrosesan koreksi master.
+- Tidak tersedia route, controller, service, atau halaman Koreksi Data dan
+  Riwayat Perubahan pada MVP.
+- Kesalahan data master diperbaiki pada sumber resmi lalu masuk melalui
+  sinkronisasi atau rekonsiliasi.
+- `audit_logs` tetap append-only untuk backend dan pemeriksaan resmi, tetapi
+  tidak mempunyai endpoint pembaca umum.
 
 ---
 
-## 7. Dashboard dan Notifikasi (`DASH`, `NOT`)
+## 7. Dashboard (`DASH`)
 
 ### Dashboard per kewenangan
 - **Endpoint:** `GET /dashboard`.
 - **Controller:** `DashboardController@index`.
 - **Query Params:** `academic_year_id` (opsional; harus merujuk tahun ajaran yang tersedia).
 - **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
-  - Guru BK menerima agregat murid dalam scope profesional, kasus yang dapat diakses, tindak lanjut terdekat, mirror e-Tatib terkait, dan aktivitasnya sendiri.
-  - Koordinator BK menerima rekap tata kelola umum tanpa isi catatan internal atau konsultasi privat.
+  - Guru BK menerima cakupan kelas, kasus khusus aktif, dan tindak lanjut terdekat.
+  - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan efektif, dan tindak lanjut terbuka tanpa isi catatan internal atau konsultasi privat.
   - Waka Kesiswaan menerima agregat aman seluruh kasus sekolah; tautan detail hanya tersedia untuk kasus yang dikoordinasikan kepadanya.
-  - Admin IT hanya menerima status akun, sinkronisasi, konflik sumber, dan koreksi master tanpa identitas atau isi layanan BK.
+  - Admin IT hanya menerima kesiapan akun, tahun ajaran, sinkronisasi, konflik sumber, dan status provider tanpa identitas atau isi layanan BK.
 - **Multi-role:** fungsi Koordinator diprioritaskan sebagai rekap tata kelola; role teknis tidak membuka isi layanan sensitif.
+- **Payload:** `context_panel` berisi `title` dan daftar item `label`, `value`, serta `meta`; dashboard tidak membaca daftar `audit_logs`.
 
-### Daftar dan status baca notifikasi
-- **Endpoint:** `GET /notifications`, `GET /notifications/{notification}`, dan `POST /notifications/read-all`.
-- **Controller:** `NotificationController@index/open/markAllRead`.
-- **Filter:** `filter=unread` dan `category` (`schedule`, `assignment`, `coordination`, `correction`, atau `change`).
-- **Authorization:** notifikasi hanya dapat dilihat dan ditandai dibaca oleh akun penerimanya. Akun nonaktif tidak menerima notifikasi baru dan ditolak middleware akun aktif.
-- **Business Logic:** `NotificationService` membuat notifikasi persisten dan idempotent untuk jadwal, penugasan, koordinasi, koreksi, serta perubahan kewenangan yang penting. Tautan aksi hanya dibentuk dari allowlist route server; akses objek tujuan tetap diperiksa kembali oleh policy objek.
-- **Privasi:** judul dan pesan tidak menyimpan kata sandi, kredensial, catatan internal kasus, atau isi konsultasi privat.
+Tidak tersedia pusat Notifikasi pada MVP. Jadwal dan pekerjaan penting tetap
+terlihat pada dashboard serta halaman operasional terkait.
 
 ---
 
@@ -356,7 +353,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Controller:** `WakaMonitoringController`.
 - **Form Request:** `WakaMonitoringRequest` untuk daftar/ekspor dan `WakaReportRequest` untuk halaman laporan bertab.
 - **Authorization:** Waka Kesiswaan aktif memperoleh portal hanya-baca. Koordinator BK aktif hanya boleh membuka tab `laporan-akhir` untuk melihat status placeholder yang sama; daftar murid, Monitoring Penanganan, Rekap Periode, dan ekspor Waka tetap ditolak kecuali akunnya juga memiliki role Waka.
-- **Arsitektur informasi akun Waka murni:** Dashboard; PEMANTAUAN WAKA berisi Murid dengan Kasus dan Laporan; UTILITAS berisi Notifikasi dan Akun Saya.
+- **Arsitektur informasi akun Waka murni:** Dashboard; PEMANTAUAN WAKA berisi Murid dengan Kasus, Proses Keluar Murid, dan Laporan; UTILITAS berisi Akun Saya.
 - **Murid dengan Kasus:** satu row per identitas internal, dengan nama, kelas historis, jumlah kasus, jumlah aktif, status terbaru, Guru BK, serta tautan koordinasi bila diizinkan. Filter `period/status`; sort hanya `murid`, `kelas`, `status`, atau `guru_bk`.
 - **Monitoring Penanganan:** satu row per kasus, filter `period/status`, sort `murid`, `kelas`, `bidang`, `status`, `guru_bk`, atau `tanggal`, dan pagination stabil.
 - **Rekap Periode:** filter `academic_year_id`, `date_start`, dan `date_end`; menampilkan agregat murid ditangani, kasus tercatat, membutuhkan tindak lanjut, kasus selesai, distribusi bidang/status, konteks e-Tatib/prestasi terverifikasi, dan ringkasan kelas tanpa identitas atau narasi kasus.
@@ -395,7 +392,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 ## 9. Kontrak Hardening MVP
 
 ### Akun dan kompatibilitas URL
-- **Endpoint akun:** `GET /account` melalui `AccountController@index`; seluruh nilai berasal dari akun sesi dan database. Tidak tersedia perubahan kata sandi mandiri.
+- **Endpoint akun:** `GET /account` melalui `AccountController@index`; seluruh nilai berasal dari akun sesi dan database. Pergantian kata sandi tersedia melalui endpoint akun terautentikasi, bukan reset publik/email.
 - **Route `_preview/*`:** hanya kompatibilitas bookmark `GET|HEAD` menuju endpoint canonical. Route tidak merender fixture, hanya meneruskan query parameter yang diizinkan, dan menolak metode mutasi.
 - **Route privat:** seluruh endpoint selain `/`, `/login`, dan health check berada di balik middleware `auth` serta `account.active`.
 

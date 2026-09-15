@@ -1,6 +1,6 @@
 <!--
 Canonical Markdown baseline for version 1.1.
-Derived from SRS_Aplikasi_BK_v1.0 with approved amendments through 13 September 2026.
+Derived from SRS_Aplikasi_BK_v1.0 with approved amendments through 15 September 2026.
 The version 1.0 Markdown and DOCX artifacts remain immutable archives.
 -->
 
@@ -16,7 +16,7 @@ Baseline spesifikasi MVP layanan Bimbingan dan Konseling
 
 **Tanggal:** 23 Agustus 2026
 
-**Amandemen disetujui:** 9, 12, dan 13 September 2026
+**Amandemen disetujui:** 9, 12, 13, 14, dan 15 September 2026
 
 **Konteks:** Acuan produk: PRD Aplikasi BK v1.1
 
@@ -45,8 +45,9 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | Kasus BK            | Buat, baca, ubah sebagai penanggung jawab aktif.      | Alihkan penanggung jawab; baca bila berwenang.        | Ringkasan aman seluruh kasus; detail hanya-baca untuk kasus terkoordinasi. | Tidak otomatis.                |
 | Konsultasi sensitif | Baca bila scope murid aktif atau kasus khusus.        | Tidak otomatis di luar scope Guru BK.                 | Tidak otomatis; isi lengkap dikecualikan.           | Tidak.                         |
 | Penugasan           | Lihat penugasannya.                                   | Buat/ubah berdasarkan keputusan resmi.                | Lihat ringkasan tata kelola.                        | Dukungan teknis.               |
-| Koreksi operasional | Ajukan.                                               | Verifikasi.                                           | Ringkasan bila relevan.                             | Tidak memverifikasi isi.       |
-| Koreksi master      | Koordinasi di luar aplikasi.                          | Koordinasi di luar aplikasi.                          | Tidak.                                              | Proses melalui sumber resmi.   |
+| Edit/arsip layanan  | Hanya sebagai pemilik catatan yang masih berwenang.    | Tidak mengubah catatan profesional milik Guru BK.     | Tidak.                                              | Tidak.                         |
+| Proses keluar murid | Catat rencana untuk murid dalam scope.                 | Putuskan batal atau resmi keluar.                     | Baca daftar/detail operasional tanpa mutasi.        | Tidak membaca isi layanan BK.  |
+| Kesalahan master    | Koordinasi di luar aplikasi.                           | Koordinasi di luar aplikasi.                          | Tidak.                                              | Proses melalui sumber resmi.   |
 | Laporan/cetak       | Sesuai scope sendiri.                                 | Gabungan seluruh Guru BK aktif.                       | Ringkasan penanganan seluruh kasus dari field aman. | Tidak otomatis.                |
 | Akun/infrastruktur  | Lihat akun sendiri.                                   | Pantau operasional.                                   | Tidak mengelola.                                    | Kelola akun dan infrastruktur. |
 | Konfigurasi koneksi | Tidak.                                                | Tidak.                                                | Tidak.                                              | Kelola melalui PG-501 tanpa membuka isi layanan BK. |
@@ -82,7 +83,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 
 | **ID** | **Kebutuhan**                                                                                                         | **Pri.** | **Kriteria penerimaan**                                                                        |
 |--------|-----------------------------------------------------------------------------------------------------------------------|----------|------------------------------------------------------------------------------------------------|
-| ACC-01 | Admin IT harus dapat membuat, mengaktifkan, menonaktifkan, dan memulihkan akun sesuai penugasan resmi.                | P0       | Perubahan akun menyimpan pelaku, waktu, peran, dan status.                                     |
+| ACC-01 | Admin IT harus dapat membuat, mengaktifkan, menonaktifkan, dan memulihkan akun sesuai penugasan resmi.                | P0       | Pembuatan/reset menghasilkan password sementara unik yang berlaku 24 jam, memutus sesi lama, mewajibkan pergantian setelah login, dan diaudit tanpa menyimpan nilai password. |
 | ACC-02 | Pengelolaan akun tidak boleh memberikan akses isi layanan secara otomatis.                                            | P0       | Peran teknis dan kewenangan objek diperiksa terpisah.                                          |
 | MD-01  | Data murid, kelas, keanggotaan kelas, dan tahun ajaran harus mengacu pada Dapodik.                                    | P0       | Aplikasi BK tidak menjadi sumber utama perubahan identitas/kelas.                              |
 | MD-02  | Koreksi data master harus dikoordinasikan kepada Admin IT di luar aplikasi dan diproses melalui sumber resmi.         | P0       | Aplikasi tidak menyediakan pengajuan koreksi master baru; hasil sinkronisasi terbaru tetap tercatat. |
@@ -98,11 +99,15 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | MD-12  | Penerapan Dapodik harus mempertahankan ID internal dan seluruh relasi serta histori BK yang sudah ada. | P0 | Identitas sumber dan field resmi ditempelkan pada baris yang sama, asal menjadi `dapodik`, nilai lama/baru diaudit, dan tidak ada write-back ke Dapodik/e-Tatib. |
 | MD-13  | Tahun ajaran baru harus dibentuk dari daftar penempatan resmi tanpa kenaikan kelas atau keputusan akademik otomatis. | P0 | Impor NISN exact membuat histori keanggotaan target; murid tahun sebelumnya tanpa penempatan target muncul sebagai **Perlu Konfirmasi** secara read-only dan tidak menghalangi aktivasi murid lain. |
 | MD-14  | Data master harus memuat seluruh murid aktif, bukan hanya murid yang pernah menerima pelayanan BK.                  | P0 | Data minimum memuat NISN, nama, kelas, tahun ajaran, dan periode keanggotaan; catatan pelayanan baru dibuat hanya ketika layanan terjadi. |
+| MD-15  | Guru BK aktif harus dapat mencatat rencana murid lulus, pindah, keluar, atau mengundurkan diri untuk murid dalam scope profesionalnya. | P0 | Pencatatan pertama membuat tepat satu `student_departures` berstatus `dalam_proses` dan tidak menonaktifkan murid. |
+| MD-16  | Hanya Koordinator BK yang dapat menetapkan proses keluar menjadi `batal` atau `resmi_keluar`. | P0 | `resmi_keluar` mewajibkan `effective_date`; Waka hanya dapat membaca daftar/detail operasional proses keluar tanpa mutasi. |
+| MD-17  | Sinkronisasi Dapodik/e-Tatib tidak boleh membuat atau mengubah proses keluar murid. | P0 | Provider hanya memperbarui field kontraknya; ketiadaan status/tanggal keluar tidak diisi dengan asumsi dan tidak menggagalkan admission fungsi roster. |
+| MD-18  | Retensi murid keluar harus dimulai hanya dari `effective_date` proses berstatus `resmi_keluar`. | P0 | `dalam_proses`, `batal`, dan arsip layanan tidak memulai retensi atau menonaktifkan murid. |
 | ASN-01 | Koordinator harus dapat menetapkan Guru BK untuk kelas dan tahun ajaran tertentu.                                     | P0       | Penugasan menyimpan periode efektif dan dasar keputusan.                                       |
 | ASN-02 | Penugasan baru tidak boleh menimpa riwayat lama.                                                                      | P0       | Riwayat penanggung jawab tetap dapat ditelusuri.                                               |
 | ASN-03 | Koordinator harus dapat mengubah penugasan di tengah tahun.                                                           | P0       | Perubahan memiliki tanggal efektif dan audit; kasus aktif tidak berpindah otomatis.            |
 | ASN-04 | Koordinator harus dapat menetapkan penanggung jawab pada kasus khusus di luar scope kelas.                            | P0       | Kasus hanya mempunyai satu penanggung jawab aktif; penetapan menyimpan alasan dan histori.     |
-| ASN-05 | Pengalihan kasus aktif harus dilakukan secara eksplisit dan atomik.                                                   | P0       | Dalam satu transaksi sistem mengunci kasus serta seluruh assignment owner, memvalidasi satu owner aktif, menutup periode lama, membuat owner baru, lalu menyimpan audit/notifikasi; kegagalan me-rollback seluruh perubahan. |
+| ASN-05 | Pengalihan kasus aktif harus dilakukan secara eksplisit dan atomik.                                                   | P0       | Dalam satu transaksi sistem mengunci kasus serta seluruh assignment owner, memvalidasi satu owner aktif, menutup periode lama, membuat owner baru, lalu menyimpan audit; kegagalan me-rollback seluruh perubahan. |
 | ASN-06 | Rolling atau perubahan pembagian dua tahunan tidak boleh dijalankan otomatis.                                         | P0       | Sistem hanya mencatat keputusan resmi yang dimasukkan Koordinator.                             |
 | REF-01 | Nilai referensi layanan harus dapat dikelola tanpa mengubah kode.                                                     | P0       | Bidang layanan, jenis tindak lanjut, dan status disimpan sebagai data referensi.               |
 
@@ -113,7 +118,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | CASE-01 | Guru BK harus dapat membuat kasus untuk murid dalam kewenangannya atau identitas sementara yang sah.              | P0       | Server menolak objek di luar kewenangan dan menandai identitas sementara.                                                        |
 | CASE-02 | Sumber kasus harus dapat dipilih dari e-Tatib, murid datang sendiri, temuan Guru BK, atau rujukan.                | P0       | Sumber tersimpan dan tampil pada detail.                                                                                         |
 | CASE-03 | Kasus harus memuat informasi awal, penanganan awal, riwayat layanan, tindak lanjut, koordinasi, dan penyelesaian. | P0       | Aktivitas dapat dibaca kronologis sesuai kewenangan.                                                                             |
-| CASE-04 | Status kasus harus menggunakan Baru dicatat, Sedang diproses, Membutuhkan tindak lanjut, Selesai, atau Dibatalkan. | P0       | Kode status konsisten dengan konsultasi dan perubahan status tercatat pada audit.                                                  |
+| CASE-04 | Status kasus harus menggunakan Baru dicatat, Sedang diproses, Membutuhkan tindak lanjut, atau Selesai.             | P0       | Kode status konsisten dengan konsultasi; `dibatalkan` tidak tersedia untuk data baru dan perubahan status tercatat pada audit.     |
 | CASE-05 | Guru BK harus dapat menjadwalkan dan mencatat hasil tindak lanjut.                                                | P0       | Jadwal berikutnya tampil pada dashboard pengguna berwenang.                                                                      |
 | CASE-06 | Guru BK harus dapat menyelesaikan kasus dengan hasil akhir.                                                       | P0       | Kasus selesai tetap tersedia pada histori murid.                                                                                 |
 | CASE-07 | Kasus terkait pelanggaran harus memakai data e-Tatib sebagai referensi resmi.                                     | P0       | Tidak ada transaksi atau pengetikan ulang data yang tersedia.                                                                    |
@@ -122,9 +127,9 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | CASE-10 | Sistem harus membedakan waktu pencatatan, tanggal layanan, tanggal rencana, dan tanggal pelaksanaan.              | P0       | Setiap tanggal tersimpan terpisah.                                                                                               |
 | CASE-11 | Catatan internal harus opsional dan hanya dapat dibaca pengguna berwenang.                                        | P0       | Tidak tampil pada laporan umum atau Waka secara otomatis.                                                                        |
 | CASE-12 | Kasus yang dikoordinasikan kepada Waka harus memiliki ringkasan hasil koordinasi.                                | P0       | Koordinasi dilakukan di luar aplikasi; catatan memuat tanggal, pihak, ringkasan hasil, dan tindak lanjut yang disepakati serta membuka detail hanya-baca untuk Waka tujuan. |
-| CASE-13 | Hanya Guru BK penanggung jawab aktif yang dapat mengubah kasus yang belum terminal.                               | P0       | Policy dan service menolak Guru lain, termasuk pemegang akses tambahan lama; Koordinator hanya mengatur penugasan.               |
-| CASE-14 | Kasus selesai atau dibatalkan harus dikunci dari perubahan biasa.                                                | P0       | Perubahan setelah terminal hanya dapat diterapkan melalui koreksi operasional yang diverifikasi.                                  |
-| CASE-15 | Kode kasus harus dipertahankan sebagai identitas internal dan disembunyikan dari keluaran pengguna.              | P0       | Kode tetap unik di database tetapi tidak muncul pada UI, pencarian pengguna, laporan, ekspor, dashboard, notifikasi, atau audit yang ditampilkan. |
+| CASE-13 | Hanya Guru BK penanggung jawab aktif yang dapat mengubah atau mengarsipkan kasus.                                 | P0       | Policy dan service menolak Guru lain, termasuk pemegang akses tambahan lama; Koordinator hanya mengatur penugasan.               |
+| CASE-14 | Kasus selesai hanya dapat diedit pemilik setelah konfirmasi dan alasan perubahan.                                | P0       | Alasan 10–500 karakter wajib; status, `closed_at`, identitas, dan pemilik tetap; perubahan diaudit dan arsip memakai soft delete.  |
+| CASE-15 | Kode kasus harus dipertahankan sebagai identitas internal dan disembunyikan dari keluaran pengguna.              | P0       | Kode tetap unik di database tetapi tidak muncul pada UI, pencarian pengguna, laporan, ekspor, dashboard, atau audit yang ditampilkan. |
 | CASE-16 | Penanggung jawab aktif harus memelihara Ringkasan Penanganan untuk Waka yang aman dan singkat.                    | P0       | Field `waka_summary` opsional pada status `baru`, wajib saat kasus mulai diproses, maksimal 500 karakter, tidak memerlukan persetujuan Koordinator, tidak memuat informasi sensitif, dan terkunci pada status terminal. |
 
 ## Integrasi, konsultasi, profil, dan prestasi
@@ -144,28 +149,30 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | INT-11  | Uji koneksi baru dinyatakan sukses bila autentikasi, versi kontrak, schema minimum, dan identitas sumber/sekolah cocok dengan nilai yang diharapkan; status HTTP sukses saja tidak mencukupi. | P0 | Probe gagal tertutup pada identitas berbeda, schema/contract tidak kompatibel, konfigurasi tidak lengkap, credential tak terbaca, atau endpoint policy berubah. |
 | CONS-01 | Sistem harus menyimpan metadata konsultasi dan ringkasan umum yang diizinkan.                                                     | P0          | Tanggal, jenis, status, Guru BK, jadwal, ringkasan umum, dan dokumen yang diizinkan tersedia.   |
 | CONS-02 | Isi konsultasi sensitif tidak boleh masuk laporan umum atau detail Waka secara otomatis.                                          | P0          | Tampilan dan ekspor mengecualikan isi lengkap konsultasi.                                       |
-| CONS-03 | Konsultasi harus memakai lima status pelayanan yang sama dan hanya dapat diubah pencatatnya selama belum terminal.                | P0          | Status selesai/dibatalkan menolak edit biasa; koreksi terverifikasi tetap tersedia.            |
+| CONS-03 | Konsultasi harus memakai empat status pelayanan yang sama dan hanya dapat diubah atau diarsipkan oleh pencatat yang masih berwenang. | P0          | Edit konsultasi selesai memerlukan konfirmasi dan alasan 10–500 karakter tanpa mengubah status; arsip memakai soft delete. |
 | STU-01  | Profil murid harus menggabungkan informasi operasional yang berhak diakses pengguna.                                              | P0          | e-Tatib, kasus, layanan, tindak lanjut, konsultasi, dan prestasi tersedia sesuai kewenangan.    |
 | STU-02  | Guru BK dengan scope aktif harus dapat membaca histori layanan/konsultasi murid lintas kelas dan pergantian Guru BK sampai lulus. | P0          | Histori lama terbaca tetapi tidak dapat diubah oleh Guru BK penerus.                            |
 | ACH-01  | Sistem harus mendukung pencatatan prestasi setelah fungsi inti stabil.                                                            | P0 bertahap | Prestasi terhubung ke profil dan mengikuti akses.                                               |
 | ACH-02  | Data prestasi harus memuat informasi minimum yang disahkan sekolah.                                                               | P0 bertahap | Jenis, tingkat, kegiatan, penyelenggara, tanggal, hasil, bukti, dan status verifikasi tersedia. |
 
-## Dashboard, laporan, notifikasi, audit, dan koreksi
+## Dashboard, laporan, dan audit
 
 | **ID**  | **Kebutuhan**                                                                                                     | **Pri.** | **Kriteria penerimaan**                                                                          |
 |---------|-------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------------------------------------------------------|
 | DASH-01 | Dashboard harus mengikuti peran, scope murid, penugasan kasus, dan koordinasi Waka.                               | P0       | Hitungan dan tautan tidak memuat data di luar kewenangan.                                        |
-| DASH-02 | Dashboard Guru BK harus menampilkan ringkasan operasional utama.                                                  | P0       | Jumlah murid, pelanggaran, kasus, jadwal, dan aktivitas relevan tersedia.                        |
-| DASH-03 | Dashboard Waka harus menampilkan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh kasus.              | P0       | Dashboard menampilkan empat metric kasus, daftar perhatian, komposisi status, dan penanganan terbaru; tidak memuat field sensitif, tautan detail hanya tersedia untuk kasus yang dikoordinasikan, dan tidak menyediakan aksi ubah. |
+| DASH-02 | Dashboard harus menampilkan konteks operasional sesuai fungsi akun tanpa membaca daftar audit.                    | P0       | Guru BK melihat cakupan layanan; Koordinator melihat kesiapan penugasan; Admin IT melihat kesiapan data/integrasi tanpa isi layanan BK. |
+| DASH-03 | Dashboard Waka harus menampilkan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh kasus.              | P0       | Dashboard menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, serta akses baca proses keluar; tidak memuat field sensitif dan tidak menyediakan aksi ubah. |
 | REP-01  | Laporan Guru BK/Koordinator harus menyediakan filter nama murid, tahun ajaran, periode, kelas, dan Guru BK khusus Koordinator pada tab Layanan. | P0 | Filter tervalidasi menghasilkan data konsisten tanpa memperluas akses. |
 | REP-02  | Laporan harus menyediakan Pelanggaran & Poin, Layanan BK, dan Prestasi sebagai tiga rekap satu baris per murid tanpa penggabungan file manual. | P0 | Identitas sementara yang sah hanya muncul pada tab Layanan dan dikelompokkan berdasarkan ID. |
 | REP-03  | Tabel, cetak, dan CSV harus memakai dataset terscope serta identitas tersamarkan yang sama. | P0 | Hasil tidak memuat data di luar kewenangan atau field terlarang. |
 | REP-04  | Guru BK hanya memperoleh scope profesional/kasus khusus; Koordinator memperoleh rekap gabungan dan filter Guru BK yang tidak memperluas akses. | P0 | Scope server konsisten pada tabel, cetak, dan ekspor; jumlah Guru BK dihitung dinamis. |
 | REP-05  | Portal Waka harus mempunyai daftar Murid dengan Kasus dan satu halaman Laporan bertab.                             | P0       | Monitoring Penanganan memakai filter bulan/status dan sorting allowlist; Rekap Periode hanya menampilkan agregat kasus, konteks e-Tatib, prestasi terverifikasi, serta ringkasan kelas; Laporan Akhir menampilkan status Dalam pengembangan tanpa tindakan penerbitan atau ekspor. Seluruh keluaran mengecualikan NISN, kode kasus, konsultasi sensitif, catatan internal, dokumen, dan narasi di luar `waka_summary`. |
-| NOT-01  | Sistem harus menampilkan pemberitahuan operasional yang terkait pengguna.                                         | P0       | Jadwal, penugasan, koordinasi, koreksi, dan perubahan penting hanya dikirim kepada pihak berhak. |
-| AUD-01  | Perubahan penting serta pembacaan/ekspor portal Waka harus menghasilkan jejak audit otomatis.                    | P0       | Audit Waka memuat event, pelaku, waktu, jenis halaman, parameter tervalidasi, halaman/jumlah hasil atau format/jumlah ekspor, IP, dan user agent tanpa nama/NISN/kode kasus/narasi; audit append-only disimpan minimum tiga tahun. |
-| COR-01  | Koreksi data operasional harus diverifikasi Koordinator BK.                                                       | P0       | Simpan pengaju, pemeriksa, alasan, nilai lama/usulan, waktu, dan hasil.                          |
-| COR-02  | Kesalahan data master harus ditangani Admin IT melalui sumber resmi.                                              | P0       | Aplikasi tidak mengubah Dapodik secara sepihak dan menampilkan hasil sinkronisasi.               |
+| AUD-01  | Perubahan penting serta pembacaan/ekspor portal Waka harus menghasilkan jejak audit otomatis.                    | P0       | Audit append-only disimpan minimum tiga tahun tanpa halaman pembaca MVP; audit Waka tidak memuat nama/NISN/kode kasus/narasi, dan alasan edit terminal hanya disimpan pada event perubahan terkait. |
+
+MVP tidak menyediakan workflow Koreksi Data, pusat Notifikasi, atau halaman
+Riwayat Perubahan. Jadwal dan pekerjaan penting tetap tersedia pada dashboard
+serta halaman operasional terkait; kesalahan data master diproses pada sumber
+resmi dan masuk kembali melalui sinkronisasi atau rekonsiliasi.
 
 Pada tab Layanan, filter Guru BK mengikuti penanggung jawab kasus yang efektif pada tanggal layanan atau tindak lanjut serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record. Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan yang sudah ada, dan Laravel Pagination tanpa dependency tabel baru. Tujuh tipe laporan lama tidak lagi menjadi katalog navigasi, tetapi mode legacy tetap tersedia melalui kontrak URL yang ada.
 
@@ -183,8 +190,8 @@ Pada tab Layanan, filter Guru BK mengikuti penanggung jawab kasus yang efektif p
 | Rekonsiliasi        | NISN sumber, murid master, nama resmi, status, hasil, pemeriksa, waktu, konflik.                                                                           | Tidak membuat murid ganda; nilai lama tetap diaudit.         |
 | Referensi e-Tatib   | Identitas sumber, NISN, tanggal/waktu kejadian, jenis, kategori, poin, waktu sinkronisasi.                                                                 | Hanya-baca.                                                  |
 | Prestasi            | Murid, jenis, tingkat, kegiatan, penyelenggara, tanggal, hasil, bukti, status verifikasi.                                                                  | P0 bertahap.                                                 |
-| Koreksi             | Objek, field, nilai lama, nilai usulan, alasan, pengaju, pemeriksa, status, waktu.                                                                         | Data master diperbaiki pada sumber resmi.                    |
-| Akun                | Identitas pengguna, peran, status aktif, waktu perubahan, pengubah.                                                                                        | Hak teknis dan kewenangan objek dipisahkan.                  |
+| Proses keluar murid | Murid, jenis keluar, status, tanggal pencatatan, ringkasan rekomendasi, tanggal efektif, pencatat, pemutus, waktu keputusan, dan catatan keputusan.                  | Satu baris per murid; `effective_date` wajib hanya untuk `resmi_keluar`; narasi maksimal 500 karakter. |
+| Akun                | Identitas pengguna, peran, status aktif, `must_change_password`, `temporary_password_expires_at`, `password_changed_at`, waktu perubahan, dan pengubah.              | Password sementara berlaku 24 jam, ditampilkan satu kali, dan nilainya tidak masuk audit/log. |
 | Konfigurasi integrasi | Provider, base URL, expected source identifier, credential terenkripsi, timeout, state, configuration version, operation fence version, driver ID, adapter version, contract version, endpoint-policy digest, penguji, dan waktu uji. | Secret tidak keluar dari backend; perubahan material membatalkan verifikasi. |
 | Evidence snapshot   | Identitas sumber terlapor, marker/provenance kontrak, jumlah page, jumlah record, dan jumlah byte terproses.                                               | Tidak memuat raw payload; divalidasi sebelum import.         |
 | Data persiapan sementara | Tahun ajaran, dasar resmi sekolah, NISN, nama, rombel, asal data, status aktif, pembuat, dan waktu persiapan. | Bukan data resmi Dapodik; status asal dan aktivasi operasional disimpan terpisah. |
@@ -208,7 +215,7 @@ Pada tab Layanan, filter Guru BK mengikuti penanggung jawab kasus yang efektif p
 | Tindak Lanjut             | Jadwal, kegiatan, status, hasil, dan rencana berikutnya.                     |
 | Konsultasi                | Metadata, ringkasan umum, isi sensitif, dan batas akses.                     |
 | Prestasi                  | Riwayat prestasi, bukti yang diizinkan, dan verifikasi.                      |
-| Koreksi Data              | Pengajuan, pemeriksaan, hasil, dan hubungan dengan sumber resmi.             |
+| Proses Keluar Murid       | Satu proses per murid dari pencatatan awal sampai keputusan Koordinator.     |
 | Jejak Audit               | Catatan perubahan penting yang dibuat sistem.                                |
 | Data Referensi            | Bidang layanan, jenis tindak lanjut, dan status operasional.                 |
 | Konfigurasi Integrasi     | State dan versi koneksi Dapodik/e-Tatib beserta credential terenkripsi.      |
@@ -218,9 +225,19 @@ Pada tab Layanan, filter Guru BK mengikuti penanggung jawab kasus yang efektif p
 
 ## Status dan perubahan
 
-- Status kasus dan konsultasi terdiri atas `baru` (**Baru dicatat**), `sedang_diproses` (**Sedang diproses**), `membutuhkan_tindak_lanjut` (**Membutuhkan tindak lanjut**), `selesai` (**Selesai**), dan `dibatalkan` (**Dibatalkan**).
+- Status kasus dan konsultasi terdiri atas `baru` (**Baru dicatat**), `sedang_diproses` (**Sedang diproses**), `membutuhkan_tindak_lanjut` (**Membutuhkan tindak lanjut**), dan `selesai` (**Selesai**).
 
-- `selesai` dan `dibatalkan` adalah status terminal. Catatan terminal hanya dapat diperbaiki melalui koreksi operasional yang diverifikasi.
+- `selesai` adalah satu-satunya status terminal layanan. Pemilik catatan yang
+  masih berwenang dapat mengedit setelah konfirmasi dan memberi alasan 10–500
+  karakter; status, waktu selesai, identitas, dan pemilik tetap tidak berubah.
+
+- Tombol Hapus mengarsipkan kasus atau konsultasi dengan soft delete dan tidak
+  mengubah status bisnis. Nilai legacy `dibatalkan` dinonaktifkan untuk kasus
+  dan konsultasi baru; status pembatalan tindak lanjut/koordinasi tetap berlaku.
+
+- Proses keluar murid memakai `dalam_proses`, `batal`, dan `resmi_keluar`.
+  Hanya `resmi_keluar` dengan `effective_date` yang menghentikan layanan baru
+  dan memulai retensi; sinkronisasi provider tidak dapat mengubah proses ini.
 
 - Jadwal tindak lanjut disimpan pada riwayat kegiatan dan bukan status kasus.
 
@@ -262,7 +279,7 @@ Pada tab Layanan, filter Guru BK mengikuti penanggung jawab kasus yang efektif p
 
 - Informasi kesehatan atau keluarga tanpa dasar kewenangan yang sah.
 
-- Kode kasus pada UI, pencarian pengguna, laporan, ekspor, dashboard, notifikasi, atau audit yang ditampilkan kepada pengguna.
+- Kode kasus pada UI, pencarian pengguna, laporan, ekspor, dashboard, atau audit yang ditampilkan kepada pengguna.
 
 - Narasi kasus selain `waka_summary` pada proyeksi seluruh kasus untuk Waka. Jenis dan tanggal tindak lanjut boleh ditampilkan, tetapi hasil lengkap, rencana naratif, dan hasil akhir mentah tidak boleh diambil otomatis.
 
@@ -356,8 +373,10 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 | Pratinjau dan penerapan Dapodik           | MD-10 s.d. MD-12; NFR-13               | P0          |
 | Rolling tidak otomatis                   | ASN-03; ASN-06                         | P0          |
 | Status pelayanan konsisten dan catatan terminal terkunci | CASE-04; CASE-13; CASE-14; CONS-03 | P0 |
+| Proses keluar murid terkendali dan tidak ditentukan provider | MD-15 s.d. MD-18; AUTH-03; AUD-01 | P0 |
 | Kode kasus hanya untuk kebutuhan internal | CASE-15; REP-03; AUD-01                | P0          |
-| Admin IT mengelola akun/infrastruktur    | ACC-01; ACC-02; AUTH-06                | P0          |
+| Admin IT mengelola akun dan password sementara | ACC-01; ACC-02; AUTH-06           | P0          |
+| Dashboard role-aware tanpa pembaca audit | DASH-01 s.d. DASH-03; AUD-01           | P0          |
 | Konfigurasi koneksi aman melalui PG-501  | INT-05 s.d. INT-07; NFR-09             | P0          |
 | Admission dan verifikasi sumber          | INT-08 s.d. INT-11                     | P0          |
 | Endpoint, DNS, dan konsistensi operasi    | NFR-10; NFR-11                         | P0          |
@@ -372,18 +391,18 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 |--------|--------------------|----------------------------------------------------------------------------------------|---------------------------------------------------|
 | DEP-01 | e-Tatib            | Fondasi konfigurasi boleh tersedia, tetapi autentikasi, origin/endpoint, identitas sumber, schema, pagination, full/partial dan deletion semantics, fixture sintetis, limits, resilience, TLS/proxy/jaringan, serta prosedur gangguan belum disahkan. | Uji, aktivasi, dan sinkronisasi production tetap diblokir; driver `unavailable`. |
 | DEP-02 | Dapodik            | Fondasi konfigurasi boleh tersedia, tetapi mekanisme resmi, autentikasi, origin/endpoint, identitas sekolah, schema, pagination, completeness, fixture sintetis, limits, resilience, TLS/proxy/jaringan, dan konflik NISN belum disahkan. | Uji, aktivasi, dan sinkronisasi production tetap diblokir; driver `unavailable`. |
-| DEP-03 | Istilah layanan    | Nama, kardinalitas, kewajiban, dan pemilik data referensi selain lima status inti kasus/konsultasi. | Label form/filter lain dapat berubah.             |
-| DEP-04 | Status operasional | Status tindak lanjut, koreksi, dan verifikasi prestasi.                                | Pilihan status tersebut tidak boleh ditanam dalam kode. |
+| DEP-03 | Istilah layanan    | Nama, kardinalitas, kewajiban, dan pemilik data referensi selain empat status inti kasus/konsultasi. | Label form/filter lain dapat berubah.             |
+| DEP-04 | Status operasional | Status tindak lanjut dan verifikasi prestasi.                                          | Pilihan status tersebut tidak boleh ditanam dalam kode. |
 | DEP-05 | Prestasi           | Verifikator, bukti, dan status.                                                        | Modul tetap P0 bertahap.                          |
 | DEP-06 | Dokumen/retensi    | Format, ukuran, akses, pemulihan, dan prosedur penghapusan setelah minimum tiga tahun. | Unggah dan penghapusan belum dikunci.             |
 | DEP-07 | Ekspor             | Format cetak/ekspor dan kebutuhan penandaan/audit khusus.                              | Luaran laporan belum dapat dikunci seluruhnya.    |
 
 # Sumber dan riwayat versi
 
-Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional yang disetujui 12 September 2026, penyederhanaan Portal Waka berbasis tujuan yang disetujui 13 September 2026, serta penyederhanaan laporan Guru BK/Koordinator yang disetujui 14 September 2026.
+Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional yang disetujui 12 September 2026, penyederhanaan Portal Waka berbasis tujuan yang disetujui 13 September 2026, penyederhanaan laporan Guru BK/Koordinator yang disetujui 14 September 2026, serta penyederhanaan operasional, akun, dan skema yang disetujui 15 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                  |
 |-----------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 0.3       | 12 Agustus 2026 | Menyelaraskan kebutuhan fungsional, data, nonfungsional, integrasi, dan ketertelusuran dengan PRD v0.5.                                                                                                                        |
 | 1.0       | 15 Agustus 2026 | Menambahkan tata kelola Koordinator, detail kasus terkoordinasi untuk Waka, histori lintas guru, identitas sementara dan rekonsiliasi, akun Admin IT, laporan gabungan, rolling nonotomatis, serta retensi minimum tiga tahun. |
-| 1.1       | 23 Agustus 2026; diamandemen 9, 12, 13, dan 14 September 2026 | Menambahkan fondasi konfigurasi/integrasi, fallback data persiapan, aktivasi sesuai tanggal mulai, rollover tanpa keputusan akademik otomatis, lima status pelayanan, satu penanggung jawab kasus, penguncian terminal, kode kasus internal, proyeksi aman seluruh kasus, Portal Waka berbasis tujuan, serta tiga tab rekap laporan Guru BK/Koordinator dengan kontrak legacy tetap tersedia. |
+| 1.1       | 23 Agustus 2026; diamandemen 9, 12, 13, 14, dan 15 September 2026 | Menambahkan fondasi konfigurasi/integrasi, fallback data persiapan, empat status pelayanan, edit terminal beralasan, arsip layanan, proses keluar murid, password sementara, audit tanpa UI pembaca, panel dashboard role-aware, Portal Waka berbasis tujuan, serta tiga tab rekap laporan Guru BK/Koordinator. |

@@ -124,7 +124,7 @@ final class WakaPeriodReportService
             ->selectRaw('recap_classrooms.name as classroom')
             ->selectRaw('COUNT(DISTINCT cases.student_id) as served_students')
             ->selectRaw(
-                'COUNT(DISTINCT CASE WHEN recap_status.code NOT IN (?, ?) THEN cases.id END) as active_cases',
+                'COUNT(DISTINCT CASE WHEN recap_status.code <> ? THEN cases.id END) as active_cases',
                 ServiceRecordStatus::terminalCodes(),
             )
             ->selectRaw(

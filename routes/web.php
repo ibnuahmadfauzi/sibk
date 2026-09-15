@@ -15,13 +15,10 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\CaseCoordinationController;
 use App\Http\Controllers\ConsultationController;
-use App\Http\Controllers\CorrectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FollowUpController;
-use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegacyPreviewController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentController;
 use App\Models\IntegrationSetting;
@@ -38,9 +35,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
     Route::get('/account', [AccountController::class, 'index'])->name('account.index');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
-    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.preview');
-    Route::get('/notifications/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
-    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
     Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
@@ -55,7 +49,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::patch('/cases/{case}/follow-ups/{followUp}', [FollowUpController::class, 'update'])->name('cases.follow-ups.update');
     Route::get('/cases/{case}/resolve', [CaseController::class, 'resolveForm'])->name('cases.resolve.form');
     Route::post('/cases/{case}/resolve', [CaseController::class, 'resolve'])->name('cases.resolve');
-    Route::post('/cases/{case}/deactivate', [CaseController::class, 'deactivate'])->name('cases.deactivate');
+    Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
     Route::post('/cases/{case}/assign', [AssignmentController::class, 'assignCase'])->name('cases.assign');
     Route::post('/cases/{case}/coordinations', [CaseCoordinationController::class, 'store'])->name('cases.coordinations.store');
     Route::patch('/cases/{case}/coordinations/{coordination}', [CaseCoordinationController::class, 'update'])->name('cases.coordinations.update');
@@ -70,6 +64,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::post('/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
     Route::get('/consultations/{consultation}/edit', [ConsultationController::class, 'edit'])->name('consultations.edit');
     Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
+    Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');
     Route::get('/consultations/{consultation}', [ConsultationController::class, 'show'])->name('consultations.show');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -82,14 +77,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
         ->name('assignments.academic-years.activate');
     Route::get('/assignments/cases', [AssignmentController::class, 'caseIndex'])->name('assignments.cases.index');
-
-    Route::get('/corrections', [CorrectionController::class, 'index'])->name('corrections.index');
-    Route::get('/corrections/create', [CorrectionController::class, 'create'])->name('corrections.create');
-    Route::post('/corrections', [CorrectionController::class, 'store'])->name('corrections.store');
-    Route::get('/corrections/{correction}', [CorrectionController::class, 'show'])->name('corrections.show');
-    Route::post('/corrections/{correction}/verify', [CorrectionController::class, 'verify'])->name('corrections.verify');
-    Route::post('/corrections/{correction}/process-master', [CorrectionController::class, 'processMaster'])->name('corrections.process-master');
-    Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
 
     Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
     Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
@@ -138,7 +125,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
 
     // Bookmark pratinjau lama hanya menerima GET/HEAD dan tidak lagi memuat fixture.
     Route::get('/_preview/dashboard', LegacyPreviewController::class)->defaults('destination', 'dashboard.preview')->name('fixtures.dashboard');
-    Route::get('/_preview/notifications', LegacyPreviewController::class)->defaults('destination', 'notifications.preview')->name('fixtures.notifications');
     Route::get('/_preview/cases', LegacyPreviewController::class)->defaults('destination', 'cases.index')->name('fixtures.cases.index');
     Route::get('/_preview/cases/create', LegacyPreviewController::class)->defaults('destination', 'cases.create')->name('fixtures.cases.create');
     Route::get('/_preview/cases/show', LegacyPreviewController::class)->defaults('destination', 'cases.index')->name('fixtures.cases.show');
@@ -148,8 +134,4 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::get('/_preview/students/show', LegacyPreviewController::class)->defaults('destination', 'students.legacy')->name('fixtures.students.show');
     Route::get('/_preview/consultations/show', LegacyPreviewController::class)->defaults('destination', 'consultations.index')->name('fixtures.consultations.show');
     Route::get('/_preview/assignments/cases', LegacyPreviewController::class)->defaults('destination', 'assignments.cases.index')->name('fixtures.assignments.cases.index');
-    Route::get('/_preview/corrections', LegacyPreviewController::class)->defaults('destination', 'corrections.index')->name('fixtures.corrections.index');
-    Route::get('/_preview/corrections/create', LegacyPreviewController::class)->defaults('destination', 'corrections.create')->name('fixtures.corrections.create');
-    Route::get('/_preview/corrections/show', LegacyPreviewController::class)->defaults('destination', 'corrections.index')->name('fixtures.corrections.show');
-    Route::get('/_preview/history', LegacyPreviewController::class)->defaults('destination', 'history.index')->name('fixtures.history.index');
 });

@@ -17,10 +17,8 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Models\UserNotification;
 use App\Services\AssignmentService;
 use App\Services\CaseService;
-use App\Services\CorrectionService;
 use App\Services\FollowUpService;
 use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
@@ -695,13 +693,6 @@ class CaseManagementTest extends TestCase
             $this->assertArrayHasKey('waka_summary', $exception->errors());
         }
 
-        try {
-            app(CaseService::class)->deactivate($case, $teacher);
-            $this->fail('Pembatalan seharusnya ditolak tanpa ringkasan untuk Waka.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('waka_summary', $exception->errors());
-        }
-
         $this->actingAs($teacher)
             ->from(route('cases.resolve.form', $case))
             ->post(route('cases.resolve', $case), [
@@ -885,66 +876,122 @@ class CaseManagementTest extends TestCase
         }
     }
 
-    public function test_terminal_case_rejects_direct_edit_but_verified_correction_still_works(): void
+    public function test_completed_case_owner_can_edit_with_reason_but_cannot_change_terminal_state(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($teacher, $student);
-        $case->update(['status_id' => $this->reference('case_status', ServiceRecordStatus::COMPLETED)->id]);
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($owner, $student);
+        $this->actingAs($owner)->post(route('cases.resolve', $case), [
+            'closed_at' => '2026-08-20',
+            'final_result' => 'Tujuan layanan tercapai.',
+            'resolution_summary' => 'Kasus ditutup setelah tindak lanjut.',
+            'continued_plan' => 'Pemantauan berkala.',
+            'waka_summary' => 'Penanganan selesai dengan pemantauan berkala.',
+        ])->assertRedirect(route('cases.show', $case));
+        $case->refresh();
 
-        $this->actingAs($teacher)->get(route('cases.edit', $case))->assertForbidden();
-        $this->actingAs($teacher)->patch(route('cases.update', $case), $this->caseUpdatePayload($case))->assertForbidden();
+        $this->actingAs($owner)->get(route('cases.edit', $case))
+            ->assertOk()
+            ->assertSee('Data ini telah dinyatakan selesai. Apakah Anda setuju melanjutkan pengeditan?')
+            ->assertDontSee('name="change_reason"', false);
+        $this->actingAs($owner)->get(route('cases.edit', [$case, 'confirm_terminal' => 1]))
+            ->assertOk()
+            ->assertSee('name="change_reason"', false)
+            ->assertSee('type="hidden" name="status_id"', false);
+        $this->actingAs($owner)->patch(route('cases.update', $case), [
+            ...$this->caseUpdatePayload($case),
+            'service_date' => '2026-08-21',
+            'change_reason' => 'Menguji penjagaan urutan tanggal layanan.',
+        ])->assertSessionHasErrors('service_date');
 
-        try {
-            app(CaseService::class)->update($case, $this->caseUpdatePayload($case), $teacher);
-            $this->fail('Service menerima perubahan langsung pada kasus terminal.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('case', $exception->errors());
-        }
+        $this->actingAs($owner)->patch(route('cases.update', $case), [
+            ...$this->caseUpdatePayload($case),
+            'initial_action' => 'Penanganan diperjelas setelah penutupan.',
+            'status_id' => $case->status_id,
+            'change_reason' => 'Memperbaiki ringkasan berdasarkan catatan sesi resmi.',
+        ])->assertRedirect(route('cases.show', $case));
 
-        app(CaseService::class)->applyApprovedCorrection($case, 'initial_action', 'Koreksi terverifikasi.', $coordinator);
-        app(CaseService::class)->applyApprovedCorrection($case, 'waka_summary', 'Ringkasan aman hasil koreksi.', $coordinator);
-
-        $this->assertSame('Koreksi terverifikasi.', $case->refresh()->initial_action);
-        $this->assertSame('Ringkasan aman hasil koreksi.', $case->waka_summary);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.corrected', 'auditable_id' => $case->id]);
+        $case->refresh();
+        $this->assertSame(ServiceRecordStatus::COMPLETED, $case->status->code);
+        $this->assertNotNull($case->closed_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'case.completed_record_updated',
+            'auditable_type' => BkCase::class,
+            'auditable_id' => $case->id,
+        ]);
+        $audit = AuditLog::query()->where('action', 'case.completed_record_updated')->firstOrFail();
+        $this->assertSame('Memperbaiki ringkasan berdasarkan catatan sesi resmi.', $audit->after_values['change_reason']);
     }
 
-    public function test_case_edit_cannot_bypass_dedicated_terminal_actions(): void
+    public function test_completed_case_rejects_missing_reason_and_non_owner_direct_requests(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($owner, $student);
+        app(CaseService::class)->resolve($case, [
+            'closed_at' => '2026-08-20',
+            'final_result' => 'Selesai.',
+            'resolution_summary' => 'Penyelesaian tercatat.',
+            'waka_summary' => 'Kasus selesai setelah penanganan sesuai kebutuhan.',
+        ], $owner);
+        $case->refresh();
+        $other = $this->userWithRole('guru_bk');
 
-        $this->actingAs($teacher)->get(route('cases.edit', $case))
-            ->assertOk()
-            ->assertDontSee($this->reference('case_status', ServiceRecordStatus::COMPLETED)->label)
-            ->assertDontSee($this->reference('case_status', ServiceRecordStatus::CANCELLED)->label);
-        $this->actingAs($teacher)->get(route('cases.index'))
-            ->assertOk()
-            ->assertSee($this->reference('case_status', ServiceRecordStatus::COMPLETED)->label)
-            ->assertSee($this->reference('case_status', ServiceRecordStatus::CANCELLED)->label);
+        $this->actingAs($owner)->patch(route('cases.update', $case), [
+            ...$this->caseUpdatePayload($case),
+            'status_id' => $case->status_id,
+        ])->assertSessionHasErrors('change_reason');
 
-        foreach (ServiceRecordStatus::terminalCodes() as $terminalCode) {
-            $payload = [
-                ...$this->caseUpdatePayload($case),
-                'status_id' => $this->reference('case_status', $terminalCode)->id,
-                'waka_summary' => 'Ringkasan tersedia.',
-            ];
+        $this->actingAs($other)->get(route('cases.edit', $case))->assertForbidden();
+        $this->actingAs($other)->delete(route('cases.destroy', $case))->assertForbidden();
+    }
 
-            $this->actingAs($teacher)
-                ->from(route('cases.edit', $case))
-                ->patch(route('cases.update', $case), $payload)
-                ->assertSessionHasErrors('status_id');
+    public function test_case_delete_archives_and_excludes_record_from_operational_queries(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($owner, $student);
 
-            try {
-                app(CaseService::class)->update($case, $payload, $teacher);
-                $this->fail('Edit biasa menerima status terminal.');
-            } catch (ValidationException $exception) {
-                $this->assertArrayHasKey('status_id', $exception->errors());
-            }
+        $this->actingAs($owner)->delete(route('cases.destroy', $case))
+            ->assertRedirect(route('cases.index'));
+
+        $this->assertSoftDeleted('cases', ['id' => $case->id]);
+        $this->actingAs($owner)->get(route('cases.show', $case))->assertNotFound();
+        $this->actingAs($owner)->get(route('cases.index'))->assertDontSee($case->identityName());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'case.archived', 'auditable_id' => $case->id]);
+    }
+
+    public function test_non_owners_cannot_edit_or_archive_case(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($owner, $student);
+        $additional = $this->userWithRole('guru_bk');
+        CaseAssignment::query()->create([
+            'case_id' => $case->id,
+            'user_id' => $additional->id,
+            'assignment_type' => CaseAssignment::TYPE_ADDITIONAL,
+            'effective_from' => '2026-08-01',
+            'reason' => 'Kewenangan tambahan untuk pengujian.',
+            'assigned_by' => $owner->id,
+        ]);
+
+        foreach ([$additional, $this->userWithRole('koordinator_bk'), $this->userWithRole('waka_kesiswaan'), $this->userWithRole('admin_it')] as $actor) {
+            $this->actingAs($actor)->get(route('cases.edit', $case))->assertForbidden();
+            $this->actingAs($actor)->delete(route('cases.destroy', $case))->assertForbidden();
         }
+    }
 
-        $this->assertSame(ServiceRecordStatus::NEW, $case->refresh()->status->code);
+    public function test_active_case_cannot_be_changed_directly_to_completed(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($owner, $student);
+        $completed = $this->reference('case_status', ServiceRecordStatus::COMPLETED);
+
+        $this->actingAs($owner)->get(route('cases.edit', $case))
+            ->assertOk()
+            ->assertDontSee($completed->label);
+        $this->actingAs($owner)->patch(route('cases.update', $case), [
+            ...$this->caseUpdatePayload($case),
+            'status_id' => $completed->id,
+            'waka_summary' => 'Ringkasan tersedia.',
+        ])->assertSessionHasErrors('status_id');
     }
 
     public function test_internal_case_code_is_hidden_from_operational_outputs_and_search(): void
@@ -959,7 +1006,6 @@ class CaseManagementTest extends TestCase
         $this->actingAs($teacher)->get(route('cases.follow-ups.create', $case))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($teacher)->get(route('cases.resolve.form', $case))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($teacher)->get(route('consultations.create'))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('corrections.create'))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($coordinator)->get(route('assignments.cases.index', ['case_id' => $case->id]))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($teacher)->get(route('cases.index', ['search' => $caseCode]))
             ->assertOk()
@@ -971,17 +1017,7 @@ class CaseManagementTest extends TestCase
             'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
             'planned_date' => '2026-08-20',
         ], $teacher);
-        $correction = app(CorrectionService::class)->submit([
-            'target_type' => 'case',
-            'target_id' => $case->id,
-            'field_name' => 'waka_summary',
-            'proposed_value' => 'Ringkasan aman diperbarui.',
-            'reason' => 'Perlu memperjelas perkembangan umum.',
-        ], $teacher);
-
-        $this->assertStringNotContainsString($caseCode, $correction->target_label);
         $this->assertFalse(AuditLog::query()->where('summary', 'like', '%'.$caseCode.'%')->exists());
-        $this->assertFalse(UserNotification::query()->where('title', 'like', '%'.$caseCode.'%')->orWhere('message', 'like', '%'.$caseCode.'%')->exists());
         $this->assertDatabaseHas('cases', ['id' => $case->id, 'registration_number' => $caseCode]);
     }
 

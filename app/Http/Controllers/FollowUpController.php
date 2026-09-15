@@ -18,14 +18,14 @@ class FollowUpController extends Controller
 {
     public function create(Request $request, BkCase $case): View
     {
-        abort_unless($request->user()?->can('update', $case), 403);
+        abort_unless($request->user()?->can('resolve', $case), 403);
 
         return $this->form($case, null);
     }
 
     public function edit(Request $request, BkCase $case, FollowUp $followUp): View
     {
-        abort_unless($request->user()?->can('update', $case), 403);
+        abort_unless($request->user()?->can('resolve', $case), 403);
         abort_unless($followUp->case_id === $case->getKey(), 404);
 
         return $this->form($case, $followUp);

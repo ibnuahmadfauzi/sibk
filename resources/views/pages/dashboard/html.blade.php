@@ -117,45 +117,26 @@
                 </section>
             </div>
 
-            {{-- Panel Kanan: Aktivitas Terbaru (Efek Timbul / Raised) --}}
+            {{-- Panel Kanan: Konteks peran --}}
             <div class="col-12 col-xl-5">
-                <section class="sibk-panel sibk-panel--raised sibk-activity-panel" aria-labelledby="activity-title">
+                <section class="sibk-panel sibk-panel--raised sibk-activity-panel" aria-labelledby="context-panel-title">
                     <header class="sibk-panel__header">
                         <div class="sibk-panel__title-group">
                             <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                            <h2 id="activity-title">Aktivitas terbaru</h2>
+                            <h2 id="context-panel-title">{{ $dashboard['context_panel']['title'] }}</h2>
                         </div>
-                        <a href="{{ route('history.index') }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
-                            Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-                        </a>
                     </header>
-                    
-                    @if (empty($dashboard['activities']))
-                        <x-empty-state title="Belum ada aktivitas" description="Aktivitas sistem yang relevan dengan Anda akan tampil di sini." />
-                    @else
-                        <div class="sibk-activity-list">
-                            @foreach ($dashboard['activities'] as $activity)
-                                <article class="sibk-activity-row">
-                                    <div class="sibk-activity-row__icon-circle sibk-icon-tone--{{ $activity['tone'] }}" aria-hidden="true">
-                                        @if($activity['icon'] === 'case-new')
-                                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                                        @elseif($activity['icon'] === 'followup')
-                                            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                        @elseif($activity['icon'] === 'etatib')
-                                            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                                        @else
-                                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                                        @endif
-                                    </div>
-                                    <div class="sibk-activity-row__content">
-                                        <strong>{{ $activity['title'] }}</strong>
-                                        <span>{{ $activity['context'] }}</span>
-                                    </div>
-                                    <time class="sibk-activity-row__time">{{ $activity['time'] }}</time>
-                                </article>
-                            @endforeach
-                        </div>
-                    @endif
+                    <div class="sibk-activity-list">
+                        @foreach ($dashboard['context_panel']['items'] as $item)
+                            <article class="sibk-activity-row">
+                                <div class="sibk-activity-row__content">
+                                    <strong>{{ $item['label'] }}</strong>
+                                    <span>{{ $item['meta'] }}</span>
+                                </div>
+                                <strong>{{ $item['value'] }}</strong>
+                            </article>
+                        @endforeach
+                    </div>
                 </section>
             </div>
         </div>

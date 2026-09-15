@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AcademicYear;
-use App\Models\AuditLog;
 use App\Models\BkCase;
-use App\Models\Correction;
+use App\Models\Classroom;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
 use App\Models\FollowUp;
+use App\Models\IntegrationSetting;
 use App\Models\Student;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -34,7 +35,7 @@ class DashboardService
             return $this->wakaDashboard->build($user, $academicYear);
         }
 
-        return $this->technical($user);
+        return $this->technical($user, $academicYear);
     }
 
     /** @return array<string, mixed> */
@@ -114,30 +115,37 @@ class DashboardService
             'tindak_lanjut' => $mode === 'waka'
                 ? $this->coordinatedCaseItems((clone $cases)->latest('updated_at')->limit(6)->get(), $user)
                 : $this->followUpItems($upcoming->limit(6)->get()),
-            'activities' => $this->activityItems($this->scopedAuditQuery($user)->latest()->limit(8)->get()),
+            'context_panel' => [
+                'title' => match ($mode) {
+                    'teacher' => 'Cakupan layanan Anda',
+                    'coordinator' => 'Kesiapan penugasan BK',
+                },
+                'items' => match ($mode) {
+                    'teacher' => $this->teacherCoverageItems($user, $year),
+                    'coordinator' => $this->coordinatorCoverageItems($year),
+                },
+            ],
             'quick_actions' => $this->quickActions($mode),
         ];
     }
 
     /** @return array<string, mixed> */
-    private function technical(User $user): array
+    private function technical(User $user, ?AcademicYear $year): array
     {
         $syncRuns = ExternalSyncRun::query()->latest('started_at')->limit(6)->get();
-        $pendingMaster = Correction::query()->where('correction_type', Correction::TYPE_MASTER)
-            ->whereHas('status', fn (Builder $status): Builder => $status->whereIn('code', ['menunggu', 'diproses']))->count();
 
         return [
             'role_key' => 'admin',
             'label' => 'Admin IT',
             'user_name' => $user->name,
-            'scope' => 'Akun, sinkronisasi, konflik sumber, dan koreksi master',
+            'scope' => 'Akun, sinkronisasi, konflik sumber, dan kesiapan integrasi',
             'read_only' => false,
             'description' => 'Ringkasan teknis tanpa membuka isi layanan BK.',
             'stats' => [
                 ['label' => 'Akun aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran aktif', 'tone' => 'primary', 'kind' => 'students'],
                 ['label' => 'Akun nonaktif', 'value' => (string) User::query()->where('is_active', false)->count(), 'meta' => 'Tidak dapat masuk', 'tone' => 'warning', 'kind' => 'cases'],
                 ['label' => 'Konflik belum selesai', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Dapodik dan e-Tatib', 'tone' => 'success', 'kind' => 'schedule'],
-                ['label' => 'Koreksi master aktif', 'value' => (string) $pendingMaster, 'meta' => 'Menunggu sumber resmi', 'tone' => 'info', 'kind' => 'etatib'],
+                ['label' => 'Tahun ajaran aktif', 'value' => (string) AcademicYear::query()->where('is_active', true)->count(), 'meta' => 'Baseline operasional', 'tone' => 'info', 'kind' => 'etatib'],
             ],
             'schedule_title' => 'Status sinkronisasi terbaru',
             'schedule_url' => route('data-master.index'),
@@ -152,12 +160,80 @@ class DashboardService
                 'status_tone' => $run->status === ExternalSyncRun::STATUS_FAILED ? 'danger' : 'info',
                 'url' => route('data-master.index'),
             ])->all(),
-            'activities' => $this->activityItems($this->scopedAuditQuery($user)->latest()->limit(8)->get()),
+            'context_panel' => [
+                'title' => 'Kesiapan data dan integrasi',
+                'items' => $this->technicalReadinessItems($year),
+            ],
             'quick_actions' => [
                 ['label' => 'Kelola akun', 'url' => route('admin.users.index'), 'primary' => true],
                 ['label' => 'Buka data master', 'url' => route('data-master.index'), 'primary' => false],
-                ['label' => 'Koreksi master', 'url' => route('corrections.index', ['correction_type' => 'master']), 'primary' => false],
             ],
+        ];
+    }
+
+    /** @return list<array{label: string, value: string, meta: string}> */
+    private function teacherCoverageItems(User $user, ?AcademicYear $year): array
+    {
+        $assignments = TeacherAssignment::query()
+            ->where('user_id', $user->getKey())
+            ->effectiveOn(now())
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->getKey()));
+        $cases = BkCase::query()
+            ->whereNull('closed_at')
+            ->whereHas('assignments', fn (Builder $query): Builder => $query
+                ->where('user_id', $user->getKey())
+                ->where('assignment_type', 'owner')
+                ->effectiveOn(now()))
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on]));
+        $followUps = FollowUp::query()
+            ->whereIn('case_id', (clone $cases)->select('cases.id'))
+            ->whereDate('planned_date', '>=', today())
+            ->whereHas('status', fn (Builder $status): Builder => $status
+                ->whereNotIn('code', ['terlaksana', 'dibatalkan']));
+
+        return [
+            ['label' => 'Kelas ampuan', 'value' => (string) $assignments->distinct()->count('classroom_id'), 'meta' => 'Penugasan efektif saat ini'],
+            ['label' => 'Kasus khusus aktif', 'value' => (string) $cases->count(), 'meta' => 'Sebagai penanggung jawab'],
+            ['label' => 'Tindak lanjut terdekat', 'value' => (string) $followUps->count(), 'meta' => 'Terjadwal mulai hari ini'],
+        ];
+    }
+
+    /** @return list<array{label: string, value: string, meta: string}> */
+    private function coordinatorCoverageItems(?AcademicYear $year): array
+    {
+        $unassignedClasses = Classroom::query()->active()
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->getKey()))
+            ->whereDoesntHave('teacherAssignments', fn (Builder $query): Builder => $query->effectiveOn(now()));
+        $openFollowUps = FollowUp::query()->whereHas('status', fn (Builder $status): Builder => $status
+            ->whereNotIn('code', ['terlaksana', 'dibatalkan']))
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->whereHas('case', fn (Builder $cases): Builder => $cases
+                    ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on])));
+
+        return [
+            ['label' => 'Guru BK aktif', 'value' => (string) User::query()->active()->whereHas('roles', fn (Builder $roles): Builder => $roles->where('slug', 'guru_bk')->where('is_active', true))->count(), 'meta' => 'Siap menerima penugasan'],
+            ['label' => 'Kelas tanpa penugasan', 'value' => (string) $unassignedClasses->count(), 'meta' => 'Belum memiliki Guru BK efektif'],
+            ['label' => 'Tindak lanjut terbuka', 'value' => (string) $openFollowUps->count(), 'meta' => 'Belum terlaksana atau dibatalkan'],
+        ];
+    }
+
+    /** @return list<array{label: string, value: string, meta: string}> */
+    private function technicalReadinessItems(?AcademicYear $year): array
+    {
+        $configuredProviders = IntegrationSetting::query()
+            ->whereIn('provider', IntegrationSetting::PROVIDERS)
+            ->whereNotNull('credentials')
+            ->distinct()
+            ->count('provider');
+
+        return [
+            ['label' => 'Akun aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran operasional'],
+            ['label' => 'Konflik sinkronisasi', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Belum diselesaikan'],
+            ['label' => 'Tahun ajaran aktif', 'value' => $year?->name ?? 'Belum ada', 'meta' => 'Periode dashboard'],
+            ['label' => 'Provider tanpa credential', 'value' => (string) (count(IntegrationSetting::PROVIDERS) - $configuredProviders), 'meta' => 'Dapodik dan e-Tatib'],
         ];
     }
 
@@ -217,40 +293,6 @@ class DashboardService
                 'url' => route('cases.show', $case),
             ];
         })->all();
-    }
-
-    /** @param Collection<int, AuditLog> $logs @return list<array<string, mixed>> */
-    private function activityItems(Collection $logs): array
-    {
-        return $logs->map(fn (AuditLog $log): array => [
-            'icon' => str_contains($log->action, 'case') ? 'case-new' : (str_contains($log->action, 'sync') ? 'etatib' : 'followup'),
-            'title' => $log->summary,
-            'context' => $log->action,
-            'time' => $log->created_at->locale('id')->diffForHumans(),
-            'tone' => str_contains($log->action, 'failed') ? 'warning' : 'primary',
-        ])->all();
-    }
-
-    /** @return Builder<AuditLog> */
-    private function scopedAuditQuery(User $user): Builder
-    {
-        $query = AuditLog::query();
-        if ($user->hasRole('koordinator_bk')) {
-            return $query->where(function (Builder $governance): void {
-                foreach (['case.', 'follow_up.', 'consultation.', 'class_assignment.', 'case_assignment.'] as $prefix) {
-                    $governance->orWhere('action', 'like', $prefix.'%');
-                }
-            });
-        }
-        if ($user->hasAnyRole(['guru_bk', 'waka_kesiswaan'])) {
-            return $query->where('actor_id', $user->getKey());
-        }
-
-        return $query->where(function (Builder $technical): void {
-            foreach (['auth.', 'account.', 'dapodik.', 'etatib.', 'identity.', 'correction.master_'] as $prefix) {
-                $technical->orWhere('action', 'like', $prefix.'%');
-            }
-        });
     }
 
     /** @return list<array{label: string, url: string, primary: bool}> */

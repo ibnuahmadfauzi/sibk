@@ -238,38 +238,65 @@ class ConsultationManagementTest extends TestCase
             ->assertOk()
             ->assertSee('HISTORI-TEMPORER-PRIVAT');
         $this->actingAs($successor)->get(route('consultations.edit', $consultation))->assertForbidden();
+        $this->actingAs($successor)->delete(route('consultations.destroy', $consultation))->assertForbidden();
     }
 
-    public function test_completed_and_cancelled_consultations_require_verified_correction(): void
+    public function test_completed_consultation_owner_can_edit_with_reason_and_archive(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $consultation = app(ConsultationService::class)->create([
+            ...$this->payload(ServiceRecordStatus::COMPLETED),
+            'student_id' => $student->id,
+        ], $owner);
 
-        foreach (ServiceRecordStatus::terminalCodes() as $terminalCode) {
-            $consultation = app(ConsultationService::class)->create([
-                ...$this->payload($terminalCode),
-                'student_id' => $student->id,
-            ], $teacher);
-            $payload = [...$this->payload(ServiceRecordStatus::IN_PROGRESS), 'topic' => 'Perubahan langsung ditolak'];
+        $this->actingAs($owner)->get(route('consultations.edit', $consultation))
+            ->assertOk()
+            ->assertSee('Data ini telah dinyatakan selesai. Apakah Anda setuju melanjutkan pengeditan?')
+            ->assertDontSee('name="change_reason"', false);
+        $this->actingAs($owner)->get(route('consultations.edit', [$consultation, 'confirm_terminal' => 1]))
+            ->assertOk()
+            ->assertSee('name="change_reason"', false)
+            ->assertSee('type="hidden" name="status_id"', false);
 
-            $this->actingAs($teacher)->get(route('consultations.edit', $consultation))->assertForbidden();
-            $this->actingAs($teacher)->patch(route('consultations.update', $consultation), $payload)->assertForbidden();
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [
+            ...$this->payload(ServiceRecordStatus::COMPLETED),
+            'status_id' => $consultation->status_id,
+            'topic' => 'Topik yang telah diperbaiki',
+            'change_reason' => 'Memperjelas topik sesuai catatan layanan resmi.',
+        ])->assertRedirect(route('consultations.show', $consultation));
 
-            try {
-                app(ConsultationService::class)->update($consultation, $payload, $teacher);
-                $this->fail('Service menerima perubahan langsung pada konsultasi terminal.');
-            } catch (ValidationException $exception) {
-                $this->assertArrayHasKey('consultation', $exception->errors());
-            }
+        $this->assertSame(ServiceRecordStatus::COMPLETED, $consultation->refresh()->status->code);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'consultation.completed_record_updated', 'auditable_id' => $consultation->id]);
+        $audit = AuditLog::query()->where('action', 'consultation.completed_record_updated')->firstOrFail();
+        $this->assertSame('Memperjelas topik sesuai catatan layanan resmi.', $audit->after_values['change_reason']);
 
-            app(ConsultationService::class)->applyApprovedCorrection(
-                $consultation,
-                'topic',
-                'Topik hasil koreksi terverifikasi '.$terminalCode,
-                $coordinator,
-            );
-            $this->assertSame('Topik hasil koreksi terverifikasi '.$terminalCode, $consultation->refresh()->topic);
-        }
+        $this->actingAs($owner)->delete(route('consultations.destroy', $consultation))
+            ->assertRedirect(route('cases.index', ['tab' => 'konsultasi']));
+        $this->assertSoftDeleted('consultations', ['id' => $consultation->id]);
+    }
+
+    public function test_completed_consultation_validates_reason_boundaries_and_keeps_status(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $consultation = app(ConsultationService::class)->create([
+            ...$this->payload(ServiceRecordStatus::COMPLETED),
+            'student_id' => $student->id,
+        ], $owner);
+        $payload = [...$this->payload(ServiceRecordStatus::COMPLETED), 'status_id' => $consultation->status_id];
+
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => '123456789'])
+            ->assertSessionHasErrors('change_reason');
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => '1234567890'])
+            ->assertRedirect(route('consultations.show', $consultation));
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => str_repeat('a', 500)])
+            ->assertRedirect(route('consultations.show', $consultation));
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => str_repeat('a', 501)])
+            ->assertSessionHasErrors('change_reason');
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [
+            ...$payload,
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::IN_PROGRESS)->id,
+            'change_reason' => 'Status tidak boleh diubah melalui request palsu.',
+        ])->assertSessionHasErrors('status_id');
     }
 
     /** @return array{User, Student}|array{User, Student, AcademicYear, Classroom, TeacherAssignment} */

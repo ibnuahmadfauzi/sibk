@@ -18,6 +18,12 @@
             <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
         @endif
 
+        @if($isCompleted && ! $terminalConfirmed)
+            <x-terminal-edit-confirmation
+                :continue-url="route('cases.edit', [$case, 'confirm_terminal' => 1])"
+                :cancel-url="route('cases.show', $case)"
+            />
+        @else
         <form action="{{ route('cases.update', $case) }}" method="POST">
             @csrf
             @method('PATCH')
@@ -44,9 +50,14 @@
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label" for="status_id">Status</label>
-                        <select class="form-select" id="status_id" name="status_id" required>
-                            @foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) old('status_id', $case->status_id) === (string) $status->id)>{{ $status->label }}</option>@endforeach
-                        </select>
+                        @if($isCompleted)
+                            <div class="form-control bg-light">{{ $case->status->label }}</div>
+                            <input type="hidden" name="status_id" value="{{ $case->status_id }}">
+                        @else
+                            <select class="form-select" id="status_id" name="status_id" required>
+                                @foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) old('status_id', $case->status_id) === (string) $status->id)>{{ $status->label }}</option>@endforeach
+                            </select>
+                        @endif
                     </div>
                     <div class="col-12 col-md-4"><label class="form-label" for="service_date">Tanggal Layanan</label><input type="date" class="form-control" id="service_date" name="service_date" value="{{ old('service_date', $case->service_date->format('Y-m-d')) }}" required></div>
                     <div class="col-12 col-md-8"><label class="form-label" for="referrer">Pihak Perujuk</label><input class="form-control" id="referrer" name="referrer" value="{{ old('referrer', $case->referrer) }}" maxlength="150"></div>
@@ -70,10 +81,18 @@
                 </div>
             </div>
 
+            @if($isCompleted)
+                <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4">
+                    <label class="form-label" for="change_reason">Alasan perubahan</label>
+                    <textarea class="form-control" id="change_reason" name="change_reason" rows="3" minlength="10" maxlength="500" required>{{ old('change_reason') }}</textarea>
+                </div></div>
+            @endif
+
             <div class="d-flex justify-content-end gap-2 mb-5">
                 <a href="{{ route('cases.show', $case) }}" class="btn btn-outline-secondary">Batal</a>
                 <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
             </div>
         </form>
+        @endif
     </div>
 @endsection

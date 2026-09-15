@@ -3,13 +3,10 @@
 ## Status
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
-- Checkpoint berikutnya: 5A — Penyederhanaan operasional, Task 8–10.
-- Checkpoint 5B memuat Task 11–15 dan baru dimulai setelah Checkpoint 5A
-  terintegrasi ke `cobasidebar`.
-- Branch implementasi Checkpoint 5A belum dibuat.
-- Worktree setelah PR pembagian checkpoint terintegrasi: root repository.
-- Baseline Checkpoint 5A: `cobasidebar` setelah PR pembagian checkpoint
-  terintegrasi.
+- Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
+- Checkpoint aktif berikutnya: 5B — Task 11–15; belum dimulai.
+- Branch Checkpoint 5B belum dibuat.
+- Baseline berikutnya: `cobasidebar` setelah integrasi Checkpoint 5A.
 
 ## Hasil dan gate terakhir
 
@@ -48,6 +45,17 @@
   tidak mempunyai aksi mutasi.
 - `migrate:fresh --seed` boleh pada database lokal/pengembangan yang sudah
   dipastikan bukan shared/production.
+- Task 8 menyelaraskan PRD/SRS, indeks requirement, kontrak API, dan spec;
+  focused contract test lulus 1 test/8 assertion.
+- Task 9 mengganti pembatalan layanan dengan arsip, mengizinkan owner mengedit
+  data selesai dengan alasan yang diaudit, dan menyisakan empat status layanan.
+  Focused gate lulus 43 test/333 assertion, Pint, dan diff-check.
+- Task 10 menghentikan route/UI/runtime koreksi, notifikasi, dan riwayat audit;
+  audit append-only tetap digunakan. Dashboard memakai panel konteks aman per
+  role. Focused gate lulus 25 test/270 assertion, checker frontend, Pint, dan
+  diff-check; regresi area terkait lulus 78 test/688 assertion.
+- Gate penuh Checkpoint 5A lulus: 416 test/3.261 assertion, Pint, checker
+  frontend, build, Composer strict, dan diff-check.
 
 ## Arsip
 
@@ -58,14 +66,10 @@
 
 ## Langkah berikutnya
 
-1. Setelah perubahan perencanaan ini terintegrasi, buat branch Checkpoint 5A
-   dari `cobasidebar`, lalu mulai
-   Task 8: selaraskan requirement, kontrak API, dan batas skema memakai keputusan
-   terbaru di plan/spec aktif.
-2. Selesaikan dan integrasikan Task 8–10 sebelum membuat branch Checkpoint 5B.
-3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5A/5B.
-4. Task 11 wajib menyediakan daftar/detail proses keluar read-only untuk Waka.
-5. Adapter production tetap menunggu kontrak resmi dan admission gate.
+1. Buat branch/worktree Checkpoint 5B dari `cobasidebar` terbaru.
+2. Kerjakan Task 11–15 secara berurutan sesuai plan aktif.
+3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
+4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['student_id', 'type_id', 'level_id', 'activity_name', 'organizer', 'achievement_date', 'result', 'evidence_reference', 'evidence_description', 'notes', 'verification_status_id', 'recorded_by', 'reviewer_id', 'reviewed_at', 'verification_notes'])]
@@ -50,12 +49,6 @@ class Achievement extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewer_id');
-    }
-
-    /** @return MorphMany<Correction, $this> */
-    public function corrections(): MorphMany
-    {
-        return $this->morphMany(Correction::class, 'target');
     }
 
     /** @param Builder<Achievement> $query */

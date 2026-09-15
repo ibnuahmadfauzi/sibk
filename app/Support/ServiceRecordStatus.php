@@ -14,15 +14,12 @@ final class ServiceRecordStatus
 
     public const string COMPLETED = 'selesai';
 
-    public const string CANCELLED = 'dibatalkan';
-
     /** @var list<string> */
     private const array CODES = [
         self::NEW,
         self::IN_PROGRESS,
         self::NEEDS_FOLLOW_UP,
         self::COMPLETED,
-        self::CANCELLED,
     ];
 
     /** @var array<string, string> */
@@ -31,14 +28,10 @@ final class ServiceRecordStatus
         self::IN_PROGRESS => 'Sedang diproses',
         self::NEEDS_FOLLOW_UP => 'Membutuhkan tindak lanjut',
         self::COMPLETED => 'Selesai',
-        self::CANCELLED => 'Dibatalkan',
     ];
 
     /** @var list<string> */
-    private const array TERMINAL_CODES = [
-        self::COMPLETED,
-        self::CANCELLED,
-    ];
+    private const array TERMINAL_CODES = [self::COMPLETED];
 
     /** @return list<string> */
     public static function codes(): array

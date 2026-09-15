@@ -48,7 +48,9 @@ class FrontendPreviewTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertSee('data-page-id="PG-002"', false)
-            ->assertSee($expected);
+            ->assertSee($expected)
+            ->assertDontSee('Ajukan Koreksi')
+            ->assertDontSee('Aktivitas terbaru');
     }
 
     public function test_pg_002_waka_dashboard_is_explicitly_read_only(): void

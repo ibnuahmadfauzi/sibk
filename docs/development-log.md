@@ -8,11 +8,38 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 5 dibagi menjadi 5A (Task 8–10) dan 5B (Task 11–15); Checkpoint 5A
-  dikerjakan lebih dahulu.
+- Checkpoint 5A (Task 8–10) selesai; Checkpoint 5B (Task 11–15) menjadi
+  pekerjaan berikutnya setelah integrasi ke `cobasidebar`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 15 September 2026 — Checkpoint 5A: penyederhanaan operasional
+
+- Kontrak operasional diselaraskan, status layanan dipangkas menjadi empat,
+  edit terminal beralasan dan arsip diterapkan, lalu fitur koreksi, notifikasi,
+  riwayat, serta aktivitas audit UI dihentikan.
+- Self-review tidak menemukan blocker material; regresi placeholder agregat
+  status Waka diperbaiki pada sumber query.
+- Gate penuh lulus 416 test/3.261 assertion, Pint, checker frontend, build,
+  Composer strict, dan diff-check.
+
+### 15 September 2026 — Checkpoint 5A Task 10
+
+- Route, UI, controller, request, policy, model, service, dan test fitur koreksi,
+  notifikasi, serta riwayat audit dipensiunkan; tabel lama tetap dipertahankan.
+- Audit append-only tetap aktif, tetapi dashboard tidak lagi membaca atau
+  menampilkan narasinya; panel kanan kini berisi konteks aman per role.
+- Focused gate lulus 25 test/270 assertion, regresi area terkait 78 test/688
+  assertion, checker frontend, Pint, dan diff-check.
+
+### 15 September 2026 — Checkpoint 5A Task 9
+
+- Status kasus/konsultasi disederhanakan menjadi empat; data legacy berstatus
+  dibatalkan diarsipkan dan reference-nya dinonaktifkan.
+- Owner dapat mengedit data selesai dengan alasan 10–500 karakter yang hanya
+  disimpan pada audit append-only; owner juga dapat mengarsipkan record.
+- Focused gate lulus 43 test/333 assertion, Pint, dan diff-check.
 
 ### 15 September 2026 — Pembagian Checkpoint 5
 

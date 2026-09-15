@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ArchiveConsultationRequest;
 use App\Http\Requests\StoreConsultationRequest;
 use App\Http\Requests\UpdateConsultationRequest;
 use App\Models\BkCase;
@@ -12,6 +13,7 @@ use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\ConsultationService;
+use App\Support\ServiceRecordStatus;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +65,7 @@ class ConsultationController extends Controller
             'consultation' => $consultation,
             'canViewSensitive' => $canViewSensitive,
             'canUpdateConsultation' => $user->can('update', $consultation),
+            'canArchiveConsultation' => $user->can('archive', $consultation),
         ]);
     }
 
@@ -96,6 +99,19 @@ class ConsultationController extends Controller
         return redirect()->route('consultations.show', $consultation)->with('success', 'Konsultasi berhasil diperbarui.');
     }
 
+    public function destroy(
+        ArchiveConsultationRequest $request,
+        Consultation $consultation,
+        ConsultationService $service,
+    ): RedirectResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+        $service->archive($consultation, $actor);
+
+        return redirect()->route('cases.index', ['tab' => 'konsultasi'])
+            ->with('success', 'Konsultasi berhasil diarsipkan.');
+    }
+
     private function formData(User $user, ?Consultation $consultation, Request $request): View
     {
         $students = Student::query()
@@ -119,6 +135,8 @@ class ConsultationController extends Controller
         return view('pages.consultations.create', [
             'consultation' => $consultation,
             'isEdit' => $consultation !== null,
+            'isCompleted' => $consultation?->status?->code === ServiceRecordStatus::COMPLETED,
+            'terminalConfirmed' => $request->boolean('confirm_terminal'),
             'students' => $students,
             'cases' => $cases,
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),

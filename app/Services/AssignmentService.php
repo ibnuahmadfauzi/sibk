@@ -10,7 +10,6 @@ use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Models\UserNotification;
 use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -18,10 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class AssignmentService
 {
-    public function __construct(
-        private readonly AuditService $auditService,
-        private readonly NotificationService $notificationService,
-    ) {}
+    public function __construct(private readonly AuditService $auditService) {}
 
     /**
      * @param  array{user_id: int, classroom_id: int, academic_year_id: int, decision_number: string, effective_date: string, effective_until?: string|null, notes?: string|null}  $data
@@ -45,14 +41,11 @@ class AssignmentService
                 ->orderBy('effective_from')
                 ->lockForUpdate()
                 ->get();
-            $previousTeacher = null;
-
             $current = $assignments->first(fn (TeacherAssignment $assignment): bool => $assignment->effective_from->lte($start)
                 && ($assignment->effective_until === null || $assignment->effective_until->gte($start))
             );
 
             if ($current !== null) {
-                $previousTeacher = $current->teacher;
                 if ($current->effective_from->equalTo($start)) {
                     throw ValidationException::withMessages([
                         'effective_date' => 'Sudah ada penugasan yang dimulai pada tanggal tersebut.',
@@ -105,28 +98,6 @@ class AssignmentService
                 actor: $actor,
                 after: $this->snapshot($assignment),
             );
-            $this->notificationService->send(
-                recipients: collect([$teacher]),
-                category: UserNotification::CATEGORY_ASSIGNMENT,
-                title: sprintf('Penugasan kelas %s ditetapkan.', $classroom->name),
-                message: sprintf('Periode berlaku mulai %s berdasarkan %s.', $start->format('d-m-Y'), $data['decision_number']),
-                target: $assignment,
-                actionRoute: 'assignments.classes.index',
-                actionParameters: [],
-                deduplicationKey: 'class-assignment-created:'.$assignment->getKey(),
-            );
-            if ($previousTeacher !== null && $previousTeacher->getKey() !== $teacher->getKey()) {
-                $this->notificationService->send(
-                    recipients: collect([$previousTeacher]),
-                    category: UserNotification::CATEGORY_CHANGE,
-                    title: sprintf('Penugasan kelas %s diperbarui.', $classroom->name),
-                    message: sprintf('Periode penugasan Anda berakhir pada %s.', $start->subDay()->format('d-m-Y')),
-                    target: $assignment,
-                    actionRoute: 'assignments.classes.index',
-                    actionParameters: [],
-                    deduplicationKey: 'class-assignment-closed:'.$assignment->getKey(),
-                );
-            }
 
             return $assignment->load(['teacher.roles', 'classroom', 'academicYear']);
         });
@@ -167,8 +138,6 @@ class AssignmentService
                 ->orderBy('effective_from')
                 ->lockForUpdate()
                 ->get();
-            $previousTeacher = null;
-
             $activeOwners = $assignments->filter(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
                 && $assignment->effective_from->lte($effectiveDate)
                 && ($assignment->effective_until === null || $assignment->effective_until->gte($effectiveDate))
@@ -197,7 +166,6 @@ class AssignmentService
             }
 
             $before = $this->caseAssignmentSnapshot($current);
-            $previousTeacher = $current->teacher;
             $current->update(['effective_until' => $effectiveDate->subDay()->toDateString()]);
             $this->auditService->record(
                 action: 'case_assignment.closed',
@@ -224,28 +192,6 @@ class AssignmentService
                 actor: $actor,
                 after: $this->caseAssignmentSnapshot($assignment),
             );
-            $this->notificationService->send(
-                recipients: collect([$teacher]),
-                category: UserNotification::CATEGORY_ASSIGNMENT,
-                title: sprintf('Penugasan kasus untuk %s diperbarui.', $case->identityName()),
-                message: 'Anda ditetapkan sebagai pemilik kasus.',
-                target: $case,
-                actionRoute: 'cases.show',
-                actionParameters: ['case' => $case->getKey()],
-                deduplicationKey: 'case-assignment-created:'.$assignment->getKey(),
-            );
-            if ($previousTeacher !== null && $previousTeacher->getKey() !== $teacher->getKey()) {
-                $this->notificationService->send(
-                    recipients: collect([$previousTeacher]),
-                    category: UserNotification::CATEGORY_CHANGE,
-                    title: sprintf('Kepemilikan kasus untuk %s dialihkan.', $case->identityName()),
-                    message: 'Penugasan pemilik Anda telah ditutup melalui pengalihan eksplisit.',
-                    target: $case,
-                    actionRoute: 'cases.show',
-                    actionParameters: ['case' => $case->getKey()],
-                    deduplicationKey: 'case-assignment-closed:'.$assignment->getKey(),
-                );
-            }
 
             return $assignment->load('teacher');
         });

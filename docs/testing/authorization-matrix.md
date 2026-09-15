@@ -12,7 +12,7 @@ lokal dan database test, tanpa dataset atau alat penelitian.
 | Murid/kasus | Kelas pada periode efektif atau penugasan kasus khusus | Data umum sekolah | Proyeksi aman; detail hanya kasus terkoordinasi kepadanya | Ditolak |
 | Konsultasi umum | Scope profesional aktif | Data umum sekolah | Ditolak | Ditolak |
 | Isi konsultasi privat | Scope murid/kasus yang sah, termasuk histori | Hanya bila juga Guru BK dalam scope | Ditolak | Ditolak |
-| Edit layanan | Owner/penulis asli dengan kewenangan aktif dan status yang mengizinkan | Role Koordinator tidak memberikan hak edit owner | Ditolak | Ditolak |
+| Edit/arsip layanan | Owner/penulis asli dengan kewenangan aktif; data selesai wajib disertai alasan | Role Koordinator tidak memberikan hak edit/arsip owner | Ditolak | Ditolak |
 | Penugasan kelas/kasus | Ditolak | Diizinkan | Ditolak | Ditolak |
 | Laporan BK dan CSV | Scope profesional/kasus khusus; identitas tersamarkan | Rekap gabungan; tanpa narasi sensitif | Ditolak | Ditolak |
 | Portal Waka | Ditolak | Laporan Akhir placeholder saja | Monitoring/rekap aman; hanya-baca | Ditolak |
@@ -24,10 +24,8 @@ sudah berakhir tidak membuka daftar maupun URL detail. Histori dapat dibaca
 penerus dalam scope, tetapi tidak otomatis dapat diedit.
 
 `/consultations` mengarahkan ke `/cases?tab=konsultasi`; tujuan redirect memeriksa
-otorisasi. Koreksi, notifikasi milik pengguna, dan riwayat masih mengikuti
-baseline implementasi saat Checkpoint 3; pemensiunannya dilakukan pada Task 10
-di Checkpoint 5A. Matriks route di test tetap memeriksa fitur tersebut sampai
-route dipensiunkan.
+otorisasi. Route koreksi, notifikasi, riwayat audit, dan bookmark pratinjaunya
+telah dipensiunkan pada Checkpoint 5A dan diuji mengembalikan 404.
 
 ## Bukti test reguler
 
@@ -41,7 +39,8 @@ route dipensiunkan.
 | AUTH-06/GOV-01: hak teknis dan capability operasional terpisah | `AuthorizationMatrixTest`, `AccountManagementTest`, `AssignmentManagementTest`, test integrasi/master |
 | AUTH-02/03: HTML dan CSV rekap layanan memakai scope sama, termasuk kasus khusus; marker privat/identitas penuh tidak tampil | `ReportManagementTest::test_service_recap_html_and_csv_share_scope_and_exclude_private_narratives`, `test_csv_uses_same_redacted_rows_and_rejects_unavailable_formats`, `test_special_case_assignment_and_multi_role_are_evaluated_separately` |
 | Audit mutasi tidak memuat narasi privat | `CaseManagementTest::test_teacher_creates_scoped_case_with_etatib_link_and_audit`, `ConsultationManagementTest::test_teacher_creates_consultation_with_physically_separated_private_note_and_safe_audit` |
-| Notifikasi hanya milik penerima, selama fitur masih aktif | `DashboardNotificationTest::test_notifications_are_owner_scoped_and_read_actions_are_persisted` |
+| Route fitur retired tidak terdaftar | `AuthorizationMatrixTest::test_retired_feature_routes_are_not_registered` |
+| Dashboard tidak menampilkan narasi audit | `DashboardTest::test_dashboard_uses_role_context_instead_of_audit_activity_feed` |
 
 Assertion katalog, jumlah aktor penelitian, versi dataset, keselarasan manual/CSV,
 reset fixture, serta command penelitian dipensiunkan bersama perangkatnya.
@@ -50,7 +49,7 @@ Assertion produk yang penting diperiksa lewat test di atas.
 ## Verifikasi
 
 ```powershell
-php artisan test tests/Feature/AuthorizationMatrixTest.php tests/Feature/AuthenticationTest.php tests/Feature/StudentProfileTest.php tests/Feature/AssignmentManagementTest.php tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/ReportManagementTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaReportPageTest.php tests/Feature/DashboardNotificationTest.php
+php artisan test tests/Feature/AuthorizationMatrixTest.php tests/Feature/AuthenticationTest.php tests/Feature/StudentProfileTest.php tests/Feature/AssignmentManagementTest.php tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/ReportManagementTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaReportPageTest.php tests/Feature/DashboardTest.php
 composer test
 ```
 

@@ -1,6 +1,6 @@
 <!--
 Canonical Markdown baseline for version 1.1.
-Derived from PRD_Aplikasi_BK_v1.0 with approved amendments through 13 September 2026.
+Derived from PRD_Aplikasi_BK_v1.0 with approved amendments through 15 September 2026.
 The version 1.0 Markdown and DOCX artifacts remain immutable archives.
 -->
 
@@ -16,7 +16,7 @@ Baseline kebutuhan produk untuk layanan Bimbingan dan Konseling
 
 **Tanggal:** 23 Agustus 2026
 
-**Amandemen disetujui:** 9, 12, dan 13 September 2026
+**Amandemen disetujui:** 9, 12, 13, 14, dan 15 September 2026
 
 **Konteks:** SMKN 1 Surabaya
 
@@ -94,10 +94,10 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 | **Peran**      | **Tanggung jawab**                                                                                                                              | **Batas akses**                                                                                                                                                 |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Guru BK        | Mengelola layanan untuk kelas ampuan dan kasus khusus; membaca histori murid dalam scope aktif, termasuk murid dari data persiapan sementara setelah aktivasi operasional. | Tidak mengakses murid di luar tanggung jawabnya dan tidak mengubah catatan profesional lama milik Guru BK sebelumnya.                                           |
-| Koordinator BK | Penanggung jawab operasional; mengatur pembagian, kasus khusus, pengalihan, verifikasi operasional, aktivasi tahun ajaran setelah penugasan lengkap, serta rekap gabungan seluruh Guru BK aktif. | Jabatan koordinator tidak otomatis membuka konsultasi sensitif. Jika merangkap Guru BK, akses sensitif tetap mengikuti scope Guru BK.                           |
-| Waka Kesiswaan | Memantau kondisi layanan BK tingkat sekolah melalui Dashboard, Murid dengan Kasus, serta Laporan bertab; terlibat dalam koordinasi di luar aplikasi saat diperlukan. | Hanya-baca. Detail kasus hanya untuk kasus yang dikoordinasikan; tidak mengubah catatan profesional dan tidak membaca isi lengkap konsultasi, catatan internal, dokumen sensitif, kode kasus, atau NISN. |
-| Admin IT       | Mengelola akun, infrastruktur, konfigurasi koneksi PG-501, persiapan data tahun ajaran berdasarkan dasar resmi sekolah, sinkronisasi, pratinjau pencocokan, rekonsiliasi identitas, dan koreksi master melalui sumber resmi. | Hak teknis tidak otomatis memberi akses ke isi kasus, layanan, atau konsultasi; credential tidak ditampilkan kembali.                                            |
+| Guru BK        | Mengelola layanan untuk kelas ampuan dan kasus khusus; membaca histori murid dalam scope aktif; serta mencatat rencana proses keluar murid. | Tidak mengakses murid di luar tanggung jawabnya dan tidak mengubah atau mengarsipkan catatan profesional milik Guru BK sebelumnya. |
+| Koordinator BK | Penanggung jawab operasional; mengatur pembagian, kasus khusus, pengalihan, keputusan akhir proses keluar, aktivasi tahun ajaran setelah penugasan lengkap, serta rekap gabungan seluruh Guru BK aktif. | Jabatan koordinator tidak otomatis membuka konsultasi sensitif atau mengubah catatan profesional Guru BK. Jika merangkap Guru BK, akses sensitif tetap mengikuti scope Guru BK. |
+| Waka Kesiswaan | Memantau kondisi layanan BK tingkat sekolah serta membaca proses keluar murid melalui Dashboard, Murid dengan Kasus, dan Laporan bertab; terlibat dalam koordinasi di luar aplikasi saat diperlukan. | Hanya-baca. Detail kasus hanya untuk kasus yang dikoordinasikan; tidak mengubah proses keluar/catatan profesional dan tidak membaca isi lengkap konsultasi, catatan internal, dokumen sensitif, kode kasus, atau NISN di proyeksi kasus. |
+| Admin IT       | Mengelola akun dan password sementara, infrastruktur, konfigurasi koneksi PG-501, persiapan data tahun ajaran berdasarkan dasar resmi sekolah, sinkronisasi, pratinjau pencocokan, rekonsiliasi identitas, dan kesalahan master melalui sumber resmi. | Hak teknis tidak otomatis memberi akses ke isi kasus, layanan, konsultasi, atau proses keluar; credential dan password tidak ditampilkan kembali. |
 | Wali kelas     | Pengguna tahap P1 untuk informasi terbatas pada kelasnya.                                                                                       | Batas informasi ditetapkan sebelum P1 dibangun.                                                                                                                 |
 | Murid          | Pengguna tahap P1 untuk informasi miliknya.                                                                                                     | Tidak melihat data murid lain atau informasi yang dibatasi.                                                                                                     |
 
@@ -115,9 +115,10 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 | **Area**                       | **Cakupan**                                                                                            | **Urutan**  |
 |--------------------------------|--------------------------------------------------------------------------------------------------------|-------------|
-| Akses dan akun                 | Login, akun aktif, pengelolaan akun oleh Admin IT, dan pembatasan akses per peran serta objek.         | Inti        |
+| Akses dan akun                 | Login, akun aktif, password sementara unik, wajib ganti password, pengelolaan akun oleh Admin IT, dan pembatasan akses per peran serta objek. | Inti        |
 | Penugasan                      | Pembagian Guru BK per kelas, periode efektif, perubahan resmi, kasus khusus, dan pengalihan eksplisit. | Inti        |
 | Master dan identitas sementara | Master Dapodik; data persiapan sementara tahun ajaran dengan impor minimum NISN, nama, dan rombel; serta identitas sementara ketika kasus muncul sebelum sinkronisasi. | Inti        |
+| Proses keluar murid            | Satu proses per murid, pencatatan awal oleh Guru BK, keputusan akhir Koordinator, dan akses baca Waka. | Inti        |
 | Kasus dan tindak lanjut        | Pembuatan kasus, penanganan awal, jadwal, hasil tindak lanjut, koordinasi Waka, dan penyelesaian.      | Inti        |
 | Konteks e-Tatib                | Membaca melalui API dan menautkan pelanggaran/poin tanpa pencatatan ulang atau write-back.             | Inti        |
 | Konfigurasi integrasi          | PG-501 untuk URL, identitas sumber, credential, status Simpan/Uji/Aktifkan, dan ketersediaan adapter.  | Inti        |
@@ -125,7 +126,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Data dan histori murid         | Profil, e-Tatib, kasus, layanan, konsultasi, tindak lanjut, serta histori lintas kelas dan Guru BK.    | Inti        |
 | Dashboard dan laporan          | Pemantauan, rekap per scope Guru BK, rekap gabungan Koordinator, dan laporan Waka yang diizinkan.      | Inti        |
 | Akses Waka                     | Portal khusus berisi Dashboard, Murid dengan Kasus, dan Laporan dengan tab Monitoring Penanganan, Rekap Periode, serta Laporan Akhir; detail hanya-baca pada kasus yang dikoordinasikan. | Inti        |
-| Audit dan koreksi              | Riwayat perubahan, koreksi operasional layanan yang selesai, dan rekonsiliasi identitas.               | Inti        |
+| Audit                          | Jejak perubahan append-only tanpa halaman pembaca umum; alasan edit layanan selesai disimpan pada event perubahan. | Inti        |
 | Retensi                        | Data tidak dihapus sebelum tersimpan minimum tiga tahun; penghapusan otomatis belum diaktifkan.        | Inti        |
 | Prestasi                       | Pencatatan, riwayat, bukti yang diizinkan, verifikasi, dan laporan minimum.                            | P0 bertahap |
 
@@ -184,22 +185,23 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Nama resmi          | Setelah rekonsiliasi, tampilan menggunakan nama resmi dari Dapodik/e-Tatib; nilai masukan awal tetap tersimpan pada audit.                      |
 | Kewenangan          | Daftar, pencarian, detail, dashboard, laporan, ekspor, URL, dan API menerapkan batas yang sama.                                                 |
 | Histori murid       | Guru BK dengan scope aktif dapat membaca histori layanan/konsultasi murid lintas kelas dan pergantian guru, tetapi tidak mengubah catatan lama. |
-| Pelayanan BK        | Kasus dan konsultasi memakai status **Baru dicatat**, **Sedang diproses**, **Membutuhkan tindak lanjut**, **Selesai**, atau **Dibatalkan**. Catatan selesai/dibatalkan terkunci dan hanya dapat diperbaiki melalui koreksi terverifikasi. |
-| Kode kasus          | Kode kasus tetap dibuat untuk kebutuhan internal, relasi, audit teknis, dan integritas data, tetapi tidak ditampilkan pada UI, pencarian pengguna, laporan, ekspor, dashboard, notifikasi, atau audit yang terlihat pengguna. |
+| Pelayanan BK        | Kasus dan konsultasi memakai status **Baru dicatat**, **Sedang diproses**, **Membutuhkan tindak lanjut**, atau **Selesai**. Hanya pemilik yang masih berwenang dapat mengedit atau mengarsipkan; edit selesai memerlukan konfirmasi dan alasan tanpa mengubah status, tanggal selesai, identitas, atau pemilik. |
+| Kode kasus          | Kode kasus tetap dibuat untuk kebutuhan internal, relasi, audit teknis, dan integritas data, tetapi tidak ditampilkan pada UI, pencarian pengguna, laporan, ekspor, dashboard, atau audit yang terlihat pengguna. |
 | Ringkasan untuk Waka | Penanggung jawab aktif menulis satu ringkasan penanganan yang singkat dan aman. Ringkasan tidak memerlukan persetujuan Koordinator, wajib setelah kasus mulai diproses, dan terkunci bersama kasus terminal. |
 | Koordinasi Waka     | Waka membaca proyeksi aman seluruh kasus; detail hanya tersedia setelah koordinasi dicatat. Koordinasi dilakukan di luar aplikasi dan Guru BK/Koordinator hanya mencatat tanggal, pihak, ringkasan hasil, serta tindak lanjut yang disepakati. |
 | Penugasan           | Setiap kasus memiliki satu penanggung jawab aktif. Pengalihan menutup pemilik lama dan membuka pemilik baru secara atomik dalam satu transaksi; perubahan menyimpan tanggal efektif dan dasar keputusan. Kasus aktif tidak berpindah otomatis akibat pergantian kelas atau tahun ajaran. |
-| Koreksi             | Koordinator memverifikasi koreksi operasional catatan pelayanan. Koreksi data master dikoordinasikan dengan Admin IT di luar aplikasi dan diproses pada sumber resmi; fitur laporan koreksi master baru tidak dibuat pada MVP. |
-| Audit               | Perubahan penting serta pembacaan/ekspor portal Waka dicatat otomatis tanpa menyalin identitas murid atau narasi sensitif ke audit.             |
+| Edit dan arsip      | Tombol Hapus mengarsipkan kasus/konsultasi dengan soft delete. Kesalahan data master dikoordinasikan di luar aplikasi, diperbaiki pada sumber resmi, lalu masuk melalui sinkronisasi atau rekonsiliasi. |
+| Proses keluar murid | Pencatatan awal selalu `dalam_proses`; hanya Koordinator menetapkan `batal` atau `resmi_keluar`. Hanya `resmi_keluar` dengan tanggal efektif yang menghentikan layanan baru dan memulai retensi. Provider tidak menentukan status ini. |
+| Audit               | Perubahan penting serta pembacaan/ekspor portal Waka dicatat otomatis dan append-only tanpa halaman pembaca MVP, serta tanpa menyalin identitas murid atau narasi sensitif ke audit. |
 | Retensi             | Kasus, layanan, konsultasi, prestasi, dan audit disimpan minimum tiga tahun; prosedur penghapusan tetap memerlukan kebijakan operasional.       |
 
 # Arsitektur informasi dan laporan
 
-Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Laporan. Guru BK dan Koordinator BK memakai satu halaman Laporan bertab: **Pelanggaran & Poin**, **Layanan BK**, dan **Prestasi**. Setiap tab menampilkan rekap satu baris per murid; identitas sementara yang sah hanya dapat muncul pada tab Layanan. Akun Waka murni memakai tampilan khusus: Dashboard, Murid dengan Kasus, Laporan, Notifikasi, dan Akun Saya. Halaman Laporan Waka mempunyai tab Monitoring Penanganan, Rekap Periode, dan Laporan Akhir. Laporan Akhir hanya menampilkan status **Dalam pengembangan** sampai format resmi sekolah disepakati. Penugasan tersedia sesuai peran Koordinator, sedangkan pengelolaan akun, rekonsiliasi identitas, data master, dan sinkronisasi tersedia bagi Admin IT. Dapodik dan e-Tatib tetap menjadi sistem sumber, bukan modul navigasi utama.
+Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Laporan. Guru BK dan Koordinator BK memakai satu halaman Laporan bertab: **Pelanggaran & Poin**, **Layanan BK**, dan **Prestasi**. Setiap tab menampilkan rekap satu baris per murid; identitas sementara yang sah hanya dapat muncul pada tab Layanan. Akun Waka murni memakai tampilan khusus: Dashboard, Murid dengan Kasus, Laporan, dan Akun Saya. Halaman Laporan Waka mempunyai tab Monitoring Penanganan, Rekap Periode, dan Laporan Akhir. Laporan Akhir hanya menampilkan status **Dalam pengembangan** sampai format resmi sekolah disepakati. Proses keluar murid tersedia read-only bagi Waka. Penugasan tersedia sesuai peran Koordinator, sedangkan pengelolaan akun, rekonsiliasi identitas, data master, dan sinkronisasi tersedia bagi Admin IT. Dapodik dan e-Tatib tetap menjadi sistem sumber, bukan modul navigasi utama. Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak menjadi menu atau halaman MVP.
 
 | **Area**            | **Fungsi**                                                                                                |
 |---------------------|-----------------------------------------------------------------------------------------------------------|
-| Dashboard           | Kondisi kerja sesuai peran; Dashboard Waka menampilkan empat metric kasus, daftar perhatian, komposisi status, dan penanganan terbaru dari proyeksi aman seluruh sekolah. |
+| Dashboard           | Konteks operasional sesuai peran tanpa daftar audit; Dashboard Waka menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, dan akses baca proses keluar dari proyeksi aman seluruh sekolah. |
 | Layanan BK          | Daftar kasus, pembuatan kasus, penanganan, tindak lanjut, konsultasi, koordinasi Waka, dan penyelesaian.  |
 | Data Murid          | Profil serta histori pelanggaran, kasus, layanan, konsultasi, tindak lanjut, dan prestasi yang diizinkan. |
 | Laporan             | Guru BK dan Koordinator memakai tiga tab rekap operasional sesuai scope. Waka memakai satu halaman bertab untuk monitoring, rekap agregat, dan placeholder Laporan Akhir. |
@@ -254,10 +256,10 @@ Portal Waka mempunyai daftar Murid dengan Kasus dan satu halaman Laporan bertab.
 
 # Sumber dan riwayat versi
 
-Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, diskusi perancangan, PRD v0.5, SRS v0.3, inventaris antarmuka v0.1, keputusan validasi Koordinator BK/Guru BK dan Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional yang disetujui 12 September 2026, penyederhanaan Portal Waka berbasis tujuan yang disetujui 13 September 2026, serta penyederhanaan laporan Guru BK/Koordinator yang disetujui 14 September 2026.
+Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, diskusi perancangan, PRD v0.5, SRS v0.3, inventaris antarmuka v0.1, keputusan validasi Koordinator BK/Guru BK dan Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional yang disetujui 12 September 2026, penyederhanaan Portal Waka berbasis tujuan yang disetujui 13 September 2026, penyederhanaan laporan Guru BK/Koordinator yang disetujui 14 September 2026, serta penyederhanaan operasional, akun, dan skema yang disetujui 15 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                     |
 |-----------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 0.5       | 12 Agustus 2026 | Mengonsolidasikan batas produk, tata kelola akses, prioritas, dan dependensi.                                                                                                                                                     |
 | 1.0       | 15 Agustus 2026 | Menetapkan Koordinator sebagai penanggung jawab operasional; akses detail Waka pada kasus terkoordinasi; histori lintas guru; NISN sementara dan rekonsiliasi; laporan gabungan; akun Admin IT; serta retensi minimum tiga tahun. |
-| 1.1       | 23 Agustus 2026; diamandemen 9, 12, 13, dan 14 September 2026 | Menetapkan konfigurasi koneksi aman melalui PG-501, fallback data persiapan, aktivasi sesuai tanggal mulai, rollover tanpa keputusan akademik otomatis, lima status pelayanan, satu penanggung jawab kasus, kode kasus internal, proyeksi aman seluruh kasus, Portal Waka berbasis tujuan, serta tiga tab rekap laporan Guru BK/Koordinator dengan kontrak legacy tetap tersedia. |
+| 1.1       | 23 Agustus 2026; diamandemen 9, 12, 13, 14, dan 15 September 2026 | Menetapkan konfigurasi koneksi aman melalui PG-501, fallback data persiapan, empat status pelayanan, edit terminal beralasan, arsip layanan, proses keluar murid, password sementara, audit tanpa UI pembaca, panel dashboard role-aware, Portal Waka berbasis tujuan, serta tiga tab rekap laporan Guru BK/Koordinator. |

@@ -10,7 +10,6 @@ use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseCoordination;
 use App\Models\Classroom;
-use App\Models\Correction;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -19,7 +18,6 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AchievementService;
 use App\Services\CaseService;
-use App\Services\CorrectionService;
 use App\Services\ReportService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -134,19 +132,13 @@ class AchievementManagementTest extends TestCase
         $this->assertSame($multiRole->id, $achievement->reviewer_id);
     }
 
-    public function test_verified_achievement_correction_uses_service_and_report_is_redacted(): void
+    public function test_verified_achievement_report_is_redacted(): void
     {
         [$teacher, $student, $classroom] = $this->teacherAndScopedStudent('Nama Lengkap Prestasi Rahasia', '0055555555');
         $coordinator = $this->userWithRole('koordinator_bk');
         $achievement = app(AchievementService::class)->create($this->payload($student, '=Prestasi Formula'), $teacher);
         app(AchievementService::class)->verify($achievement, ['decision' => 'terverifikasi'], $coordinator);
-        $correction = app(CorrectionService::class)->submit([
-            'target_type' => 'achievement', 'target_id' => $achievement->id, 'field_name' => 'result',
-            'proposed_value' => 'Juara Umum', 'reason' => 'Hasil resmi telah dikonfirmasi.',
-        ], $teacher);
-        app(CorrectionService::class)->verifyOperational($correction, ['decision' => 'approved'], $coordinator);
-        $this->assertSame('Juara Umum', $achievement->refresh()->result);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'achievement.corrected', 'auditable_id' => $achievement->id]);
+        $this->assertSame('terverifikasi', $achievement->refresh()->verificationStatus->code);
 
         $report = app(ReportService::class)->build($teacher, [
             'type' => ReportService::TYPE_ACHIEVEMENTS,
@@ -167,7 +159,6 @@ class AchievementManagementTest extends TestCase
         $this->assertStringContainsString("'=Prestasi Formula", $csv);
         $this->assertStringNotContainsString($student->name, $csv);
         $this->assertStringNotContainsString('ARSIP/RAHASIA/001', $csv);
-        $this->assertInstanceOf(Correction::class, $correction);
     }
 
     /** @return array{User, Student, Classroom} */

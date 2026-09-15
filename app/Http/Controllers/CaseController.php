@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ArchiveCaseRequest;
 use App\Http\Requests\ResolveCaseRequest;
 use App\Http\Requests\StoreCaseRequest;
 use App\Http\Requests\UpdateCaseRequest;
@@ -188,6 +189,8 @@ class CaseController extends Controller
             'case' => $case,
             'canViewInternal' => $user->can('viewInternal', $case),
             'canUpdateCase' => $user->can('update', $case),
+            'canArchiveCase' => $user->can('archive', $case),
+            'canManageCase' => $user->can('resolve', $case),
             'canAssignCase' => $user->can('assign', $case),
             'canCoordinateCase' => $user->can('coordinate', $case),
             'wakaUsers' => User::query()->active()->whereHas(
@@ -206,12 +209,14 @@ class CaseController extends Controller
 
         return view('pages.cases.edit', [
             'case' => $case,
+            'isCompleted' => $case->status?->code === ServiceRecordStatus::COMPLETED,
+            'terminalConfirmed' => $request->boolean('confirm_terminal'),
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
             'caseStatuses' => ReferenceValue::query()
                 ->active()
                 ->forCategory('case_status')
-                ->whereNotIn('code', ServiceRecordStatus::terminalCodes())
+                ->where('code', '!=', ServiceRecordStatus::COMPLETED)
                 ->orderBy('sort_order')
                 ->get(),
         ]);
@@ -246,14 +251,13 @@ class CaseController extends Controller
         return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil diselesaikan.');
     }
 
-    public function deactivate(Request $request, BkCase $case, CaseService $caseService): RedirectResponse
+    public function destroy(ArchiveCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse
     {
         /** @var User $actor */
         $actor = $request->user();
-        abort_unless($actor->can('update', $case), 403);
-        $caseService->deactivate($case, $actor);
+        $caseService->archive($case, $actor);
 
-        return redirect()->route('cases.index')->with('success', 'Kasus berhasil dinonaktifkan.');
+        return redirect()->route('cases.index')->with('success', 'Kasus berhasil diarsipkan.');
     }
 
     private function consultationIndex(Request $request, User $user): View
