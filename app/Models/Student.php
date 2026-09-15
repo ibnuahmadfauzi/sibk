@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable(['dapodik_id', 'nisn', 'name', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class Student extends Model
@@ -54,12 +53,6 @@ class Student extends Model
     public function etatibRecords(): HasMany
     {
         return $this->hasMany(ExternalTatibRecord::class);
-    }
-
-    /** @return MorphMany<Correction, $this> */
-    public function corrections(): MorphMany
-    {
-        return $this->morphMany(Correction::class, 'target');
     }
 
     /** @param Builder<Student> $query */

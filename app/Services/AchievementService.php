@@ -90,35 +90,6 @@ class AchievementService
         });
     }
 
-    public function applyApprovedCorrection(Achievement $achievement, string $field, ?string $value, User $coordinator): void
-    {
-        $achievement = Achievement::query()->with('verificationStatus')->lockForUpdate()->findOrFail($achievement->getKey());
-        if ($achievement->verificationStatus->code !== 'terverifikasi') {
-            throw ValidationException::withMessages(['correction' => 'Hanya prestasi terverifikasi yang dapat dikoreksi melalui alur ini.']);
-        }
-        $allowed = ['type_id', 'level_id', 'activity_name', 'organizer', 'achievement_date', 'result', 'evidence_reference', 'evidence_description', 'notes'];
-        if (! in_array($field, $allowed, true)) {
-            throw ValidationException::withMessages(['field_name' => 'Atribut prestasi tidak dapat dikoreksi.']);
-        }
-        if ($field === 'achievement_date' && $value !== null && $value > today()->toDateString()) {
-            throw ValidationException::withMessages(['proposed_value' => 'Tanggal prestasi tidak boleh berada di masa depan.']);
-        }
-        $before = $this->auditSnapshot($achievement);
-        $achievement->update([
-            $field => in_array($field, ['type_id', 'level_id'], true) ? (int) $value : $value,
-            'reviewer_id' => $coordinator->getKey(),
-            'reviewed_at' => now(),
-        ]);
-        $this->auditService->record(
-            action: 'achievement.corrected',
-            auditable: $achievement,
-            summary: sprintf('Koreksi atribut %s pada prestasi telah diterapkan.', $field),
-            actor: $coordinator,
-            before: [...$before, 'changed_fields' => [$field]],
-            after: [...$this->auditSnapshot($achievement->refresh()), 'changed_fields' => [$field]],
-        );
-    }
-
     private function ensureStudentScope(Student $student, User $actor): void
     {
         if (! Student::query()->active()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {

@@ -11,7 +11,6 @@ use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\TemporaryStudent;
 use App\Models\User;
-use App\Models\UserNotification;
 use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +21,6 @@ class ConsultationService
     public function __construct(
         private readonly StudentIdentityService $studentIdentityService,
         private readonly AuditService $auditService,
-        private readonly NotificationService $notificationService,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -74,7 +72,6 @@ class ConsultationService
                 actor: $actor,
                 after: $this->auditSnapshot($consultation, $data),
             );
-            $this->notifySchedule($consultation, $actor, 'created');
 
             return $consultation->load(['student', 'temporaryStudent.reconciledStudent', 'case', 'serviceField', 'status', 'counselor']);
         });
@@ -162,7 +159,6 @@ class ConsultationService
                 before: $before,
                 after: $after,
             );
-            $this->notifySchedule($consultation, $actor, 'updated');
 
             return $consultation->load(['student', 'temporaryStudent.reconciledStudent', 'case', 'serviceField', 'status', 'counselor']);
         });
@@ -186,50 +182,6 @@ class ConsultationService
                 before: $this->auditSnapshot($consultation, []),
             );
             $consultation->delete();
-        });
-    }
-
-    public function applyApprovedCorrection(Consultation $consultation, string $field, ?string $value, User $coordinator): Consultation
-    {
-        return DB::transaction(function () use ($consultation, $field, $value, $coordinator): Consultation {
-            if (! $coordinator->hasRole('koordinator_bk')) {
-                abort(403);
-            }
-
-            $consultation = Consultation::query()->lockForUpdate()->findOrFail($consultation->getKey());
-            $allowed = ['service_field_id', 'status_id', 'topic', 'referral_source', 'session_date', 'starts_at', 'ends_at', 'follow_up_date', 'general_summary'];
-            if (! in_array($field, $allowed, true)) {
-                throw ValidationException::withMessages(['field_name' => 'Atribut konsultasi tidak dapat dikoreksi melalui alur ini.']);
-            }
-
-            $data = [
-                'service_field_id' => $consultation->service_field_id,
-                'status_id' => $consultation->status_id,
-                'topic' => $consultation->topic,
-                'referral_source' => $consultation->referral_source,
-                'session_date' => $consultation->session_date->toDateString(),
-                'starts_at' => $consultation->starts_at,
-                'ends_at' => $consultation->ends_at,
-                'follow_up_date' => $consultation->follow_up_date?->toDateString(),
-                'general_summary' => $consultation->general_summary,
-            ];
-            $data[$field] = in_array($field, ['service_field_id', 'status_id'], true) ? (int) $value : $value;
-            $status = $this->reference('consultation_status', (int) $data['status_id']);
-            $this->reference('service_field', (int) $data['service_field_id']);
-            $this->validateSchedule($data, $status);
-
-            $before = $this->auditSnapshot($consultation, []);
-            $consultation->update($data);
-            $this->auditService->record(
-                action: 'consultation.corrected',
-                auditable: $consultation,
-                summary: sprintf('Konsultasi %s dikoreksi melalui pengajuan terverifikasi.', $consultation->registration_number),
-                actor: $coordinator,
-                before: $before,
-                after: $this->auditSnapshot($consultation->refresh(), []),
-            );
-
-            return $consultation;
         });
     }
 
@@ -260,20 +212,6 @@ class ConsultationService
                 $actor,
             ),
         ];
-    }
-
-    private function notifySchedule(Consultation $consultation, User $recipient, string $event): void
-    {
-        $this->notificationService->send(
-            recipients: collect([$recipient]),
-            category: UserNotification::CATEGORY_SCHEDULE,
-            title: sprintf('Jadwal konsultasi %s.', $consultation->registration_number),
-            message: sprintf('Sesi tercatat pada %s.', $consultation->session_date->format('d-m-Y')),
-            target: $consultation,
-            actionRoute: 'consultations.show',
-            actionParameters: ['consultation' => $consultation->getKey()],
-            deduplicationKey: sprintf('consultation-%s:%d:%s', $event, $consultation->getKey(), md5($consultation->updated_at?->toJSON() ?? $event)),
-        );
     }
 
     private function resolveCase(mixed $caseId, ?Student $student, ?TemporaryStudent $temporary, User $actor): ?BkCase

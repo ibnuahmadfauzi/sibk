@@ -10,6 +10,7 @@ use App\Models\User;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -28,24 +29,24 @@ class AuthorizationMatrixTest extends TestCase
     {
         yield 'Guru BK' => ['guru_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
-            '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
+            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 200,
             '/assignments/classes/manage' => 403, '/waka/reports?tab=penanganan' => 403,
         ]];
         yield 'Koordinator BK' => ['koordinator_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 200, '/assignments/cases' => 200, '/corrections' => 200,
-            '/history' => 200, '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
+            '/assignments/classes' => 200, '/assignments/cases' => 200,
+            '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 200,
             '/consultations' => 302, '/consultations/create' => 403,
             '/assignments/classes/manage' => 200, '/waka/reports?tab=penanganan' => 403,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 403,
-            '/history' => 200, '/achievements' => 403, '/consultations/create' => 403,
+            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/achievements' => 403, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 200,
             '/consultations' => 302, '/assignments/classes/manage' => 403,
@@ -53,8 +54,8 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403, '/assignments/cases' => 403, '/corrections' => 200,
-            '/history' => 200, '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
+            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
             '/assignments/classes/manage' => 403, '/waka/reports?tab=penanganan' => 403,
@@ -87,6 +88,29 @@ class AuthorizationMatrixTest extends TestCase
         foreach ($uris as $uri) {
             $this->actingAs($inactive)->get($uri)->assertRedirect(route('login'));
         }
+    }
+
+    public function test_retired_feature_routes_are_not_registered(): void
+    {
+        $user = $this->userWithRole('admin_it');
+
+        foreach ([
+            '/corrections', '/notifications', '/history',
+            '/_preview/notifications', '/_preview/corrections',
+            '/_preview/corrections/create', '/_preview/corrections/show',
+            '/_preview/history',
+        ] as $uri) {
+            $this->actingAs($user)->get($uri)->assertNotFound();
+        }
+
+        $routes = collect(Route::getRoutes())->map->getName()->filter();
+        $this->assertFalse($routes->contains(fn (string $name): bool => str_starts_with($name, 'corrections.')
+            || str_starts_with($name, 'notifications.')
+            || str_starts_with($name, 'history.')
+            || str_starts_with($name, 'fixtures.notifications')
+            || str_starts_with($name, 'fixtures.corrections')
+            || str_starts_with($name, 'fixtures.history')
+        ));
     }
 
     public function test_admin_sidebar_never_advertises_service_capabilities(): void

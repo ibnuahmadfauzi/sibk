@@ -8,17 +8,13 @@ use App\Models\BkCase;
 use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\User;
-use App\Models\UserNotification;
 use App\Support\ServiceRecordStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FollowUpService
 {
-    public function __construct(
-        private readonly AuditService $auditService,
-        private readonly NotificationService $notificationService,
-    ) {}
+    public function __construct(private readonly AuditService $auditService) {}
 
     /** @param array{follow_up_type_id: int, status_id: int, planned_date: string, execution_date?: string|null, result?: string|null, next_plan?: string|null} $data */
     public function record(BkCase $case, array $data, User $actor): FollowUp
@@ -67,7 +63,6 @@ class FollowUpService
                 actor: $actor,
                 after: $this->snapshot($followUp),
             );
-            $this->notifySchedule($case, $followUp, 'created');
 
             return $followUp->load(['type', 'status', 'recorder']);
         });
@@ -107,47 +102,8 @@ class FollowUpService
                 before: $before,
                 after: $this->snapshot($followUp->refresh()),
             );
-            $this->notifySchedule($case, $followUp, 'updated');
 
             return $followUp->load(['type', 'status', 'recorder']);
-        });
-    }
-
-    public function applyApprovedCorrection(FollowUp $followUp, string $field, ?string $value, User $coordinator): FollowUp
-    {
-        return DB::transaction(function () use ($followUp, $field, $value, $coordinator): FollowUp {
-            if (! $coordinator->hasRole('koordinator_bk')) {
-                abort(403);
-            }
-
-            $followUp = FollowUp::query()->with('case')->lockForUpdate()->findOrFail($followUp->getKey());
-            $allowed = ['follow_up_type_id', 'status_id', 'planned_date', 'execution_date', 'result', 'next_plan'];
-            if (! in_array($field, $allowed, true)) {
-                throw ValidationException::withMessages(['field_name' => 'Atribut tindak lanjut tidak dapat dikoreksi melalui alur ini.']);
-            }
-
-            $data = [
-                'follow_up_type_id' => $followUp->follow_up_type_id,
-                'status_id' => $followUp->status_id,
-                'planned_date' => $followUp->planned_date->toDateString(),
-                'execution_date' => $followUp->execution_date?->toDateString(),
-                'result' => $followUp->result,
-                'next_plan' => $followUp->next_plan,
-            ];
-            $data[$field] = in_array($field, ['follow_up_type_id', 'status_id'], true) ? (int) $value : $value;
-            $this->validateReferencesAndResult($data);
-            $before = $this->snapshot($followUp);
-            $followUp->update($data);
-            $this->auditService->record(
-                action: 'follow_up.corrected',
-                auditable: $followUp,
-                summary: sprintf('Tindak lanjut kasus untuk %s dikoreksi melalui pengajuan terverifikasi.', $followUp->case->identityName()),
-                actor: $coordinator,
-                before: $before,
-                after: $this->snapshot($followUp->refresh()),
-            );
-
-            return $followUp;
         });
     }
 
@@ -161,20 +117,6 @@ class FollowUpService
         if (! $case->hasActiveOwnerFor($actor)) {
             throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
         }
-    }
-
-    private function notifySchedule(BkCase $case, FollowUp $followUp, string $event): void
-    {
-        $this->notificationService->send(
-            recipients: $this->notificationService->activeCaseTeachers($case),
-            category: UserNotification::CATEGORY_SCHEDULE,
-            title: sprintf('Jadwal tindak lanjut untuk %s.', $case->identityName()),
-            message: sprintf('Tindak lanjut dijadwalkan pada %s.', $followUp->planned_date->format('d-m-Y')),
-            target: $followUp,
-            actionRoute: 'cases.show',
-            actionParameters: ['case' => $case->getKey()],
-            deduplicationKey: sprintf('follow-up-%s:%d:%s', $event, $followUp->getKey(), md5($followUp->updated_at?->toJSON() ?? $event)),
-        );
     }
 
     /** @param array{follow_up_type_id: int, status_id: int, planned_date: string, execution_date?: string|null, result?: string|null, next_plan?: string|null} $data */

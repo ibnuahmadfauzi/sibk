@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'waka_summary', 'internal_note', 'final_result', 'resolution_summary', 'continued_plan', 'closed_at', 'created_by'])]
@@ -79,12 +78,6 @@ class BkCase extends Model
     public function consultations(): HasMany
     {
         return $this->hasMany(Consultation::class, 'case_id');
-    }
-
-    /** @return MorphMany<Correction, $this> */
-    public function corrections(): MorphMany
-    {
-        return $this->morphMany(Correction::class, 'target');
     }
 
     /** @return BelongsToMany<ExternalTatibRecord, $this> */

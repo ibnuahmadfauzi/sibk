@@ -2192,7 +2192,7 @@ git commit -m "feat: sederhanakan edit dan arsip layanan BK"
 - Consumes: direct terminal edit dari Task 9 dan `AuditService` append-only.
 - Produces: tidak ada consumer runtime untuk tabel `corrections` atau `user_notifications`; dashboard tidak membaca daftar audit.
 
-- [ ] **Step 1: Tulis failing retired-feature tests**
+- [x] **Step 1: Tulis failing retired-feature tests**
 
 Tambahkan ke `AuthorizationMatrixTest`:
 
@@ -2244,14 +2244,14 @@ public function test_dashboard_uses_role_context_instead_of_audit_activity_feed(
 }
 ```
 
-- [ ] **Step 2: Jalankan tests dan pastikan gagal**
+- [x] **Step 2: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/AuthorizationMatrixTest.php --filter=retired_feature
 php artisan test tests/Feature/DashboardNotificationTest.php --filter=role_context
 ```
 
-- [ ] **Step 3: Hapus route, policy registration, dan view composer**
+- [x] **Step 3: Hapus route, policy registration, dan view composer**
 
 Hapus seluruh route koreksi/notifikasi/riwayat beserta route fixture
 `/_preview/notifications`, `/_preview/corrections`,
@@ -2262,7 +2262,7 @@ gate `viewAuditHistory`, dan composer
 `unreadNotificationCount` dari `AppServiceProvider`. Sidebar tidak boleh
 mengandung label, badge, atau route retired.
 
-- [ ] **Step 4: Hapus dependency service dan relasi model**
+- [x] **Step 4: Hapus dependency service dan relasi model**
 
 Hapus constructor dependency `NotificationService` dan seluruh pemanggilan
 `send()` dari Assignment, Case, Consultation, dan koordinasi. Hapus method
@@ -2274,7 +2274,7 @@ User serta trait `Notifiable` bila tidak ada consumer lain.
 Gunakan audit existing untuk mutasi penting; jangan mengganti notifikasi dengan
 event audit yang ditampilkan ke pengguna.
 
-- [ ] **Step 5: Ganti payload dashboard**
+- [x] **Step 5: Ganti payload dashboard**
 
 `DashboardService` tidak lagi mengimpor `AuditLog` atau `Correction`. Payload
 operasional menghasilkan key berikut:
@@ -2314,20 +2314,20 @@ tahun ajaran aktif, serta status provider tanpa credential. Waka tetap memakai
 `WakaDashboardService` dengan ringkasan aman. Hapus key `activities`, method
 `activityItems()`, dan `scopedAuditQuery()`.
 
-- [ ] **Step 6: Ganti view dan frontend checker**
+- [x] **Step 6: Ganti view dan frontend checker**
 
 Pada dashboard, ganti heading `Aktivitas Terbaru` dengan
 `$dashboard['context_panel']['title']` dan render hanya label/value/meta aman.
 Hapus tombol `Ajukan Koreksi` dari profil murid, konsultasi, kasus, dan prestasi.
 Perbarui frontend checker agar memastikan string/route retired tidak ada.
 
-- [ ] **Step 7: Hapus artefak dan sesuaikan tests**
+- [x] **Step 7: Hapus artefak dan sesuaikan tests**
 
 Hapus file yang tercantum sebagai Delete. Pertahankan test dashboard dari
 `DashboardNotificationTest` di file baru `DashboardTest`; hapus seluruh test
 notifikasi. Hapus URI retired dari matrix dan tambahkan assertion 404 terpisah.
 
-- [ ] **Step 8: Verifikasi tidak ada consumer**
+- [x] **Step 8: Verifikasi tidak ada consumer**
 
 ```powershell
 rg -n "Correction|corrections\.|UserNotification|NotificationService|notifications\.|history\.|unreadNotificationCount|Aktivitas Terbaru|Ajukan Koreksi" app routes resources tests scripts
@@ -2342,7 +2342,7 @@ git diff --check
 Expected: `rg` tidak menemukan consumer runtime; kemunculan yang tersisa hanya
 pada migration lama atau dokumentasi histori yang sengaja dipertahankan.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```powershell
 git add -A -- app/Http/Controllers/CorrectionController.php app/Http/Controllers/NotificationController.php app/Http/Controllers/HistoryController.php app/Http/Controllers/LegacyPreviewController.php app/Http/Requests/StoreCorrectionRequest.php app/Http/Requests/VerifyCorrectionRequest.php app/Http/Requests/ProcessMasterCorrectionRequest.php app/Models/Correction.php app/Models/UserNotification.php app/Models/User.php app/Models/Student.php app/Models/BkCase.php app/Models/Consultation.php app/Models/FollowUp.php app/Models/Achievement.php app/Policies/CorrectionPolicy.php app/Policies/UserNotificationPolicy.php app/Providers/AppServiceProvider.php app/Services/CorrectionService.php app/Services/NotificationService.php app/Services/AssignmentService.php app/Services/CaseService.php app/Services/ConsultationService.php app/Services/AchievementService.php app/Services/DashboardService.php routes/web.php resources/views/components/sidebar.blade.php resources/views/pages/corrections/create.blade.php resources/views/pages/corrections/index.blade.php resources/views/pages/corrections/show.blade.php resources/views/pages/notifications/index.blade.php resources/views/pages/history/index.blade.php resources/views/pages/students/show.blade.php resources/views/pages/cases/show.blade.php resources/views/pages/consultations/show.blade.php resources/views/pages/achievements/show.blade.php scripts/check-frontend.mjs tests/Feature/CorrectionManagementTest.php tests/Feature/DashboardNotificationTest.php tests/Feature/DashboardTest.php tests/Feature/AuthorizationMatrixTest.php tests/Feature/FrontendPreviewTest.php

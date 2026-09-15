@@ -11,7 +11,6 @@ use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
-use App\Models\UserNotification;
 use App\Support\ServiceRecordStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -22,7 +21,6 @@ class CaseService
     public function __construct(
         private readonly StudentIdentityService $studentIdentityService,
         private readonly AuditService $auditService,
-        private readonly NotificationService $notificationService,
     ) {}
 
     /**
@@ -285,56 +283,6 @@ class CaseService
         });
     }
 
-    public function applyApprovedCorrection(BkCase $case, string $field, ?string $value, User $coordinator): BkCase
-    {
-        return DB::transaction(function () use ($case, $field, $value, $coordinator): BkCase {
-            if (! $coordinator->hasRole('koordinator_bk')) {
-                abort(403);
-            }
-
-            $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
-            if (! in_array($field, ['service_date', 'service_field_id', 'initial_action', 'waka_summary'], true)) {
-                throw ValidationException::withMessages(['field_name' => 'Atribut kasus tidak dapat dikoreksi melalui alur ini.']);
-            }
-
-            if ($field === 'service_field_id') {
-                ReferenceValue::query()->active()->forCategory('service_field')->findOrFail((int) $value);
-                $value = (string) ((int) $value);
-            }
-            if ($field === 'initial_action' && blank($value)) {
-                throw ValidationException::withMessages(['proposed_value' => 'Penanganan awal tidak boleh kosong.']);
-            }
-            if ($field === 'waka_summary' && (blank($value) || mb_strlen(trim((string) $value)) > 500)) {
-                throw ValidationException::withMessages(['proposed_value' => 'Ringkasan Penanganan untuk Waka wajib diisi dan maksimal 500 karakter.']);
-            }
-            if ($field === 'service_date' && $case->closed_at !== null && $value > $case->closed_at->toDateString()) {
-                throw ValidationException::withMessages(['proposed_value' => 'Tanggal layanan tidak boleh setelah tanggal penyelesaian kasus.']);
-            }
-
-            $before = [$field => $this->correctionValue($case, $field)];
-            $case->update([$field => $field === 'waka_summary' ? trim((string) $value) : $value]);
-            $this->auditService->record(
-                action: 'case.corrected',
-                auditable: $case,
-                summary: sprintf('Atribut %s pada kasus untuk %s dikoreksi melalui pengajuan terverifikasi.', $field, $case->identityName()),
-                actor: $coordinator,
-                before: $before,
-                after: [$field => $this->correctionValue($case->refresh(), $field)],
-            );
-
-            return $case;
-        });
-    }
-
-    private function correctionValue(BkCase $case, string $field): ?string
-    {
-        if ($field === 'service_date') {
-            return $case->service_date?->toDateString();
-        }
-
-        return $case->{$field} === null ? null : (string) $case->{$field};
-    }
-
     /** @param array{waka_user_id: int, result?: string, coordination_need?: string} $data */
     public function coordinate(BkCase $case, array $data, User $actor): CaseCoordination
     {
@@ -382,16 +330,6 @@ class CaseService
                     'waka_user_id' => $waka->getKey(),
                     'status' => $completed->code,
                 ],
-            );
-            $this->notificationService->send(
-                recipients: collect([$waka]),
-                category: UserNotification::CATEGORY_COORDINATION,
-                title: sprintf('Hasil koordinasi untuk %s dicatat.', $case->identityName()),
-                message: 'Ringkasan hasil koordinasi eksternal tersedia dalam mode hanya-baca.',
-                target: $case,
-                actionRoute: 'cases.show',
-                actionParameters: ['case' => $case->getKey()],
-                deduplicationKey: 'case-coordination-created:'.$coordination->getKey(),
             );
 
             return $coordination->load(['waka', 'status']);
@@ -442,17 +380,6 @@ class CaseService
                 actor: $actor,
                 before: $before,
                 after: ['status_id' => $status->getKey(), 'result' => $coordination->result],
-            );
-            $coordination->loadMissing('waka');
-            $this->notificationService->send(
-                recipients: collect([$coordination->waka]),
-                category: UserNotification::CATEGORY_CHANGE,
-                title: sprintf('Koordinasi untuk %s diperbarui.', $case->identityName()),
-                message: sprintf('Status koordinasi berubah menjadi %s.', $status->label),
-                target: $case,
-                actionRoute: 'cases.show',
-                actionParameters: ['case' => $case->getKey()],
-                deduplicationKey: 'case-coordination-updated:'.$coordination->getKey().':'.$status->getKey(),
             );
 
             return $coordination->load('status');

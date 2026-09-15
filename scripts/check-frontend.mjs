@@ -4,7 +4,6 @@ import process from 'node:process';
 const files = {
     login: 'resources/views/pages/login/html.blade.php',
     dashboard: 'resources/views/pages/dashboard/html.blade.php',
-    notifications: 'resources/views/pages/notifications/index.blade.php',
     reportIndex: 'resources/views/pages/reports/index.blade.php',
     reportFilters: 'resources/views/pages/reports/_filters.blade.php',
     reportDesktop: 'resources/views/pages/reports/_desktop-table.blade.php',
@@ -26,10 +25,6 @@ const files = {
     assignmentIndex: 'resources/views/pages/assignments/classes/index.blade.php',
     assignmentManage: 'resources/views/pages/assignments/classes/manage.blade.php',
     caseAssignment: 'resources/views/pages/assignments/cases/index.blade.php',
-    correctionIndex: 'resources/views/pages/corrections/index.blade.php',
-    correctionCreate: 'resources/views/pages/corrections/create.blade.php',
-    correctionShow: 'resources/views/pages/corrections/show.blade.php',
-    history: 'resources/views/pages/history/index.blade.php',
     dataMaster: 'resources/views/pages/data-master/index.blade.php',
     account: 'resources/views/pages/account/index.blade.php',
     accessDenied: 'resources/views/pages/system/access-denied.blade.php',
@@ -92,11 +87,7 @@ assert(contents.dashboard.includes("$dashboard['read_only']"), 'Mode hanya-baca 
 assert(contents.dashboard.includes("$dashboard['stats']"), 'Statistik database PG-002 belum diterapkan.');
 assert(contents.dashboard.includes("$dashboard['tindak_lanjut']"), 'Jadwal database PG-002 belum diterapkan.');
 assert(contents.dashboard.includes("route('dashboard.preview')"), 'Filter tahun ajaran PG-002 belum terhubung.');
-assert(contents.notifications.includes('data-page-id="PG-003"'), 'PG-003 belum dapat ditelusuri dari markup.');
-assert(contents.notifications.includes("route('notifications.read-all')"), 'Aksi tandai dibaca PG-003 belum terhubung.');
-assert(contents.notifications.includes('@csrf'), 'Aksi PG-003 belum memiliki perlindungan CSRF.');
 assert(contents.routes.includes('DashboardController::class'), 'Dashboard belum memakai controller database.');
-assert(contents.routes.includes('NotificationController::class'), 'Notifikasi belum memakai controller database.');
 assert(contents.reportIndex.includes('data-page-id="PG-301"'), 'PG-301 belum dapat ditelusuri dari markup.');
 const operationalReport = contents.reportIndex + contents.reportFilters + contents.reportDesktop + contents.reportMobile;
 for (const label of ['Pelanggaran & Poin', 'Layanan BK', 'Prestasi']) {
@@ -121,19 +112,23 @@ const pageIds = {
     casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103', followUp: 'PG-104',
     consultationCreate: 'PG-105', caseResolve: 'PG-106', studentsIndex: 'PG-201', studentsShow: 'PG-202',
     achievementCreate: 'PG-203', assignmentIndex: 'PG-401', assignmentManage: 'PG-402',
-    caseAssignment: 'PG-403', correctionIndex: 'PG-404', correctionShow: 'PG-405', history: 'PG-406',
+    caseAssignment: 'PG-403',
     dataMaster: 'PG-501', accessDenied: 'PG-901',
 };
 for (const [key, pageId] of Object.entries(pageIds)) {
     assert(contents[key].includes(`data-page-id="${pageId}"`), `${pageId} belum dapat ditelusuri dari markup.`);
 }
-for (const key of ['casesCreate', 'followUp', 'consultationCreate', 'caseResolve', 'achievementCreate', 'correctionCreate', 'correctionShow', 'assignmentManage', 'caseAssignment', 'dataMaster', 'account', 'topbar']) {
+for (const key of ['casesCreate', 'followUp', 'consultationCreate', 'caseResolve', 'achievementCreate', 'assignmentManage', 'caseAssignment', 'dataMaster', 'account', 'topbar']) {
     if (contents[key].includes('method="POST"')) assert(contents[key].includes('@csrf'), `${files[key]} memiliki form POST tanpa @csrf.`);
 }
 assert(contents.routes.includes('AccountController::class'), 'Halaman akun masih berupa fixture route.');
 assert(!contents.routes.includes("Route::redirect('/_preview"), 'Route preview masih menerima metode selain GET/HEAD.');
 assert(!contents.routes.includes('Data dummy'), 'Route produksi masih memuat data dummy.');
 assert(!contents.routes.includes("return view('pages."), 'Route produksi masih merender Blade melalui closure.');
+const runtimeSurface = Object.values(contents).join('\n');
+for (const retired of ['CorrectionController', 'NotificationController', "route('corrections.", "route('notifications.", "route('history.", 'Ajukan Koreksi', 'Aktivitas terbaru']) {
+    assert(!runtimeSurface.includes(retired), `Consumer retired masih ditemukan: ${retired}`);
+}
 assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak terpakai masih ada.');
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');
 

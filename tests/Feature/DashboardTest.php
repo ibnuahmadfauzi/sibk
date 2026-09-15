@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseCoordination;
 use App\Models\Classroom;
@@ -15,18 +16,14 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Models\UserNotification;
-use App\Services\AssignmentService;
 use App\Services\CaseService;
 use App\Services\DashboardService;
-use App\Services\FollowUpService;
-use App\Services\NotificationService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class DashboardNotificationTest extends TestCase
+class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -72,6 +69,9 @@ class DashboardNotificationTest extends TestCase
         $teacherDashboard = $service->forUser($teacherA, $this->year);
         $this->assertSame('1', $this->stat($teacherDashboard, 'Murid dalam cakupan'));
         $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus aktif'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kelas ampuan'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus khusus aktif'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Tindak lanjut terdekat'));
         $this->assertStringContainsString($studentA->name, $teacherDashboard['tindak_lanjut'][0]['context_label']);
         $this->assertStringNotContainsString($studentB->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
 
@@ -79,6 +79,9 @@ class DashboardNotificationTest extends TestCase
         $coordinatorDashboard = $service->forUser($coordinator, $this->year);
         $this->assertSame('2', $this->stat($coordinatorDashboard, 'Murid dalam cakupan'));
         $this->assertSame('2', $this->stat($coordinatorDashboard, 'Kasus aktif'));
+        $this->assertSame('2', $this->contextValue($coordinatorDashboard, 'Guru BK aktif'));
+        $this->assertSame('0', $this->contextValue($coordinatorDashboard, 'Kelas tanpa penugasan'));
+        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Tindak lanjut terbuka'));
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
@@ -89,6 +92,7 @@ class DashboardNotificationTest extends TestCase
         $admin = $this->userWithRole('admin_it', 'Admin IT');
         $adminDashboard = $service->forUser($admin, $this->year);
         $this->assertSame('admin', $adminDashboard['role_key']);
+        $this->assertSame('2', $this->contextValue($adminDashboard, 'Provider tanpa credential'));
         $this->assertStringNotContainsString($studentA->name, json_encode($adminDashboard, JSON_THROW_ON_ERROR));
         $this->assertStringNotContainsString($caseB->registration_number, json_encode($adminDashboard, JSON_THROW_ON_ERROR));
     }
@@ -115,111 +119,22 @@ class DashboardNotificationTest extends TestCase
             ->assertDontSee('CATATAN-PRIVAT-TIDAK-BOLEH-BOCOR');
     }
 
-    public function test_notifications_are_owner_scoped_and_read_actions_are_persisted(): void
+    public function test_dashboard_uses_role_context_instead_of_audit_activity_feed(): void
     {
-        $owner = $this->userWithRole('guru_bk', 'Penerima');
-        $other = $this->userWithRole('guru_bk', 'Akun Lain');
-        $inactive = $this->userWithRole('guru_bk', 'Akun Nonaktif');
-        $inactive->update(['is_active' => false, 'deactivated_at' => now()]);
-        app(NotificationService::class)->send(
-            recipients: collect([$owner, $inactive]),
-            category: UserNotification::CATEGORY_SCHEDULE,
-            title: 'Jadwal tindak lanjut diperbarui.',
-            message: 'Jadwal layanan tersedia untuk ditinjau.',
-            target: null,
-            actionRoute: 'notifications.preview',
-            actionParameters: [],
-            deduplicationKey: 'test-schedule-1',
-        );
-        app(NotificationService::class)->send(
-            recipients: collect([$owner]),
-            category: UserNotification::CATEGORY_SCHEDULE,
-            title: 'Jadwal tindak lanjut diperbarui.',
-            message: 'Jadwal layanan tersedia untuk ditinjau.',
-            target: null,
-            actionRoute: 'notifications.preview',
-            actionParameters: [],
-            deduplicationKey: 'test-schedule-1',
-        );
-        $notification = $owner->notifications()->firstOrFail();
+        $teacher = $this->userWithRole('guru_bk', 'Guru Konteks');
+        AuditLog::query()->create([
+            'actor_id' => $teacher->id,
+            'action' => 'secret.event',
+            'auditable_type' => User::class,
+            'auditable_id' => $teacher->id,
+            'summary' => 'NARASI-AUDIT-RAHASIA',
+        ]);
 
-        $this->assertDatabaseMissing('user_notifications', ['user_id' => $inactive->id]);
-        $this->assertSame(1, $owner->notifications()->count());
-        $this->actingAs($owner)->get(route('notifications.preview', ['filter' => 'unread']))
+        $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('data-page-id="PG-003"', false)
-            ->assertSee('Jadwal tindak lanjut diperbarui.');
-        $this->actingAs($other)->get(route('notifications.preview'))
-            ->assertOk()
-            ->assertDontSee('Jadwal tindak lanjut diperbarui.');
-        $this->actingAs($other)->get(route('notifications.open', $notification))->assertForbidden();
-
-        $this->actingAs($owner)->get(route('notifications.open', $notification))
-            ->assertRedirect(route('notifications.preview'));
-        $this->assertNotNull($notification->refresh()->read_at);
-
-        $owner->notifications()->create([
-            'category' => UserNotification::CATEGORY_CHANGE,
-            'title' => 'Perubahan penting.',
-            'message' => 'Perubahan kewenangan telah dicatat.',
-            'deduplication_key' => 'test-change-1',
-        ]);
-        $this->actingAs($owner)->post(route('notifications.read-all'))
-            ->assertRedirect()
-            ->assertSessionHas('success');
-        $this->assertSame(0, $owner->notifications()->unread()->count());
-    }
-
-    public function test_assignment_coordination_and_schedule_events_notify_only_their_recipients(): void
-    {
-        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Notifikasi');
-        $teacher = $this->userWithRole('guru_bk', 'Guru Penerima');
-        $waka = $this->userWithRole('waka_kesiswaan', 'Waka Penerima');
-        $admin = $this->userWithRole('admin_it', 'Admin Tanpa Layanan');
-        $classroom = Classroom::query()->create([
-            'academic_year_id' => $this->year->id,
-            'name' => 'X TKJ 1',
-            'is_active' => true,
-        ]);
-        app(AssignmentService::class)->assignClass([
-            'user_id' => $teacher->id,
-            'classroom_id' => $classroom->id,
-            'academic_year_id' => $this->year->id,
-            'decision_number' => 'SK-NOTIFIKASI',
-            'effective_date' => '2026-07-15',
-        ], $coordinator);
-        $student = Student::query()->create(['nisn' => '0055555555', 'name' => 'Murid Notifikasi', 'is_active' => true]);
-        StudentClassMembership::query()->create([
-            'student_id' => $student->id,
-            'classroom_id' => $classroom->id,
-            'academic_year_id' => $this->year->id,
-            'effective_from' => '2026-07-15',
-            'is_active' => true,
-        ]);
-        $case = app(CaseService::class)->createCase([
-            'student_id' => $student->id,
-            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
-            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'service_date' => '2026-08-20',
-            'initial_info' => 'Informasi awal.',
-            'initial_action' => 'Asesmen.',
-        ], $teacher);
-        $case->update(['waka_summary' => 'Asesmen awal selesai dan tindak lanjut telah dijadwalkan.']);
-        app(CaseService::class)->coordinate($case, [
-            'waka_user_id' => $waka->id,
-            'coordination_need' => 'Dukungan kesiswaan.',
-        ], $teacher);
-        app(FollowUpService::class)->record($case, [
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-22',
-        ], $teacher);
-
-        $this->assertTrue($teacher->notifications()->where('category', UserNotification::CATEGORY_ASSIGNMENT)->exists());
-        $this->assertTrue($teacher->notifications()->where('category', UserNotification::CATEGORY_SCHEDULE)->exists());
-        $this->assertTrue($waka->notifications()->where('category', UserNotification::CATEGORY_COORDINATION)->exists());
-        $this->assertSame(0, $admin->notifications()->count());
-        $this->assertSame(0, $coordinator->notifications()->count());
+            ->assertSee('Cakupan layanan Anda')
+            ->assertDontSee('Aktivitas terbaru')
+            ->assertDontSee('NARASI-AUDIT-RAHASIA');
     }
 
     /** @return array{Student, BkCase} */
@@ -263,6 +178,12 @@ class DashboardNotificationTest extends TestCase
     private function stat(array $dashboard, string $label): string
     {
         return collect($dashboard['stats'] ?? $dashboard['metrics'])->firstWhere('label', $label)['value'];
+    }
+
+    /** @param array<string, mixed> $dashboard */
+    private function contextValue(array $dashboard, string $label): string
+    {
+        return collect($dashboard['context_panel']['items'])->firstWhere('label', $label)['value'];
     }
 
     private function reference(string $category, string $code): ReferenceValue

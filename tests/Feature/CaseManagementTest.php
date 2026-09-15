@@ -17,10 +17,8 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Models\UserNotification;
 use App\Services\AssignmentService;
 use App\Services\CaseService;
-use App\Services\CorrectionService;
 use App\Services\FollowUpService;
 use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
@@ -1008,7 +1006,6 @@ class CaseManagementTest extends TestCase
         $this->actingAs($teacher)->get(route('cases.follow-ups.create', $case))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($teacher)->get(route('cases.resolve.form', $case))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($teacher)->get(route('consultations.create'))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('corrections.create'))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($coordinator)->get(route('assignments.cases.index', ['case_id' => $case->id]))->assertOk()->assertDontSee($caseCode);
         $this->actingAs($teacher)->get(route('cases.index', ['search' => $caseCode]))
             ->assertOk()
@@ -1020,17 +1017,7 @@ class CaseManagementTest extends TestCase
             'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
             'planned_date' => '2026-08-20',
         ], $teacher);
-        $correction = app(CorrectionService::class)->submit([
-            'target_type' => 'case',
-            'target_id' => $case->id,
-            'field_name' => 'waka_summary',
-            'proposed_value' => 'Ringkasan aman diperbarui.',
-            'reason' => 'Perlu memperjelas perkembangan umum.',
-        ], $teacher);
-
-        $this->assertStringNotContainsString($caseCode, $correction->target_label);
         $this->assertFalse(AuditLog::query()->where('summary', 'like', '%'.$caseCode.'%')->exists());
-        $this->assertFalse(UserNotification::query()->where('title', 'like', '%'.$caseCode.'%')->orWhere('message', 'like', '%'.$caseCode.'%')->exists());
         $this->assertDatabaseHas('cases', ['id' => $case->id, 'registration_number' => $caseCode]);
     }
 

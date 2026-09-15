@@ -14,7 +14,6 @@ class LegacyPreviewController extends Controller
         'cases.index' => ['tab'],
         'students.legacy' => ['nisn', 'tab'],
         'assignments.cases.index' => ['case_no'],
-        'corrections.create' => ['object_type', 'object_id', 'student_id', 'attribute'],
     ];
 
     public function __invoke(Request $request): RedirectResponse

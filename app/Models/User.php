@@ -14,14 +14,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'email_verified_at', 'password', 'is_active', 'deactivated_at', 'updated_by'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
 
     /**
      * @return BelongsToMany<Role, $this>
@@ -69,24 +68,6 @@ class User extends Authenticatable
     public function reviewedAchievements(): HasMany
     {
         return $this->hasMany(Achievement::class, 'reviewer_id');
-    }
-
-    /** @return HasMany<Correction, $this> */
-    public function submittedCorrections(): HasMany
-    {
-        return $this->hasMany(Correction::class, 'requester_id');
-    }
-
-    /** @return HasMany<Correction, $this> */
-    public function reviewedCorrections(): HasMany
-    {
-        return $this->hasMany(Correction::class, 'reviewer_id');
-    }
-
-    /** @return HasMany<UserNotification, $this> */
-    public function notifications(): HasMany
-    {
-        return $this->hasMany(UserNotification::class);
     }
 
     public function hasRole(string $role): bool

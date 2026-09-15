@@ -82,22 +82,6 @@
             </a>
             @endcan
 
-            @can('viewAny', App\Models\Correction::class)
-            <a class="sibk-nav-link {{ request()->routeIs('corrections.*') ? 'is-active' : '' }}" href="{{ route('corrections.index') }}"
-                aria-current="{{ request()->routeIs('corrections.*') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.83A2 2 0 0 0 19.41 6l-1.41-1zM14 2.5V7h4.5M8 13h8M8 17h8M8 9h2"/></svg>
-                <span>Koreksi Data</span>
-            </a>
-            @endcan
-
-            @if(auth()->user()?->hasRole('admin_it'))
-            <a class="sibk-nav-link {{ request()->routeIs('history.*') ? 'is-active' : '' }}" href="{{ route('history.index') }}"
-                aria-current="{{ request()->routeIs('history.*') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-                <span>Riwayat Perubahan</span>
-            </a>
-            @endif
-
             @can('manageDataMaster')
                 <a class="sibk-nav-link {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}" href="{{ route('admin.users.index') }}"
                     aria-current="{{ request()->routeIs('admin.users.*') ? 'page' : 'false' }}">
@@ -128,14 +112,6 @@
 
             <p class="sibk-sidebar__section">UTILITAS</p>
 
-            <a class="sibk-nav-link {{ request()->routeIs('notifications.preview') ? 'is-active' : '' }}" href="{{ route('notifications.preview') }}" 
-                aria-current="{{ request()->routeIs('notifications.preview') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
-                <span>Notifikasi</span>
-                @if($unreadNotificationCount > 0)
-                    <span class="badge bg-danger ms-auto" aria-label="{{ $unreadNotificationCount }} notifikasi belum dibaca">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
-                @endif
-            </a>
             <a class="sibk-nav-link {{ request()->routeIs('account.index') ? 'is-active' : '' }}" href="{{ route('account.index') }}"
                 aria-current="{{ request()->routeIs('account.index') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
