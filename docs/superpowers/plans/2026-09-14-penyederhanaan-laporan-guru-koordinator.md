@@ -3024,7 +3024,7 @@ git commit -m "feat: wajibkan pergantian password sementara"
 > plan terpisah setelah tidak ada consumer, backup tersedia, pemulihan diuji,
 > dan pengguna memberi persetujuan eksplisit.
 
-- [ ] **Step 1: Tulis schema invariant test**
+- [x] **Step 1: Tulis schema invariant test**
 
 ```php
 public function test_operational_schema_keeps_required_sources_of_truth(): void
@@ -3044,7 +3044,7 @@ Tambahkan pemeriksaan unique `student_departures.student_id`, foreign key
 domain, dan larangan tabel rekap/flag keluar duplikat. Tabel retired boleh
 tetap ada secara fisik selama tidak mempunyai consumer runtime.
 
-- [ ] **Step 2: Jalankan baseline schema test**
+- [x] **Step 2: Jalankan baseline schema test**
 
 ```powershell
 php artisan test tests/Feature/OperationalSchemaTest.php
@@ -3053,14 +3053,14 @@ php artisan test tests/Feature/OperationalSchemaTest.php
 Expected: PASS setelah Task 9–12; kegagalan hanya menunjukkan invariant wajib
 belum terpenuhi, bukan jumlah tabel yang berbeda dari 30.
 
-- [ ] **Step 3: Audit enam tabel kandidat retired**
+- [x] **Step 3: Audit enam tabel kandidat retired**
 
 Audit `corrections`, `user_notifications`, `password_reset_tokens`, `jobs`,
 `job_batches`, dan `failed_jobs` dengan `rg`, route list, model relation, config,
 serta query runtime. Catat consumer yang sudah hilang dan pertahankan tabel
 fisiknya. Jangan membuat migration drop pada Checkpoint 5B.
 
-- [ ] **Step 4: Kunci queue synchronous**
+- [x] **Step 4: Kunci queue synchronous**
 
 Pastikan `.env.example` memuat:
 
@@ -3074,7 +3074,7 @@ CACHE_STORE=database
 `env('QUEUE_CONNECTION', 'sync')`. Jangan menghapus konfigurasi driver karena
 queue dapat kembali setelah adapter production diterima.
 
-- [ ] **Step 5: Verifikasi fresh dan incremental SQLite disposable**
+- [x] **Step 5: Verifikasi fresh dan incremental SQLite disposable**
 
 Gate fresh boleh memakai `migrate:fresh --seed` pada database lokal/development
 yang sudah dipastikan bukan shared/production. Gate otomatis tetap memakai file
@@ -3138,7 +3138,7 @@ incremental atau memaksa PHPUnit yang memakai `:memory:` ke database ini.
 Catat hanya nama file sementara serta hasilnya, tanpa credential.
 
 
-- [ ] **Step 6: Verifikasi MySQL disposable**
+- [x] **Step 6: Verifikasi MySQL disposable**
 
 Gunakan database MySQL test yang kosong, disposable, dan telah diverifikasi
 bukan shared/production. Jalankan `php artisan migrate --force` untuk gate
@@ -3147,7 +3147,7 @@ Jalankan juga `ServiceRecordStatusMigrationTest` dengan fixture incremental
 yang membangun baseline sebelum migration 14 September. Jangan menjalankan
 reset/rollback dan jangan mencetak credential pada output/evidence.
 
-- [ ] **Step 7: Jalankan focused tests**
+- [x] **Step 7: Jalankan focused tests**
 
 ```powershell
 php artisan test tests/Feature/OperationalSchemaTest.php
@@ -3157,7 +3157,7 @@ php vendor/bin/pint --test tests/Feature/OperationalSchemaTest.php
 git diff --check
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add config/queue.php .env.example tests/Feature/OperationalSchemaTest.php

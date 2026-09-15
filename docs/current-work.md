@@ -5,7 +5,7 @@
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
 - Checkpoint aktif: 5B — Task 11–15.
-- Task 11–12 selesai; berikutnya Task 13.
+- Task 11–13 selesai; berikutnya Task 14.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -65,6 +65,10 @@
   reset Admin IT, pemutusan sesi target, dan command pemulihan Admin IT.
   Focused gate lulus 29 test/296 assertion, Pint, checker frontend, audit route,
   scan password, dan diff-check.
+- Task 13 membuktikan invariant skema fresh/incremental pada SQLite dan MySQL.
+  Enam tabel retired tetap ada; consumer runtime kosong, kecuali konfigurasi
+  driver Laravel yang sengaja dipertahankan. Focused gate lulus 12 test/77
+  assertion, Pint, dan diff-check.
 
 ## Arsip
 
@@ -75,8 +79,8 @@
 
 ## Langkah berikutnya
 
-1. Kerjakan Task 13: audit kesehatan skema tanpa drop tabel retired.
-2. Lanjutkan Task 14–15 secara berurutan sesuai plan aktif.
+1. Kerjakan Task 14: integrasi scope aktif pada laporan dan dashboard.
+2. Lanjutkan Task 15 setelah focused gate Task 14 lulus.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 

@@ -14,6 +14,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 16 September 2026 — Checkpoint 5B Task 13
+
+- Invariant sumber kebenaran, unique/foreign key proses keluar, dan larangan
+  state rekap/keluar duplikat dikunci oleh test skema.
+- Enam tabel retired tidak dihapus; consumer runtime kosong selain konfigurasi
+  driver Laravel yang tetap tersedia. Default queue contoh/fallback kini `sync`.
+- Gate SQLite dan MySQL fresh/incremental lulus; database disposable dihapus.
+  Focused gate lulus 12 test/77 assertion, Pint, dan diff-check.
+
 ### 16 September 2026 — Checkpoint 5B Task 12
 
 - Pembuatan/reset akun kini menerbitkan password sementara satu kali tanpa
