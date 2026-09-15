@@ -1729,7 +1729,7 @@ ke `cobasidebar` sebelum Checkpoint 5B dimulai.
 - Consumes: kedua spec pada header plan dan batas API sekolah yang telah dikonfirmasi pengguna.
 - Produces: requirement final untuk seluruh Task 9-15, termasuk lifecycle layanan, proses keluar murid, password sementara, fitur yang dihentikan, dan batas skema anti-spaghetti tanpa target jumlah tabel yang kaku.
 
-- [ ] **Step 1: Tulis failing documentation contract test**
+- [x] **Step 1: Tulis failing documentation contract test**
 
 Tambahkan pemeriksaan pada `tests/Feature/SharedDevelopmentBaselineTest.php`:
 
@@ -1750,7 +1750,7 @@ public function test_active_requirements_publish_the_simplified_operational_cont
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan pastikan gagal**
+- [x] **Step 2: Jalankan test dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/SharedDevelopmentBaselineTest.php --filter=simplified_operational_contract
@@ -1758,7 +1758,7 @@ php artisan test tests/Feature/SharedDevelopmentBaselineTest.php --filter=simpli
 
 Expected: FAIL karena baseline aktif masih memuat workflow koreksi/notifikasi dan belum memuat kontrak baru.
 
-- [ ] **Step 3: Amendemen requirement aktif**
+- [x] **Step 3: Amendemen requirement aktif**
 
 Ubah PRD/SRS v1.1 tanpa mengganti nama versi:
 
@@ -1781,7 +1781,7 @@ Perbarui traceability matrix dan entitas konseptual. Hapus `Koreksi` serta
 `Notifikasi` dari field minimum/entitas aktif. Tambahkan `Student Departure`
 dengan field persis pada spec. Pertahankan dokumen v1.0 byte-for-byte di repository arsip privat terpisah.
 
-- [ ] **Step 4: Dokumentasikan batas API sekolah**
+- [x] **Step 4: Dokumentasikan batas API sekolah**
 
 Tambahkan kontrak eksplisit berikut pada `docs/api-contract.md`:
 
@@ -1798,7 +1798,7 @@ tetapi dicatat sebagai batas kontrak dan tidak boleh diisi dengan asumsi.
 Jangan menyalin URL, credential, nama file API lokal, atau nilai rahasia ke
 repository.
 
-- [ ] **Step 5: Verifikasi dokumen**
+- [x] **Step 5: Verifikasi dokumen**
 
 ```powershell
 php artisan test tests/Feature/SharedDevelopmentBaselineTest.php --filter=simplified_operational_contract
@@ -1809,7 +1809,7 @@ git diff --check
 Expected: test PASS; istilah lama hanya muncul pada riwayat amandemen atau
 penjelasan penghentian, bukan sebagai fitur aktif.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add docs/requirements/PRD_Aplikasi_BK_v1.1.md docs/requirements/SRS_Aplikasi_BK_v1.1.md docs/requirements-index.md docs/api-contract.md docs/superpowers/specs/2026-09-14-penyederhanaan-operasional-akun-dan-skema-data-design.md tests/Feature/SharedDevelopmentBaselineTest.php

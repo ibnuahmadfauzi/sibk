@@ -9,7 +9,7 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 5 dibagi menjadi 5A (Task 8–10) dan 5B (Task 11–15); Checkpoint 5A
-  dikerjakan lebih dahulu.
+  dikerjakan lebih dahulu. Task 8 selesai; Task 9 menjadi pekerjaan berikutnya.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai

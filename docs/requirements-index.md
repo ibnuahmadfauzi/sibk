@@ -7,7 +7,7 @@ Tujuan file ini adalah membantu agent menentukan apakah PRD/SRS perlu dibuka. Ja
 - Product Requirement Document: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
 - Software Requirements Specification: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
 - Status keduanya: baseline Markdown final untuk pengembangan MVP.
-- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026, alur operasional BK disetujui 12 September 2026, Portal Waka berbasis tujuan disetujui 13 September 2026, dan laporan tiga tab Guru BK/Koordinator disetujui 14 September 2026 tanpa mengubah versi atau nama file v1.1.
+- Tanggal baseline: 23 Agustus 2026; amandemen keterlambatan Dapodik disetujui 9 September 2026, alur operasional BK disetujui 12 September 2026, Portal Waka berbasis tujuan disetujui 13 September 2026, laporan tiga tab Guru BK/Koordinator disetujui 14 September 2026, serta penyederhanaan operasional, akun, dan skema disetujui 15 September 2026 tanpa mengubah versi atau nama file v1.1.
 
 ## Arsip Baseline Sebelumnya
 
@@ -73,19 +73,17 @@ Untuk task tersebut gunakan:
 ## Requirement ID penting menurut area
 
 - Access/authorization: `AUTH-*`, `GOV-01`
-- Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik, rollover, dan cakupan murid aktif: `MD-05`–`MD-14`, `NFR-13`
+- Account/master: `ACC-*`, `MD-*`; keterlambatan Dapodik, rollover, dan cakupan murid aktif: `MD-05`–`MD-14`, `NFR-13`; proses keluar murid: `MD-15`–`MD-18`
 - Assignment: `ASN-*`
 - Reference values: `REF-01`
-- Case/follow-up/coordination: `CASE-*`; penanggung jawab, penguncian terminal, kode internal, dan ringkasan aman Waka: `CASE-13`–`CASE-16`
+- Case/follow-up/coordination: `CASE-*`; pemilik edit/arsip, edit terminal beralasan, kode internal, dan ringkasan aman Waka: `CASE-13`–`CASE-16`
 - Integration Dapodik/e-Tatib: `INT-*`, `DEP-01`, `DEP-02`
 - Consultation: `CONS-*`; status dan penguncian terminal: `CONS-03`
 - Student profile/history: `STU-*`
 - Achievement: `ACH-*`
 - Dashboard: `DASH-*`
 - Reports: `REP-01`–`REP-04` untuk tiga tab Pelanggaran & Poin, Layanan BK, dan Prestasi; `DASH-03`, `REP-05` untuk Dashboard, Murid dengan Kasus, Monitoring Penanganan, Rekap Periode, dan placeholder Laporan Akhir Waka.
-- Notification: `NOT-01`
-- Audit: `AUD-01`
-- Correction: `COR-*`
+- Audit append-only tanpa halaman pembaca MVP: `AUD-01`
 - Nonfunctional: `NFR-*`
 
 ## Source of Truth Priority
