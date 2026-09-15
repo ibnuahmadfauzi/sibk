@@ -14,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class UserManagementController extends Controller
 {
@@ -36,20 +37,24 @@ class UserManagementController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request, AccountService $accountService): JsonResponse|RedirectResponse
+    public function store(StoreUserRequest $request, AccountService $accountService): JsonResponse|Response
     {
         /** @var User $actor */
         $actor = $request->user();
-        $user = $accountService->create($request->validated(), $actor);
+        $result = $accountService->create($request->validated(), $actor);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Akun berhasil dibuat.',
-                'data' => $user,
-            ], 201);
+                'data' => $result->user,
+                'temporary_password' => $result->plainTextPassword,
+                'expires_at' => $result->expiresAt->toISOString(),
+            ], 201)->header('Cache-Control', 'no-store, private');
         }
 
-        return redirect()->route('admin.users.index')->with('success', 'Akun berhasil dibuat.');
+        return response()
+            ->view('pages.admin.users.temporary-password', ['result' => $result])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function update(

@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -94,5 +95,87 @@ class AuthenticationTest extends TestCase
         $this->get('/dashboard')->assertRedirect(route('login'));
         $this->get('/cases')->assertRedirect(route('login'));
         $this->get('/admin/users')->assertRedirect(route('login'));
+    }
+
+    public function test_temporary_account_is_forced_to_change_password(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'Sementara123',
+            'must_change_password' => true,
+            'temporary_password_expires_at' => now()->addHour(),
+        ]);
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'Sementara123',
+        ])->assertRedirect(route('account.password.edit'));
+
+        $this->get(route('dashboard.preview'))->assertRedirect(route('account.password.edit'));
+        $this->get(route('account.password.edit'))->assertOk()->assertSee('Ganti Kata Sandi');
+    }
+
+    public function test_expired_temporary_password_is_rejected_after_authentication(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'Kedaluwarsa123',
+            'must_change_password' => true,
+            'temporary_password_expires_at' => now()->subMinute(),
+        ]);
+
+        $this->from(route('login'))->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'Kedaluwarsa123',
+        ])->assertRedirect(route('login'))
+            ->assertSessionHasErrors('credentials');
+
+        $this->assertGuest();
+        $this->assertSame(0, AuditLog::query()->where('action', 'auth.login')->count());
+    }
+
+    public function test_user_changes_temporary_password_and_unlocks_operational_routes(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'Sementara123',
+            'must_change_password' => true,
+            'temporary_password_expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($user)->patch(route('account.password.update'), [
+            'current_password' => 'Sementara123',
+            'password' => 'PasswordBaru123',
+            'password_confirmation' => 'PasswordBaru123',
+        ])->assertRedirect(route('dashboard.preview'));
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('PasswordBaru123', $user->password));
+        $this->assertFalse($user->must_change_password);
+        $this->assertNull($user->temporary_password_expires_at);
+        $this->assertNotNull($user->password_changed_at);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'account.password_changed',
+            'auditable_id' => $user->id,
+        ]);
+        $this->get(route('dashboard.preview'))->assertOk();
+
+        $auditJson = AuditLog::query()->where('auditable_id', $user->id)->get()->toJson();
+        $this->assertStringNotContainsString('Sementara123', $auditJson);
+        $this->assertStringNotContainsString('PasswordBaru123', $auditJson);
+    }
+
+    public function test_new_password_requires_confirmation_letters_and_numbers(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'Sementara123',
+            'must_change_password' => true,
+            'temporary_password_expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($user)->patch(route('account.password.update'), [
+            'current_password' => 'Sementara123',
+            'password' => 'tanpaangka',
+            'password_confirmation' => 'berbeda123',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertTrue($user->refresh()->must_change_password);
     }
 }

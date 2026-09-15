@@ -21,7 +21,6 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => [
                 'required',
@@ -41,9 +40,6 @@ class StoreUserRequest extends FormRequest
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan.',
-            'password.required' => 'Kata sandi wajib diisi.',
-            'password.min' => 'Kata sandi minimal delapan karakter.',
-            'password.confirmed' => 'Konfirmasi kata sandi tidak sesuai.',
             'roles.required' => 'Minimal satu peran wajib dipilih.',
             'roles.*.exists' => 'Peran yang dipilih tidak tersedia.',
             'roles.*.distinct' => 'Peran tidak boleh dipilih lebih dari sekali.',

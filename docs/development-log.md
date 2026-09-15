@@ -14,6 +14,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 16 September 2026 — Checkpoint 5B Task 12
+
+- Pembuatan/reset akun kini menerbitkan password sementara satu kali tanpa
+  menyimpan nilai plaintext pada audit atau model JSON.
+- Akun wajib mengganti password sebelum membuka route operasional; reset
+  memutus sesi target dan command tersembunyi memulihkan Admin IT tunggal.
+- Focused gate lulus 29 test/296 assertion, Pint, checker frontend, audit route,
+  scan password, dan diff-check.
+
 ### 15 September 2026 — Checkpoint 5B Task 11
 
 - Satu proses keluar disimpan per murid dengan status `dalam_proses`, `batal`,

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\ProtectIntegrationLifecycle;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -32,10 +33,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'account.active' => EnsureActiveUser::class,
+            'password.changed' => EnsurePasswordChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([
+            'current_password',
+            'password',
+            'password_confirmation',
             'dapodik.api_key',
             'dapodik.current_password',
             'etatib.api_key',

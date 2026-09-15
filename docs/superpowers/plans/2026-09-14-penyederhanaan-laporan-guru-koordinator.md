@@ -2777,7 +2777,7 @@ git commit -m "feat: catat proses keluar murid secara terkendali"
 - Consumes: database session driver, `AuditService`, `UserPolicy`, dan active account middleware.
 - Produces: `TemporaryPasswordService::issue(User, ?User, ?string): TemporaryPasswordResult`, `AccountService::create(array, User): TemporaryPasswordResult`, middleware alias `password.changed`, route ganti password, reset Admin IT, dan command `sibk:reset-admin-password`.
 
-- [ ] **Step 1: Tulis failing account/password tests**
+- [x] **Step 1: Tulis failing account/password tests**
 
 ```php
 public function test_admin_creates_account_with_one_time_temporary_password(): void
@@ -2820,7 +2820,7 @@ Tambahkan test password expired ditolak setelah authentication, reset memutus
 seluruh session target, Admin tidak dapat reset dirinya dari UI, password tidak
 masuk audit/JSON model, dan password baru menghapus flag/expiry.
 
-- [ ] **Step 2: Tulis failing command recovery test**
+- [x] **Step 2: Tulis failing command recovery test**
 
 ```php
 public function test_single_admin_can_be_recovered_through_hidden_interactive_command(): void
@@ -2843,7 +2843,7 @@ public function test_single_admin_can_be_recovered_through_hidden_interactive_co
 
 Test tidak boleh mencetak password pada command output atau log.
 
-- [ ] **Step 3: Jalankan tests dan pastikan gagal**
+- [x] **Step 3: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/AccountManagementTest.php --filter=temporary
@@ -2851,7 +2851,7 @@ php artisan test tests/Feature/AuthenticationTest.php --filter=change_password
 php artisan test tests/Feature/AdminPasswordRecoveryCommandTest.php
 ```
 
-- [ ] **Step 4: Tambahkan field account lifecycle**
+- [x] **Step 4: Tambahkan field account lifecycle**
 
 Migration:
 
@@ -2868,7 +2868,7 @@ dari hidden attributes. `down()` migration ini kosong dengan komentar
 forward-only; jangan menghapus field lifecycle password atau mengubah kembali
 data akun melalui rollback.
 
-- [ ] **Step 5: Buat service hasil password sementara**
+- [x] **Step 5: Buat service hasil password sementara**
 
 ```php
 final readonly class TemporaryPasswordResult
@@ -2918,7 +2918,7 @@ password yang diberikan kepada pengguna, flag wajib ganti, expiry, pemutusan
 sesi, dan audit penerbitan. Bila salah satu langkah gagal, pembuatan akun ikut
 rollback. `UpdateUserRequest` tidak lagi menerima field password.
 
-- [ ] **Step 6: Buat controller response satu kali**
+- [x] **Step 6: Buat controller response satu kali**
 
 Store/reset browser merender `temporary-password.blade.php` langsung, bukan
 redirect/flash. `UserManagementController::store()` menerima hasil
@@ -2936,7 +2936,7 @@ JSON response memakai struktur `temporary_password` dan `expires_at`, header
 yang sama, serta tidak pernah menyertakan hash. Policy `resetPassword()` hanya
 mengizinkan Admin IT aktif terhadap target lain.
 
-- [ ] **Step 7: Paksa pergantian setelah login**
+- [x] **Step 7: Paksa pergantian setelah login**
 
 Setelah `Auth::attempt()`, bila flag true dan expiry sudah lewat: logout,
 invalidate session, lalu kembalikan error `Kata sandi sementara telah
@@ -2958,7 +2958,7 @@ huruf, dan angka. Service menyimpan password baru, mengosongkan flag/expiry,
 mengisi `password_changed_at`, menghapus session lain kecuali current session,
 meregenerasi session, dan menulis audit tanpa password.
 
-- [ ] **Step 8: Buat command pemulihan Admin IT**
+- [x] **Step 8: Buat command pemulihan Admin IT**
 
 Signature:
 
@@ -2972,14 +2972,14 @@ mengandung huruf dan angka. Panggil `TemporaryPasswordService::issue($admin,
 null, $password)`. Output hanya menyatakan akun berhasil dipulihkan dan wajib
 ganti password; jangan menampilkan nilai password.
 
-- [ ] **Step 9: Perbarui UI akun**
+- [x] **Step 9: Perbarui UI akun**
 
 Hapus input password dari form buat/edit Admin IT. Tambahkan tombol `Reset Kata
 Sandi` per akun selain akun actor. Halaman Akun Saya menyediakan link `Ganti
 Kata Sandi`; halaman wajib ganti menjelaskan bahwa akses lain dibatasi sampai
 password diperbarui.
 
-- [ ] **Step 10: Verifikasi keamanan akun**
+- [x] **Step 10: Verifikasi keamanan akun**
 
 ```powershell
 php artisan test tests/Feature/AccountManagementTest.php
@@ -2997,7 +2997,7 @@ Bila log lokal perlu dibaca saat investigasi, gunakan hanya data test dan catat
 jumlah/hasil teredaksi; jangan men-dump payload atau isi `storage/logs` ke
 terminal maupun evidence.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```powershell
 git add database/migrations/2026_09_14_000200_add_temporary_password_fields_to_users.php app/Data/TemporaryPasswordResult.php app/Services/TemporaryPasswordService.php app/Http/Requests/Admin/ResetUserPasswordRequest.php app/Http/Requests/Auth/ChangePasswordRequest.php app/Http/Controllers/Admin/UserPasswordResetController.php app/Http/Controllers/AccountPasswordController.php app/Http/Middleware/EnsurePasswordChanged.php app/Console/Commands/ResetAdminPassword.php app/Http/Requests/Admin/StoreUserRequest.php app/Http/Requests/Admin/UpdateUserRequest.php app/Http/Controllers/Admin/UserManagementController.php app/Http/Controllers/AuthController.php app/Services/AccountService.php app/Models/User.php app/Policies/UserPolicy.php bootstrap/app.php routes/web.php config/sibk.php .env.example resources/views/pages/admin/users/index.blade.php resources/views/pages/admin/users/temporary-password.blade.php resources/views/pages/account/change-password.blade.php resources/views/pages/account/index.blade.php tests/Feature/AccountManagementTest.php tests/Feature/AuthenticationTest.php tests/Feature/AdminPasswordRecoveryCommandTest.php

@@ -15,7 +15,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-#[Fillable(['name', 'email', 'email_verified_at', 'password', 'is_active', 'deactivated_at', 'updated_by'])]
+#[Fillable([
+    'name', 'email', 'email_verified_at', 'password', 'is_active', 'deactivated_at',
+    'updated_by', 'must_change_password', 'temporary_password_expires_at', 'password_changed_at',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -119,6 +122,9 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'deactivated_at' => 'datetime',
+            'must_change_password' => 'boolean',
+            'temporary_password_expires_at' => 'datetime',
+            'password_changed_at' => 'datetime',
         ];
     }
 }

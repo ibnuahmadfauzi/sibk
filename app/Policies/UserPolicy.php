@@ -27,4 +27,11 @@ class UserPolicy
     {
         return $actor->hasRole('admin_it');
     }
+
+    public function resetPassword(User $actor, User $target): bool
+    {
+        return $actor->is_active
+            && $actor->hasRole('admin_it')
+            && ! $actor->is($target);
+    }
 }

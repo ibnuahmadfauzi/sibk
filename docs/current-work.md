@@ -5,7 +5,7 @@
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
 - Checkpoint aktif: 5B — Task 11–15.
-- Task 11 selesai; berikutnya Task 12.
+- Task 11–12 selesai; berikutnya Task 13.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -61,6 +61,10 @@
 - Task 11 menambahkan satu proses keluar per murid, keputusan final Koordinator,
   scope layanan berdasarkan tanggal efektif, serta daftar read-only Waka.
   Focused gate lulus 102 test/735 assertion, Pint, checker frontend, dan diff-check.
+- Task 12 menerapkan password sementara satu kali, wajib ganti setelah login,
+  reset Admin IT, pemutusan sesi target, dan command pemulihan Admin IT.
+  Focused gate lulus 29 test/296 assertion, Pint, checker frontend, audit route,
+  scan password, dan diff-check.
 
 ## Arsip
 
@@ -71,8 +75,8 @@
 
 ## Langkah berikutnya
 
-1. Kerjakan Task 12: password sementara dan pemulihan Admin IT.
-2. Lanjutkan Task 13–15 secara berurutan sesuai plan aktif.
+1. Kerjakan Task 13: audit kesehatan skema tanpa drop tabel retired.
+2. Lanjutkan Task 14–15 secara berurutan sesuai plan aktif.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 

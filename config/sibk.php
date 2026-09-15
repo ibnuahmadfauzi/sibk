@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 return [
+    'temporary_password_ttl_hours' => (int) env('SIBK_TEMPORARY_PASSWORD_TTL_HOURS', 24),
+
     'seed_accounts' => [
         'password' => env('SIBK_SEED_ACCOUNT_PASSWORD'),
     ],
