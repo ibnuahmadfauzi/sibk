@@ -21,6 +21,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegacyPreviewController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentDepartureController;
 use App\Models\IntegrationSetting;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
 
     Route::get('/students', [StudentController::class, 'index'])->name('students.index');
     Route::get('/students/show', [StudentController::class, 'legacy'])->name('students.legacy');
+    Route::post('/students/{student}/departure', [StudentDepartureController::class, 'store'])->name('students.departure.store');
+    Route::patch('/students/{student}/departure', [StudentDepartureController::class, 'update'])->name('students.departure.update');
+    Route::post('/students/{student}/departure/finalize', [StudentDepartureController::class, 'finalize'])->name('students.departure.finalize');
     Route::get('/students/{student}', [StudentController::class, 'show'])->name('students.show');
 
     Route::get('/consultations', [ConsultationController::class, 'index'])->name('consultations.index');

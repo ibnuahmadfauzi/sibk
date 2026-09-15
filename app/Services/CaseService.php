@@ -34,7 +34,7 @@ class CaseService
 
             if (($data['student_id'] ?? null) !== null) {
                 $student = Student::query()
-                    ->active()
+                    ->availableForService()
                     ->forActiveTeacherAssignment($actor, now())
                     ->find((int) $data['student_id']);
 

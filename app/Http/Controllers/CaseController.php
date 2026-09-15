@@ -93,7 +93,7 @@ class CaseController extends Controller
         abort_unless($user->can('create', BkCase::class), 403);
 
         $accessibleStudents = Student::query()
-            ->active()
+            ->availableForService()
             ->forActiveTeacherAssignment($user, now());
         $temporaryNisnCandidate = $request->string('temporary_nisn')->trim()->toString();
         $temporaryNisnFilter = preg_match('/^[0-9]{1,20}$/D', $temporaryNisnCandidate) === 1

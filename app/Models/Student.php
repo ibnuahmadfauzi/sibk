@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['dapodik_id', 'nisn', 'name', 'is_active', 'synced_at', 'master_source', 'source_confirmed_at'])]
 class Student extends Model
@@ -55,10 +57,26 @@ class Student extends Model
         return $this->hasMany(ExternalTatibRecord::class);
     }
 
+    /** @return HasOne<StudentDeparture, $this> */
+    public function departure(): HasOne
+    {
+        return $this->hasOne(StudentDeparture::class);
+    }
+
     /** @param Builder<Student> $query */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /** @param Builder<Student> $query */
+    public function scopeAvailableForService(Builder $query, CarbonInterface|string|null $date = null): Builder
+    {
+        $on = CarbonImmutable::parse($date ?? now())->toDateString();
+
+        return $query->active()->whereDoesntHave('departure', fn (Builder $departure): Builder => $departure
+            ->where('status', StudentDeparture::STATUS_OFFICIAL)
+            ->whereDate('effective_date', '<=', $on));
     }
 
     /** @param Builder<Student> $query */

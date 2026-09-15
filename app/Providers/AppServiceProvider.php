@@ -13,6 +13,7 @@ use App\Models\Achievement;
 use App\Models\BkCase;
 use App\Models\Consultation;
 use App\Models\Student;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Policies\AchievementPolicy;
@@ -20,6 +21,7 @@ use App\Policies\CasePolicy;
 use App\Policies\ConsultationPolicy;
 use App\Policies\ReportPolicy;
 use App\Policies\StudentPolicy;
+use App\Policies\StudentDeparturePolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WakaMonitoringPolicy;
@@ -64,6 +66,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(BkCase::class, CasePolicy::class);
         Gate::policy(Consultation::class, ConsultationPolicy::class);
         Gate::policy(Student::class, StudentPolicy::class);
+        Gate::policy(StudentDeparture::class, StudentDeparturePolicy::class);
 
         Gate::define('viewReports', fn (User $user): bool => app(ReportPolicy::class)->viewAny($user));
         Gate::define('manageDataMaster', fn (User $user): bool => $user->is_active && $user->hasRole('admin_it'));

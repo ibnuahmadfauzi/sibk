@@ -19,7 +19,7 @@ class AchievementService
     public function create(array $data, User $actor): Achievement
     {
         return DB::transaction(function () use ($data, $actor): Achievement {
-            $student = Student::query()->active()->lockForUpdate()->findOrFail((int) $data['student_id']);
+            $student = Student::query()->availableForService()->lockForUpdate()->findOrFail((int) $data['student_id']);
             $this->ensureStudentScope($student, $actor);
             $this->validateReferences($data);
             $achievement = Achievement::query()->create([
@@ -92,7 +92,7 @@ class AchievementService
 
     private function ensureStudentScope(Student $student, User $actor): void
     {
-        if (! Student::query()->active()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
+        if (! Student::query()->availableForService()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
             throw ValidationException::withMessages(['student_id' => 'Murid tidak berada dalam kewenangan profesional Anda.']);
         }
     }

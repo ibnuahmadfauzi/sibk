@@ -14,6 +14,16 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 15 September 2026 — Checkpoint 5B Task 11
+
+- Satu proses keluar disimpan per murid dengan status `dalam_proses`, `batal`,
+  atau `resmi_keluar`; pembukaan ulang memakai row dan tanggal awal yang sama.
+- Hanya Guru BK terscope yang mencatat/mengubah dan hanya Koordinator yang
+  memutuskan; Waka memperoleh daftar operasional read-only yang diaudit.
+- `resmi_keluar` yang sudah efektif menghentikan layanan baru tanpa menghapus
+  histori. Dapodik dan data persiapan tidak mengubah proses keluar.
+- Focused gate lulus 102 test/735 assertion, Pint, checker frontend, dan diff-check.
+
 ### 15 September 2026 — Checkpoint 5A: penyederhanaan operasional
 
 - Kontrak operasional diselaraskan, status layanan dipangkas menjadi empat,

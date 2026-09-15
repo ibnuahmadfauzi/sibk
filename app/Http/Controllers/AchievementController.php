@@ -127,7 +127,7 @@ class AchievementController extends Controller
         return view('pages.achievements.create', [
             'achievement' => $achievement,
             'isEdit' => $achievement !== null,
-            'students' => Student::query()->active()->professionallyAccessibleTo($user)
+            'students' => Student::query()->availableForService()->professionallyAccessibleTo($user)
                 ->with(['classMemberships' => fn ($memberships) => $memberships
                     ->active()
                     ->effectiveOn(now()->toDateString())

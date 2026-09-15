@@ -190,7 +190,7 @@ class ConsultationService
     {
         if (($data['student_id'] ?? null) !== null) {
             $student = Student::query()->findOrFail($data['student_id']);
-            if (! Student::query()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
+            if (! Student::query()->availableForService()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
                 throw ValidationException::withMessages(['student_id' => 'Murid tidak berada dalam kewenangan profesional Anda.']);
             }
 

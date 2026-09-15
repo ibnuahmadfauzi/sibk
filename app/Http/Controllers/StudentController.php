@@ -10,6 +10,7 @@ use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\Student;
+use App\Models\StudentDeparture;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,7 @@ class StudentController extends Controller
         abort_unless($user->can('viewAny', Student::class), 403);
 
         $query = Student::query()
-            ->active()
+            ->availableForService()
             ->accessibleTo($user)
             ->with([
                 'classMemberships' => fn ($memberships) => $memberships
@@ -63,7 +64,7 @@ class StudentController extends Controller
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('view', $student), 403);
-        $student->load(['classMemberships.classroom.academicYear']);
+        $student->load(['classMemberships.classroom.academicYear', 'departure.recorder', 'departure.finalizer']);
         $currentMembership = $student->classMemberships()
             ->activeOn(now()->toDateString())
             ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
@@ -114,7 +115,9 @@ class StudentController extends Controller
             ->latest('achievement_date')
             ->get();
 
-        $canUseProfessionalActions = $user->can('viewSensitive', $student);
+        $canUseProfessionalActions = $user->can('viewSensitive', $student)
+            && Student::query()->availableForService()->whereKey($student->getKey())->exists();
+        $departure = $student->departure;
 
         return view('pages.students.show', [
             'student' => $student,
@@ -138,6 +141,13 @@ class StudentController extends Controller
             'canCreateConsultation' => $canUseProfessionalActions && $user->can('create', Consultation::class),
             'canCreateCase' => $canUseProfessionalActions && $user->can('create', BkCase::class),
             'canCreateAchievement' => $canUseProfessionalActions && $user->can('create', Achievement::class),
+            'departure' => $departure,
+            'canCreateDeparture' => ($departure === null || $departure->status === StudentDeparture::STATUS_CANCELLED)
+                && $user->can('create', [StudentDeparture::class, $student]),
+            'canUpdateDeparture' => $departure !== null && $user->can('update', $departure),
+            'canFinalizeDeparture' => $departure !== null
+                && $departure->status === StudentDeparture::STATUS_IN_PROGRESS
+                && $user->can('finalize', $departure),
             'isWakaSummary' => $user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']),
         ]);
     }

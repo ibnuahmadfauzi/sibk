@@ -2385,7 +2385,7 @@ Checkpoint 5B dimulai dari hasil Checkpoint 5A yang sudah terintegrasi.
 - Consumes: `Student::professionallyAccessibleTo()`, role `guru_bk`/`koordinator_bk`, dan `AuditService`.
 - Produces: `StudentDeparture`, `StudentDepartureService::record()`, `updateDraft()`, `finalize()`, scope `Student::availableForService()`, serta daftar/detail proses keluar read-only untuk Waka Kesiswaan.
 
-- [ ] **Step 1: Tulis failing migration/model tests**
+- [x] **Step 1: Tulis failing migration/model tests**
 
 ```php
 public function test_one_student_has_only_one_departure_process(): void
@@ -2412,7 +2412,7 @@ public function test_one_student_has_only_one_departure_process(): void
 }
 ```
 
-- [ ] **Step 2: Tulis failing authorization dan transition tests**
+- [x] **Step 2: Tulis failing authorization dan transition tests**
 
 ```php
 public function test_teacher_records_process_without_deactivating_student(): void
@@ -2520,7 +2520,7 @@ private function userWithRole(string $slug): User
 }
 ```
 
-- [ ] **Step 3: Jalankan tests dan pastikan gagal**
+- [x] **Step 3: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/StudentDepartureTest.php
@@ -2528,7 +2528,7 @@ php artisan test tests/Feature/StudentDepartureTest.php
 
 Expected: FAIL karena migration, model, service, policy, dan route belum ada.
 
-- [ ] **Step 4: Buat migration satu sumber kebenaran**
+- [x] **Step 4: Buat migration satu sumber kebenaran**
 
 Gunakan schema berikut:
 
@@ -2555,7 +2555,7 @@ delete pada process record. `down()` migration ini kosong dengan komentar
 forward-only; jangan menghapus `student_departures` atau memulihkan state
 sebelumnya melalui rollback.
 
-- [ ] **Step 5: Buat model dan state contract**
+- [x] **Step 5: Buat model dan state contract**
 
 ```php
 #[Fillable([
@@ -2616,7 +2616,7 @@ public function scopeAvailableForService(Builder $query, CarbonInterface|string|
 Gunakan scope ini pada daftar murid aktif dan seluruh form pencatatan layanan
 baru. Query histori/detail tidak memakai scope ini agar data lama tidak hilang.
 
-- [ ] **Step 6: Implementasikan policy dan request**
+- [x] **Step 6: Implementasikan policy dan request**
 
 Policy:
 
@@ -2651,7 +2651,7 @@ memakai:
 'decision_note' => ['nullable', 'string', 'max:500'],
 ```
 
-- [ ] **Step 7: Implementasikan service atomik**
+- [x] **Step 7: Implementasikan service atomik**
 
 ```php
 public function record(Student $student, array $data, User $actor): StudentDeparture;
@@ -2671,7 +2671,7 @@ set `effective_date = null`; untuk `resmi_keluar`, wajibkan tanggal efektif.
 Audit action: `student_departure.recorded`, `.updated`, `.cancelled`, atau
 `.officialized`.
 
-- [ ] **Step 8: Hubungkan controller, routes, dan UI minimal**
+- [x] **Step 8: Hubungkan controller, routes, dan UI minimal**
 
 Routes:
 
@@ -2695,7 +2695,7 @@ efektif, ringkasan rekomendasi, catatan keputusan, pencatat, dan pemutus. Waka
 tidak memperoleh aksi mutasi dan tidak otomatis memperoleh narasi privat kasus
 atau konsultasi yang bukan bagian dari proses keluar.
 
-- [ ] **Step 9: Pastikan API sekolah tidak mengubah departure**
+- [x] **Step 9: Pastikan API sekolah tidak mengubah departure**
 
 Tambahkan test pada kedua jalur Dapodik:
 
@@ -2721,7 +2721,7 @@ $this->assertSame($before, $departure->refresh()->only(array_keys($before)));
 
 Contract ini berlaku untuk data provisional, preview, apply, dan sync ulang.
 
-- [ ] **Step 10: Verifikasi**
+- [x] **Step 10: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/StudentDepartureTest.php
@@ -2733,7 +2733,7 @@ php vendor/bin/pint --test database/migrations/2026_09_14_000100_create_student_
 git diff --check
 ```
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```powershell
 git add database/migrations/2026_09_14_000100_create_student_departures_table.php app/Models/StudentDeparture.php app/Policies/StudentDeparturePolicy.php app/Http/Requests/StoreStudentDepartureRequest.php app/Http/Requests/UpdateStudentDepartureRequest.php app/Http/Requests/FinalizeStudentDepartureRequest.php app/Services/StudentDepartureService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/StudentDepartureController.php app/Http/Controllers/WakaStudentDepartureController.php app/Models/Student.php app/Policies/StudentPolicy.php app/Providers/AppServiceProvider.php app/Http/Controllers/StudentController.php routes/web.php resources/views/pages/students/_departure-process.blade.php resources/views/pages/students/show.blade.php resources/views/pages/waka/student-departures/index.blade.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaStudentDepartureTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php
