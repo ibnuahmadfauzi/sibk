@@ -4,7 +4,7 @@
 
 **Goal:** Menyederhanakan laporan Guru BK/Koordinator, lifecycle layanan, proses keluar murid, pengelolaan akun, dashboard, dan hasil akhir skema database tanpa menambah framework tabel atau sumber data ganda.
 
-**Architecture:** Fase A menjadikan `/reports` halaman server-rendered bertab yang memakai request/service rekap khusus. Fase B mempertahankan tabel domain sebagai sumber kebenaran, mengganti koreksi terminal dengan edit beralasan yang diaudit, memakai soft delete untuk arsip, menyimpan proses keluar murid pada satu tabel berstatus, serta memisahkan lifecycle password sementara dari pengelolaan profil akun. Policy, Form Request, service fokus, transaksi, dan constraint database tetap menjadi batas antarlapisan.
+**Architecture:** Fase A menjadikan `/reports` halaman server-rendered bertab yang memakai request/service rekap khusus. Fase B dibagi menjadi Checkpoint 5A (Task 8–10) dan Checkpoint 5B (Task 11–15); fase ini mempertahankan tabel domain sebagai sumber kebenaran, mengganti koreksi terminal dengan edit beralasan yang diaudit, memakai soft delete untuk arsip, menyimpan proses keluar murid pada satu tabel berstatus, serta memisahkan lifecycle password sementara dari pengelolaan profil akun. Policy, Form Request, service fokus, transaksi, dan constraint database tetap menjadi batas antarlapisan.
 
 **Tech Stack:** PHP 8.3, Laravel 13.25, Eloquent, Form Request, Blade, Bootstrap 5.3.8, SCSS existing, JavaScript ringan existing, Laravel Pagination, PHPUnit 12.5.
 
@@ -30,6 +30,7 @@
 - Semua PHP baru memakai `declare(strict_types=1);`.
 - Gunakan Bahasa Indonesia dan istilah `murid`.
 - Task 1-7 tidak membuat migration. Task 8 dan seterusnya hanya membuat migration lanjutan yang disebutkan pada plan; file migration lama tidak dihapus atau ditulis ulang. Migration baru bersifat forward-only: `down()` tidak memulihkan data, reference, atau tabel retired.
+- Checkpoint 5A hanya mencakup Task 8–10. Checkpoint 5B hanya mencakup Task 11–15 dan dimulai setelah Checkpoint 5A terintegrasi ke `cobasidebar`.
 - `migrate:fresh --seed` boleh dipakai pada database lokal/pengembangan selama target sudah dipastikan bukan shared/production. Reset, rollback destruktif, atau purge tetap dilarang pada database shared/production.
 - Angka 30 tabel hanya sasaran penyederhanaan, bukan acceptance criterion. Pertahankan `sessions`, `cache`, `cache_locks`, `audit_logs`, dan tabel lain yang belum aman dihapus; ukuran keberhasilan adalah satu sumber kebenaran, consumer jelas, dan tidak ada skema spaghetti.
 - Queue MVP memakai `QUEUE_CONNECTION=sync`; jangan membuat adapter production Dapodik/e-Tatib pada plan ini.
@@ -68,7 +69,7 @@ task telah selesai.
 | 10 | Menghapus fitur retired berikut bookmark `_preview` terkait, sambil mempertahankan audit backend dan preview legacy lain. |
 | 11 | Menyediakan satu proses keluar murid serta scope layanan aktif untuk Task 14. |
 | 12 | Menambahkan password sementara tanpa mengirim nilai password ke audit atau log. |
-| 13 | Mengaudit kesehatan skema setelah Task 10. Tidak menghapus tabel fisik pada checkpoint ini; kandidat retired dipertahankan bila penghapusan belum mempunyai bukti aman, backup, dan jalur pemulihan. |
+| 13 | Mengaudit kesehatan skema setelah Task 10. Tidak menghapus tabel fisik pada Checkpoint 5B; kandidat retired dipertahankan bila penghapusan belum mempunyai bukti aman, backup, dan jalur pemulihan. |
 | 14 | Menyatukan scope Task 9 dan 11 ke laporan, dashboard, serta Portal Waka tanpa mengubah route Waka. |
 | 15 | Menggabungkan gate Task 1-14; tidak dapat menutup plan sebelum hasil UAT manual PASS. |
 
@@ -1710,7 +1711,10 @@ git commit -m "docs: catat verifikasi laporan Guru BK"
 
 ---
 
-## Fase B - Penyederhanaan Operasional, Akun, dan Skema Data
+## Checkpoint 5A — Penyederhanaan Operasional (Task 8–10)
+
+Checkpoint 5A berhenti setelah Task 10 dan harus direview serta diintegrasikan
+ke `cobasidebar` sebelum Checkpoint 5B dimulai.
 
 ### Task 8: Selaraskan Requirement, Kontrak API, dan Batas Skema
 
@@ -2346,6 +2350,10 @@ git commit -m "refactor: hentikan fitur koreksi dan notifikasi"
 ```
 
 ---
+
+## Checkpoint 5B — Proses Keluar Murid, Akun, dan Finalisasi Skema (Task 11–15)
+
+Checkpoint 5B dimulai dari hasil Checkpoint 5A yang sudah terintegrasi.
 
 ### Task 11: Implementasikan Proses Keluar Murid Satu Baris per Murid
 
@@ -3011,7 +3019,7 @@ git commit -m "feat: wajibkan pergantian password sementara"
   serta keputusan pertahankan/hapus yang aman; jumlah tabel bukan gate.
 
 > Amendemen keputusan produk: jangan membuat migration penghapusan tabel
-> kandidat retired pada checkpoint ini. Task ini hanya melakukan audit
+> kandidat retired pada Checkpoint 5B. Task ini hanya melakukan audit
 > kesehatan skema. Tabel hanya boleh dihapus melalui
 > plan terpisah setelah tidak ada consumer, backup tersedia, pemulihan diuji,
 > dan pengguna memberi persetujuan eksplisit.
@@ -3050,7 +3058,7 @@ belum terpenuhi, bukan jumlah tabel yang berbeda dari 30.
 Audit `corrections`, `user_notifications`, `password_reset_tokens`, `jobs`,
 `job_batches`, dan `failed_jobs` dengan `rg`, route list, model relation, config,
 serta query runtime. Catat consumer yang sudah hilang dan pertahankan tabel
-fisiknya. Jangan membuat migration drop pada checkpoint ini.
+fisiknya. Jangan membuat migration drop pada Checkpoint 5B.
 
 - [ ] **Step 4: Kunci queue synchronous**
 
@@ -3488,10 +3496,13 @@ Task 1 Requirement contract
     -> Task 5 Achievement recap
     -> Task 6 HTTP, export, and UI integration
     -> Task 7 CLI report verification and manual UAT handoff
-    -> Task 8 Operational requirement and API boundaries
+    -> [Checkpoint 5A]
+       Task 8 Operational requirement and API boundaries
     -> Task 9 Terminal edit, archive, and status simplification
     -> Task 10 Retire correction, notification, history, and audit feed UI
-    -> Task 11 Student departure process
+    -> merge Checkpoint 5A ke cobasidebar
+    -> [Checkpoint 5B]
+       Task 11 Student departure process
     -> Task 12 Temporary passwords and admin recovery
     -> Task 13 Schema health and retired-table audit
     -> Task 14 Cross-surface scope integration
@@ -3504,6 +3515,11 @@ Task 9-14 juga harus berurutan. Task 13 hanya mengaudit tabel kandidat retired
 dan tidak melakukan drop fisik. Task 14 baru boleh mengubah seluruh
 query baca setelah lifecycle dan schema feature pada Task 9, 11, 12, dan 13
 lulus focused gate.
+
+Gate Checkpoint 5A mencakup penyelesaian Task 8–10, gate CLI yang terdampak,
+pembaruan handoff, review, dan integrasi ke `cobasidebar`. Checkpoint 5A tidak
+menunggu Task 11–15. Gate Checkpoint 5B mencakup Task 11–15, seluruh gate CLI,
+dan UAT manual yang ditetapkan Task 15.
 
 ## Definition of Done
 

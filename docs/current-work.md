@@ -3,10 +3,13 @@
 ## Status
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
-- Checkpoint berikutnya: 5 — Penyederhanaan operasional, akun, dan skema mulai Task 8.
-- Branch Checkpoint 5 belum dibuat; mulai nanti dari `cobasidebar` saat pekerjaan dilanjutkan.
-- Worktree: root repository.
-- Baseline `cobasidebar`: `7f604416` (merge PR #12).
+- Checkpoint berikutnya: 5A — Penyederhanaan operasional, Task 8–10.
+- Checkpoint 5B memuat Task 11–15 dan baru dimulai setelah Checkpoint 5A
+  terintegrasi ke `cobasidebar`.
+- Branch implementasi Checkpoint 5A belum dibuat.
+- Worktree setelah PR pembagian checkpoint terintegrasi: root repository.
+- Baseline Checkpoint 5A: `cobasidebar` setelah PR pembagian checkpoint
+  terintegrasi.
 
 ## Hasil dan gate terakhir
 
@@ -38,8 +41,8 @@
   versi browser tidak dilaporkan dan tidak ada temuan gagal.
 - PR #12 terverifikasi `MERGED`; branch `checkpoint-4-laporan` sudah dihapus
   lokal/remote dan `cobasidebar` lokal sama dengan origin.
-- Keputusan Checkpoint 5: angka 30 tabel hanya sasaran, bukan gate. Tabel
-  kandidat retired tidak dihapus secara fisik pada checkpoint ini.
+- Keputusan Checkpoint 5A/5B: angka 30 tabel hanya sasaran, bukan gate. Tabel
+  kandidat retired tidak dihapus secara fisik pada kedua checkpoint ini.
 - Waka Kesiswaan berwenang membaca daftar/detail operasional proses keluar
   murid, termasuk identitas, kelas, status, tanggal, ringkasan, dan petugas;
   tidak mempunyai aksi mutasi.
@@ -55,12 +58,14 @@
 
 ## Langkah berikutnya
 
-1. Pada sesi berikutnya, buat branch Checkpoint 5 dari `cobasidebar`, lalu mulai
+1. Setelah perubahan perencanaan ini terintegrasi, buat branch Checkpoint 5A
+   dari `cobasidebar`, lalu mulai
    Task 8: selaraskan requirement, kontrak API, dan batas skema memakai keputusan
    terbaru di plan/spec aktif.
-2. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5.
-3. Task 11 wajib menyediakan daftar/detail proses keluar read-only untuk Waka.
-4. Adapter production tetap menunggu kontrak resmi dan admission gate.
+2. Selesaikan dan integrasikan Task 8–10 sebelum membuat branch Checkpoint 5B.
+3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5A/5B.
+4. Task 11 wajib menyediakan daftar/detail proses keluar read-only untuk Waka.
+5. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 
