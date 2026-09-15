@@ -73,9 +73,12 @@
   menolak preselection murid di luar scope, dan membuktikan arsip tidak muncul
   pada dashboard, monitoring, laporan, atau daftar aktif. Focused gate lulus
   71 test/565 assertion, Pint, checker frontend, scan query, dan diff-check.
-- Task 15 focused gate lulus 100 test/876 assertion; gate penuh lulus 444
-  test/3.463 assertion, Pint, Composer/NPM audit, cache, checker frontend,
+- Task 15 focused gate pasca-review lulus 126 test/975 assertion dan tiga test
+  MySQL/7 assertion; gate penuh lulus 448 test/3.481 assertion, Pint,
+  Composer/NPM audit, cache, checker frontend,
   build, scan keamanan, SQLite/MySQL disposable, dan diff-check.
+- Review kode tidak menemukan isu kritis; tiga temuan penting pada perbedaan
+  password, snapshot audit, dan batas tanggal keluar sudah diperbaiki.
 
 ## Arsip
 

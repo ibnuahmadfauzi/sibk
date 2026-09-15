@@ -2,7 +2,7 @@
 
 Status: **PENDING MANUAL**
 Branch: `checkpoint-5b-operasional`
-SHA aplikasi yang diuji CLI: `90f83d6`
+SHA aplikasi yang diuji CLI: `1c47428`
 Tanggal gate CLI: 16 September 2026
 
 UAT wajib dilakukan manusia melalui browser biasa. Jangan memakai browser
@@ -26,7 +26,7 @@ automation, headless browser, CUA, atau perbandingan screenshot otomatis.
 | Nama/inisial tester | PENDING |
 | Tanggal UAT | PENDING |
 | Browser dan versi | PENDING |
-| Branch/SHA | `checkpoint-5b-operasional` / `90f83d6` |
+| Branch/SHA | `checkpoint-5b-operasional` / `1c47428` |
 | Database engine | PENDING |
 | Jumlah tabel | 36 pada fresh SQLite dan MySQL disposable |
 
@@ -58,8 +58,8 @@ Isi setiap sel dengan `PASS` atau `FAIL: <catatan singkat>`.
 
 | Gate | Hasil |
 |---|---|
-| Focused feature gate | PASS — 100 test, 876 assertion |
-| Full test | PASS — 444 test, 3.463 assertion |
+| Focused feature gate pasca-review | PASS — 126 test, 975 assertion; MySQL 3 test, 7 assertion |
+| Full test | PASS — 448 test, 3.481 assertion |
 | Pint | PASS |
 | Composer strict dan audit | PASS — tidak ada advisory |
 | NPM audit | PASS — 0 vulnerability tingkat tinggi |
@@ -72,6 +72,7 @@ Isi setiap sel dengan `PASS` atau `FAIL: <catatan singkat>`.
 | Scan fitur retired | PASS — kecocokan hanya assertion negatif pada test/checker |
 | Scan field sensitif laporan/Waka | PASS — tidak ada kecocokan |
 | Scan credential | PASS — hanya istilah/kebijakan generik dan fixture sintetis; tidak ada nilai nyata |
+| Tindak lanjut review | PASS — password wajib berbeda, snapshot audit lengkap, dan batas tanggal keluar konsisten |
 
 ## Hasil akhir
 
