@@ -42,7 +42,8 @@ class DashboardService
     private function operational(User $user, ?AcademicYear $year, string $mode): array
     {
         [$start, $end] = $this->period($year);
-        $cases = BkCase::query()->with(['student.classMemberships.classroom', 'temporaryStudent', 'status']);
+        $cases = BkCase::query()->withinStudentServicePeriod()
+            ->with(['student.classMemberships.classroom', 'temporaryStudent', 'status']);
         if ($mode === 'coordinator') {
             $students = Student::query()->availableForService($end)
                 ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
@@ -180,6 +181,7 @@ class DashboardService
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('academic_year_id', $selected->getKey()));
         $cases = BkCase::query()
+            ->withinStudentServicePeriod()
             ->whereNull('closed_at')
             ->whereHas('assignments', fn (Builder $query): Builder => $query
                 ->where('user_id', $user->getKey())

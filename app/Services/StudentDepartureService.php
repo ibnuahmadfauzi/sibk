@@ -65,6 +65,7 @@ final class StudentDepartureService
     public function updateDraft(StudentDeparture $departure, array $data, User $actor): StudentDeparture
     {
         return DB::transaction(function () use ($departure, $data, $actor): StudentDeparture {
+            Student::query()->lockForUpdate()->findOrFail($departure->student_id);
             $departure = StudentDeparture::query()->lockForUpdate()->findOrFail($departure->getKey());
             $this->ensureInProgress($departure);
             $before = $this->snapshot($departure);
@@ -89,6 +90,7 @@ final class StudentDepartureService
     public function finalize(StudentDeparture $departure, array $data, User $actor): StudentDeparture
     {
         return DB::transaction(function () use ($departure, $data, $actor): StudentDeparture {
+            Student::query()->lockForUpdate()->findOrFail($departure->student_id);
             $departure = StudentDeparture::query()->lockForUpdate()->findOrFail($departure->getKey());
             $this->ensureInProgress($departure);
             $decision = (string) $data['decision'];
@@ -136,7 +138,8 @@ final class StudentDepartureService
     {
         return $departure->only([
             'departure_type', 'status', 'reported_at', 'effective_date',
-            'recorded_by', 'finalized_by', 'finalized_at',
+            'recommendation_summary', 'recorded_by', 'finalized_by',
+            'finalized_at', 'decision_note',
         ]);
     }
 }

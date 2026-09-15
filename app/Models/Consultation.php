@@ -59,8 +59,18 @@ class Consultation extends Model
     }
 
     /** @param Builder<Consultation> $query */
+    public function scopeWithinStudentServicePeriod(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
+            ->where('status', StudentDeparture::STATUS_OFFICIAL)
+            ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'));
+    }
+
+    /** @param Builder<Consultation> $query */
     public function scopeAccessibleTo(Builder $query, User $user): Builder
     {
+        $query->withinStudentServicePeriod();
+
         if ($user->hasRole('koordinator_bk')) {
             return $query;
         }

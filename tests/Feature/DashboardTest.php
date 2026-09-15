@@ -148,7 +148,7 @@ class DashboardTest extends TestCase
             'departure_type' => StudentDeparture::TYPE_TRANSFER,
             'status' => StudentDeparture::STATUS_OFFICIAL,
             'reported_at' => '2026-08-19',
-            'effective_date' => '2026-08-20',
+            'effective_date' => '2026-08-21',
             'recorded_by' => $teacher->id,
             'finalized_by' => $coordinator->id,
             'finalized_at' => now(),

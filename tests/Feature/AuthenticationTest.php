@@ -178,4 +178,23 @@ class AuthenticationTest extends TestCase
 
         $this->assertTrue($user->refresh()->must_change_password);
     }
+
+    public function test_new_password_must_differ_from_temporary_password(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'Sementara123',
+            'must_change_password' => true,
+            'temporary_password_expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($user)->patch(route('account.password.update'), [
+            'current_password' => 'Sementara123',
+            'password' => 'Sementara123',
+            'password_confirmation' => 'Sementara123',
+        ])->assertSessionHasErrors('password');
+
+        $user->refresh();
+        $this->assertTrue($user->must_change_password);
+        $this->assertTrue(Hash::check('Sementara123', $user->password));
+    }
 }

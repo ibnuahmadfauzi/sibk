@@ -17,7 +17,7 @@ final class WakaPeriodReportService
     /** @return array<string, mixed> */
     public function build(AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
     {
-        $cases = BkCase::query()->whereBetween('service_date', [
+        $cases = BkCase::query()->withinStudentServicePeriod()->whereBetween('service_date', [
             $start->toDateString(),
             $end->toDateString(),
         ]);
@@ -92,6 +92,7 @@ final class WakaPeriodReportService
             $end->endOfDay(),
         ]);
         $achievements = Achievement::query()
+            ->withinStudentServicePeriod()
             ->whereBetween('achievement_date', [$start->toDateString(), $end->toDateString()])
             ->whereHas('verificationStatus', static fn (Builder $status): Builder => $status
                 ->where('code', 'terverifikasi'));
@@ -109,6 +110,7 @@ final class WakaPeriodReportService
     private function classRows(AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
     {
         return BkCase::query()
+            ->withinStudentServicePeriod()
             ->join('student_class_memberships as recap_memberships', function ($join): void {
                 $join->on('recap_memberships.student_id', '=', 'cases.student_id')
                     ->whereColumn('recap_memberships.effective_from', '<=', 'cases.service_date')

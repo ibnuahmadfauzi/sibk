@@ -34,7 +34,7 @@ class CaseService
 
             if (($data['student_id'] ?? null) !== null) {
                 $student = Student::query()
-                    ->availableForService()
+                    ->availableForService((string) $data['service_date'])
                     ->forActiveTeacherAssignment($actor, now())
                     ->find((int) $data['student_id']);
 
@@ -202,6 +202,15 @@ class CaseService
                 'waka_summary' => ['nullable', 'string', 'max:500'],
                 'change_reason' => [$isCompleted ? 'required' : 'nullable', 'nullable', 'string', 'min:10', 'max:500'],
             ])->validate();
+
+            if ($case->student_id !== null) {
+                Student::query()->lockForUpdate()->findOrFail($case->student_id);
+                if (! Student::query()->availableForService($validated['service_date'])->whereKey($case->student_id)->exists()) {
+                    throw ValidationException::withMessages([
+                        'service_date' => 'Tanggal layanan harus sebelum tanggal keluar resmi murid.',
+                    ]);
+                }
+            }
 
             $source = $this->reference('case_source', (int) $validated['case_source_id']);
             $this->reference('service_field', (int) $validated['service_field_id']);

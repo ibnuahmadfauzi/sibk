@@ -19,7 +19,7 @@ final class ChangePasswordRequest extends FormRequest
     {
         return [
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+            'password' => ['required', 'different:current_password', 'confirmed', Password::min(8)->letters()->numbers()],
         ];
     }
 
@@ -30,6 +30,7 @@ final class ChangePasswordRequest extends FormRequest
             'current_password.required' => 'Kata sandi saat ini wajib diisi.',
             'current_password.current_password' => 'Kata sandi saat ini tidak sesuai.',
             'password.required' => 'Kata sandi baru wajib diisi.',
+            'password.different' => 'Kata sandi baru harus berbeda dari kata sandi sementara.',
             'password.confirmed' => 'Konfirmasi kata sandi baru tidak sesuai.',
         ];
     }

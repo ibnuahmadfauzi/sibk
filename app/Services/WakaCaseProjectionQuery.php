@@ -23,6 +23,7 @@ final class WakaCaseProjectionQuery
     public function build(User $waka, array $filters = []): Builder
     {
         $query = BkCase::query()
+            ->withinStudentServicePeriod()
             ->select([
                 'cases.id',
                 'cases.service_date',
