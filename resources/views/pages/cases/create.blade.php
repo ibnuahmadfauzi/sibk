@@ -17,51 +17,53 @@
 
         <div class="sibk-panel mb-4 border-0 shadow-sm">
             <div class="sibk-panel__body p-4">
-                <form action="{{ route('cases.create') }}" method="GET">
+                <form action="{{ route('cases.create') }}" method="GET" id="etatib-filter-form">
                     <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib untuk Identitas Sementara</label>
                     <div class="row g-3">
                         <div class="col-12 col-md-8">
                             <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN yang sama persis">
-                            <div class="form-text">Record yang belum dipetakan hanya dimuat untuk NISN yang sama persis sepanjang 1–20 digit.</div>
                         </div>
                         <div class="col-12 col-md-4">
                             <button type="submit" class="btn btn-outline-primary w-100">Tampilkan Data e-Tatib</button>
                         </div>
                     </div>
                 </form>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-4">
+                        <label for="temporary_nisn" class="form-label sibk-form-label">NISN Sementara</label>
+                        <input form="case-create-form" class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn', $temporaryNisnFilter) }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
+                        <input form="case-create-form" class="form-control sibk-form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Nama sesuai informasi awal">
+                    </div>
+                </div>
             </div>
         </div>
 
-        <form action="{{ route('cases.store') }}" method="POST">
+        <form action="{{ route('cases.store') }}" method="POST" id="case-create-form">
             @csrf
+            @if($preselectedStudentId)
+                <input type="hidden" name="student_id" value="{{ old('student_id', $preselectedStudentId) }}">
+            @endif
+            <div class="visually-hidden" aria-hidden="true">
+                @foreach($students as $student)
+                    @php($membership = $student->classMemberships->first())
+                    <span>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->usesProvisionalData($membership) ? ' — Sementara' : '' }}</span>
+                @endforeach
+            </div>
+
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Kasus</h4>
                     <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
                     <div class="row g-4">
-                        <div class="col-md-6">
-                            <label for="student" class="form-label sibk-form-label">Murid Master</label>
-                            <select class="form-select sibk-form-select" id="student" name="student_id">
-                                <option value="">Pilih murid atau isi identitas sementara</option>
-                                @foreach($students as $student)
-                                    @php($membership = $student->classMemberships->first())
-                                    <option value="{{ $student->id }}" data-nisn="{{ $student->nisn }}" @selected((string) old('student_id', $preselectedStudentId) === (string) $student->id)>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->usesProvisionalData($membership) ? ' — Sementara' : '' }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="temporary_nisn" class="form-label sibk-form-label">NISN Sementara</label>
-                            <input class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn', $temporaryNisnFilter) }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
-                            <input class="form-control sibk-form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Nama sesuai informasi awal">
-                        </div>
                         <div class="col-md-4">
                             <label for="sumber" class="form-label sibk-form-label">Sumber Kasus</label>
                             <select class="form-select sibk-form-select" id="sumber" name="case_source_id" required>
                                 <option value="">Pilih sumber kasus</option>
-                                @foreach($caseSources as $source)<option value="{{ $source->id }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
+                                @foreach($caseSources as $source)<option value="{{ $source->id }}" data-code="{{ $source->code }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -77,7 +79,7 @@
                         </div>
                         <div class="col-12">
                             <label for="referrer" class="form-label sibk-form-label">Pihak Perujuk</label>
-                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber kasus berasal dari rujukan">
+                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber kasus berasal dari rujukan" disabled>
                         </div>
                     </div>
                 </div>
@@ -127,14 +129,15 @@
 @section('extra-javascript')
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const student = document.getElementById('student');
             const temporaryNisn = document.getElementById('temporary_nisn');
             const temporaryName = document.getElementById('temporary_name');
+            const filterNisn = document.getElementById('etatib_temporary_nisn_filter');
+            const sumber = document.getElementById('sumber');
+            const referrer = document.getElementById('referrer');
             const records = document.querySelectorAll('[data-etatib-nisn]');
 
             const refreshEtatib = () => {
-                const masterNisn = student?.selectedOptions[0]?.dataset.nisn ?? '';
-                const selectedNisn = masterNisn || temporaryNisn?.value.trim() || '';
+                const selectedNisn = temporaryNisn?.value.trim() || filterNisn?.value.trim() || '';
 
                 records.forEach((record) => {
                     const matches = selectedNisn !== '' && record.dataset.etatibNisn === selectedNisn;
@@ -143,18 +146,35 @@
                 });
             };
 
-            student?.addEventListener('change', () => {
-                if (student.value !== '') {
-                    temporaryNisn.value = '';
-                    temporaryName.value = '';
+            const updateReferrerState = () => {
+                const selectedOption = sumber?.selectedOptions[0];
+                const isRujukan = (selectedOption?.dataset?.code === 'rujukan') ||
+                                  (selectedOption?.text?.trim().toLowerCase() === 'rujukan');
+                if (referrer) {
+                    referrer.disabled = !isRujukan;
+                    if (!isRujukan) {
+                        referrer.value = '';
+                    }
+                }
+            };
+
+            filterNisn?.addEventListener('input', () => {
+                if (temporaryNisn && (!temporaryNisn.value || temporaryNisn.dataset.synced === 'true')) {
+                    temporaryNisn.value = filterNisn.value;
+                    temporaryNisn.dataset.synced = 'true';
                 }
                 refreshEtatib();
             });
+
             temporaryNisn?.addEventListener('input', () => {
-                if (temporaryNisn.value.trim() !== '') student.value = '';
+                if (temporaryNisn) temporaryNisn.dataset.synced = 'false';
                 refreshEtatib();
             });
+
+            sumber?.addEventListener('change', updateReferrerState);
+
             refreshEtatib();
+            updateReferrerState();
         });
     </script>
 @endsection
