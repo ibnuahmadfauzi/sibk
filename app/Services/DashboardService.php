@@ -264,9 +264,9 @@ class DashboardService
         }
 
         return [
-            ['label' => 'Lihat daftar kasus', 'url' => route('cases.index'), 'primary' => false],
-            ['label' => 'Cari profil murid', 'url' => route('students.index'), 'primary' => true],
-            ['label' => 'Buka laporan', 'url' => route('reports.index'), 'primary' => false],
+            ['label' => 'Buat Kasus', 'url' => route('cases.create'), 'primary' => true],
+            ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => false],
+            ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => false],
         ];
     }
 }

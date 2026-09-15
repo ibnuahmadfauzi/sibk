@@ -17,14 +17,16 @@
 
         <div class="sibk-panel mb-4 border-0 shadow-sm">
             <div class="sibk-panel__body p-4">
-                <form action="{{ route('cases.create') }}" method="GET" class="row g-3 align-items-end">
-                    <div class="col-12 col-md-8">
-                        <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label">Cari e-Tatib untuk Identitas Sementara</label>
-                        <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN yang sama persis">
-                        <div class="form-text">Record yang belum dipetakan hanya dimuat untuk NISN yang sama persis sepanjang 1–20 digit.</div>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <button type="submit" class="btn btn-outline-primary w-100">Tampilkan Data e-Tatib</button>
+                <form action="{{ route('cases.create') }}" method="GET">
+                    <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib untuk Identitas Sementara</label>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN yang sama persis">
+                            <div class="form-text">Record yang belum dipetakan hanya dimuat untuk NISN yang sama persis sepanjang 1–20 digit.</div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <button type="submit" class="btn btn-outline-primary w-100">Tampilkan Data e-Tatib</button>
+                        </div>
                     </div>
                 </form>
             </div>

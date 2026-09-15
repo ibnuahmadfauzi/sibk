@@ -5,25 +5,24 @@
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-101">
         @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy"><h1>Layanan BK</h1><p>Cari, filter, dan kelola penanganan kasus serta sesi konsultasi.</p></div>
-            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Buat Kasus Baru</a>@endif
         </div>
 
-        <ul class="nav nav-pills mb-4 gap-2">
-            <li class="nav-item"><a class="nav-link {{ $activeTab === 'kasus' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'kasus']) }}">Kasus & Penanganan</a></li>
-            @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
-        </ul>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <ul class="nav nav-pills gap-2 mb-0">
+                <li class="nav-item"><a class="nav-link {{ $activeTab === 'kasus' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'kasus']) }}">Kasus & Penanganan</a></li>
+                @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
+            </ul>
+            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Buat Kasus Baru</a>@endif
+        </div>
 
         @if($activeTab === 'kasus')
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="kasus">
-                <div class="col-12 col-md-3"><label class="form-label" for="case_search">Cari kasus</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
-                <div class="col-12 col-md-2"><label class="form-label" for="case_class">Kelas</label><select class="form-select" id="case_class" name="classroom_id"><option value="">Semua kelas</option>@foreach($classrooms as $classroom)<option value="{{ $classroom->id }}" @selected((string) request('classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>
-                <div class="col-12 col-md-2"><label class="form-label" for="case_source">Sumber</label><select class="form-select" id="case_source" name="case_source_id"><option value="">Semua sumber</option>@foreach($caseSources as $source)<option value="{{ $source->id }}" @selected((string) request('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach</select></div>
-                <div class="col-12 col-md-2"><label class="form-label" for="case_status">Status</label><select class="form-select" id="case_status" name="status_id"><option value="">Semua status</option>@foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
-                <div class="col-12 col-md-2"><label class="form-label" for="case_month">Periode</label><input type="month" class="form-control" id="case_month" name="month" value="{{ request('month') }}"></div>
-                <div class="col-12 col-md-1"><button class="btn btn-outline-primary w-100">Filter</button></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="case_search">Cari kasus</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
+                <div class="col-12 col-md-4"><label class="form-label" for="case_status">Status</label><select class="form-select" id="case_status" name="status_id"><option value="">Semua status</option>@foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
             <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>Murid</th><th>Kelas</th><th>Tanggal</th><th>Sumber</th><th>Bidang</th><th>Status</th><th>Tindak Lanjut</th></tr></thead><tbody>
                 @forelse($cases as $case)

@@ -6,8 +6,14 @@
     <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
         <div class="sibk-page-header__copy">
             <h1 id="dashboard-title">Dashboard</h1>
-            <p>{{ $dashboard['description'] }}</p>
-            <small class="text-muted">{{ $dashboard['scope'] }}</small>
+            <span class="visually-hidden">{{ $dashboard['scope'] }}</span>
+            @if(!empty($dashboard['quick_actions']))
+                <div class="sibk-quick-actions mt-3">
+                    @foreach($dashboard['quick_actions'] as $action)
+                        <a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ $action['url'] }}">{{ $action['label'] }}</a>
+                    @endforeach
+                </div>
+            @endif
         </div>
         @if($years->isNotEmpty())
             <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter">
@@ -154,10 +160,8 @@
             </div>
         </div>
 
-        {{-- Quick Actions & Dekorasi --}}
-        <div class="sibk-dashboard-footer">
-            <div class="sibk-quick-actions">@foreach($dashboard['quick_actions'] as $action)<a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ $action['url'] }}">{{ $action['label'] }}</a>@endforeach</div>
-            
+        {{-- Dekorasi Footer --}}
+        <div class="sibk-dashboard-footer justify-content-end">
             <div class="sibk-dashboard-deco" aria-hidden="true">
                 <p>Konseling Hari Ini,<br>Masa Depan yang Lebih Baik</p>
                 <svg class="sibk-dashboard-deco__leaf" viewBox="0 0 120 160" fill="none">
