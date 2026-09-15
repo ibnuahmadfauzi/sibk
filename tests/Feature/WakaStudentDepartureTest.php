@@ -89,6 +89,41 @@ final class WakaStudentDepartureTest extends TestCase
         }
     }
 
+    public function test_waka_departure_page_keeps_all_process_statuses(): void
+    {
+        $waka = $this->userWithRole('waka_kesiswaan', 'Waka Semua Status');
+        $teacher = $this->userWithRole('guru_bk', 'Guru Semua Status');
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Semua Status');
+
+        foreach ([
+            ['name' => 'Murid Proses', 'nisn' => '1000000001', 'status' => StudentDeparture::STATUS_IN_PROGRESS],
+            ['name' => 'Murid Batal', 'nisn' => '1000000002', 'status' => StudentDeparture::STATUS_CANCELLED],
+            ['name' => 'Murid Resmi', 'nisn' => '1000000003', 'status' => StudentDeparture::STATUS_OFFICIAL],
+        ] as $item) {
+            $student = Student::query()->create([
+                'nisn' => $item['nisn'],
+                'name' => $item['name'],
+                'is_active' => true,
+            ]);
+            StudentDeparture::query()->create([
+                'student_id' => $student->id,
+                'departure_type' => StudentDeparture::TYPE_TRANSFER,
+                'status' => $item['status'],
+                'reported_at' => '2026-09-10',
+                'effective_date' => $item['status'] === StudentDeparture::STATUS_OFFICIAL ? '2026-09-14' : null,
+                'recorded_by' => $teacher->id,
+                'finalized_by' => $item['status'] === StudentDeparture::STATUS_IN_PROGRESS ? null : $coordinator->id,
+                'finalized_at' => $item['status'] === StudentDeparture::STATUS_IN_PROGRESS ? null : now(),
+            ]);
+        }
+
+        $this->actingAs($waka)->get(route('waka.student-departures.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Murid Proses', 'Dalam proses'])
+            ->assertSeeInOrder(['Murid Batal', 'Batal'])
+            ->assertSeeInOrder(['Murid Resmi', 'Resmi keluar']);
+    }
+
     /** @return array{Student, Classroom} */
     private function studentFixture(): array
     {

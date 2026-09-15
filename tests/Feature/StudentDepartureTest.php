@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\Consultation;
+use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\CaseService;
+use App\Services\ConsultationService;
 use App\Services\StudentDepartureService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -248,6 +253,45 @@ final class StudentDepartureTest extends TestCase
             ->assertDontSee($student->name);
     }
 
+    public function test_archived_records_and_official_departure_do_not_reappear_cross_surface(): void
+    {
+        [$teacher, $student, $case, $consultation] = $this->operationalFixture();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $case->delete();
+        $consultation->delete();
+        StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_OFFICIAL,
+            'reported_at' => today()->subDay(),
+            'effective_date' => today(),
+            'recorded_by' => $teacher->id,
+            'finalized_by' => $coordinator->id,
+            'finalized_at' => now(),
+        ]);
+
+        $this->actingAs($teacher)->get(route('cases.index'))
+            ->assertOk()
+            ->assertDontSee($case->registration_number)
+            ->assertDontSee($consultation->registration_number);
+        $this->actingAs($teacher)->get(route('students.index'))
+            ->assertOk()
+            ->assertDontSee($student->nisn);
+        $this->actingAs($teacher)->get(route('reports.index', ['tab' => 'layanan']))
+            ->assertOk()
+            ->assertDontSee($case->registration_number)
+            ->assertDontSee($consultation->registration_number);
+        $this->actingAs($teacher)->get(route('cases.create', ['student_id' => $student->id]))
+            ->assertForbidden();
+
+        $this->actingAs($coordinator)->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertSee('Resmi keluar');
+        $this->actingAs($coordinator)->get(route('cases.create', ['student_id' => $student->id]))
+            ->assertForbidden();
+    }
+
     /** @return array{User, Student} */
     private function scopedStudentFixture(): array
     {
@@ -298,6 +342,38 @@ final class StudentDepartureTest extends TestCase
         ], $teacher);
 
         return [$teacher, $student, $departure];
+    }
+
+    /** @return array{User, Student, BkCase, Consultation} */
+    private function operationalFixture(): array
+    {
+        [$teacher, $student] = $this->scopedStudentFixture();
+        $case = app(CaseService::class)->createCase([
+            'student_id' => $student->id,
+            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'service_date' => '2026-09-10',
+            'initial_info' => 'Informasi awal.',
+            'initial_action' => 'Asesmen awal.',
+        ], $teacher);
+        $consultation = app(ConsultationService::class)->create([
+            'student_id' => $student->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('consultation_status', 'selesai')->id,
+            'topic' => 'Persiapan perpindahan',
+            'session_date' => '2026-09-11',
+            'general_summary' => 'Ringkasan layanan.',
+        ], $teacher);
+
+        return [$teacher, $student, $case, $consultation];
+    }
+
+    private function reference(string $category, string $code): ReferenceValue
+    {
+        return ReferenceValue::query()
+            ->where('category', $category)
+            ->where('code', $code)
+            ->firstOrFail();
     }
 
     private function userWithRole(string $slug): User

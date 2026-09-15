@@ -14,6 +14,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 16 September 2026 — Checkpoint 5B Task 14
+
+- Hitungan murid dashboard memakai ketersediaan layanan pada akhir periode;
+  preselection murid di luar scope pada pembuatan kasus ditolak server-side.
+- Test lintas permukaan membuktikan arsip tidak muncul pada daftar, dashboard,
+  monitoring, dan laporan; histori serta daftar proses keluar Waka tetap ada.
+- Focused gate lulus 71 test/565 assertion, Pint, checker frontend, scan query,
+  dan diff-check.
+
 ### 16 September 2026 — Checkpoint 5B Task 13
 
 - Invariant sumber kebenaran, unique/foreign key proses keluar, dan larangan

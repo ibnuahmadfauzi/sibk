@@ -3196,7 +3196,7 @@ git commit -m "test: audit kesehatan skema operasional"
 - Consumes: soft delete Task 9, `Student::availableForService()` Task 11, dan service laporan Task 2-6.
 - Produces: semua read model operasional konsisten mengecualikan arsip dan tidak menawarkan layanan baru kepada murid resmi keluar, sedangkan Waka tetap dapat membaca daftar/detail proses keluar sesuai kewenangannya.
 
-- [ ] **Step 1: Tulis failing cross-surface test**
+- [x] **Step 1: Tulis failing cross-surface test**
 
 ```php
 public function test_archived_records_and_official_departures_do_not_reappear_cross_surface(): void
@@ -3272,7 +3272,7 @@ Tambahkan assertion terpisah bahwa Waka melihat murid berstatus `dalam_proses`,
 kelas, jenis, status, tanggal, ringkasan rekomendasi/keputusan, dan petugas,
 tetapi tidak memperoleh tombol atau endpoint mutasi.
 
-- [ ] **Step 2: Jalankan tests dan pastikan gagal**
+- [x] **Step 2: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/ReportManagementTest.php --filter=archived
@@ -3280,7 +3280,7 @@ php artisan test tests/Feature/WakaMonitoringTest.php --filter=archived
 php artisan test tests/Feature/StudentDepartureTest.php --filter=new_service
 ```
 
-- [ ] **Step 3: Audit seluruh query operational**
+- [x] **Step 3: Audit seluruh query operational**
 
 Gunakan Eloquent default SoftDeletes untuk kasus/konsultasi dan hapus setiap
 `withTrashed()` yang tidak mempunyai alasan historis eksplisit. Pada pilihan
@@ -3294,7 +3294,7 @@ Profil historis memakai `Student::query()->accessibleTo($actor)` tanpa
 `availableForService()`. Tampilkan badge `Resmi keluar` dan tanggal efektif,
 serta sembunyikan tombol mutasi layanan baru.
 
-- [ ] **Step 4: Kunci pipeline laporan/dashboard**
+- [x] **Step 4: Kunci pipeline laporan/dashboard**
 
 Pastikan aggregate laporan memakai tabel utama tanpa `withTrashed()`. Untuk
 murid resmi keluar, histori sebelum `effective_date` tetap dapat muncul pada
@@ -3319,7 +3319,7 @@ setara dan `/waka/handling-reports/export` tetap menghasilkan CSV hanya untuk
 Waka yang berwenang. Tambahkan/pertahankan assertion pada
 `StudentProfileTest` dan `WakaMonitoringTest` untuk kontrak tersebut.
 
-- [ ] **Step 5: Verifikasi query consistency**
+- [x] **Step 5: Verifikasi query consistency**
 
 ```powershell
 php artisan test tests/Feature/DashboardTest.php
@@ -3334,7 +3334,7 @@ php vendor/bin/pint --test app/Models/Student.php app/Services/DashboardService.
 git diff --check
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/Models/Student.php app/Models/BkCase.php app/Models/Consultation.php app/Services/DashboardService.php app/Services/ReportService.php app/Services/OperationalReportRecapService.php app/Services/WakaDashboardService.php app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Services/WakaPeriodReportService.php app/Services/WakaStudentCaseService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/CaseController.php app/Http/Controllers/StudentController.php tests/Feature/DashboardTest.php tests/Feature/ReportManagementTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaReportPageTest.php tests/Feature/WakaStudentDepartureTest.php

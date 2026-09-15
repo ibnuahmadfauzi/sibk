@@ -44,13 +44,13 @@ class DashboardService
         [$start, $end] = $this->period($year);
         $cases = BkCase::query()->with(['student.classMemberships.classroom', 'temporaryStudent', 'status']);
         if ($mode === 'coordinator') {
-            $students = Student::query()->active()
+            $students = Student::query()->availableForService($end)
                 ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                     ->whereHas('classMemberships', fn (Builder $memberships): Builder => $memberships
                         ->where('academic_year_id', $selected->getKey())));
         } elseif ($mode === 'teacher') {
             $cases->accessibleTo($user);
-            $students = Student::query()->active()->professionallyAccessibleTo($user)
+            $students = Student::query()->availableForService($end)->professionallyAccessibleTo($user)
                 ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                     ->where(function (Builder $scope) use ($user, $selected, $start, $end): void {
                         $scope->whereHas('classMemberships', fn (Builder $memberships): Builder => $memberships
@@ -63,7 +63,7 @@ class DashboardService
         } else {
             // Waka melihat SELURUH kasus aktif sekolah — bukan hanya yang terkoordinasi
             $cases->whereBetween('service_date', [$start, $end]);
-            $students = Student::query()->active()->whereIn('id', (clone $cases)
+            $students = Student::query()->availableForService($end)->whereIn('id', (clone $cases)
                 ->whereNotNull('student_id')->select('student_id'));
         }
         if ($mode !== 'waka') {

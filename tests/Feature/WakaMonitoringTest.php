@@ -178,6 +178,23 @@ class WakaMonitoringTest extends TestCase
         ]);
     }
 
+    public function test_archived_case_is_absent_from_waka_dashboard_monitoring_and_report(): void
+    {
+        [$waka, $case, $owner, $student] = $this->wakaCaseFixture(studentName: 'Murid Kasus Arsip');
+        $this->assignOwner($case, $owner);
+        $case->delete();
+
+        $this->actingAs($waka)->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertDontSee($student->name);
+        $this->actingAs($waka)->get(route('waka.monitoring.students'))
+            ->assertOk()
+            ->assertDontSee($student->name);
+        $this->actingAs($waka)->get(route('waka.reports', ['tab' => 'penanganan']))
+            ->assertOk()
+            ->assertDontSee($student->name);
+    }
+
     public function test_waka_monitoring_export_csv(): void
     {
         $waka = $this->createUserWithRole('waka_kesiswaan');

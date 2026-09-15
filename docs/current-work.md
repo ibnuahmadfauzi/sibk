@@ -5,7 +5,7 @@
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
 - Checkpoint aktif: 5B — Task 11–15.
-- Task 11–13 selesai; berikutnya Task 14.
+- Task 11–14 selesai; berikutnya Task 15.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -69,6 +69,10 @@
   Enam tabel retired tetap ada; consumer runtime kosong, kecuali konfigurasi
   driver Laravel yang sengaja dipertahankan. Focused gate lulus 12 test/77
   assertion, Pint, dan diff-check.
+- Task 14 menyelaraskan hitungan murid dashboard dengan tanggal akhir periode,
+  menolak preselection murid di luar scope, dan membuktikan arsip tidak muncul
+  pada dashboard, monitoring, laporan, atau daftar aktif. Focused gate lulus
+  71 test/565 assertion, Pint, checker frontend, scan query, dan diff-check.
 
 ## Arsip
 
@@ -79,8 +83,8 @@
 
 ## Langkah berikutnya
 
-1. Kerjakan Task 14: integrasi scope aktif pada laporan dan dashboard.
-2. Lanjutkan Task 15 setelah focused gate Task 14 lulus.
+1. Kerjakan Task 15: verifikasi penuh CLI dan handoff UAT gabungan.
+2. Review perubahan Checkpoint 5B lalu integrasikan ke `cobasidebar`.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
