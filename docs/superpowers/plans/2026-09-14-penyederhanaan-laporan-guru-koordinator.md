@@ -3355,7 +3355,7 @@ git commit -m "fix: konsistenkan scope arsip dan murid keluar"
 - Produces: evidence gate CLI dan checklist UAT manual gabungan; plan baru
   selesai setelah hasil manual dilaporkan PASS.
 
-- [ ] **Step 1: Jalankan focused feature gate melalui CLI**
+- [x] **Step 1: Jalankan focused feature gate melalui CLI**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php
@@ -3372,7 +3372,7 @@ php artisan test tests/Feature/OperationalSchemaTest.php
 
 Expected: 0 failure dan 0 error.
 
-- [ ] **Step 2: Jalankan full automated gate melalui CLI**
+- [x] **Step 2: Jalankan full automated gate melalui CLI**
 
 Jalankan cache command hanya pada konfigurasi worktree/local, bukan aplikasi
 shared/production. Bila satu command gagal, tetap jalankan tiga command clear
@@ -3397,7 +3397,7 @@ php artisan view:clear
 
 Expected: seluruh command exit code 0 dan cache dibersihkan setelah verifikasi.
 
-- [ ] **Step 3: Jalankan retired-feature dan privacy scan**
+- [x] **Step 3: Jalankan retired-feature dan privacy scan**
 
 ```powershell
 rg -n "Correction|UserNotification|NotificationService|corrections\.|notifications\.|history\." app routes resources tests scripts
@@ -3412,7 +3412,7 @@ tetap ada; nilai credential nyata tidak boleh ada. Evidence mencatat file,
 baris, dan keputusan tanpa menyalin nilai kandidat. Bila log lokal perlu dibaca
 untuk investigasi, gunakan data test dan keluarkan hasil yang telah disensor.
 
-- [ ] **Step 4: Verifikasi schema dan queue**
+- [x] **Step 4: Verifikasi schema dan queue**
 
 Pada SQLite disposable dan MySQL disposable, catat:
 
@@ -3429,7 +3429,7 @@ QUEUE_CONNECTION: sync.
 Jangan menjalankan reset pada database shared atau menyertakan credential pada
 evidence.
 
-- [ ] **Step 5: Siapkan dan serahkan checklist UAT manual gabungan**
+- [x] **Step 5: Siapkan dan serahkan checklist UAT manual gabungan**
 
 Pelaksana UAT adalah pengguna atau tester manusia melalui browser biasa. Agent
 hanya menyiapkan akun/data uji, URL awal, expected result, dan checklist; agent
@@ -3477,7 +3477,7 @@ untuk skenario manual terkait. Tandai checkbox plan dan pindahkan tracker ke
 Completed pada `docs/development-log.md` hanya setelah seluruh CLI dan manual
 gate PASS.
 
-- [ ] **Step 7: Commit evidence**
+- [x] **Step 7: Commit evidence**
 
 ```powershell
 git add docs/testing/2026-09-14-uat-penyederhanaan-operasional.md docs/development-log.md docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md

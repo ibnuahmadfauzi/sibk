@@ -5,7 +5,7 @@
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
 - Checkpoint aktif: 5B — Task 11–15.
-- Task 11–14 selesai; berikutnya Task 15.
+- Task 11–14 selesai; gate CLI Task 15 lulus, UAT manual masih menunggu.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -73,6 +73,9 @@
   menolak preselection murid di luar scope, dan membuktikan arsip tidak muncul
   pada dashboard, monitoring, laporan, atau daftar aktif. Focused gate lulus
   71 test/565 assertion, Pint, checker frontend, scan query, dan diff-check.
+- Task 15 focused gate lulus 100 test/876 assertion; gate penuh lulus 444
+  test/3.463 assertion, Pint, Composer/NPM audit, cache, checker frontend,
+  build, scan keamanan, SQLite/MySQL disposable, dan diff-check.
 
 ## Arsip
 
@@ -83,8 +86,8 @@
 
 ## Langkah berikutnya
 
-1. Kerjakan Task 15: verifikasi penuh CLI dan handoff UAT gabungan.
-2. Review perubahan Checkpoint 5B lalu integrasikan ke `cobasidebar`.
+1. Tester manusia menjalankan checklist UAT gabungan pada tiga viewport.
+2. Setelah seluruh UAT PASS, tutup Task 15, review, dan integrasikan ke `cobasidebar`.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
