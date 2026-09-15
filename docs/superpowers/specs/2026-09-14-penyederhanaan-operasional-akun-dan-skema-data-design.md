@@ -52,6 +52,15 @@ Keputusan produk yang disetujui adalah:
 
 ## 3. Batas Scope
 
+Implementasi dibagi menjadi dua checkpoint tanpa mengubah scope desain:
+
+- Checkpoint 5A mencakup Task 8–10: kontrak operasional, penyederhanaan
+  lifecycle, dan penghentian fitur retired.
+- Checkpoint 5B mencakup Task 11–15: proses keluar murid, akun, audit skema,
+  integrasi lintas permukaan, dan verifikasi akhir.
+
+Checkpoint 5B dimulai setelah Checkpoint 5A terintegrasi ke `cobasidebar`.
+
 Objek operasional yang mengikuti aturan edit terminal dan arsip pada desain ini
 adalah:
 
@@ -70,7 +79,7 @@ diterapkan secara implisit.
 Seluruh route, controller, request, service, policy, model, relasi model, view,
 sidebar, quick action, fixture preview, dan test khusus Koreksi Data dihapus.
 Consumer runtime `corrections` dihentikan. Tabel fisiknya dipertahankan pada
-Checkpoint 5 dan baru boleh dihapus melalui plan terpisah yang mempunyai bukti
+Checkpoint 5A dan 5B, lalu baru boleh dihapus melalui plan terpisah yang mempunyai bukti
 dependency kosong, backup, uji pemulihan, dan persetujuan pengguna.
 
 Kesalahan data master tidak diajukan melalui aplikasi. Guru BK melaporkannya di
@@ -356,7 +365,7 @@ Tabel yang ditambahkan:
 1. `student_departures`.
 
 Jumlah 30 tabel merupakan hasil ideal bila seluruh kandidat aman dihapus, bukan
-acceptance criterion. Pada Checkpoint 5 tabel kandidat tetap dipertahankan
+acceptance criterion. Pada Checkpoint 5A dan 5B tabel kandidat tetap dipertahankan
 secara fisik. Penghapusan hanya boleh direncanakan terpisah setelah dependency
 kosong, backup tersedia, pemulihan diuji, dan pengguna menyetujui tindakan.
 

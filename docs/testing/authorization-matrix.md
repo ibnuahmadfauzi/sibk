@@ -26,7 +26,7 @@ penerus dalam scope, tetapi tidak otomatis dapat diedit.
 `/consultations` mengarahkan ke `/cases?tab=konsultasi`; tujuan redirect memeriksa
 otorisasi. Koreksi, notifikasi milik pengguna, dan riwayat masih mengikuti
 baseline implementasi saat Checkpoint 3; pemensiunannya dilakukan pada Task 10
-di Checkpoint 5. Matriks route di test tetap memeriksa fitur tersebut sampai
+di Checkpoint 5A. Matriks route di test tetap memeriksa fitur tersebut sampai
 route dipensiunkan.
 
 ## Bukti test reguler
@@ -55,4 +55,4 @@ composer test
 ```
 
 Gate umum repository tetap wajib. Perubahan laporan pada Checkpoint 4 dan
-pensiun fitur pada Checkpoint 5 harus memperbarui matriks ini dan test terkait.
+pensiun fitur pada Checkpoint 5A harus memperbarui matriks ini dan test terkait.

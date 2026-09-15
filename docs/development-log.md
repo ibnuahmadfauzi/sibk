@@ -7,11 +7,19 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 - Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 4 selesai dan siap diajukan ke `cobasidebar`; Checkpoint 5 dimulai
-  setelah integrasi.
+- Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
+- Checkpoint 5 dibagi menjadi 5A (Task 8–10) dan 5B (Task 11–15); Checkpoint 5A
+  dikerjakan lebih dahulu.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 15 September 2026 — Pembagian Checkpoint 5
+
+- Checkpoint 5A ditetapkan untuk Task 8–10.
+- Checkpoint 5B ditetapkan untuk Task 11–15 dan dimulai setelah Checkpoint 5A
+  terintegrasi ke `cobasidebar`.
+- Pembagian hanya mengubah batas eksekusi dan review, bukan scope atau perilaku.
 
 ### 15 September 2026 — Checkpoint 4: penyederhanaan laporan
 
