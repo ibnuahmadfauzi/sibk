@@ -6,9 +6,10 @@
 - Checkpoint berikutnya: 5A — Penyederhanaan operasional, Task 8–10.
 - Checkpoint 5B memuat Task 11–15 dan baru dimulai setelah Checkpoint 5A
   terintegrasi ke `cobasidebar`.
-- Branch perencanaan aktif: `docs/checkpoint-5-split`.
-- Worktree: `.worktrees/checkpoint-5-split`.
-- Baseline branch: `4f6a919` dari `origin/cobasidebar`.
+- Branch implementasi Checkpoint 5A belum dibuat.
+- Worktree setelah PR pembagian checkpoint terintegrasi: root repository.
+- Baseline Checkpoint 5A: `cobasidebar` setelah PR pembagian checkpoint
+  terintegrasi.
 
 ## Hasil dan gate terakhir
 
