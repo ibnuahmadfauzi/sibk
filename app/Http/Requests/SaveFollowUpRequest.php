@@ -14,7 +14,7 @@ class SaveFollowUpRequest extends FormRequest
     {
         $case = $this->route('case');
 
-        return $case instanceof BkCase && ($this->user()?->can('update', $case) ?? false);
+        return $case instanceof BkCase && ($this->user()?->can('resolve', $case) ?? false);
     }
 
     /** @return array<string, list<mixed>> */

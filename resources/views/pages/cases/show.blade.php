@@ -13,9 +13,10 @@
                 <h1 class="mb-1">Detail Kasus</h1>
                 <p class="mb-0">{{ $case->identityName() }} &bull; {{ $case->service_date->locale('id')->translatedFormat('d F Y') }}</p>
             </div>
-            @if($canUpdateCase || $canAssignCase)
+            @if($canUpdateCase || $canArchiveCase || $canAssignCase)
                 <div class="d-flex flex-wrap align-items-start gap-2">
                     @if($canUpdateCase)<a href="{{ route('cases.edit', $case) }}" class="btn btn-primary">Ubah Kasus</a>@endif
+                    @if($canArchiveCase)<form action="{{ route('cases.destroy', $case) }}" method="POST" data-confirm-submit data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">@csrf @method('DELETE')<button class="btn btn-outline-danger" type="submit">Hapus</button></form>@endif
                     @if($canAssignCase)<a href="{{ route('assignments.cases.index', ['case_id' => $case->id]) }}" class="btn btn-outline-secondary">Atur Penugasan</a>@endif
                 </div>
             @endif
@@ -61,7 +62,7 @@
                                     <td>{{ $followUp->recorder->name }}</td>
                                     <td>{{ \Illuminate\Support\Str::limit($followUp->result ?: '-', 80) }}</td>
                                     <td>
-                                        @if($canUpdateCase && $followUp->recorded_by === auth()->id())
+                                        @if($canManageCase && $followUp->recorded_by === auth()->id())
                                             <a href="{{ route('cases.follow-ups.edit', [$case, $followUp]) }}" class="fw-semibold text-decoration-none">Ubah</a>
                                         @endif
                                     </td>

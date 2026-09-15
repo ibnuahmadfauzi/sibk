@@ -55,7 +55,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::patch('/cases/{case}/follow-ups/{followUp}', [FollowUpController::class, 'update'])->name('cases.follow-ups.update');
     Route::get('/cases/{case}/resolve', [CaseController::class, 'resolveForm'])->name('cases.resolve.form');
     Route::post('/cases/{case}/resolve', [CaseController::class, 'resolve'])->name('cases.resolve');
-    Route::post('/cases/{case}/deactivate', [CaseController::class, 'deactivate'])->name('cases.deactivate');
+    Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
     Route::post('/cases/{case}/assign', [AssignmentController::class, 'assignCase'])->name('cases.assign');
     Route::post('/cases/{case}/coordinations', [CaseCoordinationController::class, 'store'])->name('cases.coordinations.store');
     Route::patch('/cases/{case}/coordinations/{coordination}', [CaseCoordinationController::class, 'update'])->name('cases.coordinations.update');
@@ -70,6 +70,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
     Route::post('/consultations', [ConsultationController::class, 'store'])->name('consultations.store');
     Route::get('/consultations/{consultation}/edit', [ConsultationController::class, 'edit'])->name('consultations.edit');
     Route::patch('/consultations/{consultation}', [ConsultationController::class, 'update'])->name('consultations.update');
+    Route::delete('/consultations/{consultation}', [ConsultationController::class, 'destroy'])->name('consultations.destroy');
     Route::get('/consultations/{consultation}', [ConsultationController::class, 'show'])->name('consultations.show');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

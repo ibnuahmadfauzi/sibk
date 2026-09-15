@@ -67,6 +67,11 @@ class ReferenceSeeder extends Seeder
                 [...$value, 'is_active' => true],
             );
         }
+
+        ReferenceValue::query()
+            ->whereIn('category', ['case_status', 'consultation_status'])
+            ->where('code', 'dibatalkan')
+            ->update(['is_active' => false]);
     }
 
     /** @return list<array{category: string, code: string, label: string, sort_order: int}> */

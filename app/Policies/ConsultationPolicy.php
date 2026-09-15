@@ -6,7 +6,6 @@ namespace App\Policies;
 
 use App\Models\Consultation;
 use App\Models\User;
-use App\Support\ServiceRecordStatus;
 
 class ConsultationPolicy
 {
@@ -32,8 +31,13 @@ class ConsultationPolicy
 
     public function update(User $user, Consultation $consultation): bool
     {
-        return ! ServiceRecordStatus::isTerminal($consultation->status?->code)
+        return $user->hasRole('guru_bk')
             && $consultation->counselor_id === $user->getKey()
             && $consultation->isProfessionallyAccessibleTo($user);
+    }
+
+    public function archive(User $user, Consultation $consultation): bool
+    {
+        return $this->update($user, $consultation);
     }
 }

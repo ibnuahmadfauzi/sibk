@@ -86,11 +86,7 @@ class ConsultationService
         return DB::transaction(function () use ($consultation, $data, $actor): Consultation {
             $consultation = Consultation::query()->lockForUpdate()->findOrFail($consultation->getKey());
             $consultation->loadMissing('status');
-            if (ServiceRecordStatus::isTerminal($consultation->status?->code)) {
-                throw ValidationException::withMessages([
-                    'consultation' => 'Konsultasi terminal hanya dapat diubah melalui koreksi terverifikasi.',
-                ]);
-            }
+            $isCompleted = $consultation->status?->code === ServiceRecordStatus::COMPLETED;
             if ($consultation->counselor_id !== $actor->getKey() || ! $consultation->isProfessionallyAccessibleTo($actor)) {
                 throw ValidationException::withMessages([
                     'consultation' => 'Konsultasi hanya dapat diubah oleh pencatat yang masih memiliki kewenangan.',
@@ -105,6 +101,22 @@ class ConsultationService
                 $actor,
             );
             $status = $this->reference('consultation_status', (int) $data['status_id']);
+            $reasonLength = mb_strlen(trim((string) ($data['change_reason'] ?? '')));
+            if ($isCompleted && ($reasonLength < 10 || $reasonLength > 500)) {
+                throw ValidationException::withMessages([
+                    'change_reason' => 'Alasan perubahan wajib diisi untuk data yang telah selesai.',
+                ]);
+            }
+            if ($isCompleted && $status->getKey() !== $consultation->status_id) {
+                throw ValidationException::withMessages([
+                    'status_id' => 'Status data yang telah selesai tidak dapat diubah.',
+                ]);
+            }
+            if (! $isCompleted && ServiceRecordStatus::isTerminal($status->code)) {
+                throw ValidationException::withMessages([
+                    'status_id' => 'Gunakan tindakan penyelesaian untuk status selesai.',
+                ]);
+            }
             $this->reference('service_field', (int) $data['service_field_id']);
             $this->validateSchedule($data, $status);
 
@@ -138,17 +150,42 @@ class ConsultationService
                 'updated_by' => $actor->getKey(),
             ])->save();
 
+            $after = $this->auditSnapshot($consultation->refresh(), $data, $changedPrivateFields);
+            if ($isCompleted) {
+                $after['change_reason'] = trim((string) $data['change_reason']);
+            }
             $this->auditService->record(
-                action: 'consultation.updated',
+                action: $isCompleted ? 'consultation.completed_record_updated' : 'consultation.updated',
                 auditable: $consultation,
                 summary: sprintf('Konsultasi %s diperbarui.', $consultation->registration_number),
                 actor: $actor,
                 before: $before,
-                after: $this->auditSnapshot($consultation->refresh(), $data, $changedPrivateFields),
+                after: $after,
             );
             $this->notifySchedule($consultation, $actor, 'updated');
 
             return $consultation->load(['student', 'temporaryStudent.reconciledStudent', 'case', 'serviceField', 'status', 'counselor']);
+        });
+    }
+
+    public function archive(Consultation $consultation, User $actor): void
+    {
+        DB::transaction(function () use ($consultation, $actor): void {
+            $consultation = Consultation::query()->lockForUpdate()->findOrFail($consultation->getKey());
+            if ($consultation->counselor_id !== $actor->getKey() || ! $consultation->isProfessionallyAccessibleTo($actor)) {
+                throw ValidationException::withMessages([
+                    'consultation' => 'Konsultasi hanya dapat diarsipkan oleh pencatat yang masih memiliki kewenangan.',
+                ]);
+            }
+
+            $this->auditService->record(
+                action: 'consultation.archived',
+                auditable: $consultation,
+                summary: sprintf('Konsultasi %s diarsipkan.', $consultation->registration_number),
+                actor: $actor,
+                before: $this->auditSnapshot($consultation, []),
+            );
+            $consultation->delete();
         });
     }
 

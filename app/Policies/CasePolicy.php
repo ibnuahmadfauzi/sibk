@@ -52,14 +52,19 @@ class CasePolicy
 
     public function update(User $user, BkCase $case): bool
     {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && $user->hasRole('guru_bk')
+        return $user->hasRole('guru_bk')
             && $case->hasActiveOwnerFor($user);
+    }
+
+    public function archive(User $user, BkCase $case): bool
+    {
+        return $this->update($user, $case);
     }
 
     public function resolve(User $user, BkCase $case): bool
     {
-        return $this->update($user, $case);
+        return ! ServiceRecordStatus::isTerminal($case->status?->code)
+            && $this->update($user, $case);
     }
 
     public function assign(User $user, BkCase $case): bool

@@ -9,10 +9,18 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 5 dibagi menjadi 5A (Task 8–10) dan 5B (Task 11–15); Checkpoint 5A
-  dikerjakan lebih dahulu. Task 8 selesai; Task 9 menjadi pekerjaan berikutnya.
+  dikerjakan lebih dahulu. Task 8 dan 9 selesai; Task 10 menjadi pekerjaan berikutnya.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 15 September 2026 — Checkpoint 5A Task 9
+
+- Status kasus/konsultasi disederhanakan menjadi empat; data legacy berstatus
+  dibatalkan diarsipkan dan reference-nya dinonaktifkan.
+- Owner dapat mengedit data selesai dengan alasan 10–500 karakter yang hanya
+  disimpan pada audit append-only; owner juga dapat mengarsipkan record.
+- Focused gate lulus 43 test/331 assertion, Pint, dan diff-check.
 
 ### 15 September 2026 — Pembagian Checkpoint 5
 

@@ -29,10 +29,9 @@
                     @php
                         $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first();
                         $latestFollowUp = $case->followUps->sortByDesc('planned_date')->first();
-                        $canAct = auth()->user()?->can('update', $case) && $case->status?->code !== 'dibatalkan' && $case->closed_at === null;
+                        $canAct = auth()->user()?->can('resolve', $case);
                         $badgeTone = match($case->status?->code) {
                             'selesai' => 'success',
-                            'dibatalkan' => 'danger',
                             'sedang_diproses', 'membutuhkan_tindak_lanjut' => 'warning',
                             default => 'primary',
                         };
@@ -53,9 +52,9 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                                     </a>
 
-                                    <form action="{{ route('cases.deactivate', $case) }}" method="POST" class="d-inline" data-confirm-submit data-confirm-message="Apakah Anda yakin ingin menonaktifkan kasus murid ini?">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 text-nowrap">
+                                    <form action="{{ route('cases.destroy', $case) }}" method="POST" class="d-inline" data-confirm-submit data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 text-nowrap" title="Hapus">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
                                         </button>
                                     </form>

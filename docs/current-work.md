@@ -4,7 +4,7 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint aktif: 5A — Penyederhanaan operasional, Task 8–10.
-- Task 8 selesai; task berikutnya: Task 9.
+- Task 8 dan 9 selesai; task berikutnya: Task 10.
 - Checkpoint 5B memuat Task 11–15 dan baru dimulai setelah Checkpoint 5A
   terintegrasi ke `cobasidebar`.
 - Branch: `checkpoint-5a-operasional`.
@@ -50,6 +50,9 @@
   dipastikan bukan shared/production.
 - Task 8 menyelaraskan PRD/SRS, indeks requirement, kontrak API, dan spec;
   focused contract test lulus 1 test/8 assertion.
+- Task 9 mengganti pembatalan layanan dengan arsip, mengizinkan owner mengedit
+  data selesai dengan alasan yang diaudit, dan menyisakan empat status layanan.
+  Focused gate lulus 43 test/331 assertion, Pint, dan diff-check.
 
 ## Arsip
 
@@ -60,8 +63,8 @@
 
 ## Langkah berikutnya
 
-1. Mulai Task 9: ganti koreksi terminal dengan edit beralasan dan arsip.
-2. Lanjutkan Task 10 hanya setelah focused gate Task 9 lulus.
+1. Mulai Task 10: hentikan koreksi, notifikasi, riwayat, dan UI aktivitas audit.
+2. Jalankan focused gate Task 10 sebelum gate penuh Checkpoint 5A.
 3. Selesaikan dan integrasikan Task 8–10 sebelum membuat branch Checkpoint 5B.
 4. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5A/5B.
 5. Adapter production tetap menunggu kontrak resmi dan admission gate.

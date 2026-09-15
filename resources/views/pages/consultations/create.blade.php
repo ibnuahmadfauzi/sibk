@@ -15,6 +15,12 @@
             <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
         @endif
 
+        @if($isCompleted && ! $terminalConfirmed)
+            <x-terminal-edit-confirmation
+                :continue-url="route('consultations.edit', [$consultation, 'confirm_terminal' => 1])"
+                :cancel-url="route('consultations.show', $consultation)"
+            />
+        @else
         <form action="{{ $isEdit ? route('consultations.update', $consultation) : route('consultations.store') }}" method="POST">
             @csrf
             @if($isEdit) @method('PATCH') @endif
@@ -55,7 +61,11 @@
                     </div>
                     <div class="col-12 col-md-3">
                         <label class="form-label" for="status_id">Status <span class="text-danger">*</span></label>
-                        <select class="form-select" id="status_id" name="status_id" required><option value="">Pilih status</option>@foreach($consultationStatuses as $status)<option value="{{ $status->id }}" @selected((string) old('status_id', $consultation?->status_id) === (string) $status->id)>{{ $status->label }}</option>@endforeach</select>
+                        @if($isCompleted)
+                            <div class="form-control bg-light">{{ $consultation->status->label }}</div><input type="hidden" name="status_id" value="{{ $consultation->status_id }}">
+                        @else
+                            <select class="form-select" id="status_id" name="status_id" required><option value="">Pilih status</option>@foreach($consultationStatuses as $status)<option value="{{ $status->id }}" @selected((string) old('status_id', $consultation?->status_id) === (string) $status->id)>{{ $status->label }}</option>@endforeach</select>
+                        @endif
                     </div>
                     <div class="col-12 col-md-8"><label class="form-label" for="topic">Topik / Permasalahan Awal <span class="text-danger">*</span></label><input class="form-control" id="topic" name="topic" value="{{ old('topic', $consultation?->topic) }}" maxlength="250" required></div>
                     <div class="col-12 col-md-4"><label class="form-label" for="referral_source">Sumber Rujukan</label><input class="form-control" id="referral_source" name="referral_source" value="{{ old('referral_source', $consultation?->referral_source) }}" maxlength="150"></div>
@@ -85,13 +95,18 @@
 
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><h2 class="fs-6 fw-bold">Dokumen Pendukung</h2><p class="text-muted mb-0">Unggahan dokumen belum tersedia sampai kebijakan format, akses, dan retensi DEP-06 disahkan.</p></div></div>
 
+            @if($isCompleted)
+                <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><label class="form-label" for="change_reason">Alasan perubahan</label><textarea class="form-control" id="change_reason" name="change_reason" rows="3" minlength="10" maxlength="500" required>{{ old('change_reason') }}</textarea></div></div>
+            @endif
+
             <div class="d-flex justify-content-end gap-2 mb-5"><a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-secondary">Batal</a><button class="btn btn-primary" type="submit">Simpan Konsultasi</button></div>
         </form>
+        @endif
     </div>
 @endsection
 
 @section('extra-javascript')
-    @if(!$isEdit)
+    @if(!$isEdit && ! $isCompleted)
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const student = document.getElementById('student_id');

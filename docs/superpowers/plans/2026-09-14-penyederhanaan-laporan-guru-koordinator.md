@@ -1851,7 +1851,7 @@ git commit -m "docs: selaraskan kontrak operasional Ruang BK"
 - Consumes: `CaseAssignment::TYPE_OWNER`, `AuditService::record()`, Eloquent `SoftDeletes`, dan status reference existing.
 - Produces: reference kasus/konsultasi tanpa pilihan `dibatalkan`, `CasePolicy::archive()`, `ConsultationPolicy::archive()`, `CaseService::archive()`, `ConsultationService::archive()`, serta edit `selesai` dengan `change_reason`.
 
-- [ ] **Step 1: Tulis failing test lifecycle kasus**
+- [x] **Step 1: Tulis failing test lifecycle kasus**
 
 Ganti test yang mengharuskan koreksi terminal dengan kontrak berikut:
 
@@ -1925,7 +1925,7 @@ public function test_case_delete_archives_and_excludes_record_from_operational_q
 Tambahkan test bahwa Koordinator, Waka, Admin IT, additional assignee, dan Guru
 BK penerus tidak dapat edit/arsip record milik owner lain.
 
-- [ ] **Step 2: Tulis failing test lifecycle konsultasi**
+- [x] **Step 2: Tulis failing test lifecycle konsultasi**
 
 ```php
 public function test_completed_consultation_owner_can_edit_with_reason_and_archive(): void
@@ -1954,7 +1954,7 @@ public function test_completed_consultation_owner_can_edit_with_reason_and_archi
 Tambahkan assertion bahwa `change_reason` 9 karakter ditolak, 10-500 diterima,
 501 ditolak, dan status selesai tidak dapat diganti melalui forged request.
 
-- [ ] **Step 3: Jalankan tests dan pastikan gagal**
+- [x] **Step 3: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php --filter="completed_case|case_delete"
@@ -1963,7 +1963,7 @@ php artisan test tests/Feature/ConsultationManagementTest.php --filter=completed
 
 Expected: FAIL karena policy, route arsip, dan direct terminal edit belum tersedia.
 
-- [ ] **Step 4: Sederhanakan kontrak status layanan**
+- [x] **Step 4: Sederhanakan kontrak status layanan**
 
 Ubah `ServiceRecordStatus` menjadi:
 
@@ -1989,7 +1989,7 @@ final class ServiceRecordStatus
 Hapus constant/label `CANCELLED`. Jangan mengubah status pembatalan pada
 `follow_up_status` atau `coordination_status`.
 
-- [ ] **Step 5: Retire status dibatalkan pada data fresh dan incremental**
+- [x] **Step 5: Retire status dibatalkan pada data fresh dan incremental**
 
 Migration:
 
@@ -2016,7 +2016,7 @@ Perbarui `ServiceRecordStatusMigrationTest` agar membuktikan kasus/konsultasi
 legacy diarsipkan, reference inactive, dan follow-up/coordination cancellation
 tetap tersedia.
 
-- [ ] **Step 6: Ubah policy kepemilikan**
+- [x] **Step 6: Ubah policy kepemilikan**
 
 Gunakan aturan executable berikut:
 
@@ -2042,7 +2042,7 @@ Untuk konsultasi, `update()` dan `archive()` mensyaratkan role `guru_bk`,
 `counselor_id === user.id`, dan `isProfessionallyAccessibleTo($user)`. Method
 assign/coordinate kasus tetap menolak status terminal.
 
-- [ ] **Step 7: Validasi edit selesai di Form Request**
+- [x] **Step 7: Validasi edit selesai di Form Request**
 
 Pada `UpdateCaseRequest`, gunakan `$record = $this->route('case')` dan
 `$category = 'case_status'`. Pada `UpdateConsultationRequest`, gunakan
@@ -2073,7 +2073,7 @@ Tambahkan pesan `Alasan perubahan wajib diisi untuk data yang telah selesai.`.
 Pastikan `closed_at`, identitas, `counselor_id`, dan owner assignment tidak ada
 pada allowlist request edit.
 
-- [ ] **Step 8: Implementasikan service update dan archive**
+- [x] **Step 8: Implementasikan service update dan archive**
 
 Di dalam transaksi, lock row, load status, dan periksa owner kembali sebelum
 mutasi. Kontrak service:
@@ -2098,7 +2098,7 @@ Gunakan pola yang sama untuk `consultation.completed_record_updated`. Sebelum
 `delete()`, audit action `case.archived` atau `consultation.archived`; jangan
 menghapus relasi histori dan jangan mengubah status menjadi nilai lain.
 
-- [ ] **Step 9: Ganti UX Batalkan dengan Edit/Hapus**
+- [x] **Step 9: Ganti UX Batalkan dengan Edit/Hapus**
 
 Ganti route lama:
 
@@ -2124,7 +2124,7 @@ tetap dikirim sebagai hidden input. Semua tombol Hapus memakai form `DELETE`
 dengan `data-confirm-submit` dan pesan `Data akan diarsipkan dan tidak tampil
 pada daftar utama. Lanjutkan?`.
 
-- [ ] **Step 10: Verifikasi lifecycle**
+- [x] **Step 10: Verifikasi lifecycle**
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php
@@ -2135,7 +2135,7 @@ php vendor/bin/pint --test database/migrations/2026_09_14_000050_retire_cancelle
 git diff --check
 ```
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```powershell
 git add database/migrations/2026_09_14_000050_retire_cancelled_service_records.php database/seeders/ReferenceSeeder.php app/Support/ServiceRecordStatus.php app/Policies/CasePolicy.php app/Policies/ConsultationPolicy.php app/Http/Requests/UpdateCaseRequest.php app/Http/Requests/UpdateConsultationRequest.php app/Http/Requests/ArchiveCaseRequest.php app/Http/Requests/ArchiveConsultationRequest.php app/Http/Controllers/CaseController.php app/Http/Controllers/ConsultationController.php app/Services/CaseService.php app/Services/ConsultationService.php routes/web.php routes/bk-services.php resources/views/components/terminal-edit-confirmation.blade.php resources/views/pages/cases/index.blade.php resources/views/pages/cases/show.blade.php resources/views/pages/cases/edit.blade.php resources/views/pages/consultations/create.blade.php resources/views/pages/consultations/show.blade.php tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/ServiceRecordStatusMigrationTest.php tests/Unit/ServiceRecordStatusTest.php
