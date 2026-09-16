@@ -17,13 +17,12 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   dengan keputusan keluar, dan reotorisasi setelah lock. Perbaikan `e72ea04`
   lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
   pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
-- Checkpoint 6A dan 6B sudah terintegrasi melalui PR #16 dan PR #17.
-  Checkpoint 6C selesai lokal dan menunggu review final serta PR.
+- Checkpoint 6 selesai dan sudah terintegrasi melalui PR #16, PR #17, dan PR #18.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
 
-### 16 September 2026 — Checkpoint 6C lokal: laporan dan baseline praproduksi
+### 16 September 2026 — Checkpoint 6C: laporan dan baseline praproduksi
 
 - `ReportService` menjadi facade 58 baris; query pelanggaran, layanan, dan
   prestasi dipisah tanpa mengubah tujuh kontrak legacy atau output.
@@ -34,6 +33,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Review independen final tidak menemukan temuan Critical, Important, atau Minor.
 - Tidak ada migration, perubahan route/controller/policy/dependency, atau
   adapter production. Runtime verifikasi memakai PHP 8.4.11.
+- PR #18 terintegrasi ke `cobasidebar` pada `a1426b2`; branch sumber remote
+  sudah dihapus.
 
 ### 16 September 2026 — Checkpoint 6B: pengaturan integrasi
 
