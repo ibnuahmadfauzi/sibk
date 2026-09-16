@@ -7,10 +7,12 @@
 - Branch sumber remote `checkpoint-5b-operasional` sudah tidak ada.
 - Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
   laporan/baseline praproduksi tanpa mengubah scope.
-- Checkpoint selesai lokal: 6A - Refactor rekonsiliasi Dapodik.
-- Branch: `checkpoint-6a-dapodik`.
-- Worktree: `.worktrees/checkpoint-6-refactor`.
-- Baseline Checkpoint 6: `fd9a20a` dari `origin/cobasidebar`.
+- PR #16 Checkpoint 6A terintegrasi ke `cobasidebar` pada commit `81e1587`.
+- Branch sumber remote `checkpoint-6a-dapodik` sudah tidak ada.
+- Checkpoint aktif: 6B - Refactor pengaturan integrasi.
+- Branch: `checkpoint-6b-integration-settings`.
+- Worktree: `.worktrees/checkpoint-6b-integration-settings`.
+- Baseline Checkpoint 6B: `81e1587` dari `origin/cobasidebar` setelah PR #16.
 
 ## Hasil dan gate terakhir
 
@@ -31,15 +33,15 @@
   production, atau perubahan test perilaku.
 - Commit refactor: `a07e0e6`.
 
-## Scope Checkpoint 6A
+## Scope Checkpoint 6B
 
-1. Pecah `DapodikReconciliationService` menjadi facade tipis untuk preview,
-   pencocokan, validasi apply, penerapan, dan deactivation plan.
-2. Jalankan focused gate perilaku, transaksi, concurrency, dan rekonsiliasi
-   identitas.
-3. Jalankan gate penuh, review diff, dan siapkan PR 6A ke `cobasidebar`.
+1. Pecah `IntegrationSettingService` menjadi facade untuk resolver status,
+   penyimpanan, uji koneksi, dan aktivasi.
+2. Pertahankan binding `IntegrationConfigurationProvider`, credential terenkripsi,
+   transaksi, lock/fencing, deadline, audit, dan redaksi secret.
+3. Jalankan focused gate integrasi dan gate penuh.
+4. Simpan branch 6B; PR tetap menunggu 6A merged terlebih dahulu.
 
-Checkpoint 6B baru memecah `IntegrationSettingService` setelah PR 6A merged.
 Checkpoint 6C baru memecah laporan dan menjalankan baseline praproduksi setelah
 PR 6B merged.
 
@@ -55,10 +57,10 @@ PR 6B merged.
 
 ## Langkah berikutnya
 
-1. Push branch dan buat PR ke `cobasidebar` setelah persetujuan pengguna.
-2. Setelah merge, verifikasi status `MERGED` dan branch sumber remote bersih.
-3. Mulai Checkpoint 6B dari `cobasidebar` hasil merge.
-4. Jangan memulai 6B sebelum PR 6A berstatus `MERGED`.
+1. Jalankan Task 2 plan: pecah pengaturan integrasi.
+2. Verifikasi focused gate dan commit refactor.
+3. Jalankan full gate Checkpoint 6B.
+4. Perbarui handoff/development log dan simpan branch.
 
 ## Blocker
 

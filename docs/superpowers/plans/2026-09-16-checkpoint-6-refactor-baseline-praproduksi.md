@@ -23,9 +23,9 @@
 
 - **Checkpoint 6A — Dapodik:** Task 1, focused gate, full gate, review, dan PR
   ke `cobasidebar`.
-- **Checkpoint 6B — Pengaturan integrasi:** Task 2 dimulai dari
-  `cobasidebar` setelah PR 6A merged, lalu focused gate, full gate, review,
-  dan PR tersendiri.
+- **Checkpoint 6B — Pengaturan integrasi:** Task 2 dikembangkan pada branch
+  independen dari commit bersama sebelum implementasi 6A. PR 6B tetap menunggu
+  PR 6A merged, lalu branch diselaraskan dengan `cobasidebar` sebelum review.
 - **Checkpoint 6C — Laporan dan praproduksi:** Task 3-4 dimulai dari
   `cobasidebar` setelah PR 6B merged, lalu gate praproduksi dan PR terakhir.
 - Scope dan perilaku Checkpoint 6 tidak berubah; pembagian ini hanya mengecilkan
