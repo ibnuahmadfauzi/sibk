@@ -12,8 +12,14 @@
   `checkpoint-6b-integration-settings` sudah dihapus.
 - PR #18 Checkpoint 6C terintegrasi pada commit `a1426b2`; branch sumber remote
   `checkpoint-6c-report-baseline` sudah dihapus.
+- PR #19 memperbarui handoff Checkpoint 6 pada commit `1f5346e`.
+- PR #20 menyambungkan histori `main` ke `cobasidebar` pada commit `abff702`.
+- PR #21 membersihkan whitespace gate rilis pada commit `a440bdf`.
+- PR #22 merilis baseline Ruang BK v1.1 ke `main` pada commit `b59b839`.
 - Branch acuan: `cobasidebar`.
-- Baseline selesai Checkpoint 6: `a1426b2` dari `origin/cobasidebar`.
+- Baseline pengembangan: `a440bdf` dari `origin/cobasidebar`.
+- Baseline produksi: `b59b839` dari `origin/main`; tree aplikasi identik dengan
+  baseline pengembangan saat rilis.
 
 ## Hasil dan gate terakhir
 
@@ -29,14 +35,15 @@
 - Gate sensitif integrasi lulus 110 test/1.463 assertion; laporan/otorisasi
   lulus 35 test/418 assertion.
 - Full gate lulus 454 test/3.498 assertion, Pint, checker frontend, build,
-  Composer strict, dan diff-check.
+  Composer strict, dan diff-check terhadap `main` pada kandidat rilis `a440bdf`.
 - Cache config, route, dan view dapat dibuat serta dibersihkan. Verifikasi
   memakai `CACHE_STORE=array` sementara karena worktree tidak memiliki
   database SQLite lokal.
 - Tidak ada migration, perubahan route/controller/policy/dependency, adapter
   production, output, scope data, format CSV, atau perubahan test perilaku.
 - Review independen final tidak menemukan temuan Critical, Important, maupun
-  Minor; autowiring facade, privasi, pagination, query count, dan lazy export lulus.
+  Minor; review rilis juga memastikan tidak ada commit `main` yang hilang,
+  konflik merge, credential, atau artefak build/cache ter-commit.
 - Commit refactor laporan: `3b90ca4`.
 - Verifikasi memakai PHP 8.4.11; runtime langsung PHP 8.3 belum diuji.
 
@@ -61,8 +68,8 @@
 
 ## Langkah berikutnya
 
-1. Review `cobasidebar` sebagai kandidat merge ke `main`; jangan merge ke
-   `main` tanpa persetujuan baru.
+1. Tidak ada task implementasi aktif. Tunggu prioritas berikutnya atau kontrak
+   resmi provider yang lolos admission gate.
 
 ## Blocker
 
@@ -71,7 +78,7 @@
 
 ## Acuan
 
-- Plan aktif: `docs/superpowers/plans/2026-09-16-checkpoint-6-refactor-baseline-praproduksi.md`
+- Plan selesai: `docs/superpowers/plans/2026-09-16-checkpoint-6-refactor-baseline-praproduksi.md`
 - Spec: `docs/superpowers/specs/2026-09-14-baseline-cobasidebar-arsip-dan-penyederhanaan-design.md`
 - Matriks otorisasi: `docs/testing/authorization-matrix.md`
 - Kontrak provider: `docs/integrations/provider-contract-admission.md`
