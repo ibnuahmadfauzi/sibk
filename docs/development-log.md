@@ -17,14 +17,25 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   dengan keputusan keluar, dan reotorisasi setelah lock. Perbaikan `e72ea04`
   lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
   pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
-- Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
-  laporan/baseline praproduksi. Checkpoint 6A sudah terintegrasi melalui PR #16;
-  Checkpoint 6B selesai lokal dan sedang diintegrasikan.
+- Checkpoint 6A dan 6B sudah terintegrasi melalui PR #16 dan PR #17.
+  Checkpoint 6C selesai lokal dan menunggu review final serta PR.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
 
-### 16 September 2026 — Checkpoint 6B lokal: pengaturan integrasi
+### 16 September 2026 — Checkpoint 6C lokal: laporan dan baseline praproduksi
+
+- `ReportService` menjadi facade 58 baris; query pelanggaran, layanan, dan
+  prestasi dipisah tanpa mengubah tujuh kontrak legacy atau output.
+- Focused gate lulus 41 test/467 assertion; gate sensitif lulus 110 test/1.463
+  assertion dan 35 test/418 assertion.
+- Gate penuh lulus 454 test/3.498 assertion, Pint, checker frontend, build,
+  Composer strict, diff-check, serta cache config/route/view.
+- Review independen final tidak menemukan temuan Critical, Important, atau Minor.
+- Tidak ada migration, perubahan route/controller/policy/dependency, atau
+  adapter production. Runtime verifikasi memakai PHP 8.4.11.
+
+### 16 September 2026 — Checkpoint 6B: pengaturan integrasi
 
 - `IntegrationSettingService` menjadi facade kompatibel untuk resolver status,
   penyimpanan, uji koneksi, dan aktivasi; binding provider tidak berubah.
@@ -33,6 +44,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Focused gate pascarebase lulus 110 test/1.463 assertion; gate penuh pascarebase
   lulus 454 test/3.498 assertion, Pint, checker frontend, build, Composer strict,
   dan diff-check.
+- PR #17 terintegrasi ke `cobasidebar` pada `ce85cb7`; branch sumber remote
+  sudah dihapus.
 
 ### 16 September 2026 - Checkpoint 6A: refactor Dapodik
 
@@ -43,6 +56,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   assertion, Pint, checker frontend, build, Composer strict, dan diff-check.
 - Tidak ada migration, perubahan route/controller/policy/dependency, perubahan
   keluaran, atau adapter production. Runtime verifikasi memakai PHP 8.4.11.
+- PR #16 terintegrasi ke `cobasidebar` pada `81e1587`; branch sumber remote
+  sudah dihapus.
 
 ### 16 September 2026 — Checkpoint 5B Task 15
 
