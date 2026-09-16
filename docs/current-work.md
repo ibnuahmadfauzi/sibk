@@ -7,18 +7,29 @@
 - Branch sumber remote `checkpoint-5b-operasional` sudah tidak ada.
 - Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
   laporan/baseline praproduksi tanpa mengubah scope.
-- Checkpoint aktif: 6A - Refactor rekonsiliasi Dapodik.
+- Checkpoint selesai lokal: 6A - Refactor rekonsiliasi Dapodik.
 - Branch: `checkpoint-6a-dapodik`.
 - Worktree: `.worktrees/checkpoint-6-refactor`.
 - Baseline Checkpoint 6: `fd9a20a` dari `origin/cobasidebar`.
 
-## Verifikasi awal
+## Hasil dan gate terakhir
 
 - `git fetch --prune origin` mengonfirmasi `origin/cobasidebar` pada `fd9a20a`.
 - Commit tersebut mempunyai parent kedua `e3e0cb0`, yaitu HEAD PR #15.
 - Ref `refs/pull/15/head` menunjuk `e3e0cb0`; branch sumber remote sudah dihapus.
 - Baseline worktree lulus `composer test`: 454 test/3.498 assertion.
 - Setup memakai PHP/dependency dari lock file; tidak ada update dependency.
+- `DapodikReconciliationService` menjadi facade 48 baris dengan tiga operasi
+  publik yang tetap kompatibel: preview, keputusan, dan apply.
+- Logika dipisah ke `DapodikPreviewBuilder`, `DapodikMatchResolver`,
+  `DapodikApplyValidator`, `DapodikApplyService`, dan
+  `DapodikDeactivationPlanner`.
+- Focused gate lulus 52 test/353 assertion, Pint, dan diff-check.
+- Full gate lulus 454 test/3.498 assertion, Pint, checker frontend, build,
+  Composer strict, dan diff-check.
+- Tidak ada migration, perubahan route/controller/policy/dependency, adapter
+  production, atau perubahan test perilaku.
+- Commit refactor: `a07e0e6`.
 
 ## Scope Checkpoint 6A
 
@@ -44,11 +55,10 @@ PR 6B merged.
 
 ## Langkah berikutnya
 
-1. Jalankan Task 1 plan: pecah rekonsiliasi Dapodik.
-2. Verifikasi focused gate dan commit refactor.
-3. Jalankan full gate Checkpoint 6A.
-4. Perbarui handoff/development log dan siapkan PR ke `cobasidebar`.
-5. Jangan memulai 6B sebelum PR 6A berstatus `MERGED`.
+1. Push branch dan buat PR ke `cobasidebar` setelah persetujuan pengguna.
+2. Setelah merge, verifikasi status `MERGED` dan branch sumber remote bersih.
+3. Mulai Checkpoint 6B dari `cobasidebar` hasil merge.
+4. Jangan memulai 6B sebelum PR 6A berstatus `MERGED`.
 
 ## Blocker
 

@@ -49,7 +49,7 @@
 - Produces: facade dengan `createPreview(...)`, `decide(...)`, dan `apply(...)` yang signature serta return type-nya tidak berubah.
 - Produces: `DapodikPreviewBuilder::create(...)`, `DapodikMatchResolver::decide(...)`, `DapodikApplyValidator::validate(...)`, `DapodikApplyService::apply(...)`, dan operasi plan/validasi/apply pada `DapodikDeactivationPlanner`.
 
-- [ ] **Step 1: Kunci perilaku awal dengan test karakterisasi existing**
+- [x] **Step 1: Kunci perilaku awal dengan test karakterisasi existing**
 
 Run:
 
@@ -59,7 +59,7 @@ php artisan test tests/Feature/DapodikSyncTest.php
 
 Expected: PASS. Refactor ini tidak menambah perilaku baru, sehingga test existing menjadi karakterisasi dan tidak ditambah assertion struktur internal.
 
-- [ ] **Step 2: Pindahkan pembuatan pratinjau**
+- [x] **Step 2: Pindahkan pembuatan pratinjau**
 
 Pindahkan tubuh `createPreview()` beserta normalisasi, pembuatan item, snapshot evidence, dan fingerprint pratinjau ke `DapodikPreviewBuilder::create()`. Inject hanya dependency yang dipakai: `AuditService`, `IntegrationOperationLock`, `DapodikMatchResolver`, dan `DapodikDeactivationPlanner`.
 
@@ -75,7 +75,7 @@ public function create(
 ): ExternalSyncRun
 ```
 
-- [ ] **Step 3: Pindahkan pencocokan dan keputusan**
+- [x] **Step 3: Pindahkan pencocokan dan keputusan**
 
 Pindahkan `decide()`, perhitungan keputusan membership turunan, pencarian kandidat/target, klasifikasi empat jenis item, fingerprint target, canonical JSON, dan konversi tanggal ke `DapodikMatchResolver`. Jangan mengubah query, urutan lock, pesan validasi, atau payload audit.
 
@@ -91,7 +91,7 @@ public function decide(
 ): DapodikSyncPreviewItem
 ```
 
-- [ ] **Step 4: Pindahkan validasi apply**
+- [x] **Step 4: Pindahkan validasi apply**
 
 Pindahkan pemeriksaan preview aktif, revision, hash/fingerprint, graph induk-anak, ownership natural key, target drift, dan keputusan membership turunan ke `DapodikApplyValidator::validate()`.
 
@@ -100,13 +100,12 @@ Pindahkan pemeriksaan preview aktif, revision, hash/fingerprint, graph induk-ana
 public function validate(
     ExternalSyncRun $run,
     Collection $items,
-    int $expectedDecisionRevision,
 ): void
 ```
 
 Validator memakai `DapodikMatchResolver` untuk resolusi target/fingerprint dan `DapodikDeactivationPlanner` untuk membandingkan plan, tanpa menulis data.
 
-- [ ] **Step 5: Pindahkan plan dan penerapan deactivation**
+- [x] **Step 5: Pindahkan plan dan penerapan deactivation**
 
 Pindahkan `buildDeactivationPlan()`, `validateDeactivationPlan()`, dan `applyDeactivationPlan()` ke `DapodikDeactivationPlanner`. Pertahankan aturan: hanya row `master_source=dapodik` dari full snapshot yang boleh dinonaktifkan dan setiap perubahan tetap diaudit.
 
@@ -120,7 +119,7 @@ public function validate(ExternalSyncRun $run, Collection $items): void
 public function apply(ExternalSyncRun $run, User $actor): void
 ```
 
-- [ ] **Step 6: Pindahkan transaksi apply dan jadikan facade tipis**
+- [x] **Step 6: Pindahkan transaksi apply dan jadikan facade tipis**
 
 Pindahkan transaksi `apply()`, mutasi item, audit target, pencatatan unmatched issue, rekonsiliasi identitas, dan relink e-Tatib ke `DapodikApplyService`. Pertahankan `DB::transaction()` di luar seluruh rangkaian mutasi.
 
@@ -164,7 +163,7 @@ final class DapodikReconciliationService
 }
 ```
 
-- [ ] **Step 7: Jalankan focused gate**
+- [x] **Step 7: Jalankan focused gate**
 
 Run:
 
@@ -176,14 +175,14 @@ git diff --check
 
 Expected: seluruh command exit 0 dan hasil Dapodik tetap identik.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add app/Services/DapodikReconciliationService.php app/Services/DapodikPreviewBuilder.php app/Services/DapodikMatchResolver.php app/Services/DapodikApplyValidator.php app/Services/DapodikApplyService.php app/Services/DapodikDeactivationPlanner.php
 git commit -m "refactor: pecah layanan rekonsiliasi Dapodik"
 ```
 
-- [ ] **Step 9: Jalankan full gate Checkpoint 6A**
+- [x] **Step 9: Jalankan full gate Checkpoint 6A**
 
 ```powershell
 composer test
@@ -196,7 +195,10 @@ git diff --check
 
 Expected: seluruh command exit 0.
 
-- [ ] **Step 10: Catat handoff dan tutup 6A**
+Hasil: 454 test/3.498 assertion, Pint, checker frontend, build, Composer strict,
+dan diff-check lulus.
+
+- [x] **Step 10: Catat handoff dan tutup 6A**
 
 Perbarui `docs/current-work.md` dan `docs/development-log.md` dengan hasil focused
 gate, full gate, commit terakhir, serta langkah PR ke `cobasidebar`.
