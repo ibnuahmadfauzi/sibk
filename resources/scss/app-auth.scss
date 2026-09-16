@@ -1,0 +1,323 @@
+@import 'bootstrap-override';
+@import 'bootstrap/scss/bootstrap';
+@import 'tokens';
+@import 'shared';
+
+body {
+  min-width: 20rem;
+  background: var(--sibk-color-page);
+  color: var(--sibk-color-text);
+  font-family: var(--sibk-font-family);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--sibk-font-heading);
+  color: var(--sibk-color-text-dark);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+// ─── Layout principal ────────────────────────────────────────────────────────
+
+.sibk-auth {
+  min-height: 100vh;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(23rem, 0.9fr) minmax(28rem, 1.1fr);
+}
+
+// ─── Panel kiri: identitas dan ilustrasi ─────────────────────────────────────
+
+.sibk-auth-brand {
+  overflow: hidden;
+  background: var(--sibk-color-brand-panel);
+
+  &__inner {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(2rem, 5vw, 4rem);
+  }
+
+  &__identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: fit-content;
+    color: var(--sibk-color-primary);
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+
+    img { width: 2.25rem; height: 2.25rem; flex: 0 0 auto; }
+  }
+
+  &__copy {
+    max-width: 34rem;
+    margin: 2.5rem 0 0;
+
+    h1 {
+      max-width: 30rem;
+      margin: 0 0 0.9rem;
+      color: var(--sibk-color-text);
+      font-size: clamp(1.2rem, 2vw, 1.75rem);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+    }
+
+    > p:last-child {
+      max-width: 32rem;
+      margin: 0;
+      color: var(--sibk-color-text-muted);
+      font-size: 0.95rem;
+      line-height: 1.75;
+    }
+  }
+
+  &__accent {
+    width: 2.6rem;
+    height: 0.2rem;
+    margin: 0 0 1.1rem;
+    border-radius: 50rem;
+    background: var(--sibk-color-accent);
+  }
+
+  &__note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+    color: var(--sibk-color-text-muted);
+    font-size: 0.78rem;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
+}
+
+// Ilustrasi konsultasi
+
+.sibk-auth-illustration {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  margin: 1rem -0.5rem 0;
+  overflow: hidden;
+  min-height: 10rem;
+
+  img {
+    width: 100%;
+    height: auto;
+    max-height: 24rem;
+    object-fit: contain;
+    object-position: bottom center;
+  }
+}
+
+// ─── Panel kanan: form ────────────────────────────────────────────────────────
+
+.sibk-auth-form-area {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 5vw, 4.5rem);
+  background: var(--sibk-color-page);
+}
+
+.sibk-auth-card {
+  min-width: 0;
+  width: min(100%, 30rem);
+  padding: clamp(1.75rem, 4vw, 2.75rem);
+  border-radius: var(--sibk-radius-xl);
+  background: var(--sibk-color-surface-raised);
+  box-shadow: var(--sibk-shadow-raised);
+
+  &__logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+
+    img { width: 3.5rem; height: 3.5rem; }
+  }
+
+  &__header {
+    margin-bottom: 1.75rem;
+    text-align: center;
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2vw, 1.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  .form-label { font-weight: 700; margin-bottom: 0.5rem; }
+  .input-group {
+    min-width: 0;
+    background-color: var(--sibk-color-field) !important;
+    border: 1px solid var(--sibk-color-border-light) !important;
+    border-radius: var(--sibk-radius-md) !important;
+    box-shadow: var(--sibk-shadow-inset) !important;
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+  }
+  .input-group-text {
+    min-height: 3.1rem;
+    border: none !important;
+    background: transparent !important;
+    color: var(--sibk-color-text-muted) !important;
+    box-shadow: none !important;
+    padding-left: 1rem;
+  }
+  .form-control {
+    min-height: 3.1rem;
+    min-width: 0;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--sibk-color-text) !important;
+    padding: 0.65rem 0.75rem;
+
+    &:focus {
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+  }
+  .sibk-password-toggle {
+    min-height: 3.1rem;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--sibk-color-text-muted);
+    padding-right: 1rem;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--sibk-color-primary);
+    }
+  }
+  .input-group:focus-within {
+    background-color: var(--sibk-color-surface-raised) !important;
+    border-color: var(--sibk-color-primary) !important;
+    box-shadow: var(--sibk-shadow-inset), 0 0 0 0.25rem var(--sibk-focus-ring) !important;
+  }
+  .input-group svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .input-group.is-invalid {
+    border-color: var(--sibk-color-danger) !important;
+    box-shadow: var(--sibk-shadow-inset), 0 0 0 0.2rem rgba(220, 53, 69, 0.15) !important;
+  }
+  .invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: 0.4rem;
+    padding-left: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--sibk-color-danger);
+
+    &.d-block {
+      display: block;
+    }
+  }
+}
+
+// ─── Komponen form ────────────────────────────────────────────────────────────
+
+.sibk-auth-submit {
+  min-height: 3.1rem;
+  font-weight: 700;
+  border-radius: var(--sibk-radius-md);
+  background: linear-gradient(145deg, #357ad6, #2761ae) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  box-shadow: var(--sibk-shadow-button) !important;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover,
+  &:focus {
+    background: #25589e !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+    box-shadow: inset 3px 3px 6px rgba(10, 35, 75, 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(1px);
+  }
+
+  &:active,
+  &.active,
+  &:active:focus {
+    background: #204b86 !important;
+    border-color: rgba(0, 0, 0, 0.25) !important;
+    box-shadow: inset 4px 4px 8px rgba(10, 35, 75, 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(2px) scale(0.985);
+  }
+}
+
+.sibk-form-summary,
+.sibk-auth-success {
+  display: grid;
+  grid-template-columns: 1.35rem 1fr;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: var(--sibk-radius-md);
+
+  &[hidden] { display: none; }
+  svg { width: 1.35rem; height: 1.35rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  strong { display: block; margin-bottom: 0.15rem; }
+  p { margin: 0; font-size: 0.82rem; }
+}
+
+.sibk-form-summary { border-color: var(--sibk-color-danger-border); background: var(--sibk-color-danger-soft); color: var(--sibk-color-danger); }
+.sibk-auth-success { border-color: var(--sibk-color-success); background: var(--sibk-color-success-soft); color: var(--sibk-color-success); }
+
+.sibk-auth-help {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--sibk-color-border-light);
+  border-radius: var(--sibk-radius-md);
+  color: var(--sibk-color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+
+  svg { width: 1.2rem; height: 1.2rem; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  strong { color: var(--sibk-color-primary); font-weight: 700; }
+}
+
+// ─── Responsif ─────────────────────────────────────────────────────────────────
+
+@media (max-width: 1199.98px) {
+  .sibk-auth-illustration { max-height: 18rem; }
+}
+
+@media (max-width: 991.98px) {
+  .sibk-auth { grid-template-columns: minmax(20rem, 0.8fr) minmax(24rem, 1.2fr); }
+  .sibk-auth-brand__inner { padding: 2.25rem; }
+  .sibk-auth-illustration { display: none; }
+}
+
+@media (max-width: 767.98px) {
+  .sibk-auth { display: block; }
+  .sibk-auth-brand { display: none; }
+  .sibk-auth-form-area { width: 100%; min-height: 100vh; padding: 1rem; }
+  .sibk-auth-card { width: 100%; max-width: 100%; box-shadow: none; }
+}
