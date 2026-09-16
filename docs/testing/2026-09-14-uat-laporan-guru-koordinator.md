@@ -1,8 +1,11 @@
 # UAT Laporan Guru BK dan Koordinator
 
 Status: **PASS MANUAL**
-Branch: `checkpoint-4-laporan`  
-SHA aplikasi yang diuji CLI: `af9e69a`  
+
+Branch: `checkpoint-4-laporan`
+
+SHA aplikasi yang diuji CLI: `af9e69a`
+
 Tanggal gate CLI: 15 September 2026
 
 UAT wajib dilakukan manusia melalui browser biasa. Jangan memakai browser
