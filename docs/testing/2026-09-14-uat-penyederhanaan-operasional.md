@@ -1,6 +1,6 @@
 # UAT Penyederhanaan Operasional Ruang BK
 
-Status: **PENDING MANUAL**
+Status: **PASS MANUAL**
 Branch: `checkpoint-5b-operasional`
 SHA aplikasi yang diuji CLI: `1c54867`
 Tanggal gate CLI: 16 September 2026
@@ -23,11 +23,11 @@ automation, headless browser, CUA, atau perbandingan screenshot otomatis.
 
 | Isian | Hasil |
 |---|---|
-| Nama/inisial tester | PENDING |
-| Tanggal UAT | PENDING |
-| Browser dan versi | PENDING |
+| Nama/inisial tester | QA pengguna (hasil dilaporkan oleh pengguna) |
+| Tanggal UAT | 16 September 2026 |
+| Browser dan versi | Tidak dilaporkan |
 | Branch/SHA | `checkpoint-5b-operasional` / `1c54867` |
-| Database engine | PENDING |
+| Database engine | SQLite disposable |
 | Jumlah tabel | 36 pada fresh SQLite dan MySQL disposable |
 
 ## Checklist manual
@@ -36,23 +36,23 @@ Isi setiap sel dengan `PASS` atau `FAIL: <catatan singkat>`.
 
 | No. | Skenario | 1440 × 900 | 768 × 1024 | 390 × 844 |
 |---:|---|---|---|---|
-| 1 | Guru BK melihat laporan dan data hanya dalam scope. | PENDING | PENDING | PENDING |
-| 2 | Koordinator melihat rekap seluruh kelas tanpa isi konsultasi sensitif. | PENDING | PENDING | PENDING |
-| 3 | Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak tampil. | PENDING | PENDING | PENDING |
-| 4 | Edit data belum selesai langsung membuka form. | PENDING | PENDING | PENDING |
-| 5 | Edit data selesai meminta konfirmasi dan alasan. | PENDING | PENDING | PENDING |
-| 6 | Hapus kasus/konsultasi meminta konfirmasi lalu mengarsipkan. | PENDING | PENDING | PENDING |
-| 7 | Role selain owner gagal edit/arsip melalui URL langsung. | PENDING | PENDING | PENDING |
-| 8 | Guru BK mencatat proses keluar tanpa menonaktifkan murid. | PENDING | PENDING | PENDING |
-| 9 | Keputusan Batal mempertahankan murid aktif. | PENDING | PENDING | PENDING |
-| 10 | Resmi keluar menolak layanan baru sejak tanggal efektif. | PENDING | PENDING | PENDING |
-| 11 | Waka melihat semua status proses keluar tanpa aksi mutasi. | PENDING | PENDING | PENDING |
-| 12 | Sinkronisasi roster tidak mengubah keputusan keluar. | PENDING | PENDING | PENDING |
-| 13 | Admin IT membuat/reset akun dan melihat password sementara satu kali. | PENDING | PENDING | PENDING |
-| 14 | Akun ber-password sementara hanya dapat membuka Ganti Password/Logout. | PENDING | PENDING | PENDING |
-| 15 | Password kedaluwarsa ditolak dan sesi lama terputus. | PENDING | PENDING | PENDING |
-| 16 | Dashboard role-aware tidak menampilkan aktivitas audit. | PENDING | PENDING | PENDING |
-| 17 | Tidak ada overflow horizontal; focus state terlihat. | PENDING | PENDING | PENDING |
+| 1 | Guru BK melihat laporan dan data hanya dalam scope. | PASS | PASS | PASS |
+| 2 | Koordinator melihat rekap seluruh kelas tanpa isi konsultasi sensitif. | PASS | PASS | PASS |
+| 3 | Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak tampil. | PASS | PASS | PASS |
+| 4 | Edit data belum selesai langsung membuka form. | PASS | PASS | PASS |
+| 5 | Edit data selesai meminta konfirmasi dan alasan. | PASS | PASS | PASS |
+| 6 | Hapus kasus/konsultasi meminta konfirmasi lalu mengarsipkan. | PASS | PASS | PASS |
+| 7 | Role selain owner gagal edit/arsip melalui URL langsung. | PASS | PASS | PASS |
+| 8 | Guru BK mencatat proses keluar tanpa menonaktifkan murid. | PASS | PASS | PASS |
+| 9 | Keputusan Batal mempertahankan murid aktif. | PASS | PASS | PASS |
+| 10 | Resmi keluar menolak layanan baru sejak tanggal efektif. | PASS | PASS | PASS |
+| 11 | Waka melihat semua status proses keluar tanpa aksi mutasi. | PASS | PASS | PASS |
+| 12 | Sinkronisasi roster tidak mengubah keputusan keluar. | PASS | PASS | PASS |
+| 13 | Admin IT membuat/reset akun dan melihat password sementara satu kali. | PASS | PASS | PASS |
+| 14 | Akun ber-password sementara hanya dapat membuka Ganti Password/Logout. | PASS | PASS | PASS |
+| 15 | Password kedaluwarsa ditolak dan sesi lama terputus. | PASS | PASS | PASS |
+| 16 | Dashboard role-aware tidak menampilkan aktivitas audit. | PASS | PASS | PASS |
+| 17 | Tidak ada overflow horizontal; focus state terlihat. | PASS | PASS | PASS |
 
 ## Evidence otomatis
 
@@ -82,5 +82,6 @@ dan tidak mengubah sel checklist di atas.
 
 ## Hasil akhir
 
-Gate otomatis lulus. Checkpoint 5B belum boleh ditutup atau digabungkan sampai
-tester manusia mengisi seluruh skenario dan mengembalikan hasil `PASS`.
+Gate otomatis lulus. QA pengguna melaporkan seluruh 17 skenario pada tiga
+viewport `PASS`; Checkpoint 5B dapat ditutup dan dilanjutkan ke review serta
+integrasi `cobasidebar`.

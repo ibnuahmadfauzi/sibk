@@ -8,14 +8,24 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 5A (Task 8–10) selesai; Checkpoint 5B (Task 11–15) menjadi
-  pekerjaan berikutnya setelah integrasi ke `cobasidebar`.
+- Checkpoint 5A (Task 8–10) selesai dan sudah terintegrasi ke `cobasidebar`.
 - Pra-UAT menemukan dan memperbaiki pilihan bidang layanan yang hilang dari
   form kasus. Gate CLI Checkpoint 5B kini lulus 449 test/3.485 assertion;
-  UAT manual gabungan masih `PENDING MANUAL` sebelum checkpoint ditutup.
+  UAT manual gabungan kemudian dilaporkan `PASS` oleh QA pengguna pada seluruh
+  17 skenario dan tiga viewport; browser dan versinya tidak dilaporkan.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 16 September 2026 — Checkpoint 5B Task 15
+
+- Gate otomatis Checkpoint 5B lulus 449 test/3.485 assertion, Pint, checker
+  frontend, build, Composer strict, audit dependency, cache, scan keamanan,
+  SQLite, MySQL disposable, dan diff-check.
+- QA pengguna melaporkan seluruh 17 skenario UAT manual pada viewport
+  1440 × 900, 768 × 1024, dan 390 × 844 berstatus `PASS`.
+- Task 15 dan plan gabungan ditutup; branch siap direview dan diintegrasikan ke
+  `cobasidebar`.
 
 ### 16 September 2026 — Checkpoint 5B Task 14
 

@@ -3466,7 +3466,7 @@ Dashboard menampilkan panel role-aware tanpa aktivitas audit.
 Tidak ada horizontal overflow dan seluruh focus state terlihat.
 ```
 
-- [ ] **Step 6: Terima hasil manual dan tutup plan**
+- [x] **Step 6: Terima hasil manual dan tutup plan**
 
 Setelah pelaksana manual mengirim hasil, isi UAT dengan nama/inisial tester,
 tanggal, browser dan versi, branch/SHA, database engine, jumlah tabel, jumlah

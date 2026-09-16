@@ -4,8 +4,8 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
-- Checkpoint aktif: 5B — Task 11–15.
-- Task 11–14 selesai; gate CLI Task 15 lulus, UAT manual masih menunggu.
+- Checkpoint selesai: 5B — Task 11–15.
+- Gate CLI Task 15 dan UAT manual tiga viewport telah lulus.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -84,7 +84,8 @@
   test/795 assertion dan gate penuh lulus 449 test/3.485 assertion, Pint,
   checker frontend, build, Composer strict, serta diff-check.
 - Eksplorasi berbantuan alat tidak dihitung sebagai UAT manual. Checklist tiga
-  viewport tetap harus dijalankan manusia sesuai dokumen UAT aktif.
+  viewport kemudian dilaporkan `PASS` oleh QA pengguna pada 16 September 2026;
+  browser dan versinya tidak dilaporkan.
 
 ## Arsip
 
@@ -95,8 +96,8 @@
 
 ## Langkah berikutnya
 
-1. Tester manusia menjalankan checklist UAT gabungan pada tiga viewport.
-2. Setelah seluruh UAT PASS, tutup Task 15, review, dan integrasikan ke `cobasidebar`.
+1. Jalankan verifikasi akhir dan review branch Checkpoint 5B.
+2. Integrasikan branch melalui PR ke `cobasidebar` setelah review bersih.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
