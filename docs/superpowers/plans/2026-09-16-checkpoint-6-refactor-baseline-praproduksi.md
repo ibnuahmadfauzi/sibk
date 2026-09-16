@@ -525,7 +525,7 @@ git add docs/current-work.md docs/development-log.md
 git commit -m "docs: catat baseline praproduksi checkpoint 6"
 ```
 
-- [ ] **Step 7: Review final sebelum PR**
+- [x] **Step 7: Review final sebelum PR**
 
 ```powershell
 git status --short --branch

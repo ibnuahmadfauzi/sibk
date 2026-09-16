@@ -35,6 +35,8 @@
   database SQLite lokal.
 - Tidak ada migration, perubahan route/controller/policy/dependency, adapter
   production, output, scope data, format CSV, atau perubahan test perilaku.
+- Review independen final tidak menemukan temuan Critical, Important, maupun
+  Minor; autowiring facade, privasi, pagination, query count, dan lazy export lulus.
 - Commit refactor laporan: `3b90ca4`.
 - Verifikasi memakai PHP 8.4.11; runtime langsung PHP 8.3 belum diuji.
 
@@ -59,10 +61,9 @@
 
 ## Langkah berikutnya
 
-1. Jalankan review final diff Checkpoint 6C.
-2. Push branch dan buat PR ke `cobasidebar`.
-3. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
-4. Review `cobasidebar` sebagai kandidat merge ke `main`; jangan merge ke
+1. Push branch dan buat PR ke `cobasidebar`.
+2. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
+3. Review `cobasidebar` sebagai kandidat merge ke `main`; jangan merge ke
    `main` tanpa persetujuan baru.
 
 ## Blocker
