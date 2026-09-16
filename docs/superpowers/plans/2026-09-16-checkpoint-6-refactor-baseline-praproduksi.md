@@ -19,9 +19,21 @@
 - Adapter production Dapodik/e-Tatib tetap `unavailable` sampai kontrak resmi lolos admission gate.
 - Gunakan Bahasa Indonesia sederhana untuk dokumentasi dan pesan commit.
 
+## Pembagian Checkpoint
+
+- **Checkpoint 6A — Dapodik:** Task 1, focused gate, full gate, review, dan PR
+  ke `cobasidebar`.
+- **Checkpoint 6B — Pengaturan integrasi:** Task 2 dimulai dari
+  `cobasidebar` setelah PR 6A merged, lalu focused gate, full gate, review,
+  dan PR tersendiri.
+- **Checkpoint 6C — Laporan dan praproduksi:** Task 3-4 dimulai dari
+  `cobasidebar` setelah PR 6B merged, lalu gate praproduksi dan PR terakhir.
+- Scope dan perilaku Checkpoint 6 tidak berubah; pembagian ini hanya mengecilkan
+  ukuran diff, review, dan risiko integrasi setiap PR.
+
 ---
 
-### Task 1: Pecah rekonsiliasi Dapodik dan pertahankan facade
+### Checkpoint 6A — Task 1: Pecah rekonsiliasi Dapodik dan pertahankan facade
 
 **Files:**
 - Create: `app/Services/DapodikPreviewBuilder.php`
@@ -171,9 +183,32 @@ git add app/Services/DapodikReconciliationService.php app/Services/DapodikPrevie
 git commit -m "refactor: pecah layanan rekonsiliasi Dapodik"
 ```
 
+- [ ] **Step 9: Jalankan full gate Checkpoint 6A**
+
+```powershell
+composer test
+php vendor/bin/pint --test
+npm run check:frontend
+npm run build
+composer validate --strict
+git diff --check
+```
+
+Expected: seluruh command exit 0.
+
+- [ ] **Step 10: Catat handoff dan tutup 6A**
+
+Perbarui `docs/current-work.md` dan `docs/development-log.md` dengan hasil focused
+gate, full gate, commit terakhir, serta langkah PR ke `cobasidebar`.
+
+```powershell
+git add docs/current-work.md docs/development-log.md
+git commit -m "docs: tutup checkpoint 6A Dapodik"
+```
+
 ---
 
-### Task 2: Pecah pengaturan integrasi dan pertahankan provider binding
+### Checkpoint 6B — Task 2: Pecah pengaturan integrasi dan pertahankan provider binding
 
 **Files:**
 - Create: `app/Services/IntegrationStateResolver.php`
@@ -285,9 +320,32 @@ git add app/Services/IntegrationSettingService.php app/Services/IntegrationState
 git commit -m "refactor: pecah layanan pengaturan integrasi"
 ```
 
+- [ ] **Step 9: Jalankan full gate Checkpoint 6B**
+
+```powershell
+composer test
+php vendor/bin/pint --test
+npm run check:frontend
+npm run build
+composer validate --strict
+git diff --check
+```
+
+Expected: seluruh command exit 0.
+
+- [ ] **Step 10: Catat handoff dan tutup 6B**
+
+Perbarui `docs/current-work.md` dan `docs/development-log.md` dengan hasil focused
+gate, full gate, commit terakhir, serta langkah PR ke `cobasidebar`.
+
+```powershell
+git add docs/current-work.md docs/development-log.md
+git commit -m "docs: tutup checkpoint 6B pengaturan integrasi"
+```
+
 ---
 
-### Task 3: Ganti ReportService lama dengan facade dan query per keluarga
+### Checkpoint 6C — Task 3: Ganti ReportService lama dengan facade dan query per keluarga
 
 **Files:**
 - Create: `app/Services/LegacyReportQuery.php`
@@ -390,7 +448,7 @@ git commit -m "refactor: pecah query laporan lama"
 
 ---
 
-### Task 4: Verifikasi baseline praproduksi dan tutup checkpoint
+### Checkpoint 6C — Task 4: Verifikasi baseline praproduksi dan tutup checkpoint
 
 **Files:**
 - Modify: `docs/current-work.md`

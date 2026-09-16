@@ -5,8 +5,10 @@
 - Checkpoint selesai: 1-5.
 - PR #15 Checkpoint 5B terintegrasi ke `cobasidebar` pada commit `fd9a20a`.
 - Branch sumber remote `checkpoint-5b-operasional` sudah tidak ada.
-- Checkpoint aktif: 6 - Refactor dan baseline praproduksi.
-- Branch: `checkpoint-6-refactor`.
+- Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
+  laporan/baseline praproduksi tanpa mengubah scope.
+- Checkpoint aktif: 6A - Refactor rekonsiliasi Dapodik.
+- Branch: `checkpoint-6a-dapodik`.
 - Worktree: `.worktrees/checkpoint-6-refactor`.
 - Baseline Checkpoint 6: `fd9a20a` dari `origin/cobasidebar`.
 
@@ -18,17 +20,17 @@
 - Baseline worktree lulus `composer test`: 454 test/3.498 assertion.
 - Setup memakai PHP/dependency dari lock file; tidak ada update dependency.
 
-## Scope Checkpoint 6
+## Scope Checkpoint 6A
 
 1. Pecah `DapodikReconciliationService` menjadi facade tipis untuk preview,
    pencocokan, validasi apply, penerapan, dan deactivation plan.
-2. Pecah `IntegrationSettingService` menjadi facade untuk resolver status,
-   penyimpanan, uji koneksi, dan aktivasi.
-3. Ganti isi `ReportService` lama dengan facade, tiga query keluarga laporan,
-   dan adapter legacy.
-4. Jalankan focused gate untuk perilaku, transaksi/concurrency, privasi,
-   otorisasi, serta kompatibilitas legacy.
-5. Jalankan gate penuh dan cache praproduksi, lalu siapkan PR ke `cobasidebar`.
+2. Jalankan focused gate perilaku, transaksi, concurrency, dan rekonsiliasi
+   identitas.
+3. Jalankan gate penuh, review diff, dan siapkan PR 6A ke `cobasidebar`.
+
+Checkpoint 6B baru memecah `IntegrationSettingService` setelah PR 6A merged.
+Checkpoint 6C baru memecah laporan dan menjalankan baseline praproduksi setelah
+PR 6B merged.
 
 ## Batas wajib
 
@@ -43,10 +45,10 @@
 ## Langkah berikutnya
 
 1. Jalankan Task 1 plan: pecah rekonsiliasi Dapodik.
-2. Verifikasi focused gate dan commit Task 1 sebelum lanjut.
-3. Jalankan Task 2 pengaturan integrasi.
-4. Jalankan Task 3 laporan legacy.
-5. Jalankan Task 4 gate penuh, review, dan handoff penutupan checkpoint.
+2. Verifikasi focused gate dan commit refactor.
+3. Jalankan full gate Checkpoint 6A.
+4. Perbarui handoff/development log dan siapkan PR ke `cobasidebar`.
+5. Jangan memulai 6B sebelum PR 6A berstatus `MERGED`.
 
 ## Blocker
 
