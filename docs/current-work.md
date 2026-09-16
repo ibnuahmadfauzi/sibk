@@ -2,7 +2,7 @@
 
 ## Status
 
-- Checkpoint selesai: 1-5.
+- Checkpoint selesai: 1-6.
 - PR #15 Checkpoint 5B terintegrasi ke `cobasidebar` pada commit `fd9a20a`.
 - Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
   laporan/baseline praproduksi tanpa mengubah scope.
@@ -10,10 +10,10 @@
   `checkpoint-6a-dapodik` sudah dihapus.
 - PR #17 Checkpoint 6B terintegrasi pada commit `ce85cb7`; branch sumber remote
   `checkpoint-6b-integration-settings` sudah dihapus.
-- Checkpoint selesai lokal: 6C — Refactor laporan dan baseline praproduksi.
-- Branch: `checkpoint-6c-report-baseline`.
-- Worktree: `.worktrees/checkpoint-6c-report-baseline`.
-- Baseline Checkpoint 6C: `ce85cb7` dari `origin/cobasidebar` setelah PR #17.
+- PR #18 Checkpoint 6C terintegrasi pada commit `a1426b2`; branch sumber remote
+  `checkpoint-6c-report-baseline` sudah dihapus.
+- Branch acuan: `cobasidebar`.
+- Baseline selesai Checkpoint 6: `a1426b2` dari `origin/cobasidebar`.
 
 ## Hasil dan gate terakhir
 
@@ -47,7 +47,7 @@
 2. Pertahankan tujuh kontrak legacy, tiga tab laporan, otorisasi, privasi,
    pagination, query count, dan lazy export.
 3. Audit larangan scope dan jalankan baseline praproduksi.
-4. Siapkan PR Checkpoint 6C ke `cobasidebar`.
+4. Integrasikan Checkpoint 6C melalui PR #18 ke `cobasidebar`.
 
 ## Batas wajib
 
@@ -61,9 +61,7 @@
 
 ## Langkah berikutnya
 
-1. Push branch dan buat PR ke `cobasidebar`.
-2. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
-3. Review `cobasidebar` sebagai kandidat merge ke `main`; jangan merge ke
+1. Review `cobasidebar` sebagai kandidat merge ke `main`; jangan merge ke
    `main` tanpa persetujuan baru.
 
 ## Blocker
