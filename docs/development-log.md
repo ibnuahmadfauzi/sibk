@@ -30,8 +30,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   penyimpanan, uji koneksi, dan aktivasi; binding provider tidak berubah.
 - Credential, transaksi, lock/fencing, deadline, audit, redaksi secret, serta
   fallback driver `unavailable` tetap dilindungi test perilaku.
-- Focused gate lulus 110 test/1.463 assertion; gate penuh lulus 454 test/3.498
-  assertion, Pint, checker frontend, build, Composer strict, dan diff-check.
+- Focused gate pascarebase lulus 110 test/1.463 assertion; gate penuh pascarebase
+  lulus 454 test/3.498 assertion, Pint, checker frontend, build, Composer strict,
+  dan diff-check.
 
 ### 16 September 2026 - Checkpoint 6A: refactor Dapodik
 

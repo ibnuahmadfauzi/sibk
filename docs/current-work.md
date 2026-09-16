@@ -24,12 +24,12 @@
   tujuh method publik yang tetap kompatibel.
 - Logika dipisah ke `IntegrationStateResolver`, `IntegrationSettingUpdater`,
   `IntegrationConnectionTester`, dan `IntegrationActivationService`.
-- Focused gate lulus 110 test/1.463 assertion, Pint, dan diff-check.
-- Full gate lulus 454 test/3.498 assertion, Pint, checker frontend, build,
+- Focused gate pascarebase lulus 110 test/1.463 assertion, Pint, dan diff-check.
+- Full gate pascarebase lulus 454 test/3.498 assertion, Pint, checker frontend, build,
   Composer strict, dan diff-check.
 - Binding `IntegrationConfigurationProvider` tidak berubah; tidak ada migration,
   perubahan route/controller/policy/dependency, atau adapter production.
-- Commit refactor: `952162e`.
+- Commit refactor pascarebase: `e194ba5`.
 
 ## Scope Checkpoint 6B
 
