@@ -1,8 +1,8 @@
 # UAT Penyederhanaan Operasional Ruang BK
 
-Status: **PASS MANUAL**
+Status: **PENDING MANUAL — UJI ULANG TERBATAS**
 Branch: `checkpoint-5b-operasional`
-SHA aplikasi yang diuji CLI: `1c54867`
+SHA aplikasi yang diuji CLI: `e72ea04`
 Tanggal gate CLI: 16 September 2026
 
 UAT wajib dilakukan manusia melalui browser biasa. Jangan memakai browser
@@ -65,7 +65,7 @@ dan tidak mengubah sel checklist di atas.
 |---|---|
 | Focused feature gate pasca-perbaikan UAT | PASS - 110 test, 795 assertion |
 | Focused feature gate pasca-review | PASS - 126 test, 975 assertion; MySQL 3 test, 7 assertion |
-| Full test | PASS - 449 test, 3.485 assertion |
+| Full test | PASS - 454 test, 3.498 assertion |
 | Pint | PASS |
 | Composer strict dan audit | PASS — tidak ada advisory |
 | NPM audit | PASS — 0 vulnerability tingkat tinggi |
@@ -80,8 +80,24 @@ dan tidak mengubah sel checklist di atas.
 | Scan credential | PASS — hanya istilah/kebijakan generik dan fixture sintetis; tidak ada nilai nyata |
 | Tindak lanjut review | PASS — password wajib berbeda, snapshot audit lengkap, dan batas tanggal keluar konsisten |
 
+## Uji ulang pasca-review
+
+Review final menemukan celah expiry sesi aktif, race pembuatan kasus dengan
+keputusan keluar resmi, dan otorisasi stale pada proses keluar. Perbaikan
+`e72ea04` telah lulus test regresi dan gate penuh, tetapi dibuat setelah UAT
+manual awal. QA perlu mengulang hanya skenario terdampak berikut pada aplikasi
+SHA tersebut serta melaporkan browser dan versinya.
+
+| Skenario | 1440 × 900 | 768 × 1024 | 390 × 844 |
+|---|---|---|---|
+| 8 — Guru BK mencatat proses keluar | PENDING | PENDING | PENDING |
+| 9 — Koordinator menetapkan Batal | PENDING | PENDING | PENDING |
+| 10 — Resmi keluar menolak layanan baru | PENDING | PENDING | PENDING |
+| 15 — Password sementara kedaluwarsa ditolak | PENDING | PENDING | PENDING |
+
 ## Hasil akhir
 
-Gate otomatis lulus. QA pengguna melaporkan seluruh 17 skenario pada tiga
-viewport `PASS`; Checkpoint 5B dapat ditutup dan dilanjutkan ke review serta
-integrasi `cobasidebar`.
+Gate otomatis lulus. QA pengguna sebelumnya melaporkan seluruh 17 skenario
+pada tiga viewport `PASS` untuk aplikasi SHA `1c54867`. Checkpoint 5B belum
+dapat ditutup sampai uji ulang terbatas pada SHA `e72ea04` berstatus `PASS`
+dan metadata browser/versi dilaporkan.

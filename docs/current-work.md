@@ -4,8 +4,8 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
-- Checkpoint selesai: 5B — Task 11–15.
-- Gate CLI Task 15 dan UAT manual tiga viewport telah lulus.
+- Checkpoint aktif: 5B — Task 11–15.
+- Task 11–14 selesai; gate CLI Task 15 lulus, uji ulang manual terbatas masih menunggu.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -86,6 +86,10 @@
 - Eksplorasi berbantuan alat tidak dihitung sebagai UAT manual. Checklist tiga
   viewport kemudian dilaporkan `PASS` oleh QA pengguna pada 16 September 2026;
   browser dan versinya tidak dilaporkan.
+- Review final menemukan expiry password sesi aktif, race pembuatan kasus
+  dengan keputusan keluar, dan otorisasi stale proses keluar. Perbaikan
+  `e72ea04` dikunci lima test regresi; gate penuh lulus 454 test/3.498 assertion.
+  Skenario UAT 8–10 dan 15 perlu diulang pada tiga viewport.
 
 ## Arsip
 
@@ -96,8 +100,9 @@
 
 ## Langkah berikutnya
 
-1. Jalankan verifikasi akhir dan review branch Checkpoint 5B.
-2. Integrasikan branch melalui PR ke `cobasidebar` setelah review bersih.
+1. QA mengulang skenario UAT 8–10 dan 15 pada tiga viewport serta melaporkan
+   browser dan versinya.
+2. Setelah seluruh uji ulang PASS, review ulang dan integrasikan melalui PR ke `cobasidebar`.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
