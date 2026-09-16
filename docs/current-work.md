@@ -4,8 +4,8 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
-- Checkpoint aktif: 5B — Task 11–15.
-- Task 11–14 selesai; gate CLI Task 15 lulus, uji ulang manual terbatas masih menunggu.
+- Checkpoint selesai: 5B — Task 11–15.
+- Gate CLI Task 15 dan seluruh UAT manual telah lulus.
 - Branch: `checkpoint-5b-operasional`.
 - Worktree: `.worktrees/checkpoint-5b-operasional`.
 - Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
@@ -89,7 +89,8 @@
 - Review final menemukan expiry password sesi aktif, race pembuatan kasus
   dengan keputusan keluar, dan otorisasi stale proses keluar. Perbaikan
   `e72ea04` dikunci lima test regresi; gate penuh lulus 454 test/3.498 assertion.
-  Skenario UAT 8–10 dan 15 perlu diulang pada tiga viewport.
+  Uji ulang skenario 8–10 dan 15 dilaporkan `PASS` pada tiga viewport memakai
+  Google Chrome 153.0.8010.48 64-bit.
 
 ## Arsip
 
@@ -100,9 +101,8 @@
 
 ## Langkah berikutnya
 
-1. QA mengulang skenario UAT 8–10 dan 15 pada tiga viewport serta melaporkan
-   browser dan versinya.
-2. Setelah seluruh uji ulang PASS, review ulang dan integrasikan melalui PR ke `cobasidebar`.
+1. Integrasikan branch melalui PR ke `cobasidebar`.
+2. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 

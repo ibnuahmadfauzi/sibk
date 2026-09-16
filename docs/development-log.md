@@ -15,10 +15,20 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   17 skenario dan tiga viewport; browser dan versinya tidak dilaporkan.
 - Review final menemukan tiga celah pada expiry sesi aktif, serialisasi layanan
   dengan keputusan keluar, dan reotorisasi setelah lock. Perbaikan `e72ea04`
-  lulus gate penuh; uji ulang manual skenario 8–10 dan 15 masih menunggu.
+  lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
+  pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 16 September 2026 — Checkpoint 5B Task 15
+
+- Gate otomatis Checkpoint 5B lulus 454 test/3.498 assertion, Pint, checker
+  frontend, build, Composer strict, audit dependency, cache, scan keamanan,
+  SQLite, MySQL disposable, dan diff-check.
+- QA pengguna melaporkan seluruh 17 skenario UAT awal serta uji ulang terbatas
+  skenario 8–10 dan 15 pada tiga viewport berstatus `PASS`.
+- Review ulang tidak menemukan blocker kode; Task 15 dan plan gabungan ditutup.
 
 ### 16 September 2026 — Checkpoint 5B Task 14
 

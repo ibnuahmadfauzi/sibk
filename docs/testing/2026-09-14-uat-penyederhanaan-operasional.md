@@ -1,6 +1,6 @@
 # UAT Penyederhanaan Operasional Ruang BK
 
-Status: **PENDING MANUAL — UJI ULANG TERBATAS**
+Status: **PASS MANUAL**
 Branch: `checkpoint-5b-operasional`
 SHA aplikasi yang diuji CLI: `e72ea04`
 Tanggal gate CLI: 16 September 2026
@@ -25,7 +25,7 @@ automation, headless browser, CUA, atau perbandingan screenshot otomatis.
 |---|---|
 | Nama/inisial tester | QA pengguna (hasil dilaporkan oleh pengguna) |
 | Tanggal UAT | 16 September 2026 |
-| Browser dan versi | Tidak dilaporkan |
+| Browser dan versi | Google Chrome 153.0.8010.48 (Official Build) 64-bit |
 | Branch/SHA | `checkpoint-5b-operasional` / `1c54867` |
 | Database engine | SQLite disposable |
 | Jumlah tabel | 36 pada fresh SQLite dan MySQL disposable |
@@ -90,14 +90,14 @@ SHA tersebut serta melaporkan browser dan versinya.
 
 | Skenario | 1440 × 900 | 768 × 1024 | 390 × 844 |
 |---|---|---|---|
-| 8 — Guru BK mencatat proses keluar | PENDING | PENDING | PENDING |
-| 9 — Koordinator menetapkan Batal | PENDING | PENDING | PENDING |
-| 10 — Resmi keluar menolak layanan baru | PENDING | PENDING | PENDING |
-| 15 — Password sementara kedaluwarsa ditolak | PENDING | PENDING | PENDING |
+| 8 — Guru BK mencatat proses keluar | PASS | PASS | PASS |
+| 9 — Koordinator menetapkan Batal | PASS | PASS | PASS |
+| 10 — Resmi keluar menolak layanan baru | PASS | PASS | PASS |
+| 15 — Password sementara kedaluwarsa ditolak | PASS | PASS | PASS |
 
 ## Hasil akhir
 
-Gate otomatis lulus. QA pengguna sebelumnya melaporkan seluruh 17 skenario
-pada tiga viewport `PASS` untuk aplikasi SHA `1c54867`. Checkpoint 5B belum
-dapat ditutup sampai uji ulang terbatas pada SHA `e72ea04` berstatus `PASS`
-dan metadata browser/versi dilaporkan.
+Gate otomatis lulus. QA pengguna melaporkan seluruh 17 skenario awal dan uji
+ulang terbatas skenario 8–10 serta 15 pada aplikasi SHA `e72ea04` berstatus
+`PASS` di tiga viewport memakai Google Chrome 153.0.8010.48 64-bit. Checkpoint
+5B dapat ditutup dan dilanjutkan ke integrasi `cobasidebar`.
