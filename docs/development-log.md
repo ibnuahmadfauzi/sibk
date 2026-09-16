@@ -5,22 +5,23 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
-- Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 5A (Task 8–10) selesai dan sudah terintegrasi ke `cobasidebar`.
-- Pra-UAT menemukan dan memperbaiki pilihan bidang layanan yang hilang dari
-  form kasus. Gate CLI Checkpoint 5B kini lulus 454 test/3.498 assertion;
-  UAT manual gabungan kemudian dilaporkan `PASS` oleh QA pengguna pada seluruh
-  17 skenario dan tiga viewport; browser dan versinya tidak dilaporkan.
-- Review final menemukan tiga celah pada expiry sesi aktif, serialisasi layanan
-  dengan keputusan keluar, dan reotorisasi setelah lock. Perbaikan `e72ea04`
-  lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
-  pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
-- Checkpoint 6 selesai dan sudah terintegrasi melalui PR #16, PR #17, dan PR #18.
+- Tidak ada task implementasi aktif setelah baseline v1.1 dirilis ke `main`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 16 September 2026 - Rilis baseline Ruang BK v1.1
+
+- Histori `main` disambungkan ke `cobasidebar` melalui PR #20 tanpa mengubah
+  tree aplikasi; README aktif dari `cobasidebar` dipertahankan.
+- Cleanup whitespace lama melalui PR #21 membuat diff-check terhadap `main`
+  lulus tanpa perubahan perilaku.
+- Kandidat `a440bdf` lulus 454 test/3.498 assertion, Pint, checker frontend,
+  build, Composer strict, dan diff-check.
+- Review independen tidak menemukan temuan Critical, Important, atau Minor;
+  `main` dipastikan menjadi ancestor kandidat sebelum rilis.
+- PR #22 terintegrasi ke `main` pada `b59b839`; tree produksi identik dengan
+  kandidat `cobasidebar` saat rilis.
 
 ### 16 September 2026 — Checkpoint 6C: laporan dan baseline praproduksi
 
