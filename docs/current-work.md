@@ -9,29 +9,27 @@
   laporan/baseline praproduksi tanpa mengubah scope.
 - PR #16 Checkpoint 6A terintegrasi ke `cobasidebar` pada commit `81e1587`.
 - Branch sumber remote `checkpoint-6a-dapodik` sudah tidak ada.
-- Checkpoint aktif: 6B - Refactor pengaturan integrasi.
+- Checkpoint selesai lokal: 6B - Refactor pengaturan integrasi.
 - Branch: `checkpoint-6b-integration-settings`.
 - Worktree: `.worktrees/checkpoint-6b-integration-settings`.
 - Baseline Checkpoint 6B: `81e1587` dari `origin/cobasidebar` setelah PR #16.
 
 ## Hasil dan gate terakhir
 
-- `git fetch --prune origin` mengonfirmasi `origin/cobasidebar` pada `fd9a20a`.
-- Commit tersebut mempunyai parent kedua `e3e0cb0`, yaitu HEAD PR #15.
-- Ref `refs/pull/15/head` menunjuk `e3e0cb0`; branch sumber remote sudah dihapus.
+- `git fetch --prune origin` mengonfirmasi `origin/cobasidebar` pada `81e1587`.
+- PR #16 berstatus `MERGED`; branch sumber remote 6A sudah dihapus.
 - Baseline worktree lulus `composer test`: 454 test/3.498 assertion.
 - Setup memakai PHP/dependency dari lock file; tidak ada update dependency.
-- `DapodikReconciliationService` menjadi facade 48 baris dengan tiga operasi
-  publik yang tetap kompatibel: preview, keputusan, dan apply.
-- Logika dipisah ke `DapodikPreviewBuilder`, `DapodikMatchResolver`,
-  `DapodikApplyValidator`, `DapodikApplyService`, dan
-  `DapodikDeactivationPlanner`.
-- Focused gate lulus 52 test/353 assertion, Pint, dan diff-check.
+- `IntegrationSettingService` menjadi facade 99 baris dengan constructor dan
+  tujuh method publik yang tetap kompatibel.
+- Logika dipisah ke `IntegrationStateResolver`, `IntegrationSettingUpdater`,
+  `IntegrationConnectionTester`, dan `IntegrationActivationService`.
+- Focused gate lulus 110 test/1.463 assertion, Pint, dan diff-check.
 - Full gate lulus 454 test/3.498 assertion, Pint, checker frontend, build,
   Composer strict, dan diff-check.
-- Tidak ada migration, perubahan route/controller/policy/dependency, adapter
-  production, atau perubahan test perilaku.
-- Commit refactor: `a07e0e6`.
+- Binding `IntegrationConfigurationProvider` tidak berubah; tidak ada migration,
+  perubahan route/controller/policy/dependency, atau adapter production.
+- Commit refactor: `952162e`.
 
 ## Scope Checkpoint 6B
 
@@ -40,7 +38,7 @@
 2. Pertahankan binding `IntegrationConfigurationProvider`, credential terenkripsi,
    transaksi, lock/fencing, deadline, audit, dan redaksi secret.
 3. Jalankan focused gate integrasi dan gate penuh.
-4. Simpan branch 6B; PR tetap menunggu 6A merged terlebih dahulu.
+4. Integrasikan branch 6B setelah sinkronisasi dan verifikasi ulang.
 
 Checkpoint 6C baru memecah laporan dan menjalankan baseline praproduksi setelah
 PR 6B merged.
@@ -57,10 +55,10 @@ PR 6B merged.
 
 ## Langkah berikutnya
 
-1. Jalankan Task 2 plan: pecah pengaturan integrasi.
-2. Verifikasi focused gate dan commit refactor.
-3. Jalankan full gate Checkpoint 6B.
-4. Perbarui handoff/development log dan simpan branch.
+1. Jalankan focused gate dan full gate setelah rebase ke hasil PR #16.
+2. Review diff, push, dan buat PR 6B ke `cobasidebar`.
+3. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
+4. Mulai Checkpoint 6C hanya setelah PR 6B berstatus `MERGED`.
 
 ## Blocker
 

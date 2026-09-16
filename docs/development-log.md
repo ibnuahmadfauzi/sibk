@@ -18,10 +18,20 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
   pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
 - Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
-  laporan/baseline praproduksi. Checkpoint 6A selesai lokal dan menunggu PR.
+  laporan/baseline praproduksi. Checkpoint 6A sudah terintegrasi melalui PR #16;
+  Checkpoint 6B selesai lokal dan sedang diintegrasikan.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 16 September 2026 — Checkpoint 6B lokal: pengaturan integrasi
+
+- `IntegrationSettingService` menjadi facade kompatibel untuk resolver status,
+  penyimpanan, uji koneksi, dan aktivasi; binding provider tidak berubah.
+- Credential, transaksi, lock/fencing, deadline, audit, redaksi secret, serta
+  fallback driver `unavailable` tetap dilindungi test perilaku.
+- Focused gate lulus 110 test/1.463 assertion; gate penuh lulus 454 test/3.498
+  assertion, Pint, checker frontend, build, Composer strict, dan diff-check.
 
 ### 16 September 2026 - Checkpoint 6A: refactor Dapodik
 

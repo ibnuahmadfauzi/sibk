@@ -228,7 +228,7 @@ git commit -m "docs: tutup checkpoint 6A Dapodik"
 - Produces: seluruh method publik facade tetap sama: `allStates()`, `save()`, `testConnection()`, `activate()`, `deactivate()`, `active()`, dan `assertCurrent()`.
 - Produces: resolver status/runtime, updater penyimpanan, tester koneksi, dan service aktivasi yang masing-masing memegang satu lifecycle.
 
-- [ ] **Step 1: Kunci perilaku awal**
+- [x] **Step 1: Kunci perilaku awal**
 
 Run:
 
@@ -238,7 +238,7 @@ php artisan test tests/Feature/IntegrationSettingTest.php tests/Feature/DapodikS
 
 Expected: PASS, termasuk transaksi, fencing/deadline, redaksi secret, dan driver unavailable.
 
-- [ ] **Step 2: Ekstrak resolver status dan runtime**
+- [x] **Step 2: Ekstrak resolver status dan runtime**
 
 Pindahkan `stateForProvider()`, `state()`, `runtimeConfiguration()`, `driver()`, `policy()`, `auditSnapshot()`, `hasReadableCredentials()`, `endpointOrigin()`, `assertProvider()`, dan invariant aktivasi ke `IntegrationStateResolver`. API internal yang dipakai komponen lain:
 
@@ -257,7 +257,7 @@ public function assertCurrent(
 public function auditSnapshot(IntegrationSetting $setting, bool $credentialChanged): array
 ```
 
-- [ ] **Step 3: Ekstrak penyimpanan konfigurasi**
+- [x] **Step 3: Ekstrak penyimpanan konfigurasi**
 
 Pindahkan tubuh `save()`, normalisasi input, nullable trim, dan clear verification ke `IntegrationSettingUpdater::save()`. Pertahankan `#[\SensitiveParameter]`, penanganan ciphertext rusak, lock, transaksi, audit, increment `configuration_version`, serta no-op tanpa write.
 
@@ -270,7 +270,7 @@ public function save(
 ): IntegrationSettingState
 ```
 
-- [ ] **Step 4: Ekstrak uji koneksi**
+- [x] **Step 4: Ekstrak uji koneksi**
 
 Pindahkan tubuh `testConnection()`, validasi probe code, dan pemeriksaan konfigurasi hasil probe ke `IntegrationConnectionTester::test()`. Network fetch tetap di luar transaksi; penyelesaian hasil tetap masuk lock/transaksi dan gagal aman bila config/fence/deadline berubah.
 
@@ -278,7 +278,7 @@ Pindahkan tubuh `testConnection()`, validasi probe code, dan pemeriksaan konfigu
 public function test(string $provider, User $actor): IntegrationSettingState
 ```
 
-- [ ] **Step 5: Ekstrak aktivasi dan nonaktifkan**
+- [x] **Step 5: Ekstrak aktivasi dan nonaktifkan**
 
 Pindahkan `activate()` dan `deactivate()` ke `IntegrationActivationService`. Pertahankan bahwa deactivate tetap dapat commit ketika driver registry tidak dapat di-resolve, tetapi audit failure tetap rollback.
 
@@ -287,7 +287,7 @@ public function activate(string $provider, User $actor): IntegrationSettingState
 public function deactivate(string $provider, User $actor): IntegrationSettingState
 ```
 
-- [ ] **Step 6: Jadikan service lama facade**
+- [x] **Step 6: Jadikan service lama facade**
 
 ```php
 final class IntegrationSettingService implements IntegrationConfigurationProvider
@@ -305,7 +305,7 @@ final class IntegrationSettingService implements IntegrationConfigurationProvide
 
 Jangan mengubah binding di `AppServiceProvider`; consumer interface harus tetap memperoleh facade.
 
-- [ ] **Step 7: Jalankan focused gate**
+- [x] **Step 7: Jalankan focused gate**
 
 ```powershell
 php artisan test tests/Feature/IntegrationSettingTest.php tests/Feature/DapodikSyncTest.php tests/Feature/EtatibSyncTest.php
@@ -315,14 +315,14 @@ git diff --check
 
 Expected: seluruh command exit 0, tidak ada credential pada output test atau diff.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add app/Services/IntegrationSettingService.php app/Services/IntegrationStateResolver.php app/Services/IntegrationSettingUpdater.php app/Services/IntegrationConnectionTester.php app/Services/IntegrationActivationService.php
 git commit -m "refactor: pecah layanan pengaturan integrasi"
 ```
 
-- [ ] **Step 9: Jalankan full gate Checkpoint 6B**
+- [x] **Step 9: Jalankan full gate Checkpoint 6B**
 
 ```powershell
 composer test
@@ -335,7 +335,7 @@ git diff --check
 
 Expected: seluruh command exit 0.
 
-- [ ] **Step 10: Catat handoff dan tutup 6B**
+- [x] **Step 10: Catat handoff dan tutup 6B**
 
 Perbarui `docs/current-work.md` dan `docs/development-log.md` dengan hasil focused
 gate, full gate, commit terakhir, serta langkah PR ke `cobasidebar`.
