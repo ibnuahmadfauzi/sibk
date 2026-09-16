@@ -41,7 +41,7 @@
                 </a>
             @else
             @can('viewAny', App\Models\BkCase::class)
-            <a class="sibk-nav-link {{ request()->routeIs('cases.*') || request()->routeIs('consultations.*') ? 'is-active' : '' }}" href="{{ route('cases.index') }}" 
+            <a class="sibk-nav-link {{ request()->routeIs('cases.*') || request()->routeIs('consultations.*') ? 'is-active' : '' }}" href="{{ route('cases.index') }}"
                 aria-current="{{ request()->routeIs('cases.*') || request()->routeIs('consultations.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 4h12a2 2 0 0 1 2 2v14H4V6a2 2 0 0 1 2-2Z"/><path d="M8 4V2h8v2M8 9h8M8 13h5"/></svg>
                 <span>Layanan BK</span>

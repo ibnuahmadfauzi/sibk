@@ -30,7 +30,7 @@
                     <path d="M10 11V9a2 2 0 1 1 4 0v2"></path>
                 </svg>
             </div>
-            
+
             <h1 class="sibk-access-denied-card__title">Akses Ditolak</h1>
             <p class="sibk-access-denied-card__message">Anda tidak memiliki akses ke halaman ini.</p>
             <p class="text-muted small mb-4">Kembali ke Dashboard untuk membuka menu yang tersedia.</p>

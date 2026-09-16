@@ -21,7 +21,7 @@
                 <button class="btn btn-outline-primary text-nowrap">Terapkan</button>
             </form>
         @endif
-        
+
         @if ($dashboard['read_only'])
             <div class="alert sibk-read-only-notice" role="status">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
@@ -56,7 +56,7 @@
                                 <div class="sibk-stat-card__content-col">
                                     <h2 class="sibk-stat-card__label">{{ $stat['label'] }}</h2>
                                     <strong class="sibk-stat-card__value">{{ $stat['value'] }}</strong>
-                                    
+
                                     @if (isset($stat['delta']))
                                         <span class="sibk-stat-delta sibk-stat-delta--{{ $stat['delta_tone'] ?? 'neutral' }}">
                                             @if (($stat['delta_tone'] ?? '') === 'up')

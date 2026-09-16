@@ -32,7 +32,7 @@
                         <h3 class="sibk-panel__title">Informasi Akun</h3>
                         <p class="sibk-panel__subtitle">Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
                     </div>
-                    
+
                     <div class="sibk-panel__body p-4">
                         <div class="sibk-account-profile">
                             <div class="sibk-account-profile__avatar">
