@@ -2,7 +2,7 @@
 
 Status: **PENDING MANUAL**
 Branch: `checkpoint-5b-operasional`
-SHA aplikasi yang diuji CLI: `1c47428`
+SHA aplikasi yang diuji CLI: `1c54867`
 Tanggal gate CLI: 16 September 2026
 
 UAT wajib dilakukan manusia melalui browser biasa. Jangan memakai browser
@@ -26,7 +26,7 @@ automation, headless browser, CUA, atau perbandingan screenshot otomatis.
 | Nama/inisial tester | PENDING |
 | Tanggal UAT | PENDING |
 | Browser dan versi | PENDING |
-| Branch/SHA | `checkpoint-5b-operasional` / `1c47428` |
+| Branch/SHA | `checkpoint-5b-operasional` / `1c54867` |
 | Database engine | PENDING |
 | Jumlah tabel | 36 pada fresh SQLite dan MySQL disposable |
 
@@ -56,10 +56,16 @@ Isi setiap sel dengan `PASS` atau `FAIL: <catatan singkat>`.
 
 ## Evidence otomatis
 
+Pra-UAT berbantuan alat pada 16 September 2026 menemukan bahwa form pembuatan
+kasus belum merender pilihan wajib `service_field_id`. Temuan diperbaiki pada
+commit `1c54867` dan dikunci oleh test regresi. Eksplorasi ini bukan UAT manual
+dan tidak mengubah sel checklist di atas.
+
 | Gate | Hasil |
 |---|---|
-| Focused feature gate pasca-review | PASS — 126 test, 975 assertion; MySQL 3 test, 7 assertion |
-| Full test | PASS — 448 test, 3.481 assertion |
+| Focused feature gate pasca-perbaikan UAT | PASS - 110 test, 795 assertion |
+| Focused feature gate pasca-review | PASS - 126 test, 975 assertion; MySQL 3 test, 7 assertion |
+| Full test | PASS - 449 test, 3.485 assertion |
 | Pint | PASS |
 | Composer strict dan audit | PASS — tidak ada advisory |
 | NPM audit | PASS — 0 vulnerability tingkat tinggi |

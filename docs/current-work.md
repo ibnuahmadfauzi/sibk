@@ -79,6 +79,12 @@
   build, scan keamanan, SQLite/MySQL disposable, dan diff-check.
 - Review kode tidak menemukan isu kritis; tiga temuan penting pada perbedaan
   password, snapshot audit, dan batas tanggal keluar sudah diperbaiki.
+- Pra-UAT menemukan pilihan wajib bidang layanan hilang dari form pembuatan
+  kasus. Perbaikan `1c54867` dikunci test regresi; focused gate lulus 110
+  test/795 assertion dan gate penuh lulus 449 test/3.485 assertion, Pint,
+  checker frontend, build, Composer strict, serta diff-check.
+- Eksplorasi berbantuan alat tidak dihitung sebagai UAT manual. Checklist tiga
+  viewport tetap harus dijalankan manusia sesuai dokumen UAT aktif.
 
 ## Arsip
 
@@ -97,6 +103,6 @@
 ## Acuan
 
 - Plan aktif: `docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md`
-- UAT aktif: `docs/testing/2026-09-14-uat-laporan-guru-koordinator.md`
+- UAT aktif: `docs/testing/2026-09-14-uat-penyederhanaan-operasional.md`
 - Matriks umum: `docs/testing/authorization-matrix.md`
 - Spec aktif: `docs/superpowers/specs/2026-09-14-penyederhanaan-operasional-akun-dan-skema-data-design.md`

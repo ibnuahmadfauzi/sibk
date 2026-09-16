@@ -10,8 +10,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 5A (Task 8–10) selesai; Checkpoint 5B (Task 11–15) menjadi
   pekerjaan berikutnya setelah integrasi ke `cobasidebar`.
-- Gate CLI Checkpoint 5B lulus 448 test/3.481 assertion; UAT manual gabungan
-  masih `PENDING MANUAL` sebelum checkpoint dapat ditutup dan digabungkan.
+- Pra-UAT menemukan dan memperbaiki pilihan bidang layanan yang hilang dari
+  form kasus. Gate CLI Checkpoint 5B kini lulus 449 test/3.485 assertion;
+  UAT manual gabungan masih `PENDING MANUAL` sebelum checkpoint ditutup.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
