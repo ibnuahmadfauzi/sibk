@@ -17,9 +17,21 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   dengan keputusan keluar, dan reotorisasi setelah lock. Perbaikan `e72ea04`
   lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
   pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
+- Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
+  laporan/baseline praproduksi. Checkpoint 6A selesai lokal dan menunggu PR.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 16 September 2026 - Checkpoint 6A: refactor Dapodik
+
+- `DapodikReconciliationService` menjadi facade tipis; preview, pencocokan,
+  validasi apply, penerapan atomik, dan deactivation plan dipisahkan ke lima
+  komponen tanpa mengubah kontrak publik.
+- Focused gate lulus 52 test/353 assertion. Full gate lulus 454 test/3.498
+  assertion, Pint, checker frontend, build, Composer strict, dan diff-check.
+- Tidak ada migration, perubahan route/controller/policy/dependency, perubahan
+  keluaran, atau adapter production. Runtime verifikasi memakai PHP 8.4.11.
 
 ### 16 September 2026 — Checkpoint 5B Task 15
 
