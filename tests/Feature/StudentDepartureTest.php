@@ -24,7 +24,9 @@ use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 final class StudentDepartureTest extends TestCase
@@ -210,6 +212,103 @@ final class StudentDepartureTest extends TestCase
         }
 
         $this->assertDatabaseCount('student_departures', 1);
+    }
+
+    public function test_case_creation_rechecks_departure_after_locking_student(): void
+    {
+        [$teacher, $student] = $this->scopedStudentFixture();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $inserted = false;
+        $event = 'eloquent.retrieved: '.Student::class;
+        Event::listen($event, function (Student $retrieved) use ($student, $teacher, $coordinator, &$inserted): void {
+            if ($inserted || $retrieved->isNot($student)) {
+                return;
+            }
+
+            $inserted = true;
+            StudentDeparture::query()->create([
+                'student_id' => $student->id,
+                'departure_type' => StudentDeparture::TYPE_TRANSFER,
+                'status' => StudentDeparture::STATUS_OFFICIAL,
+                'reported_at' => '2026-09-14',
+                'effective_date' => '2026-09-14',
+                'recorded_by' => $teacher->id,
+                'finalized_by' => $coordinator->id,
+                'finalized_at' => now(),
+            ]);
+        });
+
+        try {
+            app(CaseService::class)->createCase([
+                'student_id' => $student->id,
+                'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+                'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+                'service_date' => '2026-09-14',
+                'initial_info' => 'Informasi awal.',
+                'initial_action' => 'Asesmen awal.',
+            ], $teacher);
+            $this->fail('Kasus dibuat setelah keputusan keluar resmi tersimpan.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('student_id', $exception->errors());
+        } finally {
+            Event::forget($event);
+        }
+
+        $this->assertDatabaseCount('cases', 0);
+    }
+
+    public function test_record_rechecks_teacher_scope_after_lock(): void
+    {
+        [$teacher, $student] = $this->scopedStudentFixture();
+        TeacherAssignment::query()->where('user_id', $teacher->id)->delete();
+
+        try {
+            app(StudentDepartureService::class)->record($student, [
+                'departure_type' => StudentDeparture::TYPE_TRANSFER,
+                'reported_at' => '2026-09-14',
+            ], $teacher);
+            $this->fail('Service menerima pencatatan setelah scope Guru BK dicabut.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertDatabaseCount('student_departures', 0);
+    }
+
+    public function test_update_rechecks_teacher_scope_after_lock(): void
+    {
+        [$teacher, , $departure] = $this->departureFixture();
+        TeacherAssignment::query()->where('user_id', $teacher->id)->delete();
+
+        try {
+            app(StudentDepartureService::class)->updateDraft($departure, [
+                'departure_type' => StudentDeparture::TYPE_OTHER,
+                'recommendation_summary' => 'Perubahan yang tidak sah.',
+            ], $teacher);
+            $this->fail('Service menerima perubahan setelah scope Guru BK dicabut.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertSame(StudentDeparture::TYPE_TRANSFER, $departure->refresh()->departure_type);
+    }
+
+    public function test_finalize_rechecks_coordinator_role_after_lock(): void
+    {
+        [, , $departure] = $this->departureFixture();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $coordinator->roles()->detach();
+
+        try {
+            app(StudentDepartureService::class)->finalize($departure, [
+                'decision' => StudentDeparture::STATUS_CANCELLED,
+            ], $coordinator);
+            $this->fail('Service menerima keputusan setelah role Koordinator dicabut.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertSame(StudentDeparture::STATUS_IN_PROGRESS, $departure->refresh()->status);
     }
 
     public function test_requests_reject_invalid_type_future_date_and_missing_official_date(): void

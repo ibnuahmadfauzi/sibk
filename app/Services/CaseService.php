@@ -33,12 +33,12 @@ class CaseService
             $temporaryStudent = null;
 
             if (($data['student_id'] ?? null) !== null) {
-                $student = Student::query()
+                $student = Student::query()->lockForUpdate()->find((int) $data['student_id']);
+                if ($student === null || ! Student::query()
                     ->availableForService((string) $data['service_date'])
                     ->forActiveTeacherAssignment($actor, now())
-                    ->find((int) $data['student_id']);
-
-                if ($student === null) {
+                    ->whereKey($student->getKey())
+                    ->exists()) {
                     throw ValidationException::withMessages([
                         'student_id' => 'Murid tidak berada dalam scope aktif Anda.',
                     ]);

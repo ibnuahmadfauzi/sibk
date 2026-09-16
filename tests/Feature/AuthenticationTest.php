@@ -132,6 +132,29 @@ class AuthenticationTest extends TestCase
         $this->assertSame(0, AuditLog::query()->where('action', 'auth.login')->count());
     }
 
+    public function test_expired_temporary_password_cannot_be_changed_from_an_existing_session(): void
+    {
+        $user = User::factory()->create([
+            'password' => 'Kedaluwarsa123',
+            'must_change_password' => true,
+            'temporary_password_expires_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($user)->patch(route('account.password.update'), [
+            'current_password' => 'Kedaluwarsa123',
+            'password' => 'PasswordBaru123',
+            'password_confirmation' => 'PasswordBaru123',
+        ])->assertSessionHasErrors('current_password');
+
+        $user->refresh();
+        $this->assertTrue($user->must_change_password);
+        $this->assertTrue(Hash::check('Kedaluwarsa123', $user->password));
+        $this->assertDatabaseMissing('audit_logs', [
+            'action' => 'account.password_changed',
+            'auditable_id' => $user->id,
+        ]);
+    }
+
     public function test_user_changes_temporary_password_and_unlocks_operational_routes(): void
     {
         $user = User::factory()->create([

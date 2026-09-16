@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AccountService
 {
@@ -90,6 +91,12 @@ class AccountService
     {
         return DB::transaction(function () use ($user, $data, $currentSessionId): User {
             $user = User::query()->lockForUpdate()->findOrFail($user->getKey());
+            if ($user->must_change_password
+                && ($user->temporary_password_expires_at === null || $user->temporary_password_expires_at->isPast())) {
+                throw ValidationException::withMessages([
+                    'current_password' => 'Kata sandi sementara telah kedaluwarsa. Hubungi Admin IT untuk menerbitkan ulang.',
+                ]);
+            }
             $user->forceFill([
                 'password' => $data['password'],
                 'must_change_password' => false,

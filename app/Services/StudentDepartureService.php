@@ -19,6 +19,8 @@ final class StudentDepartureService
     {
         return DB::transaction(function () use ($student, $data, $actor): StudentDeparture {
             $student = Student::query()->lockForUpdate()->findOrFail($student->getKey());
+            $actor = User::query()->with('roles')->findOrFail($actor->getKey());
+            abort_unless($actor->can('create', [StudentDeparture::class, $student]), 403);
             $departure = StudentDeparture::query()->firstOrCreate(
                 ['student_id' => $student->getKey()],
                 [
@@ -67,6 +69,8 @@ final class StudentDepartureService
         return DB::transaction(function () use ($departure, $data, $actor): StudentDeparture {
             Student::query()->lockForUpdate()->findOrFail($departure->student_id);
             $departure = StudentDeparture::query()->lockForUpdate()->findOrFail($departure->getKey());
+            $actor = User::query()->with('roles')->findOrFail($actor->getKey());
+            abort_unless($actor->can('update', $departure), 403);
             $this->ensureInProgress($departure);
             $before = $this->snapshot($departure);
             $departure->update([
@@ -92,6 +96,8 @@ final class StudentDepartureService
         return DB::transaction(function () use ($departure, $data, $actor): StudentDeparture {
             Student::query()->lockForUpdate()->findOrFail($departure->student_id);
             $departure = StudentDeparture::query()->lockForUpdate()->findOrFail($departure->getKey());
+            $actor = User::query()->with('roles')->findOrFail($actor->getKey());
+            abort_unless($actor->can('finalize', $departure), 403);
             $this->ensureInProgress($departure);
             $decision = (string) $data['decision'];
             if (! in_array($decision, [StudentDeparture::STATUS_CANCELLED, StudentDeparture::STATUS_OFFICIAL], true)) {
