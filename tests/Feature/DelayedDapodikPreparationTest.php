@@ -14,6 +14,7 @@ use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AcademicYearPreparationService;
@@ -743,6 +744,30 @@ class DelayedDapodikPreparationTest extends TestCase
             fn () => $service->importRoster($year->refresh(), $this->validCsv(), $admin),
             'academic_year',
         );
+    }
+
+    #[Test]
+    public function provisional_roster_import_does_not_change_student_departure_process(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $teacher = $this->userWithRole('guru_bk');
+        $year = $this->prepareYear($service, $admin);
+        $csv = $this->validCsv();
+        $service->importRoster($year, $csv, $admin);
+        $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
+        $departure = StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_IN_PROGRESS,
+            'reported_at' => '2026-09-14',
+            'recorded_by' => $teacher->id,
+        ]);
+        $before = $departure->only(['status', 'effective_date', 'finalized_by', 'finalized_at']);
+
+        $service->importRoster($year, $this->validCsv(), $admin);
+
+        $this->assertSame($before, $departure->refresh()->only(array_keys($before)));
     }
 
     #[Test]

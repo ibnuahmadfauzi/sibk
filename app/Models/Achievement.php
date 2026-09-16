@@ -52,8 +52,18 @@ class Achievement extends Model
     }
 
     /** @param Builder<Achievement> $query */
+    public function scopeWithinStudentServicePeriod(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
+            ->where('status', StudentDeparture::STATUS_OFFICIAL)
+            ->whereColumn('student_departures.effective_date', '<=', 'achievements.achievement_date'));
+    }
+
+    /** @param Builder<Achievement> $query */
     public function scopeAccessibleTo(Builder $query, User $user): Builder
     {
+        $query->withinStudentServicePeriod();
+
         if ($user->hasRole('koordinator_bk')) {
             return $query;
         }

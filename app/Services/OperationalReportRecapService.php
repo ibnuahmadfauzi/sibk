@@ -393,6 +393,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     private function latestAchievements(Collection $aggregates): Collection
     {
         return Achievement::query()
+            ->withinStudentServicePeriod()
             ->select(['id', 'student_id', 'activity_name', 'achievement_date'])
             ->where(function (Builder $items) use ($aggregates): void {
                 foreach ($aggregates as $aggregate) {

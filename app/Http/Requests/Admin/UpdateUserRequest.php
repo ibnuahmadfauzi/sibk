@@ -32,7 +32,6 @@ class UpdateUserRequest extends FormRequest
                 'max:255',
                 Rule::unique('users', 'email')->ignore($target),
             ],
-            'password' => ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'],
             'roles' => ['sometimes', 'required', 'array', 'min:1'],
             'roles.*' => [
                 'required',
@@ -52,8 +51,6 @@ class UpdateUserRequest extends FormRequest
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan.',
-            'password.min' => 'Kata sandi minimal delapan karakter.',
-            'password.confirmed' => 'Konfirmasi kata sandi tidak sesuai.',
             'roles.required' => 'Minimal satu peran wajib dipilih.',
             'roles.*.exists' => 'Peran yang dipilih tidak tersedia.',
             'roles.*.distinct' => 'Peran tidak boleh dipilih lebih dari sekali.',

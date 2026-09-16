@@ -45,30 +45,6 @@
                             <label for="new-email" class="form-label sibk-form-label">Email <span class="text-danger">*</span></label>
                             <input id="new-email" class="form-control sibk-form-control" type="email" name="email" value="{{ old('email') }}" required>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <label for="new-password" class="form-label sibk-form-label">Kata Sandi <span class="text-danger">*</span></label>
-                            <div class="position-relative">
-                                <input id="new-password" class="form-control sibk-form-control pe-5" type="password" name="password" minlength="8" required>
-                                <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted p-0 border-0" data-toggle-password="new-password" aria-label="Tampilkan kata sandi">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <label for="new-password-confirmation" class="form-label sibk-form-label">Konfirmasi Kata Sandi <span class="text-danger">*</span></label>
-                            <div class="position-relative">
-                                <input id="new-password-confirmation" class="form-control sibk-form-control pe-5" type="password" name="password_confirmation" minlength="8" required>
-                                <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted p-0 border-0" data-toggle-password="new-password-confirmation" aria-label="Tampilkan konfirmasi kata sandi">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
                         <div class="col-12">
                             <span class="form-label sibk-form-label d-block">Peran <span class="text-danger">*</span></span>
                             <div class="d-flex flex-wrap gap-3">
@@ -112,34 +88,13 @@
                                 </span>
                             </div>
                             <div class="row g-3">
-                                <div class="col-12 col-lg-4">
+                                <div class="col-12 col-lg-6">
                                     <label for="name-{{ $managedUser->id }}" class="form-label sibk-form-label">Nama</label>
                                     <input id="name-{{ $managedUser->id }}" class="form-control sibk-form-control" name="name" value="{{ $managedUser->name }}" required>
                                 </div>
-                                <div class="col-12 col-lg-4">
+                                <div class="col-12 col-lg-6">
                                     <label for="email-{{ $managedUser->id }}" class="form-label sibk-form-label">Email</label>
                                     <input id="email-{{ $managedUser->id }}" class="form-control sibk-form-control" type="email" name="email" value="{{ $managedUser->email }}" required>
-                                </div>
-                                <div class="col-12 col-lg-4">
-                                    <label for="password-{{ $managedUser->id }}" class="form-label sibk-form-label">Kata Sandi Baru</label>
-                                    <div class="position-relative">
-                                        <input id="password-{{ $managedUser->id }}" class="form-control sibk-form-control pe-5" type="password" name="password" minlength="8" placeholder="Kosongkan jika tidak diubah">
-                                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted p-0 border-0" data-toggle-password="password-{{ $managedUser->id }}" aria-label="Tampilkan kata sandi baru">
-                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                                <circle cx="12" cy="12" r="3"></circle>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <div class="position-relative mt-2">
-                                        <input id="password_confirmation-{{ $managedUser->id }}" type="password" name="password_confirmation" class="form-control sibk-form-control pe-5" minlength="8" aria-label="Konfirmasi kata sandi baru" placeholder="Konfirmasi kata sandi baru">
-                                        <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted p-0 border-0" data-toggle-password="password_confirmation-{{ $managedUser->id }}" aria-label="Tampilkan konfirmasi kata sandi baru">
-                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                                <circle cx="12" cy="12" r="3"></circle>
-                                            </svg>
-                                        </button>
-                                    </div>
                                 </div>
                                 <div class="col-12 col-lg-8">
                                     <span class="form-label sibk-form-label d-block">Peran</span>
@@ -158,10 +113,16 @@
                                         <input class="form-check-input" type="checkbox" role="switch" name="is_active" value="1" id="active-{{ $managedUser->id }}" @checked($managedUser->is_active)>
                                         <label class="form-check-label" for="active-{{ $managedUser->id }}">Akun aktif</label>
                                     </div>
+                                    @unless(auth()->user()->is($managedUser))
+                                        <button class="btn btn-outline-secondary" type="submit" form="reset-password-{{ $managedUser->id }}">Reset Kata Sandi</button>
+                                    @endunless
                                     <button class="btn btn-primary" type="submit">Simpan</button>
                                 </div>
                             </div>
                         </form>
+                        @unless(auth()->user()->is($managedUser))
+                            <form id="reset-password-{{ $managedUser->id }}" action="{{ route('admin.users.reset-password', $managedUser) }}" method="POST">@csrf</form>
+                        @endunless
                     @empty
                         <div class="text-center text-muted py-4">Belum ada akun.</div>
                     @endforelse
@@ -171,26 +132,4 @@
             </div>
         </div>
     </div>
-@endsection
-
-@section('extra-javascript')
-    <script>
-        document.querySelectorAll('[data-toggle-password]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                const targetId = this.getAttribute('data-toggle-password');
-                const input = document.getElementById(targetId);
-                if (!input) return;
-
-                const isPassword = input.type === 'password';
-                input.type = isPassword ? 'text' : 'password';
-
-                const svg = this.querySelector('svg');
-                if (svg) {
-                    svg.innerHTML = isPassword
-                        ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>'
-                        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
-                }
-            });
-        });
-    </script>
 @endsection

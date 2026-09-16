@@ -8,11 +8,64 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Checkpoint 3 dan [PR #10](https://github.com/ibnuahmadfauzi/sibk/pull/10) sudah terintegrasi ke `cobasidebar`.
 - Cleanup file trivial dan PR #11 sudah terintegrasi ke `cobasidebar`.
 - Checkpoint 4 sudah terintegrasi ke `cobasidebar`.
-- Checkpoint 5A (Task 8–10) selesai; Checkpoint 5B (Task 11–15) menjadi
-  pekerjaan berikutnya setelah integrasi ke `cobasidebar`.
+- Checkpoint 5A (Task 8–10) selesai dan sudah terintegrasi ke `cobasidebar`.
+- Pra-UAT menemukan dan memperbaiki pilihan bidang layanan yang hilang dari
+  form kasus. Gate CLI Checkpoint 5B kini lulus 454 test/3.498 assertion;
+  UAT manual gabungan kemudian dilaporkan `PASS` oleh QA pengguna pada seluruh
+  17 skenario dan tiga viewport; browser dan versinya tidak dilaporkan.
+- Review final menemukan tiga celah pada expiry sesi aktif, serialisasi layanan
+  dengan keputusan keluar, dan reotorisasi setelah lock. Perbaikan `e72ea04`
+  lulus gate penuh; uji ulang manual skenario 8–10 dan 15 dilaporkan `PASS`
+  pada tiga viewport memakai Google Chrome 153.0.8010.48 64-bit.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 16 September 2026 — Checkpoint 5B Task 15
+
+- Gate otomatis Checkpoint 5B lulus 454 test/3.498 assertion, Pint, checker
+  frontend, build, Composer strict, audit dependency, cache, scan keamanan,
+  SQLite, MySQL disposable, dan diff-check.
+- QA pengguna melaporkan seluruh 17 skenario UAT awal serta uji ulang terbatas
+  skenario 8–10 dan 15 pada tiga viewport berstatus `PASS`.
+- Review ulang tidak menemukan blocker kode; Task 15 dan plan gabungan ditutup.
+
+### 16 September 2026 — Checkpoint 5B Task 14
+
+- Hitungan murid dashboard memakai ketersediaan layanan pada akhir periode;
+  preselection murid di luar scope pada pembuatan kasus ditolak server-side.
+- Test lintas permukaan membuktikan arsip tidak muncul pada daftar, dashboard,
+  monitoring, dan laporan; histori serta daftar proses keluar Waka tetap ada.
+- Focused gate lulus 71 test/565 assertion, Pint, checker frontend, scan query,
+  dan diff-check.
+
+### 16 September 2026 — Checkpoint 5B Task 13
+
+- Invariant sumber kebenaran, unique/foreign key proses keluar, dan larangan
+  state rekap/keluar duplikat dikunci oleh test skema.
+- Enam tabel retired tidak dihapus; consumer runtime kosong selain konfigurasi
+  driver Laravel yang tetap tersedia. Default queue contoh/fallback kini `sync`.
+- Gate SQLite dan MySQL fresh/incremental lulus; database disposable dihapus.
+  Focused gate lulus 12 test/77 assertion, Pint, dan diff-check.
+
+### 16 September 2026 — Checkpoint 5B Task 12
+
+- Pembuatan/reset akun kini menerbitkan password sementara satu kali tanpa
+  menyimpan nilai plaintext pada audit atau model JSON.
+- Akun wajib mengganti password sebelum membuka route operasional; reset
+  memutus sesi target dan command tersembunyi memulihkan Admin IT tunggal.
+- Focused gate lulus 29 test/296 assertion, Pint, checker frontend, audit route,
+  scan password, dan diff-check.
+
+### 15 September 2026 — Checkpoint 5B Task 11
+
+- Satu proses keluar disimpan per murid dengan status `dalam_proses`, `batal`,
+  atau `resmi_keluar`; pembukaan ulang memakai row dan tanggal awal yang sama.
+- Hanya Guru BK terscope yang mencatat/mengubah dan hanya Koordinator yang
+  memutuskan; Waka memperoleh daftar operasional read-only yang diaudit.
+- `resmi_keluar` yang sudah efektif menghentikan layanan baru tanpa menghapus
+  histori. Dapodik dan data persiapan tidak mengubah proses keluar.
+- Focused gate lulus 102 test/735 assertion, Pint, checker frontend, dan diff-check.
 
 ### 15 September 2026 — Checkpoint 5A: penyederhanaan operasional
 

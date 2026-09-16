@@ -19,8 +19,8 @@ class AchievementService
     public function create(array $data, User $actor): Achievement
     {
         return DB::transaction(function () use ($data, $actor): Achievement {
-            $student = Student::query()->active()->lockForUpdate()->findOrFail((int) $data['student_id']);
-            $this->ensureStudentScope($student, $actor);
+            $student = Student::query()->lockForUpdate()->findOrFail((int) $data['student_id']);
+            $this->ensureStudentScope($student, $actor, (string) $data['achievement_date']);
             $this->validateReferences($data);
             $achievement = Achievement::query()->create([
                 ...$this->metadata($data),
@@ -46,6 +46,8 @@ class AchievementService
         return DB::transaction(function () use ($achievement, $data, $actor): Achievement {
             $achievement = Achievement::query()->with('verificationStatus')->lockForUpdate()->findOrFail($achievement->getKey());
             abort_unless($actor->can('update', $achievement), 403);
+            $student = Student::query()->lockForUpdate()->findOrFail($achievement->student_id);
+            $this->ensureStudentScope($student, $actor, (string) $data['achievement_date']);
             $this->validateReferences($data);
             $before = $this->auditSnapshot($achievement);
             $achievement->fill($this->metadata($data));
@@ -90,9 +92,9 @@ class AchievementService
         });
     }
 
-    private function ensureStudentScope(Student $student, User $actor): void
+    private function ensureStudentScope(Student $student, User $actor, string $date): void
     {
-        if (! Student::query()->active()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
+        if (! Student::query()->availableForService($date)->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
             throw ValidationException::withMessages(['student_id' => 'Murid tidak berada dalam kewenangan profesional Anda.']);
         }
     }

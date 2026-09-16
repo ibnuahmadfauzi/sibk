@@ -93,8 +93,14 @@ class CaseController extends Controller
         abort_unless($user->can('create', BkCase::class), 403);
 
         $accessibleStudents = Student::query()
-            ->active()
+            ->availableForService()
             ->forActiveTeacherAssignment($user, now());
+        $preselectedStudentId = $request->integer('student_id') ?: null;
+        abort_if(
+            $preselectedStudentId !== null
+                && ! (clone $accessibleStudents)->whereKey($preselectedStudentId)->exists(),
+            403,
+        );
         $temporaryNisnCandidate = $request->string('temporary_nisn')->trim()->toString();
         $temporaryNisnFilter = preg_match('/^[0-9]{1,20}$/D', $temporaryNisnCandidate) === 1
             ? $temporaryNisnCandidate
@@ -133,7 +139,7 @@ class CaseController extends Controller
             'etatibRecords' => $etatibRecords,
             'etatibRecordsCapped' => $etatibRecordsCapped,
             'temporaryNisnFilter' => $temporaryNisnFilter,
-            'preselectedStudentId' => $request->integer('student_id') ?: null,
+            'preselectedStudentId' => $preselectedStudentId,
         ]);
     }
 

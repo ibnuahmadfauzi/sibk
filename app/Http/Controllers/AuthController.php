@@ -42,10 +42,19 @@ class AuthController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
-
         /** @var User $user */
         $user = $request->user();
+        if ($user->must_change_password && $user->temporary_password_expires_at?->isPast()) {
+            Auth::guard()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'credentials' => 'Kata sandi sementara telah kedaluwarsa. Hubungi Admin IT.',
+            ]);
+        }
+
+        $request->session()->regenerate();
         $user->forceFill(['last_login_at' => now()])->saveQuietly();
         $auditService->record(
             action: 'auth.login',
@@ -55,7 +64,9 @@ class AuthController extends Controller
             request: $request,
         );
 
-        return redirect()->intended(route('dashboard.preview'));
+        return $user->must_change_password
+            ? redirect()->route('account.password.edit')
+            : redirect()->intended(route('dashboard.preview'));
     }
 
     public function destroy(Request $request): RedirectResponse

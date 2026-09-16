@@ -91,6 +91,14 @@ class ConsultationService
             }
 
             $consultation->loadMissing(['student', 'temporaryStudent']);
+            if ($consultation->student_id !== null) {
+                Student::query()->lockForUpdate()->findOrFail($consultation->student_id);
+                if (! Student::query()->availableForService((string) $data['session_date'])->whereKey($consultation->student_id)->exists()) {
+                    throw ValidationException::withMessages([
+                        'session_date' => 'Tanggal sesi harus sebelum tanggal keluar resmi murid.',
+                    ]);
+                }
+            }
             $case = $this->resolveCase(
                 $data['case_id'] ?? null,
                 $consultation->student,
@@ -189,8 +197,12 @@ class ConsultationService
     private function resolveIdentity(array $data, User $actor): array
     {
         if (($data['student_id'] ?? null) !== null) {
-            $student = Student::query()->findOrFail($data['student_id']);
-            if (! Student::query()->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
+            $student = Student::query()->lockForUpdate()->findOrFail($data['student_id']);
+            if (! Student::query()
+                ->availableForService((string) $data['session_date'])
+                ->professionallyAccessibleTo($actor)
+                ->whereKey($student->getKey())
+                ->exists()) {
                 throw ValidationException::withMessages(['student_id' => 'Murid tidak berada dalam kewenangan profesional Anda.']);
             }
 

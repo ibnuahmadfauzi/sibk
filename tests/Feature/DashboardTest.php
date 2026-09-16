@@ -14,6 +14,7 @@ use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\CaseService;
@@ -135,6 +136,28 @@ class DashboardTest extends TestCase
             ->assertSee('Cakupan layanan Anda')
             ->assertDontSee('Aktivitas terbaru')
             ->assertDontSee('NARASI-AUDIT-RAHASIA');
+    }
+
+    public function test_dashboard_excludes_official_departure_from_active_student_count(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Cakupan Keluar');
+        [$student] = $this->createScopedCase($teacher, 'XII RPL 1', '0055555555', 'Murid Resmi Keluar');
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Keluar');
+        StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_OFFICIAL,
+            'reported_at' => '2026-08-19',
+            'effective_date' => '2026-08-21',
+            'recorded_by' => $teacher->id,
+            'finalized_by' => $coordinator->id,
+            'finalized_at' => now(),
+        ]);
+
+        $dashboard = app(DashboardService::class)->forUser($teacher, $this->year);
+
+        $this->assertSame('0', $this->stat($dashboard, 'Murid dalam cakupan'));
+        $this->assertSame('1', $this->stat($dashboard, 'Kasus aktif'));
     }
 
     /** @return array{Student, BkCase} */

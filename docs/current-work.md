@@ -4,9 +4,11 @@
 
 - Checkpoint selesai: 4 — Penyederhanaan laporan, Task 1–7.
 - Checkpoint selesai: 5A — Penyederhanaan operasional, Task 8–10.
-- Checkpoint aktif berikutnya: 5B — Task 11–15; belum dimulai.
-- Branch Checkpoint 5B belum dibuat.
-- Baseline berikutnya: `cobasidebar` setelah integrasi Checkpoint 5A.
+- Checkpoint selesai: 5B — Task 11–15.
+- Gate CLI Task 15 dan seluruh UAT manual telah lulus.
+- Branch: `checkpoint-5b-operasional`.
+- Worktree: `.worktrees/checkpoint-5b-operasional`.
+- Baseline Checkpoint 5B: `e4bfe52` dari `cobasidebar` setelah PR #14.
 
 ## Hasil dan gate terakhir
 
@@ -56,6 +58,39 @@
   diff-check; regresi area terkait lulus 78 test/688 assertion.
 - Gate penuh Checkpoint 5A lulus: 416 test/3.261 assertion, Pint, checker
   frontend, build, Composer strict, dan diff-check.
+- Task 11 menambahkan satu proses keluar per murid, keputusan final Koordinator,
+  scope layanan berdasarkan tanggal efektif, serta daftar read-only Waka.
+  Focused gate lulus 102 test/735 assertion, Pint, checker frontend, dan diff-check.
+- Task 12 menerapkan password sementara satu kali, wajib ganti setelah login,
+  reset Admin IT, pemutusan sesi target, dan command pemulihan Admin IT.
+  Focused gate lulus 29 test/296 assertion, Pint, checker frontend, audit route,
+  scan password, dan diff-check.
+- Task 13 membuktikan invariant skema fresh/incremental pada SQLite dan MySQL.
+  Enam tabel retired tetap ada; consumer runtime kosong, kecuali konfigurasi
+  driver Laravel yang sengaja dipertahankan. Focused gate lulus 12 test/77
+  assertion, Pint, dan diff-check.
+- Task 14 menyelaraskan hitungan murid dashboard dengan tanggal akhir periode,
+  menolak preselection murid di luar scope, dan membuktikan arsip tidak muncul
+  pada dashboard, monitoring, laporan, atau daftar aktif. Focused gate lulus
+  71 test/565 assertion, Pint, checker frontend, scan query, dan diff-check.
+- Task 15 focused gate pasca-review lulus 126 test/975 assertion dan tiga test
+  MySQL/7 assertion; gate penuh lulus 448 test/3.481 assertion, Pint,
+  Composer/NPM audit, cache, checker frontend,
+  build, scan keamanan, SQLite/MySQL disposable, dan diff-check.
+- Review kode tidak menemukan isu kritis; tiga temuan penting pada perbedaan
+  password, snapshot audit, dan batas tanggal keluar sudah diperbaiki.
+- Pra-UAT menemukan pilihan wajib bidang layanan hilang dari form pembuatan
+  kasus. Perbaikan `1c54867` dikunci test regresi; focused gate lulus 110
+  test/795 assertion dan gate penuh lulus 449 test/3.485 assertion, Pint,
+  checker frontend, build, Composer strict, serta diff-check.
+- Eksplorasi berbantuan alat tidak dihitung sebagai UAT manual. Checklist tiga
+  viewport kemudian dilaporkan `PASS` oleh QA pengguna pada 16 September 2026;
+  browser dan versinya tidak dilaporkan.
+- Review final menemukan expiry password sesi aktif, race pembuatan kasus
+  dengan keputusan keluar, dan otorisasi stale proses keluar. Perbaikan
+  `e72ea04` dikunci lima test regresi; gate penuh lulus 454 test/3.498 assertion.
+  Uji ulang skenario 8–10 dan 15 dilaporkan `PASS` pada tiga viewport memakai
+  Google Chrome 153.0.8010.48 64-bit.
 
 ## Arsip
 
@@ -66,14 +101,14 @@
 
 ## Langkah berikutnya
 
-1. Buat branch/worktree Checkpoint 5B dari `cobasidebar` terbaru.
-2. Kerjakan Task 11–15 secara berurutan sesuai plan aktif.
+1. Integrasikan branch melalui PR ke `cobasidebar`.
+2. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
 3. Jangan membuat migration drop tabel kandidat retired pada Checkpoint 5B.
 4. Adapter production tetap menunggu kontrak resmi dan admission gate.
 
 ## Acuan
 
 - Plan aktif: `docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md`
-- UAT aktif: `docs/testing/2026-09-14-uat-laporan-guru-koordinator.md`
+- UAT aktif: `docs/testing/2026-09-14-uat-penyederhanaan-operasional.md`
 - Matriks umum: `docs/testing/authorization-matrix.md`
 - Spec aktif: `docs/superpowers/specs/2026-09-14-penyederhanaan-operasional-akun-dan-skema-data-design.md`

@@ -115,7 +115,7 @@ class ConsultationController extends Controller
     private function formData(User $user, ?Consultation $consultation, Request $request): View
     {
         $students = Student::query()
-            ->active()
+            ->availableForService()
             ->professionallyAccessibleTo($user)
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()

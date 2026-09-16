@@ -2385,7 +2385,7 @@ Checkpoint 5B dimulai dari hasil Checkpoint 5A yang sudah terintegrasi.
 - Consumes: `Student::professionallyAccessibleTo()`, role `guru_bk`/`koordinator_bk`, dan `AuditService`.
 - Produces: `StudentDeparture`, `StudentDepartureService::record()`, `updateDraft()`, `finalize()`, scope `Student::availableForService()`, serta daftar/detail proses keluar read-only untuk Waka Kesiswaan.
 
-- [ ] **Step 1: Tulis failing migration/model tests**
+- [x] **Step 1: Tulis failing migration/model tests**
 
 ```php
 public function test_one_student_has_only_one_departure_process(): void
@@ -2412,7 +2412,7 @@ public function test_one_student_has_only_one_departure_process(): void
 }
 ```
 
-- [ ] **Step 2: Tulis failing authorization dan transition tests**
+- [x] **Step 2: Tulis failing authorization dan transition tests**
 
 ```php
 public function test_teacher_records_process_without_deactivating_student(): void
@@ -2520,7 +2520,7 @@ private function userWithRole(string $slug): User
 }
 ```
 
-- [ ] **Step 3: Jalankan tests dan pastikan gagal**
+- [x] **Step 3: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/StudentDepartureTest.php
@@ -2528,7 +2528,7 @@ php artisan test tests/Feature/StudentDepartureTest.php
 
 Expected: FAIL karena migration, model, service, policy, dan route belum ada.
 
-- [ ] **Step 4: Buat migration satu sumber kebenaran**
+- [x] **Step 4: Buat migration satu sumber kebenaran**
 
 Gunakan schema berikut:
 
@@ -2555,7 +2555,7 @@ delete pada process record. `down()` migration ini kosong dengan komentar
 forward-only; jangan menghapus `student_departures` atau memulihkan state
 sebelumnya melalui rollback.
 
-- [ ] **Step 5: Buat model dan state contract**
+- [x] **Step 5: Buat model dan state contract**
 
 ```php
 #[Fillable([
@@ -2616,7 +2616,7 @@ public function scopeAvailableForService(Builder $query, CarbonInterface|string|
 Gunakan scope ini pada daftar murid aktif dan seluruh form pencatatan layanan
 baru. Query histori/detail tidak memakai scope ini agar data lama tidak hilang.
 
-- [ ] **Step 6: Implementasikan policy dan request**
+- [x] **Step 6: Implementasikan policy dan request**
 
 Policy:
 
@@ -2651,7 +2651,7 @@ memakai:
 'decision_note' => ['nullable', 'string', 'max:500'],
 ```
 
-- [ ] **Step 7: Implementasikan service atomik**
+- [x] **Step 7: Implementasikan service atomik**
 
 ```php
 public function record(Student $student, array $data, User $actor): StudentDeparture;
@@ -2671,7 +2671,7 @@ set `effective_date = null`; untuk `resmi_keluar`, wajibkan tanggal efektif.
 Audit action: `student_departure.recorded`, `.updated`, `.cancelled`, atau
 `.officialized`.
 
-- [ ] **Step 8: Hubungkan controller, routes, dan UI minimal**
+- [x] **Step 8: Hubungkan controller, routes, dan UI minimal**
 
 Routes:
 
@@ -2695,7 +2695,7 @@ efektif, ringkasan rekomendasi, catatan keputusan, pencatat, dan pemutus. Waka
 tidak memperoleh aksi mutasi dan tidak otomatis memperoleh narasi privat kasus
 atau konsultasi yang bukan bagian dari proses keluar.
 
-- [ ] **Step 9: Pastikan API sekolah tidak mengubah departure**
+- [x] **Step 9: Pastikan API sekolah tidak mengubah departure**
 
 Tambahkan test pada kedua jalur Dapodik:
 
@@ -2721,7 +2721,7 @@ $this->assertSame($before, $departure->refresh()->only(array_keys($before)));
 
 Contract ini berlaku untuk data provisional, preview, apply, dan sync ulang.
 
-- [ ] **Step 10: Verifikasi**
+- [x] **Step 10: Verifikasi**
 
 ```powershell
 php artisan test tests/Feature/StudentDepartureTest.php
@@ -2733,7 +2733,7 @@ php vendor/bin/pint --test database/migrations/2026_09_14_000100_create_student_
 git diff --check
 ```
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```powershell
 git add database/migrations/2026_09_14_000100_create_student_departures_table.php app/Models/StudentDeparture.php app/Policies/StudentDeparturePolicy.php app/Http/Requests/StoreStudentDepartureRequest.php app/Http/Requests/UpdateStudentDepartureRequest.php app/Http/Requests/FinalizeStudentDepartureRequest.php app/Services/StudentDepartureService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/StudentDepartureController.php app/Http/Controllers/WakaStudentDepartureController.php app/Models/Student.php app/Policies/StudentPolicy.php app/Providers/AppServiceProvider.php app/Http/Controllers/StudentController.php routes/web.php resources/views/pages/students/_departure-process.blade.php resources/views/pages/students/show.blade.php resources/views/pages/waka/student-departures/index.blade.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaStudentDepartureTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php
@@ -2777,7 +2777,7 @@ git commit -m "feat: catat proses keluar murid secara terkendali"
 - Consumes: database session driver, `AuditService`, `UserPolicy`, dan active account middleware.
 - Produces: `TemporaryPasswordService::issue(User, ?User, ?string): TemporaryPasswordResult`, `AccountService::create(array, User): TemporaryPasswordResult`, middleware alias `password.changed`, route ganti password, reset Admin IT, dan command `sibk:reset-admin-password`.
 
-- [ ] **Step 1: Tulis failing account/password tests**
+- [x] **Step 1: Tulis failing account/password tests**
 
 ```php
 public function test_admin_creates_account_with_one_time_temporary_password(): void
@@ -2820,7 +2820,7 @@ Tambahkan test password expired ditolak setelah authentication, reset memutus
 seluruh session target, Admin tidak dapat reset dirinya dari UI, password tidak
 masuk audit/JSON model, dan password baru menghapus flag/expiry.
 
-- [ ] **Step 2: Tulis failing command recovery test**
+- [x] **Step 2: Tulis failing command recovery test**
 
 ```php
 public function test_single_admin_can_be_recovered_through_hidden_interactive_command(): void
@@ -2843,7 +2843,7 @@ public function test_single_admin_can_be_recovered_through_hidden_interactive_co
 
 Test tidak boleh mencetak password pada command output atau log.
 
-- [ ] **Step 3: Jalankan tests dan pastikan gagal**
+- [x] **Step 3: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/AccountManagementTest.php --filter=temporary
@@ -2851,7 +2851,7 @@ php artisan test tests/Feature/AuthenticationTest.php --filter=change_password
 php artisan test tests/Feature/AdminPasswordRecoveryCommandTest.php
 ```
 
-- [ ] **Step 4: Tambahkan field account lifecycle**
+- [x] **Step 4: Tambahkan field account lifecycle**
 
 Migration:
 
@@ -2868,7 +2868,7 @@ dari hidden attributes. `down()` migration ini kosong dengan komentar
 forward-only; jangan menghapus field lifecycle password atau mengubah kembali
 data akun melalui rollback.
 
-- [ ] **Step 5: Buat service hasil password sementara**
+- [x] **Step 5: Buat service hasil password sementara**
 
 ```php
 final readonly class TemporaryPasswordResult
@@ -2918,7 +2918,7 @@ password yang diberikan kepada pengguna, flag wajib ganti, expiry, pemutusan
 sesi, dan audit penerbitan. Bila salah satu langkah gagal, pembuatan akun ikut
 rollback. `UpdateUserRequest` tidak lagi menerima field password.
 
-- [ ] **Step 6: Buat controller response satu kali**
+- [x] **Step 6: Buat controller response satu kali**
 
 Store/reset browser merender `temporary-password.blade.php` langsung, bukan
 redirect/flash. `UserManagementController::store()` menerima hasil
@@ -2936,7 +2936,7 @@ JSON response memakai struktur `temporary_password` dan `expires_at`, header
 yang sama, serta tidak pernah menyertakan hash. Policy `resetPassword()` hanya
 mengizinkan Admin IT aktif terhadap target lain.
 
-- [ ] **Step 7: Paksa pergantian setelah login**
+- [x] **Step 7: Paksa pergantian setelah login**
 
 Setelah `Auth::attempt()`, bila flag true dan expiry sudah lewat: logout,
 invalidate session, lalu kembalikan error `Kata sandi sementara telah
@@ -2958,7 +2958,7 @@ huruf, dan angka. Service menyimpan password baru, mengosongkan flag/expiry,
 mengisi `password_changed_at`, menghapus session lain kecuali current session,
 meregenerasi session, dan menulis audit tanpa password.
 
-- [ ] **Step 8: Buat command pemulihan Admin IT**
+- [x] **Step 8: Buat command pemulihan Admin IT**
 
 Signature:
 
@@ -2972,14 +2972,14 @@ mengandung huruf dan angka. Panggil `TemporaryPasswordService::issue($admin,
 null, $password)`. Output hanya menyatakan akun berhasil dipulihkan dan wajib
 ganti password; jangan menampilkan nilai password.
 
-- [ ] **Step 9: Perbarui UI akun**
+- [x] **Step 9: Perbarui UI akun**
 
 Hapus input password dari form buat/edit Admin IT. Tambahkan tombol `Reset Kata
 Sandi` per akun selain akun actor. Halaman Akun Saya menyediakan link `Ganti
 Kata Sandi`; halaman wajib ganti menjelaskan bahwa akses lain dibatasi sampai
 password diperbarui.
 
-- [ ] **Step 10: Verifikasi keamanan akun**
+- [x] **Step 10: Verifikasi keamanan akun**
 
 ```powershell
 php artisan test tests/Feature/AccountManagementTest.php
@@ -2997,7 +2997,7 @@ Bila log lokal perlu dibaca saat investigasi, gunakan hanya data test dan catat
 jumlah/hasil teredaksi; jangan men-dump payload atau isi `storage/logs` ke
 terminal maupun evidence.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```powershell
 git add database/migrations/2026_09_14_000200_add_temporary_password_fields_to_users.php app/Data/TemporaryPasswordResult.php app/Services/TemporaryPasswordService.php app/Http/Requests/Admin/ResetUserPasswordRequest.php app/Http/Requests/Auth/ChangePasswordRequest.php app/Http/Controllers/Admin/UserPasswordResetController.php app/Http/Controllers/AccountPasswordController.php app/Http/Middleware/EnsurePasswordChanged.php app/Console/Commands/ResetAdminPassword.php app/Http/Requests/Admin/StoreUserRequest.php app/Http/Requests/Admin/UpdateUserRequest.php app/Http/Controllers/Admin/UserManagementController.php app/Http/Controllers/AuthController.php app/Services/AccountService.php app/Models/User.php app/Policies/UserPolicy.php bootstrap/app.php routes/web.php config/sibk.php .env.example resources/views/pages/admin/users/index.blade.php resources/views/pages/admin/users/temporary-password.blade.php resources/views/pages/account/change-password.blade.php resources/views/pages/account/index.blade.php tests/Feature/AccountManagementTest.php tests/Feature/AuthenticationTest.php tests/Feature/AdminPasswordRecoveryCommandTest.php
@@ -3024,7 +3024,7 @@ git commit -m "feat: wajibkan pergantian password sementara"
 > plan terpisah setelah tidak ada consumer, backup tersedia, pemulihan diuji,
 > dan pengguna memberi persetujuan eksplisit.
 
-- [ ] **Step 1: Tulis schema invariant test**
+- [x] **Step 1: Tulis schema invariant test**
 
 ```php
 public function test_operational_schema_keeps_required_sources_of_truth(): void
@@ -3044,7 +3044,7 @@ Tambahkan pemeriksaan unique `student_departures.student_id`, foreign key
 domain, dan larangan tabel rekap/flag keluar duplikat. Tabel retired boleh
 tetap ada secara fisik selama tidak mempunyai consumer runtime.
 
-- [ ] **Step 2: Jalankan baseline schema test**
+- [x] **Step 2: Jalankan baseline schema test**
 
 ```powershell
 php artisan test tests/Feature/OperationalSchemaTest.php
@@ -3053,14 +3053,14 @@ php artisan test tests/Feature/OperationalSchemaTest.php
 Expected: PASS setelah Task 9–12; kegagalan hanya menunjukkan invariant wajib
 belum terpenuhi, bukan jumlah tabel yang berbeda dari 30.
 
-- [ ] **Step 3: Audit enam tabel kandidat retired**
+- [x] **Step 3: Audit enam tabel kandidat retired**
 
 Audit `corrections`, `user_notifications`, `password_reset_tokens`, `jobs`,
 `job_batches`, dan `failed_jobs` dengan `rg`, route list, model relation, config,
 serta query runtime. Catat consumer yang sudah hilang dan pertahankan tabel
 fisiknya. Jangan membuat migration drop pada Checkpoint 5B.
 
-- [ ] **Step 4: Kunci queue synchronous**
+- [x] **Step 4: Kunci queue synchronous**
 
 Pastikan `.env.example` memuat:
 
@@ -3074,7 +3074,7 @@ CACHE_STORE=database
 `env('QUEUE_CONNECTION', 'sync')`. Jangan menghapus konfigurasi driver karena
 queue dapat kembali setelah adapter production diterima.
 
-- [ ] **Step 5: Verifikasi fresh dan incremental SQLite disposable**
+- [x] **Step 5: Verifikasi fresh dan incremental SQLite disposable**
 
 Gate fresh boleh memakai `migrate:fresh --seed` pada database lokal/development
 yang sudah dipastikan bukan shared/production. Gate otomatis tetap memakai file
@@ -3138,7 +3138,7 @@ incremental atau memaksa PHPUnit yang memakai `:memory:` ke database ini.
 Catat hanya nama file sementara serta hasilnya, tanpa credential.
 
 
-- [ ] **Step 6: Verifikasi MySQL disposable**
+- [x] **Step 6: Verifikasi MySQL disposable**
 
 Gunakan database MySQL test yang kosong, disposable, dan telah diverifikasi
 bukan shared/production. Jalankan `php artisan migrate --force` untuk gate
@@ -3147,7 +3147,7 @@ Jalankan juga `ServiceRecordStatusMigrationTest` dengan fixture incremental
 yang membangun baseline sebelum migration 14 September. Jangan menjalankan
 reset/rollback dan jangan mencetak credential pada output/evidence.
 
-- [ ] **Step 7: Jalankan focused tests**
+- [x] **Step 7: Jalankan focused tests**
 
 ```powershell
 php artisan test tests/Feature/OperationalSchemaTest.php
@@ -3157,7 +3157,7 @@ php vendor/bin/pint --test tests/Feature/OperationalSchemaTest.php
 git diff --check
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add config/queue.php .env.example tests/Feature/OperationalSchemaTest.php
@@ -3196,7 +3196,7 @@ git commit -m "test: audit kesehatan skema operasional"
 - Consumes: soft delete Task 9, `Student::availableForService()` Task 11, dan service laporan Task 2-6.
 - Produces: semua read model operasional konsisten mengecualikan arsip dan tidak menawarkan layanan baru kepada murid resmi keluar, sedangkan Waka tetap dapat membaca daftar/detail proses keluar sesuai kewenangannya.
 
-- [ ] **Step 1: Tulis failing cross-surface test**
+- [x] **Step 1: Tulis failing cross-surface test**
 
 ```php
 public function test_archived_records_and_official_departures_do_not_reappear_cross_surface(): void
@@ -3272,7 +3272,7 @@ Tambahkan assertion terpisah bahwa Waka melihat murid berstatus `dalam_proses`,
 kelas, jenis, status, tanggal, ringkasan rekomendasi/keputusan, dan petugas,
 tetapi tidak memperoleh tombol atau endpoint mutasi.
 
-- [ ] **Step 2: Jalankan tests dan pastikan gagal**
+- [x] **Step 2: Jalankan tests dan pastikan gagal**
 
 ```powershell
 php artisan test tests/Feature/ReportManagementTest.php --filter=archived
@@ -3280,7 +3280,7 @@ php artisan test tests/Feature/WakaMonitoringTest.php --filter=archived
 php artisan test tests/Feature/StudentDepartureTest.php --filter=new_service
 ```
 
-- [ ] **Step 3: Audit seluruh query operational**
+- [x] **Step 3: Audit seluruh query operational**
 
 Gunakan Eloquent default SoftDeletes untuk kasus/konsultasi dan hapus setiap
 `withTrashed()` yang tidak mempunyai alasan historis eksplisit. Pada pilihan
@@ -3294,7 +3294,7 @@ Profil historis memakai `Student::query()->accessibleTo($actor)` tanpa
 `availableForService()`. Tampilkan badge `Resmi keluar` dan tanggal efektif,
 serta sembunyikan tombol mutasi layanan baru.
 
-- [ ] **Step 4: Kunci pipeline laporan/dashboard**
+- [x] **Step 4: Kunci pipeline laporan/dashboard**
 
 Pastikan aggregate laporan memakai tabel utama tanpa `withTrashed()`. Untuk
 murid resmi keluar, histori sebelum `effective_date` tetap dapat muncul pada
@@ -3319,7 +3319,7 @@ setara dan `/waka/handling-reports/export` tetap menghasilkan CSV hanya untuk
 Waka yang berwenang. Tambahkan/pertahankan assertion pada
 `StudentProfileTest` dan `WakaMonitoringTest` untuk kontrak tersebut.
 
-- [ ] **Step 5: Verifikasi query consistency**
+- [x] **Step 5: Verifikasi query consistency**
 
 ```powershell
 php artisan test tests/Feature/DashboardTest.php
@@ -3334,7 +3334,7 @@ php vendor/bin/pint --test app/Models/Student.php app/Services/DashboardService.
 git diff --check
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add app/Models/Student.php app/Models/BkCase.php app/Models/Consultation.php app/Services/DashboardService.php app/Services/ReportService.php app/Services/OperationalReportRecapService.php app/Services/WakaDashboardService.php app/Services/WakaCaseProjectionQuery.php app/Services/WakaMonitoringService.php app/Services/WakaPeriodReportService.php app/Services/WakaStudentCaseService.php app/Services/WakaStudentDepartureService.php app/Http/Controllers/CaseController.php app/Http/Controllers/StudentController.php tests/Feature/DashboardTest.php tests/Feature/ReportManagementTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/StudentDepartureTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaReportPageTest.php tests/Feature/WakaStudentDepartureTest.php
@@ -3355,7 +3355,7 @@ git commit -m "fix: konsistenkan scope arsip dan murid keluar"
 - Produces: evidence gate CLI dan checklist UAT manual gabungan; plan baru
   selesai setelah hasil manual dilaporkan PASS.
 
-- [ ] **Step 1: Jalankan focused feature gate melalui CLI**
+- [x] **Step 1: Jalankan focused feature gate melalui CLI**
 
 ```powershell
 php artisan test tests/Feature/OperationalReportRecapTest.php
@@ -3372,7 +3372,7 @@ php artisan test tests/Feature/OperationalSchemaTest.php
 
 Expected: 0 failure dan 0 error.
 
-- [ ] **Step 2: Jalankan full automated gate melalui CLI**
+- [x] **Step 2: Jalankan full automated gate melalui CLI**
 
 Jalankan cache command hanya pada konfigurasi worktree/local, bukan aplikasi
 shared/production. Bila satu command gagal, tetap jalankan tiga command clear
@@ -3397,7 +3397,7 @@ php artisan view:clear
 
 Expected: seluruh command exit code 0 dan cache dibersihkan setelah verifikasi.
 
-- [ ] **Step 3: Jalankan retired-feature dan privacy scan**
+- [x] **Step 3: Jalankan retired-feature dan privacy scan**
 
 ```powershell
 rg -n "Correction|UserNotification|NotificationService|corrections\.|notifications\.|history\." app routes resources tests scripts
@@ -3412,7 +3412,7 @@ tetap ada; nilai credential nyata tidak boleh ada. Evidence mencatat file,
 baris, dan keputusan tanpa menyalin nilai kandidat. Bila log lokal perlu dibaca
 untuk investigasi, gunakan data test dan keluarkan hasil yang telah disensor.
 
-- [ ] **Step 4: Verifikasi schema dan queue**
+- [x] **Step 4: Verifikasi schema dan queue**
 
 Pada SQLite disposable dan MySQL disposable, catat:
 
@@ -3429,7 +3429,7 @@ QUEUE_CONNECTION: sync.
 Jangan menjalankan reset pada database shared atau menyertakan credential pada
 evidence.
 
-- [ ] **Step 5: Siapkan dan serahkan checklist UAT manual gabungan**
+- [x] **Step 5: Siapkan dan serahkan checklist UAT manual gabungan**
 
 Pelaksana UAT adalah pengguna atau tester manusia melalui browser biasa. Agent
 hanya menyiapkan akun/data uji, URL awal, expected result, dan checklist; agent
@@ -3466,7 +3466,7 @@ Dashboard menampilkan panel role-aware tanpa aktivitas audit.
 Tidak ada horizontal overflow dan seluruh focus state terlihat.
 ```
 
-- [ ] **Step 6: Terima hasil manual dan tutup plan**
+- [x] **Step 6: Terima hasil manual dan tutup plan**
 
 Setelah pelaksana manual mengirim hasil, isi UAT dengan nama/inisial tester,
 tanggal, browser dan versi, branch/SHA, database engine, jumlah tabel, jumlah
@@ -3477,7 +3477,7 @@ untuk skenario manual terkait. Tandai checkbox plan dan pindahkan tracker ke
 Completed pada `docs/development-log.md` hanya setelah seluruh CLI dan manual
 gate PASS.
 
-- [ ] **Step 7: Commit evidence**
+- [x] **Step 7: Commit evidence**
 
 ```powershell
 git add docs/testing/2026-09-14-uat-penyederhanaan-operasional.md docs/development-log.md docs/superpowers/plans/2026-09-14-penyederhanaan-laporan-guru-koordinator.md

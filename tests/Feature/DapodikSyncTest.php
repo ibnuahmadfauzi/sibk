@@ -33,6 +33,7 @@ use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AuditService;
@@ -1940,6 +1941,27 @@ class DapodikSyncTest extends TestCase
 
         $this->importSnapshot($this->snapshot(isFull: true), $admin);
         $this->assertFalse($existing->refresh()->is_active);
+    }
+
+    public function test_dapodik_sync_does_not_change_student_departure_process(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $teacher = $this->userWithRole('guru_bk');
+        $snapshot = $this->snapshot();
+        $this->importSnapshot($snapshot, $admin);
+        $student = Student::query()->orderBy('id')->firstOrFail();
+        $departure = StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_IN_PROGRESS,
+            'reported_at' => '2026-09-14',
+            'recorded_by' => $teacher->id,
+        ]);
+        $before = $departure->only(['status', 'effective_date', 'finalized_by', 'finalized_at']);
+
+        $this->importSnapshot($snapshot, $admin);
+
+        $this->assertSame($before, $departure->refresh()->only(array_keys($before)));
     }
 
     public function test_duplicate_nisn_is_held_without_overwriting_valid_student(): void

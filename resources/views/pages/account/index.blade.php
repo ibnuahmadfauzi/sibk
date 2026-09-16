@@ -93,10 +93,11 @@
                             </div>
                             <div class="sibk-security-info__text">
                                 <h5 class="sibk-security-info__title">Kata sandi</h5>
-                                <p class="sibk-security-info__desc">Perubahan kata sandi dikelola oleh Admin IT.</p>
+                                <p class="sibk-security-info__desc">Gunakan kata sandi unik dan jangan membagikannya.</p>
                             </div>
                         </div>
 
+                        <a class="btn btn-primary w-100 mb-3" href="{{ route('account.password.edit') }}">Ganti Kata Sandi</a>
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn w-100 sibk-btn-logout">
