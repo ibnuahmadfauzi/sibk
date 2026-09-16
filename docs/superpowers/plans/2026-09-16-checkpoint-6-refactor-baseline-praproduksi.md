@@ -365,7 +365,7 @@ git commit -m "docs: tutup checkpoint 6B pengaturan integrasi"
 - Produces: tiga query keluarga dan satu adapter legacy; facade lama tetap menjadi satu-satunya kontrak consumer.
 - Produces: `LegacyReportQuery` sebagai base kecil untuk helper yang benar-benar dipakai minimal dua keluarga, agar masking, histori kelas, row/stats, dan pagination tidak diduplikasi.
 
-- [ ] **Step 1: Kunci tujuh kontrak legacy dan tiga tab baru**
+- [x] **Step 1: Kunci tujuh kontrak legacy dan tiga tab baru**
 
 ```powershell
 php artisan test tests/Feature/ReportManagementTest.php tests/Feature/AchievementManagementTest.php tests/Feature/OperationalReportRecapTest.php
@@ -373,7 +373,7 @@ php artisan test tests/Feature/ReportManagementTest.php tests/Feature/Achievemen
 
 Expected: PASS, termasuk scope Guru BK/Koordinator, privasi, pagination, query count, CSV, dan pemisahan mode `type`/`tab`.
 
-- [ ] **Step 2: Ekstrak helper bersama minimum**
+- [x] **Step 2: Ekstrak helper bersama minimum**
 
 Pindahkan hanya helper yang dipakai lebih dari satu keluarga ke `LegacyReportQuery`: filter kelas historis, lookup membership, `row()`, `datedRow()`, `stats()`, `initials()`, `maskNisn()`, `statusTone()`, dan pagination. Jangan memindahkan katalog, authorization, atau dispatch ke base class.
 
@@ -390,19 +390,19 @@ abstract class LegacyReportQuery
 }
 ```
 
-- [ ] **Step 3: Ekstrak query pelanggaran**
+- [x] **Step 3: Ekstrak query pelanggaran**
 
 Pindahkan tipe `pelanggaran-murid`, `pelanggaran-kelas`, dan `poin-pelanggaran`, termasuk query e-Tatib, scope role, points tone, pagination murid, serta lazy export ke `ViolationReportQuery`.
 
-- [ ] **Step 4: Ekstrak query layanan**
+- [x] **Step 4: Ekstrak query layanan**
 
 Pindahkan tipe `konsultasi`, `status-tindak-lanjut`, dan `rekap-layanan-bk`, termasuk scope kasus/konsultasi, filter umum layanan, pemilihan murid resmi/sementara, pagination, dan lazy export ke `CounselingReportQuery`.
 
-- [ ] **Step 5: Ekstrak query prestasi**
+- [x] **Step 5: Ekstrak query prestasi**
 
 Pindahkan tipe `prestasi`, filter status/jenis/tingkat, scope pemilik/Koordinator, pagination, masking NISN, dan lazy export ke `AchievementReportQuery`.
 
-- [ ] **Step 6: Buat adapter legacy dan facade tipis**
+- [x] **Step 6: Buat adapter legacy dan facade tipis**
 
 `LegacyReportAdapter` memegang authorization, katalog tujuh tipe, resolusi periode, normalisasi filter, filter options, dan dispatch keluarga. `ReportService` mempertahankan seluruh constant dan `types()` lalu mendelegasikan tiga method instance.
 
@@ -430,7 +430,7 @@ class ReportService
 }
 ```
 
-- [ ] **Step 7: Jalankan focused gate**
+- [x] **Step 7: Jalankan focused gate**
 
 ```powershell
 php artisan test tests/Feature/ReportManagementTest.php tests/Feature/AchievementManagementTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/AuthorizationMatrixTest.php
@@ -441,7 +441,7 @@ git diff --check
 
 Expected: seluruh command exit 0; tujuh URL legacy dan tiga tab menghasilkan data, scope, masking, dan CSV yang sama.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add app/Services/ReportService.php app/Services/LegacyReportQuery.php app/Services/ViolationReportQuery.php app/Services/CounselingReportQuery.php app/Services/AchievementReportQuery.php app/Services/LegacyReportAdapter.php
@@ -463,7 +463,7 @@ git commit -m "refactor: pecah query laporan lama"
 - Consumes: hasil Task 1-3 dan gate umum repository.
 - Produces: handoff ringkas Checkpoint 6, bukti gate, serta baseline `cobasidebar` yang siap diajukan ke `main` tanpa mengaktifkan adapter production.
 
-- [ ] **Step 1: Audit diff terhadap larangan scope**
+- [x] **Step 1: Audit diff terhadap larangan scope**
 
 ```powershell
 git diff --name-status cobasidebar...HEAD
@@ -473,7 +473,7 @@ rg -n "class Unavailable(Dapodik|Etatib)Connector|provider-contract-admission" a
 
 Expected: tidak ada migration, route, controller, policy, dependency, atau adapter production baru.
 
-- [ ] **Step 2: Jalankan gate perilaku sensitif**
+- [x] **Step 2: Jalankan gate perilaku sensitif**
 
 ```powershell
 php artisan test tests/Feature/DapodikSyncTest.php tests/Feature/IntegrationSettingTest.php tests/Feature/EtatibSyncTest.php
@@ -482,7 +482,7 @@ php artisan test tests/Feature/ReportManagementTest.php tests/Feature/Operationa
 
 Expected: transaksi, concurrency/fencing, privacy, authorization, export, dan kontrak legacy PASS.
 
-- [ ] **Step 3: Jalankan gate penuh**
+- [x] **Step 3: Jalankan gate penuh**
 
 ```powershell
 composer test
@@ -495,7 +495,7 @@ git diff --check
 
 Expected: seluruh command exit 0.
 
-- [ ] **Step 4: Verifikasi cache produksi**
+- [x] **Step 4: Verifikasi cache produksi**
 
 ```powershell
 php artisan config:cache
@@ -506,7 +506,7 @@ php artisan optimize:clear
 
 Expected: seluruh cache dapat dibuat dan dibersihkan tanpa error.
 
-- [ ] **Step 5: Perbarui handoff dan development log**
+- [x] **Step 5: Perbarui handoff dan development log**
 
 Catat:
 
@@ -518,7 +518,7 @@ Catat:
 - Langkah berikutnya: review diff, PR ke cobasidebar, lalu review kandidat merge ke main.
 ```
 
-- [ ] **Step 6: Commit penutupan checkpoint**
+- [x] **Step 6: Commit penutupan checkpoint**
 
 ```powershell
 git add docs/current-work.md docs/development-log.md

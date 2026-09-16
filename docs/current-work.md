@@ -4,44 +4,48 @@
 
 - Checkpoint selesai: 1-5.
 - PR #15 Checkpoint 5B terintegrasi ke `cobasidebar` pada commit `fd9a20a`.
-- Branch sumber remote `checkpoint-5b-operasional` sudah tidak ada.
 - Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
   laporan/baseline praproduksi tanpa mengubah scope.
-- PR #16 Checkpoint 6A terintegrasi ke `cobasidebar` pada commit `81e1587`.
-- Branch sumber remote `checkpoint-6a-dapodik` sudah tidak ada.
-- Checkpoint selesai lokal: 6B - Refactor pengaturan integrasi.
-- Branch: `checkpoint-6b-integration-settings`.
-- Worktree: `.worktrees/checkpoint-6b-integration-settings`.
-- Baseline Checkpoint 6B: `81e1587` dari `origin/cobasidebar` setelah PR #16.
+- PR #16 Checkpoint 6A terintegrasi pada commit `81e1587`; branch sumber remote
+  `checkpoint-6a-dapodik` sudah dihapus.
+- PR #17 Checkpoint 6B terintegrasi pada commit `ce85cb7`; branch sumber remote
+  `checkpoint-6b-integration-settings` sudah dihapus.
+- Checkpoint selesai lokal: 6C — Refactor laporan dan baseline praproduksi.
+- Branch: `checkpoint-6c-report-baseline`.
+- Worktree: `.worktrees/checkpoint-6c-report-baseline`.
+- Baseline Checkpoint 6C: `ce85cb7` dari `origin/cobasidebar` setelah PR #17.
 
 ## Hasil dan gate terakhir
 
-- `git fetch --prune origin` mengonfirmasi `origin/cobasidebar` pada `81e1587`.
-- PR #16 berstatus `MERGED`; branch sumber remote 6A sudah dihapus.
-- Baseline worktree lulus `composer test`: 454 test/3.498 assertion.
-- Setup memakai PHP/dependency dari lock file; tidak ada update dependency.
-- `IntegrationSettingService` menjadi facade 99 baris dengan constructor dan
-  tujuh method publik yang tetap kompatibel.
-- Logika dipisah ke `IntegrationStateResolver`, `IntegrationSettingUpdater`,
-  `IntegrationConnectionTester`, dan `IntegrationActivationService`.
-- Focused gate pascarebase lulus 110 test/1.463 assertion, Pint, dan diff-check.
-- Full gate pascarebase lulus 454 test/3.498 assertion, Pint, checker frontend, build,
+- Baseline bersih lulus 454 test/3.498 assertion setelah `APP_KEY` testing
+  disediakan hanya pada environment proses; tidak ada `.env` atau credential
+  yang dibuat/disimpan.
+- `ReportService` menjadi facade 58 baris. Query pelanggaran, layanan, dan
+  prestasi dipisah bersama adapter legacy dan helper bersama minimum.
+- Tujuh constant tipe, `types()`, `catalogFor()`, `build()`, dan
+  `exportRows()` tetap kompatibel; controller/request tidak berubah.
+- Focused gate laporan lulus 41 test/467 assertion, Pint, checker frontend,
+  dan diff-check.
+- Gate sensitif integrasi lulus 110 test/1.463 assertion; laporan/otorisasi
+  lulus 35 test/418 assertion.
+- Full gate lulus 454 test/3.498 assertion, Pint, checker frontend, build,
   Composer strict, dan diff-check.
-- Binding `IntegrationConfigurationProvider` tidak berubah; tidak ada migration,
-  perubahan route/controller/policy/dependency, atau adapter production.
-- Commit refactor pascarebase: `e194ba5`.
+- Cache config, route, dan view dapat dibuat serta dibersihkan. Verifikasi
+  memakai `CACHE_STORE=array` sementara karena worktree tidak memiliki
+  database SQLite lokal.
+- Tidak ada migration, perubahan route/controller/policy/dependency, adapter
+  production, output, scope data, format CSV, atau perubahan test perilaku.
+- Commit refactor laporan: `3b90ca4`.
+- Verifikasi memakai PHP 8.4.11; runtime langsung PHP 8.3 belum diuji.
 
-## Scope Checkpoint 6B
+## Scope Checkpoint 6C
 
-1. Pecah `IntegrationSettingService` menjadi facade untuk resolver status,
-   penyimpanan, uji koneksi, dan aktivasi.
-2. Pertahankan binding `IntegrationConfigurationProvider`, credential terenkripsi,
-   transaksi, lock/fencing, deadline, audit, dan redaksi secret.
-3. Jalankan focused gate integrasi dan gate penuh.
-4. Integrasikan branch 6B setelah sinkronisasi dan verifikasi ulang.
-
-Checkpoint 6C baru memecah laporan dan menjalankan baseline praproduksi setelah
-PR 6B merged.
+1. Pecah `ReportService` menjadi facade, adapter legacy, helper bersama, dan
+   tiga query keluarga laporan.
+2. Pertahankan tujuh kontrak legacy, tiga tab laporan, otorisasi, privasi,
+   pagination, query count, dan lazy export.
+3. Audit larangan scope dan jalankan baseline praproduksi.
+4. Siapkan PR Checkpoint 6C ke `cobasidebar`.
 
 ## Batas wajib
 
@@ -55,17 +59,16 @@ PR 6B merged.
 
 ## Langkah berikutnya
 
-1. Jalankan focused gate dan full gate setelah rebase ke hasil PR #16.
-2. Review diff, push, dan buat PR 6B ke `cobasidebar`.
+1. Jalankan review final diff Checkpoint 6C.
+2. Push branch dan buat PR ke `cobasidebar`.
 3. Setelah merge, verifikasi status `MERGED` dan hapus branch sumber remote.
-4. Mulai Checkpoint 6C hanya setelah PR 6B berstatus `MERGED`.
+4. Review `cobasidebar` sebagai kandidat merge ke `main`; jangan merge ke
+   `main` tanpa persetujuan baru.
 
 ## Blocker
 
 - Tidak ada blocker implementasi.
 - Adapter production tetap ditahan karena kontrak resmi provider belum tersedia.
-- Runtime langsung PHP 8.3 belum diverifikasi; baseline saat ini memakai runtime
-  lokal yang tersedia.
 
 ## Acuan
 
