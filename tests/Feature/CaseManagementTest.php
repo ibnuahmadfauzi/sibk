@@ -73,6 +73,18 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'case.created', 'auditable_id' => $case->id]);
     }
 
+    public function test_case_create_form_renders_required_service_field_options(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+
+        $this->actingAs($teacher)
+            ->get(route('cases.create', ['student_id' => $student->id]))
+            ->assertOk()
+            ->assertSee('name="service_field_id"', false)
+            ->assertSee('Bidang Layanan')
+            ->assertSee('Pribadi');
+    }
+
     public function test_dual_role_teacher_only_sees_and_links_etatib_for_students_in_teacher_scope(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();

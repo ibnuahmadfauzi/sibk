@@ -59,14 +59,21 @@
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Kasus</h4>
                     <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
                     <div class="row g-4">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="sumber" class="form-label sibk-form-label">Sumber Kasus</label>
                             <select class="form-select sibk-form-select" id="sumber" name="case_source_id" required>
                                 <option value="">Pilih sumber kasus</option>
                                 @foreach($caseSources as $source)<option value="{{ $source->id }}" data-code="{{ $source->code }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="service_field_id" class="form-label sibk-form-label">Bidang Layanan</label>
+                            <select class="form-select sibk-form-select" id="service_field_id" name="service_field_id" required>
+                                <option value="">Pilih bidang layanan</option>
+                                @foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) old('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label for="tanggal" class="form-label sibk-form-label">Tanggal Layanan</label>
                             <input type="date" class="form-control sibk-form-control" id="tanggal" name="service_date" value="{{ old('service_date', today()->toDateString()) }}" required>
                         </div>
