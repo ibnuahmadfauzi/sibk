@@ -269,7 +269,16 @@ Tanggal, Murid dan Kelas, Jenis Layanan, Permasalahan, Penanganan, dan Hasil.
 Data konsultasi tersedia pada tab Layanan BK existing, bukan menu baru.
 
 Waka tidak memperoleh aksi edit, selesai, tindak lanjut, atau hapus. Pembacaan
-detail Waka tetap dapat dicatat sebagai event audit existing.
+detail kasus dan konsultasi oleh Waka wajib dicatat sebagai event audit.
+Query detail memakai allowlist enam field layanan tersebut dan tidak mengambil
+audit teknis, payload mentah provider, atau field lain di luar proyeksi.
+Narasi Permasalahan, Penanganan, dan Hasil tidak masuk ekspor/CSV massal tanpa
+keputusan produk terpisah.
+
+Akses penuh Waka terhadap enam field layanan merupakan keputusan operasional
+yang diminta pihak BK. Risiko kerahasiaannya diterima dengan syarat akses tetap
+hanya-baca, terbatas pada akun Waka aktif, diaudit, dan tidak diperluas secara
+implisit ke role atau keluaran lain.
 
 Koordinator mempertahankan kewenangan penugasan dan cakupan existing, tetapi
 tidak otomatis memperoleh hak edit catatan profesional. Admin IT tidak
@@ -280,6 +289,8 @@ memperoleh akses isi layanan BK.
 Autosave berlaku pada form tambah/edit data bisnis di aplikasi. Search,
 filter, login, password, credential/token, file upload, konfirmasi destruktif,
 dan perubahan inline seperti dropdown Tindak Lanjut dikecualikan.
+Form akun dan pengaturan integrasi dikecualikan seluruhnya karena memuat atau
+berdekatan dengan password, token, dan credential.
 
 Mekanisme:
 
@@ -306,6 +317,9 @@ mengubah struktur dashboard yang telah disetujui. Tidak ada library ikon baru.
 
 - Semua policy dan validasi dijalankan server-side.
 - Update resmi memakai transaksi dan lock record seperti service existing.
+- Form edit mengirim nilai `updated_at` saat record dibuka. Server menolak
+  penyimpanan bila record telah berubah agar edit dari tab/perangkat lain tidak
+  saling menimpa.
 - Sumber e-Tatib, record tertaut, identitas murid, dan scope Guru BK harus
   konsisten.
 - `follow_up_type_id` wajib berasal dari reference aktif kategori yang benar.
@@ -319,26 +333,67 @@ mengubah struktur dashboard yang telah disetujui. Tidak ada library ikon baru.
 - Waka, Koordinator, Guru BK, dan Admin IT tetap diuji terhadap route langsung,
   bukan hanya visibilitas tombol.
 
-## 12. Urutan Migrasi dan Implementasi
+## 12. Analisis Risiko dan Mitigasi
 
-Urutan aman:
+| Risiko | Tingkat | Dampak utama | Mitigasi wajib |
+|---|---|---|---|
+| Waka membaca narasi konsultasi lengkap | Kritis | Informasi murid terbuka lebih luas dan berdampak besar bila akun Waka disalahgunakan | Policy khusus Waka aktif, proyeksi allowlist, hanya-baca, audit setiap pembukaan detail, tanpa ekspor narasi massal |
+| Draft sensitif tersimpan di `localStorage` | Tinggi | Draft tertinggal di komputer bersama atau terbaca bila terjadi XSS | TTL 24 jam, namespace per user/form, hapus saat simpan/logout, kecualikan password/token/file, tidak aktif pada form akun dan integrasi |
+| Riwayat dan jadwal tindak lanjut hilang | Tinggi | Pengingat, tanggal pelaksanaan, hasil, dan kronologi tidak lagi tersedia | Nyatakan dropdown sebagai klasifikasi terkini, bukan event layanan; hapus seluruh widget dan istilah jadwal yang tidak lagi benar |
+| Laporan salah setelah `follow_ups` dihapus | Tinggi | Rekap dan CSV masih menghitung tindak lanjut sebagai kegiatan terpisah | Ubah metrik menjadi jumlah kasus berstatus Tindak Lanjut dan jenis terkini; perbarui query, label, CSV, dan test |
+| Penghapusan koordinasi memperluas akses Waka | Tinggi | Pembatas detail berdasarkan koordinasi tidak lagi berlaku | Ganti dengan policy read-only seluruh kasus yang eksplisit; hapus conditional URL koordinasi dan uji route langsung |
+| Drop tabel/kolom sebelum consumer dipindahkan | Tinggi | Dashboard, profil, laporan, atau route gagal saat runtime | Refactor dan verifikasi seluruh consumer lebih dahulu; drop dilakukan pada migration terakhir setelah scan dependency kosong |
+| Edit lama menimpa edit terbaru | Tinggi | Perubahan dari dua tab/perangkat dapat hilang meskipun transaksi memakai lock | Optimistic concurrency memakai `updated_at`; tampilkan konflik dan minta pengguna memuat ulang |
+| Duplikasi atau salah identitas murid | Tinggi | Histori terpecah antara murid resmi dan identitas sementara | Normalisasi NISN, pencarian exact, validasi scope, nama resmi tidak ditimpa, dan rekonsiliasi existing dipertahankan |
+| Snapshot e-Tatib/Dapodik tidak tersedia | Sedang | Pengguna mengira form memakai data live atau tidak dapat memilih sumber resmi | Tampilkan status sumber lokal, fail-closed untuk sumber e-Tatib, dan pertahankan jalur sumber manual yang sah |
+| Sorting kelas memakai kelas yang salah | Sedang | Urutan catatan historis berubah mengikuti kelas sekarang | Gunakan kelas pada tanggal layanan dan ID sebagai tie-breaker pagination |
+| Dropdown tindak lanjut salah klik atau request ganda | Sedang | Status kasus berubah tanpa sengaja atau respons datang tidak berurutan | Nonaktifkan kontrol selama request, gunakan transaksi/lock, rollback UI saat gagal, dan audit perubahan berhasil |
+| Audit membesar | Rendah | Narasi sebelum/sesudah menambah ukuran database | Satu audit per Simpan, hanya field yang berubah, tanpa event autosave atau snapshot record penuh |
+| Modal tidak aksesibel atau terpotong di ponsel | Sedang | Detail/edit sulit digunakan dengan keyboard atau layar kecil | Tombol Detail tetap tersedia, focus management Bootstrap, scroll modal, label/error terhubung, dan test keyboard/mobile |
+
+Risiko privasi Waka tidak dapat dihilangkan sepenuhnya selama enam field layanan
+ditampilkan lengkap. Desain menerima risiko residual tersebut sebagai keputusan
+operasional BK dan mengendalikannya melalui policy, proyeksi, audit, dan batas
+keluaran.
+
+Penghapusan tindak lanjut juga mengubah makna laporan. Setelah revisi, satu
+kasus berstatus Tindak Lanjut tetap dihitung sebagai satu kasus, bukan sebagai
+event layanan tambahan. Jenis tindak lanjut hanya atribut terkini dan tidak
+mempunyai tanggal rencana, pelaksanaan, status, atau hasil tersendiri.
+
+## 13. Urutan Migrasi dan Implementasi
+
+Implementasi dibagi menjadi tiga checkpoint agar perubahan destruktif tidak
+mendahului perpindahan consumer.
+
+### 13.1 Kontrak dan fondasi aman
 
 1. Perbarui PRD, SRS, requirements index, dan kontrak API yang terdampak.
 2. Tambahkan kolom baru serta reference/status baru atau perubahan label yang
    diperlukan.
-3. Ubah model, request, service, policy, query, controller, laporan, dan UI ke
-   kontrak baru.
-4. Hapus consumer runtime tindak lanjut lama, koordinasi, status konsultasi,
+3. Tambahkan policy/proyeksi Waka, aturan audit pembacaan, serta perlindungan
+   konflik `updated_at`.
+
+### 13.2 Peralihan consumer
+
+4. Ubah model, request, service, policy, query, controller, laporan, ekspor,
+   profil murid, dashboard, dan UI ke kontrak baru.
+5. Hapus consumer runtime tindak lanjut lama, koordinasi, status konsultasi,
    private note, serta nomor registrasi konsultasi.
-5. Jalankan migration forward-only untuk menghapus kolom dan tabel retired
-   setelah tidak ada consumer.
 6. Perbarui factory, seeder dummy, fixture preview, dokumentasi, dan test.
+
+### 13.3 Pembersihan destruktif
+
+7. Jalankan scan dependency dan seluruh focused test/gate.
+8. Verifikasi data masih dummy atau backup database yang akan dimigrasikan.
+9. Jalankan migration forward-only untuk menghapus kolom dan tabel retired
+   setelah tidak ada consumer.
 
 Tidak ada reset database shared/production. Implementasi harus mengecek
 dependency sebelum drop dan memakai urutan migration yang dapat berjalan pada
 SQLite test serta database target aplikasi.
 
-## 13. Verifikasi
+## 14. Verifikasi
 
 Focused test minimum:
 
@@ -348,9 +403,11 @@ Focused test minimum:
 - simpan/hapus dropdown tindak lanjut dan transisi status;
 - larangan mengubah tindak lanjut kasus Selesai;
 - detail, edit, selesai, edit terminal, audit, dan soft delete kasus;
+- konflik edit berdasarkan `updated_at`;
 - create/edit/detail/arsip konsultasi serta perubahan tanggal;
 - pencarian nama, filter utama, dan sorting allowlist;
 - akses hanya-baca seluruh kasus dan konsultasi untuk Waka;
+- audit pembukaan detail oleh Waka dan larangan ekspor narasi massal;
 - penolakan akses di luar scope dan larangan mutasi oleh Waka/Admin;
 - autosave, restore, isolasi user/form, kedaluwarsa 24 jam, pembersihan, serta
   pengecualian field rahasia;
@@ -365,7 +422,7 @@ Gate akhir mengikuti repository:
 - `composer validate --strict`;
 - `git diff --check`.
 
-## 14. Kriteria Selesai
+## 15. Kriteria Selesai
 
 Desain dianggap terimplementasi bila:
 
