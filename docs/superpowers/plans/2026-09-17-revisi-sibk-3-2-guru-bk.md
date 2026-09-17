@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Parallel execution override:** User menyetujui eksekusi paralel pada 17
+> September 2026. Gunakan `superpowers:dispatching-parallel-agents` dan
+> `superpowers:using-git-worktrees`. Batas sequential pada
+> `subagent-driven-development` diganti khusus untuk wave yang file ownership-nya
+> terpisah di plan ini; review dan integration gate tetap dijalankan berurutan
+> oleh koordinator.
+
 **Goal:** Menerapkan alur kasus dan konsultasi Revisi SIBK 3.2, termasuk akses baca penuh Waka yang diaudit, autosave lokal, laporan yang konsisten, dan pembersihan skema lama secara forward-only.
 
 **Architecture:** Pertahankan pola Laravel existing: Form Request sebagai batas input, policy dan query scope sebagai batas akses, service sebagai pemilik transaksi/audit, serta Blade/Bootstrap/JavaScript ringan untuk UI. Implementasi dibagi menjadi migration aditif, perpindahan seluruh consumer, lalu migration destruktif setelah scan dependency bersih; tidak ada tabel versi, backend draft, atau dependency baru.
@@ -20,6 +27,10 @@
 - Jangan menambah package. Gunakan modal Bootstrap, `window.confirm`, `<input type="date">`, SVG existing, dan JavaScript native.
 - Gunakan istilah UI Bahasa Indonesia dan `murid`. Gunakan kelas historis pada tanggal layanan serta `id` sebagai tie-breaker sorting/pagination.
 - Satu task menghasilkan commit kecil berbahasa Indonesia. Jangan mulai checkpoint destruktif sebelum focused gate checkpoint consumer lulus.
+- Maksimal tiga implementer berjalan bersamaan karena slot keempat dipakai koordinator. Setiap implementer bekerja pada branch dan worktree sendiri.
+- Worker tidak boleh mengedit file di luar ownership lane. Perubahan file shared hanya dilakukan koordinator pada integration gate.
+- Worker tidak merge, rebase, push, atau membuka PR. Worker mengembalikan commit, daftar file, hasil focused gate, dan concern kepada koordinator.
+- Koordinator mengintegrasikan commit lane dengan cherry-pick, menjalankan review/gate gabungan, lalu membuat wave berikutnya dari HEAD integrasi yang sudah hijau.
 
 ## Peta Struktur Perubahan
 
@@ -45,6 +56,121 @@ Blade + service-records.js + form-draft.js
 Dashboard/report/student profile/dummy seeder
   -> tidak lagi bergantung pada follow-up event, coordination, atau status konsultasi
 ```
+
+## Alur Eksekusi Paralel
+
+Branch `revisi-sibk-3-2` adalah branch integrasi dan hanya disentuh koordinator.
+Implementer selalu mulai dari commit integrasi yang sama pada awal wave.
+
+```text
+SEQUENTIAL FOUNDATION
+  Task 1 Kontrak -> Task 2 Migration aditif/status
+                          |
+          +---------------+---------------+
+          |               |               |
+WAVE 1    | Lane A        | Lane B        | Lane C
+          | Task 3-4      | Task 5        | Task 7
+          | Kasus         | Konsultasi    | Frontend shared/autosave
+          +---------------+---------------+
+                          |
+                  INTEGRATION GATE 1
+                          |
+          +---------------+---------------+
+          |               |               |
+WAVE 2    | Lane D        | Lane E        | Lane F
+          | Task 6        | Task 8A       | Task 8B
+          | Waka          | Laporan       | Consumer + dummy
+          +---------------+---------------+
+                          |
+                  INTEGRATION GATE 2
+                          |
+SEQUENTIAL CLEANUP
+  Task 8C runtime retired -> Task 9 drop schema -> Task 10 full gate/handoff
+```
+
+### Matriks lane dan ownership
+
+| Wave | Lane/branch | Scope | File shared yang dilarang disentuh |
+|---|---|---|---|
+| 1 | A — `revisi-sibk-3-2-wave1-kasus` | Domain, endpoint, test, dan Blade kasus | Infrastruktur JS/checker autosave milik Lane C; tab konsultasi shared milik Gate 1 |
+| 1 | B — `revisi-sibk-3-2-wave1-konsultasi` | Domain, endpoint, test, dan Blade konsultasi selain daftar gabungan | `CaseController` dan `pages/cases/index.blade.php` milik Gate 1 |
+| 1 | C — `revisi-sibk-3-2-wave1-frontend` | `service-records.js`, `form-draft.js`, import global, autosave form non-kasus/konsultasi, ikon dashboard | Model/controller/service/Blade kasus dan konsultasi milik Lane A/B |
+| 2 | D — `revisi-sibk-3-2-wave2-waka` | Policy/scope/proyeksi/detail/audit/UI Waka | Query laporan operasional milik Lane E; dashboard umum dan seeder milik Lane F |
+| 2 | E — `revisi-sibk-3-2-wave2-laporan` | Query serta UI laporan layanan | Policy/controller Waka milik Lane D; profil/dashboard/seeder milik Lane F |
+| 2 | F — `revisi-sibk-3-2-wave2-consumer` | Dashboard umum, profil murid, scope turunan, dummy seeder, fixture integrasi | File Waka Lane D dan query laporan layanan Lane E |
+
+### Protokol worktree dan integrasi
+
+Pada awal setiap wave, koordinator menggunakan
+`superpowers:using-git-worktrees`, memastikan directory worktree terpilih sudah
+di-ignore, lalu membuat tiga branch dari HEAD integrasi yang sama. Setiap worker
+menerima path worktree absolut, task/lane tunggal, spec, global constraints,
+dan larangan subagent/merge/push.
+
+Repository ini sudah mempunyai `.worktrees/` yang di-ignore. Setelah Task 2
+lulus dan branch integrasi bersih, buat Wave 1:
+
+```powershell
+git check-ignore -q .worktrees
+git worktree add .worktrees/revisi-sibk-3-2-wave1-kasus -b revisi-sibk-3-2-wave1-kasus HEAD
+git worktree add .worktrees/revisi-sibk-3-2-wave1-konsultasi -b revisi-sibk-3-2-wave1-konsultasi HEAD
+git worktree add .worktrees/revisi-sibk-3-2-wave1-frontend -b revisi-sibk-3-2-wave1-frontend HEAD
+```
+
+Setelah Integration Gate 1 lulus, buat Wave 2 dari HEAD baru:
+
+```powershell
+git worktree add .worktrees/revisi-sibk-3-2-wave2-waka -b revisi-sibk-3-2-wave2-waka HEAD
+git worktree add .worktrees/revisi-sibk-3-2-wave2-laporan -b revisi-sibk-3-2-wave2-laporan HEAD
+git worktree add .worktrees/revisi-sibk-3-2-wave2-consumer -b revisi-sibk-3-2-wave2-consumer HEAD
+```
+
+Di setiap worktree, jalankan `composer install --no-interaction` dan `npm ci`
+bila dependency lokal belum tersedia, lalu baseline focused test lane sebelum
+edit. Jangan menjalankan migration terhadap database shared; test memakai
+konfigurasi SQLite testing masing-masing worktree.
+
+Untuk mengintegrasikan satu wave, jalankan dari branch `revisi-sibk-3-2`:
+
+```powershell
+$lanes = @(
+    'revisi-sibk-3-2-wave1-kasus',
+    'revisi-sibk-3-2-wave1-konsultasi',
+    'revisi-sibk-3-2-wave1-frontend'
+)
+
+foreach ($lane in $lanes) {
+    $baseCommit = git merge-base HEAD $lane
+    $laneCommits = @(git rev-list --reverse "$baseCommit..$lane")
+    if ($laneCommits.Count -gt 0) {
+        git cherry-pick $laneCommits
+    }
+}
+```
+
+Untuk Wave 2, ganti array dengan branch `wave2-waka`, `wave2-laporan`, dan
+`wave2-consumer` dalam urutan tersebut. Jika cherry-pick konflik, hentikan
+integrasi lane itu, selesaikan konflik berdasarkan ownership/spec, jalankan
+focused test file terkait, lalu `git cherry-pick --continue`. Jangan meminta
+worker lain mengedit worktree integrasi.
+
+Setiap lane selesai hanya jika laporannya memuat:
+
+```text
+Status: DONE atau DONE_WITH_CONCERNS
+Commits: hash dan subject berurutan
+Files: output git diff --name-only terhadap base wave
+Tests: command, exit code, jumlah test/assertion bila tersedia
+Concerns: none atau daftar risiko konkret
+```
+
+Sesudah tiga implementer selesai, dispatch tiga reviewer read-only secara
+paralel—satu reviewer untuk satu lane. Reviewer menerima spec, task lane,
+commit base/head, diff lane, dan laporan test. Reviewer memeriksa kepatuhan spec
+serta kualitas kode, tidak mengedit file. Temuan dikirim kembali ke implementer
+lane yang sama; lane baru boleh diintegrasikan setelah re-review bersih atau
+koordinator mencatat ruling eksplisit pada ledger. Dengan demikian implementasi
+paralel tidak menghapus review per task.
 
 ## Kontrak Target Ringkas
 
@@ -85,7 +211,7 @@ application/json`; kegagalan validasi mengembalikan 422, termasuk konflik
 
 ## Checkpoint A — Kontrak dan Fondasi Aditif
 
-### Task 1: Jadikan revisi 3.2 source of truth aktif
+### Task 1 — Sequential Foundation: Jadikan revisi 3.2 source of truth aktif
 
 **Files:**
 - Modify: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
@@ -165,10 +291,11 @@ git add docs tests/Feature/AuthorizationMatrixTest.php
 git commit -m "docs: aktifkan kontrak revisi SIBK 3.2"
 ```
 
-### Task 2: Tambahkan skema baru dan reference aktif tanpa drop
+### Task 2 — Sequential Foundation: Tambahkan skema baru dan reference aktif tanpa drop
 
 **Files:**
 - Create: `database/migrations/2026_09_17_000100_add_revisi_sibk_3_2_foundation.php`
+- Modify: `app/Services/AuditService.php`
 - Modify: `app/Support/ServiceRecordStatus.php`
 - Modify: `database/seeders/ReferenceSeeder.php`
 - Modify: `tests/Feature/FoundationDataTest.php`
@@ -179,11 +306,13 @@ git commit -m "docs: aktifkan kontrak revisi SIBK 3.2"
 - Produces: `cases.follow_up_type_id` nullable FK dan index.
 - Produces: `consultations.problem`, `handling`, `result` nullable sementara agar migration aman untuk row dummy existing; Form Request tetap mewajibkan nilai pada create/update.
 - Produces: status aktif `sedang_diproses`, `membutuhkan_tindak_lanjut`, `selesai` dan empat reference tindak lanjut yang disetujui.
+- Produces: `AuditService::recordChanges(...)` yang dipakai Lane A dan B tanpa saling bergantung.
 
 - [ ] **Step 1: Tulis migration test yang gagal**
 
-Assert kolom baru tersedia, status `baru` tidak aktif, label status tepat, dan
-hanya empat `follow_up_type` berikut yang aktif:
+Assert kolom baru tersedia, status `baru` tidak aktif, label status tepat,
+empat `follow_up_type` berikut yang aktif, serta `recordChanges()` menyimpan
+hanya key yang berbeda dan tidak membuat log bila before/after identik:
 
 ```php
 [
@@ -230,31 +359,49 @@ Migration harus:
 Seeder memakai `updateOrCreate()` dan menonaktifkan row kategori yang tidak ada
 di allowlist agar rerun tidak menghidupkan pilihan lama.
 
-- [ ] **Step 4: Jalankan focused gate**
+- [ ] **Step 4: Implementasikan audit diff-only shared**
+
+Tambahkan satu method ke `AuditService`, bukan service baru:
+
+```php
+public function recordChanges(
+    string $action,
+    Model $auditable,
+    string $summary,
+    User $actor,
+    array $before,
+    array $after,
+): ?AuditLog
+```
+
+Method mengambil union key, membuang pasangan yang identik secara strict,
+memanggil `record()` hanya bila ada perubahan, dan menyimpan subset before/after
+yang sama. Lane A/B wajib memakai method ini untuk update resmi.
+
+- [ ] **Step 5: Jalankan focused gate**
 
 ```powershell
 php artisan test tests/Feature/FoundationDataTest.php tests/Feature/ServiceRecordStatusMigrationTest.php tests/Feature/SharedDevelopmentBaselineTest.php
-php vendor/bin/pint --test app/Support database/migrations database/seeders tests/Feature/FoundationDataTest.php tests/Feature/ServiceRecordStatusMigrationTest.php tests/Feature/SharedDevelopmentBaselineTest.php
+php vendor/bin/pint --test app/Support app/Services/AuditService.php database/migrations database/seeders tests/Feature/FoundationDataTest.php tests/Feature/ServiceRecordStatusMigrationTest.php tests/Feature/SharedDevelopmentBaselineTest.php
 git diff --check
 ```
 
 Expected: seluruh command exit 0; tabel lama masih ada pada checkpoint ini.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```powershell
-git add app/Support database/migrations database/seeders tests/Feature
+git add app/Support app/Services/AuditService.php database/migrations database/seeders tests/Feature
 git commit -m "feat: tambah fondasi data revisi SIBK 3.2"
 ```
 
-### Task 3: Terapkan kontrak domain kasus baru
+### Task 3 — Wave 1 Lane A: Terapkan kontrak domain kasus baru
 
 **Files:**
 - Modify: `app/Models/BkCase.php`
 - Modify: `app/Http/Requests/StoreCaseRequest.php`
 - Modify: `app/Http/Requests/UpdateCaseRequest.php`
 - Create: `app/Http/Requests/UpdateCaseFollowUpRequest.php`
-- Modify: `app/Services/AuditService.php`
 - Modify: `app/Services/CaseService.php`
 - Modify: `app/Http/Controllers/CaseController.php`
 - Modify: `app/Policies/CasePolicy.php`
@@ -262,7 +409,7 @@ git commit -m "feat: tambah fondasi data revisi SIBK 3.2"
 - Modify: `tests/Feature/CaseManagementTest.php`
 
 **Interfaces:**
-- Consumes: source kasus, identitas manual/e-Tatib lokal, tiga narasi, aksi `save|complete`, dan `expected_updated_at`.
+- Consumes: source kasus, identitas manual/e-Tatib lokal, tiga narasi, aksi `save|complete`, `expected_updated_at`, dan `AuditService::recordChanges(...)` dari Task 2.
 - Produces: kasus baru berstatus Sedang Proses; update diff-only; penyelesaian server-date; satu jenis tindak lanjut terkini.
 
 - [ ] **Step 1: Ganti test perilaku lama dengan test target yang gagal**
@@ -284,26 +431,7 @@ php artisan test tests/Feature/CaseManagementTest.php
 
 Expected: FAIL pada kontrak status, payload, dan endpoint baru.
 
-- [ ] **Step 2: Tambahkan audit diff-only pada service existing**
-
-Tambahkan satu method ke `AuditService`, bukan service baru:
-
-```php
-public function recordChanges(
-    string $action,
-    Model $auditable,
-    string $summary,
-    User $actor,
-    array $before,
-    array $after,
-): ?AuditLog
-```
-
-Method mengambil union key, membuang pasangan yang identik secara strict,
-memanggil `record()` hanya bila ada perubahan, dan menyimpan subset before/after
-yang sama. Gunakan untuk update kasus, penyelesaian, dan inline tindak lanjut.
-
-- [ ] **Step 3: Sederhanakan model/request kasus**
+- [ ] **Step 2: Sederhanakan model/request kasus**
 
 `BkCase` menambah `followUpType(): BelongsTo` dan fillable
 `follow_up_type_id`. `UpdateCaseRequest` hanya menerima:
@@ -322,7 +450,7 @@ yang sama. Gunakan untuk update kasus, penyelesaian, dan inline tindak lanjut.
 `follow_up_type` atau null dan timestamp expected. Policy memakai `update()`;
 kasus terminal ditolak oleh service.
 
-- [ ] **Step 4: Ubah `CaseService` sebagai satu-satunya pemilik transisi**
+- [ ] **Step 3: Ubah `CaseService` sebagai satu-satunya pemilik transisi**
 
 Pertahankan transaksi dan `lockForUpdate()`. Setelah lock, bandingkan timestamp
 aktual dengan `expected_updated_at`; gunakan `ValidationException` pada key
@@ -347,7 +475,7 @@ $statusCode = $typeId === null
 `action=save` tidak mengubah status/`closed_at`, termasuk saat record sudah
 Selesai. Hapus kebutuhan `change_reason` dan `waka_summary`.
 
-- [ ] **Step 5: Hubungkan controller dan route tipis**
+- [ ] **Step 4: Hubungkan controller dan route tipis**
 
 Tambahkan:
 
@@ -376,20 +504,20 @@ Respons JSON sukses inline:
 }
 ```
 
-- [ ] **Step 6: Jalankan focused gate**
+- [ ] **Step 5: Jalankan focused gate**
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php tests/Feature/AuthorizationMatrixTest.php
-php vendor/bin/pint --test app/Models/BkCase.php app/Http/Requests app/Services/AuditService.php app/Services/CaseService.php app/Http/Controllers/CaseController.php app/Policies/CasePolicy.php routes/bk-services.php tests/Feature/CaseManagementTest.php
+php vendor/bin/pint --test app/Models/BkCase.php app/Http/Requests app/Services/CaseService.php app/Http/Controllers/CaseController.php app/Policies/CasePolicy.php routes/bk-services.php tests/Feature/CaseManagementTest.php
 git diff --check
 ```
 
 Expected: seluruh test target kasus dan matriks role PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```powershell
-git add app routes tests/Feature/CaseManagementTest.php tests/Feature/AuthorizationMatrixTest.php
+git add app routes tests/Feature/CaseManagementTest.php
 git commit -m "feat: sederhanakan lifecycle kasus BK"
 ```
 
@@ -397,7 +525,7 @@ git commit -m "feat: sederhanakan lifecycle kasus BK"
 
 ## Checkpoint B — Peralihan Consumer dan UI
 
-### Task 4: Bangun daftar, sorting, modal, dan inline tindak lanjut kasus
+### Task 4 — Wave 1 Lane A: Bangun daftar, sorting, modal, dan inline tindak lanjut kasus
 
 **Files:**
 - Modify: `app/Http/Controllers/CaseController.php`
@@ -407,15 +535,11 @@ git commit -m "feat: sederhanakan lifecycle kasus BK"
 - Modify: `resources/views/pages/cases/edit.blade.php`
 - Create: `resources/views/pages/cases/_detail-modal.blade.php`
 - Create: `resources/views/pages/cases/_edit-modal.blade.php`
-- Create: `resources/js/service-records.js`
-- Modify: `resources/js/app-dashboard.js`
-- Modify: `resources/scss/app-dashboard.scss`
-- Modify: `scripts/check-frontend.mjs`
 - Modify: `tests/Feature/CaseManagementTest.php`
 
 **Interfaces:**
-- Produces: tabel final delapan kolom, search nama, filter status, sorting allowlist, modal shared, dan dropdown inline dengan rollback.
-- Consumes: endpoint kasus Task 3 dan modal Bootstrap existing.
+- Produces: tabel final delapan kolom, search nama, filter status, sorting allowlist, modal shared, serta data contract dropdown inline.
+- Consumes: endpoint kasus Task 3 dan atribut yang akan dipasang ke handler Bootstrap/rollback milik Lane C.
 
 - [ ] **Step 1: Tambahkan test daftar/UI yang gagal**
 
@@ -423,17 +547,16 @@ Test exact header, search nama saja, filter status, sort `nama|kelas|tanggal|
 sumber|bidang|status`, direction `asc|desc`, fallback sort invalid, tie-breaker
 `cases.id`, serta tidak adanya aksi mutasi bagi Waka.
 
-Tambahkan static assertions pada `check-frontend.mjs` untuk satu modal shell,
+Tambahkan assertion response pada `CaseManagementTest` untuk satu modal shell,
 `data-modal-url`, `data-follow-up-url`, indikator saving, dan tidak adanya link
 route follow-up/resolve lama. Assert juga `aria-labelledby`,
-`modal-dialog-scrollable`, tombol tutup yang berlabel, dan focus trigger kembali
-setelah modal ditutup.
+`modal-dialog-scrollable`, serta tombol tutup yang berlabel. Checker frontend
+dan perilaku focus/JavaScript menjadi ownership Lane C dan Gate 1.
 
 Run:
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php
-npm run check:frontend
 ```
 
 Expected: FAIL karena markup dan sorting baru belum ada.
@@ -466,34 +589,20 @@ data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pen
 Gunakan `window.confirm`; tidak ada modal konfirmasi kedua dan tidak ada field
 alasan.
 
-- [ ] **Step 4: Implementasikan JavaScript minimal**
-
-`service-records.js` menangani:
-
-1. fetch partial ke satu Bootstrap modal;
-2. submit form modal dengan CSRF dan render error 422 dekat field;
-3. dropdown tindak lanjut: disable, tampilkan `Menyimpan…`, PATCH satu kali,
-   update status/timestamp, lalu enable;
-4. bila gagal, kembalikan pilihan/status/timestamp lama dan tampilkan error.
-
-Abort request lama dengan `AbortController` bila pengguna menutup modal. Import
-`Modal` dari package Bootstrap existing; jangan menambah library.
-
-- [ ] **Step 5: Jalankan focused gate dan commit**
+- [ ] **Step 4: Jalankan focused gate dan commit**
 
 ```powershell
 php artisan test tests/Feature/CaseManagementTest.php
-npm run check:frontend
-npm run build
 php vendor/bin/pint --test app/Http/Controllers/CaseController.php tests/Feature/CaseManagementTest.php
 git diff --check
-git add app resources scripts tests/Feature/CaseManagementTest.php
+git add app resources/views/pages/cases tests/Feature/CaseManagementTest.php
 git commit -m "feat: sesuaikan antarmuka kasus BK"
 ```
 
-Expected: seluruh command exit 0; build tidak menambah dependency.
+Expected: seluruh command exit 0. Lane A melaporkan dua commit Task 3-4 dan
+tidak mengubah file ownership Lane B/C.
 
-### Task 5: Ganti konsultasi menjadi layanan mandiri yang selalu selesai
+### Task 5 — Wave 1 Lane B: Ganti konsultasi menjadi layanan mandiri yang selalu selesai
 
 **Files:**
 - Modify: `app/Models/Consultation.php`
@@ -502,28 +611,26 @@ Expected: seluruh command exit 0; build tidak menambah dependency.
 - Modify: `app/Services/ConsultationService.php`
 - Modify: `app/Policies/ConsultationPolicy.php`
 - Modify: `app/Http/Controllers/ConsultationController.php`
-- Modify: `app/Http/Controllers/CaseController.php`
-- Modify: `resources/views/pages/cases/index.blade.php`
 - Modify: `resources/views/pages/consultations/create.blade.php`
 - Modify: `resources/views/pages/consultations/show.blade.php`
 - Create: `resources/views/pages/consultations/_detail-modal.blade.php`
 - Create: `resources/views/pages/consultations/_edit-modal.blade.php`
-- Modify: `resources/js/service-records.js`
-- Modify: `scripts/check-frontend.mjs`
 - Modify: `tests/Feature/ConsultationManagementTest.php`
 
 **Interfaces:**
 - Consumes create: identitas lokal/sementara, `session_date`, `service_field_id`, `problem`, `handling`, `result`.
 - Consumes update: lima field layanan ditambah `expected_updated_at`; identitas tidak diterima saat edit.
+- Consumes: `AuditService::recordChanges(...)` dari Task 2.
 - Produces: layanan mandiri tanpa status, nomor registrasi, case link, atau private-note split.
+- Produces: model/query fields yang dipakai koordinator Gate 1 untuk memasang daftar konsultasi ke tab Layanan BK shared.
 
 - [ ] **Step 1: Tulis ulang focused test agar gagal pada kontrak target**
 
 Cover tanggal create default hari server namun editable, exact NISN match,
 temporary identity, tiga narasi wajib/maksimal 10.000, edit tanggal, identitas
 immutable, stale update ditolak, diff-only audit, soft delete, confirm message,
-search nama, filter jenis layanan, sorting tanggal/nama/kelas/jenis, dan header
-lima kolom.
+serta detail/edit modal. Test daftar gabungan, filter, sorting, dan header lima
+kolom ditambahkan koordinator pada Gate 1 karena file daftar dimiliki Lane A.
 
 Run:
 
@@ -552,30 +659,32 @@ lock, timestamp expected, dan `AuditService::recordChanges()`.
 dengan kontrak response yang sama seperti update kasus: redirect untuk halaman
 fallback, JSON untuk modal, dan error validasi 422 dari Form Request.
 
-- [ ] **Step 3: Implementasikan form/list/modal**
+- [ ] **Step 3: Implementasikan form dan modal**
 
 Create memakai tanggal `today()->toDateString()` hanya bila tidak ada old input.
 Autocomplete memakai data murid lokal yang sudah di-scope; native `datalist`
 dan hidden `student_id` boleh dipakai, tetapi backend tetap exact-match NISN.
 Edit tidak merender input identitas.
 
-Daftar hanya menampilkan Tanggal, Murid dan Kelas, Permasalahan, Jenis Layanan,
-Aksi. Modal detail Waka/Guru memakai partial sama, tetapi tombol edit/arsip hanya
-muncul jika policy mengizinkan.
+Modal detail Guru memakai partial shared dan tombol edit/arsip hanya muncul jika
+policy mengizinkan. Jangan mengedit `CaseController` atau
+`pages/cases/index.blade.php`; daftar gabungan dipasang pada Gate 1.
 
 - [ ] **Step 4: Jalankan focused gate dan commit**
 
 ```powershell
 php artisan test tests/Feature/ConsultationManagementTest.php tests/Feature/AuthorizationMatrixTest.php
-npm run check:frontend
-npm run build
 php vendor/bin/pint --test app/Models/Consultation.php app/Http/Requests/StoreConsultationRequest.php app/Http/Requests/UpdateConsultationRequest.php app/Services/ConsultationService.php app/Policies/ConsultationPolicy.php app/Http/Controllers/ConsultationController.php tests/Feature/ConsultationManagementTest.php
 git diff --check
-git add app resources scripts tests/Feature/ConsultationManagementTest.php tests/Feature/AuthorizationMatrixTest.php
+git add app resources/views/pages/consultations tests/Feature/ConsultationManagementTest.php
 git commit -m "feat: sederhanakan layanan konsultasi"
 ```
 
-### Task 6: Buka proyeksi detail read-only untuk Waka dengan audit
+### Task 6 — Wave 2 Lane D: Buka proyeksi detail read-only untuk Waka dengan audit
+
+> **Execution gate:** Jangan dispatch Task 6 berdasarkan urutan tampil dokumen.
+> Task ini baru boleh dimulai setelah Lane A/B/C diintegrasikan dan Integration
+> Gate 1 lulus.
 
 **Files:**
 - Modify: `app/Models/BkCase.php`
@@ -659,18 +768,15 @@ git add app resources/views/pages/waka tests/Feature
 git commit -m "feat: beri Waka akses layanan hanya baca"
 ```
 
-### Task 7: Tambahkan autosave perangkat dan ikon Akses Cepat
+### Task 7 — Wave 1 Lane C: Tambahkan frontend shared, autosave perangkat, dan ikon Akses Cepat
 
 **Files:**
+- Create: `resources/js/service-records.js`
 - Create: `resources/js/form-draft.js`
 - Modify: `resources/js/app-dashboard.js`
 - Modify: `resources/views/layouts/app-2.blade.php`
 - Modify: `resources/views/components/topbar.blade.php`
 - Modify: `resources/views/pages/account/index.blade.php`
-- Modify: `resources/views/pages/cases/create.blade.php`
-- Modify: `resources/views/pages/cases/_edit-modal.blade.php`
-- Modify: `resources/views/pages/consultations/create.blade.php`
-- Modify: `resources/views/pages/consultations/_edit-modal.blade.php`
 - Modify: `resources/views/pages/achievements/create.blade.php`
 - Modify: `resources/views/pages/achievements/show.blade.php`
 - Modify: `resources/views/pages/assignments/cases/index.blade.php`
@@ -687,15 +793,23 @@ git commit -m "feat: beri Waka akses layanan hanya baca"
 - Modify: `tests/Feature/DashboardTest.php`
 
 **Interfaces:**
+- Consumes: kontrak `data-modal-url`, `data-follow-up-url`, response JSON, dan error 422 yang ditetapkan Task 3-5; Lane C tidak mengubah Blade pemilik kontrak.
+- Produces: handler modal/follow-up generik yang aktif setelah commit Lane A/B diintegrasikan.
 - Produces: key `sibk:draft:v1:{userId}:{formKey}:{recordId|new}` dan value `{version:1,savedAt,values}`.
 - Produces: helper pure yang menerima storage/clock agar dapat diuji dengan Node tanpa dependency.
 
-- [ ] **Step 1: Buat test Node yang gagal**
+- [ ] **Step 1: Buat test frontend shared yang gagal**
 
 `scripts/check-form-draft.mjs` memakai `node:assert/strict` dan fake storage untuk
 menguji save/restore, isolasi user/form/record, TTL 24 jam, clear satu draft,
 clear semua draft user, serta penolakan `_token`, `_method`, password, token,
 credential, secret, dan file.
+
+Di `scripts/check-frontend.mjs`, assert `app-dashboard.js` mengimpor
+`service-records.js` dan `form-draft.js`, sedangkan `service-records.js`
+menggunakan Bootstrap `Modal`, `AbortController`, header
+`Accept: application/json`, dan rollback value pada response gagal. Jangan
+assert markup Lane A/B sebelum Gate 1.
 
 Ubah package script:
 
@@ -725,21 +839,30 @@ sukses menghapus key langsung sebelum halaman daftar dimuat ulang. Form logout
 memakai `data-clear-drafts-user` untuk menghapus seluruh namespace user sebelum
 submit.
 
-- [ ] **Step 3: Tandai hanya form bisnis yang aman**
+- [ ] **Step 3: Implementasikan modal dan inline update generik**
 
-Tambahkan data attributes hanya pada sebelas view form bisnis yang tercantum di
-bagian Files. Collector tetap mengabaikan input file pada persiapan tahun
-ajaran/roster. Jangan tandai search/filter, login, password, akun, pengelolaan
-user, integration settings, pratinjau rekonsiliasi Dapodik, archive
-confirmation, atau dropdown inline.
+`service-records.js` menangani fetch partial ke satu Bootstrap modal, submit
+form dengan CSRF, render error 422 dekat field, dan restore focus ke trigger.
+Dropdown tindak lanjut di-disable selama PATCH; sukses memperbarui label status
+dan timestamp, sedangkan gagal mengembalikan value/status/timestamp lama.
+Gunakan `AbortController` saat modal ditutup dan jangan menambah dependency.
 
-- [ ] **Step 4: Tambahkan ikon Akses Cepat tanpa library**
+- [ ] **Step 4: Tandai hanya form bisnis non-kasus/konsultasi yang aman**
+
+Tambahkan data attributes hanya pada tujuh view non-kasus/konsultasi yang
+tercantum di bagian Files. Collector tetap mengabaikan input file pada
+persiapan tahun ajaran/roster. Form kasus/konsultasi dipasang koordinator pada
+Gate 1 setelah Lane A/B masuk. Jangan tandai search/filter, login, password,
+akun, pengelolaan user, integration settings, pratinjau rekonsiliasi Dapodik,
+archive confirmation, atau dropdown inline.
+
+- [ ] **Step 5: Tambahkan ikon Akses Cepat tanpa library**
 
 `DashboardService::quickActions()` menambah key `icon` dan `tone` dari allowlist
 tetap. Blade memilih SVG inline existing melalui `@switch`; SCSS menggunakan
 token warna aplikasi. Tidak ada warna inline atau package ikon.
 
-- [ ] **Step 5: Jalankan focused gate dan commit**
+- [ ] **Step 6: Jalankan focused gate dan commit**
 
 ```powershell
 npm run check:frontend
@@ -751,26 +874,242 @@ git add resources scripts package.json app/Services/DashboardService.php tests/F
 git commit -m "feat: tambah autosave lokal dan ikon dashboard"
 ```
 
-### Task 8: Selaraskan laporan, dashboard, profil murid, dan dummy data
+### Integration Gate 1 — Gabungkan Lane A, B, dan C
 
 **Files:**
-- Modify: `app/Services/DashboardService.php`
+- Modify: `app/Http/Controllers/CaseController.php`
+- Modify: `resources/views/pages/cases/index.blade.php`
+- Modify: `resources/views/pages/cases/create.blade.php`
+- Modify: `resources/views/pages/cases/_edit-modal.blade.php`
+- Modify: `resources/views/pages/consultations/create.blade.php`
+- Modify: `resources/views/pages/consultations/_edit-modal.blade.php`
+- Modify: `scripts/check-frontend.mjs`
+- Modify: `tests/Feature/ConsultationManagementTest.php`
+
+**Interfaces:**
+- Consumes: commit Lane A/B/C dan kontrak model/endpoint/frontend yang mereka hasilkan.
+- Produces: satu baseline hijau dengan daftar konsultasi terpasang di tab shared, autosave kasus/konsultasi aktif, serta frontend checker yang menguji markup final.
+
+- [ ] **Step 1: Verifikasi laporan worker dan ownership tidak tumpang tindih**
+
+```powershell
+$wave1 = @(
+    'revisi-sibk-3-2-wave1-kasus',
+    'revisi-sibk-3-2-wave1-konsultasi',
+    'revisi-sibk-3-2-wave1-frontend'
+)
+$owners = @{}
+foreach ($lane in $wave1) {
+    $baseCommit = git merge-base HEAD $lane
+    foreach ($file in @(git diff --name-only "$baseCommit..$lane")) {
+        if ($owners.ContainsKey($file)) {
+            throw "File ownership bentrok: $file ($($owners[$file]) dan $lane)"
+        }
+        $owners[$file] = $lane
+    }
+}
+```
+
+Expected: command selesai tanpa exception; semua lane berstatus DONE atau
+DONE_WITH_CONCERNS dan focused gate masing-masing exit 0.
+
+- [ ] **Step 2: Cherry-pick ketiga lane sesuai protokol integrasi**
+
+Gunakan loop cherry-pick pada bagian Protokol worktree dan integrasi. Setelah
+setiap lane masuk, jalankan `git status --short`; expected tidak ada operasi
+cherry-pick tertunda.
+
+- [ ] **Step 3: Tulis failing test untuk daftar konsultasi shared**
+
+Tambahkan test search hanya berdasarkan nama, filter `service_field_id`, sort
+allowlist `tanggal|nama|kelas|jenis_layanan`, direction `asc|desc`, tie-breaker
+`consultations.id`, header lima kolom, dan larangan aksi mutasi bagi Waka.
+
+Run:
+
+```powershell
+php artisan test tests/Feature/ConsultationManagementTest.php
+```
+
+Expected: FAIL karena `CaseController::consultationIndex()` dan tab shared masih
+memakai registration number, status, serta kolom lama.
+
+- [ ] **Step 4: Integrasikan daftar dan autosave pada file shared**
+
+Ubah `consultationIndex()` ke field target dan sorting allowlist. Ubah tab
+konsultasi menjadi Tanggal, Murid dan Kelas, Permasalahan, Jenis Layanan, Aksi.
+Tambahkan `data-autosave-form`, user/form/record key, status draft, dan Hapus
+Draft pada empat form kasus/konsultasi yang dimiliki Lane A/B. Tambahkan static
+assertion final untuk modal, inline follow-up, autosave, `aria-labelledby`,
+dialog scrollable, dan tidak adanya route UI lama.
+
+- [ ] **Step 5: Jalankan integration gate**
+
+```powershell
+php artisan test tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/DashboardTest.php tests/Feature/AuthorizationMatrixTest.php
+php vendor/bin/pint --test app/Http/Controllers/CaseController.php tests/Feature/ConsultationManagementTest.php
+npm run check:frontend
+npm run build
+git diff --check
+```
+
+Expected: seluruh command exit 0. Task 6/8A/8B belum boleh didispatch jika gate
+ini gagal.
+
+- [ ] **Step 6: Commit integrasi Wave 1**
+
+```powershell
+git add app/Http/Controllers/CaseController.php resources/views/pages/cases resources/views/pages/consultations scripts/check-frontend.mjs tests/Feature/ConsultationManagementTest.php
+git commit -m "chore: integrasikan wave pertama revisi SIBK"
+```
+
+### Task 8A — Wave 2 Lane E: Selaraskan laporan layanan BK
+
+**Files:**
 - Modify: `app/Services/CounselingReportQuery.php`
 - Modify: `app/Services/OperationalReportRecapService.php`
 - Modify: `app/Services/LegacyReportAdapter.php`
-- Modify: `app/Services/ViolationReportQuery.php`
-- Modify: `app/Http/Controllers/StudentController.php`
-- Modify: `app/Http/Controllers/CaseController.php`
-- Modify: `app/Services/CaseService.php`
-- Modify: `app/Models/Student.php`
-- Modify: `app/Models/Achievement.php`
-- Modify: `resources/views/pages/dashboard/html.blade.php`
 - Modify: `resources/views/pages/reports/_desktop-table.blade.php`
 - Modify: `resources/views/pages/reports/_mobile-cards.blade.php`
 - Modify: `resources/views/pages/reports/index.blade.php`
+- Modify: `tests/Feature/OperationalReportRecapTest.php`
+- Modify: `tests/Feature/ReportManagementTest.php`
+
+**Interfaces:**
+- Consumes: skema/model kasus dan konsultasi hasil Gate 1.
+- Produces: `follow_up_case_count`; report legacy `status-tindak-lanjut` berbasis kasus terkini; rekap tanpa event `follow_ups` atau status konsultasi.
+
+- [ ] **Step 1: Tulis test agregat yang gagal**
+
+Pastikan satu kasus Tindak Lanjut tetap dihitung satu layanan, report tindak
+lanjut berisi satu row per kasus, konsultasi selalu dihitung sebagai layanan
+selesai, dan narasi kasus/konsultasi tidak masuk export.
+
+```powershell
+php artisan test tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php
+```
+
+Expected: FAIL karena query masih union `follow_ups` dan memakai status konsultasi.
+
+- [ ] **Step 2: Ubah query dan view laporan**
+
+`OperationalReportRecapService` menyatukan hanya cases + consultations dan
+menghitung `follow_up_case_count` dari status `membutuhkan_tindak_lanjut`.
+`CounselingReportQuery::followUps()` serta export-nya memakai `BkCase` dengan
+`follow_up_type_id IS NOT NULL`. `LegacyReportAdapter` mengganti judul menjadi
+`Kasus Tindak Lanjut` dan menghapus filter `follow_up_status`. View desktop,
+mobile, dan ringkasan memakai key baru tanpa menggandakan service count.
+
+- [ ] **Step 3: Jalankan focused gate dan commit**
+
+```powershell
+php artisan test tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php
+php vendor/bin/pint --test app/Services/CounselingReportQuery.php app/Services/OperationalReportRecapService.php app/Services/LegacyReportAdapter.php tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php
+git diff --check
+git add app/Services resources/views/pages/reports tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php
+git commit -m "refactor: sesuaikan laporan layanan BK"
+```
+
+### Task 8B — Wave 2 Lane F: Selaraskan consumer dan dummy data
+
+**Files:**
+- Modify: `app/Services/DashboardService.php`
+- Modify: `app/Services/ViolationReportQuery.php`
+- Modify: `app/Http/Controllers/StudentController.php`
+- Modify: `app/Models/Student.php`
+- Modify: `app/Models/Achievement.php`
+- Modify: `resources/views/pages/dashboard/html.blade.php`
 - Modify: `resources/views/pages/students/show.blade.php`
 - Modify: `resources/views/pages/students/index.blade.php`
 - Modify: `database/seeders/DummyCaseAndServiceSeeder.php`
+- Modify: `tests/Feature/DashboardTest.php`
+- Modify: `tests/Feature/StudentProfileTest.php`
+- Modify: `tests/Feature/DapodikSyncTest.php`
+- Modify: `tests/Feature/DelayedDapodikPreparationTest.php`
+- Modify: `tests/Feature/StudentDepartureTest.php`
+- Modify: `tests/Feature/AchievementManagementTest.php`
+- Modify: `tests/Feature/WakaReportPageTest.php`
+- Modify: `tests/Feature/WakaStudentDepartureTest.php`
+
+**Interfaces:**
+- Consumes: model kasus/konsultasi target dan `follow_up_type_id` dari Gate 1.
+- Produces: dashboard/profil/scope turunan/seeder tanpa consumer relasi retired; fixture integrasi memakai skema target.
+
+- [ ] **Step 1: Ubah focused test agar gagal pada consumer lama**
+
+Dashboard Guru BK harus menampilkan kasus berstatus Tindak Lanjut tanpa tanggal
+jadwal. Profil murid tidak mempunyai count/jadwal follow-up maupun kolom
+kasus/status konsultasi. Fixture Dapodik, departure, prestasi, dan Waka tidak
+boleh membuat model retired.
+
+```powershell
+php artisan test tests/Feature/DashboardTest.php tests/Feature/StudentProfileTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php tests/Feature/StudentDepartureTest.php tests/Feature/AchievementManagementTest.php tests/Feature/WakaReportPageTest.php tests/Feature/WakaStudentDepartureTest.php
+```
+
+Expected: FAIL karena consumer/fixture masih mengakses follow-up event,
+coordination, private note, atau status konsultasi.
+
+- [ ] **Step 2: Bersihkan dashboard, profil, dan scope turunan**
+
+Dashboard memakai cases berstatus Tindak Lanjut. Profil murid menghapus elemen
+jadwal follow-up serta kolom kasus/status konsultasi. Pada `Student`,
+`Achievement`, dan `ViolationReportQuery`, ganti predicate
+`cases.coordinations` dengan keberadaan kasus non-deleted yang dapat dibaca Waka;
+jangan expose payload mentah e-Tatib atau narasi melalui report.
+
+- [ ] **Step 3: Ubah dummy seeder dan fixture test**
+
+Seeder membuat kasus dengan optional `follow_up_type_id`; konsultasi mempunyai
+`problem`, `handling`, `result`. Hapus pembuatan `FollowUp`, `CaseCoordination`,
+dan `ConsultationPrivateNote`. Jangan reset tabel. Sesuaikan fixture delapan
+test file ke field target tanpa memperluas assertion di luar perilaku terkait.
+
+- [ ] **Step 4: Jalankan focused gate dan commit**
+
+```powershell
+php artisan test tests/Feature/DashboardTest.php tests/Feature/StudentProfileTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php tests/Feature/StudentDepartureTest.php tests/Feature/AchievementManagementTest.php tests/Feature/WakaReportPageTest.php tests/Feature/WakaStudentDepartureTest.php
+php vendor/bin/pint --test app/Services/DashboardService.php app/Services/ViolationReportQuery.php app/Http/Controllers/StudentController.php app/Models/Student.php app/Models/Achievement.php database/seeders/DummyCaseAndServiceSeeder.php tests/Feature
+git diff --check
+git add app/Services/DashboardService.php app/Services/ViolationReportQuery.php app/Http/Controllers/StudentController.php app/Models/Student.php app/Models/Achievement.php resources/views/pages/dashboard resources/views/pages/students database/seeders/DummyCaseAndServiceSeeder.php tests/Feature
+git commit -m "refactor: selaraskan consumer layanan BK"
+```
+
+### Integration Gate 2 — Gabungkan Lane D, E, dan F
+
+- [ ] **Step 1: Verifikasi ownership, laporan worker, dan cherry-pick**
+
+Ulangi pemeriksaan collision Gate 1 untuk branch `wave2-waka`, `wave2-laporan`,
+dan `wave2-consumer`. Expected tidak ada file overlap. Cherry-pick dalam urutan
+D, E, F memakai protokol integrasi.
+
+- [ ] **Step 2: Jalankan gate gabungan Wave 2**
+
+```powershell
+php artisan test tests/Feature/WakaMonitoringTest.php tests/Feature/WakaDashboardTest.php tests/Feature/AuthorizationMatrixTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php tests/Feature/DashboardTest.php tests/Feature/StudentProfileTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php tests/Feature/StudentDepartureTest.php tests/Feature/AchievementManagementTest.php tests/Feature/WakaReportPageTest.php tests/Feature/WakaStudentDepartureTest.php
+php vendor/bin/pint --test app database/seeders tests/Feature
+npm run check:frontend
+npm run build
+git diff --check
+```
+
+Expected: seluruh command exit 0 sebelum runtime lama dihapus.
+
+- [ ] **Step 3: Commit resolusi integrasi bila ada**
+
+Jika Gate 2 memerlukan perubahan file shared, commit hanya perubahan tersebut:
+
+```powershell
+git add app resources database/seeders tests/Feature
+git commit -m "chore: integrasikan wave kedua revisi SIBK"
+```
+
+Jika working tree bersih dan tidak ada resolusi, jangan membuat empty commit.
+
+### Task 8C — Sequential Cleanup: Hapus runtime lama
+
+**Files:**
+- Modify: `app/Http/Controllers/CaseController.php`
+- Modify: `app/Services/CaseService.php`
 - Modify: `routes/web.php`
 - Modify: `routes/bk-services.php`
 - Modify: `scripts/check-frontend.mjs`
@@ -787,97 +1126,44 @@ git commit -m "feat: tambah autosave lokal dan ikon dashboard"
 - Delete: `resources/views/pages/cases/follow-up.blade.php`
 - Delete: `resources/views/pages/cases/resolve.blade.php`
 - Delete: `resources/views/pages/waka/case-detail.blade.php`
-- Modify: `tests/Feature/DashboardTest.php`
-- Modify: `tests/Feature/OperationalReportRecapTest.php`
-- Modify: `tests/Feature/ReportManagementTest.php`
-- Modify: `tests/Feature/StudentProfileTest.php`
-- Modify: `tests/Feature/DapodikSyncTest.php`
-- Modify: `tests/Feature/DelayedDapodikPreparationTest.php`
-- Modify: `tests/Feature/StudentDepartureTest.php`
-- Modify: `tests/Feature/AchievementManagementTest.php`
-- Modify: `tests/Feature/WakaReportPageTest.php`
-- Modify: `tests/Feature/WakaStudentDepartureTest.php`
 
 **Interfaces:**
-- Produces: satu kasus tetap dihitung satu layanan; `follow_up_type_id` hanya klasifikasi terkini, bukan event.
-- Produces: metric `follow_up_case_count` = jumlah kasus berstatus Tindak Lanjut.
-- Produces: tipe report legacy `status-tindak-lanjut` tetap tersedia tetapi row-nya berasal dari kasus terkini, bukan tabel `follow_ups`.
+- Consumes: baseline hijau Gate 2 yang sudah tidak membaca struktur retired.
+- Produces: runtime tanpa class/route/view retired; tabel/kolom masih tersedia sampai Task 9.
 
-- [ ] **Step 1: Ubah test agregat agar gagal pada semantik baru**
+- [ ] **Step 1: Hapus controller/service/route/view lama**
 
-Pastikan satu kasus Tindak Lanjut tidak menambah `service_count`, report tindak
-lanjut berisi satu row per kasus, konsultasi selalu dihitung sebagai layanan
-selesai, dan tidak ada narasi layanan pada export.
+Dari `CaseService`/`CaseController`, hapus method resolve terpisah dan koordinasi;
+penyelesaian hanya melalui `cases.update`. Hapus route follow-up form, resolve,
+coordination, route preview resolve, import class, dan daftar view retired pada
+checker frontend. Hapus seluruh file Delete di atas.
 
-Run:
+- [ ] **Step 2: Scan consumer runtime**
 
 ```powershell
-php artisan test tests/Feature/DashboardTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php tests/Feature/StudentProfileTest.php
+rg -n "FollowUp|CaseCoordination|ConsultationPrivateNote|followUps|coordinations|privateNote|cases\.follow-ups|cases\.coordinations|cases\.resolve" app routes resources database/seeders
 ```
 
-Expected: FAIL karena query masih union `follow_ups` dan memakai status konsultasi.
+Expected: exit 1 karena tidak ada match. Jika masih ada match, hapus consumer
+tersebut sebelum Task 9; jangan drop tabel lebih dahulu.
 
-- [ ] **Step 2: Ubah query pada akar consumer**
-
-`OperationalReportRecapService` menyatukan hanya cases + consultations.
-`follow_up_case_count` dihitung dari cases dengan status code
-`membutuhkan_tindak_lanjut`; current type boleh muncul pada report khusus tetapi
-tidak menjadi layanan tambahan.
-
-`CounselingReportQuery::followUps()` dan export-nya diganti query `BkCase` dengan
-`follow_up_type_id IS NOT NULL`. `LegacyReportAdapter` mengganti judul menjadi
-`Kasus Tindak Lanjut` dan menghapus filter `follow_up_status`.
-
-- [ ] **Step 3: Bersihkan consumer non-laporan**
-
-Dashboard Guru BK menampilkan daftar kasus berstatus Tindak Lanjut tanpa tanggal
-jadwal/terlaksana. Dashboard Waka memakai kasus terbaru tanpa coordination.
-Profil murid menghapus count/jadwal follow-up dan kolom kasus/status konsultasi.
-Update test integrasi Dapodik/departure/prestasi agar fixture memakai skema target.
-
-Pada `Student`, `Achievement`, dan `ViolationReportQuery`, hapus predicate
-`cases.coordinations`. Scope Waka yang masih diperlukan hanya boleh mengikuti
-keberadaan kasus non-deleted yang kini memang dapat dibaca Waka; jangan expose
-payload mentah e-Tatib atau narasi melalui report.
-
-- [ ] **Step 4: Ubah dummy seeder menjadi idempotent pada skema target**
-
-Seeder membuat kasus dengan optional `follow_up_type_id`; konsultasi langsung
-memiliki `problem`, `handling`, `result`. Hapus pembuatan `FollowUp`,
-`CaseCoordination`, dan `ConsultationPrivateNote`. Jangan reset tabel.
-
-- [ ] **Step 5: Hapus runtime lama sebelum schema drop**
-
-Hapus class, request, controller, view, dan route retired yang tercantum pada
-Files. Dari `CaseService`/`CaseController`, hapus method resolve terpisah dan
-koordinasi; penyelesaian hanya melalui `cases.update`. Hapus juga route preview
-resolve dan daftar file retired pada checker frontend. Tabel/kolom lama masih
-ada sampai Task 9, tetapi tidak boleh lagi mempunyai consumer runtime.
-
-- [ ] **Step 6: Jalankan focused gate checkpoint consumer**
+- [ ] **Step 3: Jalankan focused gate dan commit**
 
 ```powershell
-php artisan test tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/DashboardTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php tests/Feature/StudentProfileTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaDashboardTest.php tests/Feature/WakaReportPageTest.php tests/Feature/DapodikSyncTest.php tests/Feature/DelayedDapodikPreparationTest.php tests/Feature/StudentDepartureTest.php tests/Feature/AchievementManagementTest.php
-php vendor/bin/pint --test app database/seeders tests/Feature
+php artisan test tests/Feature/CaseManagementTest.php tests/Feature/ConsultationManagementTest.php tests/Feature/DashboardTest.php tests/Feature/OperationalReportRecapTest.php tests/Feature/ReportManagementTest.php tests/Feature/StudentProfileTest.php tests/Feature/WakaMonitoringTest.php tests/Feature/WakaDashboardTest.php
+php vendor/bin/pint --test app routes tests/Feature
 npm run check:frontend
 npm run build
 git diff --check
-```
-
-Expected: seluruh command exit 0 sebelum tabel/kolom lama di-drop.
-
-- [ ] **Step 7: Commit**
-
-```powershell
-git add app resources database/seeders routes scripts tests/Feature
-git commit -m "refactor: selaraskan consumer layanan BK"
+git add -A app routes resources/views/pages/cases resources/views/pages/waka scripts/check-frontend.mjs
+git commit -m "refactor: hapus runtime layanan BK lama"
 ```
 
 ---
 
 ## Checkpoint C — Pembersihan Destruktif dan Gate Akhir
 
-### Task 9: Hapus skema retired setelah dependency scan
+### Task 9 — Sequential Cleanup: Hapus skema retired setelah dependency scan
 
 **Files:**
 - Create: `database/migrations/2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema.php`
@@ -958,7 +1244,7 @@ git commit -m "refactor: hapus skema layanan BK lama"
 Expected: `rg` exit 1 karena tidak ada match; commit hanya berisi cleanup yang
 sudah didahului perpindahan consumer.
 
-### Task 10: Verifikasi end-to-end, review kontrak, dan perbarui handoff
+### Task 10 — Sequential Final Gate: Verifikasi end-to-end, review kontrak, dan perbarui handoff
 
 **Files:**
 - Modify: `docs/current-work.md`
