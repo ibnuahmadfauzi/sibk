@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
+use App\Services\AuditService;
 use Database\Seeders\AccountSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -33,12 +34,93 @@ class FoundationDataTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
 
         $this->assertSame(4, Role::query()->count());
-        $this->assertSame(53, ReferenceValue::query()->count());
-        $this->assertSame(4, ReferenceValue::query()->forCategory('case_status')->count());
-        $this->assertSame(4, ReferenceValue::query()->forCategory('consultation_status')->count());
+        $this->assertSame(48, ReferenceValue::query()->count());
+        $this->assertSame([
+            'sedang_diproses' => 'Sedang Proses',
+            'membutuhkan_tindak_lanjut' => 'Tindak Lanjut',
+            'selesai' => 'Selesai',
+        ], ReferenceValue::query()
+            ->forCategory('case_status')
+            ->active()
+            ->orderBy('sort_order')
+            ->pluck('label', 'code')
+            ->all());
+        $this->assertSame([
+            'surat_panggilan_orang_tua' => 'Surat Panggilan Orang Tua',
+            'surat_pernyataan' => 'Surat Pernyataan',
+            'home_visit' => 'Home Visit',
+            'pengunduran_diri' => 'Pengunduran Diri',
+        ], ReferenceValue::query()
+            ->forCategory('follow_up_type')
+            ->active()
+            ->orderBy('sort_order')
+            ->pluck('label', 'code')
+            ->all());
+        $this->assertSame(0, ReferenceValue::query()
+            ->whereIn('category', ['consultation_status', 'follow_up_status', 'coordination_status'])
+            ->active()
+            ->count());
         $this->assertSame(6, ReferenceValue::query()->forCategory('achievement_type')->count());
         $this->assertSame(5, ReferenceValue::query()->forCategory('achievement_level')->count());
         $this->assertSame(3, ReferenceValue::query()->forCategory('achievement_verification_status')->count());
+    }
+
+    public function test_foundation_migration_adds_the_new_columns_without_removing_legacy_tables(): void
+    {
+        $this->assertTrue(Schema::hasColumn('cases', 'follow_up_type_id'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'problem'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'handling'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'result'));
+        $this->assertTrue(Schema::hasTable('follow_ups'));
+        $this->assertTrue(Schema::hasTable('case_coordinations'));
+
+        foreach (['problem', 'handling', 'result'] as $columnName) {
+            $column = collect(Schema::getColumns('consultations'))->firstWhere('name', $columnName);
+
+            $this->assertNotNull($column);
+            $this->assertTrue((bool) $column['nullable']);
+        }
+
+        $foreignKeys = Schema::getForeignKeys('cases');
+        $this->assertTrue(collect($foreignKeys)->contains(
+            static fn (array $foreignKey): bool => $foreignKey['columns'] === ['follow_up_type_id']
+                && $foreignKey['foreign_table'] === 'references',
+        ));
+        $this->assertTrue(collect(Schema::getIndexes('cases'))->contains(
+            static fn (array $index): bool => $index['columns'] === ['follow_up_type_id'],
+        ));
+    }
+
+    public function test_audit_service_records_only_strictly_changed_keys(): void
+    {
+        $actor = User::factory()->create();
+        $audit = app(AuditService::class)->recordChanges(
+            action: 'case.updated',
+            auditable: $actor,
+            summary: 'Kasus diperbarui.',
+            actor: $actor,
+            before: ['status' => 'sedang_diproses', 'catatan' => 'Lama', 'dihapus' => 'Ada', 'urutan' => 1],
+            after: ['status' => 'sedang_diproses', 'catatan' => 'Baru', 'ditambah' => 'Ada', 'urutan' => '1'],
+        );
+
+        $this->assertNotNull($audit);
+        $this->assertSame(
+            ['catatan' => 'Lama', 'dihapus' => 'Ada', 'urutan' => 1, 'ditambah' => null],
+            $audit->before_values,
+        );
+        $this->assertSame(
+            ['catatan' => 'Baru', 'dihapus' => null, 'urutan' => '1', 'ditambah' => 'Ada'],
+            $audit->after_values,
+        );
+        $this->assertNull(app(AuditService::class)->recordChanges(
+            action: 'case.updated',
+            auditable: $actor,
+            summary: 'Kasus tidak berubah.',
+            actor: $actor,
+            before: ['status' => 'sedang_diproses'],
+            after: ['status' => 'sedang_diproses'],
+        ));
+        $this->assertSame(1, AuditLog::query()->count());
     }
 
     public function test_role_accounts_seeder_is_idempotent_and_assigns_one_expected_role(): void
