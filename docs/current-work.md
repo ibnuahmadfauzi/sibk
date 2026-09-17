@@ -2,6 +2,12 @@
 
 ## Status
 
+- Pekerjaan aktif: Revisi SIBK 3.2 untuk Layanan Guru BK.
+- Branch aktif: `revisi-sibk-3-2` dari baseline `25a2174`.
+- Spec aktif: `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`.
+- Plan aktif: `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`.
+- Checkpoint aktif: A kontrak/fondasi aditif, B peralihan consumer/UI, C pembersihan destruktif dan gate akhir.
+
 - Checkpoint selesai: 1-6.
 - PR #15 Checkpoint 5B terintegrasi ke `cobasidebar` pada commit `fd9a20a`.
 - Checkpoint 6 dibagi menjadi 6A Dapodik, 6B pengaturan integrasi, dan 6C
@@ -68,8 +74,12 @@
 
 ## Langkah berikutnya
 
-1. Tidak ada task implementasi aktif. Tunggu prioritas berikutnya atau kontrak
-   resmi provider yang lolos admission gate.
+1. Selesaikan Task 2: migration aditif, reference aktif, audit delta, dan
+   verifikasi SQLite tanpa drop skema lama.
+2. Lanjutkan Task 3 lalu Wave 1 hanya setelah gate task sebelumnya lulus.
+3. Gate akhir Revisi 3.2: `composer test`, `php vendor/bin/pint --test`,
+   `npm run check:frontend`, `npm run build`, `composer validate --strict`, dan
+   `git diff --check` sebelum PR ke `cobasidebar`.
 
 ## Blocker
 
@@ -77,6 +87,9 @@
 - Adapter production tetap ditahan karena kontrak resmi provider belum tersedia.
 
 ## Acuan
+
+- Plan aktif: `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`
+- Spec aktif: `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`
 
 - Plan selesai: `docs/superpowers/plans/2026-09-16-checkpoint-6-refactor-baseline-praproduksi.md`
 - Spec: `docs/superpowers/specs/2026-09-14-baseline-cobasidebar-arsip-dan-penyederhanaan-design.md`
