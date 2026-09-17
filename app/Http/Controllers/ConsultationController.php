@@ -7,14 +7,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ArchiveConsultationRequest;
 use App\Http\Requests\StoreConsultationRequest;
 use App\Http\Requests\UpdateConsultationRequest;
-use App\Models\BkCase;
 use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\ConsultationService;
-use App\Support\ServiceRecordStatus;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -51,22 +50,19 @@ class ConsultationController extends Controller
         $consultation->load([
             'student.classMemberships.classroom.academicYear',
             'temporaryStudent.reconciledStudent',
-            'case',
             'serviceField',
-            'status',
             'counselor',
         ]);
-        $canViewSensitive = $user->can('viewSensitive', $consultation);
-        if ($canViewSensitive) {
-            $consultation->load('privateNote.updater');
-        }
-
-        return view('pages.consultations.show', [
+        $data = [
             'consultation' => $consultation,
-            'canViewSensitive' => $canViewSensitive,
             'canUpdateConsultation' => $user->can('update', $consultation),
             'canArchiveConsultation' => $user->can('archive', $consultation),
-        ]);
+        ];
+
+        return view(
+            $request->boolean('modal') ? 'pages.consultations._detail-modal' : 'pages.consultations.show',
+            $data,
+        );
     }
 
     public function edit(Request $request, Consultation $consultation): View
@@ -81,20 +77,37 @@ class ConsultationController extends Controller
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom'),
             'temporaryStudent',
-            'privateNote',
         ]);
 
-        return $this->formData($user, $consultation, $request);
+        $data = $this->formValues($user, $consultation, $request);
+
+        return $request->boolean('modal')
+            ? view('pages.consultations._edit-modal', [...$data, 'modal' => true])
+            : view('pages.consultations.create', $data);
     }
 
     public function update(
         UpdateConsultationRequest $request,
         Consultation $consultation,
         ConsultationService $service,
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $service->update($consultation, $request->validated(), $actor);
+        $consultation = $service->update($consultation, $request->validated(), $actor);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Konsultasi berhasil diperbarui.',
+                'data' => [
+                    'service_field_id' => $consultation->service_field_id,
+                    'session_date' => $consultation->session_date?->toDateString(),
+                    'problem' => $consultation->problem,
+                    'handling' => $consultation->handling,
+                    'result' => $consultation->result,
+                    'updated_at' => $consultation->updated_at?->toJSON(),
+                ],
+            ]);
+        }
 
         return redirect()->route('consultations.show', $consultation)->with('success', 'Konsultasi berhasil diperbarui.');
     }
@@ -114,6 +127,12 @@ class ConsultationController extends Controller
 
     private function formData(User $user, ?Consultation $consultation, Request $request): View
     {
+        return view('pages.consultations.create', $this->formValues($user, $consultation, $request));
+    }
+
+    /** @return array<string, mixed> */
+    private function formValues(User $user, ?Consultation $consultation, Request $request): array
+    {
         $students = Student::query()
             ->availableForService()
             ->professionallyAccessibleTo($user)
@@ -124,24 +143,14 @@ class ConsultationController extends Controller
                 ->with('classroom')])
             ->orderBy('name')
             ->get();
-        $cases = BkCase::query()
-            ->whereHas('assignments', fn ($assignments) => $assignments
-                ->where('user_id', $user->getKey())
-                ->effectiveOn(now()))
-            ->with(['student', 'temporaryStudent.reconciledStudent', 'serviceField', 'status'])
-            ->latest('service_date')
-            ->get();
 
-        return view('pages.consultations.create', [
+        return [
             'consultation' => $consultation,
             'isEdit' => $consultation !== null,
-            'isCompleted' => $consultation?->status?->code === ServiceRecordStatus::COMPLETED,
-            'terminalConfirmed' => $request->boolean('confirm_terminal'),
+            'modal' => false,
             'students' => $students,
-            'cases' => $cases,
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
-            'consultationStatuses' => ReferenceValue::query()->active()->forCategory('consultation_status')->orderBy('sort_order')->get(),
             'preselectedStudentId' => $request->integer('student_id') ?: null,
-        ]);
+        ];
     }
 }

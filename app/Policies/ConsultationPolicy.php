@@ -19,11 +19,6 @@ class ConsultationPolicy
         return $user->hasRole('koordinator_bk') || $consultation->isProfessionallyAccessibleTo($user);
     }
 
-    public function viewSensitive(User $user, Consultation $consultation): bool
-    {
-        return $consultation->isProfessionallyAccessibleTo($user);
-    }
-
     public function create(User $user): bool
     {
         return $user->hasRole('guru_bk');

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\Consultation;
-use App\Support\ServiceRecordStatus;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateConsultationRequest extends StoreConsultationRequest
+class UpdateConsultationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -21,29 +21,36 @@ class UpdateConsultationRequest extends StoreConsultationRequest
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {
-        $consultation = $this->route('consultation');
-        $isCompleted = $consultation instanceof Consultation
-            && $consultation->loadMissing('status')->status?->code === ServiceRecordStatus::COMPLETED;
-        $rules = $this->consultationRules();
-        $rules['change_reason'] = [Rule::requiredIf($isCompleted), 'nullable', 'string', 'min:10', 'max:500'];
-        $rules['status_id'] = $isCompleted
-            ? ['required', 'integer', Rule::in([(int) $consultation->status_id])]
-            : ['required', 'integer', Rule::exists('references', 'id')->where(
-                fn ($statuses) => $statuses
-                    ->where('category', 'consultation_status')
-                    ->where('is_active', true)
-                    ->where('code', '!=', ServiceRecordStatus::COMPLETED),
-            )];
-
-        return $rules;
+        return [
+            'student_id' => ['prohibited'],
+            'temporary_student_id' => ['prohibited'],
+            'temporary_nisn' => ['prohibited'],
+            'temporary_name' => ['prohibited'],
+            'service_field_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'service_field')->where('is_active', true)],
+            'session_date' => ['required', 'date', 'before_or_equal:today'],
+            'problem' => ['required', 'string', 'max:10000'],
+            'handling' => ['required', 'string', 'max:10000'],
+            'result' => ['required', 'string', 'max:10000'],
+            'expected_updated_at' => ['required', 'date'],
+        ];
     }
 
     /** @return array<string, string> */
     public function messages(): array
     {
         return [
-            ...parent::messages(),
-            'change_reason.required' => 'Alasan perubahan wajib diisi untuk data yang telah selesai.',
+            'student_id.prohibited' => 'Identitas murid tidak dapat diubah.',
+            'temporary_student_id.prohibited' => 'Identitas murid tidak dapat diubah.',
+            'temporary_nisn.prohibited' => 'Identitas murid tidak dapat diubah.',
+            'temporary_name.prohibited' => 'Identitas murid tidak dapat diubah.',
+            'service_field_id.required' => 'Jenis layanan wajib dipilih.',
+            'service_field_id.exists' => 'Jenis layanan tidak tersedia.',
+            'session_date.required' => 'Tanggal sesi wajib diisi.',
+            'session_date.before_or_equal' => 'Tanggal sesi tidak boleh berada di masa depan.',
+            'problem.required' => 'Permasalahan wajib diisi.',
+            'handling.required' => 'Penanganan wajib diisi.',
+            'result.required' => 'Hasil wajib diisi.',
+            'expected_updated_at.required' => 'Waktu versi data wajib dikirim.',
         ];
     }
 }

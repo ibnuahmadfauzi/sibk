@@ -6,8 +6,6 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
-use App\Models\BkCase;
-use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ReferenceValue;
@@ -16,13 +14,9 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Services\CaseService;
-use App\Services\ConsultationService;
-use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class ConsultationManagementTest extends TestCase
@@ -33,316 +27,221 @@ class ConsultationManagementTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
+        $this->travelTo('2026-09-18 09:00:00');
     }
 
-    public function test_teacher_creates_consultation_with_physically_separated_private_note_and_safe_audit(): void
+    public function test_teacher_creates_completed_service_for_exact_local_student_on_editable_date(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
 
-        $response = $this->actingAs($teacher)->post(route('consultations.store'), [
+        $this->actingAs($teacher)->get(route('consultations.create'))
+            ->assertOk()
+            ->assertSee('type="date"', false)
+            ->assertSee('value="2026-09-18"', false);
+
+        $response = $this->post(route('consultations.store'), [
             ...$this->payload(),
             'student_id' => $student->id,
-            'sensitive_content' => 'ISI-SANGAT-RAHASIA',
-            'internal_note' => 'CATATAN-INTERNAL',
-            'conclusion' => 'Kesimpulan profesional.',
+            'session_date' => '2026-09-17',
         ]);
+        $response->assertSessionHasNoErrors();
 
         $consultation = Consultation::query()->firstOrFail();
         $response->assertRedirect(route('consultations.show', $consultation));
-        $this->assertMatchesRegularExpression('/^KNS-2026-\d{4}$/', $consultation->registration_number);
-        $this->assertDatabaseHas('consultations', ['student_id' => $student->id, 'general_summary' => 'Ringkasan umum yang diizinkan.']);
-        $this->assertDatabaseHas('consultation_private_notes', ['consultation_id' => $consultation->id, 'sensitive_content' => 'ISI-SANGAT-RAHASIA']);
-
-        $audit = AuditLog::query()
-            ->where('auditable_type', $consultation->getMorphClass())
-            ->where('auditable_id', $consultation->getKey())
-            ->where('action', 'consultation.created')
-            ->firstOrFail();
-        $serializedAudit = json_encode([$audit->before_values, $audit->after_values, $audit->summary]);
-        $this->assertStringNotContainsString('ISI-SANGAT-RAHASIA', $serializedAudit);
-        $this->assertStringNotContainsString('CATATAN-INTERNAL', $serializedAudit);
-        $this->assertContains('sensitive_content', $audit->after_values['private_fields_present']);
+        $this->assertSame($student->id, $consultation->student_id);
+        $this->assertNull($consultation->temporary_student_id);
+        $this->assertSame('2026-09-17', $consultation->session_date->toDateString());
+        $this->assertSame('Kesulitan beradaptasi di kelas.', $consultation->problem);
+        $this->assertSame('Asesmen dan konseling individual.', $consultation->handling);
+        $this->assertSame('Murid menyepakati langkah perbaikan.', $consultation->result);
+        $this->assertDatabaseCount('consultation_private_notes', 0);
     }
 
-    public function test_temporary_identity_and_case_identity_invariants_are_enforced(): void
+    public function test_exact_master_nisn_is_not_duplicated_as_temporary_identity(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
-        $otherStudent = Student::query()->create(['nisn' => '0099999999', 'name' => 'Murid Lain', 'is_active' => true]);
-        $case = $this->createCase($teacher, $student);
 
         $this->actingAs($teacher)->from(route('consultations.create'))->post(route('consultations.store'), [
             ...$this->payload(),
             'temporary_nisn' => $student->nisn,
-            'temporary_name' => 'Nama Duplikat',
+            'temporary_name' => 'Nama tidak boleh menimpa master',
         ])->assertSessionHasErrors('temporary_nisn');
 
-        $this->actingAs($teacher)->from(route('consultations.create'))->post(route('consultations.store'), [
-            ...$this->payload(),
-            'student_id' => $otherStudent->id,
-        ])->assertSessionHasErrors('student_id');
+        $this->assertDatabaseCount('consultations', 0);
+        $this->assertDatabaseCount('temporary_students', 0);
+        $this->assertSame('Murid Scope', $student->refresh()->name);
+    }
 
-        $this->actingAs($teacher)->from(route('consultations.create'))->post(route('consultations.store'), [
-            ...$this->payload(),
-            'temporary_nisn' => '0088888888',
-            'temporary_name' => 'Identitas Sementara',
-            'case_id' => $case->id,
-        ])->assertSessionHasErrors('case_id');
+    public function test_unknown_nisn_creates_temporary_identity_and_service(): void
+    {
+        [$teacher] = $this->teacherAndScopedStudent();
 
         $this->actingAs($teacher)->post(route('consultations.store'), [
-            ...$this->payload(ServiceRecordStatus::NEW),
-            'temporary_nisn' => '0088888888',
-            'temporary_name' => 'Identitas Sementara',
-            'general_summary' => null,
+            ...$this->payload(),
+            'temporary_nisn' => '0098765432',
+            'temporary_name' => 'Murid Belum Sinkron',
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('temporary_students', ['nisn' => '0088888888', 'input_name' => 'Identitas Sementara']);
-        $this->assertDatabaseCount('consultations', 1);
+        $this->assertDatabaseHas('temporary_students', [
+            'nisn' => '0098765432',
+            'input_name' => 'Murid Belum Sinkron',
+        ]);
+        $this->assertDatabaseHas('consultations', [
+            'student_id' => null,
+            'problem' => 'Kesulitan beradaptasi di kelas.',
+        ]);
     }
 
-    public function test_schedule_and_completed_status_validation_use_dynamic_references(): void
+    public function test_all_three_narratives_are_required_and_limited_to_ten_thousand_characters(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
-        $service = app(ConsultationService::class);
 
-        foreach ([
-            [...$this->payload(), 'student_id' => $student->id, 'starts_at' => '10:00', 'ends_at' => '09:00'],
-            [...$this->payload(), 'student_id' => $student->id, 'session_date' => today()->addDay()->toDateString()],
-            [...$this->payload(), 'student_id' => $student->id, 'general_summary' => null],
-            [...$this->payload(), 'student_id' => $student->id, 'follow_up_date' => '2026-08-19'],
-        ] as $invalid) {
-            try {
-                $service->create($invalid, $teacher);
-                $this->fail('Payload konsultasi tidak valid seharusnya ditolak.');
-            } catch (ValidationException) {
-                $this->assertDatabaseCount('consultations', 0);
-            }
+        foreach (['problem', 'handling', 'result'] as $field) {
+            $this->actingAs($teacher)->from(route('consultations.create'))->post(route('consultations.store'), [
+                ...$this->payload(),
+                'student_id' => $student->id,
+                $field => '',
+            ])->assertSessionHasErrors($field);
+
+            $this->actingAs($teacher)->from(route('consultations.create'))->post(route('consultations.store'), [
+                ...$this->payload(),
+                'student_id' => $student->id,
+                $field => str_repeat('a', 10001),
+            ])->assertSessionHasErrors($field);
         }
+
+        $this->assertDatabaseCount('consultations', 0);
     }
 
-    public function test_successor_reads_old_private_history_but_cannot_edit_and_roles_are_redacted(): void
-    {
-        [$firstTeacher, $student, $year, $classroom, $assignment] = $this->teacherAndScopedStudent(true);
-        $consultation = app(ConsultationService::class)->create([
-            ...$this->payload(),
-            'student_id' => $student->id,
-            'sensitive_content' => 'HISTORI-PRIVAT-LAMA',
-        ], $firstTeacher);
-        $successor = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $waka = $this->userWithRole('waka_kesiswaan');
-        $admin = $this->userWithRole('admin_it');
-
-        $assignment->update(['effective_until' => '2026-08-19']);
-        TeacherAssignment::query()->create([
-            'user_id' => $successor->id,
-            'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id,
-            'effective_from' => '2026-08-20',
-            'decision_number' => 'SK-PENERUS',
-            'assigned_by' => $coordinator->id,
-        ]);
-
-        $this->actingAs($successor)->get(route('consultations.show', $consultation))->assertOk()->assertSee('HISTORI-PRIVAT-LAMA');
-        $this->actingAs($successor)->get(route('consultations.edit', $consultation))->assertForbidden();
-        $this->actingAs($firstTeacher)->get(route('consultations.show', $consultation))->assertForbidden();
-        $this->actingAs($coordinator)->get(route('consultations.show', $consultation))->assertOk()->assertSee('Ringkasan umum yang diizinkan.')->assertDontSee('HISTORI-PRIVAT-LAMA')->assertDontSee('Edit Data Sesi');
-        $this->actingAs($waka)->get(route('consultations.show', $consultation))->assertForbidden();
-        $this->actingAs($admin)->get(route('consultations.show', $consultation))->assertForbidden();
-    }
-
-    public function test_coordinator_teacher_reads_private_history_only_in_professional_scope(): void
-    {
-        $this->travelTo('2026-08-20 10:00:00');
-        [$author, $student, $year, $classroom, $assignment] = $this->teacherAndScopedStudent(true);
-        $history = app(ConsultationService::class)->create([
-            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
-            'student_id' => $student->id, 'sensitive_content' => 'PRIVAT-HISTORI-DALAM-SCOPE',
-        ], $author);
-        $multi = $this->userWithRole('koordinator_bk');
-        $multi->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
-        $assignment->update(['effective_until' => '2026-08-19']);
-        TeacherAssignment::query()->create([
-            'user_id' => $multi->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id,
-            'effective_from' => '2026-08-20', 'decision_number' => 'SK-GURU-KOORDINATOR', 'assigned_by' => $multi->id,
-        ]);
-        $outside = app(ConsultationService::class)->create([
-            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
-            'temporary_nisn' => '0098765432', 'temporary_name' => 'Murid di Luar Scope',
-            'sensitive_content' => 'PRIVAT-DI-LUAR-SCOPE',
-        ], $author);
-
-        $this->actingAs($multi)->get(route('assignments.classes.manage'))->assertOk();
-        $this->get(route('consultations.show', $history))->assertOk()->assertSee('PRIVAT-HISTORI-DALAM-SCOPE');
-        $this->get(route('consultations.edit', $history))->assertForbidden();
-        $this->patch(route('consultations.update', $history), [
-            ...$this->payload(ServiceRecordStatus::IN_PROGRESS), 'sensitive_content' => 'MUTASI-DITOLAK',
-        ])->assertForbidden();
-        $this->assertDatabaseHas('consultation_private_notes', [
-            'consultation_id' => $history->id, 'sensitive_content' => 'PRIVAT-HISTORI-DALAM-SCOPE',
-        ]);
-        $this->get(route('consultations.show', $outside))->assertOk()
-            ->assertSee('Ringkasan umum yang diizinkan.')->assertDontSee('PRIVAT-DI-LUAR-SCOPE');
-        $this->get(route('consultations.edit', $outside))->assertForbidden();
-    }
-
-    public function test_only_original_author_with_current_authority_can_update_private_fields(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $consultation = app(ConsultationService::class)->create([
-            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
-            'student_id' => $student->id,
-            'sensitive_content' => 'Versi awal',
-        ], $teacher);
-
-        $this->actingAs($teacher)->patch(route('consultations.update', $consultation), [
-            ...$this->payload(ServiceRecordStatus::IN_PROGRESS),
-            'sensitive_content' => 'Versi diperbarui',
-            'internal_note' => 'Rahasia baru',
-        ])->assertRedirect(route('consultations.show', $consultation));
-
-        $this->assertDatabaseHas('consultation_private_notes', ['consultation_id' => $consultation->id, 'sensitive_content' => 'Versi diperbarui']);
-        $audit = AuditLog::query()->where('action', 'consultation.updated')->firstOrFail();
-        $this->assertStringNotContainsString('Versi diperbarui', json_encode($audit->after_values));
-    }
-
-    public function test_temporary_identity_history_follows_active_special_case_assignment(): void
-    {
-        $firstTeacher = $this->userWithRole('guru_bk');
-        $successor = $this->userWithRole('guru_bk');
-        $case = app(CaseService::class)->createCase([
-            'temporary_nisn' => '0077777777',
-            'temporary_name' => 'Murid Sementara Kasus',
-            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
-            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'service_date' => '2026-08-01',
-            'initial_info' => 'Informasi awal.',
-            'initial_action' => 'Asesmen awal.',
-        ], $firstTeacher);
-        $consultation = app(ConsultationService::class)->create([
-            ...$this->payload(),
-            'temporary_nisn' => '0077777777',
-            'temporary_name' => 'Murid Sementara Kasus',
-            'case_id' => $case->id,
-            'sensitive_content' => 'HISTORI-TEMPORER-PRIVAT',
-        ], $firstTeacher);
-        CaseAssignment::query()->create([
-            'case_id' => $case->id,
-            'user_id' => $successor->id,
-            'assignment_type' => CaseAssignment::TYPE_ADDITIONAL,
-            'effective_from' => '2026-08-20',
-            'reason' => 'Kewenangan khusus pengujian.',
-            'assigned_by' => $firstTeacher->id,
-        ]);
-
-        $this->actingAs($successor)->get(route('consultations.show', $consultation))
-            ->assertOk()
-            ->assertSee('HISTORI-TEMPORER-PRIVAT');
-        $this->actingAs($successor)->get(route('consultations.edit', $consultation))->assertForbidden();
-        $this->actingAs($successor)->delete(route('consultations.destroy', $consultation))->assertForbidden();
-    }
-
-    public function test_completed_consultation_owner_can_edit_with_reason_and_archive(): void
+    public function test_owner_updates_five_service_fields_but_cannot_change_identity(): void
     {
         [$owner, $student] = $this->teacherAndScopedStudent();
-        $consultation = app(ConsultationService::class)->create([
-            ...$this->payload(ServiceRecordStatus::COMPLETED),
-            'student_id' => $student->id,
-        ], $owner);
-
-        $this->actingAs($owner)->get(route('consultations.edit', $consultation))
-            ->assertOk()
-            ->assertSee('Data ini telah dinyatakan selesai. Apakah Anda setuju melanjutkan pengeditan?')
-            ->assertDontSee('name="change_reason"', false);
-        $this->actingAs($owner)->get(route('consultations.edit', [$consultation, 'confirm_terminal' => 1]))
-            ->assertOk()
-            ->assertSee('name="change_reason"', false)
-            ->assertSee('type="hidden" name="status_id"', false);
+        $otherStudent = Student::query()->create(['nisn' => '0099999999', 'name' => 'Murid Lain', 'is_active' => true]);
+        $consultation = $this->createConsultation($owner, $student);
 
         $this->actingAs($owner)->patch(route('consultations.update', $consultation), [
-            ...$this->payload(ServiceRecordStatus::COMPLETED),
-            'status_id' => $consultation->status_id,
-            'topic' => 'Topik yang telah diperbaiki',
-            'change_reason' => 'Memperjelas topik sesuai catatan layanan resmi.',
-        ])->assertRedirect(route('consultations.show', $consultation));
+            ...$this->payload(),
+            'student_id' => $otherStudent->id,
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ])->assertSessionHasErrors('student_id');
 
-        $this->assertSame(ServiceRecordStatus::COMPLETED, $consultation->refresh()->status->code);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'consultation.completed_record_updated', 'auditable_id' => $consultation->id]);
-        $audit = AuditLog::query()->where('action', 'consultation.completed_record_updated')->firstOrFail();
-        $this->assertSame('Memperjelas topik sesuai catatan layanan resmi.', $audit->after_values['change_reason']);
+        $response = $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'session_date' => '2026-09-16',
+            'problem' => 'Permasalahan diperbarui.',
+            'handling' => 'Penanganan diperbarui.',
+            'result' => 'Hasil diperbarui.',
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ]);
 
+        $response->assertOk()->assertJsonPath('message', 'Konsultasi berhasil diperbarui.');
+        $consultation->refresh();
+        $this->assertSame($student->id, $consultation->student_id);
+        $this->assertSame('2026-09-16', $consultation->session_date->toDateString());
+        $this->assertSame('Permasalahan diperbarui.', $consultation->problem);
+    }
+
+    public function test_stale_update_is_rejected_and_successful_update_audits_only_changed_fields(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($owner, $student);
+        $staleTimestamp = $consultation->updated_at->toJSON();
+        $consultation->forceFill(['updated_at' => $consultation->updated_at->addSecond()])->saveQuietly();
+
+        $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'problem' => 'Perubahan stale.',
+            'expected_updated_at' => $staleTimestamp,
+        ])->assertUnprocessable()->assertJsonValidationErrors('expected_updated_at');
+
+        $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'problem' => 'Permasalahan terbaru.',
+            'expected_updated_at' => $consultation->refresh()->updated_at->toJSON(),
+        ])->assertOk();
+
+        $audit = AuditLog::query()->where('action', 'consultation.updated')->latest('id')->firstOrFail();
+        $this->assertSame(['problem' => 'Kesulitan beradaptasi di kelas.'], $audit->before_values);
+        $this->assertSame(['problem' => 'Permasalahan terbaru.'], $audit->after_values);
+    }
+
+    public function test_only_authorized_owner_can_archive_with_soft_delete(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $consultation = $this->createConsultation($owner, $student);
+
+        $this->actingAs($otherTeacher)->delete(route('consultations.destroy', $consultation))->assertForbidden();
         $this->actingAs($owner)->delete(route('consultations.destroy', $consultation))
             ->assertRedirect(route('cases.index', ['tab' => 'konsultasi']));
+
         $this->assertSoftDeleted('consultations', ['id' => $consultation->id]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'consultation.archived',
+            'auditable_id' => $consultation->id,
+        ]);
     }
 
-    public function test_completed_consultation_validates_reason_boundaries_and_keeps_status(): void
+    public function test_detail_and_edit_support_modal_partials_and_full_page_fallbacks(): void
     {
         [$owner, $student] = $this->teacherAndScopedStudent();
-        $consultation = app(ConsultationService::class)->create([
-            ...$this->payload(ServiceRecordStatus::COMPLETED),
-            'student_id' => $student->id,
-        ], $owner);
-        $payload = [...$this->payload(ServiceRecordStatus::COMPLETED), 'status_id' => $consultation->status_id];
+        $consultation = $this->createConsultation($owner, $student);
 
-        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => '123456789'])
-            ->assertSessionHasErrors('change_reason');
-        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => '1234567890'])
-            ->assertRedirect(route('consultations.show', $consultation));
-        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => str_repeat('a', 500)])
-            ->assertRedirect(route('consultations.show', $consultation));
-        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [...$payload, 'change_reason' => str_repeat('a', 501)])
-            ->assertSessionHasErrors('change_reason');
-        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [
-            ...$payload,
-            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::IN_PROGRESS)->id,
-            'change_reason' => 'Status tidak boleh diubah melalui request palsu.',
-        ])->assertSessionHasErrors('status_id');
+        $this->actingAs($owner)->get(route('consultations.show', $consultation))
+            ->assertOk()
+            ->assertSee('Detail Konsultasi')
+            ->assertSee('Permasalahan')
+            ->assertSee('Penanganan')
+            ->assertSee('Hasil')
+            ->assertSee('Arsipkan konsultasi ini?');
+        $this->get(route('consultations.show', [$consultation, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('data-consultation-detail-modal', false)
+            ->assertDontSee('<html', false);
+        $this->get(route('consultations.edit', $consultation))
+            ->assertOk()
+            ->assertSee('Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')
+            ->assertDontSee('name="student_id"', false);
+        $this->get(route('consultations.edit', [$consultation, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('data-consultation-edit-modal', false)
+            ->assertSee('name="expected_updated_at"', false)
+            ->assertDontSee('name="temporary_nisn"', false);
     }
 
-    /** @return array{User, Student}|array{User, Student, AcademicYear, Classroom, TeacherAssignment} */
-    private function teacherAndScopedStudent(bool $full = false): array
+    /** @return array{User, Student} */
+    private function teacherAndScopedStudent(): array
     {
         $teacher = $this->userWithRole('guru_bk');
         $year = AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 1', 'is_active' => true]);
         $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Scope', 'is_active' => true]);
         StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'is_active' => true]);
-        $assignment = TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'decision_number' => 'SK-SCOPE', 'assigned_by' => $teacher->id]);
+        TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'decision_number' => 'SK-SCOPE', 'assigned_by' => $teacher->id]);
 
-        return $full ? [$teacher, $student, $year, $classroom, $assignment] : [$teacher, $student];
+        return [$teacher, $student];
     }
 
-    private function createCase(User $teacher, Student $student): BkCase
+    private function createConsultation(User $teacher, Student $student): Consultation
     {
-        return app(CaseService::class)->createCase([
+        $this->actingAs($teacher)->post(route('consultations.store'), [
+            ...$this->payload(),
             'student_id' => $student->id,
-            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
-            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'service_date' => '2026-08-01',
-            'initial_info' => 'Informasi awal.',
-            'initial_action' => 'Asesmen awal.',
-        ], $teacher);
+        ])->assertRedirect();
+
+        return Consultation::query()->latest('id')->firstOrFail();
     }
 
     /** @return array<string, mixed> */
-    private function payload(string $statusCode = ServiceRecordStatus::COMPLETED): array
+    private function payload(): array
     {
         return [
-            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', $statusCode)->id,
-            'topic' => 'Penyesuaian diri',
-            'referral_source' => 'Inisiatif murid',
-            'session_date' => '2026-08-20',
-            'starts_at' => '09:00',
-            'ends_at' => '10:00',
-            'follow_up_date' => '2026-08-22',
-            'general_summary' => 'Ringkasan umum yang diizinkan.',
+            'service_field_id' => ReferenceValue::query()->where('category', 'service_field')->where('code', 'pribadi')->firstOrFail()->id,
+            'session_date' => '2026-09-18',
+            'problem' => 'Kesulitan beradaptasi di kelas.',
+            'handling' => 'Asesmen dan konseling individual.',
+            'result' => 'Murid menyepakati langkah perbaikan.',
         ];
-    }
-
-    private function reference(string $category, string $code): ReferenceValue
-    {
-        return ReferenceValue::query()->where('category', $category)->where('code', $code)->firstOrFail();
     }
 
     private function userWithRole(string $slug): User
