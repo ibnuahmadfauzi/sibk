@@ -2,7 +2,7 @@
 
 **Tanggal:** 17 September 2026
 
-**Status:** Disetujui dalam brainstorming dan menunggu review dokumen
+**Status:** Disetujui untuk implementation plan
 
 **Target:** Kasus, konsultasi, akses Waka, dashboard, autosave, dan skema data terkait
 
@@ -91,7 +91,8 @@ Tabel `cases` tetap menjadi sumber data utama. Perubahan:
   Surat Panggilan Orang Tua, Surat Pernyataan, Home Visit, dan Pengunduran Diri;
 - pertahankan `resolution_summary` dan tampilkan sebagai Catatan Penyelesaian;
 - pertahankan `closed_at` sebagai tanggal penyelesaian;
-- hapus `final_result` dan `continued_plan`;
+- hapus `waka_summary`, `final_result`, dan `continued_plan`; Waka membaca
+  proyeksi field layanan aktual, bukan ringkasan duplikat;
 - pertahankan soft delete, identitas murid, sumber kasus, bidang layanan,
   tanggal layanan, latar belakang, penanganan, pemilik, dan audit.
 
