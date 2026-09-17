@@ -32,6 +32,9 @@ const files = {
     topbar: 'resources/views/components/topbar.blade.php',
     routes: 'routes/web.php',
     package: 'package.json',
+    appDashboard: 'resources/js/app-dashboard.js',
+    serviceRecords: 'resources/js/service-records.js',
+    formDraft: 'resources/js/form-draft.js',
 };
 
 const contents = Object.fromEntries(
@@ -131,6 +134,13 @@ for (const retired of ['CorrectionController', 'NotificationController', "route(
 }
 assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak terpakai masih ada.');
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');
+assert(contents.appDashboard.includes("from './service-records'"), 'app-dashboard belum mengimpor service-records.js.');
+assert(contents.appDashboard.includes("from './form-draft'"), 'app-dashboard belum mengimpor form-draft.js.');
+assert(contents.serviceRecords.includes('Modal'), 'service-records belum memakai modal Bootstrap.');
+assert(contents.serviceRecords.includes('AbortController'), 'service-records belum membatalkan request modal.');
+assert(contents.serviceRecords.includes('Accept: \'application/json\''), 'service-records belum meminta response JSON.');
+assert(contents.serviceRecords.includes('previousValue'), 'service-records belum menyimpan nilai sebelumnya untuk rollback.');
+assert(contents.package.includes('node scripts/check-form-draft.mjs'), 'check:frontend belum menjalankan pemeriksa draft.');
 
 if (failures.length > 0) {
     for (const failure of failures) console.error(`- ${failure}`);

@@ -166,8 +166,8 @@ class DashboardService
                 'items' => $this->technicalReadinessItems($year),
             ],
             'quick_actions' => [
-                ['label' => 'Kelola akun', 'url' => route('admin.users.index'), 'primary' => true],
-                ['label' => 'Buka data master', 'url' => route('data-master.index'), 'primary' => false],
+                ['label' => 'Kelola akun', 'url' => route('admin.users.index'), 'primary' => true, 'icon' => 'account', 'tone' => 'primary'],
+                ['label' => 'Buka data master', 'url' => route('data-master.index'), 'primary' => false, 'icon' => 'data', 'tone' => 'info'],
             ],
         ];
     }
@@ -297,20 +297,20 @@ class DashboardService
         })->all();
     }
 
-    /** @return list<array{label: string, url: string, primary: bool}> */
+    /** @return list<array{label: string, url: string, primary: bool, icon: string, tone: string}> */
     private function quickActions(string $mode): array
     {
         if ($mode === 'waka') {
             return [
-                ['label' => 'Lihat kasus koordinasi', 'url' => route('cases.index'), 'primary' => false],
-                ['label' => 'Buka laporan', 'url' => route('reports.index'), 'primary' => false],
+                ['label' => 'Lihat kasus koordinasi', 'url' => route('cases.index'), 'primary' => false, 'icon' => 'case', 'tone' => 'primary'],
+                ['label' => 'Buka laporan', 'url' => route('reports.index'), 'primary' => false, 'icon' => 'report', 'tone' => 'info'],
             ];
         }
 
         return [
-            ['label' => 'Buat Kasus', 'url' => route('cases.create'), 'primary' => true],
-            ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => false],
-            ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => false],
+            ['label' => 'Buat Kasus', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
+            ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => false, 'icon' => 'consultation', 'tone' => 'success'],
+            ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => false, 'icon' => 'report', 'tone' => 'info'],
         ];
     }
 }

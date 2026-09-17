@@ -1,5 +1,10 @@
 import 'bootstrap/js/dist/dropdown';
 import 'bootstrap/js/dist/offcanvas';
+import { initFormDrafts } from './form-draft';
+import { initServiceRecords } from './service-records';
+
+initFormDrafts();
+initServiceRecords();
 
 document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());

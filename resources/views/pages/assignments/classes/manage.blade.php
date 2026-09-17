@@ -155,7 +155,7 @@
             </section>
         @endif
 
-        <form action="{{ route('assignments.classes.store') }}" method="POST">
+        <form action="{{ route('assignments.classes.store') }}" method="POST" data-autosave-form="class-assignment" data-autosave-record="{{ $selectedClass?->id ?? 'new' }}">
             @csrf
             <input type="hidden" name="academic_year_id" value="{{ old('academic_year_id', $selectedYear?->id) }}">
             <!-- Main Panel: Detail Penugasan -->
@@ -262,6 +262,8 @@
 
             <!-- Bottom Actions -->
             <div class="d-flex justify-content-end gap-3 mt-4">
+                <span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span>
+                <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
                 <a href="{{ route('assignments.classes.index') }}" class="btn btn-outline-secondary px-4 py-2">
                     Batal
                 </a>

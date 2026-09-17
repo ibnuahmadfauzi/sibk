@@ -98,7 +98,7 @@
                         </div>
 
                         <a class="btn btn-primary w-100 mb-3" href="{{ route('account.password.edit') }}">Ganti Kata Sandi</a>
-                        <form action="{{ route('logout') }}" method="POST">
+                        <form action="{{ route('logout') }}" method="POST" data-clear-drafts-user>
                             @csrf
                             <button type="submit" class="btn w-100 sibk-btn-logout">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

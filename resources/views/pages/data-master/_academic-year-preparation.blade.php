@@ -19,7 +19,7 @@
         <div class="row g-4">
             <div class="col-12 col-xl-5">
                 <h3 class="fs-6 fw-bold mb-3">1. Buat Tahun Ajaran Sementara</h3>
-                <form action="{{ route('data-master.academic-years.store') }}" method="POST" class="row g-3">
+                <form action="{{ route('data-master.academic-years.store') }}" method="POST" class="row g-3" data-autosave-form="academic-year-preparation">
                     @csrf
                     <div class="col-12 col-sm-6">
                         <label for="provisional_year_name" class="form-label sibk-form-label">Tahun Ajaran</label>
@@ -69,7 +69,9 @@
                         >
                         @error('ends_on')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-12">
+                    <div class="col-12 d-flex align-items-center gap-2">
+                        <span class="small text-muted me-auto" data-draft-status aria-live="polite"></span>
+                        <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
                         <button type="submit" class="btn btn-primary">Buat Tahun Ajaran</button>
                     </div>
                 </form>

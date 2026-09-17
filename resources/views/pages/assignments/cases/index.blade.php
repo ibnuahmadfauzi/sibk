@@ -43,7 +43,7 @@
             </div>
 
             <div class="sibk-panel">
-                <form action="{{ route('cases.assign', $selectedCase) }}" method="POST" class="row g-4 p-4">
+                <form action="{{ route('cases.assign', $selectedCase) }}" method="POST" class="row g-4 p-4" data-autosave-form="case-assignment" data-autosave-record="{{ $selectedCase->id }}">
                     @csrf
                     <div class="col-12 col-md-4">
                         <label class="form-label" for="assignment_type">Jenis perubahan <span class="text-danger">*</span></label>
@@ -60,7 +60,7 @@
                     </div>
                     <div class="col-12 col-md-4"><label class="form-label" for="effective_date">Tanggal berlaku <span class="text-danger">*</span></label><input class="form-control" type="date" id="effective_date" name="effective_date" value="{{ old('effective_date', now()->format('Y-m-d')) }}" required></div>
                     <div class="col-12"><label class="form-label" for="reason">Alasan <span class="text-danger">*</span></label><textarea class="form-control" id="reason" name="reason" rows="3" required>{{ old('reason') }}</textarea></div>
-                    <div class="col-12 d-flex justify-content-end gap-2"><a href="{{ route('cases.show', $selectedCase) }}" class="btn btn-outline-secondary">Batal</a><button class="btn btn-primary" type="submit">Simpan Penugasan</button></div>
+                    <div class="col-12 d-flex justify-content-end gap-2"><span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span><button class="btn btn-light" type="button" data-clear-draft>Hapus Draft</button><a href="{{ route('cases.show', $selectedCase) }}" class="btn btn-outline-secondary">Batal</a><button class="btn btn-primary" type="submit">Simpan Penugasan</button></div>
                 </form>
             </div>
         @else
