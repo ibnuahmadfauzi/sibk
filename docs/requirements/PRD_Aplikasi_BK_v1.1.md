@@ -188,6 +188,8 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Pelayanan BK        | Kasus baru berstatus **Sedang Proses**; hanya **Sedang Proses**, **Tindak Lanjut**, dan **Selesai** yang aktif. Tindak lanjut adalah satu klasifikasi terkini; memilihnya mengubah status menjadi Tindak Lanjut dan mengosongkannya mengembalikan Sedang Proses. Konsultasi tidak memiliki status. |
 | Kode kasus          | Kode kasus tetap dibuat untuk kebutuhan internal, relasi, audit teknis, dan integritas data, tetapi tidak ditampilkan pada UI, pencarian pengguna, laporan, ekspor, dashboard, atau audit yang terlihat pengguna. |
 | Waka                | Waka aktif membaca proyeksi detail kasus dan konsultasi yang disetujui, tanpa aksi buat, ubah, selesai, tindak lanjut, atau arsip. Koordinasi berlangsung di luar aplikasi dan tidak dicatat sebagai fitur/data layanan. |
+| Autosave dan konflik | Form tambah/edit data bisnis menyimpan draft lokal per pengguna/form/record maksimal 24 jam tanpa mengirim atau mengaudit draft. Simpan resmi memakai `updated_at` dan menolak konflik agar perubahan tidak saling menimpa. |
+| Daftar layanan      | Daftar kasus dan konsultasi hanya menerima search/filter/sorting yang berada pada allowlist server dengan arah `asc`/`desc` dan tie-breaker ID. |
 | Penugasan           | Setiap kasus memiliki satu penanggung jawab aktif. Pengalihan menutup pemilik lama dan membuka pemilik baru secara atomik dalam satu transaksi; perubahan menyimpan tanggal efektif dan dasar keputusan. Kasus aktif tidak berpindah otomatis akibat pergantian kelas atau tahun ajaran. |
 | Edit dan arsip      | Tombol Hapus mengarsipkan kasus/konsultasi dengan soft delete. Kesalahan data master dikoordinasikan di luar aplikasi, diperbaiki pada sumber resmi, lalu masuk melalui sinkronisasi atau rekonsiliasi. |
 | Proses keluar murid | Pencatatan awal selalu `dalam_proses`; hanya Koordinator menetapkan `batal` atau `resmi_keluar`. Hanya `resmi_keluar` dengan tanggal efektif yang menghentikan layanan baru dan memulai retensi. Provider tidak menentukan status ini. |
@@ -215,7 +217,7 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 | Layanan BK            | Nama murid, tahun ajaran, periode, kelas, dan Guru BK        | Guru BK: scope; Koordinator: gabungan.         |
 | Prestasi              | Nama murid, tahun ajaran, periode, kelas                     | Guru BK: scope; Koordinator: gabungan.         |
 
-Ketiga tab memakai rekap satu baris per murid, dataset terscope yang sama untuk tabel, cetak, dan CSV, serta identitas tersamarkan. Filter Guru BK pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan atau tindak lanjut dan `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record. Tujuh tipe laporan lama tidak lagi menjadi katalog navigasi, tetapi kontrak URL-nya dipertahankan sementara.
+Ketiga tab memakai rekap satu baris per murid, dataset terscope yang sama untuk tabel, cetak, dan CSV, serta identitas tersamarkan. Filter Guru BK pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record. Tujuh tipe laporan lama tidak lagi menjadi katalog navigasi, tetapi kontrak URL-nya dipertahankan sementara.
 
 Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan yang sudah ada, dan Laravel Pagination tanpa dependency tabel baru.
 
@@ -252,15 +254,6 @@ Portal Waka mempunyai daftar Murid dengan Kasus dan satu halaman Laporan bertab.
 | Prestasi        | Verifikator, status, bukti yang boleh disimpan, dan format laporan.                         | Koordinator BK dan Waka     |
 | Dokumen         | Format, ukuran, akses, pemulihan, dan prosedur penghapusan setelah batas minimum.           | Koordinator, Waka, Admin IT |
 | Ekspor          | Format cetak/ekspor dan kebutuhan penandaan atau pencatatan khusus.                         | Koordinator BK dan Waka     |
-
-## Amandemen aktif Revisi SIBK 3.2
-
-Ketentuan berikut menggantikan kebutuhan layanan BK yang bertentangan di atas:
-
-- Autosave form tambah/edit data bisnis disimpan lokal per pengguna/form/record selama maksimal 24 jam; draft tidak dikirim ke server, tidak diaudit, dan mengecualikan password, token, credential, file, CSRF, serta method spoofing.
-- Daftar kasus dan konsultasi hanya menerima kolom serta arah sorting yang berada pada allowlist server; pagination memakai tie-breaker ID.
-- Simpan edit kasus dan konsultasi membawa `updated_at` yang terakhir dibaca. Konflik perubahan ditolak, input dipertahankan, dan pengguna diminta memuat ulang.
-- Waka dapat membaca enam field layanan yang disetujui pada detail kasus/konsultasi, tetapi narasi layanan tidak boleh masuk ekspor/CSV massal tanpa keputusan produk baru.
 
 # Sumber dan riwayat versi
 

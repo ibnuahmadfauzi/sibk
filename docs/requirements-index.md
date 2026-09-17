@@ -92,8 +92,8 @@ Untuk task tersebut gunakan:
 - Kasus: `CASE-04`, `CASE-05`, `CASE-12`, `CASE-16` hingga `CASE-18`.
 - Konsultasi mandiri: `CONS-01` hingga `CONS-05`.
 - Autosave lokal: `DASH-04`; audit perubahan-delta: `AUD-01`.
-- Kontrak endpoint, sorting allowlist, dan `expected_updated_at`: bagian
-  **Amandemen aktif Revisi SIBK 3.2** pada `docs/api-contract.md`.
+- Kontrak endpoint, sorting allowlist, dan `expected_updated_at`: modul Kasus,
+  Klasifikasi Tindak Lanjut, dan Konsultasi pada `docs/api-contract.md`.
 
 ## Source of Truth Priority
 

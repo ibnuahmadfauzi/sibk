@@ -4,7 +4,7 @@ Status: **AKTIF — IMPLEMENTASI BACKEND**
 
 Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penanganan data untuk modul-modul P0 Ruang BK.
 
-Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, serta penyederhanaan operasional 15 September 2026.
+Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan operasional 15 September 2026, dan Revisi SIBK 3.2 tanggal 17 September 2026.
 
 ## Kontrak Bersama Pengembangan Paralel
 
@@ -20,6 +20,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - Portal Waka memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases`, `waka.reports` untuk `GET /waka/reports`, serta route kompatibilitas `waka.monitoring.handling` untuk `GET /waka/handling-reports` yang mengarah ke tab penanganan.
 - Filter daftar murid dan Monitoring Penanganan menerima `period` (`YYYY-MM`), `status`, `sort`, `direction`, dan `page`. Daftar murid hanya menerima sort `murid`, `kelas`, `status`, atau `guru_bk`; Monitoring Penanganan juga menerima `bidang` dan `tanggal`. `direction` hanya `asc` atau `desc`. Rekap Periode menerima `academic_year_id`, `date_start`, dan `date_end` di dalam batas tahun ajaran terpilih.
 - Waka aktif dapat membaca seluruh kasus dan konsultasi melalui policy/query scope khusus; route portal Waka tidak menyediakan tindakan mutasi.
+- Autosave form tambah/edit data bisnis memakai `localStorage` per pengguna/form/record selama maksimal 24 jam, tidak dikirim atau diaudit, dan mengecualikan password, token, credential, file, CSRF, serta method spoofing.
 
 ### Otorisasi Produk
 
@@ -27,64 +28,6 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Pengujian:** [matriks otorisasi umum](testing/authorization-matrix.md) menunjuk feature test reguler untuk empat role, URL langsung, scope data, histori, privasi, dan ekspor.
 
 ---
-
-## Amandemen aktif Revisi SIBK 3.2
-
-Kontrak ini menggantikan endpoint, request, dan respons lama yang bertentangan
-di modul kasus, tindak lanjut, konsultasi, serta pemantauan Waka. Runtime lama
-dipensiunkan berurutan setelah seluruh consumer berpindah.
-
-### Kasus, tindak lanjut, dan konkurensi
-
-- Kasus baru berstatus `sedang_diproses`; status aktif hanya
-  `sedang_diproses`, `membutuhkan_tindak_lanjut` (label **Tindak Lanjut**), dan
-  `selesai`.
-- `PATCH /cases/{case}` menerima payload berikut. `action=complete` mewajibkan
-  `resolution_summary`, menetapkan `closed_at` pada server, dan keduanya memakai
-  `expected_updated_at` untuk menolak konflik dengan HTTP 422.
-
-```json
-{
-  "expected_updated_at": "2026-09-17T08:30:00.000000Z",
-  "action": "save|complete",
-  "initial_info": "Murid mengalami kesulitan beradaptasi di kelas.",
-  "initial_action": "Guru BK melakukan asesmen awal.",
-  "resolution_summary": "Murid dan Guru BK menyepakati langkah penyelesaian."
-}
-```
-
-- `PATCH /cases/{case}/follow-up` hanya memperbarui klasifikasi terkini dan
-  menerima payload berikut. Nilai non-null mengubah status menjadi Tindak
-  Lanjut; nilai null mengembalikannya ke Sedang Proses; kasus Selesai ditolak.
-
-```json
-{
-  "follow_up_type_id": 123,
-  "expected_updated_at": "2026-09-17T08:30:00.000000Z"
-}
-```
-
-- Daftar kasus mengizinkan `search` nama, filter `status_id`, serta sorting
-  allowlist `nama`, `kelas`, `tanggal`, `sumber`, `bidang`, `status` dengan
-  `direction=asc|desc` dan tie-breaker `cases.id`.
-
-### Konsultasi, Waka, autosave, dan audit
-
-- Konsultasi mandiri tidak memiliki `case_id`, nomor registrasi, status, atau
-  catatan privat terpisah. Simpan dan edit membawa `expected_updated_at` serta
-  memvalidasi `student_id` atau `temporary_student_id`, `service_field_id`,
-  `session_date`, `problem`, `handling`, `result`, dan `counselor_id`.
-- Daftar konsultasi hanya mencari nama, memfilter `service_field_id`, serta
-  mengizinkan sorting `tanggal`, `nama`, `kelas`, `jenis_layanan` dengan
-  `direction=asc|desc` dan tie-breaker `consultations.id`.
-- Waka aktif dapat membaca daftar/detail kasus dan konsultasi melalui proyeksi
-  allowlist saja, tetapi semua endpoint mutasi ditolak. Detail Waka dicatat
-  sebagai audit pembacaan dan narasi layanan tidak tersedia pada CSV massal.
-- Audit simpan resmi mencatat actor, waktu, tipe/ID record, dan hanya field
-  yang berubah beserta nilai sebelum/sesudahnya. Draft autosave tidak diaudit.
-- Autosave form tambah/edit data bisnis disimpan sebagai JSON `localStorage`
-  per pengguna, form, dan record selama maksimal 24 jam; password, token,
-  credential, file, CSRF, serta method spoofing dikecualikan.
 
 ## 1. Modul Autentikasi & Akun (`AUTH`, `ACC`)
 
@@ -160,6 +103,17 @@ dipensiunkan berurutan setelah seluruh consumer berpindah.
 - **Field tetap:** murid/identitas sementara, kode internal, sumber kasus, tautan e-Tatib, pemilik, dan status terminal tidak dapat diubah melalui form ini.
 - **Authorization:** hanya Guru BK pemilik aktif. Koordinator mengatur penugasan tetapi tidak mengubah catatan profesional.
 - **Edit selesai:** memerlukan konfirmasi; setiap narasi maksimal 10.000 karakter. `action=complete` mewajibkan `resolution_summary`, menetapkan `closed_at` dari server, dan audit menyimpan hanya field berubah.
+- **Payload update:**
+
+```json
+{
+  "expected_updated_at": "2026-09-17T08:30:00.000000Z",
+  "action": "save|complete",
+  "initial_info": "Murid mengalami kesulitan beradaptasi di kelas.",
+  "initial_action": "Guru BK melakukan asesmen awal.",
+  "resolution_summary": "Murid dan Guru BK menyepakati langkah penyelesaian."
+}
+```
 - **Arsip:** `DELETE /cases/{case}` hanya untuk pemilik aktif, memakai soft delete, dan tidak mengubah status bisnis.
 
 ### Detail Kasus
@@ -189,6 +143,14 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Endpoint:** `PATCH /cases/{case}/follow-up`.
 - **Controller:** `CaseController@updateFollowUp`.
 - **Form Request:** `follow_up_type_id` nullable dari reference aktif kategori `follow_up_type` dan `expected_updated_at`.
+- **Payload update:**
+
+```json
+{
+  "follow_up_type_id": 123,
+  "expected_updated_at": "2026-09-17T08:30:00.000000Z"
+}
+```
 - **Business Logic:** satu nilai non-null mengubah status menjadi `membutuhkan_tindak_lanjut`; nilai null mengembalikan `sedang_diproses`; kasus `selesai` ditolak. Tidak ada jadwal, hasil, riwayat event, atau record anak.
 
 ---
@@ -376,8 +338,8 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Controller:** `DashboardController@index`.
 - **Query Params:** `academic_year_id` (opsional; harus merujuk tahun ajaran yang tersedia).
 - **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
-  - Guru BK menerima cakupan kelas, kasus khusus aktif, dan tindak lanjut terdekat.
-  - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan efektif, dan tindak lanjut terbuka tanpa isi catatan internal atau konsultasi privat.
+  - Guru BK menerima cakupan kelas, kasus khusus aktif, dan kasus berstatus Tindak Lanjut.
+  - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan efektif, dan jumlah kasus Tindak Lanjut tanpa catatan internal.
   - Waka Kesiswaan menerima agregat aman seluruh kasus sekolah dan tautan detail hanya-baca untuk kasus serta konsultasi sesuai proyeksi allowlist.
   - Admin IT hanya menerima kesiapan akun, tahun ajaran, sinkronisasi, konflik sumber, dan status provider tanpa identitas atau isi layanan BK.
 - **Multi-role:** fungsi Koordinator diprioritaskan sebagai rekap tata kelola; role teknis tidak membuka isi layanan sensitif.
@@ -399,7 +361,7 @@ terlihat pada dashboard serta halaman operasional terkait.
 - **Arsitektur informasi akun Waka murni:** Dashboard; PEMANTAUAN WAKA berisi Murid dengan Kasus, Proses Keluar Murid, dan Laporan; UTILITAS berisi Akun Saya.
 - **Murid dengan Kasus:** satu row per identitas internal, dengan nama, kelas historis, jumlah kasus, jumlah aktif, status terbaru, dan Guru BK. Filter `period/status`; sort hanya `murid`, `kelas`, `status`, atau `guru_bk`.
 - **Monitoring Penanganan:** satu row per kasus, filter `period/status`, sort `murid`, `kelas`, `bidang`, `status`, `guru_bk`, atau `tanggal`, dan pagination stabil.
-- **Rekap Periode:** filter `academic_year_id`, `date_start`, dan `date_end`; menampilkan agregat murid ditangani, kasus tercatat, membutuhkan tindak lanjut, kasus selesai, distribusi bidang/status, konteks e-Tatib/prestasi terverifikasi, dan ringkasan kelas tanpa identitas atau narasi kasus.
+- **Rekap Periode:** filter `academic_year_id`, `date_start`, dan `date_end`; menampilkan agregat murid ditangani, kasus tercatat, kasus Tindak Lanjut, kasus selesai, distribusi bidang/status, konteks e-Tatib/prestasi terverifikasi, dan ringkasan kelas tanpa identitas atau narasi kasus.
 - **Laporan Akhir:** hanya menampilkan `Dalam pengembangan` serta penjelasan bahwa susunan laporan sedang disiapkan bersama pihak BK dan sekolah. Tidak tersedia form, migration, penerbitan, cetak, PDF, atau ekspor.
 - **Field detail kasus:** nama, tanggal, kelas, status, Guru BK, latar belakang, penanganan, dan Catatan Penyelesaian. Field detail konsultasi: tanggal, murid/kelas, jenis layanan, permasalahan, penanganan, dan hasil.
 - **Field terlarang:** NISN, kode kasus, catatan internal, payload provider mentah, dokumen sensitif, audit teknis, dan field di luar allowlist.
@@ -422,9 +384,9 @@ terlihat pada dashboard serta halaman operasional terkait.
   - `format=csv` wajib pada endpoint ekspor. XLSX dan PDF server belum tersedia sampai `DEP-07` disahkan.
 - **Authorization:** `ReportPolicy` mengizinkan Guru BK dan Koordinator BK; Admin IT dan akun Waka murni ditolak. Akun multi-role memakai fungsi Guru BK/Koordinator yang sah, sedangkan fungsi Waka tersedia melalui `/waka/reports`.
 - **Business Logic:** `OperationalReportRecapService` menghasilkan tiga rekap satu baris per murid; identitas sementara yang sah hanya muncul pada tab Layanan. `ReportService` mempertahankan tujuh tipe legacy. Keduanya memakai scope objek yang sama dengan daftar/detail. Guru BK dibatasi scope profesional atau kasus khusus, Koordinator memperoleh rekap gabungan, dan akun multi-role dihitung berdasarkan fungsi yang sah.
-- **Filter Guru BK:** pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan atau tindak lanjut serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record.
+- **Filter Guru BK:** pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record.
 - **Teknologi:** Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan existing, dan Laravel Pagination; tidak ada dependency tabel baru.
-- **Periode dan kelas:** periode default mengikuti tahun ajaran aktif. Kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kejadian, sesi, layanan, atau tindak lanjut.
+- **Periode dan kelas:** periode default mengikuti tahun ajaran aktif. Kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kejadian, sesi, atau layanan.
 - **Privasi:** laporan umum Guru BK/Koordinator memakai inisial murid dan NISN tersamarkan. Portal Waka boleh memakai nama murid dan kelas untuk kebutuhan pemantauan, tetapi tidak memuat NISN, kode kasus, catatan privat konsultasi, catatan internal kasus, dokumen, atau narasi sensitif.
 - **Pratinjau:** KPI dihitung dari seluruh dataset terfilter dan tabel dipaginasi 20 baris.
 - **CSV:** memakai dataset tidak terpagina dari pipeline yang sama. Dataset detail dibaca bertahap dalam chunk agar tidak dimuat seluruhnya ke memori, memakai UTF-8 BOM, nama file terkontrol, serta perlindungan formula injection.
@@ -440,7 +402,7 @@ terlihat pada dashboard serta halaman operasional terkait.
 - **Route privat:** seluruh endpoint selain `/`, `/login`, dan health check berada di balik middleware `auth` serta `account.active`.
 
 ### Keamanan, retensi, dan konfigurasi
-- Nested resource kasus memakai scoped route binding sehingga tindak lanjut atau koordinasi dari kasus lain menghasilkan `404` sebelum controller dijalankan.
+- Resource kasus memakai scoped route binding untuk record anak yang masih aktif; route tindak lanjut berjadwal dan koordinasi tidak terdaftar.
 - Disk private tidak dilayani melalui route aplikasi sampai `DEP-06`; tidak ada endpoint upload, unduh, atau hapus dokumen.
 - `DatabaseSeeder` membuat akun sintetis hanya pada environment `local` atau `testing`, dengan password eksplisit dari `SIBK_SEED_ACCOUNT_PASSWORD`.
 - Data operasional memakai soft delete dan audit tetap append-only. Tidak tersedia job, command, route, atau kebijakan penghapusan otomatis sebelum prosedur retensi disahkan.
