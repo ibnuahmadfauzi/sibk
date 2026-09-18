@@ -3,11 +3,12 @@
 ## Status
 
 - Pekerjaan aktif: Revisi SIBK 3.2 untuk Layanan Guru BK.
-- Branch aktif: `revisi-sibk-3-2`; checkpoint aman terakhir `b023959`.
+- Branch aktif: `revisi-sibk-3-2`; checkpoint kode integrasi terakhir
+  `b023959`, sedangkan handoff pause berada pada `HEAD`.
 - Spec aktif: `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`.
 - Plan aktif: `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`.
-- Checkpoint aktif: 7A — Penyelarasan Fitur, sedang pause sebelum implementasi
-  produksi Wave 2.
+- Checkpoint aktif: 7A — Penyelarasan Fitur, sedang pause pada review/fix round
+  Wave 2 karena batas penggunaan subagent tercapai.
 - Urutan delivery: 7A penyelarasan fitur, 7B cleanup runtime, lalu 7C cleanup
   skema dan gate final. Setiap checkpoint memakai PR terpisah ke `cobasidebar`;
   `main` tidak disentuh.
@@ -36,11 +37,17 @@
 - Wave 1 dan Integration Gate 1 Revisi 3.2 sudah terintegrasi lokal pada commit
   `b023959` dan lulus 42 test/428 assertion, Pint, checker frontend, build, serta
   diff-check.
-- Worktree Wave 2 untuk Waka, laporan, dan consumer tersedia dari commit yang
-  sama. Saat pause masing-masing hanya berisi perubahan test-first yang belum
-  di-commit; belum ada file production Wave 2 yang diubah.
-- Root branch dan seluruh worktree Wave 2 lulus `git diff --check`. Tidak ada
-  proses implementer aktif, push, PR, atau perubahan ke `main`.
+- Lane Waka sudah committed pada `d424e26` dan focused gate lulus 30 test/302
+  assertion. Review meminta fix query allowlist daftar, kelas historis detail
+  konsultasi, serta cakupan audit seluruh fixture; fix belum dimulai.
+- Lane Laporan sudah committed pada `d67dacc` dan focused gate lulus 27 test/262
+  assertion. Fix round memiliki satu perubahan test-only belum dikomit yang
+  membuktikan RED `service_count`: nilai aktual 2, target 3. Production fix
+  belum ditulis.
+- Lane Consumer sudah committed pada `aabdc4c` dan focused gate lulus 126
+  test/888 assertion. Review independen belum selesai karena batas penggunaan.
+- Root branch tetap bersih; belum ada cherry-pick, Integration Gate 2, push,
+  PR, atau perubahan ke `main`.
 - Detail resume dan batas checkpoint 7A/7B/7C tercatat di plan aktif.
 
 ### Baseline terakhir sebelum Revisi 3.2
@@ -95,19 +102,19 @@
 
 ## Langkah berikutnya
 
-1. Saat diminta melanjutkan, resume Lane D (Waka), E (laporan), dan F
-   (consumer/seeder) secara paralel dari worktree yang sudah ada.
-2. Review setiap lane, cherry-pick ke `revisi-sibk-3-2`, lalu jalankan
-   Integration Gate 2 dan full gate Checkpoint 7A.
-3. Perbarui handoff/log dan buka PR 7A ke `cobasidebar`; pause setelah status
-   `MERGED` terverifikasi.
-4. Buat 7B dari `cobasidebar` terbaru untuk cleanup runtime. Setelah PR 7B
-   `MERGED`, buat 7C untuk cleanup skema dan gate final.
+1. Resume fix round Lane D/Waka dari commit `d424e26` dan Lane E/Laporan dari
+   test RED yang sudah ada; jangan mengulang implementasi awal.
+2. Re-review Lane D/E dan jalankan review awal Lane F/Consumer.
+3. Setelah ketiga lane bersih, periksa collision, cherry-pick ke
+   `revisi-sibk-3-2`, lalu jalankan Integration Gate 2 dan full gate 7A.
+4. Perbarui handoff/log dan buka PR 7A ke `cobasidebar`; pause setelah status
+   `MERGED` terverifikasi. Checkpoint 7B belum dimulai.
 
 ## Blocker
 
 - Tidak ada blocker implementasi.
-- Implementasi sengaja dipause atas permintaan pengguna pada checkpoint aman.
+- Implementasi dipause pada checkpoint aman setelah batas penggunaan subagent
+  tercapai; seluruh proses subagent sudah berhenti.
 - Adapter production tetap ditahan karena kontrak resmi provider belum tersedia.
 
 ## Acuan
