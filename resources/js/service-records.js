@@ -45,6 +45,40 @@ export const renderModalContent = (modalElement, html, initialiseDrafts = initFo
     initialiseDrafts(modalElement);
 };
 
+export const handleModalSubmit = async (event, environment = {}) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return false;
+
+    event.preventDefault();
+    const confirm = environment.confirm ?? window.confirm;
+    if ('confirmSubmit' in form.dataset && form.dataset.confirmMessage && !confirm(form.dataset.confirmMessage)) {
+        event.stopImmediatePropagation?.();
+        event.stopPropagation?.();
+
+        return false;
+    }
+
+    const request = environment.request ?? fetch;
+    const formData = environment.formData ?? ((value) => new FormData(value));
+    const response = await request(form.action, {
+        method: form.method || 'POST',
+        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': environment.csrfToken ?? csrfToken() },
+        body: formData(form),
+    });
+    if (response.status === 422) {
+        renderErrors(form, (await response.json()).errors ?? {});
+
+        return false;
+    }
+    if (!response.ok) return false;
+
+    (environment.clearDraft ?? clearModalDraft)(form);
+    const redirect = (await response.json()).redirect ?? window.location.href;
+    (environment.redirect ?? ((url) => window.location.assign(url)))(redirect);
+
+    return true;
+};
+
 const targetElement = (root, selector) => selector ? root.querySelector(selector) : null;
 
 export const updateFollowUp = async (select, environment = {}) => {
@@ -123,23 +157,7 @@ export const initServiceRecords = async (root = document) => {
                 if (error.name !== 'AbortError') modalElement.querySelector('.modal-content').textContent = error.message;
             }
         }));
-        modalElement.addEventListener('submit', async (event) => {
-            const form = event.target;
-            if (!(form instanceof HTMLFormElement)) return;
-            event.preventDefault();
-            const response = await fetch(form.action, {
-                method: form.method || 'POST',
-                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-                body: new FormData(form),
-            });
-            if (response.status === 422) {
-                renderErrors(form, (await response.json()).errors ?? {});
-                return;
-            }
-            if (!response.ok) return;
-            clearModalDraft(form);
-            window.location.assign((await response.json()).redirect ?? window.location.href);
-        });
+        modalElement.addEventListener('submit', (event) => { void handleModalSubmit(event); });
     }
 
     root.addEventListener('change', (event) => {

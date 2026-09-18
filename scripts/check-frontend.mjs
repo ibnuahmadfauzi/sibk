@@ -151,6 +151,9 @@ assert(contents.casesIndex.includes('aria-labelledby="case-modal-title"'), 'Moda
 assert(contents.casesIndex.includes('modal-dialog-scrollable'), 'Modal layanan belum dapat di-scroll.');
 assert(contents.casesIndex.includes('data-service-record-modal'), 'Modal layanan belum terhubung ke JavaScript shared.');
 assert(contents.casesIndex.includes('data-modal-url'), 'Aksi modal belum memakai URL modal shared.');
+const consultationActionIndex = contents.casesIndex.indexOf("route('consultations.show'");
+const sharedModalIndex = contents.casesIndex.indexOf('data-service-record-modal');
+assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.lastIndexOf('@endif'), 'Tab konsultasi belum berbagi shell modal yang dirender setelah kedua tab.');
 assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
 for (const [key, form, record] of [
     ['casesCreate', 'case', 'new'],

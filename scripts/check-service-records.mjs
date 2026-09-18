@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import {
     handleModalClick,
+    handleModalSubmit,
     initServiceRecords,
     renderModalContent,
     updateFollowUp,
@@ -61,6 +62,56 @@ renderModalContent(modalElement, '<form data-autosave-form="case"></form>', (roo
 });
 assert.equal(modalContent.innerHTML, '<form data-autosave-form="case"></form>');
 assert.equal(initialisedRoot, modalElement);
+
+class FakeForm {
+    constructor(dataset) {
+        this.dataset = dataset;
+        this.action = '/consultations/1';
+        this.method = 'PATCH';
+    }
+}
+
+globalThis.HTMLFormElement = FakeForm;
+const submitEventFor = (target) => ({
+    target,
+    prevented: false,
+    stopped: false,
+    preventDefault() { this.prevented = true; },
+    stopPropagation() { this.stopped = true; },
+});
+const cancelledEvent = submitEventFor(new FakeForm({
+    confirmSubmit: '',
+    confirmMessage: 'Lanjutkan pengeditan?',
+}));
+let requestedWhenCancelled = false;
+assert.equal(await handleModalSubmit(cancelledEvent, {
+    confirm: () => false,
+    request: async () => { requestedWhenCancelled = true; },
+}), false);
+assert.equal(cancelledEvent.prevented, true);
+assert.equal(cancelledEvent.stopped, true);
+assert.equal(requestedWhenCancelled, false);
+
+const confirmedEvent = submitEventFor(new FakeForm({
+    confirmSubmit: '',
+    confirmMessage: 'Lanjutkan pengeditan?',
+}));
+let requestedWhenConfirmed = false;
+let redirectedTo;
+assert.equal(await handleModalSubmit(confirmedEvent, {
+    confirm: () => true,
+    request: async () => {
+        requestedWhenConfirmed = true;
+        return { ok: true, status: 200, json: async () => ({ redirect: '/cases?tab=konsultasi' }) };
+    },
+    csrfToken: 'csrf',
+    formData: () => ({}),
+    clearDraft: () => {},
+    redirect: (url) => { redirectedTo = url; },
+}), true);
+assert.equal(confirmedEvent.prevented, true);
+assert.equal(requestedWhenConfirmed, true);
+assert.equal(redirectedTo, '/cases?tab=konsultasi');
 
 const rootListeners = new Map();
 const rootWithoutModal = {
