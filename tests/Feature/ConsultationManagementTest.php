@@ -257,9 +257,18 @@ class ConsultationManagementTest extends TestCase
             'expected_updated_at' => $consultation->updated_at->toJSON(),
         ];
 
-        foreach (['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
+        foreach (['guru_bk', 'admin_it'] as $role) {
             $actor = $this->userWithRole($role);
             $this->actingAs($actor)->get(route('consultations.show', $consultation))->assertForbidden();
+        }
+
+        foreach (['koordinator_bk', 'waka_kesiswaan'] as $role) {
+            $actor = $this->userWithRole($role);
+            $this->actingAs($actor)->get(route('consultations.show', $consultation))->assertOk();
+        }
+
+        foreach (['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
+            $actor = $this->userWithRole($role);
             $this->get(route('consultations.edit', $consultation))->assertForbidden();
             $this->patch(route('consultations.update', $consultation), $payload)->assertForbidden();
             $this->delete(route('consultations.destroy', $consultation))->assertForbidden();
