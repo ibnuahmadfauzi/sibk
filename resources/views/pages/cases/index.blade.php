@@ -82,7 +82,7 @@
                             <a href="{{ route('cases.show', $case) }}" data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}" class="btn btn-sm btn-outline-info">Detail</a>
                             @can('update', $case)
                                 <a href="{{ route('cases.edit', $case) }}" data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
-                                    @if($completed) data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" @endif
+                                    @if($completed) data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" onclick="if (! window.confirm('Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }" @endif
                                     class="btn btn-sm btn-outline-primary">Edit</a>
                             @endcan
                             @can('archive', $case)<form action="{{ route('cases.destroy', $case) }}" method="POST" data-confirm-submit data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button></form>@endcan

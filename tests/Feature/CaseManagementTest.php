@@ -335,10 +335,16 @@ class CaseManagementTest extends TestCase
         $teacher = $this->userWithRole('guru_bk');
         $case = $this->createCase($teacher, $this->scopedStudent($teacher));
         $this->completeCase($teacher, $case);
+        $confirmation = "if (! window.confirm('Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }";
 
         $this->actingAs($teacher)->get(route('cases.index'))
-            ->assertSee('data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false);
+            ->assertSee('data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false)
+            ->assertSee('onclick="'.$confirmation.'"', false);
+        $this->actingAs($teacher)->get(route('cases.show', $case))
+            ->assertSee('onclick="'.$confirmation.'"', false);
 
+        $nonOwner = $this->userWithRole('guru_bk');
+        $this->actingAs($nonOwner)->delete(route('cases.destroy', $case))->assertForbidden();
         $waka = $this->userWithRole('waka_kesiswaan');
         $this->actingAs($waka)->patchJson(route('cases.update', $case), $this->updatePayload($case))
             ->assertForbidden();
@@ -347,6 +353,24 @@ class CaseManagementTest extends TestCase
             'expected_updated_at' => $case->updated_at->toJSON(),
         ])->assertForbidden();
         $this->actingAs($waka)->delete(route('cases.destroy', $case))->assertForbidden();
+    }
+
+    public function test_owner_can_archive_case_and_remove_it_from_operational_views(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher, 'Murid Diarsipkan'));
+
+        $this->actingAs($teacher)->delete(route('cases.destroy', $case))
+            ->assertRedirect(route('cases.index'));
+
+        $this->assertSoftDeleted('cases', ['id' => $case->id]);
+        $this->actingAs($teacher)->get(route('cases.index'))->assertDontSee('Murid Diarsipkan');
+        $this->actingAs($teacher)->get(route('cases.show', $case))->assertNotFound();
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'case.archived',
+            'auditable_type' => BkCase::class,
+            'auditable_id' => $case->id,
+        ]);
     }
 
     private function completeCase(User $teacher, BkCase $case): void

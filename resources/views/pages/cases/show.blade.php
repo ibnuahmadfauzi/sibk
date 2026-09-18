@@ -8,7 +8,7 @@
         <div class="sibk-page-header mb-4 d-flex flex-wrap justify-content-between gap-3">
             <div class="sibk-page-header__copy"><a href="{{ route('cases.index') }}" class="text-decoration-none small">&larr; Kembali ke daftar</a><h1 class="mb-1">Detail Kasus</h1></div>
             <div class="d-flex gap-2">
-                @if($canUpdateCase)<a href="{{ route('cases.edit', $case) }}" class="btn btn-primary">Ubah Kasus</a>@endif
+                @if($canUpdateCase)<a href="{{ route('cases.edit', $case) }}" @if($case->status?->code === 'selesai') data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" onclick="if (! window.confirm('Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }" @endif class="btn btn-primary">Ubah Kasus</a>@endif
                 @if($canArchiveCase)<form action="{{ route('cases.destroy', $case) }}" method="POST" data-confirm-submit data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">@csrf @method('DELETE')<button class="btn btn-outline-danger" type="submit">Hapus</button></form>@endif
             </div>
         </div>
