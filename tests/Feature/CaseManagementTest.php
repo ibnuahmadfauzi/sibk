@@ -231,6 +231,7 @@ class CaseManagementTest extends TestCase
 
         $response->assertOk()
             ->assertSeeInOrder(['Murid', 'Kelas', 'Tanggal', 'Sumber', 'Bidang', 'Status', 'Tindak Lanjut', 'Aksi'])
+            ->assertSee('<tr data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'">', false)
             ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false)
             ->assertSee('data-follow-up-url="'.$this->followUpUrl($case).'"', false)
             ->assertSee('data-save-status', false)

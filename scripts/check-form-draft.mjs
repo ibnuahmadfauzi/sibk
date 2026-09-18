@@ -66,6 +66,13 @@ assert.deepEqual(collectSafeValues([
     { name: 'secret_note', value: 'secret', type: 'text' },
     { name: 'attachment', value: 'file.csv', type: 'file' },
 ]), { title: 'Aman' });
+assert.deepEqual(collectSafeValues([
+    { name: 'etatib_record_ids[]', value: '11', type: 'checkbox', checked: true },
+    { name: 'etatib_record_ids[]', value: '22', type: 'checkbox', checked: true },
+    { name: 'etatib_record_ids[]', value: '33', type: 'checkbox', checked: false },
+]), { 'etatib_record_ids[]': ['11', '22'] });
+
+globalThis.RadioNodeList = class RadioNodeList extends Array {};
 
 class FakeForm {
     constructor() {
@@ -104,5 +111,26 @@ form.field.value = 'Terbaru sebelum debounce';
 await form.dispatch('submit');
 assert.deepEqual(loadDraft(formStorage, firstKey, clock), { title: 'Terbaru sebelum debounce' });
 assert.equal(sessionStorage.getItem('sibk:draft:pending'), firstKey);
+
+class CheckboxForm extends FakeForm {
+    constructor(record, savedValues) {
+        super();
+        this.dataset.autosaveRecord = record;
+        this.elements = new RadioNodeList(
+            { name: 'etatib_record_ids[]', value: '11', type: 'checkbox', checked: false },
+            { name: 'etatib_record_ids[]', value: '22', type: 'checkbox', checked: false },
+        );
+        this.elements.namedItem = () => this.elements;
+        saveDraft(formStorage, draftKey('17', 'achievement', record), savedValues, clock);
+    }
+}
+
+const arrayForm = new CheckboxForm('42', { 'etatib_record_ids[]': ['11', '22'] });
+initFormDraft(arrayForm, environment);
+assert.deepEqual([...arrayForm.elements].map((field) => field.checked), [true, true]);
+
+const scalarForm = new CheckboxForm('43', { 'etatib_record_ids[]': '22' });
+initFormDraft(scalarForm, environment);
+assert.deepEqual([...scalarForm.elements].map((field) => field.checked), [false, true]);
 
 console.log('Form draft checks passed.');

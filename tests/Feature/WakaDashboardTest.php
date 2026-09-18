@@ -9,11 +9,13 @@ use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\CaseCoordination;
 use App\Models\Classroom;
+use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
+use App\Services\WakaDashboardService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,6 +83,34 @@ final class WakaDashboardTest extends TestCase
         $this->assertStringContainsString((string) $this->year->id, $audit->summary);
         $this->assertStringNotContainsString('SENTINEL-INTERNAL', $audit->summary);
         $this->assertStringNotContainsString('K-2026-', $audit->summary);
+    }
+
+    public function test_attention_uses_current_case_fields_and_stable_date_id_order_only(): void
+    {
+        $waka = $this->userWithRole('waka_kesiswaan', 'Waka Perhatian');
+        $owner = $this->userWithRole('guru_bk', 'Guru BK Perhatian');
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'XI RPL 3',
+            'is_active' => true,
+        ]);
+        $legacy = $this->createCase($owner, $classroom, '9044444444', 'Hanya Event Lama', 'K-LEGACY', 'sedang_diproses', '2026-09-12');
+        FollowUp::query()->create([
+            'case_id' => $legacy->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
+            'planned_date' => '2026-09-13',
+            'recorded_by' => $owner->id,
+        ]);
+        $first = $this->createCase($owner, $classroom, '9055555555', 'Current Pertama', 'K-CURRENT-1', 'sedang_diproses', '2026-09-11');
+        $first->update(['follow_up_type_id' => $this->reference('follow_up_type', 'surat_pernyataan')->id]);
+        $second = $this->createCase($owner, $classroom, '9066666666', 'Current Kedua', 'K-CURRENT-2', 'membutuhkan_tindak_lanjut', '2026-09-11');
+
+        $attention = app(WakaDashboardService::class)->build($waka, $this->year)['attention'];
+
+        $this->assertSame(['Current Kedua', 'Current Pertama'], array_column($attention, 'nama_murid'));
+        $this->assertSame(['-', 'Surat Pernyataan'], array_column($attention, 'tindak_lanjut'));
+        $this->assertNotContains('Hanya Event Lama', array_column($attention, 'nama_murid'));
     }
 
     /** @return array{User, BkCase, BkCase} */

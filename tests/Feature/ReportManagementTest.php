@@ -167,10 +167,29 @@ class ReportManagementTest extends TestCase
         $csv = collect($export['rows'])->map(fn (array $item): string => implode(',', array_column($item['cells'], 'value')))->implode("\n");
 
         $this->assertSame('Kasus Tindak Lanjut', $report['title']);
-        $this->assertSame('Home Visit', $row['cells'][3]['value']);
-        $this->assertSame('Tindak Lanjut', $row['cells'][5]['value']);
+        $this->assertNotContains('Nomor Kasus', $report['columns']);
+        $this->assertSame('Home Visit', $row['cells'][2]['value']);
+        $this->assertSame('Tindak Lanjut', $row['cells'][4]['value']);
+        $this->assertStringNotContainsString($case->registration_number, $csv);
         $this->assertStringNotContainsString('NARASI-KASUS-RAHASIA', $csv);
         $this->assertStringNotContainsString('CATATAN-KASUS-RAHASIA', $csv);
+    }
+
+    public function test_non_paginated_follow_up_rows_use_id_as_same_date_tie_breaker(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Urutan Tindak Lanjut');
+        [$firstStudent] = $this->scopedStudent($teacher, 'Murid Pertama', '0034555555', 'X DKV 3');
+        [$secondStudent] = $this->scopedStudent($teacher, 'Murid Kedua', '0034666666', 'X DKV 4');
+        $followUpType = $this->reference('follow_up_type', 'home_visit')->id;
+        $status = $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id;
+        $first = $this->caseFor($teacher, $firstStudent);
+        $first->update(['follow_up_type_id' => $followUpType, 'status_id' => $status]);
+        $second = $this->caseFor($teacher, $secondStudent);
+        $second->update(['follow_up_type_id' => $followUpType, 'status_id' => $status]);
+
+        $rows = app(ReportService::class)->build($teacher, ['type' => ReportService::TYPE_FOLLOW_UPS], false)['rows'];
+
+        $this->assertSame(['M.K.', 'M.P.'], $rows->pluck('cells.0.value')->all());
     }
 
     public function test_filters_pagination_and_achievement_empty_state_are_database_driven(): void
@@ -265,11 +284,11 @@ class ReportManagementTest extends TestCase
         $preview = $this->actingAs($teacher)->get(route('reports.preview', $query))->assertOk();
         $csv = $this->get(route('reports.export', [...$query, 'format' => 'csv']))->assertOk()->streamedContent();
 
-        foreach ([$allowedCase->registration_number, $specialCase->registration_number, 'Konsultasi'] as $allowed) {
+        foreach (['Kasus BK', 'Konsultasi'] as $allowed) {
             $preview->assertSee($allowed);
             $this->assertStringContainsString($allowed, $csv);
         }
-        foreach ([$outsideCase->registration_number,
+        foreach ([$allowedCase->registration_number, $specialCase->registration_number, $outsideCase->registration_number,
             'PRIVAT-KASUS-REKAP', 'MASALAH-PRIVAT-REKAP', 'PENANGANAN-PRIVAT-REKAP', 'HASIL-PRIVAT-REKAP',
             $student->name, $student->nisn, $outside->name, $outside->nisn] as $forbidden) {
             $preview->assertDontSee($forbidden);

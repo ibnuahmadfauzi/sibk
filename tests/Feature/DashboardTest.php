@@ -63,9 +63,11 @@ class DashboardTest extends TestCase
         $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus Tindak Lanjut'));
         $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus Tindak Lanjut'));
         $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['title']);
+        $this->assertSame('Layanan kasus', $teacherDashboard['tindak_lanjut'][0]['code']);
         $this->assertSame('Tindak Lanjut', $teacherDashboard['tindak_lanjut'][0]['status']);
         $this->assertStringContainsString($studentA->name, $teacherDashboard['tindak_lanjut'][0]['context_label']);
         $this->assertStringNotContainsString($studentB->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString($caseA->registration_number, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
 
         $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator');
         $coordinatorDashboard = $service->forUser($coordinator, $this->year);

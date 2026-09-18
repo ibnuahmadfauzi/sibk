@@ -276,6 +276,7 @@ class WakaMonitoringTest extends TestCase
 
         $this->actingAs($waka)->get(route('cases.index'))
             ->assertOk()
+            ->assertDontSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false)
             ->assertViewHas('cases', fn ($cases): bool => collect($cases->items())->every(
                 fn (BkCase $listedCase): bool => array_keys($listedCase->getAttributes()) === [
                     'id', 'student_id', 'temporary_student_id', 'service_date',
@@ -309,6 +310,7 @@ class WakaMonitoringTest extends TestCase
         $this->actingAs($waka)->get(route('consultations.show', $consultation))
             ->assertOk()
             ->assertSee('XI WAKA 1')
+            ->assertDontSee('<span class="text-muted small d-block">NISN</span>', false)
             ->assertSee('Permasalahan Pertama.')
             ->assertSee('Penanganan Pertama.')
             ->assertSee('Hasil Pertama.');

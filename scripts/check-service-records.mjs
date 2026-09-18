@@ -96,22 +96,30 @@ const confirmedEvent = submitEventFor(new FakeForm({
     confirmSubmit: '',
     confirmMessage: 'Lanjutkan pengeditan?',
 }));
-let requestedWhenConfirmed = false;
-let redirectedTo;
-assert.equal(await handleModalSubmit(confirmedEvent, {
-    confirm: () => true,
-    request: async () => {
-        requestedWhenConfirmed = true;
-        return { ok: true, status: 200, json: async () => ({ redirect: '/cases?tab=konsultasi' }) };
-    },
-    csrfToken: 'csrf',
-    formData: () => ({}),
-    clearDraft: () => {},
-    redirect: (url) => { redirectedTo = url; },
-}), true);
+for (const action of ['save', 'complete']) {
+    const submitter = { name: 'action', value: action };
+    confirmedEvent.submitter = submitter;
+    let receivedSubmitter;
+    let redirectedTo;
+    assert.equal(await handleModalSubmit(confirmedEvent, {
+        confirm: () => true,
+        request: async () => ({
+            ok: true,
+            status: 200,
+            json: async () => ({ redirect: '/cases?tab=konsultasi' }),
+        }),
+        csrfToken: 'csrf',
+        formData: (form, button) => {
+            receivedSubmitter = button;
+            return {};
+        },
+        clearDraft: () => {},
+        redirect: (url) => { redirectedTo = url; },
+    }), true);
+    assert.equal(receivedSubmitter, submitter);
+    assert.equal(redirectedTo, '/cases?tab=konsultasi');
+}
 assert.equal(confirmedEvent.prevented, true);
-assert.equal(requestedWhenConfirmed, true);
-assert.equal(redirectedTo, '/cases?tab=konsultasi');
 
 const rootListeners = new Map();
 const rootWithoutModal = {
@@ -143,12 +151,20 @@ const select = {
         followUpStatusTarget: '#case-status',
         followUpTimestampTarget: '#case-updated',
     },
+    parentElement: {
+        querySelector: (selector) => selector === '[data-save-status]' ? elements['#save-status'] : null,
+    },
+};
+elements['#save-status'] = {
+    textContent: '',
+    classList: { toggle: () => {} },
 };
 let sent;
 await updateFollowUp(select, {
     root,
     csrfToken: 'csrf',
     request: async (url, options) => {
+        assert.equal(elements['#save-status'].textContent, 'Menyimpan...');
         sent = { url, options };
         return {
             ok: true,
@@ -174,6 +190,7 @@ assert.equal(elements['#case-status'].textContent, 'Tindak Lanjut');
 assert.equal(elements['#case-updated'].textContent, '2026-09-18T10:05:00.000000Z');
 assert.equal(select.dataset.expectedUpdatedAt, '2026-09-18T10:05:00.000000Z');
 assert.equal(select.dataset.previousValue, '30');
+assert.equal(elements['#save-status'].textContent, 'Tersimpan');
 
 select.value = '';
 elements['#follow-up-label'].textContent = 'Home Visit';
@@ -190,5 +207,6 @@ assert.equal(elements['#follow-up-label'].textContent, 'Home Visit');
 assert.equal(elements['#case-status'].textContent, 'Tindak Lanjut');
 assert.equal(elements['#case-updated'].textContent, '2026-09-18T10:05:00.000000Z');
 assert.equal(select.disabled, false);
+assert.equal(elements['#save-status'].textContent, 'Gagal menyimpan');
 
 console.log('Service record checks passed.');

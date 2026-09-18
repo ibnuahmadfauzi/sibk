@@ -59,11 +59,11 @@ export const handleModalSubmit = async (event, environment = {}) => {
     }
 
     const request = environment.request ?? fetch;
-    const formData = environment.formData ?? ((value) => new FormData(value));
+    const formData = environment.formData ?? ((value, submitter) => new FormData(value, submitter));
     const response = await request(form.action, {
         method: form.method || 'POST',
         headers: { Accept: 'application/json', 'X-CSRF-TOKEN': environment.csrfToken ?? csrfToken() },
-        body: formData(form),
+        body: formData(form, event.submitter),
     });
     if (response.status === 422) {
         renderErrors(form, (await response.json()).errors ?? {});
@@ -90,10 +90,15 @@ export const updateFollowUp = async (select, environment = {}) => {
     const label = targetElement(root, select.dataset.followUpLabelTarget);
     const status = targetElement(root, select.dataset.followUpStatusTarget);
     const timestamp = targetElement(root, select.dataset.followUpTimestampTarget);
+    const saveStatus = select.parentElement?.querySelector('[data-save-status]');
     const previousLabel = label?.textContent;
     const previousStatus = status?.textContent;
     const previousTimestamp = timestamp?.textContent;
     select.disabled = true;
+    if (saveStatus) {
+        saveStatus.textContent = 'Menyimpan...';
+        saveStatus.classList.toggle('text-danger', false);
+    }
 
     try {
         const response = await request(select.dataset.followUpUrl, {
@@ -112,6 +117,7 @@ export const updateFollowUp = async (select, environment = {}) => {
         if (label) label.textContent = payload.follow_up_type_label ?? label.textContent;
         if (status) status.textContent = payload.status_label ?? status.textContent;
         if (timestamp) timestamp.textContent = payload.updated_at ?? timestamp.textContent;
+        if (saveStatus) saveStatus.textContent = 'Tersimpan';
     } catch {
         select.value = previousValue;
         if (previousExpectedUpdatedAt === undefined) delete select.dataset.expectedUpdatedAt;
@@ -119,6 +125,10 @@ export const updateFollowUp = async (select, environment = {}) => {
         if (label) label.textContent = previousLabel;
         if (status) status.textContent = previousStatus;
         if (timestamp) timestamp.textContent = previousTimestamp;
+        if (saveStatus) {
+            saveStatus.textContent = 'Gagal menyimpan';
+            saveStatus.classList.toggle('text-danger', true);
+        }
     } finally {
         select.disabled = false;
     }

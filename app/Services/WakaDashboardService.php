@@ -91,17 +91,13 @@ final class WakaDashboardService
     private function attentionRows(Collection $cases, int $limit): array
     {
         return $cases
-            ->filter(static fn (BkCase $case): bool => $case->followUps->isNotEmpty()
+            ->filter(static fn (BkCase $case): bool => $case->follow_up_type_id !== null
                 || $case->status?->code === ServiceRecordStatus::NEEDS_FOLLOW_UP)
-            ->sort(function (BkCase $left, BkCase $right): int {
-                $leftFollowUp = $left->followUps->first()?->planned_date;
-                $rightFollowUp = $right->followUps->first()?->planned_date;
-                $leftGroup = $leftFollowUp !== null ? 0 : 1;
-                $rightGroup = $rightFollowUp !== null ? 0 : 1;
-
-                return [$leftGroup, $leftFollowUp?->toDateString() ?? '', $left->service_date?->toDateString() ?? '', $left->getKey()]
-                    <=> [$rightGroup, $rightFollowUp?->toDateString() ?? '', $right->service_date?->toDateString() ?? '', $right->getKey()];
-            })
+            ->sortByDesc(static fn (BkCase $case): string => sprintf(
+                '%s-%020d',
+                $case->service_date?->toDateString() ?? '',
+                $case->getKey(),
+            ))
             ->take($limit)
             ->map(fn (BkCase $case): array => $this->monitoring->toSafeRow($case))
             ->values()

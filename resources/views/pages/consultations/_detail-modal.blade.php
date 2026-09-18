@@ -38,7 +38,7 @@
                 <div class="sibk-panel__body p-4">
                     <p><span class="text-muted small d-block">Murid</span><strong>{{ $consultation->identityName() }}</strong></p>
                     <p><span class="text-muted small d-block">Kelas saat layanan</span>{{ $detailClass }}</p>
-                    <p><span class="text-muted small d-block">NISN</span>{{ $consultation->identityNisn() }}@if($consultation->temporary_student_id) &bull; Identitas sementara @endif</p>
+                    @if(filled($consultation->identityNisn()))<p><span class="text-muted small d-block">NISN</span>{{ $consultation->identityNisn() }}@if($consultation->temporary_student_id) &bull; Identitas sementara @endif</p>@endif
                     <p><span class="text-muted small d-block">Tanggal</span>{{ $consultation->session_date->locale('id')->translatedFormat('d F Y') }}</p>
                     <p><span class="text-muted small d-block">Jenis Layanan</span>{{ $consultation->serviceField->label }}</p>
                     <p class="mb-0"><span class="text-muted small d-block">Guru BK</span>{{ $consultation->counselor->name }}</p>

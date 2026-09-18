@@ -160,10 +160,10 @@ class StudentController extends Controller
     {
         return $cases->map(fn (BkCase $case): array => [
             'date' => $case->created_at,
-            'label' => sprintf('Kasus %s dicatat', $case->registration_number),
+            'label' => 'Kasus dicatat',
         ])->concat($consultations->map(fn (Consultation $consultation): array => [
             'date' => $consultation->created_at,
-            'label' => sprintf('Konsultasi %s dicatat', $consultation->registration_number),
+            'label' => 'Konsultasi dicatat',
         ]))->concat($etatibRecords->map(fn (ExternalTatibRecord $record): array => [
             'date' => $record->occurred_at,
             'label' => 'Data e-Tatib diperbarui',

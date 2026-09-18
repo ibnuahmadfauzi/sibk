@@ -54,7 +54,7 @@
                     <a href="{{ route('waka.reports', ['tab' => 'penanganan', 'status' => 'membutuhkan_tindak_lanjut']) }}" class="btn btn-sm btn-outline-primary">Lihat semua penanganan</a>
                 </header>
                 @if(empty($dashboard['attention']))
-                    <x-empty-state title="Tidak ada penanganan mendesak" description="Belum ada tindak lanjut terjadwal atau kasus yang membutuhkan perhatian khusus." />
+                    <x-empty-state title="Tidak ada penanganan mendesak" description="Belum ada kasus yang membutuhkan tindak lanjut atau perhatian khusus." />
                 @else
                     <div class="p-3">
                         @foreach($dashboard['attention'] as $row)

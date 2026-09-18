@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -91,6 +92,26 @@ class StudentProfileTest extends TestCase
             ->assertDontSee('<th>Status</th>', false);
         $this->actingAs($admin)->get(route('students.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('students.show', $student))->assertForbidden();
+    }
+
+    public function test_profile_uses_neutral_service_labels_without_internal_numbers(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $consultation = $this->createConsultation($teacher, $student);
+        $case->update(['registration_number' => 'K-INTERNAL-PROFILE']);
+        $consultation->forceFill(['registration_number' => 'CONS-INTERNAL-PROFILE'])->save();
+
+        $this->actingAs($teacher)->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee('Kasus dicatat')
+            ->assertSee('Konsultasi dicatat')
+            ->assertDontSee('K-INTERNAL-PROFILE')
+            ->assertDontSee('CONS-INTERNAL-PROFILE');
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+            ->assertOk()
+            ->assertDontSee('<th>No.</th>', false)
+            ->assertDontSee('K-INTERNAL-PROFILE');
     }
 
     public function test_legacy_nisn_url_redirects_to_database_profile(): void
@@ -190,9 +211,9 @@ class StudentProfileTest extends TestCase
         ], $teacher);
     }
 
-    private function createConsultation(User $teacher, Student $student): void
+    private function createConsultation(User $teacher, Student $student): Consultation
     {
-        app(ConsultationService::class)->create([
+        return app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
             'session_date' => '2026-08-20',

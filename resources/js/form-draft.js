@@ -14,9 +14,16 @@ const isUnsafe = (field) => {
 
 export const draftKey = (userId, formKey, recordId = 'new') => `${PREFIX}${userId}:${formKey}:${recordId || 'new'}`;
 
-export const collectSafeValues = (fields) => Object.fromEntries(Array.from(fields)
+export const collectSafeValues = (fields) => Array.from(fields)
     .filter((field) => !isUnsafe(field) && (!['checkbox', 'radio'].includes(field.type) || field.checked))
-    .map((field) => [field.name, field.value]));
+    .reduce((values, field) => {
+        const current = values[field.name];
+        values[field.name] = current === undefined
+            ? field.value
+            : [...(Array.isArray(current) ? current : [current]), field.value];
+
+        return values;
+    }, {});
 
 export const saveDraft = (storage, key, values, clock = Date.now) => {
     storage.setItem(key, JSON.stringify({ version: 1, savedAt: clock(), values }));
@@ -60,11 +67,14 @@ const setStatus = (form, message, error = false) => {
 
 const restoreValues = (form, values) => Object.entries(values).forEach(([name, value]) => {
     const field = form.elements.namedItem(name);
-    if (!field || isUnsafe(field)) return;
-    if (typeof RadioNodeList !== 'undefined' && field instanceof RadioNodeList) {
-        [...field].forEach((item) => { item.checked = item.value === value; });
+    if (!field) return;
+    const isList = typeof RadioNodeList !== 'undefined' && field instanceof RadioNodeList;
+    if (isUnsafe(isList ? field[0] : field)) return;
+    const selected = (Array.isArray(value) ? value : [value]).map(String);
+    if (isList) {
+        [...field].forEach((item) => { item.checked = selected.includes(item.value); });
     } else if (field.type === 'checkbox') {
-        field.checked = true;
+        field.checked = selected.includes(field.value);
     } else {
         field.value = value;
     }

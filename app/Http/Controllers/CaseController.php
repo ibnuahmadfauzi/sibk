@@ -354,10 +354,13 @@ class CaseController extends Controller
                     ->with('classroom:id,name'),
                 'temporaryStudent:id,input_name,reconciled_student_id',
                 'temporaryStudent.reconciledStudent:id,name',
+                'temporaryStudent.reconciledStudent.classMemberships' => fn ($memberships) => $memberships
+                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
+                    ->with('classroom:id,name'),
                 'serviceField:id,label',
             ]), fn ($consultations) => $consultations->with([
                 'student.classMemberships.classroom',
-                'temporaryStudent.reconciledStudent',
+                'temporaryStudent.reconciledStudent.classMemberships.classroom',
                 'serviceField',
             ]));
         $search = $request->string('search')->trim()->toString();
@@ -378,7 +381,7 @@ class CaseController extends Controller
             'kelas' => Classroom::query()
                 ->selectRaw('LOWER(classrooms.name)')
                 ->join('student_class_memberships', 'student_class_memberships.classroom_id', '=', 'classrooms.id')
-                ->whereColumn('student_class_memberships.student_id', 'consultations.student_id')
+                ->whereRaw('student_class_memberships.student_id = COALESCE(consultations.student_id, (SELECT reconciled_student_id FROM temporary_students WHERE temporary_students.id = consultations.temporary_student_id))')
                 ->whereColumn('student_class_memberships.effective_from', '<=', 'consultations.session_date')
                 ->where(function ($memberships): void {
                     $memberships->whereNull('student_class_memberships.effective_until')

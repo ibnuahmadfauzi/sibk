@@ -329,7 +329,7 @@ class ConsultationManagementTest extends TestCase
         ]);
         $pribadi = ReferenceValue::query()->where('category', 'service_field')->where('code', 'pribadi')->firstOrFail();
         $sosial = ReferenceValue::query()->where('category', 'service_field')->where('code', 'sosial')->firstOrFail();
-        $this->listedConsultation($teacher, $zeta, $sosial, '2026-09-18');
+        $listedZeta = $this->listedConsultation($teacher, $zeta, $sosial, '2026-09-18');
         $this->listedConsultation($teacher, $alpha, $pribadi, '2026-09-17');
         $this->listedConsultation($teacher, $beta, $pribadi, '2026-09-17');
 
@@ -357,7 +357,37 @@ class ConsultationManagementTest extends TestCase
             ->assertSee('Murid dan Kelas')
             ->assertSee('Permasalahan')
             ->assertSee('Jenis Layanan')
-            ->assertSee('Aksi');
+            ->assertSee('Aksi')
+            ->assertSee('<tr data-modal-url="'.route('consultations.show', [$listedZeta, 'modal' => 1]).'">', false);
+    }
+
+    public function test_shared_list_uses_historical_class_for_reconciled_temporary_student(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $year = AcademicYear::query()->firstOrFail();
+        $current = $student->classMemberships()->firstOrFail();
+        $current->update(['effective_from' => '2026-07-11']);
+        $historicalClass = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'X RPL Historis',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $historicalClass->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-01',
+            'effective_until' => '2026-07-10',
+            'is_active' => true,
+        ]);
+        $temporary = $this->reconciledTemporary($teacher, $student);
+        $this->consultationForTemporary($teacher, $temporary, '2026-07-10');
+
+        $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertSee('X RPL Historis')
+            ->assertDontSee('X RPL 1');
     }
 
     /** @return array{User, Student} */
