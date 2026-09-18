@@ -166,7 +166,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         ];
         $identities = $this->serviceIdentityQuery($actor, $filters, $year, $start, $end);
         $summary = DB::query()->fromSub(clone $identities, 'service_summary')
-            ->selectRaw('COUNT(*) AS identity_count, COUNT(*) AS service_count, COALESCE(SUM(follow_up_case_count), 0) AS follow_up_case_count')
+            ->selectRaw('COUNT(*) AS identity_count, COALESCE(SUM(case_count + consultation_count), 0) AS service_count, COALESCE(SUM(follow_up_case_count), 0) AS follow_up_case_count')
             ->first();
         $rows = (clone $identities)
             ->orderByDesc('latest_included_at')

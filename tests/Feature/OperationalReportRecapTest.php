@@ -11,6 +11,7 @@ use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
+use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -263,6 +264,8 @@ class OperationalReportRecapTest extends TestCase
         ]);
         $temporaryCase = $this->caseRecord($teacher, null, $unreconciled, '2026-08-11', 'RAHASIA-SEMENTARA');
         $this->consultationRecord($teacher, null, $reconciled, '2026-08-18', 'RAHASIA-KONSULTASI');
+        $this->followUpRecord($officialCase, $teacher, 'terlaksana', '2026-08-15', '2026-08-19');
+        $this->followUpRecord($officialCase, $teacher, 'terjadwal', '2026-08-25');
 
         $report = app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'layanan']);
         $rows = collect($report['rows']->items())->keyBy('identity_key');
@@ -273,7 +276,7 @@ class OperationalReportRecapTest extends TestCase
         $this->assertSame(1, $official['case_count']);
         $this->assertSame(1, $official['consultation_count']);
         $this->assertSame(1, $official['follow_up_case_count']);
-        $this->assertSame(2, $report['stats']['service_count']);
+        $this->assertSame(3, $report['stats']['service_count']);
         $this->assertSame(1, $report['stats']['follow_up_case_count']);
         $this->assertSame('18 Agu 2026', $official['latest_service_date']);
         $this->assertSame($classroom->name, $official['classroom']);
@@ -653,6 +656,20 @@ class OperationalReportRecapTest extends TestCase
         ])->save();
 
         return $consultation;
+    }
+
+    private function followUpRecord(BkCase $case, User $recorder, string $status, string $planned, ?string $executed = null): FollowUp
+    {
+        return FollowUp::query()->create([
+            'case_id' => $case->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'status_id' => $this->reference('follow_up_status', $status)->id,
+            'planned_date' => $planned,
+            'execution_date' => $executed,
+            'result' => 'RAHASIA-HASIL',
+            'next_plan' => 'RAHASIA-RENCANA',
+            'recorded_by' => $recorder->id,
+        ]);
     }
 
     private function studentWithCase(User $teacher, Classroom $classroom, int $index): Student
