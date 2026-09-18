@@ -3,12 +3,12 @@
 ## Status
 
 - Pekerjaan aktif: Revisi SIBK 3.2 untuk Layanan Guru BK.
-- Branch aktif: `revisi-sibk-3-2`; checkpoint kode integrasi terakhir
-  `b023959`, sedangkan handoff pause berada pada `HEAD`.
+- Branch aktif: `revisi-sibk-3-2`; kandidat kode Checkpoint 7A `829a723`,
+  sedangkan handoff berada pada `HEAD`.
 - Spec aktif: `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`.
 - Plan aktif: `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`.
-- Checkpoint aktif: 7A — Penyelarasan Fitur, sedang pause pada review/fix round
-  Wave 2 karena batas penggunaan subagent tercapai.
+- Checkpoint aktif: 7A — Penyelarasan Fitur, implementasi dan review selesai;
+  menunggu PR ke `cobasidebar`.
 - Urutan delivery: 7A penyelarasan fitur, 7B cleanup runtime, lalu 7C cleanup
   skema dan gate final. Setiap checkpoint memakai PR terpisah ke `cobasidebar`;
   `main` tidak disentuh.
@@ -34,20 +34,18 @@
 
 ## Hasil dan gate terakhir
 
-- Wave 1 dan Integration Gate 1 Revisi 3.2 sudah terintegrasi lokal pada commit
-  `b023959` dan lulus 42 test/428 assertion, Pint, checker frontend, build, serta
-  diff-check.
-- Lane Waka sudah committed pada `d424e26` dan focused gate lulus 30 test/302
-  assertion. Review meminta fix query allowlist daftar, kelas historis detail
-  konsultasi, serta cakupan audit seluruh fixture; fix belum dimulai.
-- Lane Laporan sudah committed pada `d67dacc` dan focused gate lulus 27 test/262
-  assertion. Fix round memiliki satu perubahan test-only belum dikomit yang
-  membuktikan RED `service_count`: nilai aktual 2, target 3. Production fix
-  belum ditulis.
-- Lane Consumer sudah committed pada `aabdc4c` dan focused gate lulus 126
-  test/888 assertion. Review independen belum selesai karena batas penggunaan.
-- Root branch tetap bersih; belum ada cherry-pick, Integration Gate 2, push,
-  PR, atau perubahan ke `main`.
+- Wave 1, tiga lane Wave 2, dan fix Integration Gate 2 sudah terintegrasi pada
+  branch `revisi-sibk-3-2` tanpa overlap file.
+- Waka memperoleh akses baca seluruh layanan melalui proyeksi allowlist dan
+  audit per pembukaan; semua mutasi tetap ditolak dan narasi tidak masuk CSV.
+- Laporan, dashboard, profil murid, scope turunan, seeder, serta fixture sudah
+  memakai kontrak kasus/konsultasi target tanpa consumer bisnis retired.
+- Final review awal menemukan 5 Important dan 7 Minor. Satu fix wave menutup
+  seluruh 12 temuan; scoped re-review tidak menemukan blocker baru.
+- Full gate final pada `829a723` lulus 454 test/3.529 assertion, Pint, checker
+  frontend, build, Composer strict, dan diff-check.
+- Belum ada push, PR, atau perubahan ke `main`. Cleanup runtime 7B dan cleanup
+  skema 7C belum dimulai.
 - Detail resume dan batas checkpoint 7A/7B/7C tercatat di plan aktif.
 
 ### Baseline terakhir sebelum Revisi 3.2
@@ -102,19 +100,17 @@
 
 ## Langkah berikutnya
 
-1. Resume fix round Lane D/Waka dari commit `d424e26` dan Lane E/Laporan dari
-   test RED yang sudah ada; jangan mengulang implementasi awal.
-2. Re-review Lane D/E dan jalankan review awal Lane F/Consumer.
-3. Setelah ketiga lane bersih, periksa collision, cherry-pick ke
-   `revisi-sibk-3-2`, lalu jalankan Integration Gate 2 dan full gate 7A.
-4. Perbarui handoff/log dan buka PR 7A ke `cobasidebar`; pause setelah status
-   `MERGED` terverifikasi. Checkpoint 7B belum dimulai.
+1. Commit handoff/log ini, push `revisi-sibk-3-2`, dan buka PR Checkpoint 7A
+   ke `cobasidebar`.
+2. Verifikasi status PR `MERGED`, pastikan tidak ada commit/PR tertinggal, lalu
+   hapus branch sumber remote.
+3. Pause. Checkpoint 7B baru dibuat dari `cobasidebar` terbaru pada sesi lanjut.
 
 ## Blocker
 
 - Tidak ada blocker implementasi.
-- Implementasi dipause pada checkpoint aman setelah batas penggunaan subagent
-  tercapai; seluruh proses subagent sudah berhenti.
+- Risiko residual tetap: Waka membaca narasi terstruktur sesuai keputusan BK,
+  dan draft `localStorage` hanya tersedia pada perangkat/browser yang sama.
 - Adapter production tetap ditahan karena kontrak resmi provider belum tersedia.
 
 ## Acuan
