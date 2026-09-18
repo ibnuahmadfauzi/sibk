@@ -11,7 +11,6 @@ use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -258,10 +257,12 @@ class OperationalReportRecapTest extends TestCase
         $reconciled = $this->temporaryStudent('0022222222', 'Nama Masukan Lama', $teacher, $student);
         $unreconciled = $this->temporaryStudent('0033333333', 'Murid Sementara', $teacher);
         $officialCase = $this->caseRecord($teacher, $student, null, '2026-08-10', 'RAHASIA-KASUS');
+        $officialCase->update([
+            'follow_up_type_id' => $this->reference('follow_up_type', 'surat_pernyataan')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
+        ]);
         $temporaryCase = $this->caseRecord($teacher, null, $unreconciled, '2026-08-11', 'RAHASIA-SEMENTARA');
         $this->consultationRecord($teacher, null, $reconciled, '2026-08-18', 'RAHASIA-KONSULTASI');
-        $this->followUpRecord($officialCase, $teacher, 'terlaksana', '2026-08-15', '2026-08-19');
-        $this->followUpRecord($officialCase, $teacher, 'terjadwal', '2026-08-25');
 
         $report = app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'layanan']);
         $rows = collect($report['rows']->items())->keyBy('identity_key');
@@ -271,9 +272,10 @@ class OperationalReportRecapTest extends TestCase
         $this->assertCount(2, $rows);
         $this->assertSame(1, $official['case_count']);
         $this->assertSame(1, $official['consultation_count']);
-        $this->assertSame(2, $official['follow_up_count']);
-        $this->assertSame(1, $official['open_follow_up_count']);
-        $this->assertSame('19 Agu 2026', $official['latest_service_date']);
+        $this->assertSame(1, $official['follow_up_case_count']);
+        $this->assertSame(2, $report['stats']['service_count']);
+        $this->assertSame(1, $report['stats']['follow_up_case_count']);
+        $this->assertSame('18 Agu 2026', $official['latest_service_date']);
         $this->assertSame($classroom->name, $official['classroom']);
         $this->assertSame('Belum tersedia', $temporary['classroom']);
         $this->assertTrue($temporary['is_temporary']);
@@ -299,8 +301,6 @@ class OperationalReportRecapTest extends TestCase
         $caseA = $this->caseRecord($ownerA, $studentA, null, '2026-08-10', 'Kasus A');
         $caseB = $this->caseRecord($ownerB, $studentB, null, '2026-08-10', 'Kasus B');
         $caseA->update(['created_by' => $ownerB->id]);
-        $this->followUpRecord($caseA, $ownerB, 'terjadwal', '2026-08-22');
-        $this->followUpRecord($caseB, $ownerA, 'terjadwal', '2026-08-22');
         $this->consultationRecord($ownerA, $studentA, null, '2026-08-12', 'Konsultasi A');
         $this->consultationRecord($ownerB, $studentB, null, '2026-08-12', 'Konsultasi B');
 
@@ -313,7 +313,7 @@ class OperationalReportRecapTest extends TestCase
         $this->assertSame('student:'.$studentA->id, $rows->first()['identity_key']);
         $this->assertSame(1, $rows->first()['case_count']);
         $this->assertSame(1, $rows->first()['consultation_count']);
-        $this->assertSame(1, $rows->first()['follow_up_count']);
+        $this->assertSame(0, $rows->first()['follow_up_case_count']);
     }
 
     public function test_service_identity_query_is_paginated_before_batch_hydration(): void
@@ -617,7 +617,7 @@ class OperationalReportRecapTest extends TestCase
             'temporary_student_id' => $temporary?->id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEW)->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
             'service_date' => $date,
             'initial_info' => $secret,
             'initial_action' => 'Asesmen awal',
@@ -637,30 +637,22 @@ class OperationalReportRecapTest extends TestCase
 
     private function consultationRecord(User $counselor, ?Student $student, ?TemporaryStudent $temporary, string $date, string $secret): Consultation
     {
-        return Consultation::query()->create([
+        $consultation = new Consultation([
             'student_id' => $student?->id,
             'temporary_student_id' => $temporary?->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
-            'topic' => 'Topik aman',
             'session_date' => $date,
-            'general_summary' => $secret,
+            'problem' => $secret,
+            'handling' => 'Penanganan aman',
+            'result' => 'Hasil aman',
             'counselor_id' => $counselor->id,
         ]);
-    }
+        $consultation->forceFill([
+            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
+            'topic' => $secret,
+        ])->save();
 
-    private function followUpRecord(BkCase $case, User $recorder, string $status, string $planned, ?string $executed = null): FollowUp
-    {
-        return FollowUp::query()->create([
-            'case_id' => $case->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', $status)->id,
-            'planned_date' => $planned,
-            'execution_date' => $executed,
-            'result' => 'RAHASIA-HASIL',
-            'next_plan' => 'RAHASIA-RENCANA',
-            'recorded_by' => $recorder->id,
-        ]);
+        return $consultation;
     }
 
     private function studentWithCase(User $teacher, Classroom $classroom, int $index): Student

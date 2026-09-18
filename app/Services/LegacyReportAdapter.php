@@ -110,9 +110,7 @@ final class LegacyReportAdapter
             ->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->accessibleTo($user))
             ->orderBy('name')->get();
         $statusCategories = match ($type) {
-            ReportService::TYPE_CONSULTATIONS => ['consultation_status'],
-            ReportService::TYPE_FOLLOW_UPS => ['follow_up_status'],
-            ReportService::TYPE_SERVICE_RECAP => ['case_status', 'consultation_status'],
+            ReportService::TYPE_SERVICE_RECAP => ['case_status'],
             ReportService::TYPE_ACHIEVEMENTS => ['achievement_verification_status'],
             default => [],
         };
@@ -139,8 +137,8 @@ final class LegacyReportAdapter
             ['id' => ReportService::TYPE_STUDENT_VIOLATIONS, 'title' => 'Pelanggaran per Murid', 'description' => 'Riwayat pelanggaran per murid', 'badge' => 'Murid', 'tone' => 'warning', 'icon' => 'student', 'filter_keys' => ['period', 'classroom', 'student', 'category']],
             ['id' => ReportService::TYPE_CLASS_VIOLATIONS, 'title' => 'Pelanggaran per Kelas', 'description' => 'Ringkasan pelanggaran per kelas', 'badge' => 'Kelas', 'tone' => 'info', 'icon' => 'classroom', 'filter_keys' => ['period', 'classroom', 'category']],
             ['id' => ReportService::TYPE_VIOLATION_POINTS, 'title' => 'Poin Pelanggaran', 'description' => 'Rekap poin dalam periode', 'badge' => 'Poin', 'tone' => 'primary', 'icon' => 'points', 'filter_keys' => ['period', 'classroom', 'student', 'minimum_points']],
-            ['id' => ReportService::TYPE_CONSULTATIONS, 'title' => 'Konsultasi', 'description' => 'Rekap konsultasi tanpa isi sensitif', 'badge' => 'Layanan', 'tone' => 'success', 'icon' => 'consultation', 'filter_keys' => ['period', 'classroom', 'student', 'service_field', 'status', 'counselor']],
-            ['id' => ReportService::TYPE_FOLLOW_UPS, 'title' => 'Status Tindak Lanjut', 'description' => 'Pemantauan status tindak lanjut', 'badge' => 'Tindak Lanjut', 'tone' => 'warning', 'icon' => 'follow-up', 'filter_keys' => ['period', 'classroom', 'student', 'service_field', 'status']],
+            ['id' => ReportService::TYPE_CONSULTATIONS, 'title' => 'Konsultasi', 'description' => 'Rekap konsultasi tanpa isi sensitif', 'badge' => 'Layanan', 'tone' => 'success', 'icon' => 'consultation', 'filter_keys' => ['period', 'classroom', 'student', 'service_field', 'counselor']],
+            ['id' => ReportService::TYPE_FOLLOW_UPS, 'title' => 'Kasus Tindak Lanjut', 'description' => 'Daftar kasus dengan tindak lanjut terkini', 'badge' => 'Tindak Lanjut', 'tone' => 'warning', 'icon' => 'follow-up', 'filter_keys' => ['period', 'classroom', 'student', 'service_field']],
             ['id' => ReportService::TYPE_SERVICE_RECAP, 'title' => 'Rekap Layanan BK', 'description' => 'Ringkasan layanan BK yang diizinkan', 'badge' => 'Rekap', 'tone' => 'primary', 'icon' => 'recap', 'filter_keys' => ['period', 'classroom', 'student', 'service_field', 'status', 'counselor']],
             ['id' => ReportService::TYPE_ACHIEVEMENTS, 'title' => 'Prestasi', 'description' => 'Rekap prestasi minimum sesuai kewenangan', 'badge' => 'Prestasi', 'tone' => 'info', 'icon' => 'achievement', 'filter_keys' => ['period', 'classroom', 'student', 'achievement_type', 'achievement_level', 'status']],
         ];

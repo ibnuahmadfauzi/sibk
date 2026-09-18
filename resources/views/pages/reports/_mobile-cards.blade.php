@@ -3,7 +3,7 @@
         @php
             $details = match ($report['tab']) {
                 'pelanggaran' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Pelanggaran' => $row['violation_count'], 'Total poin' => $row['total_points'], 'Terakhir' => $row['latest_violation'].' · '.$row['latest_date']],
-                'layanan' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Kasus' => $row['case_count'], 'Konsultasi' => $row['consultation_count'], 'Tindak lanjut' => $row['follow_up_count'], 'Perlu tindak lanjut' => $row['open_follow_up_count'], 'Terakhir' => $row['latest_service_date']],
+                'layanan' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Kasus' => $row['case_count'], 'Konsultasi' => $row['consultation_count'], 'Kasus Tindak Lanjut' => $row['follow_up_case_count'], 'Terakhir' => $row['latest_service_date']],
                 'prestasi' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Prestasi' => $row['achievement_count'], 'Terverifikasi' => $row['verified_count'], 'Tingkat tertinggi' => $row['highest_verified_level'], 'Terbaru' => $row['latest_achievement'].' · '.$row['latest_date']],
             };
         @endphp
