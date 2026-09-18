@@ -88,6 +88,50 @@ SEQUENTIAL CLEANUP
   Task 8C runtime retired -> Task 9 drop schema -> Task 10 full gate/handoff
 ```
 
+## Batas Pengiriman per Checkpoint
+
+Checkpoint A/B/C di bagian task tetap menjelaskan fase teknis. Untuk pembagian
+kerja, pause, dan PR, pekerjaan dikirim sebagai tiga checkpoint berikut:
+
+| Checkpoint | Isi | Cara kerja | Batas selesai |
+|---|---|---|---|
+| 7A — Penyelarasan fitur | Task 1–8B sampai Integration Gate 2 | Lane D, E, dan F paralel; review per lane; integrasi oleh koordinator | Full gate hijau dan satu PR `revisi-sibk-3-2` ke `cobasidebar` |
+| 7B — Cleanup runtime | Task 8C | Sequential pada branch baru dari `cobasidebar` terbaru | Runtime retired hilang, full gate hijau, dan satu PR terpisah ke `cobasidebar` |
+| 7C — Cleanup skema dan final | Task 9–10 | Sequential pada branch baru dari `cobasidebar` terbaru | Migration forward-only, full gate akhir, handoff, dan satu PR terpisah ke `cobasidebar` |
+
+Aturan checkpoint:
+
+- `main` tidak menjadi target ketiga checkpoint. Rilis produksi dilakukan lewat
+  persetujuan dan PR rilis terpisah setelah 7C sudah terintegrasi.
+- Checkpoint berikutnya baru dibuat dari `cobasidebar` setelah PR checkpoint
+  sebelumnya berstatus `MERGED`; branch sumber remote lalu dihapus sesuai
+  aturan repository.
+- Setiap checkpoint harus dapat dipause dengan branch bersih, bukti gate, dan
+  handoff yang cukup untuk sesi berikutnya.
+- Untuk hemat penggunaan, worker hanya membaca task/spec yang terkait lane,
+  menjalankan focused test di lane, lalu koordinator menjalankan full gate satu
+  kali setelah hasil terintegrasi.
+- Maksimal tiga implementer paralel dan satu koordinator. Cleanup 7B/7C tidak
+  diparalelkan karena menyentuh runtime/skema bersama dan saling bergantung.
+
+### Titik lanjut Checkpoint 7A
+
+Wave 1 dan Integration Gate 1 sudah terintegrasi lokal pada commit `b023959`.
+Tiga worktree Wave 2 sudah tersedia dari commit yang sama dan saat pause hanya
+berisi perubahan test-first yang belum di-commit:
+
+```text
+.worktrees/revisi-sibk-3-2-wave2-waka
+.worktrees/revisi-sibk-3-2-wave2-laporan
+.worktrees/revisi-sibk-3-2-wave2-consumer
+```
+
+Lanjutkan ketiganya, jangan membuat ulang worktree atau mengulang Wave 1.
+Commit lane baru boleh di-cherry-pick setelah focused gate dan review lane
+bersih. Setelah Gate 2 dan full gate 7A lulus, perbarui `docs/current-work.md`
+serta `docs/development-log.md`, buka PR ke `cobasidebar`, verifikasi status
+`MERGED`, lalu pause sebelum membuat branch 7B.
+
 ### Matriks lane dan ownership
 
 | Wave | Lane/branch | Scope | File shared yang dilarang disentuh |
@@ -1105,7 +1149,33 @@ git commit -m "chore: integrasikan wave kedua revisi SIBK"
 
 Jika working tree bersih dan tidak ada resolusi, jangan membuat empty commit.
 
-### Task 8C — Sequential Cleanup: Hapus runtime lama
+- [ ] **Step 4: Jalankan full gate Checkpoint 7A**
+
+```powershell
+composer test
+php vendor/bin/pint --test
+npm run check:frontend
+npm run build
+composer validate --strict
+git diff --check
+```
+
+Expected: seluruh command exit 0. Catat hasil aktual pada handoff; full suite
+tidak perlu diulang oleh setiap worker.
+
+- [ ] **Step 5: Tutup Checkpoint 7A melalui PR**
+
+Perbarui `docs/current-work.md` dan tambahkan ringkasan checkpoint ke
+`docs/development-log.md`, lalu commit dokumentasinya. Buka satu PR branch
+`revisi-sibk-3-2` ke `cobasidebar`. Jangan menargetkan `main`. Setelah PR
+berstatus `MERGED`, hapus branch sumber remote dan pause sebelum Checkpoint 7B.
+
+### Checkpoint 7B / Task 8C — Sequential Cleanup: Hapus runtime lama
+
+Buat branch `revisi-sibk-3-2-7b-runtime` dari `cobasidebar` terbaru hanya
+setelah Checkpoint 7A berstatus `MERGED`. Checkpoint ini tidak memakai worker
+paralel karena route, controller, service, view, dan checker runtime saling
+terkait.
 
 **Files:**
 - Modify: `app/Http/Controllers/CaseController.php`
@@ -1159,9 +1229,28 @@ git add -A app routes resources/views/pages/cases resources/views/pages/waka scr
 git commit -m "refactor: hapus runtime layanan BK lama"
 ```
 
+- [ ] **Step 4: Jalankan full gate dan tutup Checkpoint 7B**
+
+```powershell
+composer test
+php vendor/bin/pint --test
+npm run check:frontend
+npm run build
+composer validate --strict
+git diff --check
+```
+
+Expected: seluruh command exit 0. Perbarui handoff/log, lalu buka satu PR
+`revisi-sibk-3-2-7b-runtime` ke `cobasidebar`. Verifikasi `MERGED`, hapus branch
+sumber remote, dan pause sebelum membuat branch 7C.
+
 ---
 
-## Checkpoint C — Pembersihan Destruktif dan Gate Akhir
+## Checkpoint C / Delivery 7C — Pembersihan Destruktif dan Gate Akhir
+
+Buat branch `revisi-sibk-3-2-7c-schema` dari `cobasidebar` terbaru hanya
+setelah Checkpoint 7B berstatus `MERGED`. Task 9 dan 10 berjalan sequential;
+migration drop tidak boleh dibuat sebelum scan dependency runtime bersih.
 
 ### Task 9 — Sequential Cleanup: Hapus skema retired setelah dependency scan
 
@@ -1313,5 +1402,7 @@ git status --short
 ```
 
 Expected: working tree bersih. Setelah itu gunakan
-`superpowers:requesting-code-review`; jangan merge atau menghapus branch sebelum
-review, PR, dan status `MERGED` terverifikasi.
+`superpowers:requesting-code-review`, buka satu PR
+`revisi-sibk-3-2-7c-schema` ke `cobasidebar`, lalu verifikasi status `MERGED`
+sebelum menghapus branch sumber remote. Jangan mengubah `main`; rilis produksi
+memerlukan persetujuan dan PR rilis terpisah.

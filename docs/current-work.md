@@ -3,10 +3,14 @@
 ## Status
 
 - Pekerjaan aktif: Revisi SIBK 3.2 untuk Layanan Guru BK.
-- Branch aktif: `revisi-sibk-3-2` dari baseline `25a2174`.
+- Branch aktif: `revisi-sibk-3-2`; checkpoint aman terakhir `b023959`.
 - Spec aktif: `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`.
 - Plan aktif: `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`.
-- Checkpoint aktif: A kontrak/fondasi aditif, B peralihan consumer/UI, C pembersihan destruktif dan gate akhir.
+- Checkpoint aktif: 7A — Penyelarasan Fitur, sedang pause sebelum implementasi
+  produksi Wave 2.
+- Urutan delivery: 7A penyelarasan fitur, 7B cleanup runtime, lalu 7C cleanup
+  skema dan gate final. Setiap checkpoint memakai PR terpisah ke `cobasidebar`;
+  `main` tidak disentuh.
 
 - Checkpoint selesai: 1-6.
 - PR #15 Checkpoint 5B terintegrasi ke `cobasidebar` pada commit `fd9a20a`.
@@ -28,6 +32,18 @@
   baseline pengembangan saat rilis.
 
 ## Hasil dan gate terakhir
+
+- Wave 1 dan Integration Gate 1 Revisi 3.2 sudah terintegrasi lokal pada commit
+  `b023959` dan lulus 42 test/428 assertion, Pint, checker frontend, build, serta
+  diff-check.
+- Worktree Wave 2 untuk Waka, laporan, dan consumer tersedia dari commit yang
+  sama. Saat pause masing-masing hanya berisi perubahan test-first yang belum
+  di-commit; belum ada file production Wave 2 yang diubah.
+- Root branch dan seluruh worktree Wave 2 lulus `git diff --check`. Tidak ada
+  proses implementer aktif, push, PR, atau perubahan ke `main`.
+- Detail resume dan batas checkpoint 7A/7B/7C tercatat di plan aktif.
+
+### Baseline terakhir sebelum Revisi 3.2
 
 - Baseline bersih lulus 454 test/3.498 assertion setelah `APP_KEY` testing
   disediakan hanya pada environment proses; tidak ada `.env` atau credential
@@ -64,26 +80,34 @@
 
 ## Batas wajib
 
-- Tidak membuat migration atau mengubah skema.
-- Tidak mengubah route, otorisasi, output, scope data, atau format CSV.
+- Pertahankan tiga worktree Wave 2 dan perubahan test-first yang sudah ada;
+  jangan mengulang Wave 1.
+- Lane D/E/F hanya mengubah file sesuai ownership plan. Review dan focused gate
+  wajib sebelum cherry-pick ke branch integrasi.
+- Jangan memulai cleanup runtime 7B sebelum PR 7A `MERGED`; jangan membuat
+  migration drop 7C sebelum PR 7B `MERGED` dan scan dependency bersih.
+- Migration selalu forward-only; database shared/production tidak boleh di-reset.
 - Tidak menambah dependency.
-- Facade lama tetap tersedia untuk seluruh consumer.
+- Semua PR checkpoint menargetkan `cobasidebar`. `main` hanya untuk PR rilis
+  terpisah setelah persetujuan pengguna.
 - Driver production Dapodik/e-Tatib tetap `unavailable` sampai kontrak resmi
   lolos admission gate.
-- Test mengunci perilaku, bukan struktur internal class.
 
 ## Langkah berikutnya
 
-1. Selesaikan Task 2: migration aditif, reference aktif, audit delta, dan
-   verifikasi SQLite tanpa drop skema lama.
-2. Lanjutkan Task 3 lalu Wave 1 hanya setelah gate task sebelumnya lulus.
-3. Gate akhir Revisi 3.2: `composer test`, `php vendor/bin/pint --test`,
-   `npm run check:frontend`, `npm run build`, `composer validate --strict`, dan
-   `git diff --check` sebelum PR ke `cobasidebar`.
+1. Saat diminta melanjutkan, resume Lane D (Waka), E (laporan), dan F
+   (consumer/seeder) secara paralel dari worktree yang sudah ada.
+2. Review setiap lane, cherry-pick ke `revisi-sibk-3-2`, lalu jalankan
+   Integration Gate 2 dan full gate Checkpoint 7A.
+3. Perbarui handoff/log dan buka PR 7A ke `cobasidebar`; pause setelah status
+   `MERGED` terverifikasi.
+4. Buat 7B dari `cobasidebar` terbaru untuk cleanup runtime. Setelah PR 7B
+   `MERGED`, buat 7C untuk cleanup skema dan gate final.
 
 ## Blocker
 
 - Tidak ada blocker implementasi.
+- Implementasi sengaja dipause atas permintaan pengguna pada checkpoint aman.
 - Adapter production tetap ditahan karena kontrak resmi provider belum tersedia.
 
 ## Acuan
