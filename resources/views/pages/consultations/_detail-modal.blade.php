@@ -7,10 +7,15 @@
         </div>
         <div class="d-flex gap-2">
             @if($canUpdateConsultation)
-                <a href="{{ route('consultations.edit', $consultation) }}" class="btn btn-primary">Edit</a>
+                <a href="{{ route('consultations.edit', $consultation) }}"
+                    data-modal-url="{{ route('consultations.edit', [$consultation, 'modal' => 1]) }}"
+                    data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"
+                    @if($modal) onclick="if (!window.confirm(this.dataset.confirmMessage)) { event.stopPropagation(); return false; }" @endif
+                    class="btn btn-primary">Edit</a>
             @endif
             @if($canArchiveConsultation)
-                <form action="{{ route('consultations.destroy', $consultation) }}" method="POST" data-confirm-submit data-confirm-message="Arsipkan konsultasi ini?">
+                <form action="{{ route('consultations.destroy', $consultation) }}" method="POST" data-confirm-submit data-confirm-message="Arsipkan konsultasi ini?"
+                    @if($modal) onsubmit="if (!window.confirm(this.dataset.confirmMessage)) { event.stopPropagation(); return false; }" @endif>
                     @csrf
                     @method('DELETE')
                     <button class="btn btn-outline-danger" type="submit">Arsipkan</button>

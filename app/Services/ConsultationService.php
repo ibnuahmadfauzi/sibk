@@ -71,14 +71,9 @@ class ConsultationService
                 ]);
             }
 
-            if ($consultation->student_id !== null) {
-                Student::query()->lockForUpdate()->findOrFail($consultation->student_id);
-                if (! Student::query()->availableForService((string) $data['session_date'])->whereKey($consultation->student_id)->exists()) {
-                    throw ValidationException::withMessages([
-                        'session_date' => 'Tanggal sesi harus sebelum tanggal keluar resmi murid.',
-                    ]);
-                }
-            }
+            $studentId = $consultation->student_id
+                ?? $consultation->temporaryStudent()->value('reconciled_student_id');
+            $this->assertStudentAvailable($studentId, (string) $data['session_date']);
 
             $this->reference('service_field', (int) $data['service_field_id']);
             $before = $this->snapshot($consultation);
@@ -138,6 +133,32 @@ class ConsultationService
             return [$student, null];
         }
 
+        if (($data['temporary_student_id'] ?? null) !== null) {
+            $temporary = TemporaryStudent::query()
+                ->with('reconciledStudent')
+                ->lockForUpdate()
+                ->findOrFail($data['temporary_student_id']);
+
+            if ($temporary->reconciled_student_id !== null) {
+                $student = $temporary->reconciledStudent;
+                if ($student === null || ! Student::query()
+                    ->professionallyAccessibleTo($actor)
+                    ->whereKey($student?->getKey())
+                    ->exists()) {
+                    throw ValidationException::withMessages([
+                        'temporary_student_id' => 'Identitas sementara tidak berada dalam kewenangan profesional Anda.',
+                    ]);
+                }
+                $this->assertStudentAvailable($student->getKey(), (string) $data['session_date']);
+            } elseif ($temporary->created_by !== $actor->getKey()) {
+                throw ValidationException::withMessages([
+                    'temporary_student_id' => 'Identitas sementara tidak berada dalam kewenangan profesional Anda.',
+                ]);
+            }
+
+            return [null, $temporary];
+        }
+
         return [
             null,
             $this->studentIdentityService->createTemporary(
@@ -153,6 +174,20 @@ class ConsultationService
         if ($consultation->counselor_id !== $actor->getKey() || ! $consultation->isProfessionallyAccessibleTo($actor)) {
             throw ValidationException::withMessages([
                 'consultation' => "Konsultasi hanya dapat {$action} oleh pencatat yang masih memiliki kewenangan.",
+            ]);
+        }
+    }
+
+    private function assertStudentAvailable(mixed $studentId, string $date): void
+    {
+        if ($studentId === null) {
+            return;
+        }
+
+        Student::query()->lockForUpdate()->findOrFail($studentId);
+        if (! Student::query()->availableForService($date)->whereKey($studentId)->exists()) {
+            throw ValidationException::withMessages([
+                'session_date' => 'Tanggal sesi harus sebelum tanggal keluar resmi murid.',
             ]);
         }
     }

@@ -19,8 +19,9 @@ class StoreConsultationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => ['nullable', 'integer', 'required_without:temporary_nisn', 'prohibits:temporary_nisn,temporary_name', Rule::exists('students', 'id')],
-            'temporary_nisn' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/', 'required_without:student_id', 'prohibits:student_id'],
+            'student_id' => ['nullable', 'integer', 'required_without_all:temporary_student_id,temporary_nisn', 'prohibits:temporary_student_id,temporary_nisn,temporary_name', Rule::exists('students', 'id')],
+            'temporary_student_id' => ['nullable', 'integer', 'required_without_all:student_id,temporary_nisn', 'prohibits:student_id,temporary_nisn,temporary_name', Rule::exists('temporary_students', 'id')->whereNull('deleted_at')],
+            'temporary_nisn' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/', 'required_without_all:student_id,temporary_student_id', 'prohibits:student_id,temporary_student_id'],
             'temporary_name' => ['nullable', 'string', 'max:150', 'required_with:temporary_nisn'],
             ...$this->consultationRules(),
         ];
@@ -45,6 +46,7 @@ class StoreConsultationRequest extends FormRequest
             'student_id.required_without' => 'Pilih murid atau isi identitas sementara.',
             'student_id.prohibits' => 'Pilih hanya satu jenis identitas murid.',
             'student_id.exists' => 'Murid yang dipilih tidak tersedia.',
+            'temporary_student_id.exists' => 'Identitas sementara tidak tersedia.',
             'temporary_nisn.required_without' => 'NISN sementara wajib diisi bila murid belum tersedia.',
             'temporary_nisn.regex' => 'NISN hanya boleh berisi angka.',
             'temporary_nisn.prohibits' => 'Identitas sementara tidak boleh diisi bersama murid master.',

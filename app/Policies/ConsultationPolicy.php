@@ -16,7 +16,7 @@ class ConsultationPolicy
 
     public function view(User $user, Consultation $consultation): bool
     {
-        return $user->hasRole('koordinator_bk') || $consultation->isProfessionallyAccessibleTo($user);
+        return $consultation->isProfessionallyAccessibleTo($user);
     }
 
     public function create(User $user): bool

@@ -55,6 +55,7 @@ class ConsultationController extends Controller
         ]);
         $data = [
             'consultation' => $consultation,
+            'modal' => $request->boolean('modal'),
             'canUpdateConsultation' => $user->can('update', $consultation),
             'canArchiveConsultation' => $user->can('archive', $consultation),
         ];
@@ -98,6 +99,7 @@ class ConsultationController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Konsultasi berhasil diperbarui.',
+                'redirect' => route('cases.index', ['tab' => 'konsultasi']),
                 'data' => [
                     'service_field_id' => $consultation->service_field_id,
                     'session_date' => $consultation->session_date?->toDateString(),
@@ -116,10 +118,17 @@ class ConsultationController extends Controller
         ArchiveConsultationRequest $request,
         Consultation $consultation,
         ConsultationService $service,
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         /** @var User $actor */
         $actor = $request->user();
         $service->archive($consultation, $actor);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Konsultasi berhasil diarsipkan.',
+                'redirect' => route('cases.index', ['tab' => 'konsultasi']),
+            ]);
+        }
 
         return redirect()->route('cases.index', ['tab' => 'konsultasi'])
             ->with('success', 'Konsultasi berhasil diarsipkan.');

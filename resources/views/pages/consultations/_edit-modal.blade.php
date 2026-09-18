@@ -10,7 +10,8 @@
     @endif
 
     <form action="{{ $isEdit ? route('consultations.update', $consultation) : route('consultations.store') }}" method="POST"
-        @if($isEdit) data-confirm-submit data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" @endif>
+        @if($isEdit) data-confirm-submit data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" @endif
+        @if($isEdit && $modal) onsubmit="if (!window.confirm(this.dataset.confirmMessage)) { event.stopPropagation(); return false; }" @endif>
         @csrf
         @if($isEdit)
             @method('PATCH')

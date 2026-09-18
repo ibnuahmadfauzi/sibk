@@ -12,7 +12,9 @@ use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
+use App\Models\TemporaryStudent;
 use App\Models\User;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -197,6 +199,8 @@ class ConsultationManagementTest extends TestCase
         $this->get(route('consultations.show', [$consultation, 'modal' => 1]))
             ->assertOk()
             ->assertSee('data-consultation-detail-modal', false)
+            ->assertSee('data-modal-url="'.route('consultations.edit', [$consultation, 'modal' => 1]).'"', false)
+            ->assertSee('event.stopPropagation()', false)
             ->assertDontSee('<html', false);
         $this->get(route('consultations.edit', $consultation))
             ->assertOk()
@@ -205,8 +209,86 @@ class ConsultationManagementTest extends TestCase
         $this->get(route('consultations.edit', [$consultation, 'modal' => 1]))
             ->assertOk()
             ->assertSee('data-consultation-edit-modal', false)
+            ->assertSee('event.stopPropagation()', false)
             ->assertSee('name="expected_updated_at"', false)
             ->assertDontSee('name="temporary_nisn"', false);
+    }
+
+    public function test_reconciled_temporary_identity_is_excluded_after_official_departure(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $temporary = $this->reconciledTemporary($owner, $student);
+        $this->officialDeparture($owner, $student, '2026-09-17');
+        $consultation = $this->consultationForTemporary($owner, $temporary, '2026-09-18');
+
+        $this->assertFalse(
+            Consultation::query()->accessibleTo($owner)->whereKey($consultation->getKey())->exists(),
+        );
+    }
+
+    public function test_reconciled_temporary_identity_cannot_create_or_move_service_on_or_after_departure(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $temporary = $this->reconciledTemporary($owner, $student);
+        $this->officialDeparture($owner, $student, '2026-09-17');
+
+        $this->actingAs($owner)->post(route('consultations.store'), [
+            ...$this->payload(),
+            'temporary_student_id' => $temporary->id,
+            'session_date' => '2026-09-17',
+        ])->assertSessionHasErrors('session_date');
+
+        $consultation = $this->consultationForTemporary($owner, $temporary, '2026-09-16');
+        $this->actingAs($owner)->patch(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'session_date' => '2026-09-17',
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ])->assertSessionHasErrors('session_date');
+
+        $this->assertSame('2026-09-16', $consultation->refresh()->session_date->toDateString());
+    }
+
+    public function test_direct_routes_reject_out_of_scope_roles_and_owner_who_lost_authority(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($owner, $student);
+        $payload = [
+            ...$this->payload(),
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ];
+
+        foreach (['guru_bk', 'koordinator_bk', 'admin_it'] as $role) {
+            $actor = $this->userWithRole($role);
+            $this->actingAs($actor)->get(route('consultations.show', $consultation))->assertForbidden();
+            $this->get(route('consultations.edit', $consultation))->assertForbidden();
+            $this->patch(route('consultations.update', $consultation), $payload)->assertForbidden();
+            $this->delete(route('consultations.destroy', $consultation))->assertForbidden();
+        }
+
+        TeacherAssignment::query()->where('user_id', $owner->id)->update(['effective_until' => '2026-09-17']);
+        $this->actingAs($owner)->get(route('consultations.show', $consultation))->assertForbidden();
+        $this->get(route('consultations.edit', $consultation))->assertForbidden();
+        $this->patch(route('consultations.update', $consultation), $payload)->assertForbidden();
+        $this->delete(route('consultations.destroy', $consultation))->assertForbidden();
+        $this->assertNotSoftDeleted('consultations', ['id' => $consultation->id]);
+    }
+
+    public function test_modal_mutations_return_list_redirect_as_json(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($owner, $student);
+        $listUrl = route('cases.index', ['tab' => 'konsultasi']);
+
+        $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'problem' => 'Permasalahan modal diperbarui.',
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ])->assertOk()->assertJsonPath('redirect', $listUrl);
+
+        $this->deleteJson(route('consultations.destroy', $consultation))
+            ->assertOk()
+            ->assertJsonPath('redirect', $listUrl);
+        $this->assertSoftDeleted('consultations', ['id' => $consultation->id]);
     }
 
     /** @return array{User, Student} */
@@ -230,6 +312,55 @@ class ConsultationManagementTest extends TestCase
         ])->assertRedirect();
 
         return Consultation::query()->latest('id')->firstOrFail();
+    }
+
+    private function reconciledTemporary(User $creator, Student $student): TemporaryStudent
+    {
+        return TemporaryStudent::query()->create([
+            'nisn' => $student->nisn,
+            'input_name' => 'Nama Sebelum Rekonsiliasi',
+            'created_by' => $creator->id,
+            'reconciliation_status_id' => ReferenceValue::query()
+                ->where('category', 'reconciliation_status')
+                ->where('code', 'terekonsiliasi')
+                ->firstOrFail()->id,
+            'reconciled_student_id' => $student->id,
+            'reconciled_by' => $creator->id,
+            'reconciled_at' => now(),
+        ]);
+    }
+
+    private function officialDeparture(User $teacher, Student $student, string $date): void
+    {
+        StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_OFFICIAL,
+            'reported_at' => '2026-09-16',
+            'effective_date' => $date,
+            'recorded_by' => $teacher->id,
+            'finalized_by' => $this->userWithRole('koordinator_bk')->id,
+            'finalized_at' => now(),
+        ]);
+    }
+
+    private function consultationForTemporary(User $teacher, TemporaryStudent $temporary, string $date): Consultation
+    {
+        $consultation = new Consultation([
+            ...$this->payload(),
+            'temporary_student_id' => $temporary->id,
+            'session_date' => $date,
+            'counselor_id' => $teacher->id,
+        ]);
+        $consultation->forceFill([
+            'status_id' => ReferenceValue::query()
+                ->where('category', 'consultation_status')
+                ->where('code', 'selesai')
+                ->firstOrFail()->id,
+            'topic' => 'Kompatibilitas skema lama',
+        ])->save();
+
+        return $consultation;
     }
 
     /** @return array<string, mixed> */
