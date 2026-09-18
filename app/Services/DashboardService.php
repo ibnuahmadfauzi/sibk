@@ -10,11 +10,11 @@ use App\Models\Classroom;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\IntegrationSetting;
 use App\Models\Student;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Support\ServiceRecordStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -72,12 +72,12 @@ class DashboardService
         }
         $caseIds = (clone $cases)->select('cases.id');
 
-        $upcoming = FollowUp::query()->whereIn('case_id', clone $caseIds)
-            ->whereBetween('planned_date', [today(), today()->addDays(14)])
-            ->whereHas('status', fn (Builder $status): Builder => $status->where('code', '!=', 'dibatalkan'))
-            ->with(['case.student.classMemberships.classroom', 'case.temporaryStudent', 'type', 'status'])
-            ->orderBy('planned_date');
-        $upcomingCount = (clone $upcoming)->whereDate('planned_date', '<=', today()->addDays(7))->count();
+        $followUpCases = (clone $cases)
+            ->whereHas('status', fn (Builder $status): Builder => $status
+                ->where('code', ServiceRecordStatus::NEEDS_FOLLOW_UP))
+            ->with(['student.classMemberships.classroom', 'temporaryStudent', 'followUpType', 'status'])
+            ->latest('service_date');
+        $followUpCount = (clone $followUpCases)->count();
         $etatib = ExternalTatibRecord::query()->active()->whereBetween('occurred_at', [$start, $end]);
         if ($mode === 'teacher') {
             $etatib->where(function (Builder $scope) use ($students, $caseIds): void {
@@ -97,7 +97,7 @@ class DashboardService
         $stats = [
             ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan kasus aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
             ['label' => $mode === 'waka' ? 'Seluruh kasus aktif' : 'Kasus aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
-            ['label' => 'Tindak lanjut terdekat', 'value' => (string) $upcomingCount, 'meta' => 'Dalam tujuh hari ke depan', 'tone' => 'success', 'kind' => 'schedule'],
+            ['label' => 'Kasus Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => 'Perlu ditindaklanjuti', 'tone' => 'success', 'kind' => 'schedule'],
             ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Mirror read-only dalam kewenangan', 'tone' => 'info', 'kind' => 'etatib'],
         ];
 
@@ -111,11 +111,11 @@ class DashboardService
             'read_only' => $mode === 'waka',
             'description' => $mode === 'waka' ? 'Ringkasan seluruh kasus aktif sekolah — tampilan hanya-baca tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
             'stats' => $stats,
-            'schedule_title' => $mode === 'waka' ? 'Kasus aktif sekolah' : 'Tindak lanjut terdekat',
+            'schedule_title' => $mode === 'waka' ? 'Kasus aktif sekolah' : 'Kasus Tindak Lanjut',
             'schedule_url' => $mode === 'waka' ? route('waka.monitoring.handling') : route('cases.index'),
             'tindak_lanjut' => $mode === 'waka'
-                ? $this->coordinatedCaseItems((clone $cases)->latest('updated_at')->limit(6)->get(), $user)
-                : $this->followUpItems($upcoming->limit(6)->get()),
+                ? $this->caseItems((clone $cases)->latest('updated_at')->limit(6)->get())
+                : $this->followUpItems($followUpCases->limit(6)->get()),
             'context_panel' => [
                 'title' => match ($mode) {
                     'teacher' => 'Cakupan layanan Anda',
@@ -189,16 +189,13 @@ class DashboardService
                 ->effectiveOn(now()))
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on]));
-        $followUps = FollowUp::query()
-            ->whereIn('case_id', (clone $cases)->select('cases.id'))
-            ->whereDate('planned_date', '>=', today())
-            ->whereHas('status', fn (Builder $status): Builder => $status
-                ->whereNotIn('code', ['terlaksana', 'dibatalkan']));
+        $followUpCases = (clone $cases)->whereHas('status', fn (Builder $status): Builder => $status
+            ->where('code', ServiceRecordStatus::NEEDS_FOLLOW_UP));
 
         return [
             ['label' => 'Kelas ampuan', 'value' => (string) $assignments->distinct()->count('classroom_id'), 'meta' => 'Penugasan efektif saat ini'],
             ['label' => 'Kasus khusus aktif', 'value' => (string) $cases->count(), 'meta' => 'Sebagai penanggung jawab'],
-            ['label' => 'Tindak lanjut terdekat', 'value' => (string) $followUps->count(), 'meta' => 'Terjadwal mulai hari ini'],
+            ['label' => 'Kasus Tindak Lanjut', 'value' => (string) $followUpCases->count(), 'meta' => 'Perlu ditindaklanjuti'],
         ];
     }
 
@@ -209,16 +206,15 @@ class DashboardService
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('academic_year_id', $selected->getKey()))
             ->whereDoesntHave('teacherAssignments', fn (Builder $query): Builder => $query->effectiveOn(now()));
-        $openFollowUps = FollowUp::query()->whereHas('status', fn (Builder $status): Builder => $status
-            ->whereNotIn('code', ['terlaksana', 'dibatalkan']))
+        $openFollowUps = BkCase::query()->whereHas('status', fn (Builder $status): Builder => $status
+            ->where('code', ServiceRecordStatus::NEEDS_FOLLOW_UP))
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
-                ->whereHas('case', fn (Builder $cases): Builder => $cases
-                    ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on])));
+                ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on]));
 
         return [
             ['label' => 'Guru BK aktif', 'value' => (string) User::query()->active()->whereHas('roles', fn (Builder $roles): Builder => $roles->where('slug', 'guru_bk')->where('is_active', true))->count(), 'meta' => 'Siap menerima penugasan'],
             ['label' => 'Kelas tanpa penugasan', 'value' => (string) $unassignedClasses->count(), 'meta' => 'Belum memiliki Guru BK efektif'],
-            ['label' => 'Tindak lanjut terbuka', 'value' => (string) $openFollowUps->count(), 'meta' => 'Belum terlaksana atau dibatalkan'],
+            ['label' => 'Kasus Tindak Lanjut', 'value' => (string) $openFollowUps->count(), 'meta' => 'Perlu ditindaklanjuti'],
         ];
     }
 
@@ -257,38 +253,36 @@ class DashboardService
         return $classes === '' ? 'Penugasan kasus khusus aktif' : 'Kelas '.$classes.' dan penugasan kasus khusus';
     }
 
-    /** @param Collection<int, FollowUp> $followUps @return list<array<string, mixed>> */
-    private function followUpItems(Collection $followUps): array
+    /** @param Collection<int, BkCase> $cases @return list<array<string, mixed>> */
+    private function followUpItems(Collection $cases): array
     {
-        return $followUps->map(function (FollowUp $followUp): array {
-            $membership = $followUp->case?->student?->classMemberships->sortByDesc('effective_from')->first();
+        return $cases->map(function (BkCase $case): array {
+            $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first();
 
             return [
-                'date' => $followUp->planned_date->format('d'),
-                'month' => $followUp->planned_date->locale('id')->translatedFormat('M'),
-                'year' => $followUp->planned_date->format('Y'),
-                'code' => $followUp->case?->registration_number ?? 'Kasus',
-                'title' => $followUp->type->label,
-                'context_label' => sprintf('%s (%s)', $followUp->case?->identityName(), $membership?->classroom?->name ?? 'tanpa kelas aktif'),
-                'status' => $followUp->status->label,
-                'status_tone' => $followUp->status->code === 'terlaksana' ? 'success' : 'warning',
-                'url' => route('cases.show', $followUp->case_id),
+                'date' => $case->service_date->format('d'),
+                'month' => $case->service_date->locale('id')->translatedFormat('M'),
+                'year' => $case->service_date->format('Y'),
+                'code' => $case->registration_number,
+                'title' => $case->followUpType?->label ?? 'Tindak Lanjut',
+                'context_label' => sprintf('%s (%s)', $case->identityName(), $membership?->classroom?->name ?? 'tanpa kelas aktif'),
+                'status' => $case->status->label,
+                'status_tone' => 'warning',
+                'url' => route('cases.show', $case),
             ];
         })->all();
     }
 
     /** @param Collection<int, BkCase> $cases @return list<array<string, mixed>> */
-    private function coordinatedCaseItems(Collection $cases, User $user): array
+    private function caseItems(Collection $cases): array
     {
-        return $cases->map(function (BkCase $case) use ($user): array {
-            $coordination = $case->coordinations()->where('waka_user_id', $user->getKey())->latest('coordinated_at')->first();
-
+        return $cases->map(function (BkCase $case): array {
             return [
-                'date' => $coordination?->coordinated_at?->format('d') ?? $case->service_date->format('d'),
-                'month' => $coordination?->coordinated_at?->locale('id')->translatedFormat('M') ?? $case->service_date->locale('id')->translatedFormat('M'),
-                'year' => $coordination?->coordinated_at?->format('Y') ?? $case->service_date->format('Y'),
+                'date' => $case->service_date->format('d'),
+                'month' => $case->service_date->locale('id')->translatedFormat('M'),
+                'year' => $case->service_date->format('Y'),
                 'code' => $case->registration_number,
-                'title' => 'Koordinasi kesiswaan',
+                'title' => 'Kasus layanan BK',
                 'context_label' => $case->identityName(),
                 'status' => $case->status->label,
                 'status_tone' => $case->closed_at === null ? 'warning' : 'success',

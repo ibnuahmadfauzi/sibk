@@ -11,15 +11,14 @@
             <div class="col-12 col-md-2"><button class="btn btn-primary w-100">Cari</button></div>
         </form></div></div>
 
-        <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>NISN</th><th>Nama Murid</th><th>Kelas Aktif</th><th>Kasus Aktif</th><th>Tindak Lanjut</th><th></th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>NISN</th><th>Nama Murid</th><th>Kelas Aktif</th><th>Kasus Aktif</th><th></th></tr></thead><tbody>
             @forelse($students as $student)
                 @php
                     $membership = $student->classMemberships->first();
                     $activeCases = $student->cases->whereNull('closed_at');
-                    $nextFollowUp = $student->cases->flatMap->followUps->filter(fn ($item) => $item->planned_date->gte(today()) && $item->status?->code !== 'dibatalkan')->sortBy('planned_date')->first();
                 @endphp
-                <tr><td class="fw-semibold">{{ $student->nisn }}</td><td class="fw-semibold">{{ $student->name }} @if($student->usesProvisionalData($membership))<span class="sibk-badge sibk-badge--warning ms-1">Sementara</span>@endif</td><td>{{ $membership?->classroom?->name ?? '—' }}</td><td><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td><td>{{ $nextFollowUp?->planned_date?->locale('id')->translatedFormat('d M Y') ?? 'Belum ada' }}</td><td><a href="{{ route('students.show', $student) }}" class="fw-bold text-decoration-none">Buka</a></td></tr>
-            @empty<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data murid yang sesuai.</td></tr>@endforelse
+                <tr><td class="fw-semibold">{{ $student->nisn }}</td><td class="fw-semibold">{{ $student->name }} @if($student->usesProvisionalData($membership))<span class="sibk-badge sibk-badge--warning ms-1">Sementara</span>@endif</td><td>{{ $membership?->classroom?->name ?? '—' }}</td><td><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td><td><a href="{{ route('students.show', $student) }}" class="fw-bold text-decoration-none">Buka</a></td></tr>
+            @empty<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data murid yang sesuai.</td></tr>@endforelse
         </tbody></table></div>@if($students->hasPages())<div class="mt-3"><div class="text-muted small mb-2">Menampilkan {{ $students->count() }} dari {{ $students->total() }} murid</div>{{ $students->links() }}</div>@endif
     </div>
 @endsection

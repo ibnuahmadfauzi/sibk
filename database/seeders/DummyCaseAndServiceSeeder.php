@@ -7,16 +7,13 @@ namespace Database\Seeders;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
 use App\Models\Consultation;
-use App\Models\ConsultationPrivateNote;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Support\ServiceRecordStatus;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +44,6 @@ class DummyCaseAndServiceSeeder extends Seeder
             ]);
 
             $guruBk = User::query()->where('email', 'guru.bk@ruangbk.test')->firstOrFail();
-            $waka = User::query()->where('email', 'waka.kesiswaan@ruangbk.test')->firstOrFail();
             $academicYear = AcademicYear::query()->active()->firstOrFail();
 
             // 2. Pastikan Guru BK memiliki penugasan kelas agar murid berada dalam scope aktifnya
@@ -57,14 +53,13 @@ class DummyCaseAndServiceSeeder extends Seeder
             $fields = ReferenceValue::query()->active()->forCategory('service_field')->pluck('id', 'code');
             $sources = ReferenceValue::query()->active()->forCategory('case_source')->pluck('id', 'code');
             $caseStatuses = ReferenceValue::query()->active()->forCategory('case_status')->pluck('id', 'code');
-            $consultationStatuses = ReferenceValue::query()->active()->forCategory('consultation_status')->pluck('id', 'code');
-            $coordinationStatuses = ReferenceValue::query()->active()->forCategory('coordination_status')->pluck('id', 'code');
+            $followUpTypes = ReferenceValue::query()->active()->forCategory('follow_up_type')->pluck('id', 'code');
 
             // 4. Buat 15 Kasus BK
-            $cases = $this->seedCases($guruBk, $waka, $fields, $sources, $caseStatuses, $coordinationStatuses);
+            $this->seedCases($guruBk, $fields, $sources, $caseStatuses, $followUpTypes);
 
             // 5. Buat 15 Layanan Konseling (Konsultasi)
-            $this->seedConsultations($guruBk, $cases, $fields, $consultationStatuses);
+            $this->seedConsultations($guruBk, $fields);
         });
 
         $this->command?->info('Berhasil membuat 15 data kasus dan 15 data layanan konseling BK.');
@@ -95,16 +90,15 @@ class DummyCaseAndServiceSeeder extends Seeder
      * @param  Collection<string, int>  $fields
      * @param  Collection<string, int>  $sources
      * @param  Collection<string, int>  $caseStatuses
-     * @param  Collection<string, int>  $coordinationStatuses
+     * @param  Collection<string, int>  $followUpTypes
      * @return array<int, BkCase>
      */
     private function seedCases(
         User $guruBk,
-        User $waka,
         $fields,
         $sources,
         $caseStatuses,
-        $coordinationStatuses,
+        $followUpTypes,
     ): array {
         $definitions = [
             // ==================== BIDANG PRIBADI (4) ====================
@@ -148,6 +142,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'field' => 'pribadi',
                 'source' => 'rujukan',
                 'status' => ServiceRecordStatus::NEEDS_FOLLOW_UP,
+                'follow_up_type' => 'home_visit',
                 'service_date' => '2026-09-10',
                 'referrer' => 'Wali Kelas XII-RPL-1',
                 'initial_info' => 'Wali kelas melaporkan murid sering tidak pulang ke rumah selama 2 hari dan menginap di tempat rekan akibat pertengkaran hebat dengan orang tua di rumah.',
@@ -158,7 +153,6 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'resolution_summary' => null,
                 'continued_plan' => 'Home visit dan koordinasi lanjutan bersama wali murid.',
                 'closed_at' => null,
-                'has_coordination' => true,
             ],
             [
                 'index' => 4,
@@ -219,6 +213,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'field' => 'belajar',
                 'source' => 'e_tatib',
                 'status' => ServiceRecordStatus::NEEDS_FOLLOW_UP,
+                'follow_up_type' => 'surat_panggilan_orang_tua',
                 'service_date' => '2026-09-11',
                 'referrer' => null,
                 'initial_info' => 'Tercatat dalam sistem e-Tatib sering tertidur di jam pelajaran bengkel serta lalai mengumpulkan laporan proyek sistem basis data.',
@@ -289,6 +284,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'field' => 'sosial',
                 'source' => 'e_tatib',
                 'status' => ServiceRecordStatus::NEEDS_FOLLOW_UP,
+                'follow_up_type' => 'surat_pernyataan',
                 'service_date' => '2026-09-12',
                 'referrer' => null,
                 'initial_info' => 'Terlibat adu mulut dan saling dorong di kantin sekolah dengan murid dari jurusan lain akibat kesalahpahaman antrean.',
@@ -299,7 +295,6 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'resolution_summary' => null,
                 'continued_plan' => 'Monitoring interaksi antarkelas oleh tim Satgas Tatib dan BK selama 2 pekan ke depan.',
                 'closed_at' => null,
-                'has_coordination' => true,
             ],
             [
                 'index' => 12,
@@ -343,6 +338,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'field' => 'karier',
                 'source' => 'rujukan',
                 'status' => ServiceRecordStatus::NEEDS_FOLLOW_UP,
+                'follow_up_type' => 'surat_panggilan_orang_tua',
                 'service_date' => '2026-09-14',
                 'referrer' => 'Koordinator Bursa Kerja Khusus (BKK)',
                 'initial_info' => 'Murid mengalami dilema arah karir: orang tua meminta langsung bekerja di pabrik garmen, sementara minat kuat murid ingin kuliah vokasi D4 Teknik Informatika.',
@@ -388,6 +384,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                     'case_source_id' => $sources[$def['source']],
                     'service_field_id' => $fields[$def['field']],
                     'status_id' => $caseStatuses[$def['status']],
+                    'follow_up_type_id' => isset($def['follow_up_type']) ? $followUpTypes[$def['follow_up_type']] : null,
                     'service_date' => $def['service_date'],
                     'referrer' => $def['referrer'],
                     'initial_info' => $def['initial_info'],
@@ -417,23 +414,6 @@ class DummyCaseAndServiceSeeder extends Seeder
                 ],
             );
 
-            // Koordinasi Waka jika ada
-            if ($def['has_coordination'] ?? false) {
-                CaseCoordination::query()->updateOrCreate(
-                    [
-                        'case_id' => $case->id,
-                        'waka_user_id' => $waka->id,
-                    ],
-                    [
-                        'status_id' => $coordinationStatuses['selesai'],
-                        'coordination_need' => 'Koordinasi evaluasi kedisiplinan dan situasi khusus murid di lingkungan sekolah.',
-                        'result' => 'Waka Kesiswaan mendukung rencana pendampingan BK dan menyetujui pemantauan perilaku berkala.',
-                        'recorded_by' => $guruBk->id,
-                        'coordinated_at' => CarbonImmutable::parse($def['service_date'])->addDay()->toDateTimeString(),
-                    ],
-                );
-            }
-
             $seededCases[$def['index']] = $case;
         }
 
@@ -441,15 +421,11 @@ class DummyCaseAndServiceSeeder extends Seeder
     }
 
     /**
-     * @param  array<int, BkCase>  $cases
      * @param  Collection<string, int>  $fields
-     * @param  Collection<string, int>  $consultationStatuses
      */
     private function seedConsultations(
         User $guruBk,
-        array $cases,
         $fields,
-        $consultationStatuses,
     ): void {
         $definitions = [
             // ==================== BIDANG PRIBADI (4) ====================
@@ -718,7 +694,6 @@ class DummyCaseAndServiceSeeder extends Seeder
 
         foreach ($definitions as $def) {
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
-            $case = $def['case_index'] !== null ? ($cases[$def['case_index']] ?? null) : null;
             $regNumber = sprintf('KNS-%s-%04d', substr($def['session_date'], 0, 4), $def['index']);
 
             /** @var Consultation $consultation */
@@ -727,30 +702,23 @@ class DummyCaseAndServiceSeeder extends Seeder
                 [
                     'student_id' => $student->id,
                     'temporary_student_id' => null,
-                    'case_id' => $case?->id,
                     'service_field_id' => $fields[$def['field']],
-                    'status_id' => $consultationStatuses[$def['status']],
-                    'topic' => $def['topic'],
-                    'referral_source' => $case ? 'Tindak Lanjut Kasus' : 'Inisiatif Murid',
                     'session_date' => $def['session_date'],
-                    'starts_at' => $def['starts_at'],
-                    'ends_at' => $def['ends_at'],
-                    'follow_up_date' => $def['follow_up_date'],
-                    'general_summary' => $def['general_summary'],
+                    'problem' => $def['topic'],
+                    'handling' => $def['general_summary'] ?? 'Pendampingan sesuai kebutuhan murid.',
+                    'result' => $def['conclusion'],
                     'counselor_id' => $guruBk->id,
                 ],
             );
 
-            ConsultationPrivateNote::query()->updateOrCreate(
-                ['consultation_id' => $consultation->id],
-                [
-                    'internal_note' => $def['internal_note'],
-                    'sensitive_content' => $def['sensitive_content'],
-                    'conclusion' => $def['conclusion'],
-                    'follow_up_plan' => $def['follow_up_plan'],
-                    'updated_by' => $guruBk->id,
-                ],
-            );
+            // ponytail: kolom legacy masih NOT NULL sampai migration pembersihan; hapus bersama kolomnya.
+            $consultation->forceFill([
+                'status_id' => ReferenceValue::query()
+                    ->where('category', 'consultation_status')
+                    ->where('code', ServiceRecordStatus::COMPLETED)
+                    ->valueOrFail('id'),
+                'topic' => $def['topic'],
+            ])->save();
         }
     }
 }

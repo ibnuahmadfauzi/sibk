@@ -35,8 +35,7 @@ class StudentController extends Controller
                     ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom.academicYear'),
                 'cases' => fn ($cases) => $cases
-                    ->accessibleTo($user)
-                    ->with(['followUps.status']),
+                    ->accessibleTo($user),
             ]);
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($students) => $students->where(function ($filter) use ($search): void {
@@ -84,13 +83,12 @@ class StudentController extends Controller
         $cases = BkCase::query()
             ->accessibleTo($user)
             ->where('student_id', $student->getKey())
-            ->with(['source', 'serviceField', 'status', 'assignments.teacher', 'followUps.status'])
+            ->with(['source', 'serviceField', 'status', 'assignments.teacher'])
             ->latest('service_date')
             ->get();
         $etatibQuery = ExternalTatibRecord::query()->active()->where('student_id', $student->getKey());
         if ($user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk'])) {
-            $etatibQuery->whereHas('cases.coordinations', fn ($coordinations) => $coordinations
-                ->where('waka_user_id', $user->getKey()));
+            $etatibQuery->whereHas('cases', fn ($cases) => $cases->accessibleTo($user));
         }
         $etatibRecords = $etatibQuery->latest('occurred_at')->get();
 
@@ -103,7 +101,7 @@ class StudentController extends Controller
                         ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
                             ->where('reconciled_student_id', $student->getKey()));
                 })
-                ->with(['case', 'serviceField', 'status', 'counselor'])
+                ->with(['serviceField', 'counselor'])
                 ->latest('session_date')
                 ->get();
         }
@@ -130,9 +128,6 @@ class StudentController extends Controller
             'stats' => [
                 'active_cases' => $cases->whereNull('closed_at')->count(),
                 'points' => $etatibRecords->sum('points'),
-                'follow_ups' => $cases->flatMap->followUps
-                    ->filter(fn ($followUp): bool => $followUp->planned_date->gte(today()) && $followUp->status?->code !== 'dibatalkan')
-                    ->count(),
                 'achievements' => $achievements->count(),
             ],
             'recentActivities' => $this->recentActivities($cases, $consultations, $etatibRecords, $achievements),

@@ -8,9 +8,7 @@ use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -50,22 +48,11 @@ class DashboardTest extends TestCase
         $teacherB = $this->userWithRole('guru_bk', 'Guru B');
         [$studentA, $caseA] = $this->createScopedCase($teacherA, 'X RPL 1', '0011111111', 'Murid Cakupan A');
         [$studentB, $caseB] = $this->createScopedCase($teacherB, 'X RPL 2', '0022222222', 'Murid Cakupan B');
-        FollowUp::query()->create([
-            'case_id' => $caseA->id,
+        $caseA->update([
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
             'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-22',
-            'recorded_by' => $teacherA->id,
         ]);
         $waka = $this->userWithRole('waka_kesiswaan', 'Waka Terkoordinasi');
-        CaseCoordination::query()->create([
-            'case_id' => $caseA->id,
-            'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Dukungan kebijakan sekolah.',
-            'recorded_by' => $teacherA->id,
-            'coordinated_at' => now(),
-        ]);
 
         $service = app(DashboardService::class);
         $teacherDashboard = $service->forUser($teacherA, $this->year);
@@ -73,7 +60,10 @@ class DashboardTest extends TestCase
         $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus aktif'));
         $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kelas ampuan'));
         $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus khusus aktif'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Tindak lanjut terdekat'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['title']);
+        $this->assertSame('Tindak Lanjut', $teacherDashboard['tindak_lanjut'][0]['status']);
         $this->assertStringContainsString($studentA->name, $teacherDashboard['tindak_lanjut'][0]['context_label']);
         $this->assertStringNotContainsString($studentB->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
 
@@ -83,7 +73,8 @@ class DashboardTest extends TestCase
         $this->assertSame('2', $this->stat($coordinatorDashboard, 'Kasus aktif'));
         $this->assertSame('2', $this->contextValue($coordinatorDashboard, 'Guru BK aktif'));
         $this->assertSame('0', $this->contextValue($coordinatorDashboard, 'Kelas tanpa penugasan'));
-        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Tindak lanjut terbuka'));
+        $this->assertSame('1', $this->stat($coordinatorDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Kasus Tindak Lanjut'));
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
@@ -105,12 +96,9 @@ class DashboardTest extends TestCase
         $teacherB = $this->userWithRole('guru_bk', 'Guru Lain');
         [$studentA, $caseA] = $this->createScopedCase($teacherA, 'XI DKV 1', '0033333333', 'Murid Aman');
         [$studentB] = $this->createScopedCase($teacherB, 'XI DKV 2', '0044444444', 'Murid Rahasia', 'CATATAN-PRIVAT-TIDAK-BOLEH-BOCOR');
-        FollowUp::query()->create([
-            'case_id' => $caseA->id,
+        $caseA->update([
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
             'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-22',
-            'recorded_by' => $teacherA->id,
         ]);
 
         $this->actingAs($teacherA)->get(route('dashboard.preview'))

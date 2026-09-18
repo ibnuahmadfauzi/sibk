@@ -81,13 +81,12 @@ class Achievement extends Model
                     ->forCategory('achievement_verification_status')
                     ->where('code', 'terverifikasi')
                     ->select('id');
-                $coordinatedStudents = Student::query()
-                    ->whereHas('cases.coordinations', fn (Builder $coordinations): Builder => $coordinations
-                        ->where('waka_user_id', $user->getKey()))
+                $wakaStudents = Student::query()
+                    ->whereHas('cases', fn (Builder $cases): Builder => $cases->accessibleTo($user))
                     ->select('students.id');
-                $access->{$method}(function (Builder $waka) use ($verifiedStatus, $coordinatedStudents): void {
+                $access->{$method}(function (Builder $waka) use ($verifiedStatus, $wakaStudents): void {
                     $waka->whereIn('verification_status_id', $verifiedStatus)
-                        ->whereIn('student_id', $coordinatedStudents);
+                        ->whereIn('student_id', $wakaStudents);
                 });
                 $hasAccess = true;
             }
