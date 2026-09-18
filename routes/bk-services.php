@@ -17,3 +17,4 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/cases/{case}/edit', [CaseController::class, 'edit'])->name('cases.edit');
 Route::patch('/cases/{case}', [CaseController::class, 'update'])->name('cases.update');
+Route::patch('/cases/{case}/follow-up', [CaseController::class, 'updateFollowUp'])->name('cases.follow-up.update');

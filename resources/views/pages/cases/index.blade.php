@@ -24,12 +24,29 @@
                 <div class="col-12 col-md-4"><label class="form-label" for="case_status">Status</label><select class="form-select" id="case_status" name="status_id"><option value="">Semua status</option>@foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
-            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>Murid</th><th>Kelas</th><th>Tanggal</th><th>Sumber</th><th>Bidang</th><th>Status</th><th>Tindak Lanjut</th></tr></thead><tbody>
+            @php
+                $sortUrl = fn (string $column) => route('cases.index', array_merge(request()->query(), [
+                    'sort' => $column,
+                    'direction' => request('sort') === $column && request('direction') === 'asc' ? 'desc' : 'asc',
+                ]));
+            @endphp
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr>
+                <th><a href="{{ $sortUrl('nama') }}">Murid</a></th>
+                <th><a href="{{ $sortUrl('kelas') }}">Kelas</a></th>
+                <th><a href="{{ $sortUrl('tanggal') }}">Tanggal</a></th>
+                <th><a href="{{ $sortUrl('sumber') }}">Sumber</a></th>
+                <th><a href="{{ $sortUrl('bidang') }}">Bidang</a></th>
+                <th><a href="{{ $sortUrl('status') }}">Status</a></th>
+                <th>Tindak Lanjut</th>
+                <th>Aksi</th>
+            </tr></thead><tbody>
                 @forelse($cases as $case)
                     @php
-                        $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first();
-                        $latestFollowUp = $case->followUps->sortByDesc('planned_date')->first();
-                        $canAct = auth()->user()?->can('resolve', $case);
+                        $membership = $case->student?->classMemberships
+                            ->sortByDesc('effective_from')
+                            ->first(fn ($item) => $item->effective_from->lte($case->service_date)
+                                && ($item->effective_until === null || $item->effective_until->gte($case->service_date)));
+                        $completed = $case->status?->code === \App\Support\ServiceRecordStatus::COMPLETED;
                         $badgeTone = match($case->status?->code) {
                             'selesai' => 'success',
                             'sedang_diproses', 'membutuhkan_tindak_lanjut' => 'warning',
@@ -42,39 +59,44 @@
                         <td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td>
                         <td>{{ $case->source->label }}</td>
                         <td>{{ $case->serviceField->label }}</td>
-                        <td><span class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
+                        <td><span id="case-status-{{ $case->id }}" class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
                         <td>
-                            @if($canAct)
-                                <div class="d-flex align-items-center gap-1 flex-nowrap">
-                                    <a href="{{ $latestFollowUp ? route('cases.follow-ups.edit', [$case, $latestFollowUp]) : route('cases.follow-ups.create', $case) }}"
-                                       class="btn btn-sm btn-outline-secondary py-1 px-2 text-nowrap"
-                                       title="{{ $latestFollowUp ? 'Ubah tindak lanjut' : 'Tambah tindak lanjut' }}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
-                                    </a>
-
-                                    <form action="{{ route('cases.destroy', $case) }}" method="POST" class="d-inline" data-confirm-submit data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 text-nowrap" title="Hapus">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-power"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></svg>
-                                        </button>
-                                    </form>
-
-                                    <a href="{{ route('cases.resolve.form', $case) }}" class="btn btn-sm btn-outline-primary py-1 px-2 text-nowrap">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg>
-                                    </a>
-
-                                    <a href="{{ route('cases.show', $case) }}" class="btn btn-sm btn-outline-info py-1 px-2 text-nowrap">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-
-                                    </a>
-                                </div>
+                            @can('update', $case)
+                                <select class="form-select form-select-sm" aria-label="Jenis tindak lanjut {{ $case->identityName() }}"
+                                    @disabled($completed)
+                                    data-follow-up-url="{{ route('cases.follow-up.update', $case) }}"
+                                    data-follow-up-status-target="#case-status-{{ $case->id }}"
+                                    data-follow-up-timestamp-target="#case-updated-at-{{ $case->id }}"
+                                    data-expected-updated-at="{{ $case->updated_at->toJSON() }}"
+                                    data-previous-value="{{ $case->follow_up_type_id }}">
+                                    <option value="">Tidak ada</option>
+                                    @foreach($followUpTypes as $type)<option value="{{ $type->id }}" @selected($case->follow_up_type_id === $type->id)>{{ $type->label }}</option>@endforeach
+                                </select>
+                                <span class="small text-muted" data-save-status aria-live="polite"></span>
+                                <span id="case-updated-at-{{ $case->id }}" class="visually-hidden">{{ $case->updated_at->toJSON() }}</span>
                             @else
-                                <span class="text-muted small">—</span>
-                            @endif
+                                <span class="text-muted">{{ $case->followUpType?->label ?? '—' }}</span>
+                            @endcan
                         </td>
+                        <td><div class="d-flex flex-wrap gap-1">
+                            <a href="{{ route('cases.show', $case) }}" data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}" class="btn btn-sm btn-outline-info">Detail</a>
+                            @can('update', $case)
+                                <a href="{{ route('cases.edit', $case) }}" data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
+                                    @if($completed) data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" @endif
+                                    class="btn btn-sm btn-outline-primary">Edit</a>
+                            @endcan
+                            @can('archive', $case)<form action="{{ route('cases.destroy', $case) }}" method="POST" data-confirm-submit data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button></form>@endcan
+                        </div></td>
                     </tr>
-                @empty<tr><td colspan="7" class="text-center text-muted py-4">Belum ada kasus yang dapat Anda akses.</td></tr>@endforelse
+                @empty<tr><td colspan="8" class="text-center text-muted py-4">Belum ada kasus yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
+
+            <div class="modal fade" id="case-modal" tabindex="-1" aria-labelledby="case-modal-title" aria-hidden="true" data-service-record-modal>
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+                    <div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Detail Kasus</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+                    <div class="modal-body"><p class="text-muted mb-0">Memuat data…</p></div>
+                </div></div>
+            </div>
         @else
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="konsultasi">
