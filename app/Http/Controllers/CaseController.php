@@ -329,43 +329,51 @@ class CaseController extends Controller
             ->with([
                 'student.classMemberships.classroom',
                 'temporaryStudent.reconciledStudent',
-                'case',
                 'serviceField',
-                'status',
-                'counselor',
             ]);
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($consultations) => $consultations->where(function ($filter) use ($search): void {
-            $filter->where('registration_number', 'like', '%'.$search.'%')
-                ->orWhere('topic', 'like', '%'.$search.'%')
-                ->orWhereHas('student', fn ($students) => $students
-                    ->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('nisn', 'like', '%'.$search.'%'))
+            $filter->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
                 ->orWhereHas('temporaryStudent', fn ($students) => $students
                     ->where('input_name', 'like', '%'.$search.'%')
-                    ->orWhere('nisn', 'like', '%'.$search.'%'));
+                    ->orWhereHas('reconciledStudent', fn ($reconciled) => $reconciled->where('name', 'like', '%'.$search.'%')));
         }));
-        $query->when($request->integer('classroom_id'), fn ($consultations, int $classroomId) => $consultations
-            ->whereHas('student.classMemberships', fn ($memberships) => $memberships->where('classroom_id', $classroomId)));
         $query->when($request->integer('service_field_id'), fn ($consultations, int $id) => $consultations->where('service_field_id', $id));
-        $query->when($request->integer('consultation_status_id'), fn ($consultations, int $id) => $consultations->where('status_id', $id));
-        $query->when($request->string('month')->toString(), function ($consultations, string $month): void {
-            if (preg_match('/^(\d{4})-(\d{2})$/', $month, $matches) === 1) {
-                $consultations->whereYear('session_date', (int) $matches[1])->whereMonth('session_date', (int) $matches[2]);
-            }
-        });
+        $sort = $request->string('sort', 'tanggal')->toString();
+        $direction = $request->string('direction', 'desc')->toString();
+        if (! in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'desc';
+        }
+        $sortExpression = match ($sort) {
+            'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = consultations.student_id), (SELECT COALESCE((SELECT name FROM students WHERE students.id = temporary_students.reconciled_student_id), input_name) FROM temporary_students WHERE temporary_students.id = consultations.temporary_student_id)))'),
+            'kelas' => Classroom::query()
+                ->selectRaw('LOWER(classrooms.name)')
+                ->join('student_class_memberships', 'student_class_memberships.classroom_id', '=', 'classrooms.id')
+                ->whereColumn('student_class_memberships.student_id', 'consultations.student_id')
+                ->whereColumn('student_class_memberships.effective_from', '<=', 'consultations.session_date')
+                ->where(function ($memberships): void {
+                    $memberships->whereNull('student_class_memberships.effective_until')
+                        ->orWhereColumn('student_class_memberships.effective_until', '>=', 'consultations.session_date');
+                })
+                ->orderByDesc('student_class_memberships.effective_from')
+                ->orderByDesc('student_class_memberships.id')
+                ->limit(1),
+            'jenis_layanan' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'consultations.service_field_id'),
+            default => 'consultations.session_date',
+        };
+        $query->orderBy($sortExpression, $direction)->orderBy('consultations.id', $direction);
 
         return view('pages.cases.index', [
             'cases' => null,
-            'consultations' => $query->latest('session_date')->paginate(20)->withQueryString(),
+            'consultations' => $query->paginate(20)->withQueryString(),
             'activeTab' => 'konsultasi',
-            'classrooms' => Classroom::query()->active()->orderBy('name')->get(),
+            'classrooms' => collect(),
             'caseSources' => collect(),
             'caseStatuses' => collect(),
             'followUpTypes' => collect(),
             'canCreateCase' => false,
             'canCreateConsultation' => $user->can('create', Consultation::class),
-            'consultationStatuses' => ReferenceValue::query()->active()->forCategory('consultation_status')->orderBy('sort_order')->get(),
+            'consultationStatuses' => collect(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
         ]);
     }

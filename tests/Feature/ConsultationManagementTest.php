@@ -209,7 +209,7 @@ class ConsultationManagementTest extends TestCase
         $this->get(route('consultations.edit', [$consultation, 'modal' => 1]))
             ->assertOk()
             ->assertSee('data-consultation-edit-modal', false)
-            ->assertSee('event.stopPropagation()', false)
+            ->assertSee('data-confirm-submit', false)
             ->assertSee('name="expected_updated_at"', false)
             ->assertDontSee('name="temporary_nisn"', false);
     }
@@ -257,7 +257,7 @@ class ConsultationManagementTest extends TestCase
             'expected_updated_at' => $consultation->updated_at->toJSON(),
         ];
 
-        foreach (['guru_bk', 'koordinator_bk', 'admin_it'] as $role) {
+        foreach (['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
             $actor = $this->userWithRole($role);
             $this->actingAs($actor)->get(route('consultations.show', $consultation))->assertForbidden();
             $this->get(route('consultations.edit', $consultation))->assertForbidden();
@@ -291,6 +291,66 @@ class ConsultationManagementTest extends TestCase
         $this->assertSoftDeleted('consultations', ['id' => $consultation->id]);
     }
 
+    public function test_shared_list_searches_only_name_filters_service_field_and_uses_allowed_stable_sorts(): void
+    {
+        [$teacher, $zeta] = $this->teacherAndScopedStudent();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $zeta->update(['name' => 'Murid Zeta']);
+        $year = AcademicYear::query()->firstOrFail();
+        $alphaClass = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'X AP 1',
+            'is_active' => true,
+        ]);
+        $alpha = Student::query()->create(['nisn' => '0012345679', 'name' => 'Murid Alpha', 'is_active' => true]);
+        StudentClassMembership::query()->create([
+            'student_id' => $alpha->id,
+            'classroom_id' => $alphaClass->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-15',
+            'is_active' => true,
+        ]);
+        $beta = Student::query()->create(['nisn' => '0012345680', 'name' => 'Murid Beta', 'is_active' => true]);
+        StudentClassMembership::query()->create([
+            'student_id' => $beta->id,
+            'classroom_id' => $alphaClass->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-15',
+            'is_active' => true,
+        ]);
+        $pribadi = ReferenceValue::query()->where('category', 'service_field')->where('code', 'pribadi')->firstOrFail();
+        $sosial = ReferenceValue::query()->where('category', 'service_field')->where('code', 'sosial')->firstOrFail();
+        $this->listedConsultation($teacher, $zeta, $sosial, '2026-09-18');
+        $this->listedConsultation($teacher, $alpha, $pribadi, '2026-09-17');
+        $this->listedConsultation($teacher, $beta, $pribadi, '2026-09-17');
+
+        $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'konsultasi', 'search' => $zeta->nisn]))
+            ->assertOk()
+            ->assertDontSee('Murid Zeta');
+        $this->get(route('cases.index', ['tab' => 'konsultasi', 'service_field_id' => $pribadi->id]))
+            ->assertOk()
+            ->assertSee('Murid Alpha')
+            ->assertDontSee('Murid Zeta');
+
+        foreach ([
+            ['tanggal', 'asc', ['Murid Alpha', 'Murid Beta', 'Murid Zeta']],
+            ['nama', 'desc', ['Murid Zeta', 'Murid Beta', 'Murid Alpha']],
+            ['kelas', 'asc', ['Murid Alpha', 'Murid Beta', 'Murid Zeta']],
+            ['jenis_layanan', 'asc', ['Murid Alpha', 'Murid Beta', 'Murid Zeta']],
+        ] as [$sort, $direction, $names]) {
+            $this->get(route('cases.index', compact('sort', 'direction') + ['tab' => 'konsultasi']))
+                ->assertOk()
+                ->assertSeeInOrder($names);
+        }
+
+        $this->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertSee('Tanggal')
+            ->assertSee('Murid dan Kelas')
+            ->assertSee('Permasalahan')
+            ->assertSee('Jenis Layanan')
+            ->assertSee('Aksi');
+    }
+
     /** @return array{User, Student} */
     private function teacherAndScopedStudent(): array
     {
@@ -312,6 +372,29 @@ class ConsultationManagementTest extends TestCase
         ])->assertRedirect();
 
         return Consultation::query()->latest('id')->firstOrFail();
+    }
+
+    private function listedConsultation(User $teacher, Student $student, ReferenceValue $serviceField, string $date): Consultation
+    {
+        $consultation = new Consultation([
+            'student_id' => $student->id,
+            'service_field_id' => $serviceField->id,
+            'session_date' => $date,
+            'problem' => 'Permasalahan '.$student->name,
+            'handling' => 'Penanganan '.$student->name,
+            'result' => 'Hasil '.$student->name,
+            'counselor_id' => $teacher->id,
+        ]);
+        $consultation->forceFill([
+            'status_id' => ReferenceValue::query()
+                ->where('category', 'consultation_status')
+                ->where('code', 'selesai')
+                ->firstOrFail()
+                ->id,
+            'topic' => 'Permasalahan '.$student->name,
+        ])->save();
+
+        return $consultation;
     }
 
     private function reconciledTemporary(User $creator, Student $student): TemporaryStudent

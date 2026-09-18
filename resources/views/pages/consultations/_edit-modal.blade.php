@@ -9,9 +9,8 @@
         <div class="alert alert-warning">Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?</div>
     @endif
 
-    <form action="{{ $isEdit ? route('consultations.update', $consultation) : route('consultations.store') }}" method="POST"
-        @if($isEdit) data-confirm-submit data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" @endif
-        @if($isEdit && $modal) onsubmit="if (!window.confirm(this.dataset.confirmMessage)) { event.stopPropagation(); return false; }" @endif>
+    <form action="{{ $isEdit ? route('consultations.update', $consultation) : route('consultations.store') }}" method="POST" data-autosave-form="consultation" data-autosave-record="{{ $consultation?->id ?? 'new' }}"
+        @if($isEdit) data-confirm-submit data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?" @endif>
         @csrf
         @if($isEdit)
             @method('PATCH')
@@ -84,6 +83,8 @@
         </div>
 
         <div class="d-flex justify-content-end gap-2 mb-5">
+            <span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span>
+            <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
             <a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-secondary">Batal</a>
             <button class="btn btn-primary" type="submit">Simpan Konsultasi</button>
         </div>

@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <form action="{{ route('cases.store') }}" method="POST" id="case-create-form">
+        <form action="{{ route('cases.store') }}" method="POST" id="case-create-form" data-autosave-form="case" data-autosave-record="new">
             @csrf
             @if($preselectedStudentId)
                 <input type="hidden" name="student_id" value="{{ old('student_id', $preselectedStudentId) }}">
@@ -123,6 +123,8 @@
             </div>
 
             <div class="d-flex justify-content-end gap-3 mb-5">
+                <span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span>
+                <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
                 <a href="{{ route('cases.index') }}" class="btn btn-outline-secondary px-4">Batal</a>
                 <button type="submit" class="btn btn-primary px-4">Simpan Kasus</button>
             </div>
