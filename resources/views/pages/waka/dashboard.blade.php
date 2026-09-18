@@ -19,7 +19,7 @@
 
         <div class="alert sibk-read-only-notice" role="status">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
-            <div><strong>Tampilan hanya-baca</strong><p>Anda melihat ringkasan aman seluruh kasus sekolah. Detail hanya tersedia untuk kasus yang dikoordinasikan kepada Anda.</p></div>
+                <div><strong>Tampilan hanya-baca</strong><p>Anda melihat ringkasan layanan BK sekolah dan dapat membuka detail tanpa mengubah data.</p></div>
         </div>
     </header>
 
@@ -63,16 +63,8 @@
                                     <div><h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-0">{{ $row['kelas'] }} - Guru BK: {{ $row['guru_bk'] }}</p></div>
                                     <span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span>
                                 </div>
-                                <p class="small mt-2 mb-1">{{ $row['waka_summary'] ?: 'Ringkasan penanganan belum tersedia.' }}</p>
-                                <p class="small mb-0">
-                                    <strong>Tindak lanjut:</strong>
-                                    @if($row['tindak_lanjut'])
-                                        {{ $row['tindak_lanjut']['jenis'] }} - {{ $row['tindak_lanjut']['tanggal'] }}
-                                    @else
-                                        Belum terjadwal
-                                    @endif
-                                </p>
-                                @if($row['coordination_url'])<a class="btn btn-sm btn-outline-primary mt-2" href="{{ $row['coordination_url'] }}">Buka detail koordinasi</a>@endif
+                                <p class="small mb-0"><strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}</p>
+                                <a class="btn btn-sm btn-outline-primary mt-2" href="{{ $row['detail_url'] }}">Lihat detail</a>
                             </article>
                         @endforeach
                     </div>
@@ -111,7 +103,7 @@
                                 <td class="fw-semibold">{{ $row['nama_murid'] }}</td><td>{{ $row['kelas'] }}</td><td>{{ $row['bidang'] }}</td>
                                 <td><span class="sibk-badge sibk-badge--{{ $row['status_code'] === 'selesai' ? 'success' : (in_array($row['status_code'], ['sedang_diproses', 'membutuhkan_tindak_lanjut'], true) ? 'warning' : 'primary') }}">{{ $row['status'] }}</span></td>
                                 <td>{{ $row['guru_bk'] }}</td><td>{{ $row['tanggal'] }}</td>
-                                <td>@if($row['coordination_url'])<a class="btn btn-sm btn-outline-primary" href="{{ $row['coordination_url'] }}">Buka detail koordinasi</a>@else<span class="text-muted">-</span>@endif</td>
+                                <td><a class="btn btn-sm btn-outline-primary" href="{{ $row['detail_url'] }}">Lihat detail</a></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -123,8 +115,8 @@
                         <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-2">{{ $row['kelas'] }} - {{ $row['tanggal'] }}</p>
                         <p class="small mb-2">{{ $row['bidang'] }} - Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>
                         <p class="mb-2"><span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span></p>
-                        <details class="small mb-3"><summary class="fw-semibold">Ringkasan penanganan</summary><p class="mt-2 mb-0">{{ $row['waka_summary'] ?: '-' }}</p></details>
-                        @if($row['coordination_url'])<a class="btn btn-outline-primary w-100" href="{{ $row['coordination_url'] }}">Buka detail koordinasi</a>@endif
+                        <p class="small mb-3"><strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}</p>
+                        <a class="btn btn-outline-primary w-100" href="{{ $row['detail_url'] }}">Lihat detail</a>
                     </article>
                 @endforeach
             </div>

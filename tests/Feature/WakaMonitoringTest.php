@@ -9,6 +9,7 @@ use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -115,7 +116,7 @@ class WakaMonitoringTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'case_source_id' => $this->ref('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->ref('service_field', 'pribadi')->id,
-            'status_id' => $this->ref('case_status', 'baru')->id,
+            'status_id' => $this->ref('case_status', 'sedang_diproses')->id,
             'service_date' => '2026-08-01',
             'initial_info' => 'Informasi rahasia murid budi',
             'initial_action' => 'Aksi awal',
@@ -212,7 +213,7 @@ class WakaMonitoringTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'case_source_id' => $this->ref('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->ref('service_field', 'pribadi')->id,
-            'status_id' => $this->ref('case_status', 'baru')->id,
+            'status_id' => $this->ref('case_status', 'sedang_diproses')->id,
             'service_date' => '2026-08-01',
             'initial_info' => 'Info awal',
             'initial_action' => 'Aksi awal',
@@ -228,6 +229,90 @@ class WakaMonitoringTest extends TestCase
         $this->assertStringContainsString('Murid', $content);
         $this->assertStringContainsString('Siti Aminah', $content);
         $this->assertStringNotContainsString('1122334455', $content);
+    }
+
+    public function test_active_waka_can_read_all_service_details_without_coordination_but_cannot_mutate_them(): void
+    {
+        [$waka, $case, $owner, $student] = $this->wakaCaseFixture();
+        $this->assignOwner($case, $owner);
+        $secondCase = BkCase::query()->create([
+            'registration_number' => 'K-2026-WAKA-02',
+            'student_id' => $student->id,
+            'academic_year_id' => $this->academicYear->id,
+            'case_source_id' => $this->ref('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->ref('service_field', 'pribadi')->id,
+            'status_id' => $this->ref('case_status', 'sedang_diproses')->id,
+            'service_date' => '2026-09-06',
+            'initial_info' => 'Informasi awal kedua.',
+            'initial_action' => 'Asesmen kedua.',
+            'created_by' => $owner->id,
+        ]);
+        $this->assignOwner($secondCase, $owner);
+        $consultations = collect(['Pertama', 'Kedua'])->map(fn (string $label): Consultation => Consultation::query()->forceCreate([
+            'student_id' => $student->id,
+            'service_field_id' => $this->ref('service_field', 'pribadi')->id,
+            'status_id' => $this->ref('consultation_status', 'sedang_diproses')->id,
+            'topic' => "Konsultasi {$label}",
+            'session_date' => '2026-09-05',
+            'problem' => "Permasalahan {$label}.",
+            'handling' => "Penanganan {$label}.",
+            'result' => "Hasil {$label}.",
+            'counselor_id' => $owner->id,
+        ]));
+        $consultation = $consultations->firstOrFail();
+
+        $this->actingAs($waka)->get(route('cases.index'))
+            ->assertOk();
+        $this->actingAs($waka)->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertDontSee('Permasalahan Pertama.');
+        $this->assertSame(2, BkCase::query()->accessibleTo($waka)->count());
+        $this->assertSame(2, Consultation::query()->accessibleTo($waka)->count());
+
+        $this->actingAs($waka)->get(route('cases.show', $case))
+            ->assertOk()
+            ->assertSee('Informasi awal rahasia.')
+            ->assertSee('Asesmen awal.')
+            ->assertDontSee('SENTINEL-INTERNAL');
+        $this->actingAs($waka)->get(route('consultations.show', $consultation))
+            ->assertOk()
+            ->assertSee('Permasalahan Pertama.')
+            ->assertSee('Penanganan Pertama.')
+            ->assertSee('Hasil Pertama.');
+
+        $this->assertSame(1, $this->auditCount($waka, 'case.viewed_by_waka', $case->id));
+        $this->assertSame(1, $this->auditCount($waka, 'consultation.viewed_by_waka', $consultation->id));
+
+        $this->actingAs($waka)->get(route('cases.create'))->assertForbidden();
+        $this->actingAs($waka)->get(route('cases.resolve.form', $case))->assertForbidden();
+        $this->actingAs($waka)->post(route('cases.follow-ups.store', $case))->assertForbidden();
+        $this->actingAs($waka)->delete(route('cases.destroy', $case))->assertForbidden();
+        $this->actingAs($waka)->get(route('consultations.create'))->assertForbidden();
+        $this->actingAs($waka)->patch(route('consultations.update', $consultation))->assertForbidden();
+        $this->actingAs($waka)->delete(route('consultations.destroy', $consultation))->assertForbidden();
+
+        $admin = $this->createUserWithRole('admin_it');
+        $this->actingAs($admin)->get(route('cases.show', $case))->assertForbidden();
+        $this->actingAs($admin)->get(route('consultations.show', $consultation))->assertForbidden();
+    }
+
+    public function test_waka_csv_never_exports_service_narratives(): void
+    {
+        [$waka, $case, $owner] = $this->wakaCaseFixture();
+        $this->assignOwner($case, $owner);
+        $case->update([
+            'initial_info' => 'SENTINEL-INITIAL-INFO',
+            'initial_action' => 'SENTINEL-INITIAL-ACTION',
+            'resolution_summary' => 'SENTINEL-RESOLUTION',
+        ]);
+
+        $content = $this->actingAs($waka)
+            ->get(route('waka.monitoring.export', ['format' => 'csv']))
+            ->streamedContent();
+
+        foreach (['SENTINEL-INITIAL-INFO', 'SENTINEL-INITIAL-ACTION', 'SENTINEL-RESOLUTION'] as $narrative) {
+            $this->assertStringNotContainsString($narrative, $content);
+        }
     }
 
     public function test_handling_projection_with_real_owner_is_safe(): void
@@ -313,10 +398,7 @@ class WakaMonitoringTest extends TestCase
 
     public function test_csv_formula_cells_are_escaped(): void
     {
-        [$waka, $case, $owner, $student] = $this->wakaCaseFixture(
-            studentName: '=Murid Berbahaya',
-            wakaSummary: "\rRingkasan Berbahaya",
-        );
+        [$waka, $case, $owner, $student] = $this->wakaCaseFixture(studentName: '=Murid Berbahaya');
         $owner->update(['name' => '-Guru Berbahaya']);
         $this->assignOwner($case, $owner);
         $classroom = Classroom::query()->create([
@@ -345,7 +427,7 @@ class WakaMonitoringTest extends TestCase
         $this->assertSame("'@Bidang Berbahaya", $row['Bidang Layanan']);
         $this->assertSame("'\tStatus Berbahaya", $row['Status']);
         $this->assertSame("'-Guru Berbahaya", $row['Guru BK']);
-        $this->assertSame("'\rRingkasan Berbahaya", $row['Ringkasan Waka']);
+        $this->assertArrayNotHasKey('Ringkasan Waka', $row);
     }
 
     public function test_students_page_groups_multiple_cases_into_one_student_row(): void
@@ -475,6 +557,14 @@ class WakaMonitoringTest extends TestCase
             'reason' => 'Penanggung jawab awal.',
             'assigned_by' => $owner->id,
         ]);
+    }
+
+    private function auditCount(User $actor, string $action, int $auditableId): int
+    {
+        return $actor->auditLogs()
+            ->where('action', $action)
+            ->where('auditable_id', $auditableId)
+            ->count();
     }
 
     /** @return array{User, Student} */

@@ -11,12 +11,13 @@ class ConsultationPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
     }
 
     public function view(User $user, Consultation $consultation): bool
     {
-        return $consultation->isProfessionallyAccessibleTo($user);
+        return $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan'])
+            || $consultation->isProfessionallyAccessibleTo($user);
     }
 
     public function create(User $user): bool

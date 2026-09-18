@@ -92,7 +92,7 @@
                                 <td>{{ $row['guru_bk'] }}</td>
                                 <td>{{ $row['jumlah_kasus'] }}</td>
                                 <td>{{ $row['jumlah_aktif'] }}</td>
-                                <td>@if($row['coordination_url'])<a href="{{ $row['coordination_url'] }}" class="btn btn-sm btn-outline-primary">Lihat koordinasi</a>@else<span class="text-muted">-</span>@endif</td>
+                                <td><a href="{{ $row['detail_url'] }}" class="btn btn-sm btn-outline-primary">Lihat detail</a></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -107,7 +107,7 @@
                         <p class="mb-2"><strong>{{ $row['jumlah_kasus'] }} kasus</strong> - {{ $row['jumlah_aktif'] }} masih aktif</p>
                         <p class="mb-2"><span class="sibk-badge sibk-badge--{{ $row['status_code'] === 'selesai' ? 'success' : 'warning' }}">{{ $row['status_terbaru'] }}</span></p>
                         <p class="small mb-3">Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>
-                        @if($row['coordination_url'])<a href="{{ $row['coordination_url'] }}" class="btn btn-outline-primary w-100">Lihat koordinasi</a>@endif
+                        <a href="{{ $row['detail_url'] }}" class="btn btn-outline-primary w-100">Lihat detail</a>
                     </article>
                 @endforeach
             </div>

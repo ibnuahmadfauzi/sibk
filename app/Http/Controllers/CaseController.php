@@ -33,6 +33,8 @@ class CaseController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $isWakaOnly = $user->hasRole('waka_kesiswaan')
+            && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
         $activeTab = $request->string('tab', 'kasus')->toString();
         if (! in_array($activeTab, ['kasus', 'konsultasi'], true)) {
             $activeTab = 'kasus';
@@ -41,7 +43,7 @@ class CaseController extends Controller
         if ($activeTab === 'konsultasi') {
             abort_unless($user->can('viewAny', Consultation::class), 403);
 
-            return $this->consultationIndex($request, $user);
+            return $this->consultationIndex($request, $user, $isWakaOnly);
         }
 
         abort_unless($user->can('viewAny', BkCase::class), 403);
@@ -112,6 +114,7 @@ class CaseController extends Controller
             'canCreateConsultation' => false,
             'consultationStatuses' => collect(),
             'serviceFields' => collect(),
+            'isWakaOnly' => $isWakaOnly,
         ]);
     }
 
@@ -198,7 +201,7 @@ class CaseController extends Controller
             $auditService->record(
                 action: 'case.viewed_by_waka',
                 auditable: $case,
-                summary: 'Detail kasus terkoordinasi dilihat oleh Waka Kesiswaan.',
+                summary: 'Detail kasus dilihat oleh Waka Kesiswaan.',
                 actor: $user,
             );
 
@@ -322,7 +325,7 @@ class CaseController extends Controller
         return redirect()->route('cases.index')->with('success', 'Kasus berhasil diarsipkan.');
     }
 
-    private function consultationIndex(Request $request, User $user): View
+    private function consultationIndex(Request $request, User $user, bool $isWakaOnly): View
     {
         $query = Consultation::query()
             ->accessibleTo($user)
@@ -375,6 +378,7 @@ class CaseController extends Controller
             'canCreateConsultation' => $user->can('create', Consultation::class),
             'consultationStatuses' => collect(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
+            'isWakaOnly' => $isWakaOnly,
         ]);
     }
 }

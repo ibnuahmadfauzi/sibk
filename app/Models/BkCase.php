@@ -108,11 +108,11 @@ class BkCase extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('koordinator_bk')) {
+        if ($user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan'])) {
             return $query;
         }
 
-        if (! $user->hasAnyRole(['guru_bk', 'waka_kesiswaan'])) {
+        if (! $user->hasRole('guru_bk')) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -126,10 +126,6 @@ class BkCase extends Model
                         ->select('students.id'));
             }
 
-            if ($user->hasRole('waka_kesiswaan')) {
-                $access->orWhereHas('coordinations', fn (Builder $coordinations): Builder => $coordinations
-                    ->where('waka_user_id', $user->getKey()));
-            }
         });
     }
 

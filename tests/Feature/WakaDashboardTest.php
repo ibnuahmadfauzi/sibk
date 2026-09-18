@@ -57,16 +57,16 @@ final class WakaDashboardTest extends TestCase
             ->assertDontSee('SENTINEL-INTERNAL');
     }
 
-    public function test_only_coordinated_dashboard_case_has_detail_link(): void
+    public function test_every_dashboard_case_has_read_only_detail_link(): void
     {
         [$waka, $coordinated, $notCoordinated] = $this->dashboardFixture();
 
         $response = $this->actingAs($waka)->get(route('dashboard.preview'));
 
         $response->assertOk()
-            ->assertSee('Buka detail koordinasi')
+            ->assertSee('Lihat detail')
             ->assertSee('href="'.route('cases.show', $coordinated).'"', false)
-            ->assertDontSee('href="'.route('cases.show', $notCoordinated).'"', false);
+            ->assertSee('href="'.route('cases.show', $notCoordinated).'"', false);
     }
 
     public function test_waka_dashboard_view_is_audited_without_sensitive_data(): void

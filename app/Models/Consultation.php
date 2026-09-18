@@ -65,7 +65,7 @@ class Consultation extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('koordinator_bk')) {
+        if ($user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan'])) {
             return $query;
         }
 

@@ -59,14 +59,14 @@ final class WakaMonitoringService
     /** @return array<string, mixed> */
     public function detailSafe(User $waka, int $caseId): array
     {
-        $case = $this->projectionQuery
-            ->build($waka)
-            ->whereKey($caseId)
-            ->whereHas('coordinations', static fn ($coordinations) => $coordinations
-                ->where('waka_user_id', $waka->getKey()))
-            ->firstOrFail();
+        $case = $this->projectionQuery->detail($waka, $caseId);
 
-        return $this->toSafeRow($case);
+        return [
+            ...$this->toSafeRow($case),
+            'initial_info' => $case->initial_info,
+            'initial_action' => $case->initial_action,
+            'resolution_summary' => $case->resolution_summary,
+        ];
     }
 
     /** @param array<string, string|null> $filters */
@@ -135,7 +135,6 @@ final class WakaMonitoringService
                 && ($assignment->effective_until === null || $assignment->effective_until->gte(today())),
         ) ?? $case->assignments->first();
         $owner = $ownerAssignment?->teacher;
-        $nextFollowUp = $case->followUps->first();
 
         return [
             'nama_murid' => $case->identityName(),
@@ -145,14 +144,8 @@ final class WakaMonitoringService
             'status_code' => $case->status?->code ?? '',
             'guru_bk' => $owner?->name ?? '-',
             'tanggal' => $case->service_date?->locale('id')->translatedFormat('d M Y') ?? '-',
-            'waka_summary' => $case->waka_summary,
-            'tindak_lanjut' => $nextFollowUp ? [
-                'jenis' => $nextFollowUp->type?->label ?? '-',
-                'tanggal' => $nextFollowUp->planned_date?->locale('id')->translatedFormat('d M Y') ?? '-',
-            ] : null,
-            'coordination_url' => $case->coordinations->isNotEmpty()
-                ? route('cases.show', $case->getKey())
-                : null,
+            'tindak_lanjut' => $case->followUpType?->label ?? '-',
+            'detail_url' => route('cases.show', $case->getKey()),
             'is_terminal' => $case->closed_at !== null,
         ];
     }
@@ -161,7 +154,6 @@ final class WakaMonitoringService
     private function toCsvRow(BkCase $case): array
     {
         $row = $this->toSafeRow($case);
-        $followUp = $row['tindak_lanjut'];
 
         return collect([
             'Murid' => $row['nama_murid'],
@@ -170,9 +162,7 @@ final class WakaMonitoringService
             'Status' => $row['status'],
             'Guru BK' => $row['guru_bk'],
             'Tanggal Pelayanan' => $row['tanggal'],
-            'Ringkasan Waka' => $row['waka_summary'] ?? '',
-            'Jenis Tindak Lanjut' => $followUp['jenis'] ?? '',
-            'Tgl Tindak Lanjut' => $followUp['tanggal'] ?? '',
+            'Jenis Tindak Lanjut' => $row['tindak_lanjut'],
         ])->map(static fn (mixed $value): string => self::escapeCsvFormula((string) $value))->all();
     }
 

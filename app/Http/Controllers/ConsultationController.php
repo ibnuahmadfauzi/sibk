@@ -11,6 +11,7 @@ use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\ConsultationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -42,11 +43,25 @@ class ConsultationController extends Controller
         return redirect()->route('consultations.show', $consultation)->with('success', 'Konsultasi berhasil dicatat.');
     }
 
-    public function show(Request $request, Consultation $consultation): View
+    public function show(Request $request, Consultation $consultation, AuditService $auditService): View
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($user->can('view', $consultation), 403);
+        $isWakaOnly = $user->hasRole('waka_kesiswaan')
+            && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
+
+        if ($isWakaOnly) {
+            $consultation = Consultation::query()
+                ->accessibleTo($user)
+                ->whereKey($consultation->getKey())
+                ->select(['id', 'student_id', 'temporary_student_id', 'service_field_id', 'session_date', 'problem', 'handling', 'result', 'counselor_id'])
+                ->with(['student:id,name', 'temporaryStudent:id,input_name,reconciled_student_id', 'serviceField:id,label', 'counselor:id,name'])
+                ->firstOrFail();
+            abort_unless($user->can('view', $consultation), 403);
+            $auditService->record('consultation.viewed_by_waka', $consultation, 'Detail konsultasi dilihat oleh Waka Kesiswaan.', $user);
+        } else {
+            abort_unless($user->can('view', $consultation), 403);
+        }
         $consultation->load([
             'student.classMemberships.classroom.academicYear',
             'temporaryStudent.reconciledStudent',

@@ -106,10 +106,10 @@
                     'direction' => request('sort') === $column && request('direction') === 'asc' ? 'desc' : 'asc',
                 ]));
             @endphp
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th><a href="{{ $consultationSortUrl('tanggal') }}">Tanggal</a></th><th><a href="{{ $consultationSortUrl('nama') }}">Murid dan Kelas</a></th><th>Permasalahan</th><th><a href="{{ $consultationSortUrl('jenis_layanan') }}">Jenis Layanan</a></th><th>Aksi</th></tr></thead><tbody>
+            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th><a href="{{ $consultationSortUrl('tanggal') }}">Tanggal</a></th><th><a href="{{ $consultationSortUrl('nama') }}">Murid dan Kelas</a></th>@unless($isWakaOnly)<th>Permasalahan</th>@endunless<th><a href="{{ $consultationSortUrl('jenis_layanan') }}">Jenis Layanan</a></th><th>Aksi</th></tr></thead><tbody>
                 @forelse($consultations as $session)
                     @php $membership = $session->student?->classMemberships->sortByDesc('effective_from')->first(); @endphp
-                    <tr><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $membership?->classroom?->name ?? ($session->temporary_student_id ? 'Identitas sementara' : '—') }}</div></td><td>{{ $session->problem }}</td><td>{{ $session->serviceField->label }}</td><td><a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm btn-outline-info">Detail</a></td></tr>
+                    <tr><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $membership?->classroom?->name ?? ($session->temporary_student_id ? 'Identitas sementara' : '—') }}</div></td>@unless($isWakaOnly)<td>{{ $session->problem }}</td>@endunless<td>{{ $session->serviceField->label }}</td><td><a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm btn-outline-info">Detail</a></td></tr>
                 @empty<tr><td colspan="5" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($consultations->hasPages())<div class="mt-3">{{ $consultations->links() }}</div>@endif
         @endif
