@@ -235,6 +235,18 @@ class WakaMonitoringTest extends TestCase
     {
         [$waka, $case, $owner, $student] = $this->wakaCaseFixture();
         $this->assignOwner($case, $owner);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'name' => 'XI WAKA 1',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->academicYear->id,
+            'effective_from' => '2026-07-01',
+            'is_active' => true,
+        ]);
         $secondCase = BkCase::query()->create([
             'registration_number' => 'K-2026-WAKA-02',
             'student_id' => $student->id,
@@ -260,12 +272,32 @@ class WakaMonitoringTest extends TestCase
             'counselor_id' => $owner->id,
         ]));
         $consultation = $consultations->firstOrFail();
+        $secondConsultation = $consultations->last();
 
         $this->actingAs($waka)->get(route('cases.index'))
-            ->assertOk();
+            ->assertOk()
+            ->assertViewHas('cases', fn ($cases): bool => collect($cases->items())->every(
+                fn (BkCase $listedCase): bool => array_keys($listedCase->getAttributes()) === [
+                    'id', 'student_id', 'temporary_student_id', 'service_date',
+                    'status_id', 'service_field_id', 'follow_up_type_id',
+                ]
+                    && array_keys($listedCase->student->getAttributes()) === ['id', 'name']
+                    && array_keys($listedCase->student->classMemberships->first()->getAttributes()) === [
+                        'id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until',
+                    ],
+            ));
         $this->actingAs($waka)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertDontSee('Permasalahan Pertama.');
+            ->assertDontSee('Permasalahan Pertama.')
+            ->assertViewHas('consultations', fn ($listedConsultations): bool => collect($listedConsultations->items())->every(
+                fn (Consultation $listedConsultation): bool => array_keys($listedConsultation->getAttributes()) === [
+                    'id', 'student_id', 'temporary_student_id', 'service_field_id', 'session_date', 'counselor_id',
+                ]
+                    && array_keys($listedConsultation->student->getAttributes()) === ['id', 'name']
+                    && array_keys($listedConsultation->student->classMemberships->first()->getAttributes()) === [
+                        'id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until',
+                    ],
+            ));
         $this->assertSame(2, BkCase::query()->accessibleTo($waka)->count());
         $this->assertSame(2, Consultation::query()->accessibleTo($waka)->count());
 
@@ -276,12 +308,18 @@ class WakaMonitoringTest extends TestCase
             ->assertDontSee('SENTINEL-INTERNAL');
         $this->actingAs($waka)->get(route('consultations.show', $consultation))
             ->assertOk()
+            ->assertSee('XI WAKA 1')
             ->assertSee('Permasalahan Pertama.')
             ->assertSee('Penanganan Pertama.')
             ->assertSee('Hasil Pertama.');
+        $this->actingAs($waka)->get(route('cases.show', $secondCase))->assertOk();
+        $this->actingAs($waka)->get(route('consultations.show', $secondConsultation))->assertOk();
+        $this->actingAs($waka)->get(route('cases.show', $case))->assertOk();
 
-        $this->assertSame(1, $this->auditCount($waka, 'case.viewed_by_waka', $case->id));
+        $this->assertSame(2, $this->auditCount($waka, 'case.viewed_by_waka', $case->id));
+        $this->assertSame(1, $this->auditCount($waka, 'case.viewed_by_waka', $secondCase->id));
         $this->assertSame(1, $this->auditCount($waka, 'consultation.viewed_by_waka', $consultation->id));
+        $this->assertSame(1, $this->auditCount($waka, 'consultation.viewed_by_waka', $secondConsultation->id));
 
         $this->actingAs($waka)->get(route('cases.create'))->assertForbidden();
         $this->actingAs($waka)->get(route('cases.resolve.form', $case))->assertForbidden();

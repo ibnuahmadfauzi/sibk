@@ -1,3 +1,10 @@
+@php
+    $detailStudent = $consultation->student ?? $consultation->temporaryStudent?->reconciledStudent;
+    $detailClass = $detailStudent?->classMemberships
+        ->first(fn ($membership) => $membership->effective_from->lte($consultation->session_date)
+            && ($membership->effective_until === null || $membership->effective_until->gte($consultation->session_date)))
+        ?->classroom?->name ?? '-';
+@endphp
 <div data-consultation-detail-modal>
     <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">
         <div class="sibk-page-header__copy">
@@ -30,6 +37,7 @@
                 <div class="sibk-panel__header p-4 border-bottom"><h2 class="fs-5 m-0">Informasi Layanan</h2></div>
                 <div class="sibk-panel__body p-4">
                     <p><span class="text-muted small d-block">Murid</span><strong>{{ $consultation->identityName() }}</strong></p>
+                    <p><span class="text-muted small d-block">Kelas saat layanan</span>{{ $detailClass }}</p>
                     <p><span class="text-muted small d-block">NISN</span>{{ $consultation->identityNisn() }}@if($consultation->temporary_student_id) &bull; Identitas sementara @endif</p>
                     <p><span class="text-muted small d-block">Tanggal</span>{{ $consultation->session_date->locale('id')->translatedFormat('d F Y') }}</p>
                     <p><span class="text-muted small d-block">Jenis Layanan</span>{{ $consultation->serviceField->label }}</p>

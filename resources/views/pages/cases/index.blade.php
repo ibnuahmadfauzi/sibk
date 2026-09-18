@@ -34,7 +34,7 @@
                 <th><a href="{{ $sortUrl('nama') }}">Murid</a></th>
                 <th><a href="{{ $sortUrl('kelas') }}">Kelas</a></th>
                 <th><a href="{{ $sortUrl('tanggal') }}">Tanggal</a></th>
-                <th><a href="{{ $sortUrl('sumber') }}">Sumber</a></th>
+                @unless($isWakaOnly)<th><a href="{{ $sortUrl('sumber') }}">Sumber</a></th>@endunless
                 <th><a href="{{ $sortUrl('bidang') }}">Bidang</a></th>
                 <th><a href="{{ $sortUrl('status') }}">Status</a></th>
                 <th>Tindak Lanjut</th>
@@ -57,7 +57,7 @@
                         <td class="fw-semibold">{{ $case->identityName() }}@if($case->temporary_student_id) <span class="badge bg-warning-subtle text-warning-emphasis">Sementara</span>@endif</td>
                         <td>{{ $membership?->classroom?->name ?? '—' }}</td>
                         <td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td>
-                        <td>{{ $case->source->label }}</td>
+                        @unless($isWakaOnly)<td>{{ $case->source->label }}</td>@endunless
                         <td>{{ $case->serviceField->label }}</td>
                         <td><span id="case-status-{{ $case->id }}" class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
                         <td>

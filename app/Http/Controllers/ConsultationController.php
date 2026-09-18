@@ -55,19 +55,35 @@ class ConsultationController extends Controller
                 ->accessibleTo($user)
                 ->whereKey($consultation->getKey())
                 ->select(['id', 'student_id', 'temporary_student_id', 'service_field_id', 'session_date', 'problem', 'handling', 'result', 'counselor_id'])
-                ->with(['student:id,name', 'temporaryStudent:id,input_name,reconciled_student_id', 'serviceField:id,label', 'counselor:id,name'])
+                ->with([
+                    'student:id,name',
+                    'student.classMemberships' => fn ($memberships) => $memberships
+                        ->select(['id', 'student_id', 'classroom_id', 'effective_from', 'effective_until'])
+                        ->with('classroom:id,name')
+                        ->orderByDesc('effective_from')
+                        ->orderByDesc('id'),
+                    'temporaryStudent:id,input_name,reconciled_student_id',
+                    'temporaryStudent.reconciledStudent:id,name',
+                    'temporaryStudent.reconciledStudent.classMemberships' => fn ($memberships) => $memberships
+                        ->select(['id', 'student_id', 'classroom_id', 'effective_from', 'effective_until'])
+                        ->with('classroom:id,name')
+                        ->orderByDesc('effective_from')
+                        ->orderByDesc('id'),
+                    'serviceField:id,label',
+                    'counselor:id,name',
+                ])
                 ->firstOrFail();
             abort_unless($user->can('view', $consultation), 403);
             $auditService->record('consultation.viewed_by_waka', $consultation, 'Detail konsultasi dilihat oleh Waka Kesiswaan.', $user);
         } else {
             abort_unless($user->can('view', $consultation), 403);
+            $consultation->load([
+                'student.classMemberships.classroom.academicYear',
+                'temporaryStudent.reconciledStudent.classMemberships.classroom.academicYear',
+                'serviceField',
+                'counselor',
+            ]);
         }
-        $consultation->load([
-            'student.classMemberships.classroom.academicYear',
-            'temporaryStudent.reconciledStudent',
-            'serviceField',
-            'counselor',
-        ]);
         $data = [
             'consultation' => $consultation,
             'modal' => $request->boolean('modal'),

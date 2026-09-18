@@ -48,16 +48,30 @@ class CaseController extends Controller
 
         abort_unless($user->can('viewAny', BkCase::class), 403);
 
-        $query = BkCase::query()
-            ->accessibleTo($user)
+        $query = BkCase::query()->accessibleTo($user);
+        $query->when($isWakaOnly, fn ($cases) => $cases
+            ->select([
+                'cases.id', 'cases.student_id', 'cases.temporary_student_id',
+                'cases.service_date', 'cases.status_id', 'cases.service_field_id',
+                'cases.follow_up_type_id',
+            ])
             ->with([
+                'student:id,name',
+                'student.classMemberships' => fn ($memberships) => $memberships
+                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
+                    ->with('classroom:id,name'),
+                'temporaryStudent:id,input_name',
+                'serviceField:id,label',
+                'status:id,label,code',
+                'followUpType:id,label',
+            ]), fn ($cases) => $cases->with([
                 'student.classMemberships.classroom',
                 'temporaryStudent',
                 'source',
                 'serviceField',
                 'status',
                 'followUpType',
-            ]);
+            ]));
 
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($cases) => $cases->where(function ($filter) use ($search): void {
@@ -327,13 +341,25 @@ class CaseController extends Controller
 
     private function consultationIndex(Request $request, User $user, bool $isWakaOnly): View
     {
-        $query = Consultation::query()
-            ->accessibleTo($user)
+        $query = Consultation::query()->accessibleTo($user);
+        $query->when($isWakaOnly, fn ($consultations) => $consultations
+            ->select([
+                'consultations.id', 'consultations.student_id', 'consultations.temporary_student_id',
+                'consultations.service_field_id', 'consultations.session_date', 'consultations.counselor_id',
+            ])
             ->with([
+                'student:id,name',
+                'student.classMemberships' => fn ($memberships) => $memberships
+                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
+                    ->with('classroom:id,name'),
+                'temporaryStudent:id,input_name,reconciled_student_id',
+                'temporaryStudent.reconciledStudent:id,name',
+                'serviceField:id,label',
+            ]), fn ($consultations) => $consultations->with([
                 'student.classMemberships.classroom',
                 'temporaryStudent.reconciledStudent',
                 'serviceField',
-            ]);
+            ]));
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($consultations) => $consultations->where(function ($filter) use ($search): void {
             $filter->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
