@@ -1,5 +1,4 @@
-import Modal from 'bootstrap/js/dist/modal';
-import { draftKey, removeDraft } from './form-draft';
+import { draftKey, initFormDrafts, removeDraft } from './form-draft.js';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
     ?? document.querySelector('input[name="_token"]')?.value;
@@ -28,19 +27,88 @@ const clearModalDraft = (form) => {
     }
 };
 
-export const initServiceRecords = () => {
-    const modalElement = document.querySelector('[data-service-record-modal]');
+export const handleModalClick = (event, openModal) => {
+    const trigger = event.target.closest?.('[data-modal-url]');
+    if (!trigger) return false;
+
+    const control = event.target.closest?.('a, button, input, select, textarea, label, [role="button"]');
+    if (control && control !== trigger) return false;
+
+    event.preventDefault();
+    openModal(trigger);
+
+    return true;
+};
+
+export const renderModalContent = (modalElement, html, initialiseDrafts = initFormDrafts) => {
+    modalElement.querySelector('.modal-content').innerHTML = html;
+    initialiseDrafts(modalElement);
+};
+
+const targetElement = (root, selector) => selector ? root.querySelector(selector) : null;
+
+export const updateFollowUp = async (select, environment = {}) => {
+    const root = environment.root ?? document;
+    const request = environment.request ?? fetch;
+    const token = environment.csrfToken ?? csrfToken();
+    const previousValue = select.dataset.previousValue ?? select.value;
+    const previousExpectedUpdatedAt = select.dataset.expectedUpdatedAt;
+    const label = targetElement(root, select.dataset.followUpLabelTarget);
+    const status = targetElement(root, select.dataset.followUpStatusTarget);
+    const timestamp = targetElement(root, select.dataset.followUpTimestampTarget);
+    const previousLabel = label?.textContent;
+    const previousStatus = status?.textContent;
+    const previousTimestamp = timestamp?.textContent;
+    select.disabled = true;
+
+    try {
+        const response = await request(select.dataset.followUpUrl, {
+            method: 'PATCH',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                follow_up_type_id: select.value,
+                expected_updated_at: select.dataset.expectedUpdatedAt,
+            }),
+        });
+        if (!response.ok) throw new Error('Gagal memperbarui tindak lanjut.');
+
+        const payload = (await response.json()).data ?? {};
+        select.dataset.previousValue = select.value;
+        if (payload.updated_at) select.dataset.expectedUpdatedAt = payload.updated_at;
+        if (label) label.textContent = payload.follow_up_type_label ?? label.textContent;
+        if (status) status.textContent = payload.status_label ?? status.textContent;
+        if (timestamp) timestamp.textContent = payload.updated_at ?? timestamp.textContent;
+    } catch {
+        select.value = previousValue;
+        if (previousExpectedUpdatedAt === undefined) delete select.dataset.expectedUpdatedAt;
+        else select.dataset.expectedUpdatedAt = previousExpectedUpdatedAt;
+        if (label) label.textContent = previousLabel;
+        if (status) status.textContent = previousStatus;
+        if (timestamp) timestamp.textContent = previousTimestamp;
+    } finally {
+        select.disabled = false;
+    }
+};
+
+const initialisedRoots = new WeakSet();
+
+export const initServiceRecords = async (root = document) => {
+    if (initialisedRoots.has(root)) return;
+    initialisedRoots.add(root);
+
+    const modalElement = root.querySelector('[data-service-record-modal]');
     let requestController;
     let trigger;
 
     if (modalElement) {
+        const { default: Modal } = await import('bootstrap/js/dist/modal.js');
         const modal = Modal.getOrCreateInstance(modalElement);
         modalElement.addEventListener('hidden.bs.modal', () => {
             requestController?.abort();
             trigger?.focus();
             trigger = undefined;
         });
-        document.querySelectorAll('[data-modal-url]').forEach((button) => button.addEventListener('click', async () => {
+        root.addEventListener('click', (event) => handleModalClick(event, async (button) => {
             trigger = button;
             requestController?.abort();
             requestController = new AbortController();
@@ -50,7 +118,7 @@ export const initServiceRecords = () => {
             try {
                 const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: requestController.signal });
                 if (!response.ok) throw new Error('Gagal memuat data.');
-                modalElement.querySelector('.modal-content').innerHTML = await response.text();
+                renderModalContent(modalElement, await response.text());
             } catch (error) {
                 if (error.name !== 'AbortError') modalElement.querySelector('.modal-content').textContent = error.message;
             }
@@ -74,30 +142,7 @@ export const initServiceRecords = () => {
         });
     }
 
-    document.querySelectorAll('[data-follow-up-url]').forEach((select) => select.addEventListener('change', async () => {
-        const previousValue = select.dataset.previousValue ?? select.value;
-        const status = document.querySelector(select.dataset.followUpStatusTarget);
-        const timestamp = document.querySelector(select.dataset.followUpTimestampTarget);
-        const previousStatus = status?.textContent;
-        const previousTimestamp = timestamp?.textContent;
-        select.disabled = true;
-        try {
-            const response = await fetch(select.dataset.followUpUrl, {
-                method: 'PATCH',
-                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({ follow_up_type_id: select.value }),
-            });
-            if (!response.ok) throw new Error('Gagal memperbarui tindak lanjut.');
-            const payload = await response.json();
-            select.dataset.previousValue = select.value;
-            if (status) status.textContent = payload.status_label ?? status.textContent;
-            if (timestamp) timestamp.textContent = payload.updated_at ?? timestamp.textContent;
-        } catch {
-            select.value = previousValue;
-            if (status) status.textContent = previousStatus;
-            if (timestamp) timestamp.textContent = previousTimestamp;
-        } finally {
-            select.disabled = false;
-        }
-    }));
+    root.addEventListener('change', (event) => {
+        if (event.target.matches?.('[data-follow-up-url]')) updateFollowUp(event.target);
+    });
 };

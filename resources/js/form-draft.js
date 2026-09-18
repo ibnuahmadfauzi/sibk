@@ -1,6 +1,8 @@
 const PREFIX = 'sibk:draft:v1:';
 const TTL = 24 * 60 * 60 * 1000;
 const PENDING_KEY = 'sibk:draft:pending';
+const initialisedForms = new WeakSet();
+const initialisedLogoutForms = new WeakSet();
 
 const isUnsafe = (field) => {
     const name = (field.name ?? '').toLowerCase();
@@ -25,7 +27,7 @@ export const removeDraft = (storage, key) => storage.removeItem(key);
 export const loadDraft = (storage, key, clock = Date.now) => {
     try {
         const draft = JSON.parse(storage.getItem(key) ?? 'null');
-        if (!draft || draft.version !== 1 || typeof draft.savedAt !== 'number' || clock() - draft.savedAt > TTL) {
+        if (!draft || draft.version !== 1 || typeof draft.savedAt !== 'number' || clock() - draft.savedAt >= TTL) {
             removeDraft(storage, key);
             return null;
         }
@@ -59,7 +61,7 @@ const setStatus = (form, message, error = false) => {
 const restoreValues = (form, values) => Object.entries(values).forEach(([name, value]) => {
     const field = form.elements.namedItem(name);
     if (!field || isUnsafe(field)) return;
-    if (field instanceof RadioNodeList) {
+    if (typeof RadioNodeList !== 'undefined' && field instanceof RadioNodeList) {
         [...field].forEach((item) => { item.checked = item.value === value; });
     } else if (field.type === 'checkbox') {
         field.checked = true;
@@ -68,46 +70,68 @@ const restoreValues = (form, values) => Object.entries(values).forEach(([name, v
     }
 });
 
-const initialiseForm = (form, userId) => {
+export const initFormDraft = (form, environment) => {
+    if (initialisedForms.has(form)) return false;
+    initialisedForms.add(form);
+
+    const {
+        storage, sessionStorage, userId, clock = Date.now,
+        setTimer = window.setTimeout.bind(window), clearTimer = window.clearTimeout.bind(window),
+    } = environment;
     const key = draftKey(userId, form.dataset.autosaveForm, form.dataset.autosaveRecord ?? 'new');
-    const restore = loadDraft(window.localStorage, key);
+    const restore = loadDraft(storage, key, clock);
     if (restore) {
         restoreValues(form, restore);
         setStatus(form, 'Draft dipulihkan');
     }
 
     let timer;
+    const persist = () => {
+        try {
+            saveDraft(storage, key, collectSafeValues(form.elements), clock);
+            setStatus(form, 'Draft tersimpan di perangkat');
+        } catch {
+            setStatus(form, 'Draft gagal disimpan di perangkat', true);
+        }
+    };
     form.addEventListener('input', () => {
-        window.clearTimeout(timer);
-        timer = window.setTimeout(() => {
-            try {
-                saveDraft(window.localStorage, key, collectSafeValues(form.elements));
-                setStatus(form, 'Draft tersimpan di perangkat');
-            } catch {
-                setStatus(form, 'Draft gagal disimpan di perangkat', true);
-            }
-        }, 2500);
+        clearTimer(timer);
+        timer = setTimer(persist, 2500);
     });
-    form.addEventListener('submit', () => window.sessionStorage.setItem(PENDING_KEY, key));
+    form.addEventListener('submit', () => {
+        clearTimer(timer);
+        persist();
+        sessionStorage.setItem(PENDING_KEY, key);
+    });
     form.querySelector('[data-clear-draft]')?.addEventListener('click', () => {
-        removeDraft(window.localStorage, key);
+        removeDraft(storage, key);
         setStatus(form, 'Draft dihapus');
     });
+
+    return true;
 };
 
-export const initFormDrafts = () => {
+export const initFormDrafts = (root = document) => {
     if (typeof document === 'undefined') return;
     const userId = document.body.dataset.draftUser;
     if (!userId) return;
 
-    const pending = window.sessionStorage.getItem(PENDING_KEY);
-    if (pending) {
-        if (document.body.dataset.saveSucceeded === 'true') removeDraft(window.localStorage, pending);
-        window.sessionStorage.removeItem(PENDING_KEY);
+    if (root === document) {
+        const pending = window.sessionStorage.getItem(PENDING_KEY);
+        if (pending) {
+            if (document.body.dataset.saveSucceeded === 'true') removeDraft(window.localStorage, pending);
+            window.sessionStorage.removeItem(PENDING_KEY);
+        }
+        purgeExpiredDrafts(window.localStorage);
     }
-    purgeExpiredDrafts(window.localStorage);
-    document.querySelectorAll('[data-autosave-form]').forEach((form) => initialiseForm(form, userId));
-    document.querySelectorAll('[data-clear-drafts-user]').forEach((form) => form.addEventListener('submit', () => {
-        removeUserDrafts(window.localStorage, userId);
+    root.querySelectorAll('[data-autosave-form]').forEach((form) => initFormDraft(form, {
+        storage: window.localStorage,
+        sessionStorage: window.sessionStorage,
+        userId,
     }));
+    root.querySelectorAll('[data-clear-drafts-user]').forEach((form) => {
+        if (initialisedLogoutForms.has(form)) return;
+        initialisedLogoutForms.add(form);
+        form.addEventListener('submit', () => removeUserDrafts(window.localStorage, userId));
+    });
 };

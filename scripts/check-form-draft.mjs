@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     collectSafeValues,
     draftKey,
+    initFormDraft,
     loadDraft,
     purgeExpiredDrafts,
     removeDraft,
@@ -42,7 +43,7 @@ assert.deepEqual(loadDraft(storage, otherFormKey, clock), { class_id: '7' });
 assert.deepEqual(loadDraft(storage, recordKey, clock), { title: 'Rekam 42' });
 
 saveDraft(storage, firstKey, { title: 'Kedaluwarsa' }, clock);
-assert.equal(loadDraft(storage, firstKey, () => now + (24 * 60 * 60 * 1000) + 1), null);
+assert.equal(loadDraft(storage, firstKey, () => now + (24 * 60 * 60 * 1000)), null);
 
 saveDraft(storage, firstKey, { title: 'Hapus semua milik pengguna' }, clock);
 removeUserDrafts(storage, '17');
@@ -65,5 +66,43 @@ assert.deepEqual(collectSafeValues([
     { name: 'secret_note', value: 'secret', type: 'text' },
     { name: 'attachment', value: 'file.csv', type: 'file' },
 ]), { title: 'Aman' });
+
+class FakeForm {
+    constructor() {
+        this.dataset = { autosaveForm: 'achievement', autosaveRecord: 'new' };
+        this.field = { name: 'title', value: 'Sebelum', type: 'text' };
+        this.elements = [this.field];
+        this.elements.namedItem = (name) => this.elements.find((field) => field.name === name) ?? null;
+        this.listeners = new Map();
+    }
+
+    addEventListener(type, listener) {
+        const listeners = this.listeners.get(type) ?? [];
+        listeners.push(listener);
+        this.listeners.set(type, listeners);
+    }
+
+    querySelector() { return null; }
+    dispatch(type) { return Promise.all((this.listeners.get(type) ?? []).map((listener) => listener({ target: this }))); }
+}
+
+const formStorage = new FakeStorage();
+const sessionStorage = new FakeStorage();
+const form = new FakeForm();
+const environment = {
+    storage: formStorage,
+    sessionStorage,
+    userId: '17',
+    clock,
+    setTimer: () => 1,
+    clearTimer: () => {},
+};
+assert.equal(initFormDraft(form, environment), true);
+assert.equal(initFormDraft(form, environment), false);
+assert.equal(form.listeners.get('submit').length, 1);
+form.field.value = 'Terbaru sebelum debounce';
+await form.dispatch('submit');
+assert.deepEqual(loadDraft(formStorage, firstKey, clock), { title: 'Terbaru sebelum debounce' });
+assert.equal(sessionStorage.getItem('sibk:draft:pending'), firstKey);
 
 console.log('Form draft checks passed.');
