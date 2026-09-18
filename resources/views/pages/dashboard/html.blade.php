@@ -110,7 +110,7 @@
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
-                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada jadwal tindak lanjut dalam waktu dekat." />
+                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada kasus berstatus Tindak Lanjut." />
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)

@@ -124,7 +124,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'nisn' => '0091234502', // Bintang Pratama (X-RPL-1)
                 'field' => 'pribadi',
                 'source' => 'temuan_guru_bk',
-                'status' => ServiceRecordStatus::NEW,
+                'status' => ServiceRecordStatus::IN_PROGRESS,
                 'service_date' => '2026-09-15',
                 'referrer' => null,
                 'initial_info' => 'Guru BK mengamati murid sering menyendiri di sudut lorong saat jam istirahat, tatapan kosong, dan mengalami perubahan drastis pada kerapian seragam sekolah.',
@@ -195,7 +195,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'nisn' => '0091234508', // Hendra Setiawan (XI-RPL-1)
                 'field' => 'belajar',
                 'source' => 'temuan_guru_bk',
-                'status' => ServiceRecordStatus::NEW,
+                'status' => ServiceRecordStatus::IN_PROGRESS,
                 'service_date' => '2026-09-14',
                 'referrer' => null,
                 'initial_info' => 'Berdasarkan rekapitulasi penilaian tengah semester, nilai kejuruan murid mengalami penurunan tajam di bawah KKM pada 3 mata pelajaran konsentrasi RPL.',
@@ -266,7 +266,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'nisn' => '0091234507', // Gita Permatasari (XI-RPL-1)
                 'field' => 'sosial',
                 'source' => 'temuan_guru_bk',
-                'status' => ServiceRecordStatus::NEW,
+                'status' => ServiceRecordStatus::IN_PROGRESS,
                 'service_date' => '2026-09-15',
                 'referrer' => null,
                 'initial_info' => 'Murid menunjukkan sikap pasif-agresif dan menolak bergabung dalam kelompok praktikum lab kejuruan dengan alasan tidak cocok dengan teman satu bangku.',
@@ -692,31 +692,30 @@ class DummyCaseAndServiceSeeder extends Seeder
             ],
         ];
 
+        $legacyStatusId = ReferenceValue::query()
+            ->where('category', 'consultation_status')
+            ->where('code', ServiceRecordStatus::COMPLETED)
+            ->valueOrFail('id');
+
         foreach ($definitions as $def) {
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
             $regNumber = sprintf('KNS-%s-%04d', substr($def['session_date'], 0, 4), $def['index']);
 
             /** @var Consultation $consultation */
-            $consultation = Consultation::query()->updateOrCreate(
-                ['registration_number' => $regNumber],
-                [
-                    'student_id' => $student->id,
-                    'temporary_student_id' => null,
-                    'service_field_id' => $fields[$def['field']],
-                    'session_date' => $def['session_date'],
-                    'problem' => $def['topic'],
-                    'handling' => $def['general_summary'] ?? 'Pendampingan sesuai kebutuhan murid.',
-                    'result' => $def['conclusion'],
-                    'counselor_id' => $guruBk->id,
-                ],
-            );
+            $consultation = Consultation::query()->firstOrNew(['registration_number' => $regNumber]);
 
-            // ponytail: kolom legacy masih NOT NULL sampai migration pembersihan; hapus bersama kolomnya.
+            // ponytail: status_id/topic legacy masih NOT NULL sampai migration pembersihan; hapus bersama kolomnya.
             $consultation->forceFill([
-                'status_id' => ReferenceValue::query()
-                    ->where('category', 'consultation_status')
-                    ->where('code', ServiceRecordStatus::COMPLETED)
-                    ->valueOrFail('id'),
+                'registration_number' => $regNumber,
+                'student_id' => $student->id,
+                'temporary_student_id' => null,
+                'service_field_id' => $fields[$def['field']],
+                'session_date' => $def['session_date'],
+                'problem' => $def['topic'],
+                'handling' => $def['general_summary'] ?? 'Pendampingan sesuai kebutuhan murid.',
+                'result' => $def['conclusion'],
+                'counselor_id' => $guruBk->id,
+                'status_id' => $legacyStatusId,
                 'topic' => $def['topic'],
             ])->save();
         }

@@ -127,6 +127,16 @@ class DashboardTest extends TestCase
             ->assertDontSee('NARASI-AUDIT-RAHASIA');
     }
 
+    public function test_dashboard_empty_state_describes_cases_without_implying_a_schedule(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Tanpa Kasus');
+
+        $this->actingAs($teacher)->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSee('Tidak ada kasus berstatus Tindak Lanjut.')
+            ->assertDontSee('Tidak ada jadwal tindak lanjut dalam waktu dekat.');
+    }
+
     public function test_dashboard_excludes_official_departure_from_active_student_count(): void
     {
         $teacher = $this->userWithRole('guru_bk', 'Guru Cakupan Keluar');
