@@ -8,7 +8,7 @@
 - Spec aktif: `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`.
 - Plan aktif: `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`.
 - Checkpoint aktif: 7A — Penyelarasan Fitur, implementasi dan review selesai;
-  menunggu PR ke `cobasidebar`.
+  branch sudah dipush dan menunggu PR ke `cobasidebar`.
 - Urutan delivery: 7A penyelarasan fitur, 7B cleanup runtime, lalu 7C cleanup
   skema dan gate final. Setiap checkpoint memakai PR terpisah ke `cobasidebar`;
   `main` tidak disentuh.
@@ -44,8 +44,11 @@
   seluruh 12 temuan; scoped re-review tidak menemukan blocker baru.
 - Full gate final pada `829a723` lulus 454 test/3.529 assertion, Pint, checker
   frontend, build, Composer strict, dan diff-check.
-- Belum ada push, PR, atau perubahan ke `main`. Cleanup runtime 7B dan cleanup
-  skema 7C belum dimulai.
+- Branch `revisi-sibk-3-2` sudah dipush. PR belum dapat dibuat karena konektor
+  GitHub tidak memiliki izin tulis; tidak ada perubahan ke `main`. Cleanup
+  runtime 7B dan cleanup skema 7C belum dimulai.
+- Laporan progress tersedia di
+  `docs/laporan-progress-revisi-sibk-3-2.md`.
 - Detail resume dan batas checkpoint 7A/7B/7C tercatat di plan aktif.
 
 ### Baseline terakhir sebelum Revisi 3.2
@@ -100,15 +103,17 @@
 
 ## Langkah berikutnya
 
-1. Commit handoff/log ini, push `revisi-sibk-3-2`, dan buka PR Checkpoint 7A
-   ke `cobasidebar`.
+1. Buka PR Checkpoint 7A dari `revisi-sibk-3-2` ke `cobasidebar` memakai akun
+   yang memiliki izin tulis.
 2. Verifikasi status PR `MERGED`, pastikan tidak ada commit/PR tertinggal, lalu
    hapus branch sumber remote.
 3. Pause. Checkpoint 7B baru dibuat dari `cobasidebar` terbaru pada sesi lanjut.
 
 ## Blocker
 
-- Tidak ada blocker implementasi.
+- Tidak ada blocker implementasi. Penutupan eksternal tertahan karena konektor
+  GitHub mengembalikan `403 Resource not accessible by integration` saat
+  membuat PR.
 - Risiko residual tetap: Waka membaca narasi terstruktur sesuai keputusan BK,
   dan draft `localStorage` hanya tersedia pada perangkat/browser yang sama.
 - Adapter production tetap ditahan karena kontrak resmi provider belum tersedia.
