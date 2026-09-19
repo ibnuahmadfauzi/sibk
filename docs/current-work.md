@@ -3,15 +3,14 @@
 ## Status
 
 - Pekerjaan aktif: Revisi SIBK 3.2 untuk Layanan Guru BK.
-- Branch aktif: `revisi-sibk-3-2-7b-runtime`.
+- Branch Checkpoint 7B: `revisi-sibk-3-2-7b-runtime`.
 - Base: `origin/cobasidebar` pada merge commit Checkpoint 7A `85b2ce1`.
 - Commit runtime Checkpoint 7B: `4a5fcd2`.
-- Branch sudah ter-push ke `origin/revisi-sibk-3-2-7b-runtime`.
-- Form PR Checkpoint 7B ke `cobasidebar` sudah terisi di GitHub, tetapi belum
-  disubmit karena tindakan UI menunggu konfirmasi pengguna.
-- Checkpoint selesai: 1–7A. Implementasi 7B selesai dan menunggu penutupan PR.
-- Checkpoint berikutnya setelah PR 7B `MERGED`: 7C — Cleanup Skema dan Gate
-  Akhir.
+- PR #26 mengintegrasikan Checkpoint 7B ke `cobasidebar`; status akhir wajib
+  diverifikasi `MERGED` sebelum pekerjaan berikutnya.
+- Branch sumber remote dihapus setelah status merge terverifikasi.
+- Checkpoint selesai: 1–7B.
+- Checkpoint berikutnya: 7C — Cleanup Skema dan Gate Akhir, belum dimulai.
 - `main` tidak disentuh.
 
 ## Hasil Checkpoint 7B
@@ -77,20 +76,15 @@ endpoint singular, request/controller/service dropdown, query laporan berbasis
 
 ## Langkah berikutnya
 
-1. Setelah konfirmasi pengguna, klik **Create pull request** pada form GitHub
-   yang sudah terisi.
-2. Catat nomor PR pada handoff, development log, dan laporan progress.
-3. Push commit dokumentasi, pastikan PR memuat commit runtime dan dokumentasi.
-4. Verifikasi mergeability/check PR, lalu merge ke `cobasidebar`.
-5. Verifikasi status `MERGED` dan merge commit tersedia pada
-   `origin/cobasidebar`.
-6. Hapus branch sumber remote setelah merge terverifikasi.
-7. Pause sebelum membuat branch `revisi-sibk-3-2-7c-schema`.
+1. Pause setelah PR #26 terverifikasi `MERGED` dan branch sumber remote
+   terhapus.
+2. Saat 7C dilanjutkan, sinkronkan `cobasidebar` lalu buat feature branch baru.
+3. Ulangi scan dependency sebelum migration forward-only pada database
+   disposable.
 
 ## Blocker
 
 - Tidak ada blocker implementasi atau gate.
-- Submit form PR melalui UI menunggu konfirmasi pengguna pada saat tindakan.
 - Risiko residual: Waka membaca narasi terstruktur sesuai keputusan BK; draft
   `localStorage` hanya tersedia pada perangkat/browser yang sama; skema
   retired baru dihapus pada Checkpoint 7C.
@@ -106,4 +100,3 @@ endpoint singular, request/controller/service dropdown, query laporan berbasis
 - Matriks otorisasi: `docs/testing/authorization-matrix.md`
 - Kontrak provider: `docs/integrations/provider-contract-admission.md`
 - Requirement index: `docs/requirements-index.md`
-

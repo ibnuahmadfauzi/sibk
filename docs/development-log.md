@@ -5,14 +5,23 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Implementasi Checkpoint 7B selesai pada `4a5fcd2`: 995 baris runtime retired
-  dihapus, scan consumer ketat bersih, dan full gate lulus 453 test/3.524
-  assertion beserta Pint, checker frontend, build, Composer strict, dan
-  diff-check. Branch sudah ter-push; submit PR menunggu konfirmasi tindakan UI.
-- Checkpoint 7C belum dimulai dan tetap menunggu PR 7B berstatus `MERGED`.
+- Checkpoint 7C belum dimulai.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 19 September 2026 — Checkpoint 7B: cleanup runtime lama
+
+- Menghapus model, service, controller, request, route, view, relasi, ability,
+  dan consumer laporan untuk event tindak lanjut, koordinasi, private note,
+  serta resolve terpisah yang sudah retired.
+- Klasifikasi tindak lanjut singular dan view detail Waka berbasis allowlist
+  dipertahankan karena masih menjadi runtime aktif.
+- Full gate lulus 453 test/3.524 assertion beserta Pint, checker frontend,
+  build, Composer strict, dan diff-check; tidak ada migration atau perubahan
+  dependency.
+- PR #26 terintegrasi ke `cobasidebar`; branch sumber remote
+  `revisi-sibk-3-2-7b-runtime` dihapus dan `main` tidak disentuh.
 
 ### 19 September 2026 — Checkpoint 7A: penyelarasan fitur
 

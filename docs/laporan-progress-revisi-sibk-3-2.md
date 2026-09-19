@@ -6,10 +6,10 @@ Branch Checkpoint 7B: `revisi-sibk-3-2-7b-runtime`
 
 ## Ringkasan status
 
-Checkpoint 7B telah selesai diimplementasikan pada commit `4a5fcd2`.
-Focused gate dan full gate lulus. Branch sudah ter-push dan form PR ke
-`cobasidebar` sudah terisi di GitHub, tetapi belum dikirim karena aksi submit
-melalui UI menunggu konfirmasi pengguna.
+Checkpoint 7B telah selesai diimplementasikan pada commit `4a5fcd2` dan
+diintegrasikan ke `cobasidebar` melalui PR #26. Focused gate dan full gate
+lulus. Status `MERGED` dan penghapusan branch sumber remote diverifikasi pada
+penutupan checkpoint.
 
 Checkpoint 7C belum dimulai. Tidak ada migration, drop tabel, atau drop kolom
 pada Checkpoint 7B. Branch `main` tidak disentuh.
@@ -105,15 +105,13 @@ tindak lanjut terkini, bukan consumer tabel `follow_ups`.
 
 ## Progress selanjutnya
 
-1. Setelah konfirmasi pengguna, kirim form PR Checkpoint 7B ke `cobasidebar`.
-2. Verifikasi status PR `MERGED` dan merge commit tersedia pada
-   `origin/cobasidebar`.
-3. Hapus branch sumber remote setelah merge terverifikasi.
-4. Pause sebelum membuat branch Checkpoint 7C.
+1. Pause pada batas Checkpoint 7B.
+2. Saat pekerjaan dilanjutkan, sinkronkan `cobasidebar` dan mulai Checkpoint
+   7C pada feature branch baru.
+3. Ulangi scan dependency sebelum migration forward-only pada database
+   disposable.
 
 ## Posisi aman untuk pause
 
-Posisi aman saat ini adalah commit bersih `4a5fcd2` pada branch
-`revisi-sibk-3-2-7b-runtime`, sudah ter-push, dengan full gate hijau. Form PR
-GitHub sudah terisi tetapi belum disubmit.
-
+Posisi aman adalah PR #26 berstatus `MERGED` ke `cobasidebar`, branch sumber
+remote telah dihapus, dan `main` tidak disentuh. Checkpoint 7C belum dimulai.
