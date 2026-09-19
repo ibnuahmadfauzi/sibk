@@ -8,10 +8,18 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_id', 'service_field_id', 'status_id', 'topic', 'referral_source', 'session_date', 'starts_at', 'ends_at', 'follow_up_date', 'general_summary', 'counselor_id'])]
+#[Fillable([
+    'student_id',
+    'temporary_student_id',
+    'service_field_id',
+    'session_date',
+    'problem',
+    'handling',
+    'result',
+    'counselor_id',
+])]
 class Consultation extends Model
 {
     use SoftDeletes;
@@ -28,22 +36,10 @@ class Consultation extends Model
         return $this->belongsTo(TemporaryStudent::class);
     }
 
-    /** @return BelongsTo<BkCase, $this> */
-    public function case(): BelongsTo
-    {
-        return $this->belongsTo(BkCase::class, 'case_id');
-    }
-
     /** @return BelongsTo<ReferenceValue, $this> */
     public function serviceField(): BelongsTo
     {
         return $this->belongsTo(ReferenceValue::class, 'service_field_id');
-    }
-
-    /** @return BelongsTo<ReferenceValue, $this> */
-    public function status(): BelongsTo
-    {
-        return $this->belongsTo(ReferenceValue::class, 'status_id');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -52,18 +48,16 @@ class Consultation extends Model
         return $this->belongsTo(User::class, 'counselor_id');
     }
 
-    /** @return HasOne<ConsultationPrivateNote, $this> */
-    public function privateNote(): HasOne
-    {
-        return $this->hasOne(ConsultationPrivateNote::class);
-    }
-
     /** @param Builder<Consultation> $query */
     public function scopeWithinStudentServicePeriod(Builder $query): Builder
     {
-        return $query->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
-            ->where('status', StudentDeparture::STATUS_OFFICIAL)
-            ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'));
+        return $query
+            ->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'))
+            ->whereDoesntHave('temporaryStudent.reconciledStudent.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'));
     }
 
     /** @param Builder<Consultation> $query */
@@ -71,7 +65,7 @@ class Consultation extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('koordinator_bk')) {
+        if ($user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan'])) {
             return $query;
         }
 
@@ -87,9 +81,6 @@ class Consultation extends Model
                     ->whereIn('reconciled_student_id', Student::query()
                         ->professionallyAccessibleTo($user)
                         ->select('students.id')))
-                ->orWhereHas('case.assignments', fn (Builder $assignments): Builder => $assignments
-                    ->where('user_id', $user->getKey())
-                    ->effectiveOn(now()))
                 ->orWhere(function (Builder $pending) use ($user): void {
                     $pending->where('counselor_id', $user->getKey())
                         ->whereHas('temporaryStudent', fn (Builder $temporary): Builder => $temporary
@@ -106,10 +97,6 @@ class Consultation extends Model
 
         if ($this->student_id !== null) {
             return Student::query()->professionallyAccessibleTo($user)->whereKey($this->student_id)->exists();
-        }
-
-        if ($this->case_id !== null && $this->case?->hasActiveAssignmentFor($user)) {
-            return true;
         }
 
         $temporary = $this->temporaryStudent()->first();
@@ -141,7 +128,6 @@ class Consultation extends Model
     {
         return [
             'session_date' => 'date',
-            'follow_up_date' => 'date',
         ];
     }
 }

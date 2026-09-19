@@ -91,9 +91,9 @@ final class WakaStudentCaseService
         $active = $ordered->filter(static fn (BkCase $case): bool => ! ServiceRecordStatus::isTerminal($case->status?->code));
         $ownerCase = $active->first() ?? $latest;
         $ownerSafe = $this->monitoring->toSafeRow($ownerCase);
-        $coordinationUrl = $ordered
-            ->map(fn (BkCase $case): ?string => $this->monitoring->toSafeRow($case)['coordination_url'])
-            ->first(static fn (?string $url): bool => $url !== null);
+        $detailUrl = $ordered
+            ->map(fn (BkCase $case): string => $this->monitoring->toSafeRow($case)['detail_url'])
+            ->first();
 
         return [
             '_identity_key' => $identityKey,
@@ -104,7 +104,7 @@ final class WakaStudentCaseService
             'status_terbaru' => $latestSafe['status'],
             'status_code' => $latestSafe['status_code'],
             'guru_bk' => $ownerSafe['guru_bk'],
-            'coordination_url' => $coordinationUrl,
+            'detail_url' => $detailUrl,
         ];
     }
 }

@@ -12,7 +12,6 @@ use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
@@ -167,7 +166,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         ];
         $identities = $this->serviceIdentityQuery($actor, $filters, $year, $start, $end);
         $summary = DB::query()->fromSub(clone $identities, 'service_summary')
-            ->selectRaw('COUNT(*) AS identity_count, COALESCE(SUM(case_count + consultation_count + follow_up_count), 0) AS service_count, COALESCE(SUM(open_follow_up_count), 0) AS open_follow_up_count')
+            ->selectRaw('COUNT(*) AS identity_count, COALESCE(SUM(case_count + consultation_count), 0) AS service_count, COALESCE(SUM(follow_up_case_count), 0) AS follow_up_case_count')
             ->first();
         $rows = (clone $identities)
             ->orderByDesc('latest_included_at')
@@ -181,11 +180,11 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'id' => self::TAB_SERVICES,
             'tab' => self::TAB_SERVICES,
             'title' => 'Layanan BK',
-            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Tindak lanjut', 'Perlu tindak lanjut', 'Layanan terakhir'],
+            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Kasus Tindak Lanjut', 'Layanan terakhir'],
             'stats' => [
                 'student_count' => (int) ($summary->identity_count ?? 0),
                 'service_count' => (int) ($summary->service_count ?? 0),
-                'open_follow_up_count' => (int) ($summary->open_follow_up_count ?? 0),
+                'follow_up_case_count' => (int) ($summary->follow_up_case_count ?? 0),
             ],
             'rows' => $rows,
             'filters' => $filters,
@@ -220,14 +219,13 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $row['classroom'],
                 $row['case_count'],
                 $row['consultation_count'],
-                $row['follow_up_count'],
-                $row['open_follow_up_count'],
+                $row['follow_up_case_count'],
                 $row['latest_service_date'],
             ]));
 
         return [
             'id' => self::TAB_SERVICES,
-            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Tindak lanjut', 'Perlu tindak lanjut', 'Layanan terakhir'],
+            'columns' => ['Murid', 'NISN Tersamarkan', 'Kelas', 'Kasus', 'Konsultasi', 'Kasus Tindak Lanjut', 'Layanan terakhir'],
             'rows' => $rows,
         ];
     }
@@ -420,13 +418,14 @@ final class OperationalReportRecapService implements OperationalReportRecap
         $caseEvents = BkCase::query()
             ->accessibleTo($actor)
             ->leftJoin('temporary_students', 'temporary_students.id', '=', 'cases.temporary_student_id')
+            ->join('references as case_status', 'case_status.id', '=', 'cases.status_id')
             ->whereBetween('cases.service_date', [$start->toDateString(), $end->toDateString()]);
         $this->applyCaseIdentityFilters($caseEvents, $filters, $year, 'cases.service_date');
         $caseEvents
             ->selectRaw("CASE WHEN cases.student_id IS NOT NULL OR temporary_students.reconciled_student_id IS NOT NULL THEN 'student' ELSE 'temporary' END AS identity_type")
             ->selectRaw('COALESCE(cases.student_id, temporary_students.reconciled_student_id, cases.temporary_student_id) AS identity_id')
             ->selectRaw('cases.service_date AS included_at, cases.service_date AS actual_at')
-            ->selectRaw('1 AS case_count, 0 AS consultation_count, 0 AS follow_up_count, 0 AS open_follow_up_count');
+            ->selectRaw("1 AS case_count, 0 AS consultation_count, CASE WHEN case_status.code = 'membutuhkan_tindak_lanjut' THEN 1 ELSE 0 END AS follow_up_case_count");
 
         $consultationEvents = Consultation::query()
             ->accessibleTo($actor)
@@ -437,29 +436,14 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->selectRaw("CASE WHEN consultations.student_id IS NOT NULL OR temporary_students.reconciled_student_id IS NOT NULL THEN 'student' ELSE 'temporary' END AS identity_type")
             ->selectRaw('COALESCE(consultations.student_id, temporary_students.reconciled_student_id, consultations.temporary_student_id) AS identity_id')
             ->selectRaw('consultations.session_date AS included_at, consultations.session_date AS actual_at')
-            ->selectRaw('0 AS case_count, 1 AS consultation_count, 0 AS follow_up_count, 0 AS open_follow_up_count');
-
-        $followUpDate = 'COALESCE(follow_ups.execution_date, follow_ups.planned_date)';
-        $followUpEvents = FollowUp::query()
-            ->whereHas('case', fn (Builder $cases): Builder => $cases->accessibleTo($actor))
-            ->join('cases', 'cases.id', '=', 'follow_ups.case_id')
-            ->leftJoin('temporary_students', 'temporary_students.id', '=', 'cases.temporary_student_id')
-            ->join('references as follow_up_status', 'follow_up_status.id', '=', 'follow_ups.status_id')
-            ->whereBetween(DB::raw($followUpDate), [$start->toDateString(), $end->toDateString()]);
-        $this->applyFollowUpIdentityFilters($followUpEvents, $filters, $year, $followUpDate);
-        $followUpEvents
-            ->selectRaw("CASE WHEN cases.student_id IS NOT NULL OR temporary_students.reconciled_student_id IS NOT NULL THEN 'student' ELSE 'temporary' END AS identity_type")
-            ->selectRaw('COALESCE(cases.student_id, temporary_students.reconciled_student_id, cases.temporary_student_id) AS identity_id')
-            ->selectRaw($followUpDate.' AS included_at, follow_ups.execution_date AS actual_at')
-            ->selectRaw("0 AS case_count, 0 AS consultation_count, 1 AS follow_up_count, CASE WHEN follow_up_status.code IN ('terjadwal', 'ditunda') THEN 1 ELSE 0 END AS open_follow_up_count");
+            ->selectRaw('0 AS case_count, 1 AS consultation_count, 0 AS follow_up_case_count');
 
         return DB::query()
-            ->fromSub($caseEvents->unionAll($consultationEvents)->unionAll($followUpEvents), 'service_events')
+            ->fromSub($caseEvents->unionAll($consultationEvents), 'service_events')
             ->select(['identity_type', 'identity_id'])
             ->selectRaw('SUM(case_count) AS case_count')
             ->selectRaw('SUM(consultation_count) AS consultation_count')
-            ->selectRaw('SUM(follow_up_count) AS follow_up_count')
-            ->selectRaw('SUM(open_follow_up_count) AS open_follow_up_count')
+            ->selectRaw('SUM(follow_up_case_count) AS follow_up_case_count')
             ->selectRaw('MAX(included_at) AS latest_included_at')
             ->selectRaw('MAX(actual_at) AS latest_service_at')
             ->groupBy('identity_type', 'identity_id');
@@ -586,8 +570,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 'identity_badge' => $isTemporary ? 'Belum terverifikasi Dapodik' : null,
                 'case_count' => (int) $aggregate->case_count,
                 'consultation_count' => (int) $aggregate->consultation_count,
-                'follow_up_count' => (int) $aggregate->follow_up_count,
-                'open_follow_up_count' => (int) $aggregate->open_follow_up_count,
+                'follow_up_case_count' => (int) $aggregate->follow_up_case_count,
                 'latest_service_date' => $latestServiceAt === null ? 'Belum terlaksana' : $this->formatDate($latestServiceAt),
             ];
         });

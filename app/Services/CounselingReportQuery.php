@@ -54,36 +54,39 @@ final class CounselingReportQuery extends LegacyReportQuery
         CarbonImmutable $start,
         CarbonImmutable $end,
     ): array {
+        if ($type === ReportService::TYPE_FOLLOW_UPS) {
+            return $this->exportFollowUps($user, $filters, $year, $start, $end);
+        }
+
         return match ($type) {
             ReportService::TYPE_CONSULTATIONS => [
                 'id' => $type,
-                'columns' => ['Nomor Sesi', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
+                'columns' => ['Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
                 'rows' => $this->consultationReportQuery($user, $filters, $year, $start, $end)
                     ->latest('session_date')->latest('id')->lazy(500)
                     ->map(fn (Consultation $consultation): array => $this->row([
-                        $consultation->registration_number,
+                        'Konsultasi',
                         $this->initials($consultation->identityName()),
                         $this->historicClass($this->consultationStudent($consultation), $consultation->session_date, $year),
                         $consultation->serviceField->label,
                         $consultation->session_date->locale('id')->translatedFormat('d M Y'),
                         $consultation->counselor->name,
-                        $consultation->status->label,
-                    ], 6, $this->statusTone($consultation->status->code))),
+                        'Selesai',
+                    ], 6, 'success')),
             ],
             ReportService::TYPE_FOLLOW_UPS => [
                 'id' => $type,
-                'columns' => ['Nomor Kasus', 'Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal Rencana', 'Tanggal Pelaksanaan', 'Status'],
+                'columns' => ['Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal Rencana', 'Tanggal Pelaksanaan', 'Status'],
                 'rows' => $this->followUpReportQuery($user, $filters, $year, $start, $end)
                     ->latest('planned_date')->latest('id')->lazy(500)
                     ->map(fn (FollowUp $followUp): array => $this->row([
-                        $followUp->case->registration_number,
                         $this->initials($followUp->case->identityName()),
                         $this->historicClass($this->caseStudent($followUp->case), $followUp->planned_date, $year),
                         $followUp->type->label,
                         $followUp->planned_date->locale('id')->translatedFormat('d M Y'),
                         $followUp->execution_date?->locale('id')->translatedFormat('d M Y') ?? '—',
                         $followUp->status->label,
-                    ], 6, $this->statusTone($followUp->status->code))),
+                    ], 5, $this->statusTone($followUp->status->code))),
             ],
             ReportService::TYPE_SERVICE_RECAP => $this->serviceRecapExport($user, $filters, $year, $start, $end),
             default => abort(404),
@@ -95,7 +98,7 @@ final class CounselingReportQuery extends LegacyReportQuery
     {
         $query = Consultation::query()->accessibleTo($user)
             ->whereBetween('session_date', [$start->toDateString(), $end->toDateString()])
-            ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'serviceField', 'status', 'counselor']);
+            ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'serviceField', 'counselor']);
         $this->applyCommonServiceFilters($query, $filters);
         $this->applyHistoricClassFilter($query, $filters, $year, 'consultations.session_date', [
             'student.classMemberships',
@@ -108,24 +111,121 @@ final class CounselingReportQuery extends LegacyReportQuery
             $filters,
         ));
         $rows = $items->sortByDesc('session_date')->values()->map(fn (Consultation $consultation): array => $this->row([
-            $consultation->registration_number,
+            'Konsultasi',
             $this->initials($consultation->identityName()),
             $this->historicClass($this->consultationStudent($consultation), $consultation->session_date, $year),
             $consultation->serviceField->label,
             $consultation->session_date->locale('id')->translatedFormat('d M Y'),
             $consultation->counselor->name,
-            $consultation->status->label,
-        ], 6, $this->statusTone($consultation->status->code)));
+            'Selesai',
+        ], 6, 'success'));
 
         return [
-            'columns' => ['Nomor Sesi', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
+            'columns' => ['Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
             'rows' => $rows,
             'stats' => $this->stats(
                 ['Total Konsultasi', $items->count(), 'Tanpa isi sensitif'],
-                ['Terlaksana', $items->where('status.code', 'terlaksana')->count(), 'Sesi selesai'],
-                ['Terjadwal', $items->whereIn('status.code', ['dijadwalkan', 'menunggu_konfirmasi'])->count(), 'Menunggu pelaksanaan'],
+                ['Selesai', $items->count(), 'Setiap konsultasi tersimpan selesai'],
+                ['Status', 'Selesai', 'Tidak memiliki status terpisah'],
             ),
         ];
+    }
+
+    /** @return array{columns: list<string>, rows: Collection<int, array<string, mixed>>, stats: array<string, array<string, string>>} */
+    protected function followUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $items = $this->followUpReportQuery($user, $filters, $year, $start, $end)->get()->filter(
+            fn (BkCase $case): bool => $this->matchesClass($this->caseStudent($case), $case->service_date, $year, $filters),
+        );
+        $rows = $items->sortByDesc(static fn (BkCase $case): string => sprintf(
+            '%s-%020d',
+            $case->service_date?->toDateString() ?? '',
+            $case->getKey(),
+        ))->values()->map(fn (BkCase $case): array => $this->followUpRow($case, $year));
+
+        return [
+            'columns' => $this->followUpColumns(),
+            'rows' => $rows,
+            'stats' => $this->followUpStats($items),
+        ];
+    }
+
+    /** @return array{id: string, columns: list<string>, rows: iterable<int, array<string, mixed>>} */
+    private function exportFollowUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        return [
+            'id' => ReportService::TYPE_FOLLOW_UPS,
+            'columns' => $this->followUpColumns(),
+            'rows' => $this->followUpReportQuery($user, $filters, $year, $start, $end)
+                ->latest('service_date')->latest('id')->lazy(500)
+                ->map(fn (BkCase $case): array => $this->followUpRow($case, $year)),
+        ];
+    }
+
+    /** @return array{columns: list<string>, rows: LengthAwarePaginator, stats: array<string, array<string, string>>} */
+    protected function paginatedFollowUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $query = $this->followUpReportQuery($user, $filters, $year, $start, $end);
+        $total = (clone $query)->count();
+        $needsFollowUp = (clone $query)->whereHas('status', fn (Builder $statuses): Builder => $statuses->where('code', 'membutuhkan_tindak_lanjut'))->count();
+        $completed = (clone $query)->whereHas('status', fn (Builder $statuses): Builder => $statuses->where('code', 'selesai'))->count();
+        $page = $query->latest('service_date')->latest('id')->paginate(20)->withQueryString();
+        $page->setCollection($page->getCollection()->map(fn (BkCase $case): array => $this->followUpRow($case, $year)));
+
+        return [
+            'columns' => $this->followUpColumns(),
+            'rows' => $page,
+            'stats' => $this->stats(
+                ['Total Tindak Lanjut', $total, 'Kasus dengan klasifikasi terkini'],
+                ['Tindak Lanjut', $needsFollowUp, 'Status kasus terkini'],
+                ['Selesai', $completed, 'Kasus telah diselesaikan'],
+            ),
+        ];
+    }
+
+    /** @return Builder<BkCase> */
+    protected function followUpReportQuery(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): Builder
+    {
+        $query = BkCase::query()->accessibleTo($user)
+            ->whereNotNull('follow_up_type_id')
+            ->whereBetween('service_date', [$start->toDateString(), $end->toDateString()])
+            ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'temporaryStudent', 'followUpType', 'status']);
+        $query->when($filters['student_id'] ?? null, fn (Builder $builder, int $id): Builder => $builder->where('student_id', $id));
+        $query->when($filters['service_field_id'] ?? null, fn (Builder $builder, int $id): Builder => $builder->where('service_field_id', $id));
+        $this->applyHistoricClassFilter($query, $filters, $year, 'cases.service_date', [
+            'student.classMemberships',
+            'temporaryStudent.reconciledStudent.classMemberships',
+        ]);
+
+        return $query;
+    }
+
+    /** @return list<string> */
+    private function followUpColumns(): array
+    {
+        return ['Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal', 'Status'];
+    }
+
+    /** @return array<string, mixed> */
+    private function followUpRow(BkCase $case, ?AcademicYear $year): array
+    {
+        return $this->row([
+            $this->initials($case->identityName()),
+            $this->historicClass($this->caseStudent($case), $case->service_date, $year),
+            $case->followUpType->label,
+            $case->service_date->locale('id')->translatedFormat('d M Y'),
+            $case->status->label,
+        ], 4, $this->statusTone($case->status->code));
+    }
+
+    /** @param Collection<int, BkCase> $cases @return array<string, array<string, string>> */
+    private function followUpStats(Collection $cases): array
+    {
+        return $this->stats(
+            ['Total Tindak Lanjut', $cases->count(), 'Kasus dengan klasifikasi terkini'],
+            ['Tindak Lanjut', $cases->where('status.code', 'membutuhkan_tindak_lanjut')->count(), 'Status kasus terkini'],
+            ['Selesai', $cases->where('status.code', 'selesai')->count(), 'Kasus telah diselesaikan'],
+        );
     }
 
     /** @return array{columns: list<string>, rows: LengthAwarePaginator, stats: array<string, array<string, string>>} */
@@ -133,26 +233,24 @@ final class CounselingReportQuery extends LegacyReportQuery
     {
         $query = $this->consultationReportQuery($user, $filters, $year, $start, $end);
         $total = (clone $query)->count();
-        $completed = (clone $query)->whereHas('status', fn (Builder $statuses): Builder => $statuses->where('code', 'terlaksana'))->count();
-        $scheduled = (clone $query)->whereHas('status', fn (Builder $statuses): Builder => $statuses->whereIn('code', ['dijadwalkan', 'menunggu_konfirmasi']))->count();
         $page = $query->latest('session_date')->latest('id')->paginate(20)->withQueryString();
         $page->setCollection($page->getCollection()->map(fn (Consultation $consultation): array => $this->row([
-            $consultation->registration_number,
+            'Konsultasi',
             $this->initials($consultation->identityName()),
             $this->historicClass($this->consultationStudent($consultation), $consultation->session_date, $year),
             $consultation->serviceField->label,
             $consultation->session_date->locale('id')->translatedFormat('d M Y'),
             $consultation->counselor->name,
-            $consultation->status->label,
-        ], 6, $this->statusTone($consultation->status->code))));
+            'Selesai',
+        ], 6, 'success')));
 
         return [
-            'columns' => ['Nomor Sesi', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
+            'columns' => ['Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Tanggal', 'Guru BK', 'Status'],
             'rows' => $page,
             'stats' => $this->stats(
                 ['Total Konsultasi', $total, 'Tanpa isi sensitif'],
-                ['Terlaksana', $completed, 'Sesi selesai'],
-                ['Terjadwal', $scheduled, 'Menunggu pelaksanaan'],
+                ['Selesai', $total, 'Setiap konsultasi tersimpan selesai'],
+                ['Status', 'Selesai', 'Tidak memiliki status terpisah'],
             ),
         ];
     }
@@ -162,7 +260,7 @@ final class CounselingReportQuery extends LegacyReportQuery
     {
         $query = Consultation::query()->accessibleTo($user)
             ->whereBetween('session_date', [$start->toDateString(), $end->toDateString()])
-            ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'serviceField', 'status', 'counselor']);
+            ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'serviceField', 'counselor']);
         $this->applyCommonServiceFilters($query, $filters);
         $this->applyHistoricClassFilter($query, $filters, $year, 'consultations.session_date', [
             'student.classMemberships',
@@ -173,7 +271,7 @@ final class CounselingReportQuery extends LegacyReportQuery
     }
 
     /** @return array{columns: list<string>, rows: Collection<int, array<string, mixed>>, stats: array<string, array<string, string>>} */
-    protected function followUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
+    protected function legacyFollowUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
     {
         $query = FollowUp::query()->whereBetween('planned_date', [$start->toDateString(), $end->toDateString()])
             ->whereHas('case', fn (Builder $cases): Builder => $cases->accessibleTo($user))
@@ -192,17 +290,16 @@ final class CounselingReportQuery extends LegacyReportQuery
             $filters,
         ));
         $rows = $items->sortByDesc('planned_date')->values()->map(fn (FollowUp $followUp): array => $this->row([
-            $followUp->case->registration_number,
             $this->initials($followUp->case->identityName()),
             $this->historicClass($this->caseStudent($followUp->case), $followUp->planned_date, $year),
             $followUp->type->label,
             $followUp->planned_date->locale('id')->translatedFormat('d M Y'),
             $followUp->execution_date?->locale('id')->translatedFormat('d M Y') ?? '—',
             $followUp->status->label,
-        ], 6, $this->statusTone($followUp->status->code)));
+        ], 5, $this->statusTone($followUp->status->code)));
 
         return [
-            'columns' => ['Nomor Kasus', 'Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal Rencana', 'Tanggal Pelaksanaan', 'Status'],
+            'columns' => ['Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal Rencana', 'Tanggal Pelaksanaan', 'Status'],
             'rows' => $rows,
             'stats' => $this->stats(
                 ['Total Tindak Lanjut', $items->count(), 'Periode terpilih'],
@@ -213,7 +310,7 @@ final class CounselingReportQuery extends LegacyReportQuery
     }
 
     /** @return array{columns: list<string>, rows: LengthAwarePaginator, stats: array<string, array<string, string>>} */
-    protected function paginatedFollowUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
+    protected function legacyPaginatedFollowUps(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): array
     {
         $query = $this->followUpReportQuery($user, $filters, $year, $start, $end);
         $total = (clone $query)->count();
@@ -221,17 +318,16 @@ final class CounselingReportQuery extends LegacyReportQuery
         $pending = (clone $query)->whereHas('status', fn (Builder $statuses): Builder => $statuses->whereNotIn('code', ['terlaksana', 'dibatalkan']))->count();
         $page = $query->latest('planned_date')->latest('id')->paginate(20)->withQueryString();
         $page->setCollection($page->getCollection()->map(fn (FollowUp $followUp): array => $this->row([
-            $followUp->case->registration_number,
             $this->initials($followUp->case->identityName()),
             $this->historicClass($this->caseStudent($followUp->case), $followUp->planned_date, $year),
             $followUp->type->label,
             $followUp->planned_date->locale('id')->translatedFormat('d M Y'),
             $followUp->execution_date?->locale('id')->translatedFormat('d M Y') ?? 'â€”',
             $followUp->status->label,
-        ], 6, $this->statusTone($followUp->status->code))));
+        ], 5, $this->statusTone($followUp->status->code))));
 
         return [
-            'columns' => ['Nomor Kasus', 'Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal Rencana', 'Tanggal Pelaksanaan', 'Status'],
+            'columns' => ['Inisial Murid', 'Kelas', 'Bentuk Tindak Lanjut', 'Tanggal Rencana', 'Tanggal Pelaksanaan', 'Status'],
             'rows' => $page,
             'stats' => $this->stats(
                 ['Total Tindak Lanjut', $total, 'Periode terpilih'],
@@ -242,7 +338,7 @@ final class CounselingReportQuery extends LegacyReportQuery
     }
 
     /** @return Builder<FollowUp> */
-    protected function followUpReportQuery(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): Builder
+    protected function legacyFollowUpReportQuery(User $user, array $filters, ?AcademicYear $year, CarbonImmutable $start, CarbonImmutable $end): Builder
     {
         $query = FollowUp::query()->whereBetween('planned_date', [$start->toDateString(), $end->toDateString()])
             ->whereHas('case', fn (Builder $cases): Builder => $cases->accessibleTo($user))
@@ -278,7 +374,7 @@ final class CounselingReportQuery extends LegacyReportQuery
         if ($this->policy->viewType($user, ReportService::TYPE_CONSULTATIONS)) {
             $consultationQuery = Consultation::query()->accessibleTo($user)
                 ->whereBetween('session_date', [$start->toDateString(), $end->toDateString()])
-                ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'serviceField', 'status', 'counselor']);
+                ->with(['student.classMemberships.classroom', 'temporaryStudent.reconciledStudent.classMemberships.classroom', 'serviceField', 'counselor']);
             $this->applyCommonServiceFilters($consultationQuery, $filters);
             $this->applyHistoricClassFilter($consultationQuery, $filters, $year, 'consultations.session_date', [
                 'student.classMemberships',
@@ -292,7 +388,6 @@ final class CounselingReportQuery extends LegacyReportQuery
             ));
         }
         $caseRows = $cases->map(fn (BkCase $case): array => $this->datedRow($case->service_date, [
-            $case->registration_number,
             'Kasus BK',
             $this->initials($case->identityName()),
             $this->historicClass($this->caseStudent($case), $case->service_date, $year),
@@ -300,21 +395,20 @@ final class CounselingReportQuery extends LegacyReportQuery
             $case->status->label,
             $case->service_date->locale('id')->translatedFormat('d M Y'),
             $case->creator->name,
-        ], 5, $this->statusTone($case->status->code)));
+        ], 4, $this->statusTone($case->status->code)));
         $consultationRows = $consultations->map(fn (Consultation $consultation): array => $this->datedRow($consultation->session_date, [
-            $consultation->registration_number,
             'Konsultasi',
             $this->initials($consultation->identityName()),
             $this->historicClass($this->consultationStudent($consultation), $consultation->session_date, $year),
             $consultation->serviceField->label,
-            $consultation->status->label,
+            'Selesai',
             $consultation->session_date->locale('id')->translatedFormat('d M Y'),
             $consultation->counselor->name,
-        ], 5, $this->statusTone($consultation->status->code)));
+        ], 4, 'success'));
         $rows = $caseRows->concat($consultationRows)->sortByDesc('sort_date')->values();
 
         return [
-            'columns' => ['Nomor', 'Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Status', 'Tanggal', 'Guru BK'],
+            'columns' => ['Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Status', 'Tanggal', 'Guru BK'],
             'rows' => $rows,
             'stats' => $this->stats(
                 ['Jumlah Layanan', $rows->count(), 'Kasus dan konsultasi umum'],
@@ -337,7 +431,6 @@ final class CounselingReportQuery extends LegacyReportQuery
         $window = $pageNumber * 20;
         $caseRows = $caseQuery->latest('service_date')->latest('id')->limit($window)->get()->map(
             fn (BkCase $case): array => $this->datedRow($case->service_date, [
-                $case->registration_number,
                 'Kasus BK',
                 $this->initials($case->identityName()),
                 $this->historicClass($this->caseStudent($case), $case->service_date, $year),
@@ -345,19 +438,18 @@ final class CounselingReportQuery extends LegacyReportQuery
                 $case->status->label,
                 $case->service_date->locale('id')->translatedFormat('d M Y'),
                 $case->creator->name,
-            ], 5, $this->statusTone($case->status->code)),
+            ], 4, $this->statusTone($case->status->code)),
         );
         $consultationRows = $consultationQuery?->latest('session_date')->latest('id')->limit($window)->get()->map(
             fn (Consultation $consultation): array => $this->datedRow($consultation->session_date, [
-                $consultation->registration_number,
                 'Konsultasi',
                 $this->initials($consultation->identityName()),
                 $this->historicClass($this->consultationStudent($consultation), $consultation->session_date, $year),
                 $consultation->serviceField->label,
-                $consultation->status->label,
+                'Selesai',
                 $consultation->session_date->locale('id')->translatedFormat('d M Y'),
                 $consultation->counselor->name,
-            ], 5, $this->statusTone($consultation->status->code)),
+            ], 4, 'success'),
         ) ?? collect();
         $rows = $caseRows->concat($consultationRows)->sortByDesc('sort_date')->values();
         $paginator = new LengthAwarePaginator(
@@ -369,7 +461,7 @@ final class CounselingReportQuery extends LegacyReportQuery
         );
 
         return [
-            'columns' => ['Nomor', 'Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Status', 'Tanggal', 'Guru BK'],
+            'columns' => ['Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Status', 'Tanggal', 'Guru BK'],
             'rows' => $paginator,
             'stats' => $this->stats(
                 ['Jumlah Layanan', $caseCount + $consultationCount, 'Kasus dan konsultasi umum'],
@@ -402,27 +494,27 @@ final class CounselingReportQuery extends LegacyReportQuery
     {
         $caseRows = $this->caseRecapQuery($user, $filters, $year, $start, $end)->latest('service_date')->latest('id')->lazy(500)->map(
             fn (BkCase $case): array => $this->datedRow($case->service_date, [
-                $case->registration_number, 'Kasus BK', $this->initials($case->identityName()),
+                'Kasus BK', $this->initials($case->identityName()),
                 $this->historicClass($this->caseStudent($case), $case->service_date, $year),
                 $case->serviceField->label, $case->status->label,
                 $case->service_date->locale('id')->translatedFormat('d M Y'), $case->creator->name,
-            ], 5, $this->statusTone($case->status->code)),
+            ], 4, $this->statusTone($case->status->code)),
         );
         $consultationRows = collect();
         if ($this->policy->viewType($user, ReportService::TYPE_CONSULTATIONS)) {
             $consultationRows = $this->consultationReportQuery($user, $filters, $year, $start, $end)->latest('session_date')->latest('id')->lazy(500)->map(
                 fn (Consultation $consultation): array => $this->datedRow($consultation->session_date, [
-                    $consultation->registration_number, 'Konsultasi', $this->initials($consultation->identityName()),
+                    'Konsultasi', $this->initials($consultation->identityName()),
                     $this->historicClass($this->consultationStudent($consultation), $consultation->session_date, $year),
-                    $consultation->serviceField->label, $consultation->status->label,
+                    $consultation->serviceField->label, 'Selesai',
                     $consultation->session_date->locale('id')->translatedFormat('d M Y'), $consultation->counselor->name,
-                ], 5, $this->statusTone($consultation->status->code)),
+                ], 4, 'success'),
             );
         }
 
         return [
             'id' => ReportService::TYPE_SERVICE_RECAP,
-            'columns' => ['Nomor', 'Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Status', 'Tanggal', 'Guru BK'],
+            'columns' => ['Jenis Layanan', 'Inisial Murid', 'Kelas', 'Bidang Layanan', 'Status', 'Tanggal', 'Guru BK'],
             'rows' => $caseRows->concat($consultationRows),
         ];
     }
@@ -432,7 +524,6 @@ final class CounselingReportQuery extends LegacyReportQuery
     {
         $query->when($filters['student_id'] ?? null, fn (Builder $builder, int $id): Builder => $builder->where('student_id', $id));
         $query->when($filters['service_field_id'] ?? null, fn (Builder $builder, int $id): Builder => $builder->where('service_field_id', $id));
-        $query->when($filters['status_id'] ?? null, fn (Builder $builder, int $id): Builder => $builder->where('status_id', $id));
         $query->when($filters['counselor_id'] ?? null, fn (Builder $builder, int $id): Builder => $builder->where('counselor_id', $id));
     }
 

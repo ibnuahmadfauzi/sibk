@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('page-title')</title>
 
@@ -18,7 +19,7 @@
     @yield('extra-css')
 </head>
 
-<body class="sibk-app-body">
+<body class="sibk-app-body" data-draft-user="{{ auth()->id() }}" @if(session()->has('success')) data-save-succeeded="true" @endif>
     <a class="sibk-skip-link" href="#main-content">Lewati ke konten utama</a>
 
     {{-- Include Sidebar Component --}}

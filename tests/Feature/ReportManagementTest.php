@@ -8,7 +8,6 @@ use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
-use App\Models\ConsultationPrivateNote;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -123,31 +122,74 @@ class ReportManagementTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_consultation_report_never_loads_private_or_general_narrative(): void
+    public function test_consultation_report_treats_each_record_as_completed_and_excludes_narrative(): void
     {
         $teacher = $this->userWithRole('guru_bk', 'Guru Konsultasi');
         [$student] = $this->scopedStudent($teacher, 'Nama Lengkap Konsultasi', '0033333333', 'X DKV 1');
         $consultation = app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
-            'topic' => 'Topik yang tidak masuk laporan',
             'session_date' => '2026-08-19',
-            'general_summary' => 'RINGKASAN-UMUM-TIDAK-DIEKSPOR',
-            'internal_note' => 'CATATAN-INTERNAL-RAHASIA',
-            'sensitive_content' => 'ISI-SENSITIF-RAHASIA',
+            'problem' => 'MASALAH-KONSULTASI-RAHASIA',
+            'handling' => 'PENANGANAN-KONSULTASI-RAHASIA',
+            'result' => 'HASIL-KONSULTASI-RAHASIA',
         ], $teacher);
-        $this->assertDatabaseHas('consultation_private_notes', ['consultation_id' => $consultation->id]);
-        $this->assertInstanceOf(ConsultationPrivateNote::class, $consultation->privateNote()->first());
 
         $this->actingAs($teacher)->get(route('reports.preview', ['type' => ReportService::TYPE_CONSULTATIONS]))
             ->assertOk()
-            ->assertSee($consultation->registration_number)
             ->assertSee('N.L.K.')
+            ->assertSee('Selesai')
             ->assertDontSee($student->name)
-            ->assertDontSee('RINGKASAN-UMUM-TIDAK-DIEKSPOR')
-            ->assertDontSee('CATATAN-INTERNAL-RAHASIA')
-            ->assertDontSee('ISI-SENSITIF-RAHASIA');
+            ->assertDontSee('MASALAH-KONSULTASI-RAHASIA')
+            ->assertDontSee('PENANGANAN-KONSULTASI-RAHASIA')
+            ->assertDontSee('HASIL-KONSULTASI-RAHASIA');
+    }
+
+    public function test_follow_up_report_uses_one_current_case_without_narrative_or_legacy_status_filter(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Tindak Lanjut');
+        [$student] = $this->scopedStudent($teacher, 'Nama Kasus Tindak Lanjut', '0034444444', 'X DKV 2');
+        $case = $this->caseFor($teacher, $student);
+        $case->update([
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
+            'initial_info' => 'NARASI-KASUS-RAHASIA',
+            'internal_note' => 'CATATAN-KASUS-RAHASIA',
+        ]);
+
+        $filters = [
+            'type' => ReportService::TYPE_FOLLOW_UPS,
+            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
+        ];
+        $report = app(ReportService::class)->build($teacher, $filters, false);
+        $export = app(ReportService::class)->exportRows($teacher, $filters);
+        $row = $report['rows']->sole();
+        $csv = collect($export['rows'])->map(fn (array $item): string => implode(',', array_column($item['cells'], 'value')))->implode("\n");
+
+        $this->assertSame('Kasus Tindak Lanjut', $report['title']);
+        $this->assertNotContains('Nomor Kasus', $report['columns']);
+        $this->assertSame('Home Visit', $row['cells'][2]['value']);
+        $this->assertSame('Tindak Lanjut', $row['cells'][4]['value']);
+        $this->assertStringNotContainsString($case->registration_number, $csv);
+        $this->assertStringNotContainsString('NARASI-KASUS-RAHASIA', $csv);
+        $this->assertStringNotContainsString('CATATAN-KASUS-RAHASIA', $csv);
+    }
+
+    public function test_non_paginated_follow_up_rows_use_id_as_same_date_tie_breaker(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Urutan Tindak Lanjut');
+        [$firstStudent] = $this->scopedStudent($teacher, 'Murid Pertama', '0034555555', 'X DKV 3');
+        [$secondStudent] = $this->scopedStudent($teacher, 'Murid Kedua', '0034666666', 'X DKV 4');
+        $followUpType = $this->reference('follow_up_type', 'home_visit')->id;
+        $status = $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id;
+        $first = $this->caseFor($teacher, $firstStudent);
+        $first->update(['follow_up_type_id' => $followUpType, 'status_id' => $status]);
+        $second = $this->caseFor($teacher, $secondStudent);
+        $second->update(['follow_up_type_id' => $followUpType, 'status_id' => $status]);
+
+        $rows = app(ReportService::class)->build($teacher, ['type' => ReportService::TYPE_FOLLOW_UPS], false)['rows'];
+
+        $this->assertSame(['M.K.', 'M.P.'], $rows->pluck('cells.0.value')->all());
     }
 
     public function test_filters_pagination_and_achievement_empty_state_are_database_driven(): void
@@ -232,21 +274,22 @@ class ReportManagementTest extends TestCase
             $consultations[] = app(ConsultationService::class)->create([
                 'student_id' => $member->id,
                 'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-                'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
-                'topic' => 'TOPIK-PRIVAT-REKAP', 'session_date' => '2026-08-19',
-                'general_summary' => 'NARASI-UMUM-REKAP', 'sensitive_content' => 'PRIVAT-KONSULTASI-REKAP',
+                'session_date' => '2026-08-19',
+                'problem' => 'MASALAH-PRIVAT-REKAP',
+                'handling' => 'PENANGANAN-PRIVAT-REKAP',
+                'result' => 'HASIL-PRIVAT-REKAP',
             ], $actor);
         }
         $query = ['type' => ReportService::TYPE_SERVICE_RECAP, 'date_start' => '2026-08-01', 'date_end' => '2026-08-20'];
         $preview = $this->actingAs($teacher)->get(route('reports.preview', $query))->assertOk();
         $csv = $this->get(route('reports.export', [...$query, 'format' => 'csv']))->assertOk()->streamedContent();
 
-        foreach ([$allowedCase->registration_number, $specialCase->registration_number, $consultations[0]->registration_number] as $allowed) {
+        foreach (['Kasus BK', 'Konsultasi'] as $allowed) {
             $preview->assertSee($allowed);
             $this->assertStringContainsString($allowed, $csv);
         }
-        foreach ([$outsideCase->registration_number, $consultations[1]->registration_number,
-            'PRIVAT-KASUS-REKAP', 'PRIVAT-KONSULTASI-REKAP', 'TOPIK-PRIVAT-REKAP', 'NARASI-UMUM-REKAP',
+        foreach ([$allowedCase->registration_number, $specialCase->registration_number, $outsideCase->registration_number,
+            'PRIVAT-KASUS-REKAP', 'MASALAH-PRIVAT-REKAP', 'PENANGANAN-PRIVAT-REKAP', 'HASIL-PRIVAT-REKAP',
             $student->name, $student->nisn, $outside->name, $outside->nisn] as $forbidden) {
             $preview->assertDontSee($forbidden);
             $this->assertStringNotContainsString($forbidden, $csv);

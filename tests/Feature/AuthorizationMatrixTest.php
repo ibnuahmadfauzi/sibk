@@ -44,7 +44,7 @@ class AuthorizationMatrixTest extends TestCase
             '/assignments/classes/manage' => 200, '/waka/reports?tab=penanganan' => 403,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
-            '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
+            '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 403,
             '/assignments/classes' => 403, '/assignments/cases' => 403,
             '/achievements' => 403, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,

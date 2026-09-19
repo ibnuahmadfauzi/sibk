@@ -8,7 +8,6 @@ use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
@@ -17,16 +16,11 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Services\AssignmentService;
-use App\Services\CaseService;
-use App\Services\FollowUpService;
 use App\Support\ServiceRecordStatus;
+use Carbon\Carbon;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Validation\ValidationException;
-use RuntimeException;
 use Tests\TestCase;
 
 class CaseManagementTest extends TestCase
@@ -39,21 +33,23 @@ class CaseManagementTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
-    public function test_teacher_creates_scoped_case_with_etatib_link_and_audit(): void
+    protected function tearDown(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $record = ExternalTatibRecord::query()->create([
-            'source_identifier' => 'tatib-1',
-            'nisn' => $student->nisn,
-            'student_id' => $student->id,
-            'occurred_at' => '2026-08-18 09:00:00',
-            'violation_type' => 'Terlambat',
-            'category' => 'Kedisiplinan',
-            'points' => 5,
-            'is_active' => true,
-            'synced_at' => now(),
-        ]);
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
 
+    public function test_etatib_case_requires_local_record_and_starts_in_progress(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher);
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload('e_tatib'),
+            'student_id' => $student->id,
+        ])->assertSessionHasErrors('etatib_record_ids');
+
+        $record = $this->etatibRecord($student);
         $response = $this->actingAs($teacher)->post(route('cases.store'), [
             ...$this->casePayload('e_tatib'),
             'student_id' => $student->id,
@@ -62,1047 +58,409 @@ class CaseManagementTest extends TestCase
 
         $case = BkCase::query()->firstOrFail();
         $response->assertRedirect(route('cases.show', $case));
-        $this->assertMatchesRegularExpression('/^K-2026-\d{4}$/', $case->registration_number);
-        $this->assertSame(ServiceRecordStatus::NEW, $case->status->code);
-        $this->assertDatabaseHas('case_assignments', [
+        $this->assertSame(ServiceRecordStatus::IN_PROGRESS, $case->status->code);
+        $this->assertDatabaseHas('case_etatib_links', [
             'case_id' => $case->id,
-            'user_id' => $teacher->id,
-            'assignment_type' => CaseAssignment::TYPE_OWNER,
+            'external_tatib_record_id' => $record->id,
         ]);
-        $this->assertDatabaseHas('case_etatib_links', ['case_id' => $case->id, 'external_tatib_record_id' => $record->id]);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.created', 'auditable_id' => $case->id]);
     }
 
-    public function test_case_create_form_renders_required_service_field_options(): void
+    public function test_manual_exact_nisn_uses_official_student_without_overwriting_name(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-
-        $this->actingAs($teacher)
-            ->get(route('cases.create', ['student_id' => $student->id]))
-            ->assertOk()
-            ->assertSee('name="service_field_id"', false)
-            ->assertSee('Bidang Layanan')
-            ->assertSee('Pribadi');
-    }
-
-    public function test_dual_role_teacher_only_sees_and_links_etatib_for_students_in_teacher_scope(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $teacher->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
-        $outsideStudent = Student::query()->create([
-            'nisn' => '0099999999',
-            'name' => 'Murid Di Luar Scope',
-            'is_active' => true,
-        ]);
-        $scopedRecord = $this->etatibRecord($student, 'ET-SCOPE', 'Pelanggaran Dalam Scope');
-        $outsideRecord = ExternalTatibRecord::query()->create([
-            'source_identifier' => 'ET-FORGED',
-            'nisn' => $student->nisn,
-            'student_id' => $outsideStudent->id,
-            'occurred_at' => '2026-08-18 10:00:00',
-            'violation_type' => 'Pelanggaran Di Luar Scope',
-            'category' => 'Kedisiplinan',
-            'points' => 10,
-            'is_active' => true,
-            'synced_at' => now(),
-        ]);
-
-        $this->actingAs($teacher)->get(route('cases.create'))
-            ->assertOk()
-            ->assertSee($scopedRecord->violation_type)
-            ->assertDontSee($outsideRecord->violation_type);
-
-        $this->actingAs($teacher)
-            ->from(route('cases.create'))
-            ->post(route('cases.store'), [
-                ...$this->casePayload('e_tatib'),
-                'student_id' => $student->id,
-                'etatib_record_ids' => [$outsideRecord->id],
-            ])
-            ->assertSessionHasErrors('etatib_record_ids.0');
-
-        try {
-            app(CaseService::class)->createCase([
-                ...$this->casePayload('e_tatib'),
-                'student_id' => $student->id,
-                'etatib_record_ids' => [$outsideRecord->id],
-            ], $teacher);
-            $this->fail('Service menerima ID e-Tatib hasil forge dari murid di luar scope.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('etatib_record_ids', $exception->errors());
-        }
-
-        $this->assertDatabaseCount('cases', 0);
-    }
-
-    public function test_temporary_identity_only_links_active_unmapped_etatib_with_exact_nisn(): void
-    {
-        [$teacher] = $this->teacherAndScopedStudent();
-        $mappedStudent = Student::query()->create([
-            'nisn' => '0077777777',
-            'name' => 'Murid Master Lain',
-            'is_active' => true,
-        ]);
-        $mappedRecord = ExternalTatibRecord::query()->create([
-            'source_identifier' => 'ET-MAPPED',
-            'nisn' => '0088888888',
-            'student_id' => $mappedStudent->id,
-            'occurred_at' => '2026-08-18 10:00:00',
-            'violation_type' => 'Record Sudah Dipetakan',
-            'category' => 'Kedisiplinan',
-            'points' => 10,
-            'is_active' => true,
-            'synced_at' => now(),
-        ]);
-
-        $this->actingAs($teacher)
-            ->from(route('cases.create'))
-            ->post(route('cases.store'), [
-                ...$this->casePayload('e_tatib'),
-                'temporary_nisn' => '0088888888',
-                'temporary_name' => 'Identitas Sementara',
-                'etatib_record_ids' => [$mappedRecord->id],
-            ])
-            ->assertSessionHasErrors('etatib_record_ids.0');
-
-        try {
-            app(CaseService::class)->createCase([
-                ...$this->casePayload('e_tatib'),
-                'temporary_nisn' => '0088888888',
-                'temporary_name' => 'Identitas Sementara',
-                'etatib_record_ids' => [$mappedRecord->id],
-            ], $teacher);
-            $this->fail('Service menerima record e-Tatib yang sudah dipetakan melalui identitas sementara.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('etatib_record_ids', $exception->errors());
-        }
-
-        $unmappedRecord = ExternalTatibRecord::query()->create([
-            'source_identifier' => 'ET-UNMAPPED',
-            'nisn' => '0088888888',
-            'student_id' => null,
-            'occurred_at' => '2026-08-18 11:00:00',
-            'violation_type' => 'Record Belum Dipetakan',
-            'category' => 'Kedisiplinan',
-            'points' => 5,
-            'is_active' => true,
-            'synced_at' => now(),
-        ]);
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Nama Resmi', '0012345678');
 
         $this->actingAs($teacher)->post(route('cases.store'), [
-            ...$this->casePayload('e_tatib'),
-            'temporary_nisn' => '0088888888',
-            'temporary_name' => 'Identitas Sementara',
-            'etatib_record_ids' => [$unmappedRecord->id],
+            ...$this->casePayload(),
+            'temporary_nisn' => $student->nisn,
+            'temporary_name' => 'Nama Ketikan Berbeda',
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('case_etatib_links', [
-            'external_tatib_record_id' => $unmappedRecord->id,
-        ]);
-        $this->assertDatabaseCount('cases', 1);
-    }
-
-    public function test_unmapped_etatib_is_only_rendered_for_an_exact_valid_nisn_filter(): void
-    {
-        [$teacher] = $this->teacherAndScopedStudent();
-        $matching = $this->unmappedEtatibRecord('ET-FILTER-MATCH', '0088888888', 'Filter Cocok');
-        $other = $this->unmappedEtatibRecord('ET-FILTER-OTHER', '0077777777', 'Filter NISN Lain');
-        $inactive = $this->unmappedEtatibRecord('ET-FILTER-INACTIVE', '0088888888', 'Filter Tidak Aktif', false);
-
-        $this->actingAs($teacher)->get(route('cases.create'))
-            ->assertOk()
-            ->assertDontSee($matching->violation_type)
-            ->assertDontSee($other->violation_type)
-            ->assertDontSee($inactive->violation_type);
-
-        $this->actingAs($teacher)->get(route('cases.create', ['temporary_nisn' => '0088888888']))
-            ->assertOk()
-            ->assertSee($matching->violation_type)
-            ->assertDontSee($other->violation_type)
-            ->assertDontSee($inactive->violation_type)
-            ->assertSee('value="0088888888"', false);
-
-        $this->actingAs($teacher)->get(route('cases.create', ['temporary_nisn' => '0088x']))
-            ->assertOk()
-            ->assertDontSee($matching->violation_type)
-            ->assertDontSee('value="0088x"', false);
-    }
-
-    public function test_case_form_caps_rendered_etatib_candidates(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-
-        for ($index = 0; $index <= 200; $index++) {
-            $this->etatibRecord(
-                $student,
-                sprintf('ET-CAP-%03d', $index),
-                sprintf('Pelanggaran Cap %03d', $index),
-            );
-        }
-
-        $response = $this->actingAs($teacher)->get(route('cases.create'));
-
-        $response->assertOk()
-            ->assertSee('Pelanggaran Cap 200')
-            ->assertDontSee('Pelanggaran Cap 000')
-            ->assertSee('Daftar data e-Tatib dibatasi');
-        $this->assertSame(200, substr_count($response->getContent(), 'name="etatib_record_ids[]"'));
-    }
-
-    public function test_inactive_master_student_is_rejected_by_http_and_case_service(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $student->update(['is_active' => false]);
-        $payload = [...$this->casePayload(), 'student_id' => $student->id];
-
-        $this->actingAs($teacher)
-            ->from(route('cases.create'))
-            ->post(route('cases.store'), $payload)
-            ->assertSessionHasErrors('student_id');
-
-        try {
-            app(CaseService::class)->createCase($payload, $teacher);
-            $this->fail('Service menerima murid master yang tidak aktif.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('student_id', $exception->errors());
-        }
-
-        $this->assertDatabaseCount('cases', 0);
-    }
-
-    public function test_temporary_identity_rejects_wrong_nisn_and_inactive_unmapped_rows_at_both_boundaries(): void
-    {
-        [$teacher] = $this->teacherAndScopedStudent();
-        $wrongNisn = $this->unmappedEtatibRecord('ET-WRONG-NISN', '0077777777', 'NISN Tidak Cocok');
-        $inactive = $this->unmappedEtatibRecord('ET-INACTIVE', '0088888888', 'Record Tidak Aktif', false);
-
-        foreach ([$wrongNisn, $inactive] as $record) {
-            $payload = [
-                ...$this->casePayload('e_tatib'),
-                'temporary_nisn' => '0088888888',
-                'temporary_name' => 'Identitas Sementara',
-                'etatib_record_ids' => [$record->id],
-            ];
-
-            $this->actingAs($teacher)
-                ->from(route('cases.create'))
-                ->post(route('cases.store'), $payload)
-                ->assertSessionHasErrors('etatib_record_ids.0');
-
-            try {
-                app(CaseService::class)->createCase($payload, $teacher);
-                $this->fail('Service menerima record e-Tatib sementara yang tidak aktif atau berbeda NISN.');
-            } catch (ValidationException $exception) {
-                $this->assertArrayHasKey('etatib_record_ids', $exception->errors());
-            }
-        }
-
-        $this->assertDatabaseCount('cases', 0);
-    }
-
-    public function test_case_identity_and_scope_invariants_are_enforced(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $outside = Student::query()->create(['nisn' => '0099999999', 'name' => 'Murid Luar', 'is_active' => true]);
-
-        $this->actingAs($teacher)
-            ->from(route('cases.create'))
-            ->post(route('cases.store'), [...$this->casePayload(), 'student_id' => $outside->id])
-            ->assertSessionHasErrors('student_id');
-
-        $this->actingAs($teacher)
-            ->from(route('cases.create'))
-            ->post(route('cases.store'), [
-                ...$this->casePayload(),
-                'temporary_nisn' => $student->nisn,
-                'temporary_name' => 'Nama Duplikat',
-            ])
-            ->assertSessionHasErrors('temporary_nisn');
-
-        $this->actingAs($teacher)
-            ->post(route('cases.store'), [
-                ...$this->casePayload(),
-                'temporary_nisn' => '0088888888',
-                'temporary_name' => 'Identitas Sementara',
-            ])
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('temporary_students', ['nisn' => '0088888888', 'input_name' => 'Identitas Sementara']);
-        $this->assertDatabaseCount('cases', 1);
-    }
-
-    public function test_object_policy_redacts_internal_notes_and_waka_access_is_audited(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $waka = $this->userWithRole('waka_kesiswaan');
-        $admin = $this->userWithRole('admin_it');
-        $case = $this->createCase($teacher, $student, 'CATATAN-RAHASIA');
-        $case->update(['waka_summary' => 'RINGKASAN-AMAN-WAKA']);
-        $etatib = $this->etatibRecord($student, 'ET-WAKA-RAHASIA', 'PELANGGARAN-RAHASIA-WAKA');
-        $case->etatibRecords()->attach($etatib->id, ['linked_by' => $teacher->id]);
-
-        $coordination = app(CaseService::class)->coordinate($case, [
-            'waka_user_id' => $waka->id,
-            'result' => 'Waka dan Guru BK menyepakati pemantauan kehadiran selama dua pekan.',
-        ], $teacher);
-
-        $this->actingAs($teacher)->get(route('cases.show', $case))->assertOk()->assertSee('CATATAN-RAHASIA');
-        $this->actingAs($coordinator)->get(route('cases.show', $case))->assertOk()->assertDontSee('CATATAN-RAHASIA');
-        $this->actingAs($waka)->get(route('cases.show', $case))
-            ->assertOk()
-            ->assertSee('Detail penanganan terkoordinasi')
-            ->assertSee('RINGKASAN-AMAN-WAKA')
-            ->assertDontSee('Informasi awal layanan.')
-            ->assertDontSee('Asesmen awal.')
-            ->assertDontSee('CATATAN-RAHASIA')
-            ->assertDontSee('PELANGGARAN-RAHASIA-WAKA')
-            ->assertDontSee('Waka dan Guru BK menyepakati pemantauan kehadiran selama dua pekan.')
-            ->assertDontSee($case->registration_number)
-            ->assertDontSee($student->nisn)
-            ->assertDontSee('Tambah Tindak Lanjut');
-        $this->actingAs($admin)->get(route('cases.show', $case))->assertForbidden();
-        $this->actingAs($admin)->get(route('cases.index'))->assertForbidden();
-        $this->actingAs($waka)->patch(route('cases.coordinations.update', [$case, $coordination]), [
-            'status_id' => $this->reference('coordination_status', 'selesai')->id,
-            'result' => 'Waka tidak boleh menulis hasil.',
-        ])->assertForbidden();
-
-        $this->assertSame('selesai', $coordination->status->code);
-        $this->assertSame('Waka dan Guru BK menyepakati pemantauan kehadiran selama dua pekan.', $coordination->result);
-        $this->actingAs($teacher)->get(route('cases.show', $case))
-            ->assertOk()
-            ->assertSee($coordination->result)
-            ->assertDontSee('Pilih status akhir')
-            ->assertDontSee('Perbarui');
-
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'case.viewed_by_waka',
-            'actor_id' => $waka->id,
-            'auditable_id' => $case->id,
-        ]);
-    }
-
-    public function test_follow_up_direct_urls_reject_a_child_from_another_case(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
-        $otherCase = $this->createCase($teacher, $student);
-        $otherCase->update(['waka_summary' => 'Tindak lanjut dijadwalkan.']);
-        $payload = [
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-21', 'next_plan' => 'MARKER-TINDAK-LANJUT-LAIN',
-        ];
-        $followUp = app(FollowUpService::class)->record($otherCase, $payload, $teacher);
-
-        $this->actingAs($teacher)->get(route('cases.follow-ups.edit', [$otherCase, $followUp]))->assertOk();
-        $this->get(route('cases.follow-ups.edit', [$case, $followUp]))
-            ->assertNotFound()->assertDontSee('MARKER-TINDAK-LANJUT-LAIN');
-        $this->patch(route('cases.follow-ups.update', [$case, $followUp]), [
-            ...$payload, 'next_plan' => 'MUTASI-DITOLAK',
-        ])->assertNotFound();
-        $this->assertDatabaseHas('follow_ups', [
-            'id' => $followUp->id, 'case_id' => $otherCase->id, 'next_plan' => 'MARKER-TINDAK-LANJUT-LAIN',
-        ]);
-    }
-
-    public function test_waka_cannot_create_coordination_even_for_a_coordinated_case(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
-        $waka = $this->userWithRole('waka_kesiswaan');
-        $otherWaka = $this->userWithRole('waka_kesiswaan');
-        app(CaseService::class)->coordinate($case, ['waka_user_id' => $waka->id, 'result' => 'Pemantauan disepakati.'], $teacher);
-        $before = CaseCoordination::query()->count();
-
-        $this->actingAs($waka)->get(route('cases.show', $case))->assertOk();
-        $this->actingAs($otherWaka)->get(route('cases.show', $case))->assertForbidden();
-        $this->actingAs($waka)->post(route('cases.coordinations.store', $case), [
-            'waka_user_id' => $otherWaka->id, 'coordination_need' => 'MUTASI-DITOLAK',
-        ])->assertForbidden();
-        $this->assertSame($before, CaseCoordination::query()->count());
-        $this->assertDatabaseMissing('case_coordinations', ['coordination_need' => 'MUTASI-DITOLAK']);
-    }
-
-    public function test_first_follow_up_starts_handling_and_successor_cannot_edit_old_note(): void
-    {
-        [$firstTeacher, $student] = $this->teacherAndScopedStudent();
-        $secondTeacher = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($firstTeacher, $student);
-        $case->update(['waka_summary' => 'Asesmen awal telah dilakukan dan tindak lanjut dijadwalkan.']);
-        $type = $this->reference('follow_up_type', 'konsultasi_individual');
-        $scheduled = $this->reference('follow_up_status', 'terjadwal');
-        $executed = $this->reference('follow_up_status', 'terlaksana');
-
-        try {
-            app(FollowUpService::class)->record($case, [
-                'follow_up_type_id' => $type->id,
-                'status_id' => $executed->id,
-                'planned_date' => '2026-08-19',
-            ], $firstTeacher);
-            $this->fail('Validasi kondisional tindak lanjut tidak dijalankan.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('execution_date', $exception->errors());
-            $this->assertArrayHasKey('result', $exception->errors());
-        }
-
-        $followUp = app(FollowUpService::class)->record($case, [
-            'follow_up_type_id' => $type->id,
-            'status_id' => $scheduled->id,
-            'planned_date' => '2026-08-19',
-            'next_plan' => 'Pertemuan berikutnya.',
-        ], $firstTeacher);
-
-        $this->assertSame(ServiceRecordStatus::IN_PROGRESS, $case->refresh()->status->code);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.handling_started', 'auditable_id' => $case->id]);
-
-        app(AssignmentService::class)->assignCase($case, [
-            'assignment_type' => 'transfer',
-            'to_user_id' => $secondTeacher->id,
-            'reason' => 'Penyesuaian beban layanan.',
-            'effective_date' => '2026-08-20',
-        ], $coordinator);
-
-        $this->actingAs($secondTeacher)
-            ->from(route('cases.show', $case))
-            ->patch(route('cases.follow-ups.update', [$case, $followUp]), [
-                'follow_up_type_id' => $type->id,
-                'status_id' => $scheduled->id,
-                'planned_date' => '2026-08-20',
-            ])
-            ->assertSessionHasErrors('follow_up');
-    }
-
-    public function test_transfer_keeps_legacy_additional_history_but_only_owner_can_mutate(): void
-    {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $successor = $this->userWithRole('guru_bk');
-        $additional = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($owner, $student);
-        $service = app(AssignmentService::class);
-
-        try {
-            $service->assignCase($case, [
-                'assignment_type' => 'additional',
-                'to_user_id' => $additional->id,
-                'reason' => 'Pendampingan khusus.',
-                'effective_date' => '2026-08-19',
-            ], $coordinator);
-            $this->fail('Assignment tambahan baru seharusnya ditolak.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('assignment_type', $exception->errors());
-        }
-
-        $extra = CaseAssignment::query()->create([
-            'case_id' => $case->id,
-            'user_id' => $additional->id,
-            'assignment_type' => CaseAssignment::TYPE_ADDITIONAL,
-            'effective_from' => '2026-08-19',
-            'reason' => 'Histori kewenangan tambahan lama.',
-            'assigned_by' => $coordinator->id,
-        ]);
-
-        $this->assertTrue($case->hasActiveAssignmentFor($additional));
-        $this->assertFalse($case->hasActiveOwnerFor($additional));
-        $this->assertFalse($additional->can('update', $case));
-        $this->assertSame($owner->id, $case->activeOwnerAssignment()?->user_id);
-
-        $transfer = $service->assignCase($case, [
-            'assignment_type' => 'transfer',
-            'to_user_id' => $successor->id,
-            'reason' => 'Pengalihan eksplisit.',
-            'effective_date' => '2026-08-20',
-        ], $coordinator);
-
-        $oldOwner = CaseAssignment::query()->where('case_id', $case->id)->where('user_id', $owner->id)->firstOrFail();
-        $this->assertSame('2026-08-19', $oldOwner->effective_until?->toDateString());
-        $this->assertSame(CaseAssignment::TYPE_ADDITIONAL, $extra->assignment_type);
-        $this->assertNull($extra->effective_until);
-        $this->assertSame(CaseAssignment::TYPE_OWNER, $transfer->assignment_type);
-        $this->assertSame($successor->id, $case->activeOwnerAssignment()?->user_id);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.transferred', 'auditable_id' => $case->id]);
-        $this->assertDatabaseCount('case_assignments', 3);
-    }
-
-    public function test_transfer_rejects_overlapping_active_owners(): void
-    {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $duplicateOwner = $this->userWithRole('guru_bk');
-        $successor = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($owner, $student);
-        CaseAssignment::query()->create([
-            'case_id' => $case->id,
-            'user_id' => $duplicateOwner->id,
-            'assignment_type' => CaseAssignment::TYPE_OWNER,
-            'effective_from' => '2026-08-10',
-            'reason' => 'Data tumpang tindih untuk pengujian.',
-            'assigned_by' => $coordinator->id,
-        ]);
-
-        try {
-            app(AssignmentService::class)->assignCase($case, [
-                'assignment_type' => 'transfer',
-                'to_user_id' => $successor->id,
-                'reason' => 'Pengalihan harus ditolak.',
-                'effective_date' => '2026-08-20',
-            ], $coordinator);
-            $this->fail('Pengalihan dengan owner aktif tumpang tindih seharusnya ditolak.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('effective_date', $exception->errors());
-        }
-
-        $this->assertDatabaseCount('case_assignments', 2);
-        $this->assertDatabaseMissing('case_assignments', [
-            'case_id' => $case->id,
-            'user_id' => $successor->id,
-        ]);
-    }
-
-    public function test_transfer_rolls_back_when_new_owner_creation_fails(): void
-    {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $successor = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($owner, $student);
-        $ownerAssignment = $case->activeOwnerAssignment();
-        $event = 'eloquent.creating: '.CaseAssignment::class;
-
-        Event::listen($event, static function (CaseAssignment $assignment) use ($successor): void {
-            if ($assignment->user_id === $successor->id) {
-                throw new RuntimeException('Simulasi kegagalan pembuatan owner baru.');
-            }
-        });
-
-        try {
-            app(AssignmentService::class)->assignCase($case, [
-                'assignment_type' => 'transfer',
-                'to_user_id' => $successor->id,
-                'reason' => 'Pengalihan dengan kegagalan parsial.',
-                'effective_date' => '2026-08-20',
-            ], $coordinator);
-            $this->fail('Kegagalan pembuatan owner baru seharusnya diteruskan.');
-        } catch (RuntimeException $exception) {
-            $this->assertSame('Simulasi kegagalan pembuatan owner baru.', $exception->getMessage());
-        } finally {
-            Event::forget($event);
-        }
-
-        $this->assertNull($ownerAssignment?->refresh()->effective_until);
-        $this->assertDatabaseCount('case_assignments', 1);
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'case_assignment.closed']);
-    }
-
-    public function test_academic_year_rollover_does_not_transfer_active_case_ownership_automatically(): void
-    {
-        $this->travelTo('2026-08-20 08:00:00');
-        [$oldTeacher, $student] = $this->teacherAndScopedStudent();
-        $newTeacher = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($oldTeacher, $student, 'Catatan tetap milik penanggung jawab kasus.');
-        $newYear = AcademicYear::query()->create([
-            'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
-            'is_active' => true,
-        ]);
-        $newClass = Classroom::query()->create([
-            'academic_year_id' => $newYear->id,
-            'name' => 'XI RPL 1',
-            'is_active' => true,
-        ]);
-        StudentClassMembership::query()->create([
-            'student_id' => $student->id,
-            'classroom_id' => $newClass->id,
-            'academic_year_id' => $newYear->id,
-            'effective_from' => '2027-07-01',
-            'is_active' => true,
-        ]);
-        TeacherAssignment::query()->create([
-            'user_id' => $newTeacher->id,
-            'classroom_id' => $newClass->id,
-            'academic_year_id' => $newYear->id,
-            'effective_from' => '2027-07-01',
-            'decision_number' => 'SK-GURU-BK-2027',
-            'assigned_by' => $coordinator->id,
-        ]);
-
-        $this->travelTo('2027-07-01 08:00:00');
-
-        $this->assertTrue($oldTeacher->can('update', $case));
-        $this->assertTrue($newTeacher->can('view', $case));
-        $this->assertFalse($newTeacher->can('update', $case));
-        $this->assertDatabaseCount('case_assignments', 1);
-
-        app(AssignmentService::class)->assignCase($case, [
-            'assignment_type' => 'transfer',
-            'to_user_id' => $newTeacher->id,
-            'reason' => 'Alih tanggung jawab setelah pergantian tahun ajaran.',
-            'effective_date' => '2027-07-01',
-        ], $coordinator);
-
-        $this->assertFalse($oldTeacher->can('update', $case));
-        $this->assertTrue($newTeacher->can('update', $case));
-        $this->assertDatabaseHas('case_assignments', [
-            'case_id' => $case->id,
-            'user_id' => $oldTeacher->id,
-            'effective_until' => '2027-06-30 00:00:00',
-        ]);
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'case.transferred',
-            'auditable_id' => $case->id,
-        ]);
-        $this->assertDatabaseCount('case_assignments', 2);
-    }
-
-    public function test_resolution_keeps_history_and_blocks_further_mutation_or_transfer(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $otherTeacher = $this->userWithRole('guru_bk');
-        $case = $this->createCase($teacher, $student);
-
-        $this->actingAs($teacher)->post(route('cases.resolve', $case), [
-            'closed_at' => '2026-08-20',
-            'final_result' => 'Tujuan layanan tercapai.',
-            'resolution_summary' => 'Kasus ditutup setelah asesmen dan tindak lanjut.',
-            'continued_plan' => 'Pemantauan berkala.',
-            'waka_summary' => 'Penanganan selesai dan dilanjutkan dengan pemantauan berkala.',
-        ])->assertRedirect(route('cases.show', $case));
-
-        $case->refresh();
-        $this->assertSame(ServiceRecordStatus::COMPLETED, $case->status->code);
-        $this->assertNotNull($case->closed_at);
-        $this->actingAs($teacher)->get(route('cases.show', $case))->assertOk()->assertSee('Tujuan layanan tercapai.');
-        $this->actingAs($teacher)->get(route('cases.follow-ups.create', $case))->assertForbidden();
-        $this->actingAs($coordinator)->post(route('cases.assign', $case), [
-            'assignment_type' => 'transfer',
-            'to_user_id' => $otherTeacher->id,
-            'reason' => 'Tidak boleh terjadi.',
-            'effective_date' => '2026-08-20',
-        ])->assertForbidden();
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.resolved', 'auditable_id' => $case->id]);
-    }
-
-    public function test_case_cannot_leave_new_status_without_waka_summary(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
-        $type = $this->reference('follow_up_type', 'konsultasi_individual');
-        $scheduled = $this->reference('follow_up_status', 'terjadwal');
-
-        try {
-            app(FollowUpService::class)->record($case, [
-                'follow_up_type_id' => $type->id,
-                'status_id' => $scheduled->id,
-                'planned_date' => '2026-08-20',
-            ], $teacher);
-            $this->fail('Tindak lanjut pertama seharusnya ditolak tanpa ringkasan untuk Waka.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('waka_summary', $exception->errors());
-        }
-
-        $this->actingAs($teacher)
-            ->from(route('cases.resolve.form', $case))
-            ->post(route('cases.resolve', $case), [
-                'closed_at' => '2026-08-20',
-                'final_result' => 'Kasus selesai.',
-                'resolution_summary' => 'Ringkasan penyelesaian.',
-                'waka_summary' => '',
-            ])
-            ->assertSessionHasErrors('waka_summary');
-
-        $this->assertSame(ServiceRecordStatus::NEW, $case->refresh()->status->code);
-        $this->assertDatabaseCount('follow_ups', 0);
-    }
-
-    public function test_resolution_persists_final_waka_summary(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
-
-        $this->actingAs($teacher)->post(route('cases.resolve', $case), [
-            'closed_at' => '2026-08-20',
-            'final_result' => 'Tujuan layanan tercapai.',
-            'resolution_summary' => 'Kasus ditutup setelah asesmen.',
-            'waka_summary' => 'Asesmen dan intervensi awal selesai; kondisi murid stabil.',
-        ])->assertRedirect(route('cases.show', $case));
-
-        $this->assertSame('Asesmen dan intervensi awal selesai; kondisi murid stabil.', $case->refresh()->waka_summary);
-    }
-
-    public function test_active_owner_can_edit_safe_case_fields_without_changing_identity(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $otherStudent = Student::query()->create([
-            'nisn' => '0099999999',
-            'name' => 'Murid Lain',
-            'is_active' => true,
-        ]);
-        $case = $this->createCase($teacher, $student);
-        $newSource = $this->reference('case_source', 'rujukan');
-        $newField = $this->reference('service_field', 'sosial');
-        $inProgress = $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS);
-
-        $this->actingAs($teacher)->get(route('cases.edit', $case))
-            ->assertOk()
-            ->assertSee('Ubah Kasus')
-            ->assertSee($case->identityName())
-            ->assertDontSee('name="student_id"', false)
-            ->assertDontSee('name="temporary_student_id"', false)
-            ->assertDontSee('name="registration_number"', false);
-
-        $this->actingAs($teacher)->patch(route('cases.update', $case), [
-            'case_source_id' => $newSource->id,
-            'service_field_id' => $newField->id,
-            'status_id' => $inProgress->id,
-            'service_date' => '2026-08-02',
-            'referrer' => 'Wali kelas',
-            'initial_info' => 'Informasi awal diperbarui.',
-            'initial_action' => 'Penanganan awal diperbarui.',
-            'internal_note' => 'Catatan profesional diperbarui.',
-            'waka_summary' => 'Guru BK melakukan asesmen awal dan menyusun tindak lanjut.',
-            'student_id' => $otherStudent->id,
-            'temporary_student_id' => 999,
-            'registration_number' => 'K-FORGED',
-            'created_by' => $otherStudent->id,
-        ])->assertRedirect(route('cases.show', $case));
-
-        $case->refresh();
+        $case = BkCase::query()->firstOrFail();
         $this->assertSame($student->id, $case->student_id);
         $this->assertNull($case->temporary_student_id);
-        $this->assertMatchesRegularExpression('/^K-2026-\d{4}$/', $case->registration_number);
-        $this->assertSame($teacher->id, $case->created_by);
-        $this->assertSame($newSource->id, $case->case_source_id);
-        $this->assertSame($newField->id, $case->service_field_id);
-        $this->assertSame($inProgress->id, $case->status_id);
-        $this->assertSame('2026-08-02', $case->service_date->toDateString());
-        $this->assertSame('Guru BK melakukan asesmen awal dan menyusun tindak lanjut.', $case->waka_summary);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.updated', 'auditable_id' => $case->id]);
+        $this->assertSame('Nama Resmi', $student->refresh()->name);
     }
 
-    public function test_new_case_allows_empty_waka_summary_but_later_status_requires_it(): void
+    public function test_manual_unknown_nisn_creates_temporary_identity(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
-        $new = $this->reference('case_status', ServiceRecordStatus::NEW);
-        $inProgress = $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS);
+        $teacher = $this->userWithRole('guru_bk');
+        $this->scopedStudent($teacher);
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload(),
+            'temporary_nisn' => '0099999999',
+            'temporary_name' => 'Murid Belum Sinkron',
+        ])->assertRedirect();
+
+        $case = BkCase::query()->firstOrFail();
+        $this->assertNull($case->student_id);
+        $this->assertSame('Murid Belum Sinkron', $case->temporaryStudent?->input_name);
+    }
+
+    public function test_complete_requires_summary_and_uses_server_date(): void
+    {
+        Carbon::setTestNow('2026-09-17 08:30:00');
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
 
         $this->actingAs($teacher)->patch(route('cases.update', $case), [
-            ...$this->caseUpdatePayload($case),
-            'status_id' => $new->id,
-            'waka_summary' => '',
-        ])->assertRedirect(route('cases.show', $case));
-        $this->assertNull($case->refresh()->waka_summary);
+            ...$this->updatePayload($case),
+            'action' => 'complete',
+            'resolution_summary' => '',
+        ])->assertSessionHasErrors('resolution_summary');
 
-        $this->actingAs($teacher)
-            ->from(route('cases.edit', $case))
-            ->patch(route('cases.update', $case), [
-                ...$this->caseUpdatePayload($case),
-                'status_id' => $inProgress->id,
-                'waka_summary' => '',
-            ])
-            ->assertSessionHasErrors('waka_summary');
-
-        try {
-            app(CaseService::class)->update($case, [
-                ...$this->caseUpdatePayload($case),
-                'status_id' => $inProgress->id,
-                'waka_summary' => null,
-            ], $teacher);
-            $this->fail('Service menerima kasus berjalan tanpa ringkasan untuk Waka.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('waka_summary', $exception->errors());
-        }
-
-        $this->actingAs($teacher)
-            ->from(route('cases.edit', $case))
-            ->patch(route('cases.update', $case), [
-                ...$this->caseUpdatePayload($case),
-                'status_id' => $inProgress->id,
-                'waka_summary' => str_repeat('A', 501),
-            ])
-            ->assertSessionHasErrors('waka_summary');
-    }
-
-    public function test_case_edit_preserves_etatib_source_link_invariant(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($teacher, $student);
-        $payload = [
-            ...$this->caseUpdatePayload($case),
-            'case_source_id' => $this->reference('case_source', 'e_tatib')->id,
-        ];
-
-        $this->actingAs($teacher)
-            ->from(route('cases.edit', $case))
-            ->patch(route('cases.update', $case), $payload)
-            ->assertSessionHasErrors('case_source_id');
-
-        try {
-            app(CaseService::class)->update($case, $payload, $teacher);
-            $this->fail('Service menerima sumber e-Tatib tanpa record resmi tertaut.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('case_source_id', $exception->errors());
-        }
-
-        $this->assertSame('temuan_guru_bk', $case->refresh()->source->code);
-    }
-
-    public function test_additional_assignment_cannot_open_or_submit_case_edit(): void
-    {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $additional = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($owner, $student);
-        CaseAssignment::query()->create([
-            'case_id' => $case->id,
-            'user_id' => $additional->id,
-            'assignment_type' => CaseAssignment::TYPE_ADDITIONAL,
-            'effective_from' => '2026-08-01',
-            'reason' => 'Histori kewenangan tambahan lama.',
-            'assigned_by' => $coordinator->id,
-        ]);
-
-        $this->actingAs($additional)->get(route('cases.edit', $case))->assertForbidden();
-        $this->actingAs($additional)->patch(route('cases.update', $case), $this->caseUpdatePayload($case))->assertForbidden();
-
-        try {
-            app(CaseService::class)->update($case, $this->caseUpdatePayload($case), $additional);
-            $this->fail('Service menerima perubahan dari assignment tambahan.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('case', $exception->errors());
-        }
-
-        try {
-            app(CaseService::class)->coordinate($case, [
-                'waka_user_id' => $this->userWithRole('waka_kesiswaan')->id,
-                'result' => 'Hasil koordinasi tidak sah.',
-            ], $additional);
-            $this->fail('Service menerima koordinasi dari assignment tambahan.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('case', $exception->errors());
-        }
-    }
-
-    public function test_completed_case_owner_can_edit_with_reason_but_cannot_change_terminal_state(): void
-    {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($owner, $student);
-        $this->actingAs($owner)->post(route('cases.resolve', $case), [
-            'closed_at' => '2026-08-20',
-            'final_result' => 'Tujuan layanan tercapai.',
-            'resolution_summary' => 'Kasus ditutup setelah tindak lanjut.',
-            'continued_plan' => 'Pemantauan berkala.',
-            'waka_summary' => 'Penanganan selesai dengan pemantauan berkala.',
-        ])->assertRedirect(route('cases.show', $case));
-        $case->refresh();
-
-        $this->actingAs($owner)->get(route('cases.edit', $case))
-            ->assertOk()
-            ->assertSee('Data ini telah dinyatakan selesai. Apakah Anda setuju melanjutkan pengeditan?')
-            ->assertDontSee('name="change_reason"', false);
-        $this->actingAs($owner)->get(route('cases.edit', [$case, 'confirm_terminal' => 1]))
-            ->assertOk()
-            ->assertSee('name="change_reason"', false)
-            ->assertSee('type="hidden" name="status_id"', false);
-        $this->actingAs($owner)->patch(route('cases.update', $case), [
-            ...$this->caseUpdatePayload($case),
-            'service_date' => '2026-08-21',
-            'change_reason' => 'Menguji penjagaan urutan tanggal layanan.',
-        ])->assertSessionHasErrors('service_date');
-
-        $this->actingAs($owner)->patch(route('cases.update', $case), [
-            ...$this->caseUpdatePayload($case),
-            'initial_action' => 'Penanganan diperjelas setelah penutupan.',
-            'status_id' => $case->status_id,
-            'change_reason' => 'Memperbaiki ringkasan berdasarkan catatan sesi resmi.',
+        $this->actingAs($teacher)->patch(route('cases.update', $case), [
+            ...$this->updatePayload($case),
+            'action' => 'complete',
+            'resolution_summary' => 'Murid menyepakati langkah penyelesaian.',
+            'closed_at' => '1999-01-01',
         ])->assertRedirect(route('cases.show', $case));
 
         $case->refresh();
         $this->assertSame(ServiceRecordStatus::COMPLETED, $case->status->code);
-        $this->assertNotNull($case->closed_at);
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'case.completed_record_updated',
-            'auditable_type' => BkCase::class,
-            'auditable_id' => $case->id,
-        ]);
-        $audit = AuditLog::query()->where('action', 'case.completed_record_updated')->firstOrFail();
-        $this->assertSame('Memperbaiki ringkasan berdasarkan catatan sesi resmi.', $audit->after_values['change_reason']);
+        $this->assertSame('2026-09-17', $case->closed_at?->toDateString());
     }
 
-    public function test_completed_case_rejects_missing_reason_and_non_owner_direct_requests(): void
+    public function test_completed_case_can_save_narratives_and_audit_only_changed_fields(): void
     {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($owner, $student);
-        app(CaseService::class)->resolve($case, [
-            'closed_at' => '2026-08-20',
-            'final_result' => 'Selesai.',
-            'resolution_summary' => 'Penyelesaian tercatat.',
-            'waka_summary' => 'Kasus selesai setelah penanganan sesuai kebutuhan.',
-        ], $owner);
+        Carbon::setTestNow('2026-09-17 08:30:00');
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $this->completeCase($teacher, $case);
+        $closedAt = $case->refresh()->closed_at?->toDateString();
+        $expectedUpdatedAt = $case->updated_at->toJSON();
+        Carbon::setTestNow('2026-09-17 08:31:00');
+
+        $this->actingAs($teacher)->patch(route('cases.update', $case), [
+            'initial_info' => $case->initial_info,
+            'initial_action' => 'Penanganan diperjelas setelah kasus selesai.',
+            'resolution_summary' => $case->resolution_summary,
+            'action' => 'save',
+            'expected_updated_at' => $expectedUpdatedAt,
+        ])->assertRedirect(route('cases.show', $case));
+
         $case->refresh();
-        $other = $this->userWithRole('guru_bk');
-
-        $this->actingAs($owner)->patch(route('cases.update', $case), [
-            ...$this->caseUpdatePayload($case),
-            'status_id' => $case->status_id,
-        ])->assertSessionHasErrors('change_reason');
-
-        $this->actingAs($other)->get(route('cases.edit', $case))->assertForbidden();
-        $this->actingAs($other)->delete(route('cases.destroy', $case))->assertForbidden();
+        $this->assertSame(ServiceRecordStatus::COMPLETED, $case->status->code);
+        $this->assertSame($closedAt, $case->closed_at?->toDateString());
+        $audit = AuditLog::query()->where('action', 'case.updated')->latest('id')->firstOrFail();
+        $this->assertSame(['initial_action' => 'Asesmen awal.'], $audit->before_values);
+        $this->assertSame(['initial_action' => 'Penanganan diperjelas setelah kasus selesai.'], $audit->after_values);
     }
 
-    public function test_case_delete_archives_and_excludes_record_from_operational_queries(): void
+    public function test_stale_case_update_is_rejected(): void
     {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($owner, $student);
+        Carbon::setTestNow('2026-09-17 08:30:00');
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $staleTimestamp = $case->updated_at->toJSON();
+        Carbon::setTestNow('2026-09-17 08:31:00');
+        $case->update(['initial_info' => 'Perubahan dari tab lain.']);
 
-        $this->actingAs($owner)->delete(route('cases.destroy', $case))
+        $this->actingAs($teacher)->patchJson(route('cases.update', $case), [
+            ...$this->updatePayload($case),
+            'initial_info' => 'Perubahan yang menimpa.',
+            'expected_updated_at' => $staleTimestamp,
+        ])->assertUnprocessable()->assertJsonValidationErrors('expected_updated_at');
+
+        $this->assertSame('Perubahan dari tab lain.', $case->refresh()->initial_info);
+    }
+
+    public function test_follow_up_can_be_set_replaced_and_cleared(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $homeVisit = $this->reference('follow_up_type', 'home_visit');
+        $statement = $this->reference('follow_up_type', 'surat_pernyataan');
+
+        $response = $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+            'follow_up_type_id' => $homeVisit->id,
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertOk()->assertJsonPath('data.status_code', ServiceRecordStatus::NEEDS_FOLLOW_UP)
+            ->assertJsonPath('data.follow_up_type_label', 'Home Visit');
+
+        $response = $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+            'follow_up_type_id' => $statement->id,
+            'expected_updated_at' => $response->json('data.updated_at'),
+        ])->assertOk()->assertJsonPath('data.follow_up_type_id', $statement->id);
+
+        $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+            'follow_up_type_id' => null,
+            'expected_updated_at' => $response->json('data.updated_at'),
+        ])->assertOk()->assertJsonPath('data.status_code', ServiceRecordStatus::IN_PROGRESS)
+            ->assertJsonPath('data.follow_up_type_id', null);
+
+        $case->refresh();
+        $this->assertNull($case->follow_up_type_id);
+        $this->assertSame(ServiceRecordStatus::IN_PROGRESS, $case->status->code);
+    }
+
+    public function test_follow_up_rejects_completed_case_forbidden_role_and_inactive_reference(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $homeVisit = $this->reference('follow_up_type', 'home_visit');
+        $inactive = $this->reference('follow_up_type', 'surat_pernyataan');
+        $inactive->update(['is_active' => false]);
+
+        $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+            'follow_up_type_id' => $inactive->id,
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertUnprocessable()->assertJsonValidationErrors('follow_up_type_id');
+
+        foreach (['koordinator_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
+            $this->actingAs($this->userWithRole($role))->patchJson($this->followUpUrl($case), [
+                'follow_up_type_id' => $homeVisit->id,
+                'expected_updated_at' => $case->updated_at->toJSON(),
+            ])->assertForbidden();
+        }
+
+        $this->completeCase($teacher, $case->refresh());
+        $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+            'follow_up_type_id' => $homeVisit->id,
+            'expected_updated_at' => $case->refresh()->updated_at->toJSON(),
+        ])->assertUnprocessable()->assertJsonValidationErrors('case');
+    }
+
+    public function test_case_list_has_final_columns_and_progressive_modal_contract(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+
+        $response = $this->actingAs($teacher)->get(route('cases.index'));
+
+        $response->assertOk()
+            ->assertSeeInOrder(['Murid', 'Kelas', 'Tanggal', 'Sumber', 'Bidang', 'Status', 'Tindak Lanjut', 'Aksi'])
+            ->assertSee('<tr data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'">', false)
+            ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false)
+            ->assertSee('data-follow-up-url="'.$this->followUpUrl($case).'"', false)
+            ->assertSee('data-save-status', false)
+            ->assertSee('aria-labelledby="case-modal-title"', false)
+            ->assertSee('modal-dialog-scrollable', false)
+            ->assertSee('aria-label="Tutup"', false)
+            ->assertDontSee(route('cases.follow-ups.create', $case), false)
+            ->assertDontSee(route('cases.resolve.form', $case), false);
+        $this->assertSame(1, substr_count($response->getContent(), 'id="case-modal"'));
+    }
+
+    public function test_case_search_matches_name_only_and_status_filter_is_applied(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $alpha = $this->createCase($teacher, $this->scopedStudent($teacher, 'Alpha Murid', '0011111111'));
+        $beta = $this->createCase($teacher, $this->scopedStudent($teacher, 'Beta Murid', '0022222222'));
+        $beta->update(['status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id]);
+
+        $this->actingAs($teacher)->get(route('cases.index', ['search' => 'Alpha']))
+            ->assertSee('Alpha Murid')->assertDontSee('Beta Murid');
+        $this->actingAs($teacher)->get(route('cases.index', ['search' => '0011111111']))
+            ->assertDontSee('Alpha Murid');
+        $this->actingAs($teacher)->get(route('cases.index', ['status_id' => $beta->status_id]))
+            ->assertSee('Beta Murid')->assertDontSee('Alpha Murid');
+        $this->assertNotSame($alpha->id, $beta->id);
+    }
+
+    public function test_case_sorting_uses_allowlist_and_invalid_sort_falls_back_to_date(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $alpha = $this->createCase($teacher, $this->scopedStudent($teacher, 'Alpha', '0011111111', 'Z Kelas'), ['service_date' => '2026-08-02']);
+        $beta = $this->createCase($teacher, $this->scopedStudent($teacher, 'Beta', '0022222222', 'X Kelas'), ['service_date' => '2026-08-01']);
+        $charlie = $this->createCase($teacher, $this->scopedStudent($teacher, 'Charlie', '0033333333', 'Y Kelas'), ['service_date' => '2026-08-03']);
+
+        $alpha->update([
+            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::COMPLETED)->id,
+        ]);
+        $beta->update([
+            'case_source_id' => $this->reference('case_source', 'e_tatib')->id,
+            'service_field_id' => $this->reference('service_field', 'sosial')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
+        ]);
+        $charlie->update([
+            'case_source_id' => $this->reference('case_source', 'rujukan')->id,
+            'service_field_id' => $this->reference('service_field', 'belajar')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
+        ]);
+
+        foreach ([
+            'nama' => ['Alpha', 'Beta', 'Charlie'],
+            'kelas' => ['Beta', 'Charlie', 'Alpha'],
+            'tanggal' => ['Beta', 'Alpha', 'Charlie'],
+            'sumber' => ['Beta', 'Charlie', 'Alpha'],
+            'bidang' => ['Charlie', 'Alpha', 'Beta'],
+            'status' => ['Beta', 'Alpha', 'Charlie'],
+        ] as $sort => $expected) {
+            $this->actingAs($teacher)->get(route('cases.index', ['sort' => $sort, 'direction' => 'asc']))
+                ->assertOk()->assertSeeInOrder($expected);
+        }
+
+        $this->actingAs($teacher)->get(route('cases.index', ['sort' => 'status;drop table cases', 'direction' => 'sideways']))
+            ->assertOk()->assertSeeInOrder(['Charlie', 'Alpha', 'Beta']);
+    }
+
+    public function test_case_sorting_uses_id_as_tie_breaker_in_same_direction(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $first = $this->createCase($teacher, $this->scopedStudent($teacher, 'Pertama', '0011111111'), ['service_date' => '2026-08-01']);
+        $second = $this->createCase($teacher, $this->scopedStudent($teacher, 'Kedua', '0022222222'), ['service_date' => '2026-08-01']);
+
+        $this->actingAs($teacher)->get(route('cases.index', ['sort' => 'tanggal', 'direction' => 'asc']))
+            ->assertSeeInOrder([$first->identityName(), $second->identityName()]);
+        $this->actingAs($teacher)->get(route('cases.index', ['sort' => 'tanggal', 'direction' => 'desc']))
+            ->assertSeeInOrder([$second->identityName(), $first->identityName()]);
+    }
+
+    public function test_detail_and_edit_support_modal_and_full_page_fallbacks(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+
+        $this->actingAs($teacher)->get(route('cases.show', $case))
+            ->assertOk()->assertViewIs('pages.cases.show')->assertSee('Detail Kasus');
+        $this->actingAs($teacher)->get(route('cases.show', [$case, 'modal' => 1]))
+            ->assertOk()->assertViewIs('pages.cases._detail-modal')
+            ->assertSeeInOrder(['Nama', 'Tanggal', 'Kelas', 'Status', 'Guru BK', 'Latar Belakang', 'Penanganan', 'Catatan Penyelesaian']);
+        $this->actingAs($teacher)->get(route('cases.edit', $case))
+            ->assertOk()->assertViewIs('pages.cases.edit')->assertSee('Ubah Kasus');
+        $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
+            ->assertOk()->assertViewIs('pages.cases._edit-modal')
+            ->assertSee('name="expected_updated_at"', false)
+            ->assertSee('name="action" value="save"', false)
+            ->assertSee('name="action" value="complete"', false)
+            ->assertDontSee('name="change_reason"', false)
+            ->assertDontSee('name="waka_summary"', false);
+    }
+
+    public function test_completed_case_edit_trigger_requires_confirmation_and_waka_cannot_mutate(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $this->completeCase($teacher, $case);
+        $confirmation = "if (! window.confirm('Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }";
+
+        $this->actingAs($teacher)->get(route('cases.index'))
+            ->assertSee('data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false)
+            ->assertSee('onclick="'.$confirmation.'"', false);
+        $this->actingAs($teacher)->get(route('cases.show', $case))
+            ->assertSee('onclick="'.$confirmation.'"', false);
+
+        $nonOwner = $this->userWithRole('guru_bk');
+        $this->actingAs($nonOwner)->delete(route('cases.destroy', $case))->assertForbidden();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->patchJson(route('cases.update', $case), $this->updatePayload($case))
+            ->assertForbidden();
+        $this->actingAs($waka)->patchJson($this->followUpUrl($case), [
+            'follow_up_type_id' => null,
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertForbidden();
+        $this->actingAs($waka)->delete(route('cases.destroy', $case))->assertForbidden();
+    }
+
+    public function test_owner_can_archive_case_and_remove_it_from_operational_views(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher, 'Murid Diarsipkan'));
+
+        $this->actingAs($teacher)->delete(route('cases.destroy', $case))
             ->assertRedirect(route('cases.index'));
 
         $this->assertSoftDeleted('cases', ['id' => $case->id]);
-        $this->actingAs($owner)->get(route('cases.show', $case))->assertNotFound();
-        $this->actingAs($owner)->get(route('cases.index'))->assertDontSee($case->identityName());
-        $this->assertDatabaseHas('audit_logs', ['action' => 'case.archived', 'auditable_id' => $case->id]);
+        $this->actingAs($teacher)->get(route('cases.index'))->assertDontSee('Murid Diarsipkan');
+        $this->actingAs($teacher)->get(route('cases.show', $case))->assertNotFound();
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'case.archived',
+            'auditable_type' => BkCase::class,
+            'auditable_id' => $case->id,
+        ]);
     }
 
-    public function test_non_owners_cannot_edit_or_archive_case(): void
+    private function completeCase(User $teacher, BkCase $case): void
     {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($owner, $student);
-        $additional = $this->userWithRole('guru_bk');
+        $case->update([
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::COMPLETED)->id,
+            'resolution_summary' => 'Kasus selesai setelah penanganan.',
+            'closed_at' => today()->toDateString(),
+        ]);
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function createCase(User $teacher, Student $student, array $overrides = []): BkCase
+    {
+        $case = BkCase::query()->create([
+            'registration_number' => 'K-2026-'.str_pad((string) (BkCase::query()->count() + 1), 4, '0', STR_PAD_LEFT),
+            'student_id' => $student->id,
+            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
+            'service_date' => '2026-08-01',
+            'initial_info' => 'Informasi awal layanan.',
+            'initial_action' => 'Asesmen awal.',
+            'created_by' => $teacher->id,
+            ...$overrides,
+        ]);
         CaseAssignment::query()->create([
             'case_id' => $case->id,
-            'user_id' => $additional->id,
-            'assignment_type' => CaseAssignment::TYPE_ADDITIONAL,
-            'effective_from' => '2026-08-01',
-            'reason' => 'Kewenangan tambahan untuk pengujian.',
-            'assigned_by' => $owner->id,
+            'user_id' => $teacher->id,
+            'assignment_type' => CaseAssignment::TYPE_OWNER,
+            'effective_from' => $case->service_date->toDateString(),
+            'reason' => 'Fixture pemilik kasus.',
+            'assigned_by' => $teacher->id,
         ]);
 
-        foreach ([$additional, $this->userWithRole('koordinator_bk'), $this->userWithRole('waka_kesiswaan'), $this->userWithRole('admin_it')] as $actor) {
-            $this->actingAs($actor)->get(route('cases.edit', $case))->assertForbidden();
-            $this->actingAs($actor)->delete(route('cases.destroy', $case))->assertForbidden();
-        }
+        return $case;
     }
 
-    public function test_active_case_cannot_be_changed_directly_to_completed(): void
+    private function followUpUrl(BkCase $case): string
     {
-        [$owner, $student] = $this->teacherAndScopedStudent();
-        $case = $this->createCase($owner, $student);
-        $completed = $this->reference('case_status', ServiceRecordStatus::COMPLETED);
-
-        $this->actingAs($owner)->get(route('cases.edit', $case))
-            ->assertOk()
-            ->assertDontSee($completed->label);
-        $this->actingAs($owner)->patch(route('cases.update', $case), [
-            ...$this->caseUpdatePayload($case),
-            'status_id' => $completed->id,
-            'waka_summary' => 'Ringkasan tersedia.',
-        ])->assertSessionHasErrors('status_id');
+        return url('/cases/'.$case->id.'/follow-up');
     }
 
-    public function test_internal_case_code_is_hidden_from_operational_outputs_and_search(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $case = $this->createCase($teacher, $student);
-        $caseCode = (string) $case->registration_number;
-
-        $this->actingAs($teacher)->get(route('cases.index'))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('cases.show', $case))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('cases.follow-ups.create', $case))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('cases.resolve.form', $case))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('consultations.create'))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($coordinator)->get(route('assignments.cases.index', ['case_id' => $case->id]))->assertOk()->assertDontSee($caseCode);
-        $this->actingAs($teacher)->get(route('cases.index', ['search' => $caseCode]))
-            ->assertOk()
-            ->assertDontSee($case->identityName());
-
-        $case->update(['waka_summary' => 'Asesmen awal dan jadwal tindak lanjut telah disusun.']);
-        app(FollowUpService::class)->record($case, [
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-20',
-        ], $teacher);
-        $this->assertFalse(AuditLog::query()->where('summary', 'like', '%'.$caseCode.'%')->exists());
-        $this->assertDatabaseHas('cases', ['id' => $case->id, 'registration_number' => $caseCode]);
-    }
-
-    public function test_teacher_creates_case_with_string_request_payload(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent();
-
-        $response = $this->actingAs($teacher)->post(route('cases.store'), [
-            'case_source_id' => (string) $this->reference('case_source', 'temuan_guru_bk')->id,
-            'service_field_id' => (string) $this->reference('service_field', 'pribadi')->id,
-            'service_date' => '2026-08-01',
-            'initial_info' => 'Informasi awal layanan string.',
-            'initial_action' => 'Asesmen awal string.',
-            'student_id' => (string) $student->id,
-        ]);
-
-        $case = BkCase::query()->where('initial_info', 'Informasi awal layanan string.')->firstOrFail();
-        $response->assertRedirect(route('cases.show', $case));
-        $this->assertSame($student->id, $case->student_id);
-    }
-
-    /** @return array{User, Student} */
-    private function teacherAndScopedStudent(): array
-    {
-        $teacher = $this->userWithRole('guru_bk');
-        $year = AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
-        $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 1', 'is_active' => true]);
-        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Scope', 'is_active' => true]);
-        StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'is_active' => true]);
-        TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'decision_number' => 'SK-SCOPE', 'assigned_by' => $teacher->id]);
-
-        return [$teacher, $student];
-    }
-
-    private function createCase(User $teacher, Student $student, ?string $internalNote = null): BkCase
-    {
-        return app(CaseService::class)->createCase([
-            ...$this->casePayload(),
+    private function scopedStudent(
+        User $teacher,
+        string $name = 'Murid Scope',
+        string $nisn = '0012345678',
+        string $className = 'X RPL 1',
+    ): Student {
+        $year = AcademicYear::query()->firstOrCreate(
+            ['name' => '2026/2027'],
+            ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true],
+        );
+        $classroom = Classroom::query()->firstOrCreate(
+            ['academic_year_id' => $year->id, 'name' => $className],
+            ['is_active' => true],
+        );
+        $student = Student::query()->create(['nisn' => $nisn, 'name' => $name, 'is_active' => true]);
+        StudentClassMembership::query()->create([
             'student_id' => $student->id,
-            'internal_note' => $internalNote,
-        ], $teacher);
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-15',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->firstOrCreate([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-15',
+        ], [
+            'decision_number' => 'SK-'.$classroom->id,
+            'assigned_by' => $teacher->id,
+        ]);
+
+        return $student;
     }
 
-    private function etatibRecord(Student $student, string $identifier, string $violation): ExternalTatibRecord
+    private function etatibRecord(Student $student): ExternalTatibRecord
     {
         return ExternalTatibRecord::query()->create([
-            'source_identifier' => $identifier,
+            'source_identifier' => 'ET-'.$student->id,
             'nisn' => $student->nisn,
             'student_id' => $student->id,
             'occurred_at' => '2026-08-18 09:00:00',
-            'violation_type' => $violation,
+            'violation_type' => 'Terlambat',
             'category' => 'Kedisiplinan',
             'points' => 5,
             'is_active' => true,
-            'synced_at' => now(),
-        ]);
-    }
-
-    private function unmappedEtatibRecord(
-        string $identifier,
-        string $nisn,
-        string $violation,
-        bool $active = true,
-    ): ExternalTatibRecord {
-        return ExternalTatibRecord::query()->create([
-            'source_identifier' => $identifier,
-            'nisn' => $nisn,
-            'student_id' => null,
-            'occurred_at' => '2026-08-18 11:00:00',
-            'violation_type' => $violation,
-            'category' => 'Kedisiplinan',
-            'points' => 5,
-            'is_active' => $active,
             'synced_at' => now(),
         ]);
     }
@@ -1120,18 +478,14 @@ class CaseManagementTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function caseUpdatePayload(BkCase $case): array
+    private function updatePayload(BkCase $case): array
     {
         return [
-            'case_source_id' => $case->case_source_id,
-            'service_field_id' => $case->service_field_id,
-            'status_id' => $case->status_id,
-            'service_date' => $case->service_date->toDateString(),
-            'referrer' => $case->referrer,
             'initial_info' => $case->initial_info,
             'initial_action' => $case->initial_action,
-            'internal_note' => $case->internal_note,
-            'waka_summary' => $case->waka_summary,
+            'resolution_summary' => $case->resolution_summary,
+            'action' => 'save',
+            'expected_updated_at' => $case->updated_at->toJSON(),
         ];
     }
 

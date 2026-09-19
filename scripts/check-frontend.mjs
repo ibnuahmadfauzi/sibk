@@ -12,9 +12,11 @@ const files = {
     reportPreview: 'resources/views/pages/reports/preview.blade.php',
     casesIndex: 'resources/views/pages/cases/index.blade.php',
     casesCreate: 'resources/views/pages/cases/create.blade.php',
+    caseEditModal: 'resources/views/pages/cases/_edit-modal.blade.php',
     casesShow: 'resources/views/pages/cases/show.blade.php',
     followUp: 'resources/views/pages/cases/follow-up.blade.php',
     consultationCreate: 'resources/views/pages/consultations/create.blade.php',
+    consultationEditModal: 'resources/views/pages/consultations/_edit-modal.blade.php',
     consultationShow: 'resources/views/pages/consultations/show.blade.php',
     caseResolve: 'resources/views/pages/cases/resolve.blade.php',
     studentsIndex: 'resources/views/pages/students/index.blade.php',
@@ -32,6 +34,9 @@ const files = {
     topbar: 'resources/views/components/topbar.blade.php',
     routes: 'routes/web.php',
     package: 'package.json',
+    appDashboard: 'resources/js/app-dashboard.js',
+    serviceRecords: 'resources/js/service-records.js',
+    formDraft: 'resources/js/form-draft.js',
 };
 
 const contents = Object.fromEntries(
@@ -65,7 +70,7 @@ assert(!inputReferencesError(
     'identifierError',
 ), 'Pemeriksa atribut input tidak boleh mencocokkan atribut lintas tag.');
 
-const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package', 'operationalReportService'].includes(key));
+const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package', 'operationalReportService', 'casesIndex', 'casesShow'].includes(key));
 for (const key of bladeKeys) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
     assert(!/\son\w+\s*=/.test(contents[key]), `${files[key]} masih memakai inline event handler.`);
@@ -131,6 +136,39 @@ for (const retired of ['CorrectionController', 'NotificationController', "route(
 }
 assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak terpakai masih ada.');
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');
+assert(contents.appDashboard.includes("from './service-records'"), 'app-dashboard belum mengimpor service-records.js.');
+assert(contents.appDashboard.includes("from './form-draft'"), 'app-dashboard belum mengimpor form-draft.js.');
+assert(contents.serviceRecords.includes('Modal'), 'service-records belum memakai modal Bootstrap.');
+assert(contents.serviceRecords.includes('AbortController'), 'service-records belum membatalkan request modal.');
+assert(contents.serviceRecords.includes('Accept: \'application/json\''), 'service-records belum meminta response JSON.');
+assert(contents.serviceRecords.includes('previousValue'), 'service-records belum menyimpan nilai sebelumnya untuk rollback.');
+assert(contents.package.includes('node scripts/check-form-draft.mjs'), 'check:frontend belum menjalankan pemeriksa draft.');
+assert(contents.casesIndex.includes('data-follow-up-url'), 'Dropdown tindak lanjut belum memiliki endpoint inline.');
+for (const target of ['data-expected-updated-at', 'data-follow-up-label-target', 'data-follow-up-status-target', 'data-follow-up-timestamp-target']) {
+    assert(contents.casesIndex.includes(target), `Dropdown tindak lanjut belum memiliki ${target}.`);
+}
+assert(contents.casesIndex.includes('aria-labelledby="case-modal-title"'), 'Modal layanan belum memiliki aria-labelledby.');
+assert(contents.casesIndex.includes('modal-dialog-scrollable'), 'Modal layanan belum dapat di-scroll.');
+assert(contents.casesIndex.includes('data-service-record-modal'), 'Modal layanan belum terhubung ke JavaScript shared.');
+assert(contents.casesIndex.includes('data-modal-url'), 'Aksi modal belum memakai URL modal shared.');
+const consultationActionIndex = contents.casesIndex.indexOf("route('consultations.show'");
+const sharedModalIndex = contents.casesIndex.indexOf('data-service-record-modal');
+assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.lastIndexOf('@endif'), 'Tab konsultasi belum berbagi shell modal yang dirender setelah kedua tab.');
+assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
+for (const [key, form, record] of [
+    ['casesCreate', 'case', 'new'],
+    ['caseEditModal', 'case', '{{ $case->id }}'],
+    ['consultationEditModal', 'consultation', '{{ $consultation?->id ?? \'new\' }}'],
+]) {
+    assert(contents[key].includes(`data-autosave-form="${form}"`), `${files[key]} belum memiliki kunci autosave form.`);
+    assert(contents[key].includes(`data-autosave-record="${record}"`), `${files[key]} belum memiliki kunci autosave record.`);
+    assert(contents[key].includes('data-draft-status'), `${files[key]} belum menampilkan status draft.`);
+    assert(contents[key].includes('data-clear-draft'), `${files[key]} belum menyediakan Hapus Draft.`);
+}
+assert(contents.consultationEditModal.includes('data-confirm-submit'), 'Edit konsultasi belum memakai kontrak konfirmasi.');
+for (const retired of ['registration_number', 'consultation_status_id', 'consultation_month', 'consultation_class', '$session->topic', '$session->status']) {
+    assert(!contents.casesIndex.includes(retired), `Tab konsultasi masih memuat UI retired: ${retired}.`);
+}
 
 if (failures.length > 0) {
     for (const failure of failures) console.error(`- ${failure}`);

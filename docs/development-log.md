@@ -5,10 +5,27 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Tidak ada task implementasi aktif setelah baseline v1.1 dirilis ke `main`.
+- Checkpoint 7A Revisi SIBK 3.2 terintegrasi melalui PR #25 ke `cobasidebar`;
+  cleanup runtime 7B dan cleanup skema 7C belum dimulai.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 19 September 2026 — Checkpoint 7A: penyelarasan fitur
+
+- Alur kasus/konsultasi, autosave lokal, akses baca Waka, laporan, dashboard,
+  profil murid, consumer turunan, dan dummy seeder diselaraskan ke Revisi 3.2.
+- Waka hanya membaca proyeksi allowlist, pembukaan detail diaudit, mutasi tetap
+  ditolak, dan narasi layanan tidak masuk ekspor massal.
+- Tiga lane Wave 2 direview terpisah lalu diintegrasikan tanpa overlap; lima
+  kegagalan full gate legacy diperbaiki sebagai perubahan test-only.
+- Final review menemukan 5 Important dan 7 Minor; satu fix wave menutup seluruh
+  temuan dan scoped re-review menyatakan tidak ada blocker baru.
+- Full gate final lulus 454 test/3.529 assertion, Pint, checker frontend,
+  build, Composer strict, dan diff-check. Runtime/schema retired tetap tersedia
+  sampai Checkpoint 7B/7C sesuai urutan aman.
+- PR #25 terintegrasi ke `cobasidebar`; branch sumber remote
+  `revisi-sibk-3-2` sudah dihapus dan `main` tidak disentuh.
 
 ### 16 September 2026 - Rilis baseline Ruang BK v1.1
 

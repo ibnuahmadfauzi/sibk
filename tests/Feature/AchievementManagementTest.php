@@ -8,7 +8,6 @@ use App\Models\AcademicYear;
 use App\Models\Achievement;
 use App\Models\AuditLog;
 use App\Models\BkCase;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -98,12 +97,7 @@ class AchievementManagementTest extends TestCase
         $coordinator = $this->userWithRole('koordinator_bk');
         $waka = $this->userWithRole('waka_kesiswaan');
         $admin = $this->userWithRole('admin_it');
-        $case = $this->caseFor($teacher, $student);
-        CaseCoordination::query()->create([
-            'case_id' => $case->id, 'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Koordinasi prestasi murid.', 'recorded_by' => $teacher->id, 'coordinated_at' => now(),
-        ]);
+        $this->caseFor($teacher, $student);
         $pending = app(AchievementService::class)->create($this->payload($student, 'Prestasi Menunggu'), $teacher);
 
         $this->actingAs($waka)->get(route('achievements.show', $pending))->assertForbidden();

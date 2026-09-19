@@ -1780,6 +1780,16 @@ small, .small {
       stroke-linejoin: round;
     }
   }
+
+  .sibk-quick-action--success {
+    border-color: var(--sibk-color-success);
+    color: var(--sibk-color-success);
+  }
+
+  .sibk-quick-action--info {
+    border-color: var(--sibk-color-info);
+    color: var(--sibk-color-info);
+  }
 }
 
 .sibk-dashboard-deco {

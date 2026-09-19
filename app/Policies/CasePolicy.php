@@ -13,7 +13,7 @@ class CasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
     }
 
     public function view(User $user, BkCase $case): bool
@@ -22,7 +22,7 @@ class CasePolicy
             return true;
         }
 
-        if ($user->hasRole('waka_kesiswaan') && $case->coordinations()->where('waka_user_id', $user->getKey())->exists()) {
+        if ($user->hasRole('waka_kesiswaan')) {
             return true;
         }
 

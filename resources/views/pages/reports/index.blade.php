@@ -18,7 +18,7 @@
     ], fn ($value) => $value !== null && $value !== '');
     $statLabels = match ($report['tab']) {
         'pelanggaran' => ['student_count' => 'Murid', 'violation_count' => 'Pelanggaran', 'total_points' => 'Total poin'],
-        'layanan' => ['student_count' => 'Murid', 'service_count' => 'Layanan', 'open_follow_up_count' => 'Perlu tindak lanjut'],
+        'layanan' => ['student_count' => 'Murid', 'service_count' => 'Layanan', 'follow_up_case_count' => 'Kasus Tindak Lanjut'],
         'prestasi' => ['student_count' => 'Murid', 'achievement_count' => 'Prestasi', 'verified_count' => 'Terverifikasi'],
     };
 @endphp

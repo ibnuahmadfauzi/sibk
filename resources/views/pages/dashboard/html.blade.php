@@ -10,7 +10,25 @@
             @if(!empty($dashboard['quick_actions']))
                 <div class="sibk-quick-actions mt-3">
                     @foreach($dashboard['quick_actions'] as $action)
-                        <a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ $action['url'] }}">{{ $action['label'] }}</a>
+                        <a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }} sibk-quick-action sibk-quick-action--{{ $action['tone'] }}" href="{{ $action['url'] }}">
+                            @switch($action['icon'])
+                                @case('case')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    @break
+                                @case('consultation')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.5 9.5 0 0 1-4.8-1.3L3 20l1.4-3.8A8.5 8.5 0 1 1 21 11.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+                                    @break
+                                @case('report')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/></svg>
+                                    @break
+                                @case('account')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                                    @break
+                                @default
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7"/></svg>
+                            @endswitch
+                            {{ $action['label'] }}
+                        </a>
                     @endforeach
                 </div>
             @endif
@@ -25,7 +43,7 @@
         @if ($dashboard['read_only'])
             <div class="alert sibk-read-only-notice" role="status">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
-                <div><strong>Tampilan koordinasi hanya-baca</strong><p>Anda hanya melihat agregat yang diizinkan dan kasus yang secara eksplisit dikoordinasikan. Isi konsultasi sensitif serta aksi perubahan tidak ditampilkan.</p></div>
+                <div><strong>Tampilan hanya-baca</strong><p>Anda hanya melihat agregat yang diizinkan dan kasus yang dapat dibaca. Isi konsultasi sensitif serta aksi perubahan tidak ditampilkan.</p></div>
             </div>
         @endif
     </header>
@@ -92,7 +110,7 @@
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
-                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada jadwal tindak lanjut dalam waktu dekat." />
+                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada kasus berstatus Tindak Lanjut." />
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)

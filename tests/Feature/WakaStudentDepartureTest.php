@@ -13,6 +13,7 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\StudentDeparture;
 use App\Models\User;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,7 +52,7 @@ final class WakaStudentDepartureTest extends TestCase
             'student_id' => $student->id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('case_status', 'baru')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
             'registration_number' => 'K-PRIVATE-001',
             'service_date' => '2026-09-01',
             'initial_info' => 'NARASI-PRIVAT-TIDAK-BOLEH-TAMPIL',

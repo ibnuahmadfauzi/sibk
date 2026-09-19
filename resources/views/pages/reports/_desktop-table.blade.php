@@ -6,7 +6,7 @@
                 @php
                     $cells = match ($report['tab']) {
                         'pelanggaran' => [$row['initials'], $row['masked_nisn'], $row['classroom'], $row['violation_count'], $row['total_points'], $row['latest_violation'].' · '.$row['latest_date']],
-                        'layanan' => [$row['initials'], $row['masked_nisn'], $row['classroom'], $row['case_count'], $row['consultation_count'], $row['follow_up_count'], $row['open_follow_up_count'], $row['latest_service_date']],
+                        'layanan' => [$row['initials'], $row['masked_nisn'], $row['classroom'], $row['case_count'], $row['consultation_count'], $row['follow_up_case_count'], $row['latest_service_date']],
                         'prestasi' => [$row['initials'], $row['masked_nisn'], $row['classroom'], $row['achievement_count'], $row['verified_count'], $row['highest_verified_level'], $row['latest_achievement'].' · '.$row['latest_date']],
                     };
                 @endphp

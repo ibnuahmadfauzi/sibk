@@ -23,11 +23,9 @@ use App\Models\Achievement;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
-use App\Models\Consultation;
 use App\Models\DapodikSyncPreviewItem;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\IntegrationSetting;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -37,6 +35,7 @@ use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\ConsultationService;
 use App\Services\DapodikReconciliationService;
 use App\Services\DapodikSyncService;
 use App\Services\IntegrationSettingService;
@@ -1096,28 +1095,20 @@ class DapodikSyncTest extends TestCase
             'case_source_id' => $this->reference('case_source')->id,
             'service_field_id' => $this->reference('service_field')->id,
             'status_id' => $this->reference('case_status')->id,
+            'follow_up_type_id' => $this->reference('follow_up_type')->id,
             'service_date' => '2026-09-01',
             'initial_info' => 'Informasi awal.',
             'initial_action' => 'Tindakan awal.',
             'created_by' => $teacher->id,
         ]);
-        $followUp = FollowUp::query()->create([
-            'case_id' => $case->id,
-            'follow_up_type_id' => $this->reference('follow_up_type')->id,
-            'status_id' => $this->reference('follow_up_status')->id,
-            'planned_date' => '2026-09-02',
-            'recorded_by' => $teacher->id,
-        ]);
-        $consultation = Consultation::query()->create([
-            'registration_number' => 'KS-KEEP-001',
+        $consultation = app(ConsultationService::class)->create([
             'student_id' => $student->id,
-            'case_id' => $case->id,
             'service_field_id' => $this->reference('service_field')->id,
-            'status_id' => $this->reference('consultation_status')->id,
-            'topic' => 'Pendampingan',
             'session_date' => '2026-09-02',
-            'counselor_id' => $teacher->id,
-        ]);
+            'problem' => 'Pendampingan',
+            'handling' => 'Penanganan pendampingan',
+            'result' => 'Hasil pendampingan',
+        ], $teacher);
         $achievement = Achievement::query()->create([
             'student_id' => $student->id,
             'type_id' => $this->reference('achievement_type')->id,
@@ -1165,7 +1156,6 @@ class DapodikSyncTest extends TestCase
 
         $this->assertSame($student->id, $case->refresh()->student_id);
         $this->assertSame($student->id, $consultation->refresh()->student_id);
-        $this->assertSame($case->id, $followUp->refresh()->case_id);
         $this->assertSame($student->id, $achievement->refresh()->student_id);
         $this->assertSame($classroom->id, $assignment->refresh()->classroom_id);
         $this->assertSame($year->id, $assignment->academic_year_id);

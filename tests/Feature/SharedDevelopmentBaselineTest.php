@@ -12,9 +12,15 @@ final class SharedDevelopmentBaselineTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_addendum_gate_menyediakan_ringkasan_aman_waka(): void
+    public function test_addendum_gate_mempertahankan_skema_lama_sambil_menambah_kolom_revisi(): void
     {
         $this->assertTrue(Schema::hasColumn('cases', 'waka_summary'));
+        $this->assertTrue(Schema::hasColumn('cases', 'follow_up_type_id'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'problem'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'handling'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'result'));
+        $this->assertTrue(Schema::hasTable('follow_ups'));
+        $this->assertTrue(Schema::hasTable('case_coordinations'));
 
         $column = collect(Schema::getColumns('cases'))->firstWhere('name', 'waka_summary');
 

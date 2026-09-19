@@ -6,8 +6,8 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\BkCase;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -17,7 +17,6 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\CaseService;
 use App\Services\ConsultationService;
-use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,7 +44,7 @@ class StudentProfileTest extends TestCase
         $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()
             ->assertSee($student->nisn)
-            ->assertSee('Konsultasi dan Tindak Lanjut');
+            ->assertSee('Konsultasi');
 
         $this->actingAs($otherTeacher)->get(route('students.index'))
             ->assertOk()
@@ -59,14 +58,6 @@ class StudentProfileTest extends TestCase
         $waka = $this->userWithRole('waka_kesiswaan');
         $case = $this->createCase($teacher, $student);
         $this->createConsultation($teacher, $student);
-        CaseCoordination::query()->create([
-            'case_id' => $case->id,
-            'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Koordinasi dukungan kedisiplinan.',
-            'recorded_by' => $teacher->id,
-            'coordinated_at' => now(),
-        ]);
         $linkedRecord = $this->etatibRecord($student, 'ET-TERKAIT', 'Pelanggaran terkait');
         $unlinkedRecord = $this->etatibRecord($student, 'ET-LAIN', 'Pelanggaran lain');
         $case->etatibRecords()->attach($linkedRecord->id, ['linked_by' => $teacher->id]);
@@ -77,7 +68,7 @@ class StudentProfileTest extends TestCase
             ->assertDontSee($student->nisn)
             ->assertDontSee('Pelanggaran terkait')
             ->assertDontSee('Pelanggaran lain')
-            ->assertDontSee('Konsultasi dan Tindak Lanjut')
+            ->assertDontSee('Konsultasi')
             ->assertDontSee('Ringkasan konsultasi aman');
         $this->actingAs($waka)->get(route('students.index'))->assertForbidden();
         $this->actingAs($waka)->get(route('students.show', ['student' => $student, 'tab' => 'etatib']))->assertForbidden();
@@ -85,7 +76,7 @@ class StudentProfileTest extends TestCase
         $this->assertNotSame($linkedRecord->id, $unlinkedRecord->id);
     }
 
-    public function test_coordinator_sees_general_consultation_summary_while_admin_is_denied_profile(): void
+    public function test_coordinator_sees_consultation_fields_without_legacy_case_or_status_columns_while_admin_is_denied_profile(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $coordinator = $this->userWithRole('koordinator_bk');
@@ -94,10 +85,33 @@ class StudentProfileTest extends TestCase
 
         $this->actingAs($coordinator)->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
             ->assertOk()
-            ->assertSee('Ringkasan konsultasi aman')
-            ->assertDontSee('Catatan konsultasi privat');
+            ->assertSee('Permasalahan')
+            ->assertSee('Penanganan')
+            ->assertSee('Hasil')
+            ->assertDontSee('<th>Kasus</th>', false)
+            ->assertDontSee('<th>Status</th>', false);
         $this->actingAs($admin)->get(route('students.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('students.show', $student))->assertForbidden();
+    }
+
+    public function test_profile_uses_neutral_service_labels_without_internal_numbers(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $consultation = $this->createConsultation($teacher, $student);
+        $case->update(['registration_number' => 'K-INTERNAL-PROFILE']);
+        $consultation->forceFill(['registration_number' => 'CONS-INTERNAL-PROFILE'])->save();
+
+        $this->actingAs($teacher)->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee('Kasus dicatat')
+            ->assertSee('Konsultasi dicatat')
+            ->assertDontSee('K-INTERNAL-PROFILE')
+            ->assertDontSee('CONS-INTERNAL-PROFILE');
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+            ->assertOk()
+            ->assertDontSee('<th>No.</th>', false)
+            ->assertDontSee('K-INTERNAL-PROFILE');
     }
 
     public function test_legacy_nisn_url_redirects_to_database_profile(): void
@@ -197,16 +211,15 @@ class StudentProfileTest extends TestCase
         ], $teacher);
     }
 
-    private function createConsultation(User $teacher, Student $student): void
+    private function createConsultation(User $teacher, Student $student): Consultation
     {
-        app(ConsultationService::class)->create([
+        return app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
-            'topic' => 'Profil murid',
             'session_date' => '2026-08-20',
-            'general_summary' => 'Ringkasan konsultasi aman',
-            'sensitive_content' => 'Catatan konsultasi privat',
+            'problem' => 'Permasalahan profil murid',
+            'handling' => 'Penanganan profil murid',
+            'result' => 'Hasil profil murid',
         ], $teacher);
     }
 

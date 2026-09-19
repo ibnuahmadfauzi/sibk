@@ -7,9 +7,8 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
-use App\Models\CaseCoordination;
+use App\Models\CaseAssignment;
 use App\Models\Classroom;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -17,8 +16,8 @@ use App\Models\StudentClassMembership;
 use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Services\CaseService;
 use App\Services\DashboardService;
+use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,22 +48,11 @@ class DashboardTest extends TestCase
         $teacherB = $this->userWithRole('guru_bk', 'Guru B');
         [$studentA, $caseA] = $this->createScopedCase($teacherA, 'X RPL 1', '0011111111', 'Murid Cakupan A');
         [$studentB, $caseB] = $this->createScopedCase($teacherB, 'X RPL 2', '0022222222', 'Murid Cakupan B');
-        FollowUp::query()->create([
-            'case_id' => $caseA->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-22',
-            'recorded_by' => $teacherA->id,
+        $caseA->update([
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
         ]);
         $waka = $this->userWithRole('waka_kesiswaan', 'Waka Terkoordinasi');
-        CaseCoordination::query()->create([
-            'case_id' => $caseA->id,
-            'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Dukungan kebijakan sekolah.',
-            'recorded_by' => $teacherA->id,
-            'coordinated_at' => now(),
-        ]);
 
         $service = app(DashboardService::class);
         $teacherDashboard = $service->forUser($teacherA, $this->year);
@@ -72,9 +60,14 @@ class DashboardTest extends TestCase
         $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus aktif'));
         $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kelas ampuan'));
         $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus khusus aktif'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Tindak lanjut terdekat'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['title']);
+        $this->assertSame('Layanan kasus', $teacherDashboard['tindak_lanjut'][0]['code']);
+        $this->assertSame('Tindak Lanjut', $teacherDashboard['tindak_lanjut'][0]['status']);
         $this->assertStringContainsString($studentA->name, $teacherDashboard['tindak_lanjut'][0]['context_label']);
         $this->assertStringNotContainsString($studentB->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString($caseA->registration_number, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
 
         $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator');
         $coordinatorDashboard = $service->forUser($coordinator, $this->year);
@@ -82,7 +75,8 @@ class DashboardTest extends TestCase
         $this->assertSame('2', $this->stat($coordinatorDashboard, 'Kasus aktif'));
         $this->assertSame('2', $this->contextValue($coordinatorDashboard, 'Guru BK aktif'));
         $this->assertSame('0', $this->contextValue($coordinatorDashboard, 'Kelas tanpa penugasan'));
-        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Tindak lanjut terbuka'));
+        $this->assertSame('1', $this->stat($coordinatorDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Kasus Tindak Lanjut'));
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
@@ -104,12 +98,9 @@ class DashboardTest extends TestCase
         $teacherB = $this->userWithRole('guru_bk', 'Guru Lain');
         [$studentA, $caseA] = $this->createScopedCase($teacherA, 'XI DKV 1', '0033333333', 'Murid Aman');
         [$studentB] = $this->createScopedCase($teacherB, 'XI DKV 2', '0044444444', 'Murid Rahasia', 'CATATAN-PRIVAT-TIDAK-BOLEH-BOCOR');
-        FollowUp::query()->create([
-            'case_id' => $caseA->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-08-22',
-            'recorded_by' => $teacherA->id,
+        $caseA->update([
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
         ]);
 
         $this->actingAs($teacherA)->get(route('dashboard.preview'))
@@ -138,6 +129,16 @@ class DashboardTest extends TestCase
             ->assertDontSee('NARASI-AUDIT-RAHASIA');
     }
 
+    public function test_dashboard_empty_state_describes_cases_without_implying_a_schedule(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Tanpa Kasus');
+
+        $this->actingAs($teacher)->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSee('Tidak ada kasus berstatus Tindak Lanjut.')
+            ->assertDontSee('Tidak ada jadwal tindak lanjut dalam waktu dekat.');
+    }
+
     public function test_dashboard_excludes_official_departure_from_active_student_count(): void
     {
         $teacher = $this->userWithRole('guru_bk', 'Guru Cakupan Keluar');
@@ -158,6 +159,15 @@ class DashboardTest extends TestCase
 
         $this->assertSame('0', $this->stat($dashboard, 'Murid dalam cakupan'));
         $this->assertSame('1', $this->stat($dashboard, 'Kasus aktif'));
+    }
+
+    public function test_teacher_quick_actions_provide_an_allowed_icon_and_tone(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Ikon');
+        $actions = app(DashboardService::class)->forUser($teacher, $this->year)['quick_actions'];
+
+        $this->assertSame(['case', 'consultation', 'report'], array_column($actions, 'icon'));
+        $this->assertSame(['primary', 'success', 'info'], array_column($actions, 'tone'));
     }
 
     /** @return array{Student, BkCase} */
@@ -184,15 +194,26 @@ class DashboardTest extends TestCase
             'decision_number' => 'SK-'.$className,
             'assigned_by' => $teacher->id,
         ]);
-        $case = app(CaseService::class)->createCase([
+        $case = BkCase::query()->create([
             'student_id' => $student->id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
             'service_date' => '2026-08-20',
             'initial_info' => 'Informasi awal yang aman.',
             'initial_action' => 'Asesmen awal.',
             'internal_note' => $internalNote,
-        ], $teacher);
+            'created_by' => $teacher->id,
+        ]);
+        $case->update(['registration_number' => sprintf('K-2026-%04d', $case->id)]);
+        CaseAssignment::query()->create([
+            'case_id' => $case->id,
+            'user_id' => $teacher->id,
+            'assignment_type' => CaseAssignment::TYPE_OWNER,
+            'effective_from' => '2026-08-20',
+            'reason' => 'Fixture cakupan dashboard.',
+            'assigned_by' => $teacher->id,
+        ]);
 
         return [$student, $case];
     }

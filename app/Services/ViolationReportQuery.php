@@ -279,8 +279,7 @@ final class ViolationReportQuery extends LegacyReportQuery
             }
             if ($user->hasRole('waka_kesiswaan')) {
                 $method = $hasCondition ? 'orWhereHas' : 'whereHas';
-                $access->{$method}('cases.coordinations', fn (Builder $coordinations): Builder => $coordinations
-                    ->where('waka_user_id', $user->getKey()));
+                $access->{$method}('cases', fn (Builder $cases): Builder => $cases->accessibleTo($user));
             }
         });
     }

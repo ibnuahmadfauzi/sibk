@@ -57,13 +57,11 @@
                             <td class="fw-semibold">{{ $row['nama_murid'] }}</td><td>{{ $row['kelas'] }}</td><td>{{ $row['bidang'] }}</td>
                             <td><span class="sibk-badge sibk-badge--{{ $row['status_code'] === 'selesai' ? 'success' : (in_array($row['status_code'], ['sedang_diproses', 'membutuhkan_tindak_lanjut'], true) ? 'warning' : 'primary') }}">{{ $row['status'] }}</span></td>
                             <td>{{ $row['guru_bk'] }}</td><td>{{ $row['tanggal'] }}</td>
-                            <td>@if($row['coordination_url'])<a class="btn btn-sm btn-outline-primary" href="{{ $row['coordination_url'] }}">Buka detail koordinasi</a>@else<span class="text-muted">-</span>@endif</td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="{{ $row['detail_url'] }}">Lihat detail</a></td>
                         </tr>
                         <tr>
                             <td colspan="7" class="small">
-                                <strong>Ringkasan:</strong> {{ $row['waka_summary'] ?: '-' }}
-                                <span class="mx-2" aria-hidden="true">|</span>
-                                <strong>Tindak lanjut:</strong> @if($row['tindak_lanjut']){{ $row['tindak_lanjut']['jenis'] }} - {{ $row['tindak_lanjut']['tanggal'] }}@else-@endif
+                                <strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}
                             </td>
                         </tr>
                     @endforeach
@@ -77,8 +75,8 @@
                     <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-2">{{ $row['kelas'] }} - {{ $row['tanggal'] }}</p>
                     <p class="mb-2"><span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span></p>
                     <p class="small mb-2">{{ $row['bidang'] }} - Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>
-                    <details class="small mb-3"><summary class="fw-semibold">Ringkasan penanganan</summary><p class="mt-2 mb-1">{{ $row['waka_summary'] ?: '-' }}</p><p class="mb-0"><strong>Tindak lanjut:</strong> @if($row['tindak_lanjut']){{ $row['tindak_lanjut']['jenis'] }} - {{ $row['tindak_lanjut']['tanggal'] }}@else-@endif</p></details>
-                    @if($row['coordination_url'])<a class="btn btn-outline-primary w-100" href="{{ $row['coordination_url'] }}">Buka detail koordinasi</a>@endif
+                    <p class="small mb-3"><strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}</p>
+                    <a class="btn btn-outline-primary w-100" href="{{ $row['detail_url'] }}">Lihat detail</a>
                 </article>
             @endforeach
         </div>

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'waka_summary', 'internal_note', 'final_result', 'resolution_summary', 'continued_plan', 'closed_at', 'created_by'])]
+#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'follow_up_type_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'waka_summary', 'internal_note', 'final_result', 'resolution_summary', 'continued_plan', 'closed_at', 'created_by'])]
 class BkCase extends Model
 {
     use SoftDeletes;
@@ -48,6 +48,12 @@ class BkCase extends Model
     public function status(): BelongsTo
     {
         return $this->belongsTo(ReferenceValue::class, 'status_id');
+    }
+
+    /** @return BelongsTo<ReferenceValue, $this> */
+    public function followUpType(): BelongsTo
+    {
+        return $this->belongsTo(ReferenceValue::class, 'follow_up_type_id');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -102,11 +108,11 @@ class BkCase extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('koordinator_bk')) {
+        if ($user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan'])) {
             return $query;
         }
 
-        if (! $user->hasAnyRole(['guru_bk', 'waka_kesiswaan'])) {
+        if (! $user->hasRole('guru_bk')) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -120,10 +126,6 @@ class BkCase extends Model
                         ->select('students.id'));
             }
 
-            if ($user->hasRole('waka_kesiswaan')) {
-                $access->orWhereHas('coordinations', fn (Builder $coordinations): Builder => $coordinations
-                    ->where('waka_user_id', $user->getKey()));
-            }
         });
     }
 

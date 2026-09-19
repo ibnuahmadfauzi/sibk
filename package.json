@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "check:frontend": "node scripts/check-frontend.mjs",
+        "check:frontend": "node scripts/check-frontend.mjs && node scripts/check-form-draft.mjs && node scripts/check-service-records.mjs",
         "dev": "vite"
     },
     "devDependencies": {

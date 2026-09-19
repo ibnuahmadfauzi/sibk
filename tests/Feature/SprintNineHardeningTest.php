@@ -98,7 +98,7 @@ class SprintNineHardeningTest extends TestCase
         $caseB = $this->case($creator, 'K-2026-9002');
         $followUp = FollowUp::query()->create([
             'case_id' => $caseB->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
             'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
             'planned_date' => now()->toDateString(),
             'recorded_by' => $creator->id,
@@ -145,7 +145,7 @@ class SprintNineHardeningTest extends TestCase
             'registration_number' => $number,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('case_status', 'baru')->id,
+            'status_id' => $this->reference('case_status', 'sedang_diproses')->id,
             'service_date' => now()->toDateString(),
             'initial_info' => 'Data pengujian.',
             'initial_action' => 'Asesmen awal.',

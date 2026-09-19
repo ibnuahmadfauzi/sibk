@@ -23,7 +23,6 @@ use App\Services\CaseService;
 use App\Services\ConsultationService;
 use App\Services\ProvisionalRosterCsvParser;
 use App\Services\StudentIdentityService;
-use App\Support\ServiceRecordStatus;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -1259,15 +1258,15 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($assignedTeacher)->get(route('cases.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
-            ->assertSee('— Sementara');
+            ->assertSee('Buat Kasus');
         $this->actingAs($assignedTeacher)->get(route('consultations.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
-            ->assertSee('— Sementara');
+            ->assertSee('Permasalahan');
         $this->actingAs($assignedTeacher)->get(route('achievements.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
-            ->assertSee('— Sementara');
+            ->assertSee('Catat Prestasi');
 
         $case = app(CaseService::class)->createCase($casePayload, $assignedTeacher);
         $this->actingAs($assignedTeacher)->get(route('cases.show', $case))->assertOk();
@@ -1290,13 +1289,14 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($assignedTeacher)->get(route('consultations.show', $consultation))->assertOk();
         $this->actingAs($assignedTeacher)->get(route('consultations.edit', $consultation))
             ->assertOk()
-            ->assertSee('— Sementara');
+            ->assertSee('Permasalahan');
         $this->actingAs($otherTeacher)->get(route('consultations.show', $consultation))->assertForbidden();
         app(ConsultationService::class)->update($consultation, [
             ...$consultationPayload,
-            'topic' => 'Topik diperbarui',
+            'problem' => 'Permasalahan diperbarui',
+            'expected_updated_at' => $consultation->updated_at->toISOString(),
         ], $assignedTeacher);
-        $this->assertSame('Topik diperbarui', $consultation->refresh()->topic);
+        $this->assertSame('Permasalahan diperbarui', $consultation->refresh()->problem);
         $this->assertValidationError(
             fn () => app(ConsultationService::class)->create($consultationPayload, $otherTeacher),
             'student_id',
@@ -1310,7 +1310,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertInstanceOf(Achievement::class, $achievement);
         $this->actingAs($assignedTeacher)->get(route('achievements.edit', $achievement))
             ->assertOk()
-            ->assertSee('— Sementara');
+            ->assertSee('Edit Prestasi');
         $this->assertValidationError(
             fn () => app(AchievementService::class)->create($achievementPayload, $otherTeacher),
             'student_id',
@@ -1335,20 +1335,11 @@ class DelayedDapodikPreparationTest extends TestCase
     {
         return [
             'student_id' => $student->id,
-            'case_id' => null,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::IN_PROGRESS)->id,
-            'topic' => 'Penyesuaian diri',
-            'referral_source' => 'Inisiatif murid',
             'session_date' => '2027-07-10',
-            'starts_at' => '08:00',
-            'ends_at' => '08:30',
-            'follow_up_date' => null,
-            'general_summary' => 'Ringkasan umum layanan.',
-            'internal_note' => null,
-            'sensitive_content' => null,
-            'conclusion' => null,
-            'follow_up_plan' => null,
+            'problem' => 'Penyesuaian diri',
+            'handling' => 'Konseling individual',
+            'result' => 'Murid menyepakati langkah perbaikan.',
         ];
     }
 

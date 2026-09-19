@@ -148,8 +148,7 @@ class Student extends Model
         }
 
         if ($user->hasRole('waka_kesiswaan')) {
-            return $query->whereHas('cases.coordinations', fn (Builder $coordinations): Builder => $coordinations
-                ->where('waka_user_id', $user->getKey()));
+            return $query->whereHas('cases', fn (Builder $cases): Builder => $cases->accessibleTo($user));
         }
 
         return $query->whereRaw('1 = 0');

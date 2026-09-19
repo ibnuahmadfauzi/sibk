@@ -27,12 +27,12 @@ final class WakaCaseProjectionQuery
             ->select([
                 'cases.id',
                 'cases.service_date',
-                'cases.waka_summary',
                 'cases.closed_at',
                 'cases.student_id',
                 'cases.temporary_student_id',
                 'cases.service_field_id',
                 'cases.status_id',
+                'cases.follow_up_type_id',
             ])
             ->with([
                 'student:id,name',
@@ -51,6 +51,7 @@ final class WakaCaseProjectionQuery
                     ->orderByDesc('id'),
                 'serviceField:id,label',
                 'status:id,label,code',
+                'followUpType:id,label',
                 'assignments' => static fn ($assignments) => $assignments
                     ->select([
                         'id',
@@ -64,16 +65,6 @@ final class WakaCaseProjectionQuery
                     ->with('teacher:id,name')
                     ->latest('effective_from')
                     ->latest('id'),
-                'followUps' => static fn ($followUps) => $followUps
-                    ->select(['id', 'case_id', 'follow_up_type_id', 'status_id', 'planned_date'])
-                    ->whereHas('status', static fn ($status) => $status->where('code', '!=', 'dibatalkan'))
-                    ->whereDate('planned_date', '>=', today())
-                    ->with('type:id,label')
-                    ->orderBy('planned_date')
-                    ->orderBy('id'),
-                'coordinations' => static fn ($coordinations) => $coordinations
-                    ->select(['id', 'case_id', 'waka_user_id'])
-                    ->where('waka_user_id', $waka->getKey()),
             ]);
 
         $query = $this->applyDateFilters($query, $filters)
@@ -81,6 +72,33 @@ final class WakaCaseProjectionQuery
                 ->whereHas('status', static fn (Builder $reference): Builder => $reference->where('code', $status)));
 
         return $this->applyAllowedSort($query, $filters);
+    }
+
+    public function detail(User $waka, int $caseId): BkCase
+    {
+        return BkCase::query()
+            ->accessibleTo($waka)
+            ->whereKey($caseId)
+            ->select([
+                'cases.id', 'cases.student_id', 'cases.temporary_student_id',
+                'cases.service_date', 'cases.status_id', 'cases.service_field_id',
+                'cases.follow_up_type_id', 'cases.initial_info', 'cases.initial_action',
+                'cases.resolution_summary', 'cases.closed_at',
+            ])
+            ->with([
+                'student:id,name',
+                'temporaryStudent:id,input_name',
+                'student.classMemberships' => static fn ($memberships) => $memberships
+                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
+                    ->with(['classroom:id,name', 'academicYear:id,starts_on,ends_on'])
+                    ->orderByDesc('effective_from')->orderByDesc('id'),
+                'serviceField:id,label', 'status:id,label,code', 'followUpType:id,label',
+                'assignments' => static fn ($assignments) => $assignments
+                    ->select(['id', 'case_id', 'user_id', 'assignment_type', 'effective_from', 'effective_until'])
+                    ->where('assignment_type', CaseAssignment::TYPE_OWNER)
+                    ->with('teacher:id,name')->latest('effective_from')->latest('id'),
+            ])
+            ->firstOrFail();
     }
 
     /**

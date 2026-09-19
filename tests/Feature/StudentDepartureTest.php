@@ -415,9 +415,10 @@ final class StudentDepartureTest extends TestCase
             app(ConsultationService::class)->create([
                 'student_id' => $student->id,
                 'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-                'status_id' => $this->reference('consultation_status', 'baru')->id,
-                'topic' => 'Layanan setelah keluar',
                 'session_date' => '2026-09-20',
+                'problem' => 'Layanan setelah keluar',
+                'handling' => 'Penanganan setelah keluar',
+                'result' => 'Hasil setelah keluar',
             ], $teacher);
             $this->fail('Layanan dapat dijadwalkan pada tanggal keluar resmi.');
         } catch (ValidationException $exception) {
@@ -466,29 +467,22 @@ final class StudentDepartureTest extends TestCase
             'finalized_at' => now(),
         ]);
 
-        try {
-            app(CaseService::class)->update($case, [
-                'case_source_id' => $case->case_source_id,
-                'service_field_id' => $case->service_field_id,
-                'status_id' => $case->status_id,
-                'service_date' => '2026-09-14',
-                'initial_info' => $case->initial_info,
-                'initial_action' => $case->initial_action,
-            ], $teacher);
-            $this->fail('Tanggal kasus dapat dipindah ke tanggal keluar resmi.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('service_date', $exception->errors());
-        }
+        app(CaseService::class)->update($case, [
+            'initial_info' => $case->initial_info,
+            'initial_action' => $case->initial_action,
+            'action' => 'save',
+            'expected_updated_at' => $case->updated_at->toISOString(),
+        ], $teacher);
+        $this->assertSame('2026-09-10', $case->refresh()->service_date?->toDateString());
 
         try {
             app(ConsultationService::class)->update($consultation, [
-                'case_id' => null,
                 'service_field_id' => $consultation->service_field_id,
-                'status_id' => $consultation->status_id,
-                'topic' => $consultation->topic,
                 'session_date' => '2026-09-14',
-                'general_summary' => $consultation->general_summary,
-                'change_reason' => 'Menjaga pengujian batas tanggal keluar resmi.',
+                'problem' => $consultation->problem,
+                'handling' => $consultation->handling,
+                'result' => $consultation->result,
+                'expected_updated_at' => $consultation->updated_at->toISOString(),
             ], $teacher);
             $this->fail('Tanggal konsultasi dapat dipindah ke tanggal keluar resmi.');
         } catch (ValidationException $exception) {
@@ -563,10 +557,10 @@ final class StudentDepartureTest extends TestCase
         $consultation = app(ConsultationService::class)->create([
             'student_id' => $student->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('consultation_status', 'selesai')->id,
-            'topic' => 'Persiapan perpindahan',
             'session_date' => '2026-09-11',
-            'general_summary' => 'Ringkasan layanan.',
+            'problem' => 'Persiapan perpindahan',
+            'handling' => 'Konseling perpindahan',
+            'result' => 'Rencana perpindahan dicatat.',
         ], $teacher);
 
         return [$teacher, $student, $case, $consultation];
