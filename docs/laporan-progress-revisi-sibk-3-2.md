@@ -2,148 +2,116 @@
 
 Tanggal pembaruan: 19 September 2026  
 Target integrasi: `cobasidebar`  
-Branch Checkpoint 7A: `revisi-sibk-3-2`
+Branch Checkpoint 7B: `revisi-sibk-3-2-7b-runtime`
 
 ## Ringkasan status
 
-Implementasi, review, perbaikan review, dan full gate Checkpoint 7A telah
-selesai serta diintegrasikan ke `cobasidebar` melalui PR #25. Branch sumber
-remote dihapus setelah status PR terverifikasi `MERGED`. Branch `main` tidak
-disentuh.
+Checkpoint 7B telah selesai diimplementasikan pada commit `4a5fcd2` dan
+diintegrasikan ke `cobasidebar` melalui PR #26. Focused gate dan full gate
+lulus. Status `MERGED` dan penghapusan branch sumber remote diverifikasi pada
+penutupan checkpoint.
 
-Checkpoint 7B dan 7C belum dimulai agar cleanup runtime dan skema tetap
-mengikuti urutan aman.
+Checkpoint 7C belum dimulai. Tidak ada migration, drop tabel, atau drop kolom
+pada Checkpoint 7B. Branch `main` tidak disentuh.
 
 ## Progress yang telah dilakukan
 
-### 1. Kontrak produk dan data
+### 1. Cleanup runtime lama
 
-- Kasus dan konsultasi memakai empat status aktif: `Diajukan`, `Diproses`,
-  `Selesai`, dan `Diarsipkan`.
-- Edit memperbarui record aktif; salinan penuh setiap versi tidak dibuat.
-  Waktu perubahan terakhir tetap tersedia melalui `updated_at`.
-- Audit append-only dipertahankan untuk tindakan sensitif, termasuk pembukaan
-  detail oleh Waka dan perubahan data yang sudah selesai.
-- Tanggal formulir otomatis memakai tanggal hari ini, tetapi tetap dapat diedit.
-- Data selesai tetap dapat diedit setelah pengguna melewati peringatan dan
-  memberikan alasan yang disimpan pada audit.
-- Penghapusan/pengarsipan tetap memakai konfirmasi eksplisit.
+- Menghapus model `FollowUp`, `CaseCoordination`, dan
+  `ConsultationPrivateNote`.
+- Menghapus controller, request, dan service untuk event tindak lanjut lama,
+  koordinasi kasus, serta penyelesaian terpisah.
+- Menghapus route plural `cases.follow-ups.*`, route
+  `cases.coordinations.*`, route `cases.resolve*`, dan dua route preview
+  terkait.
+- Menghapus view formulir tindak lanjut berjadwal dan penyelesaian terpisah.
+- Menghapus relasi model, ability policy, dan data view yang hanya dipakai
+  runtime retired.
 
-### 2. Alur kasus dan konsultasi
+### 2. Consumer dan laporan
 
-- Alur pembuatan, pembaruan, penyelesaian, dan pengarsipan kasus diselaraskan
-  dengan kontrak Revisi 3.2.
-- Konsultasi mandiri disederhanakan tanpa menghilangkan kontrol otorisasi.
-- Koordinasi dengan Waka dilakukan di luar aplikasi; aplikasi tidak lagi
-  menjadi workflow koordinasi, tetapi Waka tetap dapat membaca detail kasus.
-- Validasi dipindahkan ke Form Request dan aturan bisnis tetap berada di
-  service/action layer.
+- Menghapus tiga method laporan legacy yang masih membaca tabel `follow_ups`.
+- Menghapus branch export mati yang masih memakai `planned_date` dan
+  `execution_date`.
+- Mengalihkan test penyelesaian kasus ke `CaseService::update()` dengan aksi
+  `complete`.
+- Mempertahankan endpoint singular `cases.follow-up.update` karena endpoint
+  ini mengubah klasifikasi tindak lanjut terkini pada record kasus dan bukan
+  event `follow_ups`.
 
 ### 3. Akses Waka dan privasi
 
-- Waka dapat membaca seluruh layanan BK sesuai keputusan produk.
-- Akses Waka bersifat hanya baca; seluruh mutasi tetap ditolak oleh policy dan
-  pemeriksaan server.
-- Detail yang ditampilkan memakai proyeksi allowlist, bukan serialisasi model
-  mentah.
-- Setiap pembukaan detail oleh Waka dicatat pada audit.
-- Narasi layanan tidak dimasukkan ke ekspor massal CSV untuk mengurangi risiko
-  penyebaran data sensitif.
+- Route mutasi lama kini menghasilkan 404.
+- Akses detail Waka tetap hanya-baca, memakai proyeksi allowlist, dan tetap
+  diaudit.
+- `resources/views/pages/waka/case-detail.blade.php` dipertahankan karena
+  sudah menjadi view aktif aman hasil Checkpoint 7A; menghapusnya akan
+  mematahkan requirement akses baca Waka.
 
-### 4. Frontend dan autosave
+### 4. Test-first dan review
 
-- Formulir penting memakai autosave lokal pada perangkat/browser yang sama.
-- Draft tidak disimpan ke database dan tidak memiliki masa simpan satu bulan.
-- Draft dibersihkan setelah penyimpanan berhasil.
-- Interaksi modal, konfirmasi edit data selesai, ikon dashboard, dan tampilan
-  detail layanan diselaraskan dengan komponen existing.
-- Filter kelas dan filter terkait tetap tersedia pada header tabel agar data
-  dapat difilter dan diurutkan tanpa halaman tambahan.
+- Test Waka diubah lebih dahulu agar mengharapkan 404 pada endpoint retired;
+  test gagal dengan 403 sebelum route dihapus dan lulus setelah cleanup.
+- Focused test tambahan mencakup jalur Dapodik tertunda dan hardening route.
+- Self-review menemukan consumer laporan mati yang luput dari daftar file plan;
+  consumer tersebut dihapus sebelum full gate.
+- Diff akhir menghapus 995 baris dan menambah 20 baris pada 25 file.
 
-### 5. Laporan dan consumer turunan
-
-- Laporan layanan, dashboard, profil murid, monitoring Waka, rekap operasional,
-  query turunan, dan adapter legacy telah memakai kontrak data target.
-- Seeder dan fixture dummy disesuaikan agar pengembangan tidak bergantung pada
-  data produksi.
-- Consumer bisnis tidak lagi membaca struktur retired yang akan dihapus pada
-  Checkpoint 7B dan 7C.
-
-### 6. Review dan perbaikan
-
-- Tiga lane Wave 2 dikerjakan dan direview terpisah: akses Waka, laporan, dan
-  consumer turunan.
-- Final review menemukan 5 temuan Important dan 7 temuan Minor.
-- Satu fix wave menutup seluruh 12 temuan.
-- Scoped re-review tidak menemukan temuan Critical atau Important baru.
-
-## Hasil verifikasi Checkpoint 7A
-
-Verifikasi terakhir pada branch sebelum penambahan laporan ini:
+## Hasil verifikasi Checkpoint 7B
 
 | Gate | Hasil |
 |---|---|
-| `composer test` | Lulus, 454 test dan 3.529 assertion |
+| Focused gate | Lulus, 135 test dan 1.096 assertion |
+| `composer test` | Lulus, 453 test dan 3.524 assertion |
 | `php vendor/bin/pint --test` | Lulus |
-| `npm run check:frontend` | Lulus, termasuk pemeriksaan draft dan record layanan |
+| `npm run check:frontend` | Lulus |
 | `npm run build` | Lulus |
 | `composer validate --strict` | Lulus |
 | `git diff --check` | Lulus |
 
-Perubahan dokumentasi ini wajib melewati diff-check dan pemeriksaan status Git
-sebelum commit. Full gate tidak perlu diulang apabila hanya laporan/handoff yang
-berubah dan tidak ada perubahan kode, dependency, atau konfigurasi runtime.
+Verifikasi memakai `APP_KEY` testing dan `CACHE_STORE=array` hanya pada
+environment proses. Tidak ada `.env`, credential, dependency, atau artefak
+build yang ditambahkan ke Git.
+
+## Hasil scan consumer
+
+Scan ketat tidak menemukan model/class retired, route plural, relasi
+`followUps`/`coordinations`, private note, resolve terpisah, atau field event
+lama pada `app`, `routes`, `resources`, dan `database/seeders`.
+
+Scan plan yang lebih lebar masih menemukan nama `FollowUp` pada fitur aktif:
+endpoint singular, request/controller/service dropdown, query laporan berbasis
+`BkCase`, dashboard, dan JavaScript. Match ini sah karena berarti klasifikasi
+tindak lanjut terkini, bukan consumer tabel `follow_ups`.
+
+## Batas keras yang dipertahankan
+
+- Tidak ada migration atau perubahan skema.
+- Tabel/kolom/reference retired tetap tersedia sampai Checkpoint 7C.
+- Tidak ada dependency baru.
+- View detail aman Waka tidak dihapus.
+- `main` tidak disentuh.
+- Checkpoint 7C tidak boleh dimulai sebelum PR 7B terverifikasi `MERGED`.
 
 ## Risiko tersisa dan mitigasi
 
-| Risiko | Mitigasi yang berlaku |
+| Risiko | Mitigasi |
 |---|---|
-| Waka memperoleh akses ke narasi layanan sensitif | Akses hanya baca, proyeksi allowlist, audit setiap pembukaan, dan narasi tidak masuk ekspor massal |
-| Draft hilang saat perangkat/browser berubah atau penyimpanan lokal dibersihkan | Autosave dinyatakan sebagai bantuan lokal, bukan penyimpanan server; pengguna tetap menyimpan formulir final ke aplikasi |
-| Runtime lama masih dapat menjadi dependency tersembunyi | Checkpoint 7B wajib melakukan scan consumer sebelum menghapus class, route, service, dan view lama |
-| Drop skema menghilangkan data retired secara permanen | Checkpoint 7C baru berjalan setelah 7B `MERGED`, scan dependency bersih, backup operasional tersedia, dan migration forward-only diverifikasi |
-| Adapter Dapodik/e-Tatib belum tersedia | Driver production tetap `unavailable` sampai kontrak resmi provider lolos admission gate |
+| Match scan `FollowUp` disalahartikan sebagai consumer event lama | Bedakan endpoint singular/klasifikasi aktif dari route plural/model event retired; scan ketat disimpan di handoff |
+| Skema retired masih tersedia | Checkpoint 7C mengulang scan dependency sebelum migration forward-only |
+| Drop skema menghilangkan data lama | Wajib backup operasional dan verifikasi upgrade pada database disposable; shared/production tidak di-reset |
+| Detail Waka memuat narasi layanan | Policy hanya-baca, proyeksi allowlist, audit pembukaan, dan larangan ekspor massal tetap aktif |
 
 ## Progress selanjutnya
 
-### Penutupan Checkpoint 7A
-
-1. PR #25 menargetkan `cobasidebar`, bukan `main`.
-2. Full gate dijalankan pada commit kandidat sebelum merge.
-3. Status PR diverifikasi `MERGED` dan hasil merge tersedia pada
-   `origin/cobasidebar`.
-4. Branch sumber remote dihapus setelah verifikasi merge.
-
-### Checkpoint 7B - cleanup runtime lama
-
-Checkpoint 7B dibuat dari `cobasidebar` terbaru setelah 7A `MERGED`.
-
-1. Buat branch `revisi-sibk-3-2-7b-runtime`.
-2. Hapus model, service, controller, request, route, dan view runtime retired
-   untuk follow-up, koordinasi kasus, private note, serta resolve terpisah.
-3. Jalankan scan consumer runtime sampai tidak ada referensi lama.
-4. Jalankan focused gate dan full gate.
-5. Review, buka PR terpisah ke `cobasidebar`, verifikasi `MERGED`, hapus branch
-   sumber remote, lalu pause.
-
-### Checkpoint 7C - cleanup skema dan gate akhir
-
-Checkpoint 7C dibuat dari `cobasidebar` terbaru setelah 7B `MERGED`.
-
-1. Buat branch `revisi-sibk-3-2-7c-schema`.
-2. Ulangi scan dependency; migration destruktif tidak boleh dibuat jika masih
-   ada consumer runtime.
-3. Tambahkan test skema final yang gagal terlebih dahulu.
-4. Tambahkan migration forward-only untuk menghapus tabel/kolom retired dengan
-   urutan foreign key yang aman.
-5. Verifikasi migration fresh dan upgrade pada database disposable, bukan
-   database shared/production.
-6. Jalankan full gate, review, lalu integrasikan melalui PR terpisah ke
-   `cobasidebar`.
+1. Pause pada batas Checkpoint 7B.
+2. Saat pekerjaan dilanjutkan, sinkronkan `cobasidebar` dan mulai Checkpoint
+   7C pada feature branch baru.
+3. Ulangi scan dependency sebelum migration forward-only pada database
+   disposable.
 
 ## Posisi aman untuk pause
 
-Posisi pause aman saat ini adalah `cobasidebar` setelah PR #25 `MERGED` dan
-branch sumber remote dihapus. Checkpoint 7B belum dimulai. Jika batas
-penggunaan mendekat, berhenti setelah commit bersih dan catat status terakhir
-pada `docs/current-work.md`.
+Posisi aman adalah PR #26 berstatus `MERGED` ke `cobasidebar`, branch sumber
+remote telah dihapus, dan `main` tidak disentuh. Checkpoint 7C belum dimulai.

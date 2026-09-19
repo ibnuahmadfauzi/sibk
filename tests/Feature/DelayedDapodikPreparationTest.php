@@ -1271,17 +1271,18 @@ class DelayedDapodikPreparationTest extends TestCase
         $case = app(CaseService::class)->createCase($casePayload, $assignedTeacher);
         $this->actingAs($assignedTeacher)->get(route('cases.show', $case))->assertOk();
         $this->actingAs($otherTeacher)->get(route('cases.show', $case))->assertForbidden();
-        $caseResolution = [
-            'closed_at' => '2027-07-10',
-            'final_result' => 'Selesai',
+        $caseUpdate = [
+            'initial_info' => $case->initial_info,
+            'initial_action' => $case->initial_action,
             'resolution_summary' => 'Pendampingan sudah selesai.',
-            'waka_summary' => 'Pendampingan selesai dan kondisi murid telah ditinjau.',
+            'action' => 'complete',
+            'expected_updated_at' => $case->updated_at->toISOString(),
         ];
         $this->assertValidationError(
-            fn () => app(CaseService::class)->resolve($case, $caseResolution, $otherTeacher),
+            fn () => app(CaseService::class)->update($case, $caseUpdate, $otherTeacher),
             'case',
         );
-        app(CaseService::class)->resolve($case, $caseResolution, $assignedTeacher);
+        app(CaseService::class)->update($case, $caseUpdate, $assignedTeacher);
         $this->assertValidationError(fn () => app(CaseService::class)->createCase($casePayload, $otherTeacher), 'student_id');
 
         $consultation = app(ConsultationService::class)->create($consultationPayload, $assignedTeacher);

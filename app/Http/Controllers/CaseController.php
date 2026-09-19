@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ArchiveCaseRequest;
-use App\Http\Requests\ResolveCaseRequest;
 use App\Http\Requests\StoreCaseRequest;
 use App\Http\Requests\UpdateCaseFollowUpRequest;
 use App\Http\Requests\UpdateCaseRequest;
@@ -241,13 +240,7 @@ class CaseController extends Controller
             'canViewInternal' => $user->can('viewInternal', $case),
             'canUpdateCase' => $user->can('update', $case),
             'canArchiveCase' => $user->can('archive', $case),
-            'canManageCase' => $user->can('resolve', $case),
             'canAssignCase' => $user->can('assign', $case),
-            'canCoordinateCase' => $user->can('coordinate', $case),
-            'wakaUsers' => User::query()->active()->whereHas(
-                'roles',
-                fn ($roles) => $roles->where('slug', 'waka_kesiswaan')->where('is_active', true),
-            )->orderBy('name')->get(),
         ]);
     }
 
@@ -308,26 +301,6 @@ class CaseController extends Controller
                 'updated_at' => $case->updated_at?->toJSON(),
             ],
         ]);
-    }
-
-    public function resolveForm(Request $request, BkCase $case): View
-    {
-        abort_unless($request->user()?->can('resolve', $case), 403);
-        $case->load(['student', 'temporaryStudent', 'status', 'followUps']);
-
-        return view('pages.cases.resolve', compact('case'));
-    }
-
-    public function resolve(
-        ResolveCaseRequest $request,
-        BkCase $case,
-        CaseService $caseService,
-    ): RedirectResponse {
-        /** @var User $actor */
-        $actor = $request->user();
-        $caseService->resolve($case, $request->validated(), $actor);
-
-        return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil diselesaikan.');
     }
 
     public function destroy(ArchiveCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse

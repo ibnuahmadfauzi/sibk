@@ -68,18 +68,6 @@ class BkCase extends Model
         return $this->hasMany(CaseAssignment::class, 'case_id');
     }
 
-    /** @return HasMany<CaseCoordination, $this> */
-    public function coordinations(): HasMany
-    {
-        return $this->hasMany(CaseCoordination::class, 'case_id');
-    }
-
-    /** @return HasMany<FollowUp, $this> */
-    public function followUps(): HasMany
-    {
-        return $this->hasMany(FollowUp::class, 'case_id');
-    }
-
     /** @return HasMany<Consultation, $this> */
     public function consultations(): HasMany
     {

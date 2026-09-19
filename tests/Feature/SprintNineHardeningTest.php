@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\User;
@@ -88,23 +87,6 @@ class SprintNineHardeningTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'rbac.admin@ruangbk.test']);
         $this->assertDatabaseHas('roles', ['slug' => 'admin_it']);
         $this->assertDatabaseHas('references', ['category' => 'case_status']);
-    }
-
-    public function test_scoped_bindings_reject_follow_up_from_another_case(): void
-    {
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $creator = $this->userWithRole('guru_bk');
-        $caseA = $this->case($creator, 'K-2026-9001');
-        $caseB = $this->case($creator, 'K-2026-9002');
-        $followUp = FollowUp::query()->create([
-            'case_id' => $caseB->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => now()->toDateString(),
-            'recorded_by' => $creator->id,
-        ]);
-
-        $this->actingAs($coordinator)->get(route('cases.follow-ups.edit', [$caseA, $followUp]))->assertNotFound();
     }
 
     public function test_every_mutation_route_uses_web_csrf_middleware(): void

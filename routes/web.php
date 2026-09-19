@@ -15,10 +15,8 @@ use App\Http\Controllers\Admin\UserPasswordResetController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
-use App\Http\Controllers\CaseCoordinationController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FollowUpController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LegacyPreviewController;
 use App\Http\Controllers\ReportController;
@@ -51,16 +49,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/cases', [CaseController::class, 'index'])->name('cases.index');
         Route::get('/cases/create', [CaseController::class, 'create'])->name('cases.create');
         Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
-        Route::get('/cases/{case}/follow-ups/create', [FollowUpController::class, 'create'])->name('cases.follow-ups.create');
-        Route::post('/cases/{case}/follow-ups', [FollowUpController::class, 'store'])->name('cases.follow-ups.store');
-        Route::get('/cases/{case}/follow-ups/{followUp}/edit', [FollowUpController::class, 'edit'])->name('cases.follow-ups.edit');
-        Route::patch('/cases/{case}/follow-ups/{followUp}', [FollowUpController::class, 'update'])->name('cases.follow-ups.update');
-        Route::get('/cases/{case}/resolve', [CaseController::class, 'resolveForm'])->name('cases.resolve.form');
-        Route::post('/cases/{case}/resolve', [CaseController::class, 'resolve'])->name('cases.resolve');
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
         Route::post('/cases/{case}/assign', [AssignmentController::class, 'assignCase'])->name('cases.assign');
-        Route::post('/cases/{case}/coordinations', [CaseCoordinationController::class, 'store'])->name('cases.coordinations.store');
-        Route::patch('/cases/{case}/coordinations/{coordination}', [CaseCoordinationController::class, 'update'])->name('cases.coordinations.update');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
 
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
@@ -139,8 +129,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/_preview/cases', LegacyPreviewController::class)->defaults('destination', 'cases.index')->name('fixtures.cases.index');
         Route::get('/_preview/cases/create', LegacyPreviewController::class)->defaults('destination', 'cases.create')->name('fixtures.cases.create');
         Route::get('/_preview/cases/show', LegacyPreviewController::class)->defaults('destination', 'cases.index')->name('fixtures.cases.show');
-        Route::get('/_preview/cases/follow-up', LegacyPreviewController::class)->defaults('destination', 'cases.index')->name('fixtures.cases.follow-up');
-        Route::get('/_preview/cases/resolve', LegacyPreviewController::class)->defaults('destination', 'cases.index')->name('fixtures.cases.resolve');
         Route::get('/_preview/students', LegacyPreviewController::class)->defaults('destination', 'students.index')->name('fixtures.students.index');
         Route::get('/_preview/students/show', LegacyPreviewController::class)->defaults('destination', 'students.legacy')->name('fixtures.students.show');
         Route::get('/_preview/consultations/show', LegacyPreviewController::class)->defaults('destination', 'consultations.index')->name('fixtures.consultations.show');

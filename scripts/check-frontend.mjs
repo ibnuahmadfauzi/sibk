@@ -14,11 +14,9 @@ const files = {
     casesCreate: 'resources/views/pages/cases/create.blade.php',
     caseEditModal: 'resources/views/pages/cases/_edit-modal.blade.php',
     casesShow: 'resources/views/pages/cases/show.blade.php',
-    followUp: 'resources/views/pages/cases/follow-up.blade.php',
     consultationCreate: 'resources/views/pages/consultations/create.blade.php',
     consultationEditModal: 'resources/views/pages/consultations/_edit-modal.blade.php',
     consultationShow: 'resources/views/pages/consultations/show.blade.php',
-    caseResolve: 'resources/views/pages/cases/resolve.blade.php',
     studentsIndex: 'resources/views/pages/students/index.blade.php',
     studentsShow: 'resources/views/pages/students/show.blade.php',
     achievementCreate: 'resources/views/pages/achievements/create.blade.php',
@@ -114,8 +112,8 @@ assert(contents.reportPreview.includes('data-print-report'), 'Aksi cetak PG-302 
 assert(!contents.reportPreview.includes("alert('"), 'PG-302 masih memakai simulasi ekspor.');
 assert(contents.routes.includes('ReportController::class'), 'Laporan belum memakai controller database.');
 const pageIds = {
-    casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103', followUp: 'PG-104',
-    consultationCreate: 'PG-105', caseResolve: 'PG-106', studentsIndex: 'PG-201', studentsShow: 'PG-202',
+    casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103',
+    consultationCreate: 'PG-105', studentsIndex: 'PG-201', studentsShow: 'PG-202',
     achievementCreate: 'PG-203', assignmentIndex: 'PG-401', assignmentManage: 'PG-402',
     caseAssignment: 'PG-403',
     dataMaster: 'PG-501', accessDenied: 'PG-901',
@@ -123,7 +121,7 @@ const pageIds = {
 for (const [key, pageId] of Object.entries(pageIds)) {
     assert(contents[key].includes(`data-page-id="${pageId}"`), `${pageId} belum dapat ditelusuri dari markup.`);
 }
-for (const key of ['casesCreate', 'followUp', 'consultationCreate', 'caseResolve', 'achievementCreate', 'assignmentManage', 'caseAssignment', 'dataMaster', 'account', 'topbar']) {
+for (const key of ['casesCreate', 'consultationCreate', 'achievementCreate', 'assignmentManage', 'caseAssignment', 'dataMaster', 'account', 'topbar']) {
     if (contents[key].includes('method="POST"')) assert(contents[key].includes('@csrf'), `${files[key]} memiliki form POST tanpa @csrf.`);
 }
 assert(contents.routes.includes('AccountController::class'), 'Halaman akun masih berupa fixture route.');

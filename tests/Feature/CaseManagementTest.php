@@ -238,8 +238,8 @@ class CaseManagementTest extends TestCase
             ->assertSee('aria-labelledby="case-modal-title"', false)
             ->assertSee('modal-dialog-scrollable', false)
             ->assertSee('aria-label="Tutup"', false)
-            ->assertDontSee(route('cases.follow-ups.create', $case), false)
-            ->assertDontSee(route('cases.resolve.form', $case), false);
+            ->assertDontSee("/cases/{$case->id}/follow-ups/create", false)
+            ->assertDontSee("/cases/{$case->id}/resolve", false);
         $this->assertSame(1, substr_count($response->getContent(), 'id="case-modal"'));
     }
 

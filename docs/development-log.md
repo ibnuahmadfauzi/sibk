@@ -5,11 +5,23 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 7A Revisi SIBK 3.2 terintegrasi melalui PR #25 ke `cobasidebar`;
-  cleanup runtime 7B dan cleanup skema 7C belum dimulai.
+- Checkpoint 7C belum dimulai.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 19 September 2026 — Checkpoint 7B: cleanup runtime lama
+
+- Menghapus model, service, controller, request, route, view, relasi, ability,
+  dan consumer laporan untuk event tindak lanjut, koordinasi, private note,
+  serta resolve terpisah yang sudah retired.
+- Klasifikasi tindak lanjut singular dan view detail Waka berbasis allowlist
+  dipertahankan karena masih menjadi runtime aktif.
+- Full gate lulus 453 test/3.524 assertion beserta Pint, checker frontend,
+  build, Composer strict, dan diff-check; tidak ada migration atau perubahan
+  dependency.
+- PR #26 terintegrasi ke `cobasidebar`; branch sumber remote
+  `revisi-sibk-3-2-7b-runtime` dihapus dan `main` tidak disentuh.
 
 ### 19 September 2026 — Checkpoint 7A: penyelarasan fitur
 
