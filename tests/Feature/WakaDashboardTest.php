@@ -7,9 +7,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -94,14 +92,6 @@ final class WakaDashboardTest extends TestCase
             'name' => 'XI RPL 3',
             'is_active' => true,
         ]);
-        $legacy = $this->createCase($owner, $classroom, '9044444444', 'Hanya Event Lama', 'K-LEGACY', 'sedang_diproses', '2026-09-12');
-        FollowUp::query()->create([
-            'case_id' => $legacy->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => '2026-09-13',
-            'recorded_by' => $owner->id,
-        ]);
         $first = $this->createCase($owner, $classroom, '9055555555', 'Current Pertama', 'K-CURRENT-1', 'sedang_diproses', '2026-09-11');
         $first->update(['follow_up_type_id' => $this->reference('follow_up_type', 'surat_pernyataan')->id]);
         $second = $this->createCase($owner, $classroom, '9066666666', 'Current Kedua', 'K-CURRENT-2', 'membutuhkan_tindak_lanjut', '2026-09-11');
@@ -110,7 +100,6 @@ final class WakaDashboardTest extends TestCase
 
         $this->assertSame(['Current Kedua', 'Current Pertama'], array_column($attention, 'nama_murid'));
         $this->assertSame(['-', 'Surat Pernyataan'], array_column($attention, 'tindak_lanjut'));
-        $this->assertNotContains('Hanya Event Lama', array_column($attention, 'nama_murid'));
     }
 
     /** @return array{User, BkCase, BkCase} */
@@ -133,15 +122,6 @@ final class WakaDashboardTest extends TestCase
             status: 'sedang_diproses',
             date: '2026-09-10',
         );
-        CaseCoordination::query()->create([
-            'case_id' => $coordinated->id,
-            'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Dukungan kebijakan sekolah.',
-            'recorded_by' => $owner->id,
-            'coordinated_at' => now(),
-        ]);
-
         $notCoordinated = $this->createCase(
             owner: $owner,
             classroom: $classroom,

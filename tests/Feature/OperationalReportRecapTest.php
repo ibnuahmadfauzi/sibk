@@ -11,7 +11,6 @@ use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -658,9 +657,9 @@ class OperationalReportRecapTest extends TestCase
         return $consultation;
     }
 
-    private function followUpRecord(BkCase $case, User $recorder, string $status, string $planned, ?string $executed = null): FollowUp
+    private function followUpRecord(BkCase $case, User $recorder, string $status, string $planned, ?string $executed = null): void
     {
-        return FollowUp::query()->create([
+        DB::table('follow_ups')->insert([
             'case_id' => $case->id,
             'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
             'status_id' => $this->reference('follow_up_status', $status)->id,
@@ -669,6 +668,8 @@ class OperationalReportRecapTest extends TestCase
             'result' => 'RAHASIA-HASIL',
             'next_plan' => 'RAHASIA-RENCANA',
             'recorded_by' => $recorder->id,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
     }
 

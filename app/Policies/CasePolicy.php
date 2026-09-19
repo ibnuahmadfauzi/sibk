@@ -61,21 +61,9 @@ class CasePolicy
         return $this->update($user, $case);
     }
 
-    public function resolve(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && $this->update($user, $case);
-    }
-
     public function assign(User $user, BkCase $case): bool
     {
         return ! ServiceRecordStatus::isTerminal($case->status?->code)
             && $user->hasRole('koordinator_bk');
-    }
-
-    public function coordinate(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && ($user->hasRole('koordinator_bk') || $this->update($user, $case));
     }
 }

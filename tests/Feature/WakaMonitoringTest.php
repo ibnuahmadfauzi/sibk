@@ -324,8 +324,10 @@ class WakaMonitoringTest extends TestCase
         $this->assertSame(1, $this->auditCount($waka, 'consultation.viewed_by_waka', $secondConsultation->id));
 
         $this->actingAs($waka)->get(route('cases.create'))->assertForbidden();
-        $this->actingAs($waka)->get(route('cases.resolve.form', $case))->assertForbidden();
-        $this->actingAs($waka)->post(route('cases.follow-ups.store', $case))->assertForbidden();
+        $this->actingAs($waka)->get("/cases/{$case->id}/resolve")->assertNotFound();
+        $this->actingAs($waka)->post("/cases/{$case->id}/resolve")->assertNotFound();
+        $this->actingAs($waka)->post("/cases/{$case->id}/follow-ups")->assertNotFound();
+        $this->actingAs($waka)->post("/cases/{$case->id}/coordinations")->assertNotFound();
         $this->actingAs($waka)->delete(route('cases.destroy', $case))->assertForbidden();
         $this->actingAs($waka)->get(route('consultations.create'))->assertForbidden();
         $this->actingAs($waka)->patch(route('consultations.update', $consultation))->assertForbidden();
