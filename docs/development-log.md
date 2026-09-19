@@ -5,8 +5,11 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 7A Revisi SIBK 3.2 terintegrasi melalui PR #25 ke `cobasidebar`;
-  cleanup runtime 7B dan cleanup skema 7C belum dimulai.
+- Implementasi Checkpoint 7B selesai pada `4a5fcd2`: 995 baris runtime retired
+  dihapus, scan consumer ketat bersih, dan full gate lulus 453 test/3.524
+  assertion beserta Pint, checker frontend, build, Composer strict, dan
+  diff-check. Branch sudah ter-push; submit PR menunggu konfirmasi tindakan UI.
+- Checkpoint 7C belum dimulai dan tetap menunggu PR 7B berstatus `MERGED`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
