@@ -5,7 +5,7 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 7A Revisi SIBK 3.2 sudah dipush dan menunggu PR ke `cobasidebar`;
+- Checkpoint 7A Revisi SIBK 3.2 terintegrasi melalui PR #25 ke `cobasidebar`;
   cleanup runtime 7B dan cleanup skema 7C belum dimulai.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
@@ -24,6 +24,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Full gate final lulus 454 test/3.529 assertion, Pint, checker frontend,
   build, Composer strict, dan diff-check. Runtime/schema retired tetap tersedia
   sampai Checkpoint 7B/7C sesuai urutan aman.
+- PR #25 terintegrasi ke `cobasidebar`; branch sumber remote
+  `revisi-sibk-3-2` sudah dihapus dan `main` tidak disentuh.
 
 ### 16 September 2026 - Rilis baseline Ruang BK v1.1
 

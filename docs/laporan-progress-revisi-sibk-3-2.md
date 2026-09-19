@@ -7,9 +7,9 @@ Branch Checkpoint 7A: `revisi-sibk-3-2`
 ## Ringkasan status
 
 Implementasi, review, perbaikan review, dan full gate Checkpoint 7A telah
-selesai. Branch sudah dipush ke GitHub. Integrasi ke `cobasidebar` masih
-menunggu pembuatan dan merge Pull Request karena konektor GitHub yang tersedia
-tidak memiliki izin tulis. Branch `main` tidak disentuh.
+selesai serta diintegrasikan ke `cobasidebar` melalui PR #25. Branch sumber
+remote dihapus setelah status PR terverifikasi `MERGED`. Branch `main` tidak
+disentuh.
 
 Checkpoint 7B dan 7C belum dimulai agar cleanup runtime dan skema tetap
 mengikuti urutan aman.
@@ -108,12 +108,11 @@ berubah dan tidak ada perubahan kode, dependency, atau konfigurasi runtime.
 
 ### Penutupan Checkpoint 7A
 
-1. Buat Pull Request `revisi-sibk-3-2` ke `cobasidebar`.
-2. Pastikan base bukan `main`, lalu merge tanpa force push.
-3. Verifikasi status PR `MERGED` dan commit hasil merge tersedia pada
+1. PR #25 menargetkan `cobasidebar`, bukan `main`.
+2. Full gate dijalankan pada commit kandidat sebelum merge.
+3. Status PR diverifikasi `MERGED` dan hasil merge tersedia pada
    `origin/cobasidebar`.
-4. Hapus branch sumber remote setelah merge; branch yang belum merge tidak
-   boleh dihapus.
+4. Branch sumber remote dihapus setelah verifikasi merge.
 
 ### Checkpoint 7B - cleanup runtime lama
 
@@ -144,7 +143,7 @@ Checkpoint 7C dibuat dari `cobasidebar` terbaru setelah 7B `MERGED`.
 
 ## Posisi aman untuk pause
 
-Posisi pause aman saat ini adalah branch `revisi-sibk-3-2` yang sudah dipush.
-Jangan memulai 7B sebelum PR 7A berstatus `MERGED`. Jika batas penggunaan
-mendekat, berhenti setelah commit bersih dan catat status terakhir pada
-`docs/current-work.md`.
+Posisi pause aman saat ini adalah `cobasidebar` setelah PR #25 `MERGED` dan
+branch sumber remote dihapus. Checkpoint 7B belum dimulai. Jika batas
+penggunaan mendekat, berhenti setelah commit bersih dan catat status terakhir
+pada `docs/current-work.md`.
