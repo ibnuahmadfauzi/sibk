@@ -2,11 +2,11 @@
 
 ## Status
 
-- Pekerjaan aktif: kandidat Checkpoint 7C Revisi SIBK 3.2 siap dibuatkan PR.
+- Pekerjaan aktif: Checkpoint 7C Revisi SIBK 3.2 dalam review PR #27.
 - Branch: `revisi-sibk-3-2-7c-schema`.
 - Base: `origin/cobasidebar` pada merge commit Checkpoint 7B `dec57e0`.
 - Commit skema: `86cf3cd`; fixture: `d89f514`; perbaikan review: `55bfca9`.
-- Checkpoint selesai di branch: 1–7C; PR 7C belum dibuka.
+- Checkpoint selesai di branch: 1–7C; PR #27 berstatus `OPEN` dan `MERGEABLE`.
 - `main` tidak disentuh.
 
 ## Hasil Checkpoint 7C
@@ -67,14 +67,14 @@ adalah atribut input HTML dan Laporan Akhir Waka yang memang disetujui.
 
 ## Langkah berikutnya
 
-1. Push branch dan buka PR `revisi-sibk-3-2-7c-schema` ke `cobasidebar`.
+1. Review dan merge PR #27 ke `cobasidebar`.
 2. Setelah PR berstatus `MERGED`, hapus branch sumber remote dan verifikasi
    tidak ada commit atau PR 7C yang tertinggal.
 3. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
 
 ## Blocker
 
-- Tidak ada blocker implementasi, review, atau gate; PR belum dibuat.
+- Tidak ada blocker implementasi atau gate; review/merge PR #27 menunggu.
 - Risiko residual: Waka membaca narasi terstruktur sesuai keputusan BK; draft
   `localStorage` hanya tersedia pada perangkat/browser yang sama.
 
