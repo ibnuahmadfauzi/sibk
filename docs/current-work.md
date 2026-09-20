@@ -2,10 +2,10 @@
 
 ## Status
 
-- Pekerjaan aktif: kandidat Checkpoint 7C Revisi SIBK 3.2 siap direview.
+- Pekerjaan aktif: kandidat Checkpoint 7C Revisi SIBK 3.2 siap dibuatkan PR.
 - Branch: `revisi-sibk-3-2-7c-schema`.
 - Base: `origin/cobasidebar` pada merge commit Checkpoint 7B `dec57e0`.
-- Commit skema: `86cf3cd`; commit penyelarasan fixture: `d89f514`.
+- Commit skema: `86cf3cd`; fixture: `d89f514`; perbaikan review: `55bfca9`.
 - Checkpoint selesai di branch: 1–7C; PR 7C belum dibuka.
 - `main` tidak disentuh.
 
@@ -27,9 +27,13 @@
 - TDD skema final gagal sebelum migration lalu lulus setelah implementasi.
 - Focused migration gate: 42 test / 338 assertion.
 - Focused security/privacy gate: 88 test / 824 assertion.
-- Full gate kandidat 7C: 453 test / 3.538 assertion.
+- Full gate kandidat 7C: 454 test / 3.540 assertion.
 - SQLite disposable lulus `migrate:fresh`, rollback, dan upgrade dengan 15 data
   konsultasi tetap tersedia setelah migration.
+- MySQL 8.4 disposable lulus fresh, rollback, dan upgrade; 15 kasus serta 15
+  konsultasi tetap tersedia dan indeks foreign key/rollback terverifikasi.
+- Review independen menemukan dua masalah indeks Important; keduanya diperbaiki
+  dengan regression test. Tidak ada temuan Critical atau Minor.
 - `php vendor/bin/pint --test`: lulus.
 - `npm run check:frontend`: lulus.
 - `npm run build`: lulus.
@@ -63,15 +67,14 @@ adalah atribut input HTML dan Laporan Akhir Waka yang memang disetujui.
 
 ## Langkah berikutnya
 
-1. Jalankan review independen seluruh diff Checkpoint 7C.
-2. Push branch dan buka PR `revisi-sibk-3-2-7c-schema` ke `cobasidebar`.
-3. Setelah PR berstatus `MERGED`, hapus branch sumber remote dan verifikasi
+1. Push branch dan buka PR `revisi-sibk-3-2-7c-schema` ke `cobasidebar`.
+2. Setelah PR berstatus `MERGED`, hapus branch sumber remote dan verifikasi
    tidak ada commit atau PR 7C yang tertinggal.
-4. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
+3. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
 
 ## Blocker
 
-- Tidak ada blocker implementasi atau gate; review dan PR belum dilakukan.
+- Tidak ada blocker implementasi, review, atau gate; PR belum dibuat.
 - Risiko residual: Waka membaca narasi terstruktur sesuai keputusan BK; draft
   `localStorage` hanya tersedia pada perangkat/browser yang sama.
 
