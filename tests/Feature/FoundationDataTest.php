@@ -101,6 +101,27 @@ class FoundationDataTest extends TestCase
         $this->assertTrue(collect(Schema::getIndexes('cases'))->contains(
             static fn (array $index): bool => $index['columns'] === ['follow_up_type_id'],
         ));
+        $this->assertTrue(collect(Schema::getIndexes('consultations'))->contains(
+            static fn (array $index): bool => $index['columns'] === ['student_id', 'session_date'],
+        ));
+    }
+
+    public function test_final_migration_rollback_restores_hardening_consultation_index(): void
+    {
+        $migration = require database_path(
+            'migrations/2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema.php',
+        );
+
+        $migration->down();
+
+        try {
+            $this->assertTrue($this->hasMigrationIndex(
+                'consultations',
+                'consultation_date_status_field_user_index',
+            ));
+        } finally {
+            $migration->up();
+        }
     }
 
     public function test_audit_service_records_only_strictly_changed_keys(): void

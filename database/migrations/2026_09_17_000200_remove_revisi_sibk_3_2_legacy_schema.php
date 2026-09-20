@@ -25,10 +25,15 @@ return new class extends Migration
         }
 
         Schema::table('consultations', function (Blueprint $table): void {
+            $table->index(['student_id', 'session_date'], 'consultation_student_date_index');
+        });
+
+        Schema::table('consultations', function (Blueprint $table): void {
             $table->dropForeign(['case_id']);
             $table->dropForeign(['status_id']);
             $table->dropUnique(['registration_number']);
             $table->dropIndex('consultation_student_date_status_index');
+            $table->dropIndex('consultation_date_status_field_user_index');
             $table->dropColumn([
                 'registration_number', 'case_id', 'status_id', 'topic', 'referral_source',
                 'starts_at', 'ends_at', 'follow_up_date', 'general_summary',
@@ -65,7 +70,9 @@ return new class extends Migration
                 $table->date('follow_up_date')->nullable();
                 $table->text('general_summary')->nullable();
                 $table->index(['student_id', 'session_date', 'status_id'], 'consultation_student_date_status_index');
+                $table->index(['session_date', 'status_id', 'service_field_id', 'counselor_id'], 'consultation_date_status_field_user_index');
             });
+            Schema::table('consultations', fn (Blueprint $table) => $table->dropIndex('consultation_student_date_index'));
         }
 
         Schema::create('case_coordinations', function (Blueprint $table): void {
@@ -143,6 +150,7 @@ return new class extends Migration
                 SQL);
             DB::statement('DROP TABLE "consultations"');
             DB::statement('ALTER TABLE "consultations_final" RENAME TO "consultations"');
+            DB::statement('CREATE INDEX "consultation_student_date_index" ON "consultations" ("student_id", "session_date")');
             DB::statement('CREATE INDEX "consultation_temporary_date_index" ON "consultations" ("temporary_student_id", "session_date")');
             DB::statement('CREATE INDEX "consultation_counselor_date_index" ON "consultations" ("counselor_id", "session_date")');
         } finally {
@@ -193,6 +201,7 @@ return new class extends Migration
             DB::statement('ALTER TABLE "consultations_legacy" RENAME TO "consultations"');
             DB::statement('CREATE UNIQUE INDEX "consultations_registration_number_unique" ON "consultations" ("registration_number")');
             DB::statement('CREATE INDEX "consultation_student_date_status_index" ON "consultations" ("student_id", "session_date", "status_id")');
+            DB::statement('CREATE INDEX "consultation_date_status_field_user_index" ON "consultations" ("session_date", "status_id", "service_field_id", "counselor_id")');
             DB::statement('CREATE INDEX "consultation_temporary_date_index" ON "consultations" ("temporary_student_id", "session_date")');
             DB::statement('CREATE INDEX "consultation_counselor_date_index" ON "consultations" ("counselor_id", "session_date")');
         } finally {
