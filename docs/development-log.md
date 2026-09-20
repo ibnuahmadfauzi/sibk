@@ -5,10 +5,26 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 7C belum dimulai.
+- Checkpoint 7C selesai di branch kandidat; PR #27 ke `cobasidebar` sedang
+  direview.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 20 September 2026 — Checkpoint 7C: cleanup skema dan gate akhir
+
+- Migration forward-only menghapus tiga tabel dan dua belas kolom retired;
+  consumer sementara serta fixture test diselaraskan ke skema final.
+- SQLite dan MySQL 8.4 disposable lulus fresh, rollback, serta upgrade dengan
+  15 kasus dan 15 konsultasi aktif tetap terjaga; database shared/production
+  tidak disentuh.
+- Focused security/privacy gate lulus 88 test/824 assertion. Full gate lulus
+  454 test/3.540 assertion beserta Pint, checker frontend, build, Composer
+  strict, dan diff-check.
+- Review independen menemukan dua masalah indeks Important; keduanya ditutup
+  dengan regression test tanpa temuan Critical atau Minor.
+- PR #27 dari `revisi-sibk-3-2-7c-schema` ke `cobasidebar` sudah dibuka;
+  `main` tidak disentuh dan tidak ada dependency baru.
 
 ### 19 September 2026 — Checkpoint 7B: cleanup runtime lama
 

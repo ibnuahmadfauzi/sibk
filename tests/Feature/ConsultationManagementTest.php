@@ -56,7 +56,6 @@ class ConsultationManagementTest extends TestCase
         $this->assertSame('Kesulitan beradaptasi di kelas.', $consultation->problem);
         $this->assertSame('Asesmen dan konseling individual.', $consultation->handling);
         $this->assertSame('Murid menyepakati langkah perbaikan.', $consultation->result);
-        $this->assertDatabaseCount('consultation_private_notes', 0);
     }
 
     public function test_exact_master_nisn_is_not_duplicated_as_temporary_identity(): void
@@ -424,14 +423,7 @@ class ConsultationManagementTest extends TestCase
             'result' => 'Hasil '.$student->name,
             'counselor_id' => $teacher->id,
         ]);
-        $consultation->forceFill([
-            'status_id' => ReferenceValue::query()
-                ->where('category', 'consultation_status')
-                ->where('code', 'selesai')
-                ->firstOrFail()
-                ->id,
-            'topic' => 'Permasalahan '.$student->name,
-        ])->save();
+        $consultation->save();
 
         return $consultation;
     }
@@ -474,13 +466,7 @@ class ConsultationManagementTest extends TestCase
             'session_date' => $date,
             'counselor_id' => $teacher->id,
         ]);
-        $consultation->forceFill([
-            'status_id' => ReferenceValue::query()
-                ->where('category', 'consultation_status')
-                ->where('code', 'selesai')
-                ->firstOrFail()->id,
-            'topic' => 'Kompatibilitas skema lama',
-        ])->save();
+        $consultation->save();
 
         return $consultation;
     }

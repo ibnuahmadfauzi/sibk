@@ -263,8 +263,6 @@ class OperationalReportRecapTest extends TestCase
         ]);
         $temporaryCase = $this->caseRecord($teacher, null, $unreconciled, '2026-08-11', 'RAHASIA-SEMENTARA');
         $this->consultationRecord($teacher, null, $reconciled, '2026-08-18', 'RAHASIA-KONSULTASI');
-        $this->followUpRecord($officialCase, $teacher, 'terlaksana', '2026-08-15', '2026-08-19');
-        $this->followUpRecord($officialCase, $teacher, 'terjadwal', '2026-08-25');
 
         $report = app(OperationalReportRecapService::class)->build($teacher, ['tab' => 'layanan']);
         $rows = collect($report['rows']->items())->keyBy('identity_key');
@@ -649,28 +647,9 @@ class OperationalReportRecapTest extends TestCase
             'result' => 'Hasil aman',
             'counselor_id' => $counselor->id,
         ]);
-        $consultation->forceFill([
-            'status_id' => $this->reference('consultation_status', ServiceRecordStatus::COMPLETED)->id,
-            'topic' => $secret,
-        ])->save();
+        $consultation->save();
 
         return $consultation;
-    }
-
-    private function followUpRecord(BkCase $case, User $recorder, string $status, string $planned, ?string $executed = null): void
-    {
-        DB::table('follow_ups')->insert([
-            'case_id' => $case->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
-            'status_id' => $this->reference('follow_up_status', $status)->id,
-            'planned_date' => $planned,
-            'execution_date' => $executed,
-            'result' => 'RAHASIA-HASIL',
-            'next_plan' => 'RAHASIA-RENCANA',
-            'recorded_by' => $recorder->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
     }
 
     private function studentWithCase(User $teacher, Classroom $classroom, int $index): Student

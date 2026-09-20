@@ -384,14 +384,14 @@ final class StudentDepartureTest extends TestCase
         $this->actingAs($teacher)->get(route('cases.index'))
             ->assertOk()
             ->assertDontSee($case->registration_number)
-            ->assertDontSee($consultation->registration_number);
+            ->assertDontSee($consultation->problem);
         $this->actingAs($teacher)->get(route('students.index'))
             ->assertOk()
             ->assertDontSee($student->nisn);
         $this->actingAs($teacher)->get(route('reports.index', ['tab' => 'layanan']))
             ->assertOk()
             ->assertDontSee($case->registration_number)
-            ->assertDontSee($consultation->registration_number);
+            ->assertDontSee($consultation->problem);
         $this->actingAs($teacher)->get(route('cases.create', ['student_id' => $student->id]))
             ->assertForbidden();
 

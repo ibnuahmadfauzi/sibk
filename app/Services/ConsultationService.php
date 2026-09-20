@@ -9,7 +9,6 @@ use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\TemporaryStudent;
 use App\Models\User;
-use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,11 +38,7 @@ class ConsultationService
                 'counselor_id' => $actor->getKey(),
             ]);
 
-            // ponytail: kolom legacy masih NOT NULL sampai migration pembersihan; hapus dua nilai ini bersama kolomnya.
-            $consultation->forceFill([
-                'status_id' => $this->legacyCompletedStatusId(),
-                'topic' => $data['problem'],
-            ])->save();
+            $consultation->save();
 
             $this->auditService->recordChanges(
                 action: 'consultation.created',
@@ -195,14 +190,6 @@ class ConsultationService
     private function reference(string $category, int $id): ReferenceValue
     {
         return ReferenceValue::query()->active()->where('category', $category)->findOrFail($id);
-    }
-
-    private function legacyCompletedStatusId(): int
-    {
-        return ReferenceValue::query()
-            ->where('category', 'consultation_status')
-            ->where('code', ServiceRecordStatus::COMPLETED)
-            ->valueOrFail('id');
     }
 
     /** @return array<string, mixed> */

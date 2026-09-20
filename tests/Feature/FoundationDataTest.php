@@ -65,14 +65,26 @@ class FoundationDataTest extends TestCase
         $this->assertSame(3, ReferenceValue::query()->forCategory('achievement_verification_status')->count());
     }
 
-    public function test_foundation_migration_adds_the_new_columns_without_removing_legacy_tables(): void
+    public function test_final_migration_removes_legacy_schema_and_preserves_active_foundation(): void
     {
+        $this->assertDatabaseHas('migrations', [
+            'migration' => '2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema',
+        ]);
         $this->assertTrue(Schema::hasColumn('cases', 'follow_up_type_id'));
         $this->assertTrue(Schema::hasColumn('consultations', 'problem'));
         $this->assertTrue(Schema::hasColumn('consultations', 'handling'));
         $this->assertTrue(Schema::hasColumn('consultations', 'result'));
-        $this->assertTrue(Schema::hasTable('follow_ups'));
-        $this->assertTrue(Schema::hasTable('case_coordinations'));
+        $this->assertFalse(Schema::hasTable('follow_ups'));
+        $this->assertFalse(Schema::hasTable('case_coordinations'));
+        $this->assertFalse(Schema::hasTable('consultation_private_notes'));
+
+        foreach (['waka_summary', 'final_result', 'continued_plan'] as $columnName) {
+            $this->assertFalse(Schema::hasColumn('cases', $columnName));
+        }
+
+        foreach (['registration_number', 'case_id', 'status_id', 'topic', 'referral_source', 'starts_at', 'ends_at', 'follow_up_date', 'general_summary'] as $columnName) {
+            $this->assertFalse(Schema::hasColumn('consultations', $columnName));
+        }
 
         foreach (['problem', 'handling', 'result'] as $columnName) {
             $column = collect(Schema::getColumns('consultations'))->firstWhere('name', $columnName);
@@ -89,6 +101,27 @@ class FoundationDataTest extends TestCase
         $this->assertTrue(collect(Schema::getIndexes('cases'))->contains(
             static fn (array $index): bool => $index['columns'] === ['follow_up_type_id'],
         ));
+        $this->assertTrue(collect(Schema::getIndexes('consultations'))->contains(
+            static fn (array $index): bool => $index['columns'] === ['student_id', 'session_date'],
+        ));
+    }
+
+    public function test_final_migration_rollback_restores_hardening_consultation_index(): void
+    {
+        $migration = require database_path(
+            'migrations/2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema.php',
+        );
+
+        $migration->down();
+
+        try {
+            $this->assertTrue($this->hasMigrationIndex(
+                'consultations',
+                'consultation_date_status_field_user_index',
+            ));
+        } finally {
+            $migration->up();
+        }
     }
 
     public function test_audit_service_records_only_strictly_changed_keys(): void

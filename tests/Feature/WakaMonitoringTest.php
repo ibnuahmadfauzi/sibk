@@ -263,8 +263,6 @@ class WakaMonitoringTest extends TestCase
         $consultations = collect(['Pertama', 'Kedua'])->map(fn (string $label): Consultation => Consultation::query()->forceCreate([
             'student_id' => $student->id,
             'service_field_id' => $this->ref('service_field', 'pribadi')->id,
-            'status_id' => $this->ref('consultation_status', 'sedang_diproses')->id,
-            'topic' => "Konsultasi {$label}",
             'session_date' => '2026-09-05',
             'problem' => "Permasalahan {$label}.",
             'handling' => "Penanganan {$label}.",

@@ -2,38 +2,38 @@
 
 ## Status
 
-- Pekerjaan aktif: Revisi SIBK 3.2 untuk Layanan Guru BK.
-- Branch Checkpoint 7B: `revisi-sibk-3-2-7b-runtime`.
-- Base: `origin/cobasidebar` pada merge commit Checkpoint 7A `85b2ce1`.
-- Commit runtime Checkpoint 7B: `4a5fcd2`.
-- PR #26 mengintegrasikan Checkpoint 7B ke `cobasidebar`; status akhir wajib
-  diverifikasi `MERGED` sebelum pekerjaan berikutnya.
-- Branch sumber remote dihapus setelah status merge terverifikasi.
-- Checkpoint selesai: 1–7B.
-- Checkpoint berikutnya: 7C — Cleanup Skema dan Gate Akhir, belum dimulai.
+- Pekerjaan aktif: Checkpoint 7C Revisi SIBK 3.2 dalam review PR #27.
+- Branch: `revisi-sibk-3-2-7c-schema`.
+- Base: `origin/cobasidebar` pada merge commit Checkpoint 7B `dec57e0`.
+- Commit skema: `86cf3cd`; fixture: `d89f514`; perbaikan review: `55bfca9`.
+- Checkpoint selesai di branch: 1–7C; PR #27 berstatus `OPEN` dan `MERGEABLE`.
 - `main` tidak disentuh.
 
-## Hasil Checkpoint 7B
+## Hasil Checkpoint 7C
 
-- Model, service, controller, request, route, view, relasi, dan policy ability
-  untuk event tindak lanjut lama, koordinasi kasus, private note, serta resolve
-  terpisah telah dihapus.
-- Route mutasi lama kini 404. Penyelesaian tetap melalui `cases.update`.
-- Klasifikasi tindak lanjut aktif tetap memakai endpoint singular
-  `cases.follow-up.update` dan field `follow_up_type_id` pada kasus.
-- Consumer laporan lama yang membaca tabel `follow_ups`, termasuk branch
-  export mati, telah dihapus.
-- View detail Waka berbasis allowlist dipertahankan karena masih menjadi runtime
-  aktif yang aman.
-- Tidak ada migration, drop tabel/kolom, perubahan dependency, atau adapter
-  production.
+- Migration forward-only menghapus tabel `consultation_private_notes`,
+  `follow_ups`, dan `case_coordinations` setelah consumer runtime bersih.
+- Kolom retired pada kasus (`waka_summary`, `final_result`, `continued_plan`)
+  dan sembilan kolom retired konsultasi telah dihapus.
+- Consumer sementara pada model, service, seeder, dan fixture test diselaraskan
+  ke skema final; klasifikasi tindak lanjut singular tetap aktif pada kasus.
+- Jalur SQLite eksplisit mempertahankan data aktif dan foreign key karena
+  `references` merupakan nama reserved; jalur database lain memakai Schema
+  Builder.
+- Tidak ada dependency, route, adapter production, atau perubahan UI baru.
 
 ## Bukti verifikasi
 
-- Baseline sebelum perubahan: 454 test / 3.529 assertion.
-- TDD endpoint retired: test gagal 403 sebelum route dihapus, lalu lulus 404.
-- Focused gate akhir: 135 test / 1.096 assertion.
-- Full gate pada commit `4a5fcd2`: 453 test / 3.524 assertion.
+- TDD skema final gagal sebelum migration lalu lulus setelah implementasi.
+- Focused migration gate: 42 test / 338 assertion.
+- Focused security/privacy gate: 88 test / 824 assertion.
+- Full gate kandidat 7C: 454 test / 3.540 assertion.
+- SQLite disposable lulus `migrate:fresh`, rollback, dan upgrade dengan 15 data
+  konsultasi tetap tersedia setelah migration.
+- MySQL 8.4 disposable lulus fresh, rollback, dan upgrade; 15 kasus serta 15
+  konsultasi tetap tersedia dan indeks foreign key/rollback terverifikasi.
+- Review independen menemukan dua masalah indeks Important; keduanya diperbaiki
+  dengan regression test. Tidak ada temuan Critical atau Minor.
 - `php vendor/bin/pint --test`: lulus.
 - `npm run check:frontend`: lulus.
 - `npm run build`: lulus.
@@ -44,28 +44,19 @@
 
 ## Hasil scan consumer
 
-Scan ketat berikut tidak menemukan consumer retired pada runtime:
+Scan ketat tidak menemukan consumer skema retired pada runtime. Match tersisa:
 
-- class/model `FollowUp`, `CaseCoordination`, dan
-  `ConsultationPrivateNote`;
-- relasi `followUps`, `coordinations`, dan `privateNote`;
-- route plural `cases.follow-ups.*`, `cases.coordinations.*`, dan
-  `cases.resolve*`;
-- field event `planned_date`, `execution_date`, `coordination_need`, dan
-  `coordinated_at` pada `app`, `routes`, `resources`, serta
-  `database/seeders`.
+- assertion bahwa tabel/kolom retired sudah tidak ada;
+- probe migration historis timestamp koordinasi;
+- istilah `followUps` pada rekap aktif berbasis status `BkCase`.
 
-Command scan plan tetap menghasilkan match `FollowUp` untuk klasifikasi aktif:
-endpoint singular, request/controller/service dropdown, query laporan berbasis
-`BkCase`, dashboard, dan JavaScript. Match ini bukan dependency pada tabel
-`follow_ups`.
+Match tersebut bukan consumer tabel retired. Placeholder yang ditemukan scan
+adalah atribut input HTML dan Laporan Akhir Waka yang memang disetujui.
 
 ## Batas wajib
 
-- Jangan membuat migration atau drop skema sebelum PR 7B terverifikasi
-  `MERGED`.
-- Migration 7C harus forward-only dan hanya diuji pada database disposable;
-  database shared/production tidak boleh di-reset.
+- Migration 7C hanya boleh dijalankan lewat prosedur deployment; database
+  shared/production tidak boleh di-reset.
 - Jangan menambah dependency.
 - Semua PR checkpoint menargetkan `cobasidebar`; `main` hanya untuk PR rilis
   terpisah setelah persetujuan pengguna.
@@ -76,18 +67,16 @@ endpoint singular, request/controller/service dropdown, query laporan berbasis
 
 ## Langkah berikutnya
 
-1. Pause setelah PR #26 terverifikasi `MERGED` dan branch sumber remote
-   terhapus.
-2. Saat 7C dilanjutkan, sinkronkan `cobasidebar` lalu buat feature branch baru.
-3. Ulangi scan dependency sebelum migration forward-only pada database
-   disposable.
+1. Review dan merge PR #27 ke `cobasidebar`.
+2. Setelah PR berstatus `MERGED`, hapus branch sumber remote dan verifikasi
+   tidak ada commit atau PR 7C yang tertinggal.
+3. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
 
 ## Blocker
 
-- Tidak ada blocker implementasi atau gate.
+- Tidak ada blocker implementasi atau gate; review/merge PR #27 menunggu.
 - Risiko residual: Waka membaca narasi terstruktur sesuai keputusan BK; draft
-  `localStorage` hanya tersedia pada perangkat/browser yang sama; skema
-  retired baru dihapus pada Checkpoint 7C.
+  `localStorage` hanya tersedia pada perangkat/browser yang sama.
 
 ## Acuan
 

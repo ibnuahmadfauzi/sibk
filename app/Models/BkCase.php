@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'follow_up_type_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'waka_summary', 'internal_note', 'final_result', 'resolution_summary', 'continued_plan', 'closed_at', 'created_by'])]
+#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'follow_up_type_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'internal_note', 'resolution_summary', 'closed_at', 'created_by'])]
 class BkCase extends Model
 {
     use SoftDeletes;
