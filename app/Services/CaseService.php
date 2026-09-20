@@ -275,7 +275,6 @@ class CaseService
             'status_id' => $case->status_id,
             'service_date' => $case->service_date?->toDateString(),
             'closed_at' => $case->closed_at?->toDateString(),
-            'final_result' => $case->final_result,
         ];
     }
 }

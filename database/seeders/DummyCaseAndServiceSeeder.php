@@ -390,10 +390,7 @@ class DummyCaseAndServiceSeeder extends Seeder
                     'initial_info' => $def['initial_info'],
                     'initial_action' => $def['initial_action'],
                     'internal_note' => $def['internal_note'],
-                    'waka_summary' => $def['waka_summary'],
-                    'final_result' => $def['final_result'],
                     'resolution_summary' => $def['resolution_summary'],
-                    'continued_plan' => $def['continued_plan'],
                     'closed_at' => $def['closed_at'],
                     'created_by' => $guruBk->id,
                 ],
@@ -692,21 +689,16 @@ class DummyCaseAndServiceSeeder extends Seeder
             ],
         ];
 
-        $legacyStatusId = ReferenceValue::query()
-            ->where('category', 'consultation_status')
-            ->where('code', ServiceRecordStatus::COMPLETED)
-            ->valueOrFail('id');
-
         foreach ($definitions as $def) {
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
-            $regNumber = sprintf('KNS-%s-%04d', substr($def['session_date'], 0, 4), $def['index']);
 
             /** @var Consultation $consultation */
-            $consultation = Consultation::query()->firstOrNew(['registration_number' => $regNumber]);
+            $consultation = Consultation::query()
+                ->where('student_id', $student->id)
+                ->whereDate('session_date', $def['session_date'])
+                ->first() ?? new Consultation;
 
-            // ponytail: status_id/topic legacy masih NOT NULL sampai migration pembersihan; hapus bersama kolomnya.
             $consultation->forceFill([
-                'registration_number' => $regNumber,
                 'student_id' => $student->id,
                 'temporary_student_id' => null,
                 'service_field_id' => $fields[$def['field']],
@@ -715,8 +707,6 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'handling' => $def['general_summary'] ?? 'Pendampingan sesuai kebutuhan murid.',
                 'result' => $def['conclusion'],
                 'counselor_id' => $guruBk->id,
-                'status_id' => $legacyStatusId,
-                'topic' => $def['topic'],
             ])->save();
         }
     }

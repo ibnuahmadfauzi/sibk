@@ -12,20 +12,16 @@ final class SharedDevelopmentBaselineTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_addendum_gate_mempertahankan_skema_lama_sambil_menambah_kolom_revisi(): void
+    public function test_skema_final_hanya_mempertahankan_kolom_revisi_aktif(): void
     {
-        $this->assertTrue(Schema::hasColumn('cases', 'waka_summary'));
         $this->assertTrue(Schema::hasColumn('cases', 'follow_up_type_id'));
         $this->assertTrue(Schema::hasColumn('consultations', 'problem'));
         $this->assertTrue(Schema::hasColumn('consultations', 'handling'));
         $this->assertTrue(Schema::hasColumn('consultations', 'result'));
-        $this->assertTrue(Schema::hasTable('follow_ups'));
-        $this->assertTrue(Schema::hasTable('case_coordinations'));
-
-        $column = collect(Schema::getColumns('cases'))->firstWhere('name', 'waka_summary');
-
-        $this->assertNotNull($column);
-        $this->assertTrue((bool) $column['nullable']);
+        $this->assertFalse(Schema::hasColumn('cases', 'waka_summary'));
+        $this->assertFalse(Schema::hasTable('follow_ups'));
+        $this->assertFalse(Schema::hasTable('case_coordinations'));
+        $this->assertFalse(Schema::hasTable('consultation_private_notes'));
     }
 
     public function test_active_requirements_publish_the_simplified_operational_contract(): void

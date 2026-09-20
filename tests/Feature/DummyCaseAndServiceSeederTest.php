@@ -18,8 +18,9 @@ final class DummyCaseAndServiceSeederTest extends TestCase
         $this->seed(DummyCaseAndServiceSeeder::class);
 
         $seededIds = Consultation::query()
-            ->orderBy('registration_number')
-            ->pluck('id', 'registration_number')
+            ->orderBy('session_date')
+            ->orderBy('id')
+            ->pluck('id')
             ->all();
 
         $this->assertCount(15, $seededIds);
@@ -32,8 +33,9 @@ final class DummyCaseAndServiceSeederTest extends TestCase
         $this->seed(DummyCaseAndServiceSeeder::class);
 
         $this->assertSame($seededIds, Consultation::query()
-            ->orderBy('registration_number')
-            ->pluck('id', 'registration_number')
+            ->orderBy('session_date')
+            ->orderBy('id')
+            ->pluck('id')
             ->all());
         $this->assertDatabaseCount('consultations', 15);
     }
