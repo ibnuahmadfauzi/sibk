@@ -2,11 +2,10 @@
 
 ## Status
 
-- Pekerjaan aktif: Checkpoint 7C Revisi SIBK 3.2 dalam review PR #27.
-- Branch: `revisi-sibk-3-2-7c-schema`.
-- Base: `origin/cobasidebar` pada merge commit Checkpoint 7B `dec57e0`.
-- Commit skema: `86cf3cd`; fixture: `d89f514`; perbaikan review: `55bfca9`.
-- Checkpoint selesai di branch: 1–7C; PR #27 berstatus `OPEN` dan `MERGEABLE`.
+- Pekerjaan aktif: tidak ada; Revisi SIBK 3.2 selesai sampai Checkpoint 7C.
+- Branch aktif: `cobasidebar` pada merge commit PR #27 `6e16498`.
+- Checkpoint 7A, 7B, dan 7C telah terintegrasi melalui PR #25, #26, dan #27.
+- Branch sumber remote/lokal dan worktree Checkpoint 7C telah dibersihkan.
 - `main` tidak disentuh.
 
 ## Hasil Checkpoint 7C
@@ -67,14 +66,14 @@ adalah atribut input HTML dan Laporan Akhir Waka yang memang disetujui.
 
 ## Langkah berikutnya
 
-1. Review dan merge PR #27 ke `cobasidebar`.
-2. Setelah PR berstatus `MERGED`, hapus branch sumber remote dan verifikasi
-   tidak ada commit atau PR 7C yang tertinggal.
-3. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
+1. Pause pada `cobasidebar`; tidak ada task implementasi aktif.
+2. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
+3. Jika rilis disetujui, gunakan PR rilis terpisah dan prosedur deployment
+   dengan backup serta migration forward-only.
 
 ## Blocker
 
-- Tidak ada blocker implementasi atau gate; review/merge PR #27 menunggu.
+- Tidak ada blocker implementasi atau gate; rilis sengaja belum dimulai.
 - Risiko residual: Waka membaca narasi terstruktur sesuai keputusan BK; draft
   `localStorage` hanya tersedia pada perangkat/browser yang sama.
 
@@ -82,7 +81,7 @@ adalah atribut input HTML dan Laporan Akhir Waka yang memang disetujui.
 
 - Laporan progress:
   `docs/laporan-progress-revisi-sibk-3-2.md`
-- Plan aktif:
+- Plan selesai:
   `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`
 - Spec aktif:
   `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`

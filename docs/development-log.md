@@ -5,8 +5,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Checkpoint 7C selesai di branch kandidat; PR #27 ke `cobasidebar` sedang
-  direview.
+- Revisi SIBK 3.2 selesai sampai Checkpoint 7C dan terintegrasi ke
+  `cobasidebar`; belum ada pekerjaan rilis ke `main`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
@@ -23,8 +23,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   strict, dan diff-check.
 - Review independen menemukan dua masalah indeks Important; keduanya ditutup
   dengan regression test tanpa temuan Critical atau Minor.
-- PR #27 dari `revisi-sibk-3-2-7c-schema` ke `cobasidebar` sudah dibuka;
-  `main` tidak disentuh dan tidak ada dependency baru.
+- PR #27 terintegrasi ke `cobasidebar` pada `6e16498`; branch sumber remote,
+  branch lokal, dan worktree sudah dibersihkan. `main` tidak disentuh dan
+  tidak ada dependency baru.
 
 ### 19 September 2026 — Checkpoint 7B: cleanup runtime lama
 
