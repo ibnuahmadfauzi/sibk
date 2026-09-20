@@ -98,16 +98,15 @@ class StudentProfileTest extends TestCase
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $case = $this->createCase($teacher, $student);
-        $consultation = $this->createConsultation($teacher, $student);
+        $this->createConsultation($teacher, $student);
         $case->update(['registration_number' => 'K-INTERNAL-PROFILE']);
-        $consultation->forceFill(['registration_number' => 'CONS-INTERNAL-PROFILE'])->save();
 
         $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()
             ->assertSee('Kasus dicatat')
             ->assertSee('Konsultasi dicatat')
             ->assertDontSee('K-INTERNAL-PROFILE')
-            ->assertDontSee('CONS-INTERNAL-PROFILE');
+            ->assertDontSee('<th>No.</th>', false);
         $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
             ->assertOk()
             ->assertDontSee('<th>No.</th>', false)
