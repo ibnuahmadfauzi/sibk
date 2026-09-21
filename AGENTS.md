@@ -56,6 +56,10 @@ implementasi. Jangan mendesain ulang UI yang disetujui; pakai komponen existing.
   akses data, logika bisnis, dan integrasi.
 - Otorisasi/capability AUTH-01–AUTH-07 wajib di server/policy.
 - Gunakan Bahasa Indonesia pada UI dan istilah `murid`, kecuali kutipan sumber resmi.
+- Tulis PHP, Blade, HTML, dan JavaScript secara rapi dan terstruktur; pecah
+  ekspresi panjang agar mudah dipindai.
+- Jangan menulis tag Blade/HTML panjang dalam satu baris. Letakkan atribut pada
+  baris terpisah dan pisahkan tag anak yang berbeda ke barisnya sendiri.
 - Jangan menyimpan credential, payload mentah, `.env`, cache, atau build ke Git.
 - Migration forward-only; jangan reset database shared/production.
 

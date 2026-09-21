@@ -5,11 +5,45 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
+- Source of truth dan rencana revisi laporan catatan layanan telah diperbarui;
+  implementasi menunggu persetujuan dependency PhpSpreadsheet.
 - Revisi SIBK 3.2 selesai sampai Checkpoint 7C dan terintegrasi ke
   `cobasidebar`; belum ada pekerjaan rilis ke `main`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 22 September 2026 — Amandemen kontrak dokumen laporan
+
+- Terminologi tabel diperbaiki menjadi Penanganan; detail kasus memakai Catatan
+  Penyelesaian dan konsultasi memakai Hasil.
+- Preview rekap ditetapkan A4 landscape dan memakai seluruh hasil filter;
+  preview satu catatan memakai A4 portrait. Pagination tetap khusus UI.
+- Rekap memakai tanda tangan Koordinator BK dan Waka; dokumen individual memakai
+  Guru BK penanggung jawab dan Waka. NIP/Kepala Sekolah tidak diasumsikan atau
+  di-hardcode karena belum tersedia pada schema.
+- Plan mewajibkan partial kop/tanda tangan dan resolver yang menolak pemilihan
+  diam-diam ketika akun penandatangan kosong atau ganda.
+- Tidak ada implementasi, dependency, test, formatter, build, atau gate yang
+  dijalankan pada amandemen dokumentasi ini.
+
+### 21 September 2026 — Perencanaan revisi laporan catatan layanan
+
+- Kelayakan ditinjau terhadap PRD/SRS aktif, route, request, policy, service,
+  modal detail, archive, pagination, serta jalur preview/CSV existing.
+- Plan mengusulkan daftar per catatan kasus/konsultasi dengan tiga filter,
+  pagination 10/25/50/100, urutan UI terbaru, urutan dokumen paling awal,
+  preview web, serta unduhan Excel/Word.
+- REP-01–REP-04, PRD, indeks, API contract, dan spec aktif telah diamendemen.
+  PhpSpreadsheet tetap menjadi gate; implementasi dan testing belum dilakukan.
+- Repository referensi menunjukkan preview rekap dan per-item dipisahkan;
+  Excel memakai library XLSX, sedangkan Word memakai HTML `.doc`. Pola alur
+  diadaptasi tanpa menyalin React/Tailwind atau aset referensi.
+- Aturan markup ditambah agar tag Blade/HTML panjang memakai atribut multi-line
+  dan struktur tag mudah diperiksa.
+- Wireframe dikunci menjadi satu tombol `Cetak / Unduh Rekap` menuju preview
+  terpadu. Modal dan preview satu layanan menambahkan Catatan setelah
+  Penyelesaian tanpa mengekspos `internal_note` kasus.
 
 ### 20 September 2026 — Checkpoint 7C: cleanup skema dan gate akhir
 

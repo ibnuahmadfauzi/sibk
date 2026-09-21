@@ -167,10 +167,10 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | DASH-02 | Dashboard harus menampilkan konteks operasional sesuai fungsi akun tanpa membaca daftar audit.                    | P0       | Guru BK melihat cakupan layanan; Koordinator melihat kesiapan penugasan; Admin IT melihat kesiapan data/integrasi tanpa isi layanan BK. |
 | DASH-03 | Dashboard Waka harus menampilkan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh kasus.              | P0       | Dashboard menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, serta akses baca proses keluar; tidak memuat field sensitif dan tidak menyediakan aksi ubah. |
 | DASH-04 | Form tambah/edit data bisnis menggunakan autosave lokal yang aman. | P0 | Draft per pengguna/form/record ber-TTL 24 jam, tidak dikirim/audit, dan mengecualikan password, token, credential, file, CSRF, serta method spoofing. |
-| REP-01  | Laporan Guru BK/Koordinator harus menyediakan filter nama murid, tahun ajaran, periode, kelas, dan Guru BK khusus Koordinator pada tab Layanan. | P0 | Filter tervalidasi menghasilkan data konsisten tanpa memperluas akses. |
-| REP-02  | Laporan harus menyediakan Pelanggaran & Poin, Layanan BK, dan Prestasi sebagai tiga rekap satu baris per murid tanpa penggabungan file manual. | P0 | Identitas sementara yang sah hanya muncul pada tab Layanan dan dikelompokkan berdasarkan ID. |
-| REP-03  | Tabel, cetak, dan CSV harus memakai dataset terscope serta identitas tersamarkan yang sama. | P0 | Hasil tidak memuat data di luar kewenangan atau field terlarang. |
-| REP-04  | Guru BK hanya memperoleh scope profesional/kasus khusus; Koordinator memperoleh rekap gabungan dan filter Guru BK yang tidak memperluas akses. | P0 | Scope server konsisten pada tabel, cetak, dan ekspor; jumlah Guru BK dihitung dinamis. |
+| REP-01  | Laporan Guru BK/Koordinator harus menyediakan filter tahun ajaran, kelas, dan jenis layanan `Semua`, `Catatan Kasus`, atau `Catatan Konsultasi`. | P0 | Kelas hanya berasal dari tahun ajaran terpilih dan scope actor; pasangan tahun/kelas yang tidak cocok ditolak server. |
+| REP-02  | Laporan harus menampilkan satu baris per catatan kasus/konsultasi dengan No, Nama & Kelas, Layanan, Permasalahan ringkas, Penanganan ringkas, serta aksi Cetak dan Hapus. | P0 | Klik baris membuka modal detail; kasus menampilkan Catatan Penyelesaian dan konsultasi menampilkan Hasil; Hapus memakai archive/soft delete sesuai policy. |
+| REP-03  | Halaman utama harus memakai pagination 10/25/50/100 dan urutan tanggal terbaru; preview rekap, cetak/PDF browser, Excel, dan Word memakai seluruh dataset hasil filter dengan urutan tanggal paling awal. | P0 | Default UI 10 data; pagination tidak mengurangi isi dokumen; filter, scope, dan tie-breaker stabil sama pada seluruh keluaran. |
+| REP-04  | Laporan harus menyediakan tombol Cetak/Unduh Rekap menuju preview A4 landscape serta preview satu kasus dan konsultasi dalam A4 portrait. | P0 | Rekap menyediakan Excel, Word, serta Cetak/Simpan PDF; preview dan Word memakai blok tanda tangan yang disetujui, sedangkan Excel tidak. |
 | REP-05  | Portal Waka menyediakan pemantauan hanya-baca kasus dan konsultasi serta laporan agregat. | P0 | Detail memakai proyeksi allowlist yang diaudit; ekspor massal mengecualikan NISN, kode kasus, catatan internal, dokumen, dan narasi kasus/konsultasi. |
 | AUD-01  | Simpan resmi serta pembacaan/ekspor portal Waka harus menghasilkan jejak audit otomatis. | P0 | Audit append-only menyimpan actor, waktu, tipe/ID record, dan hanya nilai sebelum/sesudah field yang berubah; draft lokal tidak diaudit dan audit Waka tidak memuat nama/NISN/kode kasus/narasi. |
 
@@ -179,7 +179,9 @@ Riwayat Perubahan. Jadwal dan pekerjaan penting tetap tersedia pada dashboard
 serta halaman operasional terkait; kesalahan data master diproses pada sumber
 resmi dan masuk kembali melalui sinkronisasi atau rekonsiliasi.
 
-Pada tab Layanan, filter Guru BK mengikuti penanggung jawab kasus yang efektif pada tanggal layanan serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record. Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan yang sudah ada, dan Laravel Pagination tanpa dependency tabel baru. Tujuh tipe laporan lama tidak lagi menjadi katalog navigasi, tetapi mode legacy tetap tersedia melalui kontrak URL yang ada.
+Mapping daftar memakai `initial_info`/`problem` sebagai Permasalahan dan `initial_action`/`handling` sebagai Penanganan. Modal serta preview individual menambahkan `resolution_summary` sebagai Catatan Penyelesaian kasus atau `result` sebagai Hasil konsultasi. `internal_note` tidak masuk laporan. Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan yang sudah ada, dan Laravel Pagination tanpa dependency tabel baru.
+
+Rekap ditandatangani Koordinator BK dan Waka Kesiswaan. Dokumen kasus ditandatangani owner kasus terakhir dan Waka; konsultasi memakai `counselor_id` dan Waka. Pengguna login tidak menjadi fallback. Koordinator/Waka hanya dipilih bila tepat satu akun aktif tersedia; kondisi kosong/ganda ditampilkan sebagai penandatangan belum tersedia. Kepala Sekolah dan NIP tidak ditampilkan karena belum mempunyai sumber data pada schema saat ini. Blok tanda tangan hanya muncul di akhir preview cetak dan Word, tidak pada Excel, serta tidak boleh terpotong page break.
 
 # Kebutuhan data
 
@@ -377,7 +379,7 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 | Rolling tidak otomatis                   | ASN-03; ASN-06                         | P0          |
 | Status pelayanan konsisten dan catatan terminal terkunci | CASE-04; CASE-13; CASE-14; CONS-03 | P0 |
 | Proses keluar murid terkendali dan tidak ditentukan provider | MD-15 s.d. MD-18; AUTH-03; AUD-01 | P0 |
-| Kode kasus hanya untuk kebutuhan internal | CASE-15; REP-03; AUD-01                | P0          |
+| Kode kasus hanya untuk kebutuhan internal | CASE-15; AUD-01                        | P0          |
 | Admin IT mengelola akun dan password sementara | ACC-01; ACC-02; AUTH-06           | P0          |
 | Dashboard role-aware tanpa pembaca audit | DASH-01 s.d. DASH-03; AUD-01           | P0          |
 | Konfigurasi koneksi aman melalui PG-501  | INT-05 s.d. INT-07; NFR-09             | P0          |
@@ -385,7 +387,7 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 | Endpoint, DNS, dan konsistensi operasi    | NFR-10; NFR-11                         | P0          |
 | Batas adapter dan backpressure            | NFR-12                                 | P0          |
 | Retensi minimum tiga tahun               | NFR-08                                 | P0          |
-| Prestasi                                 | ACH-01; ACH-02; REP-02                 | P0 bertahap |
+| Prestasi                                 | ACH-01; ACH-02                         | P0 bertahap |
 | Wali kelas dan murid                     | Struktur peran P1                      | P1          |
 
 # Ketergantungan yang belum dikunci
@@ -398,11 +400,11 @@ Untuk kedua provider, endpoint outbound harus lolos exact deployment allowlist d
 | DEP-04 | Status operasional | Status verifikasi prestasi. | Pilihan status tersebut tidak boleh ditanam dalam kode. |
 | DEP-05 | Prestasi           | Verifikator, bukti, dan status.                                                        | Modul tetap P0 bertahap.                          |
 | DEP-06 | Dokumen/retensi    | Format, ukuran, akses, pemulihan, dan prosedur penghapusan setelah minimum tiga tahun. | Unggah dan penghapusan belum dikunci.             |
-| DEP-07 | Ekspor             | Format cetak/ekspor dan kebutuhan penandaan/audit khusus.                              | Luaran laporan belum dapat dikunci seluruhnya.    |
+| DEP-07 | Template laporan   | Struktur data, orientasi A4, peran penandatangan, cetak/PDF browser, `.xlsx`, dan Word `.doc` kompatibel sudah dikunci; desain kop, jarak tanda tangan, dan susunan visual final masih menunggu format resmi sekolah. | Kepala Sekolah/NIP tidak boleh di-hardcode; perubahan visual tidak boleh mengubah filter, scope, urutan, dataset, atau peran penandatangan. |
 
 # Sumber dan riwayat versi
 
-Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan 15 September 2026, serta Revisi SIBK 3.2 yang disetujui 17 September 2026.
+Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, diskusi perancangan, inventaris antarmuka, keputusan validasi Koordinator BK/Guru BK serta Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan 15 September 2026, Revisi SIBK 3.2 yang disetujui 17 September 2026, serta revisi laporan catatan layanan 21 dan 22 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                  |
 |-----------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -410,3 +412,5 @@ Acuan: PRD Aplikasi BK v1.1, kuesioner kebutuhan, contoh pencatatan berjalan, di
 | 1.0       | 15 Agustus 2026 | Menambahkan tata kelola Koordinator, detail kasus terkoordinasi untuk Waka, histori lintas guru, identitas sementara dan rekonsiliasi, akun Admin IT, laporan gabungan, rolling nonotomatis, serta retensi minimum tiga tahun. |
 | 1.1       | 23 Agustus 2026; diamandemen 9, 12, 13, 14, dan 15 September 2026 | Menambahkan fondasi konfigurasi/integrasi, fallback data persiapan, empat status pelayanan, edit terminal beralasan, arsip layanan, proses keluar murid, password sementara, audit tanpa UI pembaca, panel dashboard role-aware, Portal Waka berbasis tujuan, serta tiga tab rekap laporan Guru BK/Koordinator. |
 | 1.1       | 17 September 2026 | Revisi SIBK 3.2: tiga status kasus, satu tindak lanjut terkini, konsultasi mandiri, Waka hanya-baca, audit perubahan-delta, autosave lokal, sorting allowlist, dan optimistic concurrency. |
+| 1.1       | 21 September 2026 | Mengganti tiga tab rekap Guru BK/Koordinator dengan daftar per catatan, preview rekap/per catatan, cetak/PDF browser, Excel `.xlsx`, dan Word `.doc` kompatibel. |
+| 1.1       | 22 September 2026 | Menetapkan terminologi Penanganan, validasi kelas per tahun ajaran, seluruh dataset dokumen tanpa pagination UI, orientasi landscape/portrait, serta tanda tangan Koordinator/Guru BK dan Waka tanpa NIP. |
