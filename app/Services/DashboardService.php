@@ -303,8 +303,8 @@ class DashboardService
 
         return [
             ['label' => 'Buat Kasus', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
-            ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => false, 'icon' => 'consultation', 'tone' => 'success'],
-            ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => false, 'icon' => 'report', 'tone' => 'info'],
+            ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => true, 'icon' => 'consultation', 'tone' => 'primary'],
+            ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => true, 'icon' => 'report', 'tone' => 'primary'],
         ];
     }
 }

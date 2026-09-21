@@ -25,6 +25,7 @@
 /storage/app/testing
 /storage/framework/views-codex-*/
 /vendor
+/graphify-out
 _ide_helper.php
 Homestead.json
 Homestead.yaml

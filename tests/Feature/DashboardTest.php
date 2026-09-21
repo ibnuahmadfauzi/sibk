@@ -167,7 +167,7 @@ class DashboardTest extends TestCase
         $actions = app(DashboardService::class)->forUser($teacher, $this->year)['quick_actions'];
 
         $this->assertSame(['case', 'consultation', 'report'], array_column($actions, 'icon'));
-        $this->assertSame(['primary', 'success', 'info'], array_column($actions, 'tone'));
+        $this->assertSame(['primary', 'primary', 'primary'], array_column($actions, 'tone'));
     }
 
     /** @return array{Student, BkCase} */
