@@ -2576,6 +2576,184 @@ small, .small {
   min-height: 44px;
 }
 
+.sibk-report-row {
+  cursor: pointer;
+}
+
+.sibk-report-row:hover td,
+.sibk-report-row:focus td {
+  background: var(--sibk-color-primary-soft);
+}
+
+.sibk-report-text-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sibk-icon-button {
+  align-items: center;
+  display: inline-flex;
+  height: 2.75rem;
+  justify-content: center;
+  padding: 0;
+  width: 2.75rem;
+
+  svg {
+    fill: none;
+    height: 1rem;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    width: 1rem;
+  }
+}
+
+.sibk-report-preview-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.sibk-document-sheet {
+  background: #fff;
+  border: 1px solid var(--sibk-color-border-light);
+  box-shadow: var(--sibk-shadow-card);
+  color: #111;
+  margin: 0 auto;
+  padding: 2rem;
+
+  &--landscape {
+    max-width: 1120px;
+    page: report-landscape;
+  }
+
+  &--portrait {
+    max-width: 800px;
+    page: report-portrait;
+  }
+}
+
+.sibk-document-letterhead {
+  border-bottom: 3px double #111;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  text-align: center;
+
+  p,
+  h1,
+  h2 {
+    margin: 0.15rem 0;
+  }
+
+  &__agency,
+  &__school,
+  &__title {
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  &__agency {
+    font-size: 0.9rem;
+  }
+
+  &__school {
+    font-size: 1.35rem;
+  }
+
+  &__address,
+  &__subtitle {
+    font-size: 0.85rem;
+  }
+
+  &__title {
+    font-size: 1rem;
+    margin-top: 0.85rem !important;
+    text-decoration: underline;
+  }
+}
+
+.sibk-document-table {
+  font-size: 0.8rem;
+
+  th,
+  td {
+    border: 1px solid #777;
+    padding: 0.5rem;
+    vertical-align: top;
+  }
+}
+
+.sibk-document-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2.5rem;
+  page-break-inside: avoid;
+  text-align: center;
+
+  &__column {
+    width: 42%;
+  }
+
+  &__role {
+    margin-bottom: 4rem;
+  }
+
+  &__name {
+    font-weight: 700;
+    margin: 0;
+    text-decoration: underline;
+  }
+}
+
+.sibk-record-identity {
+  display: grid;
+  gap: 0.5rem 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  div {
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+  }
+
+  dt::after {
+    content: ':';
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.sibk-record-section {
+  border-top: 1px solid #bbb;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+
+  h3 {
+    font-size: 1rem;
+  }
+
+  p {
+    margin-bottom: 0;
+    white-space: pre-wrap;
+  }
+}
+
+@page report-landscape {
+  size: A4 landscape;
+  margin: 1.2cm;
+}
+
+@page report-portrait {
+  size: A4 portrait;
+  margin: 1.5cm;
+}
+
 .sibk-print-header {
   display: none;
 }
@@ -2748,6 +2926,24 @@ small, .small {
       font-size: 8.5pt;
       color: #555555;
       margin: 0;
+    }
+  }
+
+  .sibk-document-sheet {
+    border: 0;
+    box-shadow: none;
+    max-width: none;
+    padding: 0;
+  }
+
+  .sibk-document-table {
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
   }
 }

@@ -10,6 +10,16 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });
 
+document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
+    select.addEventListener('change', () => {
+        const form = select.closest('form');
+        const classroom = form?.querySelector('[name="classroom_id"]');
+
+        if (classroom) classroom.value = '';
+        form?.requestSubmit();
+    });
+});
+
 document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     form.addEventListener('submit', (event) => {
         const message = form.dataset.confirmMessage;

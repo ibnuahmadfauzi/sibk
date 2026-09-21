@@ -1,20 +1,54 @@
-<div class="sibk-operational-report-cards">
+<div class="sibk-operational-report-cards p-3">
     @foreach($report['rows'] as $row)
-        @php
-            $details = match ($report['tab']) {
-                'pelanggaran' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Pelanggaran' => $row['violation_count'], 'Total poin' => $row['total_points'], 'Terakhir' => $row['latest_violation'].' · '.$row['latest_date']],
-                'layanan' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Kasus' => $row['case_count'], 'Konsultasi' => $row['consultation_count'], 'Kasus Tindak Lanjut' => $row['follow_up_case_count'], 'Terakhir' => $row['latest_service_date']],
-                'prestasi' => ['NISN' => $row['masked_nisn'], 'Kelas' => $row['classroom'], 'Prestasi' => $row['achievement_count'], 'Terverifikasi' => $row['verified_count'], 'Tingkat tertinggi' => $row['highest_verified_level'], 'Terbaru' => $row['latest_achievement'].' · '.$row['latest_date']],
-            };
-        @endphp
-        <article class="sibk-panel sibk-operational-report-card p-3">
-            <h3 class="h6 mb-1">{{ $row['initials'] }}</h3>
-            @if($row['identity_badge'] ?? null)<span class="sibk-badge sibk-badge--warning mb-3">{{ $row['identity_badge'] }}</span>@endif
-            <dl class="mb-0">
-                @foreach($details as $label => $value)
-                    <div class="d-flex justify-content-between gap-3 py-2"><dt>{{ $label }}</dt><dd class="mb-0 text-end">{{ $value }}</dd></div>
-                @endforeach
+        <article
+            class="sibk-panel sibk-operational-report-card p-3"
+            data-modal-url="{{ $row['modal_url'] }}"
+            tabindex="0"
+        >
+            <div class="d-flex justify-content-between gap-3 mb-3">
+                <div>
+                    <h3 class="h6 mb-1">{{ $row['name'] }}</h3>
+                    <p class="small text-muted mb-0">
+                        {{ $row['classroom'] }} &middot; {{ $row['date_label'] }}
+                    </p>
+                </div>
+                <span class="sibk-badge">{{ $row['service'] }}</span>
+            </div>
+            <dl class="mb-3">
+                <div class="py-2">
+                    <dt>Permasalahan</dt>
+                    <dd class="mb-0 sibk-report-text-preview">{{ $row['problem'] }}</dd>
+                </div>
+                <div class="py-2">
+                    <dt>Penanganan</dt>
+                    <dd class="mb-0 sibk-report-text-preview">{{ $row['handling'] }}</dd>
+                </div>
             </dl>
+            <div class="d-flex justify-content-end gap-2">
+                <a
+                    class="btn btn-sm btn-outline-primary"
+                    href="{{ $row['preview_url'] }}"
+                >
+                    Preview cetak
+                </a>
+                @if($row['can_archive'])
+                    <form
+                        action="{{ $row['archive_url'] }}"
+                        method="POST"
+                        data-confirm-submit
+                        data-confirm-message="Arsipkan catatan layanan ini?"
+                    >
+                        @csrf
+                        @method('DELETE')
+                        <button
+                            class="btn btn-sm btn-outline-danger"
+                            type="submit"
+                        >
+                            Arsipkan
+                        </button>
+                    </form>
+                @endif
+            </div>
         </article>
     @endforeach
 </div>

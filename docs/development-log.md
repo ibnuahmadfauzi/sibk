@@ -5,13 +5,30 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Source of truth dan rencana revisi laporan catatan layanan telah diperbarui;
-  implementasi menunggu persetujuan dependency PhpSpreadsheet.
+- Revisi laporan catatan layanan sudah diimplementasikan pada branch fitur dan
+  berstatus `MENUNGGU VERIFIKASI`.
+- Test, formatter, build, dan gate belum dijalankan sesuai instruksi pengguna;
+  test lama untuk jalur laporan yang dipensiunkan juga belum diperbarui.
 - Revisi SIBK 3.2 selesai sampai Checkpoint 7C dan terintegrasi ke
   `cobasidebar`; belum ada pekerjaan rilis ke `main`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 22 September 2026 — Implementasi revisi laporan catatan layanan
+
+- Daftar laporan kini memuat satu row per kasus/konsultasi dengan tiga filter,
+  pilihan jumlah data, urutan terbaru, modal detail, preview individual, dan
+  aksi arsip berbasis policy.
+- Preview rekap mengambil seluruh hasil filter dengan urutan paling awal dan
+  menyediakan Excel `.xlsx`, Word `.doc`, serta Cetak/Simpan PDF dari browser.
+- PhpSpreadsheet 5.10 ditambahkan; formula injection dan pembersihan temporary
+  file ditangani. PHPWord tidak ditambahkan.
+- Partial kop/tanda tangan dipakai ulang oleh preview dan Word; resolver tidak
+  memilih akun penandatangan secara diam-diam saat role kosong atau ganda.
+- Jalur tiga tab, CSV, dan tujuh service/request legacy dipensiunkan setelah scan
+  tidak menemukan consumer runtime.
+- Tidak ada test, formatter, build, atau gate yang dijalankan pada checkpoint ini.
 
 ### 22 September 2026 — Amandemen kontrak dokumen laporan
 
