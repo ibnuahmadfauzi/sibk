@@ -2576,9 +2576,21 @@ small, .small {
   min-height: 44px;
 }
 
-.sibk-report-result-row td,
+.sibk-report-result-row td {
+  background: transparent;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.sibk-report-result-panel,
 .sibk-report-result-detail {
   background: var(--sibk-color-primary-soft);
+  border-left: 3px solid var(--sibk-color-primary);
+  border-radius: 0.75rem;
+}
+
+.sibk-report-result-panel {
+  padding: 0.875rem 1rem;
 }
 
 [data-report-result-toggle] svg {

@@ -70,18 +70,15 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
 document.querySelectorAll('[data-report-text-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
         const record = button.closest('[data-report-record]');
-        const expanded = record.dataset.reportTextExpanded === 'true';
+        const expanded = button.getAttribute('aria-expanded') === 'true';
 
         record.querySelectorAll('[data-report-text-preview]')
             .forEach((text) => text.classList.toggle('d-none', !expanded));
         record.querySelectorAll('[data-report-text-full]')
             .forEach((text) => text.classList.toggle('d-none', expanded));
-        record.dataset.reportTextExpanded = String(!expanded);
-        record.querySelectorAll('[data-report-text-toggle]').forEach((control) => {
-            control.setAttribute('aria-expanded', String(!expanded));
-            control.title = expanded ? 'Tampilkan teks lengkap' : 'Ringkas teks';
-            control.setAttribute('aria-label', control.title);
-        });
+        button.setAttribute('aria-expanded', String(!expanded));
+        button.title = expanded ? 'Tampilkan teks lengkap' : 'Ringkas teks';
+        button.setAttribute('aria-label', button.title);
     });
 });
 

@@ -15,12 +15,14 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
-### 22 September 2026 — Evaluasi ikon detail laporan
+### 22 September 2026 — Penyempurnaan detail inline laporan
 
-- Ikon mata diganti dua kandidat sementara, informasi dan kaca pembesar, dengan
-  fungsi identik untuk membandingkan visual sebelum satu ikon dipilih.
+- Setelah perbandingan visual, ikon kaca pembesar dipilih sebagai kontrol detail
+  dan ikon informasi dihapus.
 - Kontrol detail dan chevron tidak memakai outline; latar lembut muncul saat
-  hover/focus. Kedua kandidat detail memakai state buka/tutup yang sama.
+  hover/focus.
+- Hasil Layanan ditampilkan sebagai panel bertingkat mulai dari kolom Nama &
+  Kelas, memakai latar lembut dan garis aksen kiri agar terhubung ke row induk.
 - Narasi seed diperpanjang melewati batas 80 karakter agar interaksi dapat
   diamati; sebelumnya seluruh contoh hanya 63–77 karakter. Test dan build tidak
   dijalankan.

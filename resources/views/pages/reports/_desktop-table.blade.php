@@ -61,23 +61,6 @@
                                     aria-hidden="true"
                                     viewBox="0 0 24 24"
                                 >
-                                    <circle cx="12" cy="12" r="9" />
-                                    <path d="M12 11v5" />
-                                    <path d="M12 8h.01" />
-                                </svg>
-                            </button>
-                            <button
-                                class="btn btn-sm sibk-icon-button sibk-report-control"
-                                type="button"
-                                data-report-text-toggle
-                                aria-expanded="false"
-                                aria-label="Tampilkan teks lengkap {{ $row['name'] }} dengan kaca pembesar"
-                                title="Tampilkan teks lengkap (kaca pembesar)"
-                            >
-                                <svg
-                                    aria-hidden="true"
-                                    viewBox="0 0 24 24"
-                                >
                                     <circle cx="11" cy="11" r="7" />
                                     <path d="m16 16 5 5" />
                                 </svg>
@@ -132,9 +115,16 @@
                     class="sibk-report-result-row d-none"
                     id="{{ $resultId }}"
                 >
-                    <td colspan="{{ count($report['columns']) }}">
-                        <strong class="d-block mb-1">Hasil Layanan</strong>
-                        {{ $row['detail_note'] }}
+                    <td
+                        class="sibk-report-result-spacer"
+                        colspan="2"
+                        aria-hidden="true"
+                    ></td>
+                    <td colspan="5">
+                        <div class="sibk-report-result-panel">
+                            <strong class="d-block mb-1">Hasil Layanan</strong>
+                            <p class="mb-0">{{ $row['detail_note'] }}</p>
+                        </div>
                     </td>
                 </tr>
             @endforeach
