@@ -35,6 +35,12 @@
 ## Batas dan catatan deployment
 
 - Tidak ada migration atau perubahan database.
+- `ReportPreviewSeeder` tersedia untuk data pratinjau lokal: satu kasus dan dua
+  konsultasi. Seeder bersifat idempoten, dibatasi ke environment local/testing,
+  dan tidak didaftarkan ke `DatabaseSeeder`.
+- Database lokal `sibk_uji` sudah menjalankan migration
+  `2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema` sebelum data contoh
+  dibuat; database shared/production tidak disentuh.
 - Dockerfile sudah memasang ekstensi PHP `zip`. Runtime lain wajib mengaktifkan
   ekstensi yang dipersyaratkan PhpSpreadsheet sebelum ekspor Excel digunakan.
 - Template kop dan dokumen bersifat sementara sampai template resmi sekolah
@@ -56,7 +62,7 @@ dan gate lain belum dijalankan. Skenario berikut menunggu perintah terpisah:
 
 ## Langkah berikutnya
 
-1. Commit checkpoint implementasi tanpa klaim lulus verifikasi.
+1. Tinjau tampilan laporan memakai tiga data contoh lokal.
 2. Tunggu perintah pengguna untuk menjalankan atau memperbarui test dan gate.
 3. Setelah verifikasi disetujui dan lulus, siapkan PR ke `cobasidebar`.
 

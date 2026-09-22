@@ -15,6 +15,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 22 September 2026 — Data contoh pratinjau laporan
+
+- Seeder manual lokal menyiapkan satu catatan kasus bertindak lanjut Home Visit
+  dan dua catatan konsultasi memakai data master contoh existing.
+- Seeder aman dijalankan ulang, hanya tersedia pada environment local/testing,
+  dan tidak ikut `DatabaseSeeder`.
+- Database lokal `sibk_uji` diselaraskan ke migration aktif lalu seeder berhasil
+  dijalankan. Test, formatter, dan build tidak dijalankan.
+
 ### 22 September 2026 — Implementasi revisi laporan catatan layanan
 
 - Daftar laporan kini memuat satu row per kasus/konsultasi dengan tiga filter,
