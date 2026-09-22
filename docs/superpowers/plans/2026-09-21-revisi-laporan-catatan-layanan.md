@@ -63,7 +63,7 @@ dan print dapat memakai fondasi existing tanpa migration.
   chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Pojok atas hanya berisi tombol `Cetak / Unduh Rekap`. Tombol membuka preview
   web; tidak ada download atau dialog print langsung dari halaman daftar.
-- Preview rekap memakai A4 landscape dan seluruh data hasil filter.
+- Preview rekap memakai A4 portrait dan seluruh data hasil filter.
 - Rekap ditandatangani Koordinator BK dan Waka Kesiswaan.
 - NIP tidak ditampilkan sampai tersedia sumber data resmi.
 - Tanda tangan hanya berada di akhir dokumen dan tidak boleh terpotong halaman.
@@ -107,12 +107,12 @@ dan print dapat memakai fondasi existing tanpa migration.
 **Hasil:**
 
 - Tiga tab diganti satu daftar per catatan kasus/konsultasi.
-- Kontrak mengunci tiga filter, tujuh kolom UI, enam kolom dokumen, pagination
+- Kontrak mengunci tiga filter, tujuh kolom UI, tujuh kolom dokumen, pagination
   UI, seluruh dataset dokumen, dua arah urutan, preview web, Excel, dan soft
   delete.
 - Terminologi tabel memakai Penanganan; field ketiga detail tetap Catatan
   Penyelesaian untuk kasus dan Hasil untuk konsultasi.
-- Kontrak memakai preview rekap landscape tanpa akses cetak individual dari UI.
+- Kontrak memakai preview rekap portrait tanpa akses cetak individual dari UI.
 - Kontrak tanda tangan rekap memakai Koordinator dan Waka tanpa NIP.
 - Route preview tidak menerima format; format hanya berada pada route ekspor.
 
@@ -185,10 +185,11 @@ dan print dapat memakai fondasi existing tanpa migration.
 
 **Hasil:**
 
-- `GET /reports/preview` menampilkan seluruh hasil filter dalam A4 landscape,
+- `GET /reports/preview` menampilkan seluruh hasil filter dalam A4 portrait,
   tanpa download dan tanpa membuka dialog print otomatis.
 - Tabel rekap polos menampilkan Hari/Tanggal, Nama/Kelas, jenis catatan dan
-  bidang layanan, Ringkasan dari `resolution_summary|result`, serta Keterangan.
+  bidang layanan, Ringkasan dari `resolution_summary|result`, Guru BK dari owner
+  kasus terakhir atau `counselor_id`, serta Keterangan.
 - Action bar rekap: Kembali, Download Excel, Cetak/Simpan PDF.
 - Halaman laporan dan modal layanan tidak menampilkan akses cetak individual.
 - Rekap memakai urutan tanggal paling awal; nomor mengikuti urutan dokumen.
@@ -274,7 +275,7 @@ dan print dapat memakai fondasi existing tanpa migration.
 - Guru BK tidak boleh melihat record di luar scope atau membuka URL langsung.
 - Catatan internal, kode kasus, dan NISN tidak boleh muncul pada keluaran.
 - Penandatangan kosong/ganda tidak boleh dipilih secara diam-diam.
-- Rekap harus landscape dan individual portrait saat dicetak.
+- Rekap dan dokumen individual harus portrait saat dicetak.
 
 Bagian ini bukan task pembuatan test. Implementasi maupun eksekusi test menunggu
 perintah pengguna.

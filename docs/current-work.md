@@ -31,10 +31,12 @@
   aksi arsip hanya tampil bila policy objek mengizinkan.
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan
   tanggal paling awal. Preview tidak membuka dialog cetak otomatis.
-- Preview rekap memakai A4 landscape dengan Download Excel dan Cetak/Simpan PDF.
-- Tabel dokumen putih polos memakai enam kolom: No, Hari/Tanggal, Nama/Kelas,
-  Jenis Masalah, Ringkasan, dan Keterangan. Ringkasan mengambil
+- Preview rekap memakai A4 portrait dengan Download Excel dan Cetak/Simpan PDF.
+- Tabel dokumen putih polos memakai tujuh kolom: No, Hari/Tanggal, Nama/Kelas,
+  Jenis Masalah, Ringkasan, Guru BK, dan Keterangan. Ringkasan mengambil
   `resolution_summary` kasus atau `result` konsultasi.
+- Kolom Guru BK memakai owner kasus terakhir untuk Permasalahan atau pencatat
+  konsultasi pada `counselor_id`.
 - Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; unduhan Word dihapus.
 - Kop menempatkan dua placeholder logo dan garis tepat setelah alamat. Subtitle
   dokumen hanya menampilkan tahun ajaran.

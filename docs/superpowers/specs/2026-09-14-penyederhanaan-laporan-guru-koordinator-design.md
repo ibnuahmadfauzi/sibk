@@ -91,7 +91,7 @@ digunakan sebagai Catatan karena merupakan data internal terbatas.
 ## 6. Preview Rekap
 
 Satu tombol `Cetak / Unduh Rekap` membuka `GET /reports/preview`, bukan langsung
-mengunduh atau membuka dialog print. Preview memakai lembar A4 landscape putih
+mengunduh atau membuka dialog print. Preview memakai lembar A4 portrait putih
 di atas latar netral seperti referensi, dengan action bar di luar lembar:
 
 - Kembali ke Laporan;
@@ -102,7 +102,8 @@ Lembar memuat kop dengan placeholder logo, judul, tahun ajaran, ringkasan teks
 polos, tabel putih tanpa efek inset, dan blok tanda tangan Koordinator BK serta
 Waka Kesiswaan. Data disusun dari tanggal layanan paling awal. Tabel memuat No,
 Hari/Tanggal, Nama/Kelas, Jenis Masalah, Ringkasan dari
-`resolution_summary|result`, dan Keterangan. Preview tidak menerima parameter
+`resolution_summary|result`, Guru BK dari owner kasus terakhir atau
+`counselor_id`, dan Keterangan. Preview tidak menerima parameter
 format; `format=xlsx` hanya milik endpoint ekspor.
 
 Print stylesheet menyembunyikan action bar, mengulang header tabel pada halaman
@@ -170,7 +171,7 @@ server.
 - Default menampilkan 10 data terbaru.
 - Preview/unduhan menampilkan seluruh dataset terfilter dari tanggal paling awal.
 - Klik baris tidak membuka modal; kontrol detail dan chevron membuka detail inline.
-- Preview rekap memakai A4 landscape.
+- Preview rekap memakai A4 portrait.
 - Action bar preview menyediakan Kembali, Excel, dan Cetak/Simpan PDF.
 - Rekap memuat penandatangan yang disetujui tanpa NIP;
   kondisi sumber kosong/ganda tidak memilih akun secara diam-diam.

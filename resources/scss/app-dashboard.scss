@@ -2680,11 +2680,6 @@ small, .small {
   margin: 0 auto;
   padding: 2rem;
 
-  &--landscape {
-    max-width: 1120px;
-    page: report-landscape;
-  }
-
   &--portrait {
     max-width: 800px;
     page: report-portrait;
@@ -2760,13 +2755,23 @@ small, .small {
   background: #fff !important;
   border-collapse: collapse;
   box-shadow: none !important;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  min-width: 0;
+  table-layout: fixed;
+
+  &__col-number { width: 5%; }
+  &__col-date { width: 13%; }
+  &__col-student { width: 16%; }
+  &__col-type { width: 14%; }
+  &__col-summary { width: 27%; }
+  &__col-counselor { width: 15%; }
+  &__col-note { width: 10%; }
 
   th,
   td {
     background: #fff !important;
     border: 1px solid #777;
-    padding: 0.5rem;
+    padding: 0.4rem;
     vertical-align: top;
   }
 
@@ -2844,11 +2849,6 @@ small, .small {
     margin-bottom: 0;
     white-space: pre-wrap;
   }
-}
-
-@page report-landscape {
-  size: A4 landscape;
-  margin: 1.2cm;
 }
 
 @page report-portrait {

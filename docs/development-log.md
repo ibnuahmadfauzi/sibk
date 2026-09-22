@@ -15,6 +15,14 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 23 September 2026 — Orientasi dan kolom Guru BK
+
+- Preview, cetak/PDF, dan Excel rekap diubah menjadi A4 portrait.
+- Kolom Guru BK ditambahkan sebelum Keterangan; kasus memakai owner terakhir
+  dan konsultasi memakai pencatat pada `counselor_id`.
+- Lebar tujuh kolom dokumen dirapatkan agar tetap terbaca pada portrait. Test,
+  formatter, dan build tidak dijalankan.
+
 ### 22 September 2026 — Penyederhanaan dokumen rekap
 
 - Preview/PDF dan Excel memakai enam kolom: No, Hari/Tanggal, Nama/Kelas, Jenis

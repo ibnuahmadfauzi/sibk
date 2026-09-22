@@ -34,16 +34,16 @@ final class ReportDocumentExporter
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Laporan Layanan BK');
         $sheet->getPageSetup()
-            ->setOrientation(PageSetup::ORIENTATION_LANDSCAPE)
+            ->setOrientation(PageSetup::ORIENTATION_PORTRAIT)
             ->setPaperSize(PageSetup::PAPERSIZE_A4)
             ->setFitToWidth(1)
             ->setFitToHeight(0);
 
-        $sheet->mergeCells('A1:F1');
+        $sheet->mergeCells('A1:G1');
         $sheet->setCellValue('A1', 'LAPORAN LAYANAN BIMBINGAN DAN KONSELING');
-        $sheet->mergeCells('A2:F2');
+        $sheet->mergeCells('A2:G2');
         $sheet->setCellValue('A2', $this->filterSummary($report));
-        $sheet->mergeCells('A3:F3');
+        $sheet->mergeCells('A3:G3');
         $sheet->setCellValue('A3', $this->summaryText($report));
         $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
@@ -55,6 +55,7 @@ final class ReportDocumentExporter
             'Nama / Kelas',
             'Jenis Masalah',
             'Ringkasan',
+            'Guru BK',
             'Keterangan',
         ];
         foreach ($headers as $index => $header) {
@@ -70,6 +71,7 @@ final class ReportDocumentExporter
                 mb_strtoupper($row['name'])."\n".$row['classroom'],
                 $row['service']."\n".$row['service_field'],
                 $row['detail_note'],
+                $row['counselor'],
                 $row['follow_up_label'],
             ];
 
@@ -89,20 +91,21 @@ final class ReportDocumentExporter
         }
 
         $lastRow = max(4, count($report['rows']) + 4);
-        $sheet->getStyle("A4:F{$lastRow}")->getBorders()->getAllBorders()
+        $sheet->getStyle("A4:G{$lastRow}")->getBorders()->getAllBorders()
             ->setBorderStyle(Border::BORDER_THIN);
-        $sheet->getStyle('A4:F4')->getFont()->setBold(true);
-        $sheet->getStyle("A4:F{$lastRow}")->getAlignment()
+        $sheet->getStyle('A4:G4')->getFont()->setBold(true);
+        $sheet->getStyle("A4:G{$lastRow}")->getAlignment()
             ->setVertical(Alignment::VERTICAL_TOP)
             ->setWrapText(true);
         $sheet->getColumnDimension('A')->setWidth(6);
-        $sheet->getColumnDimension('B')->setWidth(20);
-        $sheet->getColumnDimension('C')->setWidth(28);
-        $sheet->getColumnDimension('D')->setWidth(22);
-        $sheet->getColumnDimension('E')->setWidth(55);
-        $sheet->getColumnDimension('F')->setWidth(24);
+        $sheet->getColumnDimension('B')->setWidth(18);
+        $sheet->getColumnDimension('C')->setWidth(23);
+        $sheet->getColumnDimension('D')->setWidth(18);
+        $sheet->getColumnDimension('E')->setWidth(38);
+        $sheet->getColumnDimension('F')->setWidth(22);
+        $sheet->getColumnDimension('G')->setWidth(18);
         $sheet->freezePane('A5');
-        $sheet->setAutoFilter("A4:F{$lastRow}");
+        $sheet->setAutoFilter("A4:G{$lastRow}");
 
         $path = $this->temporaryPath();
         try {

@@ -11,7 +11,7 @@
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 <div
-    class="sibk-dashboard sibk-report-preview-page sibk-report-preview-page--landscape"
+    class="sibk-dashboard sibk-report-preview-page sibk-report-preview-page--portrait"
     data-page-id="PG-302"
 >
     <div class="sibk-report-preview-actions no-print mb-4">
@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    <article class="sibk-document-sheet sibk-document-sheet--landscape">
+    <article class="sibk-document-sheet sibk-document-sheet--portrait">
         @include('pages.reports.print._letterhead', [
             'title' => 'Laporan Layanan Bimbingan dan Konseling',
             'subtitle' => 'Tahun Ajaran '.(
@@ -53,6 +53,15 @@
 
         <div class="table-responsive">
             <table class="table sibk-table sibk-document-table mb-0">
+                <colgroup>
+                    <col class="sibk-document-table__col-number">
+                    <col class="sibk-document-table__col-date">
+                    <col class="sibk-document-table__col-student">
+                    <col class="sibk-document-table__col-type">
+                    <col class="sibk-document-table__col-summary">
+                    <col class="sibk-document-table__col-counselor">
+                    <col class="sibk-document-table__col-note">
+                </colgroup>
                 <thead>
                     <tr>
                         <th scope="col">No</th>
@@ -60,6 +69,7 @@
                         <th scope="col">Nama / Kelas</th>
                         <th scope="col">Jenis Masalah</th>
                         <th scope="col">Ringkasan</th>
+                        <th scope="col">Guru BK</th>
                         <th scope="col">Keterangan</th>
                     </tr>
                 </thead>
@@ -88,13 +98,14 @@
                                 </strong>
                             </td>
                             <td>{{ $row['detail_note'] }}</td>
+                            <td>{{ $row['counselor'] }}</td>
                             <td>{{ $row['follow_up_label'] }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td
                                 class="text-center py-4"
-                                colspan="6"
+                                colspan="7"
                             >
                                 Tidak ada data sesuai filter.
                             </td>
