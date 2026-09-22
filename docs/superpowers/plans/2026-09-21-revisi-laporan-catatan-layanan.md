@@ -49,6 +49,8 @@ dan print dapat memakai fondasi existing tanpa migration.
   dan Excel selalu mengambil seluruh dataset hasil filter.
 - Header tabel dan semua keluaran dokumen memuat ringkasan seluruh hasil filter.
   Total Catatan selalu tampil; jenis layanan yang tidak relevan disembunyikan.
+- Preview/PDF dan Excel menyajikan ringkasan sebagai kalimat lengkap yang
+  menjelaskan total serta komposisi jenis layanan terpilih.
 - Hapus memakai archive/soft delete existing, bukan hard delete.
 - Header tabel: No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Latar
   Belakang Masalah; Penanganan; Aksi.

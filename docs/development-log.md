@@ -22,6 +22,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   BK pada `resolution_summary` atau `result`.
 - Preview dibuat putih polos tanpa latar atau efek inset pada ringkasan dan
   tabel. Kop memakai placeholder logo kiri/kanan dan garis tepat setelah alamat.
+- Ringkasan preview/PDF dan Excel disajikan sebagai kalimat naratif yang
+  menyesuaikan jenis layanan terpilih.
 - Unduhan Word beserta template dan format request-nya dihapus. Test, formatter,
   dan build tidak dijalankan.
 

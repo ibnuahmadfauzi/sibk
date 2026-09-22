@@ -222,6 +222,34 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $items;
     }
 
+    /** @param list<array{label: string, value: int}> $summary */
+    private function summarySentence(array $summary): string
+    {
+        $counts = array_column($summary, 'value', 'label');
+
+        if (array_key_exists('Permasalahan', $counts)
+            && array_key_exists('Konsultasi', $counts)) {
+            return sprintf(
+                'Pada laporan ini terdapat %d catatan layanan BK, terdiri atas %d catatan permasalahan dan %d catatan konsultasi.',
+                $counts['Total Catatan'],
+                $counts['Permasalahan'],
+                $counts['Konsultasi'],
+            );
+        }
+
+        if (array_key_exists('Permasalahan', $counts)) {
+            return sprintf(
+                'Pada laporan ini terdapat %d catatan permasalahan.',
+                $counts['Permasalahan'],
+            );
+        }
+
+        return sprintf(
+            'Pada laporan ini terdapat %d catatan konsultasi.',
+            $counts['Konsultasi'],
+        );
+    }
+
     /**
      * @param Collection<int, object> $events
      * @return Collection<int, array<string, mixed>>
@@ -391,6 +419,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ],
             'rows' => $rows,
             'summary' => $summary,
+            'summary_sentence' => $this->summarySentence($summary),
             'filters' => $filters,
             'filter_options' => [
                 'academic_years' => AcademicYear::query()

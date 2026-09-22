@@ -47,9 +47,8 @@
         ])
 
         <p class="sibk-document-summary">
-            @foreach($report['summary'] as $item)
-                {{ $item['value'] }} {{ $item['label'] }}@unless($loop->last) &middot; @endunless
-            @endforeach
+            <strong>Ringkasan laporan:</strong>
+            {{ $report['summary_sentence'] }}
         </p>
 
         <div class="table-responsive">

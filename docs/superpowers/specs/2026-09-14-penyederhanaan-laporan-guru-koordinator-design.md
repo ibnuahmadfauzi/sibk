@@ -49,8 +49,9 @@ Perubahan filter atau jumlah data kembali ke halaman pertama.
 
 Header tabel mengganti teks urutan dengan ringkasan seluruh hasil filter. Total
 Catatan selalu tampil. Permasalahan disembunyikan untuk filter Konsultasi dan
-Konsultasi disembunyikan untuk filter Permasalahan. Ringkasan identik ikut
-ditampilkan pada preview/PDF dan Excel.
+Konsultasi disembunyikan untuk filter Permasalahan. Preview/PDF dan Excel
+menyajikan angka ringkasan sebagai kalimat lengkap yang menjelaskan total serta
+komposisi jenis layanan yang relevan.
 
 Kolom desktop:
 

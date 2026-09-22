@@ -38,6 +38,8 @@
 - Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; unduhan Word dihapus.
 - Kop menempatkan dua placeholder logo dan garis tepat setelah alamat. Subtitle
   dokumen hanya menampilkan tahun ajaran.
+- Preview/PDF dan Excel menyajikan ringkasan sebagai kalimat lengkap yang
+  menjelaskan total serta komposisi hasil filter, bukan deretan angka singkat.
 - Rekap memakai Koordinator BK dan Waka Kesiswaan. Kondisi akun penandatangan kosong/ganda
   menampilkan `Penandatangan belum tersedia`; NIP tidak ditampilkan.
 - Jalur laporan legacy tiga tab dan CSV tidak memiliki consumer runtime sehingga

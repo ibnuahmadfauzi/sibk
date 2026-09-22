@@ -133,13 +133,7 @@ final class ReportDocumentExporter
     /** @param array<string, mixed> $report */
     private function summaryText(array $report): string
     {
-        return collect($report['summary'])
-            ->map(fn (array $item): string => sprintf(
-                '%s: %d',
-                $item['label'],
-                $item['value'],
-            ))
-            ->implode(' | ');
+        return 'Ringkasan laporan: '.$report['summary_sentence'];
     }
 
     private function safeSpreadsheetText(string $value): string
