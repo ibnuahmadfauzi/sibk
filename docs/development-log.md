@@ -15,6 +15,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 22 September 2026 — Penyederhanaan kontrol filter laporan
+
+- Pilihan jumlah data dipindahkan dari panel filter ke header tabel dan langsung
+  diterapkan ketika nilainya berubah.
+- Tombol Terapkan dan Reset digabung menjadi satu kontrol yang berubah teks dan
+  warna sesuai status filter serta perubahan pilihan yang belum diterapkan.
+- Perubahan Tahun Ajaran tidak lagi mengirim form otomatis. Test, formatter, dan
+  build tidak dijalankan.
+
 ### 22 September 2026 — Data contoh pratinjau laporan
 
 - Seeder manual lokal menyiapkan satu catatan kasus bertindak lanjut Home Visit

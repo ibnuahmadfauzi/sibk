@@ -16,8 +16,55 @@ document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
         const classroom = form?.querySelector('[name="classroom_id"]');
 
         if (classroom) classroom.value = '';
-        form?.requestSubmit();
     });
+});
+
+document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
+    const button = form.querySelector('[data-report-filter-action]');
+    const filters = [...form.querySelectorAll('[data-report-filter]')];
+    const initialValues = filters.map((field) => field.value).join('|');
+    const filtersAreActive = form.dataset.filtersActive === 'true';
+
+    const showApply = () => {
+        button.dataset.mode = 'apply';
+        button.textContent = 'Terapkan';
+        button.classList.remove('btn-outline-danger');
+        button.classList.add('btn-primary');
+    };
+
+    const showReset = () => {
+        button.dataset.mode = 'reset';
+        button.textContent = 'Reset';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-danger');
+    };
+
+    form.addEventListener('change', () => {
+        const currentValues = filters.map((field) => field.value).join('|');
+
+        if (filtersAreActive && currentValues === initialValues) {
+            showReset();
+            return;
+        }
+
+        showApply();
+    });
+
+    form.addEventListener('submit', (event) => {
+        if (button.dataset.mode !== 'reset') return;
+
+        event.preventDefault();
+        window.location.assign(button.dataset.resetUrl);
+    });
+
+    document
+        .querySelectorAll('[data-report-page-size][form="report-filter-form"]')
+        .forEach((select) => {
+            select.addEventListener('change', () => {
+                showApply();
+                form.requestSubmit();
+            });
+        });
 });
 
 document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {

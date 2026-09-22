@@ -14,6 +14,9 @@
 - Halaman tiga tab diganti satu daftar catatan kasus dan konsultasi.
 - Filter dibatasi ke Tahun Ajaran, Kelas, Jenis Layanan BK, dan jumlah data
   `10/25/50/100`; default daftar adalah 10 data terbaru.
+- Jumlah data ditempatkan pada header tabel dan langsung memuat ulang tabel.
+  Panel filter memakai satu tombol: `Terapkan` saat belum aktif/ada perubahan,
+  lalu `Reset` dengan warna berbeda saat filter aktif tanpa perubahan.
 - Klik baris membuka modal detail existing. Ikon cetak menuju preview individual;
   aksi arsip hanya tampil bila policy objek mengizinkan.
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan

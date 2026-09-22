@@ -1,9 +1,18 @@
+@php
+    $hasActiveFilters = request()->query->has('academic_year_id')
+        || request()->query->has('classroom_id')
+        || request()->query->has('service_type');
+@endphp
+
 <div class="sibk-panel mb-4 sibk-filter-panel no-print">
     <div class="sibk-panel__body p-4">
         <form
+            id="report-filter-form"
             class="row g-3 align-items-end"
             action="{{ route('reports.index') }}"
             method="GET"
+            data-report-filter-form
+            data-filters-active="{{ $hasActiveFilters ? 'true' : 'false' }}"
         >
             <div class="col-12 col-md-6 col-xl-3">
                 <label
@@ -16,6 +25,7 @@
                     class="form-select"
                     id="academic_year_id"
                     name="academic_year_id"
+                    data-report-filter
                     data-report-year-filter
                     @error('academic_year_id')
                         aria-invalid="true"
@@ -52,6 +62,7 @@
                     class="form-select"
                     id="classroom_id"
                     name="classroom_id"
+                    data-report-filter
                     @error('classroom_id')
                         aria-invalid="true"
                         aria-describedby="classroom_id-error"
@@ -88,6 +99,7 @@
                     class="form-select"
                     id="service_type"
                     name="service_type"
+                    data-report-filter
                     @error('service_type')
                         aria-invalid="true"
                         aria-describedby="service_type-error"
@@ -122,41 +134,15 @@
                 @enderror
             </div>
 
-            <div class="col-12 col-md-6 col-xl-2">
-                <label
-                    class="form-label"
-                    for="per_page"
-                >
-                    Data per halaman
-                </label>
-                <select
-                    class="form-select"
-                    id="per_page"
-                    name="per_page"
-                >
-                    @foreach([10, 25, 50, 100] as $size)
-                        <option
-                            value="{{ $size }}"
-                            @selected((int) $report['filters']['per_page'] === $size)
-                        >
-                            {{ $size }} data
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
             <div class="col-12 col-xl-auto ms-xl-auto d-flex gap-2">
-                <a
-                    class="btn btn-outline-secondary"
-                    href="{{ route('reports.index') }}"
-                >
-                    Reset
-                </a>
                 <button
-                    class="btn btn-primary"
+                    class="btn {{ $hasActiveFilters ? 'btn-outline-primary' : 'btn-primary' }}"
                     type="submit"
+                    data-report-filter-action
+                    data-mode="{{ $hasActiveFilters ? 'reset' : 'apply' }}"
+                    data-reset-url="{{ route('reports.index', ['per_page' => $report['filters']['per_page']]) }}"
                 >
-                    Terapkan
+                    {{ $hasActiveFilters ? 'Reset' : 'Terapkan' }}
                 </button>
             </div>
         </form>
