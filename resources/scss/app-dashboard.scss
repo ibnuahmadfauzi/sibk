@@ -2587,6 +2587,7 @@ small, .small {
   background: var(--sibk-color-primary-soft);
   border-left: 3px solid var(--sibk-color-primary);
   border-radius: 0.75rem;
+  box-shadow: var(--sibk-shadow-inset-sm);
 }
 
 .sibk-report-result-panel {
