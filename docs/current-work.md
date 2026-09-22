@@ -6,7 +6,7 @@
 - Branch: `fitur/revisi-laporan-catatan-layanan`.
 - Worktree: `.worktrees/revisi-laporan-catatan-layanan`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status implementasi: **MENUNGGU VERIFIKASI**.
+- Status implementasi: **SELESAI — SIAP REVIEW PR**.
 - Commit perencanaan: `30be68f docs: perbarui rencana laporan layanan BK`.
 
 ## Hasil implementasi 22 September 2026
@@ -76,9 +76,10 @@ dan gate lain belum dijalankan. Skenario berikut menunggu perintah terpisah:
 
 ## Langkah berikutnya
 
-1. Tinjau tampilan laporan memakai tiga data contoh lokal.
-2. Tunggu perintah pengguna untuk menjalankan atau memperbarui test dan gate.
-3. Setelah verifikasi disetujui dan lulus, siapkan PR ke `cobasidebar`.
+1. Review PR ke `cobasidebar`.
+2. Jalankan atau perbarui test dan gate hanya bila pengguna memerintahkan.
+3. Setelah PR digabung, verifikasi status `MERGED` lalu hapus branch sumber di
+   GitHub sesuai aturan repository.
 
 ## Acuan
 
