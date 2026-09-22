@@ -15,6 +15,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 22 September 2026 — Ringkasan rekap laporan
+
+- Teks urutan pada header tabel diganti ringkasan Total Catatan, Permasalahan,
+  dan Konsultasi dari seluruh hasil filter sebelum pagination.
+- Informasi jenis yang tidak relevan dengan filter disembunyikan, bukan
+  ditampilkan nol. Filter tahun ajaran dan kelas tetap memengaruhi semua angka.
+- Ringkasan yang sama ditambahkan ke preview/PDF, Word, dan Excel. Test,
+  formatter, dan build tidak dijalankan.
+
 ### 22 September 2026 — Penyempurnaan detail inline laporan
 
 - Setelah perbandingan visual, ikon kaca pembesar dipilih sebagai kontrol detail

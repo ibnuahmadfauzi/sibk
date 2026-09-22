@@ -28,7 +28,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
         abort_unless($this->policy->viewAny($actor), 403);
 
         [$year, $filters] = $this->normalizedFilters($filters);
-        $events = $this->eventQuery($actor, $filters, $year)
+        $eventQuery = $this->eventQuery($actor, $filters, $year);
+        $summary = $this->summary($eventQuery, $filters['service_type']);
+        $events = $eventQuery
             ->orderByDesc('service_date')
             ->orderBy('record_type')
             ->orderByDesc('record_id')
@@ -42,7 +44,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             $events->firstItem() ?? 1,
         ));
 
-        return $this->reportData($actor, $filters, $year, $events);
+        return $this->reportData($actor, $filters, $year, $events, $summary);
     }
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
@@ -51,14 +53,16 @@ final class OperationalReportRecapService implements OperationalReportRecap
         abort_unless($this->policy->viewAny($actor), 403);
 
         [$year, $filters] = $this->normalizedFilters($filters);
-        $events = $this->eventQuery($actor, $filters, $year)
+        $eventQuery = $this->eventQuery($actor, $filters, $year);
+        $summary = $this->summary($eventQuery, $filters['service_type']);
+        $events = $eventQuery
             ->orderBy('service_date')
             ->orderBy('record_type')
             ->orderBy('record_id')
             ->get();
         $rows = $this->hydrateRows($actor, $events, $year, 1);
 
-        return $this->reportData($actor, $filters, $year, $rows);
+        return $this->reportData($actor, $filters, $year, $rows, $summary);
     }
 
     public function findRecord(User $actor, string $type, int $id): BkCase|Consultation
@@ -182,6 +186,40 @@ final class OperationalReportRecapService implements OperationalReportRecap
         };
 
         return DB::query()->fromSub($events, 'report_records');
+    }
+
+    /**
+     * @return list<array{label: string, value: int}>
+     */
+    private function summary(QueryBuilder $events, string $serviceType): array
+    {
+        $counts = DB::query()
+            ->fromSub(clone $events, 'filtered_report_records')
+            ->selectRaw('COUNT(*) AS total_count')
+            ->selectRaw("SUM(CASE WHEN record_type = 'case' THEN 1 ELSE 0 END) AS case_count")
+            ->selectRaw("SUM(CASE WHEN record_type = 'consultation' THEN 1 ELSE 0 END) AS consultation_count")
+            ->first();
+
+        $items = [[
+            'label' => 'Total Catatan',
+            'value' => (int) ($counts?->total_count ?? 0),
+        ]];
+
+        if ($serviceType !== 'consultation') {
+            $items[] = [
+                'label' => 'Permasalahan',
+                'value' => (int) ($counts?->case_count ?? 0),
+            ];
+        }
+
+        if ($serviceType !== 'case') {
+            $items[] = [
+                'label' => 'Konsultasi',
+                'value' => (int) ($counts?->consultation_count ?? 0),
+            ];
+        }
+
+        return $items;
     }
 
     /**
@@ -330,6 +368,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     /**
      * @param LengthAwarePaginator<int, array<string, mixed>>|Collection<int, array<string, mixed>> $rows
      * @param array<string, mixed> $filters
+     * @param list<array{label: string, value: int}> $summary
      * @return array<string, mixed>
      */
     private function reportData(
@@ -337,6 +376,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         array $filters,
         ?AcademicYear $year,
         LengthAwarePaginator|Collection $rows,
+        array $summary,
     ): array {
         return [
             'title' => 'Laporan Layanan BK',
@@ -350,6 +390,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 'Aksi',
             ],
             'rows' => $rows,
+            'summary' => $summary,
             'filters' => $filters,
             'filter_options' => [
                 'academic_years' => AcademicYear::query()

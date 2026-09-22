@@ -62,10 +62,9 @@
                 >
                     Catatan Layanan
                 </h2>
-                <p class="text-muted small mb-0">
-                    Urutan terbaru &middot;
-                    {{ $report['academic_year']?->name ?? 'Tahun ajaran belum tersedia' }}
-                </p>
+                @include('pages.reports._summary', [
+                    'items' => $report['summary'],
+                ])
             </div>
 
             <div class="d-flex align-items-center gap-2 no-print">

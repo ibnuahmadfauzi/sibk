@@ -17,6 +17,9 @@
 - Jumlah data ditempatkan pada header tabel dan langsung memuat ulang tabel.
   Panel filter memakai satu tombol: `Terapkan` saat belum aktif/ada perubahan,
   lalu `Reset` dengan warna berbeda saat filter aktif tanpa perubahan.
+- Teks urutan pada header tabel diganti ringkasan seluruh hasil filter. Total
+  Catatan selalu tampil; Permasalahan/Konsultasi yang tidak relevan dengan
+  filter disembunyikan. Ringkasan yang sama masuk preview/PDF, Excel, dan Word.
 - Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
   karakter untuk Latar Belakang Masalah dan Penanganan. Ikon kaca pembesar
   membuka teks lengkap; ikon chevron membuka panel Hasil Layanan bertingkat

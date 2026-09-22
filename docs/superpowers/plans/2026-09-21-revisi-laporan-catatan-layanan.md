@@ -47,6 +47,8 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - Preview dan unduhan mengurutkan tanggal `ASC`, lalu tipe dan ID.
 - Pagination 10/25/50/100, default 10, hanya memengaruhi halaman UI. Preview,
   Excel, dan Word selalu mengambil seluruh dataset hasil filter.
+- Header tabel dan semua keluaran dokumen memuat ringkasan seluruh hasil filter.
+  Total Catatan selalu tampil; jenis layanan yang tidak relevan disembunyikan.
 - Hapus memakai archive/soft delete existing, bukan hard delete.
 - Header tabel: No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Latar
   Belakang Masalah; Penanganan; Aksi.

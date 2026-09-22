@@ -61,6 +61,10 @@
             ]),
         ])
 
+        @include('pages.reports._summary', [
+            'items' => $report['summary'],
+        ])
+
         <div class="table-responsive">
             <table class="table sibk-table sibk-document-table mb-0">
                 <thead>

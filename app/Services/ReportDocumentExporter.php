@@ -50,8 +50,11 @@ final class ReportDocumentExporter
         $sheet->setCellValue('A1', 'LAPORAN LAYANAN BIMBINGAN DAN KONSELING');
         $sheet->mergeCells('A2:G2');
         $sheet->setCellValue('A2', $this->filterSummary($report));
-        $sheet->getStyle('A1:A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->mergeCells('A3:G3');
+        $sheet->setCellValue('A3', $this->summaryText($report));
+        $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A3')->getFont()->setBold(true);
 
         $headers = [
             'No',
@@ -179,6 +182,18 @@ final class ReportDocumentExporter
             $classroom?->name ?? 'Semua Kelas',
             $service,
         );
+    }
+
+    /** @param array<string, mixed> $report */
+    private function summaryText(array $report): string
+    {
+        return collect($report['summary'])
+            ->map(fn (array $item): string => sprintf(
+                '%s: %d',
+                $item['label'],
+                $item['value'],
+            ))
+            ->implode(' | ');
     }
 
     private function safeSpreadsheetText(string $value): string

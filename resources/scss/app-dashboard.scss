@@ -2563,6 +2563,34 @@ small, .small {
   }
 }
 
+.sibk-report-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  &__item {
+    align-items: baseline;
+    background: var(--sibk-color-primary-soft);
+    border-left: 3px solid var(--sibk-color-primary);
+    border-radius: 0.5rem;
+    box-shadow: var(--sibk-shadow-inset-sm);
+    display: inline-flex;
+    gap: 0.35rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  &__value {
+    color: var(--sibk-color-primary);
+    font-size: 1rem;
+  }
+
+  &__label {
+    color: var(--sibk-color-text-muted);
+    font-size: 0.8rem;
+  }
+}
+
 .sibk-operational-report-cards {
   display: none;
 }

@@ -35,6 +35,27 @@
             text-transform: uppercase;
         }
 
+        .sibk-report-summary {
+            margin: 0 0 16px;
+        }
+
+        .sibk-report-summary__item {
+            background: #edf4fc;
+            border-left: 3px solid #2f6fc6;
+            display: inline-block;
+            margin: 0 8px 6px 0;
+            padding: 7px 12px;
+        }
+
+        .sibk-report-summary__value {
+            font-size: 13pt;
+            margin-right: 4px;
+        }
+
+        .sibk-report-summary__label {
+            color: #444;
+        }
+
         table {
             border-collapse: collapse;
             width: 100%;
@@ -78,6 +99,10 @@
     @include('pages.reports.print._letterhead', [
         'title' => 'Laporan Layanan Bimbingan dan Konseling',
         'subtitle' => $filterSummary,
+    ])
+
+    @include('pages.reports._summary', [
+        'items' => $report['summary'],
     ])
 
     <table>

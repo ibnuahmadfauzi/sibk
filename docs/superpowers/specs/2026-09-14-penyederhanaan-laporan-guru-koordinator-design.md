@@ -48,6 +48,11 @@ Filter yang tersedia hanya:
 Urutan default adalah tanggal layanan terbaru, lalu tipe dan ID secara stabil.
 Perubahan filter atau jumlah data kembali ke halaman pertama.
 
+Header tabel mengganti teks urutan dengan ringkasan seluruh hasil filter. Total
+Catatan selalu tampil. Permasalahan disembunyikan untuk filter Konsultasi dan
+Konsultasi disembunyikan untuk filter Permasalahan. Ringkasan identik ikut
+ditampilkan pada preview/PDF, Excel, dan Word.
+
 Kolom desktop:
 
 1. No;
