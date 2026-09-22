@@ -30,8 +30,10 @@
                         <div class="small text-muted">{{ $row['classroom'] }}</div>
                     </td>
                     <td>
-                        {{ $row['service'] }}
-                        <div class="small text-muted">{{ $row['service_field'] }}</div>
+                        <span class="d-block small text-muted">{{ $row['service'] }}</span>
+                        <strong class="sibk-report-service-field d-block">
+                            {{ $row['service_field'] }}
+                        </strong>
                     </td>
                     <td>
                         <span data-report-text-preview>{{ $problemPreview }}</span>

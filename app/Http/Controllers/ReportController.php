@@ -62,7 +62,6 @@ class ReportController extends Controller
     public function export(
         OperationalReportRequest $request,
         OperationalReportRecapService $service,
-        ReportSignatoryResolver $signatories,
         ReportDocumentExporter $exporter,
     ): BinaryFileResponse {
         /** @var User $user */
@@ -70,7 +69,6 @@ class ReportController extends Controller
         $file = $exporter->export(
             (string) $request->validated('format'),
             $service->allForDocument($user, $request->filters()),
-            $signatories->forRecap(),
         );
 
         return response()

@@ -311,7 +311,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'date_label' => $date->locale('id')->translatedFormat('d M Y'),
             'name' => $record->identityName(),
             'classroom' => $this->classroomName($record, $year),
-            'service' => $isCase ? 'Catatan Permasalahan' : 'Catatan Konsultasi',
+            'service' => $isCase ? 'Permasalahan' : 'Konsultasi',
             'service_field' => $record->serviceField?->label ?? '—',
             'problem' => $isCase ? $record->initial_info : $record->problem,
             'handling' => $isCase ? $record->initial_action : $record->handling,

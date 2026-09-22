@@ -9,13 +9,6 @@
         'classroom_id' => $report['filters']['classroom_id'],
         'service_type' => $report['filters']['service_type'],
     ], fn ($value) => $value !== null && $value !== '');
-    $selectedClassroom = $report['filter_options']['classrooms']
-        ->firstWhere('id', $report['filters']['classroom_id']);
-    $serviceLabel = match ($report['filters']['service_type']) {
-        'case' => 'Catatan Permasalahan',
-        'consultation' => 'Catatan Konsultasi',
-        default => 'Semua layanan',
-    };
 @endphp
 <div
     class="sibk-dashboard sibk-report-preview-page sibk-report-preview-page--landscape"
@@ -35,12 +28,6 @@
             >
                 Download Excel
             </a>
-            <a
-                class="btn btn-outline-primary"
-                href="{{ route('reports.export', [...$documentFilters, 'format' => 'doc']) }}"
-            >
-                Download Word
-            </a>
             <button
                 class="btn btn-primary"
                 type="button"
@@ -54,16 +41,16 @@
     <article class="sibk-document-sheet sibk-document-sheet--landscape">
         @include('pages.reports.print._letterhead', [
             'title' => 'Laporan Layanan Bimbingan dan Konseling',
-            'subtitle' => implode(' · ', [
-                $report['academic_year']?->name ?? 'Tahun ajaran belum tersedia',
-                $selectedClassroom?->name ?? 'Semua kelas',
-                $serviceLabel,
-            ]),
+            'subtitle' => 'Tahun Ajaran '.(
+                $report['academic_year']?->name ?? 'belum tersedia'
+            ),
         ])
 
-        @include('pages.reports._summary', [
-            'items' => $report['summary'],
-        ])
+        <p class="sibk-document-summary">
+            @foreach($report['summary'] as $item)
+                {{ $item['value'] }} {{ $item['label'] }}@unless($loop->last) &middot; @endunless
+            @endforeach
+        </p>
 
         <div class="table-responsive">
             <table class="table sibk-table sibk-document-table mb-0">
@@ -73,8 +60,7 @@
                         <th scope="col">Hari / Tanggal</th>
                         <th scope="col">Nama / Kelas</th>
                         <th scope="col">Jenis Masalah</th>
-                        <th scope="col">Permasalahan</th>
-                        <th scope="col">Penanganan</th>
+                        <th scope="col">Ringkasan</th>
                         <th scope="col">Keterangan</th>
                     </tr>
                 </thead>
@@ -97,23 +83,19 @@
                                 <span class="sibk-document-meta">{{ $row['classroom'] }}</span>
                             </td>
                             <td>
-                                <strong class="d-block">{{ $row['service'] }}</strong>
-                                <span class="sibk-document-meta">{{ $row['service_field'] }}</span>
+                                <span class="sibk-document-meta">{{ $row['service'] }}</span>
+                                <strong class="sibk-report-service-field d-block">
+                                    {{ $row['service_field'] }}
+                                </strong>
                             </td>
-                            <td>{{ $row['problem'] }}</td>
-                            <td>
-                                <strong class="d-block">{{ $row['handling'] }}</strong>
-                                <span class="sibk-document-meta">
-                                    {{ $row['detail_label'] }}: {{ $row['detail_note'] }}
-                                </span>
-                            </td>
+                            <td>{{ $row['detail_note'] }}</td>
                             <td>{{ $row['follow_up_label'] }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td
                                 class="text-center py-4"
-                                colspan="7"
+                                colspan="6"
                             >
                                 Tidak ada data sesuai filter.
                             </td>

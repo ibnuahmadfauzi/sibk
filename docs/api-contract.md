@@ -375,7 +375,7 @@ terlihat pada dashboard serta halaman operasional terkait.
 - **Endpoint daftar:** `GET /reports`.
 - **Endpoint preview rekap:** `GET /reports/preview?academic_year_id={id}&classroom_id={id?}&service_type=all|case|consultation`.
 - **Endpoint preview catatan:** `GET /reports/records/{type}/{id}/preview`, dengan `type=case|consultation`.
-- **Endpoint unduhan:** `GET /reports/export?format=xlsx|doc&academic_year_id={id}&classroom_id={id?}&service_type=all|case|consultation`.
+- **Endpoint unduhan:** `GET /reports/export?format=xlsx&academic_year_id={id}&classroom_id={id?}&service_type=all|case|consultation`.
 - **Controller:** `ReportController@index/preview/recordPreview/export`.
 - **Form Request:** `OperationalReportRequest` untuk daftar, preview, dan ekspor; policy objek existing tetap melindungi preview per catatan.
 - **Query Params:**
@@ -384,19 +384,19 @@ terlihat pada dashboard serta halaman operasional terkait.
   - `service_type`: `all`, `case`, atau `consultation`; default `all`.
   - `per_page`: `10`, `25`, `50`, atau `100`; default `10` dan hanya berlaku pada daftar.
   - `page`: integer minimum 1 dan hanya berlaku pada daftar.
-  - `format`: `xlsx` atau `doc`; hanya berlaku pada endpoint ekspor.
+  - `format`: hanya `xlsx`; hanya berlaku pada endpoint ekspor.
 - **Authorization:** `ReportPolicy` mengizinkan Guru BK dan Koordinator BK; Admin IT dan akun Waka murni ditolak. Akun multi-role memakai fungsi Guru BK/Koordinator yang sah, sedangkan fungsi Waka tersedia melalui `/waka/reports`.
 - **Business Logic:** `OperationalReportRecapService` menyatukan query `BkCase::accessibleTo()` dan `Consultation::accessibleTo()` sebagai satu row per catatan. Guru BK dibatasi scope profesional atau kasus khusus; Koordinator memperoleh gabungan yang diizinkan.
-- **Kolom:** No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Latar Belakang Masalah; Penanganan; Aksi. UI menampilkan cuplikan 80 karakter; kontrol detail menampilkan nilai lengkap dan ikon chevron membuka baris Hasil Layanan.
-- **Ringkasan:** dihitung dari seluruh query terscope setelah filter tahun ajaran, kelas, dan jenis layanan, sebelum pagination. Total Catatan selalu tampil. Permasalahan atau Konsultasi yang tidak relevan dengan filter jenis layanan disembunyikan. Nilai yang sama dipakai UI, preview/PDF, Excel, dan Word.
+- **Kolom:** No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Latar Belakang Masalah; Penanganan; Aksi. UI menampilkan jenis catatan kecil sebagai `Permasalahan|Konsultasi` tanpa kata `Catatan`, lalu label bidang layanan lebih besar dan tebal. Narasi dibatasi 80 karakter; kontrol detail menampilkan nilai lengkap dan ikon chevron membuka baris Hasil Layanan.
+- **Ringkasan:** dihitung dari seluruh query terscope setelah filter tahun ajaran, kelas, dan jenis layanan, sebelum pagination. Total Catatan selalu tampil. Permasalahan atau Konsultasi yang tidak relevan dengan filter jenis layanan disembunyikan. Nilai yang sama dipakai UI, preview/PDF, dan Excel.
 - **Mapping:** kasus memakai `initial_info` sebagai Latar Belakang Masalah, `initial_action` sebagai Penanganan, dan `resolution_summary` sebagai Hasil Layanan. Konsultasi memakai `problem` sebagai Latar Belakang Masalah, `handling` sebagai Penanganan, dan `result` sebagai Hasil Layanan. `internal_note` kasus tidak masuk laporan.
 - **Urutan:** daftar memakai tanggal layanan `DESC`; preview/ekspor memakai tanggal layanan `ASC`; keduanya memakai tipe dan ID sebagai tie-breaker stabil.
 - **Pagination:** `per_page` hanya memengaruhi daftar. Preview dan ekspor selalu mengambil seluruh dataset hasil filter.
 - **Kelas:** kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kasus/konsultasi. `classroom_id` wajib berasal dari `academic_year_id` terpilih dan scope actor; pasangan yang tidak cocok ditolak server.
-- **Preview:** satu tombol `Cetak / Unduh Rekap` membuka preview A4 landscape. Tabel dokumen memuat Hari/Tanggal dari `service_date|session_date`, Nama/Kelas, jenis catatan dan label `service_field_id`, Permasalahan, Penanganan beserta `resolution_summary|result`, serta label `follow_up_type_id` atau status kasus. Konsultasi tanpa status/tindak lanjut ditampilkan Selesai. Jam layanan tidak ditampilkan karena schema aktif tidak menyimpannya. Action bar rekap menyediakan Kembali, Download Excel, Download Word, serta Cetak/Simpan PDF. Halaman laporan tidak menautkan preview individual.
+- **Preview:** satu tombol `Cetak / Unduh Rekap` membuka preview A4 landscape. Tabel putih polos memuat No, Hari/Tanggal dari `service_date|session_date`, Nama/Kelas, Jenis Masalah berupa jenis catatan dan label `service_field_id`, Ringkasan dari `resolution_summary|result`, serta Keterangan dari label `follow_up_type_id` atau status kasus. Konsultasi tanpa status/tindak lanjut ditampilkan Selesai. Action bar menyediakan Kembali, Download Excel, serta Cetak/Simpan PDF. Halaman laporan tidak menautkan preview individual.
 - **Penandatangan:** rekap memakai Koordinator BK dan Waka Kesiswaan; kasus memakai assignment owner terakhir dan Waka; konsultasi memakai `counselor_id` dan Waka. Koordinator/Waka hanya dipilih bila tepat satu akun aktif tersedia. Kondisi kosong/ganda menampilkan `Penandatangan belum tersedia`; pengguna login bukan fallback. Kepala Sekolah dan NIP tidak ditampilkan karena belum memiliki sumber data.
-- **Layout bersama:** preview dan Word memakai partial kop serta tanda tangan. Blok tanda tangan hanya berada di akhir dokumen dan tidak terpotong page break. Excel tidak memuat tanda tangan.
-- **Ekspor:** Excel berupa `.xlsx` dengan PhpSpreadsheet dan perlindungan formula injection. Word berupa HTML Blade ber-MIME `application/msword` dengan ekstensi `.doc`; `.docx` native di luar scope sampai dibutuhkan resmi.
+- **Layout bersama:** preview memakai partial kop dan tanda tangan. Blok tanda tangan hanya berada di akhir dokumen dan tidak terpotong page break. Excel tidak memuat tanda tangan.
+- **Ekspor:** hanya Excel `.xlsx` dengan PhpSpreadsheet dan perlindungan formula injection; unduhan Word tidak tersedia.
 - **Arsip:** aksi Hapus meneruskan ke endpoint archive existing dan hanya ditampilkan bila policy objek mengizinkan.
 - **Privasi:** kode kasus, catatan internal, payload provider, dan field di luar allowlist tidak masuk daftar atau keluaran.
 

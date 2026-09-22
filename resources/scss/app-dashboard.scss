@@ -2572,7 +2572,6 @@ small, .small {
   &__item {
     align-items: baseline;
     background: var(--sibk-color-primary-soft);
-    border-left: 3px solid var(--sibk-color-primary);
     border-radius: 0.5rem;
     box-shadow: var(--sibk-shadow-inset-sm);
     display: inline-flex;
@@ -2589,6 +2588,10 @@ small, .small {
     color: var(--sibk-color-text-muted);
     font-size: 0.8rem;
   }
+}
+
+.sibk-report-service-field {
+  font-size: 1.05em;
 }
 
 .sibk-operational-report-cards {
@@ -2689,9 +2692,7 @@ small, .small {
 }
 
 .sibk-document-letterhead {
-  border-bottom: 3px double #111;
   margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
   text-align: center;
 
   p,
@@ -2711,6 +2712,27 @@ small, .small {
     font-size: 0.9rem;
   }
 
+  &__identity {
+    align-items: center;
+    border-bottom: 3px double #111;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 5rem 1fr 5rem;
+    padding-bottom: 0.75rem;
+  }
+
+  &__logo-placeholder {
+    align-items: center;
+    border: 1px dashed #777;
+    color: #555;
+    display: flex;
+    font-size: 0.7rem;
+    height: 4.5rem;
+    justify-content: center;
+    text-transform: uppercase;
+    width: 4.5rem;
+  }
+
   &__school {
     font-size: 1.35rem;
   }
@@ -2727,8 +2749,16 @@ small, .small {
   }
 }
 
+.sibk-document-summary {
+  color: #111;
+  font-size: 0.8rem;
+  margin: 0 0 0.75rem;
+}
+
 .sibk-document-table {
+  background: #fff !important;
   border-collapse: collapse;
+  box-shadow: none !important;
   font-size: 0.8rem;
 
   th,
@@ -2746,7 +2776,10 @@ small, .small {
 }
 
 .sibk-document-sheet .table-responsive {
+  background: #fff !important;
+  border: 0 !important;
   border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .sibk-document-meta {

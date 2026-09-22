@@ -7,7 +7,7 @@
 
 **Goal:** Mengganti halaman Laporan Guru BK/Koordinator menjadi daftar catatan
 kasus dan konsultasi yang dapat difilter, dibuka inline, serta direkap melalui
-preview, cetak/PDF, Excel, atau Word.
+preview, cetak/PDF, atau Excel.
 
 **Architecture:** Gunakan route, policy, soft delete, Bootstrap,
 dan pagination Laravel yang sudah ada. Satu query dasar terscope menghasilkan
@@ -24,7 +24,7 @@ Blade, Bootstrap 5.3.8, SCSS existing, JavaScript existing, Laravel Pagination.
 ## Status Kelayakan
 
 **Layak bersyarat.** UI, query, detail inline, archive, pagination, preview,
-print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
+dan print dapat memakai fondasi existing tanpa migration.
 
 - Excel `.xlsx` native memerlukan persetujuan penambahan
   `phpoffice/phpspreadsheet`.
@@ -45,8 +45,8 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
   tahun ajaran dan kelas yang tidak cocok atau berada di luar scope actor.
 - UI mengurutkan tanggal layanan `DESC`, lalu tipe dan ID sebagai tie-breaker.
 - Preview dan unduhan mengurutkan tanggal `ASC`, lalu tipe dan ID.
-- Pagination 10/25/50/100, default 10, hanya memengaruhi halaman UI. Preview,
-  Excel, dan Word selalu mengambil seluruh dataset hasil filter.
+- Pagination 10/25/50/100, default 10, hanya memengaruhi halaman UI. Preview
+  dan Excel selalu mengambil seluruh dataset hasil filter.
 - Header tabel dan semua keluaran dokumen memuat ringkasan seluruh hasil filter.
   Total Catatan selalu tampil; jenis layanan yang tidak relevan disembunyikan.
 - Hapus memakai archive/soft delete existing, bukan hard delete.
@@ -65,7 +65,7 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - Rekap ditandatangani Koordinator BK dan Waka Kesiswaan.
 - NIP tidak ditampilkan sampai tersedia sumber data resmi.
 - Tanda tangan hanya berada di akhir dokumen dan tidak boleh terpotong halaman.
-- Excel tidak memuat blok tanda tangan. Preview cetak dan Word memuatnya.
+- Excel tidak memuat blok tanda tangan. Preview cetak memuatnya.
 - Template resmi masih diproses; gunakan layout netral dan partial reusable.
 
 ## Batas Wajib
@@ -105,8 +105,9 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 **Hasil:**
 
 - Tiga tab diganti satu daftar per catatan kasus/konsultasi.
-- Kontrak mengunci tiga filter, tujuh kolom, pagination UI, seluruh dataset
-  dokumen, dua arah urutan, preview web, ekspor Office, dan soft delete.
+- Kontrak mengunci tiga filter, tujuh kolom UI, enam kolom dokumen, pagination
+  UI, seluruh dataset dokumen, dua arah urutan, preview web, Excel, dan soft
+  delete.
 - Terminologi tabel memakai Penanganan; field ketiga detail tetap Catatan
   Penyelesaian untuk kasus dan Hasil untuk konsultasi.
 - Kontrak memakai preview rekap landscape tanpa akses cetak individual dari UI.
@@ -185,9 +186,8 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - `GET /reports/preview` menampilkan seluruh hasil filter dalam A4 landscape,
   tanpa download dan tanpa membuka dialog print otomatis.
 - Tabel rekap polos menampilkan Hari/Tanggal, Nama/Kelas, jenis catatan dan
-  bidang layanan, Permasalahan, Penanganan beserta hasil, serta Tindak
-  Lanjut/Status. Jam tidak ditampilkan karena schema aktif tidak menyimpannya.
-- Action bar rekap: Kembali, Download Excel, Download Word, Cetak/Simpan PDF.
+  bidang layanan, Ringkasan dari `resolution_summary|result`, serta Keterangan.
+- Action bar rekap: Kembali, Download Excel, Cetak/Simpan PDF.
 - Halaman laporan dan modal layanan tidak menampilkan akses cetak individual.
 - Rekap memakai urutan tanggal paling awal; nomor mengikuti urutan dokumen.
 - `window.print()` hanya dipanggil dari tombol pada halaman preview.
@@ -207,9 +207,9 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 
 **Hasil:**
 
-- Partial kop dipakai oleh preview rekap, kasus, konsultasi, dan Word.
+- Partial kop dipakai oleh preview rekap, kasus, dan konsultasi.
 - Partial tanda tangan menerima dua slot peran/nama dan dipakai ulang oleh
-  preview serta Word.
+  preview dokumen.
 - Resolver memilih Koordinator dan Waka hanya jika tepat satu akun aktif dengan
   role terkait tersedia; kondisi kosong/ganda menghasilkan status
   `Penandatangan belum tersedia`.
@@ -223,7 +223,7 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 
 ---
 
-### Task 6: Buat Unduhan Excel dan Word
+### Task 6: Buat Unduhan Excel
 
 **Files:**
 
@@ -231,19 +231,15 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - Modify: `composer.lock`
 - Modify: `app/Http/Controllers/ReportController.php`
 - Create: `app/Services/ReportDocumentExporter.php`
-- Create: `resources/views/pages/reports/exports/word.blade.php`
 
 **Hasil:**
 
-- Tambahkan `phpoffice/phpspreadsheet` hanya setelah persetujuan dependency;
-  jangan menambahkan PHPWord pada tahap ini.
-- `GET /reports/export?format=xlsx|doc` memakai seluruh dataset, filter, scope,
+- Gunakan `phpoffice/phpspreadsheet` yang telah disetujui; unduhan Word dihapus.
+- `GET /reports/export?format=xlsx` memakai seluruh dataset, filter, scope,
   dan urutan yang sama seperti preview.
-- XLSX dan DOC memuat narasi lengkap yang diizinkan, bukan potongan UI.
-- Excel tidak memuat tanda tangan; Word memuat partial kop dan tanda tangan.
-- Word berupa HTML Blade ber-MIME `application/msword` dan ekstensi `.doc`.
-- Data pengguna selalu memakai escaping default Blade.
-- Nama file: `laporan-layanan-bk-YYYYMMDD-HHmmss.xlsx|doc`.
+- XLSX memuat Ringkasan lengkap yang diizinkan, bukan potongan UI.
+- Excel tidak memuat tanda tangan.
+- Nama file: `laporan-layanan-bk-YYYYMMDD-HHmmss.xlsx`.
 - Temporary file selalu dibersihkan setelah response dikirim.
 - Nilai spreadsheet yang diawali `=`, `+`, `-`, `@`, tab, atau carriage return
   dinetralkan untuk mencegah formula injection.

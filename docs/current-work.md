@@ -19,23 +19,25 @@
   lalu `Reset` dengan warna berbeda saat filter aktif tanpa perubahan.
 - Teks urutan pada header tabel diganti ringkasan seluruh hasil filter. Total
   Catatan selalu tampil; Permasalahan/Konsultasi yang tidak relevan dengan
-  filter disembunyikan. Ringkasan yang sama masuk preview/PDF, Excel, dan Word.
+  filter disembunyikan. Ringkasan yang sama masuk preview/PDF dan Excel.
 - Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
   karakter untuk Latar Belakang Masalah dan Penanganan. Ikon kaca pembesar
   membuka teks lengkap; ikon chevron membuka panel Hasil Layanan bertingkat
   mulai dari kolom Hari/Tanggal, dengan latar lembut, garis aksen kiri, dan
   bayangan inset agar terlihat tenggelam.
+- Jenis catatan ditampilkan kecil sebagai Permasalahan/Konsultasi tanpa kata
+  `Catatan`; bidang layanan tampil lebih besar dan tebal.
 - Klik baris tidak membuka modal dan aksi cetak individual tidak ditampilkan;
   aksi arsip hanya tampil bila policy objek mengizinkan.
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan
   tanggal paling awal. Preview tidak membuka dialog cetak otomatis.
-- Preview rekap memakai A4 landscape dengan Download Excel, Download Word, dan
-  Cetak/Simpan PDF.
-- Tabel dokumen memakai tujuh kolom polos: No, Hari/Tanggal, Nama/Kelas, Jenis
-  Layanan, Permasalahan, Penanganan, serta Tindak Lanjut/Status. Jam layanan
-  tidak ditampilkan karena schema aktif hanya menyimpan tanggal layanan.
-- Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; Word memakai HTML Blade
-  ber-MIME `application/msword` dan ekstensi `.doc` tanpa PHPWord.
+- Preview rekap memakai A4 landscape dengan Download Excel dan Cetak/Simpan PDF.
+- Tabel dokumen putih polos memakai enam kolom: No, Hari/Tanggal, Nama/Kelas,
+  Jenis Masalah, Ringkasan, dan Keterangan. Ringkasan mengambil
+  `resolution_summary` kasus atau `result` konsultasi.
+- Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; unduhan Word dihapus.
+- Kop menempatkan dua placeholder logo dan garis tepat setelah alamat. Subtitle
+  dokumen hanya menampilkan tahun ajaran.
 - Rekap memakai Koordinator BK dan Waka Kesiswaan. Kondisi akun penandatangan kosong/ganda
   menampilkan `Penandatangan belum tersedia`; NIP tidak ditampilkan.
 - Jalur laporan legacy tiga tab dan CSV tidak memiliki consumer runtime sehingga
@@ -55,7 +57,7 @@
   ekstensi yang dipersyaratkan PhpSpreadsheet sebelum ekspor Excel digunakan.
 - Template kop dan dokumen bersifat sementara sampai template resmi sekolah
   selesai; partial terpusat memudahkan penggantian tanpa mengubah query/ekspor.
-- Temporary file Excel/Word dihapus setelah response; data spreadsheet yang
+- Temporary file Excel dihapus setelah response; data spreadsheet yang
   berpotensi menjadi formula dinetralkan.
 - Adapter production Dapodik/e-Tatib tetap di luar scope dan `unavailable`.
 
@@ -67,7 +69,7 @@ dan gate lain belum dijalankan. Skenario berikut menunggu perintah terpisah:
 1. Scope Guru BK/Koordinator dan penolakan akses URL langsung.
 2. Validasi pasangan Tahun Ajaran dan Kelas.
 3. Pagination UI tidak mengurangi isi preview/unduhan.
-4. Orientasi cetak, urutan data, tanda tangan, serta keluaran Excel/Word.
+4. Orientasi cetak, urutan data, tanda tangan, serta keluaran Excel.
 5. Pemeriksaan privasi bahwa NISN, kode kasus, dan catatan internal tidak keluar.
 
 ## Langkah berikutnya

@@ -35,7 +35,7 @@ final class OperationalReportRequest extends FormRequest
             'format' => [
                 Rule::requiredIf($this->routeIs('reports.export')),
                 'nullable',
-                Rule::in(['xlsx', 'doc']),
+                Rule::in(['xlsx']),
             ],
         ];
     }
@@ -96,7 +96,7 @@ final class OperationalReportRequest extends FormRequest
             'service_type.in' => 'Jenis layanan tidak tersedia.',
             'per_page.in' => 'Jumlah data harus 10, 25, 50, atau 100.',
             'format.required' => 'Format unduhan wajib dipilih.',
-            'format.in' => 'Format unduhan hanya Excel atau Word.',
+            'format.in' => 'Format unduhan hanya Excel.',
         ];
     }
 

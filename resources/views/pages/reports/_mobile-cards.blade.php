@@ -19,8 +19,9 @@
                         {{ $row['day_label'] }}, {{ $row['date_label'] }}
                     </p>
                 </div>
-                <span class="sibk-badge">
-                    {{ $row['service'] }} / {{ $row['service_field'] }}
+                <span class="sibk-badge flex-column align-items-start gap-0">
+                    <span class="small fw-normal">{{ $row['service'] }}</span>
+                    <strong>{{ $row['service_field'] }}</strong>
                 </span>
             </div>
             <dl class="mb-3">

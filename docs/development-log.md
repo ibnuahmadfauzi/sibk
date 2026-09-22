@@ -15,6 +15,16 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 22 September 2026 — Penyederhanaan dokumen rekap
+
+- Preview/PDF dan Excel memakai enam kolom: No, Hari/Tanggal, Nama/Kelas, Jenis
+  Masalah, Ringkasan, dan Keterangan. Ringkasan memakai nilai yang diinput Guru
+  BK pada `resolution_summary` atau `result`.
+- Preview dibuat putih polos tanpa latar atau efek inset pada ringkasan dan
+  tabel. Kop memakai placeholder logo kiri/kanan dan garis tepat setelah alamat.
+- Unduhan Word beserta template dan format request-nya dihapus. Test, formatter,
+  dan build tidak dijalankan.
+
 ### 22 September 2026 — Ringkasan rekap laporan
 
 - Teks urutan pada header tabel diganti ringkasan Total Catatan, Permasalahan,

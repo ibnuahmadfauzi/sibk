@@ -15,7 +15,7 @@
 Halaman `/reports` menampilkan catatan kasus dan konsultasi sebagai satu daftar
 operasional. Pengguna dapat memfilter data, membuka detail, mengarsipkan record
 yang menjadi kewenangannya, mempratinjau dokumen, mencetak/menyimpan PDF melalui
-browser, serta mengunduh Excel atau Word.
+browser, serta mengunduh Excel.
 
 Portal Waka, dashboard, profil murid, dan modul prestasi tidak berubah.
 
@@ -28,7 +28,6 @@ Referensi `wiwikismiati47-debug/administrasi-bk-smpn7` memisahkan:
 - preview dokumen per item;
 - aksi cetak/PDF browser;
 - ekspor Excel;
-- unduhan Word kompatibel berbasis HTML `.doc`.
 
 SIBK mengadaptasi pemisahan alur tersebut, tetapi tetap memakai arsitektur
 Laravel, policy server, scope Eloquent, Blade, Bootstrap, dan gaya existing.
@@ -51,7 +50,7 @@ Perubahan filter atau jumlah data kembali ke halaman pertama.
 Header tabel mengganti teks urutan dengan ringkasan seluruh hasil filter. Total
 Catatan selalu tampil. Permasalahan disembunyikan untuk filter Konsultasi dan
 Konsultasi disembunyikan untuk filter Permasalahan. Ringkasan identik ikut
-ditampilkan pada preview/PDF, Excel, dan Word.
+ditampilkan pada preview/PDF dan Excel.
 
 Kolom desktop:
 
@@ -96,13 +95,14 @@ di atas latar netral seperti referensi, dengan action bar di luar lembar:
 
 - Kembali ke Laporan;
 - Download Excel;
-- Download Word;
 - Cetak / Simpan PDF.
 
-Lembar memuat kop sementara, judul, konteks filter, seluruh tabel hasil filter,
-waktu dibuat, dan blok tanda tangan Koordinator BK serta Waka Kesiswaan. Data
-disusun dari tanggal layanan paling awal. Preview tidak menerima parameter
-format; `format=xlsx|doc` hanya milik endpoint ekspor.
+Lembar memuat kop dengan placeholder logo, judul, tahun ajaran, ringkasan teks
+polos, tabel putih tanpa efek inset, dan blok tanda tangan Koordinator BK serta
+Waka Kesiswaan. Data disusun dari tanggal layanan paling awal. Tabel memuat No,
+Hari/Tanggal, Nama/Kelas, Jenis Masalah, Ringkasan dari
+`resolution_summary|result`, dan Keterangan. Preview tidak menerima parameter
+format; `format=xlsx` hanya milik endpoint ekspor.
 
 Print stylesheet menyembunyikan action bar, mengulang header tabel pada halaman
 berikutnya, mencegah satu baris terpotong, serta menjaga blok tanda tangan tetap
@@ -124,25 +124,16 @@ ikon chevron langsung di dalam tabel atau kartu.
   `Penandatangan belum tersedia`.
 - Kepala Sekolah dan NIP tidak ditampilkan karena belum mempunyai sumber data
   pada schema saat ini; keduanya tidak boleh di-hardcode.
-- Tanda tangan hanya muncul pada akhir preview cetak dan Word serta memakai
+- Tanda tangan hanya muncul pada akhir preview cetak serta memakai
   `break-inside: avoid` dan `page-break-inside: avoid`.
 - Excel tidak memakai blok tanda tangan.
 
-## 9. Excel dan Word
+## 9. Excel
 
-Pilihan awal yang paling sederhana dan tetap jujur terhadap format:
+- Excel memakai `.xlsx` native melalui `phpoffice/phpspreadsheet`.
+- Unduhan Word tidak disediakan.
 
-- Excel: `.xlsx` native melalui `phpoffice/phpspreadsheet`.
-- Word: HTML Blade ber-MIME `application/msword` dan ekstensi `.doc`, mengikuti
-  pola referensi.
-- `.docx` native tidak dibuat pada tahap awal. Tambahkan
-  `phpoffice/phpword` hanya jika sekolah mensyaratkan `.docx` tanpa mode
-  kompatibilitas.
-- Sebagian versi Word dapat menampilkan mode kompatibilitas untuk `.doc`.
-  Jika peringatan tersebut tidak diterima pada UAT, naikkan format menjadi
-  `.docx` native melalui PHPWord.
-
-Preview, Excel, Word, dan cetak memakai builder/filter/scope yang sama. Hanya UI
+Preview, Excel, dan cetak memakai builder/filter/scope yang sama. Hanya UI
 yang dipaginasi; semua dokumen memakai seluruh hasil filter. Excel wajib
 menetralkan formula injection. Nama file berasal dari allowlist dan timestamp
 server.
@@ -179,7 +170,7 @@ server.
 - Preview/unduhan menampilkan seluruh dataset terfilter dari tanggal paling awal.
 - Klik baris tidak membuka modal; kontrol detail dan chevron membuka detail inline.
 - Preview rekap memakai A4 landscape.
-- Action bar preview menyediakan Kembali, Excel, Word, dan Cetak/Simpan PDF.
+- Action bar preview menyediakan Kembali, Excel, dan Cetak/Simpan PDF.
 - Rekap memuat penandatangan yang disetujui tanpa NIP;
   kondisi sumber kosong/ganda tidak memilih akun secara diam-diam.
 - Archive hanya tersedia sesuai policy dan tetap soft delete.
