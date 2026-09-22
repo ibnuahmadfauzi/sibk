@@ -51,34 +51,32 @@ Perubahan filter atau jumlah data kembali ke halaman pertama.
 Kolom desktop:
 
 1. No;
-2. Nama & Kelas;
-3. Layanan;
-4. Permasalahan;
-5. Penanganan;
-6. Aksi.
+2. Hari/Tanggal;
+3. Nama & Kelas;
+4. Layanan/Jenis Masalah;
+5. Latar Belakang Masalah;
+6. Penanganan;
+7. Aksi.
 
-Permasalahan dan Penanganan dipotong secara visual pada tabel. Nilai lengkap
-tetap tersedia pada modal detail dan dokumen.
+Latar Belakang Masalah dan Penanganan dibatasi 80 karakter pada tabel. Ikon
+mata membuka atau meringkas nilai lengkap. Dokumen tetap memakai nilai lengkap.
 
 ## 4. Mapping Data
 
-| Jenis | Tanggal | Permasalahan | Penanganan | Field ketiga detail |
+| Jenis | Tanggal | Latar Belakang Masalah | Penanganan | Hasil Layanan |
 |---|---|---|---|---|
 | Kasus | `service_date` | `initial_info` | `initial_action` | `resolution_summary` |
 | Konsultasi | `session_date` | `problem` | `handling` | `result` |
 
 Kelas memakai membership yang efektif pada tanggal layanan. Identitas sementara
 yang sah tetap dapat muncul sesuai scope existing. `internal_note` kasus tidak
-digunakan sebagai Catatan karena merupakan data internal terbatas. Modal dan
-preview kasus memberi label `Catatan Penyelesaian`, sedangkan konsultasi memberi
-label `Hasil`.
+digunakan sebagai Catatan karena merupakan data internal terbatas.
 
 ## 5. Interaksi Tabel
 
-- Klik area baris membuka modal detail, kecuali saat kontrol Aksi ditekan.
-- Nama murid tetap berupa link/tombol semantik agar dapat dipakai keyboard.
-- Modal memakai endpoint dan JavaScript detail kasus/konsultasi existing.
-- Ikon Cetak membuka preview satu catatan.
+- Klik area baris tidak membuka modal.
+- Ikon mata membuka atau meringkas Latar Belakang Masalah dan Penanganan.
+- Ikon chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Ikon Hapus menjalankan archive/soft delete existing setelah konfirmasi.
 - Ikon Hapus hanya muncul jika policy objek mengizinkan.
 - Tombol ikon mempunyai `aria-label`, `title`, focus state terlihat, dan target
@@ -105,26 +103,16 @@ Print stylesheet menyembunyikan action bar, mengulang header tabel pada halaman
 berikutnya, mencegah satu baris terpotong, serta menjaga blok tanda tangan tetap
 utuh pada akhir dokumen.
 
-## 7. Preview Per Catatan
+## 7. Detail Per Catatan
 
-Preview per catatan berbeda dari rekap:
-
-- Kasus memakai template dokumen Catatan Kasus.
-- Konsultasi memakai template dokumen Catatan Konsultasi.
-- Keduanya memakai A4 portrait.
-- Keduanya memakai shell kop/action bar yang sama, tetapi field isi berbeda.
-- Kasus disusun sebagai Permasalahan, Penanganan, lalu Catatan Penyelesaian.
-- Konsultasi disusun sebagai Permasalahan, Penanganan, lalu Hasil.
-- Field ketiga tidak ditambahkan sebagai kolom tabel rekap.
-- Tombol Cetak di modal dan ikon Cetak pada tabel menuju route preview yang sama.
-- Policy objek diperiksa kembali pada URL preview langsung.
+Halaman laporan tidak membuka modal atau menampilkan aksi cetak per catatan.
+Ringkasan lengkap dibuka dengan ikon mata, sedangkan Hasil Layanan dibuka dengan
+ikon chevron langsung di dalam tabel atau kartu.
 
 ## 8. Penandatangan
 
 - Kop dan blok tanda tangan dibuat sebagai partial Blade reusable.
 - Rekap memakai Koordinator BK dan Waka Kesiswaan.
-- Kasus memakai assignment owner terakhir berdasarkan `effective_from DESC,
-  id DESC`, bukan pembuat record atau pengguna login.
 - Konsultasi memakai relasi `counselor`, bukan pengguna login.
 - Koordinator dan Waka hanya dipilih bila tepat satu akun aktif dengan role
   terkait tersedia. Kondisi kosong atau ganda ditampilkan sebagai
@@ -184,11 +172,10 @@ server.
   berasal dari tahun ajaran terpilih.
 - Default menampilkan 10 data terbaru.
 - Preview/unduhan menampilkan seluruh dataset terfilter dari tanggal paling awal.
-- Klik baris membuka modal detail yang tepat.
-- Preview rekap landscape, kasus portrait, dan konsultasi portrait memakai
-  template terpisah.
+- Klik baris tidak membuka modal; ikon mata dan chevron membuka detail inline.
+- Preview rekap memakai A4 landscape.
 - Action bar preview menyediakan Kembali, Excel, Word, dan Cetak/Simpan PDF.
-- Rekap dan dokumen individual memuat penandatangan yang disetujui tanpa NIP;
+- Rekap memuat penandatangan yang disetujui tanpa NIP;
   kondisi sumber kosong/ganda tidak memilih akun secara diam-diam.
 - Archive hanya tersedia sesuai policy dan tetap soft delete.
 - Semua keluaran memakai scope dan allowlist yang sama.

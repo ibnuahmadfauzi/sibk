@@ -33,12 +33,6 @@
                     Tutup
                 </button>
             @endif
-            <a
-                class="btn btn-outline-primary"
-                href="{{ route('reports.records.preview', ['type' => 'consultation', 'id' => $consultation->getKey()]) }}"
-            >
-                Preview Cetak
-            </a>
             @if($canUpdateConsultation)
                 <a
                     class="btn btn-primary"
@@ -108,7 +102,7 @@
         <div class="col-12 col-lg-8">
             <div class="sibk-panel">
                 <div class="sibk-panel__body p-4">
-                    <h2 class="fs-6 fw-bold">Permasalahan</h2>
+                    <h2 class="fs-6 fw-bold">Latar Belakang Masalah</h2>
                     <p>{{ $consultation->problem }}</p>
 
                     <h2 class="fs-6 fw-bold">Penanganan</h2>

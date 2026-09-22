@@ -2576,20 +2576,17 @@ small, .small {
   min-height: 44px;
 }
 
-.sibk-report-row {
-  cursor: pointer;
-}
-
-.sibk-report-row:hover td,
-.sibk-report-row:focus td {
+.sibk-report-result-row td,
+.sibk-report-result-detail {
   background: var(--sibk-color-primary-soft);
 }
 
-.sibk-report-text-preview {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+[data-report-result-toggle] svg {
+  transition: transform 0.2s ease;
+}
+
+[data-report-result-toggle][aria-expanded="true"] svg {
+  transform: rotate(180deg);
 }
 
 .sibk-icon-button {

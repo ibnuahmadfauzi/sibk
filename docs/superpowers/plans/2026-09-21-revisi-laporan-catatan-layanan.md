@@ -6,14 +6,14 @@
 > verification gates before that approval and a separate testing instruction.
 
 **Goal:** Mengganti halaman Laporan Guru BK/Koordinator menjadi daftar catatan
-kasus dan konsultasi yang dapat difilter, dibuka sebagai detail, dipratinjau,
-dicetak, dan diunduh sebagai Excel atau Word.
+kasus dan konsultasi yang dapat difilter, dibuka inline, serta direkap melalui
+preview, cetak/PDF, Excel, atau Word.
 
-**Architecture:** Gunakan route, policy, modal detail, soft delete, Bootstrap,
+**Architecture:** Gunakan route, policy, soft delete, Bootstrap,
 dan pagination Laravel yang sudah ada. Satu query dasar terscope menghasilkan
-pagination untuk UI dan seluruh dataset untuk dokumen. Preview rekap, kasus,
-dan konsultasi memakai template terpisah dengan partial kop dan tanda tangan
-bersama; jangan membuat template builder atau framework ekspor generik.
+pagination untuk UI dan seluruh dataset untuk dokumen. Preview rekap memakai
+partial kop dan tanda tangan bersama; jangan membuat template builder atau
+framework ekspor generik.
 
 **Tech Stack:** PHP 8.3+, Laravel 13, Eloquent/Query Builder, Form Request,
 Blade, Bootstrap 5.3.8, SCSS existing, JavaScript existing, Laravel Pagination.
@@ -23,7 +23,7 @@ Blade, Bootstrap 5.3.8, SCSS existing, JavaScript existing, Laravel Pagination.
 
 ## Status Kelayakan
 
-**Layak bersyarat.** UI, query, modal detail, archive, pagination, preview,
+**Layak bersyarat.** UI, query, detail inline, archive, pagination, preview,
 print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 
 - Excel `.xlsx` native memerlukan persetujuan penambahan
@@ -48,21 +48,19 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - Pagination 10/25/50/100, default 10, hanya memengaruhi halaman UI. Preview,
   Excel, dan Word selalu mengambil seluruh dataset hasil filter.
 - Hapus memakai archive/soft delete existing, bukan hard delete.
-- Header tabel: No; Nama & Kelas; Layanan; Permasalahan; Penanganan; Aksi.
-- Permasalahan memakai `cases.initial_info` atau `consultations.problem`.
+- Header tabel: No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Latar
+  Belakang Masalah; Penanganan; Aksi.
+- Latar Belakang Masalah memakai `cases.initial_info` atau `consultations.problem`.
 - Penanganan memakai `cases.initial_action` atau `consultations.handling`.
-- Detail kasus menampilkan Catatan Penyelesaian dari `resolution_summary`.
-- Detail konsultasi menampilkan Hasil dari `result`.
+- Baris Hasil Layanan memakai `resolution_summary` untuk kasus atau `result`
+  untuk konsultasi.
 - `internal_note` kasus tidak pernah masuk daftar, preview, atau dokumen.
-- Teks tabel dipotong secara presentasi; modal dan dokumen memakai teks lengkap.
+- Teks tabel dibatasi 80 karakter; ikon mata membuka nilai lengkap dan ikon
+  chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Pojok atas hanya berisi tombol `Cetak / Unduh Rekap`. Tombol membuka preview
   web; tidak ada download atau dialog print langsung dari halaman daftar.
 - Preview rekap memakai A4 landscape dan seluruh data hasil filter.
-- Preview satu kasus/konsultasi memakai A4 portrait dan satu record lengkap.
 - Rekap ditandatangani Koordinator BK dan Waka Kesiswaan.
-- Dokumen satu catatan ditandatangani Guru BK penanggung jawab dan Waka
-  Kesiswaan. Konsultasi memakai `counselor_id`; kasus memakai assignment owner
-  terakhir berdasarkan `effective_from DESC, id DESC`, bukan pengguna login.
 - NIP tidak ditampilkan sampai tersedia sumber data resmi.
 - Tanda tangan hanya berada di akhir dokumen dan tidak boleh terpotong halaman.
 - Excel tidak memuat blok tanda tangan. Preview cetak dan Word memuatnya.
@@ -80,8 +78,8 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
   sementara yang sah.
 - Tombol ikon wajib semantik, ber-`aria-label`, `title`, focus ring terlihat,
   dan target sentuh minimal 44 × 44 px.
-- Nama murid menjadi kontrol detail yang dapat dicapai keyboard; klik baris
-  hanya tambahan dan tidak mengambil aksi tombol.
+- Klik baris tidak membuka modal. Ikon mata, chevron, dan arsip dapat dicapai
+  keyboard tanpa bergantung pada interaksi hover.
 - Pertahankan kartu mobile existing agar tidak ada overflow horizontal.
 - Kode dan markup mengikuti aturan multi-line di `AGENTS.md`.
 - Jangan membuat migration atau tabel baru.
@@ -105,12 +103,12 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 **Hasil:**
 
 - Tiga tab diganti satu daftar per catatan kasus/konsultasi.
-- Kontrak mengunci tiga filter, enam kolom, pagination UI, seluruh dataset
+- Kontrak mengunci tiga filter, tujuh kolom, pagination UI, seluruh dataset
   dokumen, dua arah urutan, preview web, ekspor Office, dan soft delete.
 - Terminologi tabel memakai Penanganan; field ketiga detail tetap Catatan
   Penyelesaian untuk kasus dan Hasil untuk konsultasi.
-- Kontrak membedakan preview rekap landscape dan dokumen individual portrait.
-- Kontrak tanda tangan memakai Koordinator/Guru BK dan Waka tanpa NIP.
+- Kontrak memakai preview rekap landscape tanpa akses cetak individual dari UI.
+- Kontrak tanda tangan rekap memakai Koordinator dan Waka tanpa NIP.
 - Route preview tidak menerima format; format hanya berada pada route ekspor.
 
 ---
@@ -158,19 +156,18 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
   dan tombol cetak langsung dari halaman laporan.
 - Tampilkan filter Tahun Ajaran, Kelas, Jenis Layanan BK, dan jumlah data.
 - Perubahan tahun ajaran memperbarui opsi kelas dan kembali ke halaman pertama.
-- Tabel memakai header: No; Nama & Kelas; Layanan; Permasalahan; Penanganan;
-  Aksi.
+- Tabel memakai header: No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah;
+  Latar Belakang Masalah; Penanganan; Aksi.
 - Pojok atas memakai satu tombol `Cetak / Unduh Rekap` menuju preview rekap.
-- Nama dan klik baris membuka modal detail existing melalui `data-modal-url`.
-- Modal kasus menampilkan Permasalahan, Penanganan, Catatan Penyelesaian.
-- Modal konsultasi menampilkan Permasalahan, Penanganan, Hasil.
-- Aksi memakai ikon cetak dan hapus; hapus hanya tampil jika policy mengizinkan.
+- Klik baris tidak membuka modal. Ikon mata membuka narasi lengkap dan ikon
+  chevron membuka baris Hasil Layanan dengan latar berbeda.
+- Aksi cetak individual dihilangkan; hapus hanya tampil jika policy mengizinkan.
 - Empty state, kartu mobile, fokus keyboard, label aksesibel, dan target sentuh
   dipertahankan.
 
 ---
 
-### Task 4: Tambahkan Preview Rekap dan Preview Satu Catatan
+### Task 4: Tambahkan Preview Rekap
 
 **Files:**
 
@@ -189,12 +186,8 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
   bidang layanan, Permasalahan, Penanganan beserta hasil, serta Tindak
   Lanjut/Status. Jam tidak ditampilkan karena schema aktif tidak menyimpannya.
 - Action bar rekap: Kembali, Download Excel, Download Word, Cetak/Simpan PDF.
-- `GET /reports/records/{type}/{id}/preview` menampilkan satu record dalam A4
-  portrait dengan policy objek yang sama seperti detail.
-- Action bar satu catatan: Kembali dan Cetak/Simpan PDF.
-- Ikon cetak tabel dan tombol modal mengarah ke preview individual yang sama.
+- Halaman laporan dan modal layanan tidak menampilkan akses cetak individual.
 - Rekap memakai urutan tanggal paling awal; nomor mengikuti urutan dokumen.
-- Preview individual memakai narasi lengkap dan label field sesuai jenisnya.
 - `window.print()` hanya dipanggil dari tombol pada halaman preview.
 
 ---

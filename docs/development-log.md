@@ -15,6 +15,15 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 22 September 2026 — Penyajian tabel laporan
+
+- Daftar menambahkan Hari/Tanggal dan Jenis Masalah; Latar Belakang Masalah
+  serta Penanganan diringkas menjadi 80 karakter.
+- Ikon mata membuka teks lengkap dan ikon chevron membuka baris Hasil Layanan
+  dengan latar berbeda pada tampilan desktop maupun mobile.
+- Klik baris, ikon cetak individual, dan tombol cetak pada modal dihilangkan.
+  Cetak/unduh rekap tetap tersedia. Test, formatter, dan build tidak dijalankan.
+
 ### 22 September 2026 — Penyederhanaan kontrol filter laporan
 
 - Pilihan jumlah data dipindahkan dari panel filter ke header tabel dan langsung

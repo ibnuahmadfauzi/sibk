@@ -41,7 +41,7 @@
         <dt class="col-sm-4">Guru BK</dt>
         <dd class="col-sm-8">{{ $owner?->name ?? '—' }}</dd>
 
-        <dt class="col-sm-4">Permasalahan</dt>
+        <dt class="col-sm-4">Latar Belakang Masalah</dt>
         <dd class="col-sm-8 text-break">{{ $case->initial_info }}</dd>
 
         <dt class="col-sm-4">Penanganan</dt>
@@ -59,10 +59,4 @@
     >
         Tutup
     </button>
-    <a
-        class="btn btn-primary"
-        href="{{ route('reports.records.preview', ['type' => 'case', 'id' => $case->getKey()]) }}"
-    >
-        Preview Cetak
-    </a>
 </div>

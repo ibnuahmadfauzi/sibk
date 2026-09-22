@@ -269,6 +269,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'type' => $type,
             'record_id' => $record->getKey(),
             'date' => $date,
+            'day_label' => $date->locale('id')->translatedFormat('l'),
             'date_label' => $date->locale('id')->translatedFormat('d M Y'),
             'name' => $record->identityName(),
             'classroom' => $this->classroomName($record, $year),
@@ -293,14 +294,6 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     ))
                     ->first()?->teacher?->name ?? '—')
                 : ($record->counselor?->name ?? '—'),
-            'modal_url' => route(
-                $isCase ? 'cases.show' : 'consultations.show',
-                [$record, 'modal' => 1],
-            ),
-            'preview_url' => route('reports.records.preview', [
-                'type' => $type,
-                'id' => $record->getKey(),
-            ]),
             'archive_url' => route(
                 $isCase ? 'cases.destroy' : 'consultations.destroy',
                 $record,
@@ -349,9 +342,10 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'title' => 'Laporan Layanan BK',
             'columns' => [
                 'No',
+                'Hari/Tanggal',
                 'Nama & Kelas',
-                'Layanan',
-                'Permasalahan',
+                'Layanan/Jenis Masalah',
+                'Latar Belakang Masalah',
                 'Penanganan',
                 'Aksi',
             ],

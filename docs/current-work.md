@@ -17,19 +17,21 @@
 - Jumlah data ditempatkan pada header tabel dan langsung memuat ulang tabel.
   Panel filter memakai satu tombol: `Terapkan` saat belum aktif/ada perubahan,
   lalu `Reset` dengan warna berbeda saat filter aktif tanpa perubahan.
-- Klik baris membuka modal detail existing. Ikon cetak menuju preview individual;
+- Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
+  karakter untuk Latar Belakang Masalah dan Penanganan. Ikon mata membuka teks
+  lengkap; ikon chevron membuka baris Hasil Layanan dengan latar berbeda.
+- Klik baris tidak membuka modal dan aksi cetak individual tidak ditampilkan;
   aksi arsip hanya tampil bila policy objek mengizinkan.
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan
   tanggal paling awal. Preview tidak membuka dialog cetak otomatis.
 - Preview rekap memakai A4 landscape dengan Download Excel, Download Word, dan
-  Cetak/Simpan PDF. Preview individual memakai A4 portrait dan Cetak/Simpan PDF.
+  Cetak/Simpan PDF.
 - Tabel dokumen memakai tujuh kolom polos: No, Hari/Tanggal, Nama/Kelas, Jenis
   Layanan, Permasalahan, Penanganan, serta Tindak Lanjut/Status. Jam layanan
   tidak ditampilkan karena schema aktif hanya menyimpan tanggal layanan.
 - Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; Word memakai HTML Blade
   ber-MIME `application/msword` dan ekstensi `.doc` tanpa PHPWord.
-- Rekap memakai Koordinator BK dan Waka Kesiswaan. Dokumen individual memakai
-  Guru BK penanggung jawab dan Waka. Kondisi akun penandatangan kosong/ganda
+- Rekap memakai Koordinator BK dan Waka Kesiswaan. Kondisi akun penandatangan kosong/ganda
   menampilkan `Penandatangan belum tersedia`; NIP tidak ditampilkan.
 - Jalur laporan legacy tiga tab dan CSV tidak memiliki consumer runtime sehingga
   request/service legacy dipensiunkan. Test lama yang merujuk jalur tersebut

@@ -9,53 +9,78 @@
         </thead>
         <tbody>
             @foreach($report['rows'] as $row)
+                @php
+                    $problem = $row['problem'] ?: '—';
+                    $handling = $row['handling'] ?: '—';
+                    $problemPreview = \Illuminate\Support\Str::limit($problem, 80, '...');
+                    $handlingPreview = \Illuminate\Support\Str::limit($handling, 80, '...');
+                    $resultId = "report-result-{$row['type']}-{$row['record_id']}";
+                @endphp
                 <tr
                     class="sibk-report-row"
-                    data-modal-url="{{ $row['modal_url'] }}"
-                    tabindex="0"
+                    data-report-record
                 >
                     <td>{{ $row['number'] }}</td>
+                    <td>
+                        <strong>{{ $row['day_label'] }}</strong>
+                        <div class="small text-muted">{{ $row['date_label'] }}</div>
+                    </td>
                     <td>
                         <strong>{{ $row['name'] }}</strong>
                         <div class="small text-muted">{{ $row['classroom'] }}</div>
                     </td>
                     <td>
                         {{ $row['service'] }}
-                        <div class="small text-muted">{{ $row['date_label'] }}</div>
+                        <div class="small text-muted">{{ $row['service_field'] }}</div>
                     </td>
                     <td>
+                        <span data-report-text-preview>{{ $problemPreview }}</span>
                         <span
-                            class="sibk-report-text-preview"
-                            title="{{ $row['problem'] }}"
-                        >
-                            {{ $row['problem'] }}
-                        </span>
+                            class="d-none"
+                            data-report-text-full
+                        >{{ $problem }}</span>
                     </td>
                     <td>
+                        <span data-report-text-preview>{{ $handlingPreview }}</span>
                         <span
-                            class="sibk-report-text-preview"
-                            title="{{ $row['handling'] }}"
-                        >
-                            {{ $row['handling'] }}
-                        </span>
+                            class="d-none"
+                            data-report-text-full
+                        >{{ $handling }}</span>
                     </td>
                     <td>
                         <div class="d-flex gap-2">
-                            <a
+                            <button
                                 class="btn btn-sm btn-outline-primary sibk-icon-button"
-                                href="{{ $row['preview_url'] }}"
-                                aria-label="Preview cetak {{ $row['name'] }}"
-                                title="Preview cetak"
+                                type="button"
+                                data-report-text-toggle
+                                aria-expanded="false"
+                                aria-label="Tampilkan teks lengkap {{ $row['name'] }}"
+                                title="Tampilkan teks lengkap"
                             >
                                 <svg
                                     aria-hidden="true"
                                     viewBox="0 0 24 24"
                                 >
-                                    <path d="M6 9V2h12v7" />
-                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                                    <rect x="6" y="14" width="12" height="8" />
+                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                                    <circle cx="12" cy="12" r="2.5" />
                                 </svg>
-                            </a>
+                            </button>
+                            <button
+                                class="btn btn-sm btn-outline-primary sibk-icon-button"
+                                type="button"
+                                data-report-result-toggle
+                                aria-controls="{{ $resultId }}"
+                                aria-expanded="false"
+                                aria-label="Tampilkan hasil layanan {{ $row['name'] }}"
+                                title="Tampilkan hasil layanan"
+                            >
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path d="m6 9 6 6 6-6" />
+                                </svg>
+                            </button>
                             @if($row['can_archive'])
                                 <form
                                     action="{{ $row['archive_url'] }}"
@@ -84,6 +109,15 @@
                                 </form>
                             @endif
                         </div>
+                    </td>
+                </tr>
+                <tr
+                    class="sibk-report-result-row d-none"
+                    id="{{ $resultId }}"
+                >
+                    <td colspan="{{ count($report['columns']) }}">
+                        <strong class="d-block mb-1">Hasil Layanan</strong>
+                        {{ $row['detail_note'] }}
                     </td>
                 </tr>
             @endforeach

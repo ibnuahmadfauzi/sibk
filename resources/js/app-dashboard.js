@@ -28,7 +28,7 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
     const showApply = () => {
         button.dataset.mode = 'apply';
         button.textContent = 'Terapkan';
-        button.classList.remove('btn-outline-danger');
+        button.classList.remove('btn-outline-primary');
         button.classList.add('btn-primary');
     };
 
@@ -36,7 +36,7 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
         button.dataset.mode = 'reset';
         button.textContent = 'Reset';
         button.classList.remove('btn-primary');
-        button.classList.add('btn-outline-danger');
+        button.classList.add('btn-outline-primary');
     };
 
     form.addEventListener('change', () => {
@@ -65,6 +65,33 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
                 form.requestSubmit();
             });
         });
+});
+
+document.querySelectorAll('[data-report-text-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const record = button.closest('[data-report-record]');
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+
+        record.querySelectorAll('[data-report-text-preview]')
+            .forEach((text) => text.classList.toggle('d-none', !expanded));
+        record.querySelectorAll('[data-report-text-full]')
+            .forEach((text) => text.classList.toggle('d-none', expanded));
+        button.setAttribute('aria-expanded', String(!expanded));
+        button.title = expanded ? 'Tampilkan teks lengkap' : 'Ringkas teks';
+        button.setAttribute('aria-label', button.title);
+    });
+});
+
+document.querySelectorAll('[data-report-result-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const detail = document.getElementById(button.getAttribute('aria-controls'));
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+
+        detail.classList.toggle('d-none', expanded);
+        button.setAttribute('aria-expanded', String(!expanded));
+        button.title = expanded ? 'Tampilkan hasil layanan' : 'Tutup hasil layanan';
+        button.setAttribute('aria-label', button.title);
+    });
 });
 
 document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {

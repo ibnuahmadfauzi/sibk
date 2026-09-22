@@ -1,36 +1,90 @@
 <div class="sibk-operational-report-cards p-3">
     @foreach($report['rows'] as $row)
+        @php
+            $problem = $row['problem'] ?: '—';
+            $handling = $row['handling'] ?: '—';
+            $problemPreview = \Illuminate\Support\Str::limit($problem, 80, '...');
+            $handlingPreview = \Illuminate\Support\Str::limit($handling, 80, '...');
+            $resultId = "report-card-result-{$row['type']}-{$row['record_id']}";
+        @endphp
         <article
             class="sibk-panel sibk-operational-report-card p-3"
-            data-modal-url="{{ $row['modal_url'] }}"
-            tabindex="0"
+            data-report-record
         >
             <div class="d-flex justify-content-between gap-3 mb-3">
                 <div>
                     <h3 class="h6 mb-1">{{ $row['name'] }}</h3>
                     <p class="small text-muted mb-0">
-                        {{ $row['classroom'] }} &middot; {{ $row['date_label'] }}
+                        {{ $row['classroom'] }} &middot;
+                        {{ $row['day_label'] }}, {{ $row['date_label'] }}
                     </p>
                 </div>
-                <span class="sibk-badge">{{ $row['service'] }}</span>
+                <span class="sibk-badge">
+                    {{ $row['service'] }} / {{ $row['service_field'] }}
+                </span>
             </div>
             <dl class="mb-3">
                 <div class="py-2">
-                    <dt>Permasalahan</dt>
-                    <dd class="mb-0 sibk-report-text-preview">{{ $row['problem'] }}</dd>
+                    <dt>Latar Belakang Masalah</dt>
+                    <dd class="mb-0">
+                        <span data-report-text-preview>{{ $problemPreview }}</span>
+                        <span
+                            class="d-none"
+                            data-report-text-full
+                        >{{ $problem }}</span>
+                    </dd>
                 </div>
                 <div class="py-2">
                     <dt>Penanganan</dt>
-                    <dd class="mb-0 sibk-report-text-preview">{{ $row['handling'] }}</dd>
+                    <dd class="mb-0">
+                        <span data-report-text-preview>{{ $handlingPreview }}</span>
+                        <span
+                            class="d-none"
+                            data-report-text-full
+                        >{{ $handling }}</span>
+                    </dd>
                 </div>
             </dl>
+            <div
+                class="sibk-report-result-detail d-none mb-3 p-3"
+                id="{{ $resultId }}"
+            >
+                <strong class="d-block mb-1">Hasil Layanan</strong>
+                {{ $row['detail_note'] }}
+            </div>
             <div class="d-flex justify-content-end gap-2">
-                <a
-                    class="btn btn-sm btn-outline-primary"
-                    href="{{ $row['preview_url'] }}"
+                <button
+                    class="btn btn-sm btn-outline-primary sibk-icon-button"
+                    type="button"
+                    data-report-text-toggle
+                    aria-expanded="false"
+                    aria-label="Tampilkan teks lengkap {{ $row['name'] }}"
+                    title="Tampilkan teks lengkap"
                 >
-                    Preview cetak
-                </a>
+                    <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                        <circle cx="12" cy="12" r="2.5" />
+                    </svg>
+                </button>
+                <button
+                    class="btn btn-sm btn-outline-primary sibk-icon-button"
+                    type="button"
+                    data-report-result-toggle
+                    aria-controls="{{ $resultId }}"
+                    aria-expanded="false"
+                    aria-label="Tampilkan hasil layanan {{ $row['name'] }}"
+                    title="Tampilkan hasil layanan"
+                >
+                    <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="m6 9 6 6 6-6" />
+                    </svg>
+                </button>
                 @if($row['can_archive'])
                     <form
                         action="{{ $row['archive_url'] }}"
