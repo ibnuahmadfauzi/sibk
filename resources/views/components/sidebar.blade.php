@@ -32,7 +32,7 @@
                 <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.students') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.students') }}"
                     aria-current="{{ request()->routeIs('waka.monitoring.students') ? 'page' : 'false' }}">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-                    <span>Murid dengan Kasus</span>
+                    <span>Murid dengan Permasalahan</span>
                 </a>
                 <a class="sibk-nav-link {{ request()->routeIs('waka.reports') || request()->routeIs('cases.show') ? 'is-active' : '' }}" href="{{ route('waka.reports') }}"
                     aria-current="{{ request()->routeIs('waka.reports') || request()->routeIs('cases.show') ? 'page' : 'false' }}">
@@ -78,7 +78,7 @@
             <a class="sibk-nav-link {{ request()->routeIs('assignments.cases.*') ? 'is-active' : '' }}" href="{{ route('assignments.cases.index') }}"
                 aria-current="{{ request()->routeIs('assignments.cases.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-                <span>Pengalihan Kasus</span>
+                <span>Pengalihan Permasalahan</span>
             </a>
             @endcan
 
@@ -100,7 +100,7 @@
             <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.students') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.students') }}"
                 aria-current="{{ request()->routeIs('waka.monitoring.students') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-                <span>Murid dengan Kasus</span>
+                <span>Murid dengan Permasalahan</span>
             </a>
             <a class="sibk-nav-link {{ request()->routeIs('waka.reports') ? 'is-active' : '' }}" href="{{ route('waka.reports') }}"
                 aria-current="{{ request()->routeIs('waka.reports') ? 'page' : 'false' }}">

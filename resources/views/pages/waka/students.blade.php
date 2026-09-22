@@ -1,6 +1,6 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Murid dengan Kasus - Ruang BK')
+@section('page-title', 'Murid dengan Permasalahan - Ruang BK')
 
 @section('body')
 @php
@@ -15,7 +15,7 @@
 <div class="sibk-dashboard" data-page-id="PG-WAKA-STUDENTS">
     <header class="sibk-page-header mb-4">
         <div class="sibk-page-header__copy">
-            <h1>Murid dengan Kasus</h1>
+            <h1>Murid dengan Permasalahan</h1>
             <p>Daftar murid yang memperoleh penanganan BK pada periode terpilih.</p>
         </div>
     </header>
@@ -65,7 +65,7 @@
         </div>
 
         @if($rows->isEmpty())
-            <x-empty-state title="Belum ada murid dengan kasus" description="Tidak ada data yang sesuai dengan periode atau status terpilih." />
+            <x-empty-state title="Belum ada murid dengan permasalahan" description="Tidak ada data yang sesuai dengan periode atau status terpilih." />
             @if($hasFilters)<div class="text-center pb-4"><a href="{{ route('waka.monitoring.students') }}" class="btn btn-outline-secondary">Reset filter</a></div>@endif
         @else
             <div class="table-responsive sibk-waka-table--desktop">
@@ -81,7 +81,7 @@
                                 </a>
                             </th>
                         @endforeach
-                        <th scope="col">Kasus</th><th scope="col">Aktif</th><th scope="col">Akses</th>
+                        <th scope="col">Permasalahan</th><th scope="col">Aktif</th><th scope="col">Akses</th>
                     </tr></thead>
                     <tbody>
                         @foreach($rows as $row)
@@ -104,7 +104,7 @@
                     <article class="sibk-panel sibk-panel--inset p-3">
                         <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3>
                         <p class="text-muted small mb-3">{{ $row['kelas'] }}</p>
-                        <p class="mb-2"><strong>{{ $row['jumlah_kasus'] }} kasus</strong> - {{ $row['jumlah_aktif'] }} masih aktif</p>
+                        <p class="mb-2"><strong>{{ $row['jumlah_kasus'] }} permasalahan</strong> - {{ $row['jumlah_aktif'] }} masih aktif</p>
                         <p class="mb-2"><span class="sibk-badge sibk-badge--{{ $row['status_code'] === 'selesai' ? 'success' : 'warning' }}">{{ $row['status_terbaru'] }}</span></p>
                         <p class="small mb-3">Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>
                         <a href="{{ $row['detail_url'] }}" class="btn btn-outline-primary w-100">Lihat detail</a>

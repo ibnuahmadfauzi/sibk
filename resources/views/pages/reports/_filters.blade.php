@@ -115,7 +115,7 @@
                         value="case"
                         @selected($report['filters']['service_type'] === 'case')
                     >
-                        Catatan Kasus
+                        Catatan Permasalahan
                     </option>
                     <option
                         value="consultation"

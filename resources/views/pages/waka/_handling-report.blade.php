@@ -1,6 +1,6 @@
 @php
     $hasFilters = filled($params['period'] ?? null) || filled($params['status'] ?? null);
-    $columns = ['murid' => 'Murid', 'kelas' => 'Kelas', 'bidang' => 'Bidang', 'status' => 'Status', 'guru_bk' => 'Guru BK', 'tanggal' => 'Tanggal'];
+    $columns = ['murid' => 'Murid', 'kelas' => 'Kelas', 'bidang' => 'Jenis Masalah', 'status' => 'Status', 'guru_bk' => 'Guru BK', 'tanggal' => 'Tanggal'];
 @endphp
 <section class="sibk-panel mb-4" aria-labelledby="handling-filter-title">
     <div class="sibk-panel__body p-4">
@@ -33,7 +33,7 @@
     </div>
 
     @if($rows->isEmpty())
-        <x-empty-state title="Belum ada penanganan" description="Tidak ada kasus yang sesuai dengan periode atau status terpilih." />
+        <x-empty-state title="Belum ada penanganan" description="Tidak ada permasalahan yang sesuai dengan periode atau status terpilih." />
         @if($hasFilters)<div class="text-center pb-4"><a href="{{ route('waka.reports', ['tab' => 'penanganan']) }}" class="btn btn-outline-secondary">Reset filter</a></div>@endif
     @else
         <div class="table-responsive sibk-waka-table--desktop">

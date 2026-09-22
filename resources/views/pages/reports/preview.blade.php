@@ -12,7 +12,7 @@
     $selectedClassroom = $report['filter_options']['classrooms']
         ->firstWhere('id', $report['filters']['classroom_id']);
     $serviceLabel = match ($report['filters']['service_type']) {
-        'case' => 'Catatan Kasus',
+        'case' => 'Catatan Permasalahan',
         'consultation' => 'Catatan Konsultasi',
         default => 'Semua layanan',
     };
@@ -68,7 +68,7 @@
                         <th scope="col">No</th>
                         <th scope="col">Hari / Tanggal</th>
                         <th scope="col">Nama / Kelas</th>
-                        <th scope="col">Jenis Layanan</th>
+                        <th scope="col">Jenis Masalah</th>
                         <th scope="col">Permasalahan</th>
                         <th scope="col">Penanganan</th>
                         <th scope="col">Keterangan</th>

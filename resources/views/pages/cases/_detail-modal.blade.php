@@ -10,7 +10,7 @@
         class="modal-title fs-5"
         id="case-modal-title"
     >
-        Detail Kasus
+        Detail Permasalahan
     </h2>
     <button
         class="btn-close"
@@ -32,7 +32,7 @@
         <dt class="col-sm-4">Kelas</dt>
         <dd class="col-sm-8">{{ $membership?->classroom?->name ?? '—' }}</dd>
 
-        <dt class="col-sm-4">Jenis Layanan</dt>
+        <dt class="col-sm-4">Jenis Masalah</dt>
         <dd class="col-sm-8">{{ $case->serviceField?->label ?? '—' }}</dd>
 
         <dt class="col-sm-4">Status</dt>

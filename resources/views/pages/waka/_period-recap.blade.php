@@ -1,9 +1,9 @@
 @php
     $metricCards = [
         ['label' => 'Murid ditangani', 'value' => $recap['metrics']['served_students'], 'tone' => 'primary'],
-        ['label' => 'Kasus tercatat', 'value' => $recap['metrics']['cases_recorded'], 'tone' => 'info'],
+        ['label' => 'Permasalahan tercatat', 'value' => $recap['metrics']['cases_recorded'], 'tone' => 'info'],
         ['label' => 'Membutuhkan tindak lanjut', 'value' => $recap['metrics']['needs_follow_up'], 'tone' => 'warning'],
-        ['label' => 'Kasus selesai', 'value' => $recap['metrics']['completed'], 'tone' => 'success'],
+        ['label' => 'Permasalahan selesai', 'value' => $recap['metrics']['completed'], 'tone' => 'success'],
     ];
 @endphp
 <section class="sibk-panel mb-4" aria-labelledby="recap-filter-title">
@@ -86,11 +86,11 @@
 <section class="sibk-panel" aria-labelledby="class-recap-title">
     <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="class-recap-title">Ringkasan menurut kelas</h2></div></header>
     @if(empty($recap['classes']))
-        <x-empty-state title="Belum ada rekap kelas" description="Kasus pada periode ini belum memiliki kelas historis yang dapat direkap." />
+        <x-empty-state title="Belum ada rekap kelas" description="Permasalahan pada periode ini belum memiliki kelas historis yang dapat direkap." />
     @else
         <div class="table-responsive">
             <table class="table sibk-table align-middle">
-                <thead><tr><th scope="col">Kelas</th><th scope="col">Murid ditangani</th><th scope="col">Kasus aktif</th><th scope="col">Selesai</th><th scope="col">Perlu tindak lanjut</th></tr></thead>
+                <thead><tr><th scope="col">Kelas</th><th scope="col">Murid ditangani</th><th scope="col">Permasalahan aktif</th><th scope="col">Selesai</th><th scope="col">Perlu tindak lanjut</th></tr></thead>
                 <tbody>@foreach($recap['classes'] as $class)<tr><td class="fw-semibold">{{ $class['classroom'] }}</td><td>{{ $class['served_students'] }}</td><td>{{ $class['active_cases'] }}</td><td>{{ $class['completed'] }}</td><td>{{ $class['needs_follow_up'] }}</td></tr>@endforeach</tbody>
             </table>
         </div>

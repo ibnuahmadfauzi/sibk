@@ -53,9 +53,9 @@
                     <input type="date" class="form-control" id="session_date" name="session_date" value="{{ old('session_date', $consultation?->session_date?->toDateString() ?? today()->toDateString()) }}" required>
                 </div>
                 <div class="col-12 col-md-6">
-                    <label class="form-label" for="service_field_id">Jenis Layanan <span class="text-danger">*</span></label>
+                    <label class="form-label" for="service_field_id">Jenis Masalah <span class="text-danger">*</span></label>
                     <select class="form-select" id="service_field_id" name="service_field_id" required>
-                        <option value="">Pilih jenis layanan</option>
+                        <option value="">Pilih jenis masalah</option>
                         @foreach($serviceFields as $field)
                             <option value="{{ $field->id }}" @selected((string) old('service_field_id', $consultation?->service_field_id) === (string) $field->id)>{{ $field->label }}</option>
                         @endforeach
@@ -86,7 +86,7 @@
             <span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span>
             <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
             <a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-secondary">Batal</a>
-            <button class="btn btn-primary" type="submit">Simpan Konsultasi</button>
+            <button class="btn btn-primary" type="submit">Simpan</button>
         </div>
     </form>
 </div>

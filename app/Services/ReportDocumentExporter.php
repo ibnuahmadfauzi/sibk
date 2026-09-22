@@ -168,7 +168,7 @@ final class ReportDocumentExporter
         $classroom = collect($report['filter_options']['classrooms'])
             ->firstWhere('id', $report['filters']['classroom_id']);
         $service = match ($report['filters']['service_type']) {
-            'case' => 'Catatan Kasus',
+            'case' => 'Catatan Permasalahan',
             'consultation' => 'Catatan Konsultasi',
             default => 'Semua Layanan',
         };

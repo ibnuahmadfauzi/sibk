@@ -33,7 +33,7 @@ final class WakaDashboardService
             'label' => 'Waka Kesiswaan',
             'user_name' => $waka->name,
             'scope' => $year?->name ?? 'Periode kalender berjalan',
-            'description' => 'Ringkasan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh kasus.',
+            'description' => 'Ringkasan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh permasalahan.',
             'read_only' => true,
             'metrics' => $this->metrics($cases),
             'attention' => $this->attentionRows($cases, 5),
@@ -53,9 +53,9 @@ final class WakaDashboardService
 
         return [
             [
-                'label' => 'Kasus berjalan',
+                'label' => 'Permasalahan berjalan',
                 'value' => (string) $cases->filter(static fn (BkCase $case): bool => ! ServiceRecordStatus::isTerminal($case->status?->code))->count(),
-                'meta' => 'Kasus nonterminal pada tahun ajaran',
+                'meta' => 'Permasalahan nonterminal pada tahun ajaran',
                 'tone' => 'primary',
                 'kind' => 'cases',
             ],

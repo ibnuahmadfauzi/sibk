@@ -95,7 +95,7 @@
                         {{ $consultation->session_date->locale('id')->translatedFormat('d F Y') }}
                     </p>
                     <p>
-                        <span class="text-muted small d-block">Jenis Layanan</span>
+                        <span class="text-muted small d-block">Jenis Masalah</span>
                         {{ $consultation->serviceField->label }}
                     </p>
                     <p class="mb-0">

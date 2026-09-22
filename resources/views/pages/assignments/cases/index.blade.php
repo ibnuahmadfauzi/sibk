@@ -1,31 +1,31 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Penugasan & Pengalihan Kasus - Ruang BK')
+@section('page-title', 'Penugasan & Pengalihan Permasalahan - Ruang BK')
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-403">
-        <div class="sibk-page-header mb-4"><div class="sibk-page-header__copy"><h1>Pengalihan Penanggung Jawab Kasus</h1><p>Alihkan satu penanggung jawab aktif kepada Guru BK penerus.</p></div></div>
+        <div class="sibk-page-header mb-4"><div class="sibk-page-header__copy"><h1>Pengalihan Penanggung Jawab Permasalahan</h1><p>Alihkan satu penanggung jawab aktif kepada Guru BK penerus.</p></div></div>
         @if($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
         <div class="sibk-panel mb-4">
             <form action="{{ route('assignments.cases.index') }}" method="GET" class="row g-3 p-4 align-items-end">
                 <div class="col-12 col-lg-9">
-                    <label class="form-label" for="case_id">Kasus target</label>
+                    <label class="form-label" for="case_id">Permasalahan target</label>
                     <select class="form-select" id="case_id" name="case_id" required>
                         @forelse($cases as $caseOption)
                             <option value="{{ $caseOption->id }}" @selected($selectedCase?->is($caseOption))>{{ $caseOption->identityName() }} — {{ $caseOption->service_date->format('d-m-Y') }} ({{ $caseOption->status->label }})</option>
                         @empty
-                            <option value="">Tidak ada kasus aktif</option>
+                            <option value="">Tidak ada permasalahan aktif</option>
                         @endforelse
                     </select>
                 </div>
-                <div class="col-12 col-lg-3"><button class="btn btn-outline-primary w-100" type="submit">Pilih Kasus</button></div>
+                <div class="col-12 col-lg-3"><button class="btn btn-outline-primary w-100" type="submit">Pilih Permasalahan</button></div>
             </form>
         </div>
 
         @if($selectedCase)
             <div class="sibk-panel mb-4">
-                <div class="sibk-panel__header p-4 pb-2"><h2 class="sibk-panel__title">Kasus Terpilih</h2></div>
+                <div class="sibk-panel__header p-4 pb-2"><h2 class="sibk-panel__title">Permasalahan Terpilih</h2></div>
                 <div class="sibk-panel__body p-4 pt-2">
                     <div class="d-flex flex-wrap justify-content-between gap-3">
                         <div><strong class="text-primary">{{ $selectedCase->identityName() }}</strong><span class="mx-2">&bull;</span>{{ $selectedCase->service_date->format('d-m-Y') }}<span class="mx-2">&bull;</span>NISN {{ $selectedCase->identityNisn() }}</div>
@@ -64,7 +64,7 @@
                 </form>
             </div>
         @else
-            <div class="sibk-panel p-5 text-center text-muted">Tidak ada kasus aktif yang dapat ditugaskan.</div>
+            <div class="sibk-panel p-5 text-center text-muted">Tidak ada permasalahan aktif yang dapat ditugaskan.</div>
         @endif
     </div>
 @endsection

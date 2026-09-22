@@ -17,7 +17,7 @@
     <header class="sibk-page-header mb-4">
         <div class="sibk-page-header__copy">
             <h1>Laporan Layanan BK</h1>
-            <p>Daftar catatan kasus dan konsultasi sesuai kewenangan Anda.</p>
+            <p>Daftar catatan permasalahan dan konsultasi sesuai kewenangan Anda.</p>
         </div>
         <div class="sibk-page-header__actions no-print">
             <a
