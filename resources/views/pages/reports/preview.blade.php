@@ -66,31 +66,50 @@
                 <thead>
                     <tr>
                         <th scope="col">No</th>
-                        <th scope="col">Tanggal</th>
-                        <th scope="col">Nama &amp; Kelas</th>
-                        <th scope="col">Layanan</th>
+                        <th scope="col">Hari / Tanggal</th>
+                        <th scope="col">Nama / Kelas</th>
+                        <th scope="col">Jenis Layanan</th>
                         <th scope="col">Permasalahan</th>
                         <th scope="col">Penanganan</th>
+                        <th scope="col">Keterangan</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($report['rows'] as $row)
                         <tr>
                             <td>{{ $row['number'] }}</td>
-                            <td>{{ $row['date_label'] }}</td>
                             <td>
-                                <strong>{{ $row['name'] }}</strong><br>
-                                {{ $row['classroom'] }}
+                                <strong class="d-block">
+                                    {{ $row['date']->locale('id')->translatedFormat('l') }}
+                                </strong>
+                                <span class="sibk-document-meta">
+                                    {{ $row['date']->locale('id')->translatedFormat('d F Y') }}
+                                </span>
                             </td>
-                            <td>{{ $row['service'] }}</td>
+                            <td>
+                                <strong class="d-block text-uppercase">
+                                    {{ $row['name'] }}
+                                </strong>
+                                <span class="sibk-document-meta">{{ $row['classroom'] }}</span>
+                            </td>
+                            <td>
+                                <strong class="d-block">{{ $row['service'] }}</strong>
+                                <span class="sibk-document-meta">{{ $row['service_field'] }}</span>
+                            </td>
                             <td>{{ $row['problem'] }}</td>
-                            <td>{{ $row['handling'] }}</td>
+                            <td>
+                                <strong class="d-block">{{ $row['handling'] }}</strong>
+                                <span class="sibk-document-meta">
+                                    {{ $row['detail_label'] }}: {{ $row['detail_note'] }}
+                                </span>
+                            </td>
+                            <td>{{ $row['follow_up_label'] }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td
                                 class="text-center py-4"
-                                colspan="6"
+                                colspan="7"
                             >
                                 Tidak ada data sesuai filter.
                             </td>

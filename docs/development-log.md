@@ -20,6 +20,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Daftar laporan kini memuat satu row per kasus/konsultasi dengan tiga filter,
   pilihan jumlah data, urutan terbaru, modal detail, preview individual, dan
   aksi arsip berbasis policy.
+- Template rekap disesuaikan menjadi tabel polos tujuh kolom; hasil penyelesaian
+  digabungkan ke Penanganan dan klasifikasi tindak lanjut/status memakai field
+  aktif. Jam layanan tidak ditampilkan karena tidak tersedia pada schema.
 - Preview rekap mengambil seluruh hasil filter dengan urutan paling awal dan
   menyediakan Excel `.xlsx`, Word `.doc`, serta Cetak/Simpan PDF dari browser.
 - PhpSpreadsheet 5.10 ditambahkan; formula injection dan pembersihan temporary

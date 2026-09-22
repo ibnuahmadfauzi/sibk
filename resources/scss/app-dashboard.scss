@@ -2678,14 +2678,32 @@ small, .small {
 }
 
 .sibk-document-table {
+  border-collapse: collapse;
   font-size: 0.8rem;
 
   th,
   td {
+    background: #fff !important;
     border: 1px solid #777;
     padding: 0.5rem;
     vertical-align: top;
   }
+
+  tbody tr:hover {
+    background: #fff !important;
+    box-shadow: none;
+  }
+}
+
+.sibk-document-sheet .table-responsive {
+  border-radius: 0 !important;
+}
+
+.sibk-document-meta {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  margin-top: 0.2rem;
 }
 
 .sibk-document-signatures {
@@ -2937,6 +2955,12 @@ small, .small {
   }
 
   .sibk-document-table {
+    th,
+    td {
+      background: #fff !important;
+      border: 1px solid #777 !important;
+    }
+
     thead {
       display: table-header-group;
     }

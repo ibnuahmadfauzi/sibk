@@ -185,6 +185,9 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 
 - `GET /reports/preview` menampilkan seluruh hasil filter dalam A4 landscape,
   tanpa download dan tanpa membuka dialog print otomatis.
+- Tabel rekap polos menampilkan Hari/Tanggal, Nama/Kelas, jenis catatan dan
+  bidang layanan, Permasalahan, Penanganan beserta hasil, serta Tindak
+  Lanjut/Status. Jam tidak ditampilkan karena schema aktif tidak menyimpannya.
 - Action bar rekap: Kembali, Download Excel, Download Word, Cetak/Simpan PDF.
 - `GET /reports/records/{type}/{id}/preview` menampilkan satu record dalam A4
   portrait dengan policy objek yang sama seperti detail.

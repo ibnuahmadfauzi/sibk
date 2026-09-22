@@ -55,12 +55,12 @@ final class ReportDocumentExporter
 
         $headers = [
             'No',
-            'Tanggal',
-            'Nama',
-            'Kelas',
-            'Layanan',
+            'Hari / Tanggal',
+            'Nama / Kelas',
+            'Jenis Layanan',
             'Permasalahan',
             'Penanganan',
+            'Tindak Lanjut / Status',
         ];
         foreach ($headers as $index => $header) {
             $sheet->setCellValue([$index + 1, 4], $header);
@@ -70,12 +70,13 @@ final class ReportDocumentExporter
             $excelRow = $index + 5;
             $values = [
                 $index + 1,
-                $row['date']->format('d/m/Y'),
-                $row['name'],
-                $row['classroom'],
-                $row['service'],
+                $row['date']->locale('id')->translatedFormat('l')."\n"
+                    .$row['date']->locale('id')->translatedFormat('d F Y'),
+                mb_strtoupper($row['name'])."\n".$row['classroom'],
+                $row['service']."\n".$row['service_field'],
                 $row['problem'],
-                $row['handling'],
+                $row['handling']."\n".$row['detail_label'].': '.$row['detail_note'],
+                $row['follow_up_label'],
             ];
 
             foreach ($values as $columnIndex => $value) {
@@ -105,12 +106,12 @@ final class ReportDocumentExporter
             ->setVertical(Alignment::VERTICAL_TOP)
             ->setWrapText(true);
         $sheet->getColumnDimension('A')->setWidth(6);
-        $sheet->getColumnDimension('B')->setWidth(14);
-        $sheet->getColumnDimension('C')->setWidth(24);
-        $sheet->getColumnDimension('D')->setWidth(16);
-        $sheet->getColumnDimension('E')->setWidth(22);
-        $sheet->getColumnDimension('F')->setWidth(42);
-        $sheet->getColumnDimension('G')->setWidth(42);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(28);
+        $sheet->getColumnDimension('D')->setWidth(22);
+        $sheet->getColumnDimension('E')->setWidth(38);
+        $sheet->getColumnDimension('F')->setWidth(45);
+        $sheet->getColumnDimension('G')->setWidth(24);
         $sheet->freezePane('A5');
         $sheet->setAutoFilter("A4:G{$lastRow}");
 

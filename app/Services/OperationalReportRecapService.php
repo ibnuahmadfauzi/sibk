@@ -235,6 +235,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 'temporaryStudent.reconciledStudent.classMemberships.classroom',
                 'serviceField',
                 'status',
+                'followUpType',
                 'assignments.teacher',
             ]);
     }
@@ -279,6 +280,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'detail_note' => $isCase
                 ? ($record->resolution_summary ?: '—')
                 : ($record->result ?: '—'),
+            'follow_up_label' => $isCase
+                ? ($record->followUpType?->label ?? $record->status?->label ?? '—')
+                : 'Selesai',
             'counselor' => $isCase
                 ? ($record->assignments
                     ->where('assignment_type', 'owner')

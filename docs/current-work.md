@@ -20,6 +20,9 @@
   tanggal paling awal. Preview tidak membuka dialog cetak otomatis.
 - Preview rekap memakai A4 landscape dengan Download Excel, Download Word, dan
   Cetak/Simpan PDF. Preview individual memakai A4 portrait dan Cetak/Simpan PDF.
+- Tabel dokumen memakai tujuh kolom polos: No, Hari/Tanggal, Nama/Kelas, Jenis
+  Layanan, Permasalahan, Penanganan, serta Tindak Lanjut/Status. Jam layanan
+  tidak ditampilkan karena schema aktif hanya menyimpan tanggal layanan.
 - Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; Word memakai HTML Blade
   ber-MIME `application/msword` dan ekstensi `.doc` tanpa PHPWord.
 - Rekap memakai Koordinator BK dan Waka Kesiswaan. Dokumen individual memakai

@@ -84,24 +84,36 @@
         <thead>
             <tr>
                 <th>No</th>
-                <th>Tanggal</th>
-                <th>Nama</th>
-                <th>Kelas</th>
-                <th>Layanan</th>
+                <th>Hari / Tanggal</th>
+                <th>Nama / Kelas</th>
+                <th>Jenis Layanan</th>
                 <th>Permasalahan</th>
                 <th>Penanganan</th>
+                <th>Tindak Lanjut / Status</th>
             </tr>
         </thead>
         <tbody>
             @forelse($report['rows'] as $row)
                 <tr>
                     <td>{{ $row['number'] }}</td>
-                    <td>{{ $row['date_label'] }}</td>
-                    <td>{{ $row['name'] }}</td>
-                    <td>{{ $row['classroom'] }}</td>
-                    <td>{{ $row['service'] }}</td>
+                    <td>
+                        <strong>{{ $row['date']->locale('id')->translatedFormat('l') }}</strong><br>
+                        {{ $row['date']->locale('id')->translatedFormat('d F Y') }}
+                    </td>
+                    <td>
+                        <strong>{{ mb_strtoupper($row['name']) }}</strong><br>
+                        {{ $row['classroom'] }}
+                    </td>
+                    <td>
+                        <strong>{{ $row['service'] }}</strong><br>
+                        {{ $row['service_field'] }}
+                    </td>
                     <td>{{ $row['problem'] }}</td>
-                    <td>{{ $row['handling'] }}</td>
+                    <td>
+                        <strong>{{ $row['handling'] }}</strong><br>
+                        {{ $row['detail_label'] }}: {{ $row['detail_note'] }}
+                    </td>
+                    <td>{{ $row['follow_up_label'] }}</td>
                 </tr>
             @empty
                 <tr>
