@@ -15,11 +15,21 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 22 September 2026 — Evaluasi ikon detail laporan
+
+- Ikon mata diganti dua kandidat sementara, informasi dan kaca pembesar, dengan
+  fungsi identik untuk membandingkan visual sebelum satu ikon dipilih.
+- Kontrol detail dan chevron tidak memakai outline; latar lembut muncul saat
+  hover/focus. Kedua kandidat detail memakai state buka/tutup yang sama.
+- Narasi seed diperpanjang melewati batas 80 karakter agar interaksi dapat
+  diamati; sebelumnya seluruh contoh hanya 63–77 karakter. Test dan build tidak
+  dijalankan.
+
 ### 22 September 2026 — Penyajian tabel laporan
 
 - Daftar menambahkan Hari/Tanggal dan Jenis Masalah; Latar Belakang Masalah
   serta Penanganan diringkas menjadi 80 karakter.
-- Ikon mata membuka teks lengkap dan ikon chevron membuka baris Hasil Layanan
+- Kontrol detail membuka teks lengkap dan ikon chevron membuka baris Hasil Layanan
   dengan latar berbeda pada tampilan desktop maupun mobile.
 - Klik baris, ikon cetak individual, dan tombol cetak pada modal dihilangkan.
   Cetak/unduh rekap tetap tersedia. Test, formatter, dan build tidak dijalankan.

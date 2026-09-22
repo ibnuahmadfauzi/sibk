@@ -92,8 +92,8 @@ final class ReportPreviewSeeder extends Seeder
                 'follow_up_type_id' => $followUp,
                 'service_date' => $firstDate,
                 'referrer' => null,
-                'initial_info' => 'Murid mengalami kecemasan saat menyampaikan pendapat di depan kelas.',
-                'initial_action' => 'Guru BK melakukan konseling individual dan latihan pernapasan terarah.',
+                'initial_info' => 'Murid mengalami kecemasan saat menyampaikan pendapat di depan kelas dan sering memilih diam meskipun telah memahami materi yang dibahas.',
+                'initial_action' => 'Guru BK melakukan konseling individual, latihan pernapasan terarah, dan simulasi berbicara singkat secara bertahap di lingkungan yang aman.',
                 'internal_note' => null,
                 'resolution_summary' => 'Murid mulai mampu mengelola kecemasan, tetapi pemantauan keluarga masih diperlukan.',
                 'closed_at' => null,
@@ -121,8 +121,8 @@ final class ReportPreviewSeeder extends Seeder
                 $teacher,
                 (int) $fields->get('belajar'),
                 $firstDate->addDay(),
-                'Murid kesulitan membagi waktu antara tugas sekolah dan kegiatan organisasi.',
-                'Guru BK membantu menyusun prioritas dan jadwal belajar mingguan.',
+                'Murid kesulitan membagi waktu antara tugas sekolah dan kegiatan organisasi sehingga beberapa tugas terlambat diselesaikan dalam dua minggu terakhir.',
+                'Guru BK membantu menyusun prioritas, jadwal belajar mingguan, serta batas waktu realistis yang dapat dipantau bersama setiap akhir pekan.',
                 'Murid menyepakati jadwal baru dan mampu menentukan tugas yang harus didahulukan.',
             );
             $this->consultation(
@@ -130,8 +130,8 @@ final class ReportPreviewSeeder extends Seeder
                 $teacher,
                 (int) $fields->get('sosial'),
                 $firstDate->addDays(2),
-                'Murid mengalami kesalahpahaman dengan anggota kelompok belajar.',
-                'Guru BK memfasilitasi komunikasi asertif dan penyusunan kesepakatan kelompok.',
+                'Murid mengalami kesalahpahaman dengan anggota kelompok belajar yang menyebabkan komunikasi terhenti dan pembagian tugas tidak berjalan dengan baik.',
+                'Guru BK memfasilitasi komunikasi asertif, klarifikasi peran, dan penyusunan kesepakatan kelompok agar setiap anggota memahami tanggung jawabnya.',
                 'Murid dan kelompoknya telah berdamai serta membagi tugas secara jelas.',
             );
         });
@@ -174,7 +174,7 @@ final class ReportPreviewSeeder extends Seeder
             ->withTrashed()
             ->where('student_id', $studentId)
             ->where('counselor_id', $teacher->getKey())
-            ->where('problem', $problem)
+            ->whereDate('session_date', $date)
             ->first() ?? new Consultation;
         $consultation->forceFill([
             'student_id' => $studentId,

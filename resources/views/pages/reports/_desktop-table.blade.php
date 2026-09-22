@@ -50,7 +50,7 @@
                     <td>
                         <div class="d-flex gap-2">
                             <button
-                                class="btn btn-sm btn-outline-primary sibk-icon-button"
+                                class="btn btn-sm sibk-icon-button sibk-report-control"
                                 type="button"
                                 data-report-text-toggle
                                 aria-expanded="false"
@@ -61,12 +61,29 @@
                                     aria-hidden="true"
                                     viewBox="0 0 24 24"
                                 >
-                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-                                    <circle cx="12" cy="12" r="2.5" />
+                                    <circle cx="12" cy="12" r="9" />
+                                    <path d="M12 11v5" />
+                                    <path d="M12 8h.01" />
                                 </svg>
                             </button>
                             <button
-                                class="btn btn-sm btn-outline-primary sibk-icon-button"
+                                class="btn btn-sm sibk-icon-button sibk-report-control"
+                                type="button"
+                                data-report-text-toggle
+                                aria-expanded="false"
+                                aria-label="Tampilkan teks lengkap {{ $row['name'] }} dengan kaca pembesar"
+                                title="Tampilkan teks lengkap (kaca pembesar)"
+                            >
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle cx="11" cy="11" r="7" />
+                                    <path d="m16 16 5 5" />
+                                </svg>
+                            </button>
+                            <button
+                                class="btn btn-sm sibk-icon-button sibk-report-control"
                                 type="button"
                                 data-report-result-toggle
                                 aria-controls="{{ $resultId }}"

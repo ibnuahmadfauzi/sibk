@@ -18,8 +18,9 @@
   Panel filter memakai satu tombol: `Terapkan` saat belum aktif/ada perubahan,
   lalu `Reset` dengan warna berbeda saat filter aktif tanpa perubahan.
 - Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
-  karakter untuk Latar Belakang Masalah dan Penanganan. Ikon mata membuka teks
-  lengkap; ikon chevron membuka baris Hasil Layanan dengan latar berbeda.
+  karakter untuk Latar Belakang Masalah dan Penanganan. Ikon informasi dan kaca
+  pembesar sementara ditampilkan berdampingan untuk membandingkan kontrol detail;
+  ikon chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Klik baris tidak membuka modal dan aksi cetak individual tidak ditampilkan;
   aksi arsip hanya tampil bila policy objek mengizinkan.
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan

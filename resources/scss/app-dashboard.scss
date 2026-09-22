@@ -2589,6 +2589,18 @@ small, .small {
   transform: rotate(180deg);
 }
 
+.sibk-report-control {
+  border-color: transparent;
+  color: var(--sibk-color-primary);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--sibk-color-primary-soft);
+    border-color: transparent;
+    color: var(--sibk-color-primary-hover);
+  }
+}
+
 .sibk-icon-button {
   align-items: center;
   display: inline-flex;

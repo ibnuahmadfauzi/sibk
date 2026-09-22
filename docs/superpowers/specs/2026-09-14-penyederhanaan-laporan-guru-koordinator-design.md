@@ -58,8 +58,8 @@ Kolom desktop:
 6. Penanganan;
 7. Aksi.
 
-Latar Belakang Masalah dan Penanganan dibatasi 80 karakter pada tabel. Ikon
-mata membuka atau meringkas nilai lengkap. Dokumen tetap memakai nilai lengkap.
+Latar Belakang Masalah dan Penanganan dibatasi 80 karakter pada tabel. Kontrol
+detail membuka atau meringkas nilai lengkap. Dokumen tetap memakai nilai lengkap.
 
 ## 4. Mapping Data
 
@@ -75,7 +75,7 @@ digunakan sebagai Catatan karena merupakan data internal terbatas.
 ## 5. Interaksi Tabel
 
 - Klik area baris tidak membuka modal.
-- Ikon mata membuka atau meringkas Latar Belakang Masalah dan Penanganan.
+- Kontrol detail membuka atau meringkas Latar Belakang Masalah dan Penanganan.
 - Ikon chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Ikon Hapus menjalankan archive/soft delete existing setelah konfirmasi.
 - Ikon Hapus hanya muncul jika policy objek mengizinkan.
@@ -106,7 +106,7 @@ utuh pada akhir dokumen.
 ## 7. Detail Per Catatan
 
 Halaman laporan tidak membuka modal atau menampilkan aksi cetak per catatan.
-Ringkasan lengkap dibuka dengan ikon mata, sedangkan Hasil Layanan dibuka dengan
+Ringkasan lengkap dibuka dengan kontrol detail, sedangkan Hasil Layanan dibuka dengan
 ikon chevron langsung di dalam tabel atau kartu.
 
 ## 8. Penandatangan
@@ -172,7 +172,7 @@ server.
   berasal dari tahun ajaran terpilih.
 - Default menampilkan 10 data terbaru.
 - Preview/unduhan menampilkan seluruh dataset terfilter dari tanggal paling awal.
-- Klik baris tidak membuka modal; ikon mata dan chevron membuka detail inline.
+- Klik baris tidak membuka modal; kontrol detail dan chevron membuka detail inline.
 - Preview rekap memakai A4 landscape.
 - Action bar preview menyediakan Kembali, Excel, Word, dan Cetak/Simpan PDF.
 - Rekap memuat penandatangan yang disetujui tanpa NIP;

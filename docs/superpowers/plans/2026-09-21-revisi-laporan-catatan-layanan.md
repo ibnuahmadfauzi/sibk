@@ -55,7 +55,7 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - Baris Hasil Layanan memakai `resolution_summary` untuk kasus atau `result`
   untuk konsultasi.
 - `internal_note` kasus tidak pernah masuk daftar, preview, atau dokumen.
-- Teks tabel dibatasi 80 karakter; ikon mata membuka nilai lengkap dan ikon
+- Teks tabel dibatasi 80 karakter; kontrol detail membuka nilai lengkap dan ikon
   chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Pojok atas hanya berisi tombol `Cetak / Unduh Rekap`. Tombol membuka preview
   web; tidak ada download atau dialog print langsung dari halaman daftar.
@@ -78,7 +78,7 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
   sementara yang sah.
 - Tombol ikon wajib semantik, ber-`aria-label`, `title`, focus ring terlihat,
   dan target sentuh minimal 44 × 44 px.
-- Klik baris tidak membuka modal. Ikon mata, chevron, dan arsip dapat dicapai
+- Klik baris tidak membuka modal. Kontrol detail, chevron, dan arsip dapat dicapai
   keyboard tanpa bergantung pada interaksi hover.
 - Pertahankan kartu mobile existing agar tidak ada overflow horizontal.
 - Kode dan markup mengikuti aturan multi-line di `AGENTS.md`.
@@ -159,7 +159,7 @@ print, dan Word `.doc` dapat memakai fondasi existing tanpa migration.
 - Tabel memakai header: No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah;
   Latar Belakang Masalah; Penanganan; Aksi.
 - Pojok atas memakai satu tombol `Cetak / Unduh Rekap` menuju preview rekap.
-- Klik baris tidak membuka modal. Ikon mata membuka narasi lengkap dan ikon
+- Klik baris tidak membuka modal. Kontrol detail membuka narasi lengkap dan ikon
   chevron membuka baris Hasil Layanan dengan latar berbeda.
 - Aksi cetak individual dihilangkan; hapus hanya tampil jika policy mengizinkan.
 - Empty state, kartu mobile, fokus keyboard, label aksesibel, dan target sentuh
