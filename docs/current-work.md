@@ -20,7 +20,7 @@
 - Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
   karakter untuk Latar Belakang Masalah dan Penanganan. Ikon kaca pembesar
   membuka teks lengkap; ikon chevron membuka panel Hasil Layanan bertingkat
-  dengan latar lembut dan garis aksen kiri.
+  mulai dari kolom Hari/Tanggal, dengan latar lembut dan garis aksen kiri.
 - Klik baris tidak membuka modal dan aksi cetak individual tidak ditampilkan;
   aksi arsip hanya tampil bila policy objek mengizinkan.
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan

@@ -117,10 +117,9 @@
                 >
                     <td
                         class="sibk-report-result-spacer"
-                        colspan="2"
                         aria-hidden="true"
                     ></td>
-                    <td colspan="5">
+                    <td colspan="6">
                         <div class="sibk-report-result-panel">
                             <strong class="d-block mb-1">Hasil Layanan</strong>
                             <p class="mb-0">{{ $row['detail_note'] }}</p>

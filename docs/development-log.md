@@ -21,8 +21,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   dan ikon informasi dihapus.
 - Kontrol detail dan chevron tidak memakai outline; latar lembut muncul saat
   hover/focus.
-- Hasil Layanan ditampilkan sebagai panel bertingkat mulai dari kolom Nama &
-  Kelas, memakai latar lembut dan garis aksen kiri agar terhubung ke row induk.
+- Hasil Layanan ditampilkan sebagai panel bertingkat mulai dari kolom
+  Hari/Tanggal, memakai latar lembut dan garis aksen kiri agar terhubung ke row
+  induk.
 - Narasi seed diperpanjang melewati batas 80 karakter agar interaksi dapat
   diamati; sebelumnya seluruh contoh hanya 63–77 karakter. Test dan build tidak
   dijalankan.
