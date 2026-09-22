@@ -96,8 +96,8 @@ class DashboardService
         $activeCases = (clone $cases)->whereNull('closed_at')->count();
         $stats = [
             ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan kasus aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
-            ['label' => $mode === 'waka' ? 'Seluruh kasus aktif' : 'Kasus aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
-            ['label' => 'Kasus Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => 'Perlu ditindaklanjuti', 'tone' => 'success', 'kind' => 'schedule'],
+            ['label' => $mode === 'waka' ? 'Seluruh permasalahan aktif' : 'Permasalahan aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
+            ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => 'Perlu ditindaklanjuti', 'tone' => 'success', 'kind' => 'schedule'],
             ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Mirror read-only dalam kewenangan', 'tone' => 'info', 'kind' => 'etatib'],
         ];
 
@@ -111,7 +111,7 @@ class DashboardService
             'read_only' => $mode === 'waka',
             'description' => $mode === 'waka' ? 'Ringkasan seluruh kasus aktif sekolah — tampilan hanya-baca tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
             'stats' => $stats,
-            'schedule_title' => $mode === 'waka' ? 'Kasus aktif sekolah' : 'Kasus Tindak Lanjut',
+            'schedule_title' => $mode === 'waka' ? 'Permasalahan aktif sekolah' : 'Permasalahan Tindak Lanjut',
             'schedule_url' => $mode === 'waka' ? route('waka.monitoring.handling') : route('cases.index'),
             'tindak_lanjut' => $mode === 'waka'
                 ? $this->caseItems((clone $cases)->latest('updated_at')->limit(6)->get())
@@ -194,8 +194,8 @@ class DashboardService
 
         return [
             ['label' => 'Kelas ampuan', 'value' => (string) $assignments->distinct()->count('classroom_id'), 'meta' => 'Penugasan efektif saat ini'],
-            ['label' => 'Kasus khusus aktif', 'value' => (string) $cases->count(), 'meta' => 'Sebagai penanggung jawab'],
-            ['label' => 'Kasus Tindak Lanjut', 'value' => (string) $followUpCases->count(), 'meta' => 'Perlu ditindaklanjuti'],
+            ['label' => 'Permasalahan khusus aktif', 'value' => (string) $cases->count(), 'meta' => 'Sebagai penanggung jawab'],
+            ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCases->count(), 'meta' => 'Perlu ditindaklanjuti'],
         ];
     }
 
@@ -214,7 +214,7 @@ class DashboardService
         return [
             ['label' => 'Guru BK aktif', 'value' => (string) User::query()->active()->whereHas('roles', fn (Builder $roles): Builder => $roles->where('slug', 'guru_bk')->where('is_active', true))->count(), 'meta' => 'Siap menerima penugasan'],
             ['label' => 'Kelas tanpa penugasan', 'value' => (string) $unassignedClasses->count(), 'meta' => 'Belum memiliki Guru BK efektif'],
-            ['label' => 'Kasus Tindak Lanjut', 'value' => (string) $openFollowUps->count(), 'meta' => 'Perlu ditindaklanjuti'],
+            ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $openFollowUps->count(), 'meta' => 'Perlu ditindaklanjuti'],
         ];
     }
 
@@ -250,7 +250,7 @@ class DashboardService
             ->when($year, fn (Builder $assignments, AcademicYear $selected): Builder => $assignments->where('academic_year_id', $selected->getKey()))
             ->with('classroom')->get()->pluck('classroom.name')->filter()->join(', ');
 
-        return $classes === '' ? 'Penugasan kasus khusus aktif' : 'Kelas '.$classes.' dan penugasan kasus khusus';
+        return $classes === '' ? 'Penugasan permasalahan khusus aktif' : 'Kelas '.$classes.' dan penugasan permasalahan khusus';
     }
 
     /** @param Collection<int, BkCase> $cases @return list<array<string, mixed>> */
@@ -263,7 +263,7 @@ class DashboardService
                 'date' => $case->service_date->format('d'),
                 'month' => $case->service_date->locale('id')->translatedFormat('M'),
                 'year' => $case->service_date->format('Y'),
-                'code' => 'Layanan kasus',
+                'code' => 'Layanan permasalahan',
                 'title' => $case->followUpType?->label ?? 'Tindak Lanjut',
                 'context_label' => sprintf('%s (%s)', $case->identityName(), $membership?->classroom?->name ?? 'tanpa kelas aktif'),
                 'status' => $case->status->label,
@@ -281,8 +281,8 @@ class DashboardService
                 'date' => $case->service_date->format('d'),
                 'month' => $case->service_date->locale('id')->translatedFormat('M'),
                 'year' => $case->service_date->format('Y'),
-                'code' => 'Layanan kasus',
-                'title' => 'Kasus layanan BK',
+                'code' => 'Layanan permasalahan',
+                'title' => 'Permasalahan layanan BK',
                 'context_label' => $case->identityName(),
                 'status' => $case->status->label,
                 'status_tone' => $case->closed_at === null ? 'warning' : 'success',
@@ -296,13 +296,13 @@ class DashboardService
     {
         if ($mode === 'waka') {
             return [
-                ['label' => 'Lihat kasus koordinasi', 'url' => route('cases.index'), 'primary' => false, 'icon' => 'case', 'tone' => 'primary'],
+                ['label' => 'Lihat permasalahan koordinasi', 'url' => route('cases.index'), 'primary' => false, 'icon' => 'case', 'tone' => 'primary'],
                 ['label' => 'Buka laporan', 'url' => route('reports.index'), 'primary' => false, 'icon' => 'report', 'tone' => 'info'],
             ];
         }
 
         return [
-            ['label' => 'Buat Kasus', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
+            ['label' => 'Catat Permasalahan', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
             ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => true, 'icon' => 'consultation', 'tone' => 'primary'],
             ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => true, 'icon' => 'report', 'tone' => 'primary'],
         ];

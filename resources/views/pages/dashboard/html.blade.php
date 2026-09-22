@@ -43,7 +43,7 @@
         @if ($dashboard['read_only'])
             <div class="alert sibk-read-only-notice" role="status">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
-                <div><strong>Tampilan hanya-baca</strong><p>Anda hanya melihat agregat yang diizinkan dan kasus yang dapat dibaca. Isi konsultasi sensitif serta aksi perubahan tidak ditampilkan.</p></div>
+                <div><strong>Tampilan hanya-baca</strong><p>Anda hanya melihat agregat yang diizinkan dan permasalahan yang dapat dibaca. Isi konsultasi sensitif serta aksi perubahan tidak ditampilkan.</p></div>
             </div>
         @endif
     </header>
@@ -110,7 +110,7 @@
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
-                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada kasus berstatus Tindak Lanjut." />
+                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada permasalahan berstatus Tindak Lanjut." />
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
