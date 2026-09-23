@@ -103,7 +103,7 @@
             <div class="p-4 text-center">
                 <x-empty-state
                     title="Belum ada catatan layanan"
-                    description="Ubah filter untuk melihat catatan kasus atau konsultasi lain."
+                    description="Ubah filter untuk melihat catatan permasalahan atau konsultasi lain."
                 />
                 <a
                     class="btn btn-outline-secondary mt-3"

@@ -350,7 +350,7 @@ final class StudentDepartureTest extends TestCase
             ->assertOk()
             ->assertSee($student->name)
             ->assertSee('Resmi keluar')
-            ->assertDontSee('Buat Kasus')
+            ->assertDontSee('Catat Permasalahan')
             ->assertDontSee('Catat Konsultasi')
             ->assertDontSee('Catat Prestasi');
         $this->actingAs($teacher)->get(route('cases.create'))
