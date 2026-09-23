@@ -6,7 +6,7 @@
 - Branch: `fitur/penyederhanaan-penugasan-kelas`.
 - Worktree: `.worktrees/penyederhanaan-penugasan-kelas`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status: **SPEC DIREVISI, MENUNGGU REVIEW PENGGUNA**.
+- Status: **PLAN MENUNGGU REVIEW PENGGUNA**.
 - Spec: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
 
 ## Hasil implementasi 22–23 September 2026
@@ -108,15 +108,17 @@ Verifikasi implementasi kelak mencakup:
 
 ## Langkah berikutnya
 
-1. Pengguna mereview dan menyetujui spec penyederhanaan Penugasan Kelas.
-2. Setelah spec disetujui, tulis implementation plan terperinci.
-3. Implementasi baru dimulai setelah plan direview dan metode eksekusi dipilih.
+1. Pengguna mereview tiga plan implementasi.
+2. Implementasikan koreksi tabel laporan lebih dulu karena bersifat mendesak.
+3. Hapus Pengalihan Permasalahan, lalu sederhanakan Penugasan Kelas.
 4. Jalankan test dan gate hanya bila pengguna memerintahkan.
 
 ## Acuan
 
 - Spec aktif: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
-- Plan: belum ditulis; menunggu persetujuan spec.
+- Plan laporan: `docs/superpowers/plans/2026-09-23-koreksi-tabel-laporan.md`.
+- Plan pengalihan: `docs/superpowers/plans/2026-09-23-hapus-pengalihan-permasalahan.md`.
+- Plan penugasan: `docs/superpowers/plans/2026-09-23-penyederhanaan-penugasan-kelas.md`.
 - Requirement index: `docs/requirements-index.md`.
 - API contract: `docs/api-contract.md`.
 - Matriks otorisasi: `docs/testing/authorization-matrix.md`.
