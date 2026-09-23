@@ -6,7 +6,7 @@
 - Branch: `fitur/penyederhanaan-penugasan-kelas`.
 - Worktree: `.worktrees/penyederhanaan-penugasan-kelas`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status: **PLAN MENUNGGU REVIEW PENGGUNA**.
+- Status: **KOREKSI LAPORAN SELESAI; CHECKPOINT BERIKUTNYA BELUM DIMULAI**.
 - Spec: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
 
 ## Hasil implementasi 22–23 September 2026
@@ -20,11 +20,10 @@
 - Teks urutan pada header tabel diganti ringkasan seluruh hasil filter. Total
   Catatan selalu tampil; Permasalahan/Konsultasi yang tidak relevan dengan
   filter disembunyikan. Ringkasan yang sama masuk preview/PDF dan Excel.
-- Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
-  karakter untuk Latar Belakang Masalah dan Penanganan. Ikon kaca pembesar
-  membuka teks lengkap; ikon chevron membuka panel Hasil Layanan bertingkat
-  mulai dari kolom Hari/Tanggal, dengan latar lembut, garis aksen kiri, dan
-  bayangan inset agar terlihat tenggelam.
+- Daftar Guru BK/Koordinator menampilkan Hari/Tanggal, Layanan/Jenis Masalah,
+  dan Hasil. Satu ikon kaca pembesar membuka row detail Latar Belakang Masalah
+  serta Penanganan mulai dari kolom Hari/Tanggal, dengan latar lembut, garis
+  aksen kiri, dan bayangan inset agar terlihat tenggelam.
 - Jenis catatan ditampilkan kecil sebagai Permasalahan/Konsultasi tanpa kata
   `Catatan`; bidang layanan tampil lebih besar dan tebal.
 - Klik baris tidak membuka modal dan aksi cetak individual tidak ditampilkan;
@@ -38,6 +37,8 @@
 - Tabel dokumen putih polos memakai tujuh kolom: No, Hari/Tanggal, Nama/Kelas,
   Jenis Masalah, Ringkasan, Guru BK, dan Keterangan. Ringkasan mengambil
   `resolution_summary` kasus atau `result` konsultasi.
+- Keterangan preview/PDF/Excel untuk Permasalahan memuat Sumber dan Tindak
+  Lanjut terbaru; Konsultasi tetap memakai `Selesai`.
 - Garis luar tabel dokumen tetap utuh sampai sisi bawah baris terakhir.
 - Kolom Guru BK memakai owner kasus terakhir untuk Permasalahan atau pencatat
   konsultasi pada `counselor_id`.
@@ -57,18 +58,6 @@
 - Portal laporan Waka tiga tab, request, service rekap, dan empat Blade khusus
   dipensiunkan. URL lama diarahkan ke `/reports` untuk akun Waka dan endpoint
   ekspor CSV monitoring lama dihapus.
-
-## Koreksi laporan disetujui, belum diimplementasikan
-
-- Tabel laporan Guru BK dan Koordinator hanya memakai Hasil sebagai kolom
-  narasi yang terlihat.
-- Satu ikon kaca pembesar menggantikan ikon detail lama dan chevron. Ikon ini
-  membuka baris Latar Belakang Masalah dan Penanganan; Hasil tidak diulang.
-- Sumber dan Tindak Lanjut tidak muncul pada tabel atau row detail. Keduanya
-  masuk kolom Keterangan preview/PDF/Excel untuk Permasalahan; Keterangan
-  Konsultasi tetap Selesai.
-- Dokumen hanya memakai tindak lanjut terbaru. Riwayat Tindak Lanjut ditunda
-  untuk pekerjaan berikutnya dan proyeksi laporan Waka tidak berubah.
 
 ## Batas dan catatan deployment
 
@@ -108,9 +97,9 @@ Verifikasi implementasi kelak mencakup:
 
 ## Langkah berikutnya
 
-1. Pengguna mereview tiga plan implementasi.
-2. Implementasikan koreksi tabel laporan lebih dulu karena bersifat mendesak.
-3. Hapus Pengalihan Permasalahan, lalu sederhanakan Penugasan Kelas.
+1. Pengguna mereview hasil koreksi tabel laporan.
+2. Setelah disetujui, lanjutkan penghapusan Pengalihan Permasalahan.
+3. Sederhanakan Penugasan Kelas setelah pengalihan selesai.
 4. Jalankan test dan gate hanya bila pengguna memerintahkan.
 
 ## Acuan

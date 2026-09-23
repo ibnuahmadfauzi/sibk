@@ -15,6 +15,17 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 23 September 2026 — Koreksi tabel laporan layanan
+
+- Tabel Guru BK/Koordinator menampilkan Hasil sebagai narasi utama. Satu ikon
+  kaca pembesar membuka row detail Latar Belakang Masalah dan Penanganan;
+  kontrol teks lengkap dan chevron lama dihapus.
+- Keterangan preview/PDF/Excel untuk Permasalahan menampilkan Sumber serta
+  Tindak Lanjut terbaru. Keterangan Konsultasi tetap `Selesai` dan proyeksi
+  aman Waka tidak berubah.
+- Riwayat Tindak Lanjut tetap di luar scope. Test, formatter, checker frontend,
+  dan build tidak dijalankan sesuai instruksi pengguna.
+
 ### 23 September 2026 — Penyatuan laporan Waka
 
 - Waka memakai halaman `/reports`, filter, ringkasan, dan pagination yang sama
