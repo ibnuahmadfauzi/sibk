@@ -2,12 +2,12 @@
 
 ## Status
 
-- Pekerjaan aktif: revisi halaman Laporan Guru BK/Koordinator/Waka.
-- Branch: `fitur/revisi-laporan-catatan-layanan`.
-- Worktree: `.worktrees/revisi-laporan-catatan-layanan`.
+- Pekerjaan aktif: penyederhanaan halaman Penugasan Kelas.
+- Branch: `fitur/penyederhanaan-penugasan-kelas`.
+- Worktree: `.worktrees/penyederhanaan-penugasan-kelas`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status implementasi: **SELESAI — PR #29 SUDAH DI-MERGE KE `cobasidebar`**.
-- Commit perencanaan: `30be68f docs: perbarui rencana laporan layanan BK`.
+- Status: **SPEC MENUNGGU REVIEW PENGGUNA**.
+- Spec: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
 
 ## Hasil implementasi 22–23 September 2026
 
@@ -77,28 +77,28 @@
 
 ## Verifikasi yang belum dijalankan
 
-Sesuai instruksi pengguna, test, Pint, checker frontend, build, Composer strict,
-dan gate lain belum dijalankan. Skenario berikut menunggu perintah terpisah:
+Pekerjaan masih berada pada tahap spec. Sesuai instruksi pengguna, test, Pint,
+checker frontend, build, Composer strict, dan gate lain belum dijalankan.
+Verifikasi implementasi kelak mencakup:
 
-1. Scope Guru BK/Koordinator dan penolakan akses URL langsung.
-2. Validasi pasangan Tahun Ajaran dan Kelas.
-3. Pagination UI tidak mengurangi isi preview/unduhan.
-4. Orientasi cetak, urutan data, tanda tangan, serta keluaran Excel.
-5. Pemeriksaan privasi bahwa NISN, kode kasus, dan catatan internal tidak keluar.
-6. Proyeksi aman Waka serta penolakan preview, cetak/PDF, Excel, dan preview per
-   catatan melalui URL langsung.
+1. Akses halaman dan mutasi hanya untuk Koordinator BK.
+2. Seluruh kelas konteks, jumlah murid aktif, pencarian, dan filter status.
+3. Konteks tahun aktif/persiapan serta penolakan tahun berakhir atau manipulasi ID.
+4. Create, no-op, penggantian terjadwal, pergantian aktif, histori, dan overlap.
+5. Readiness serta aktivasi tahun ajaran pada halaman yang sama.
+6. Migration penghapusan `decision_number` dan pembersihan seluruh consumer.
 
 ## Langkah berikutnya
 
-1. Review PR ke `cobasidebar`.
-2. Jalankan atau perbarui test dan gate hanya bila pengguna memerintahkan.
-3. Setelah PR digabung, verifikasi status `MERGED` lalu hapus branch sumber di
-   GitHub sesuai aturan repository.
+1. Pengguna mereview dan menyetujui spec penyederhanaan Penugasan Kelas.
+2. Setelah spec disetujui, tulis implementation plan terperinci.
+3. Implementasi baru dimulai setelah plan direview dan metode eksekusi dipilih.
+4. Jalankan test dan gate hanya bila pengguna memerintahkan.
 
 ## Acuan
 
-- Plan: `docs/superpowers/plans/2026-09-21-revisi-laporan-catatan-layanan.md`.
-- Spec: `docs/superpowers/specs/2026-09-14-penyederhanaan-laporan-guru-koordinator-design.md`.
+- Spec aktif: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
+- Plan: belum ditulis; menunggu persetujuan spec.
 - Requirement index: `docs/requirements-index.md`.
 - API contract: `docs/api-contract.md`.
 - Matriks otorisasi: `docs/testing/authorization-matrix.md`.
