@@ -5,8 +5,8 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
-- Revisi laporan catatan layanan sudah diimplementasikan pada branch fitur dan
-  berstatus `MENUNGGU VERIFIKASI`.
+- Revisi laporan catatan layanan sudah di-merge melalui PR #32 ke `cobasidebar`
+  pada commit `eaf39a1`.
 - Pint, build frontend, Composer strict, dan pemeriksaan diff lulus. Automated
   test dan checker frontend belum dijalankan; test lama untuk jalur laporan
   yang dipensiunkan juga belum diperbarui.

@@ -2,11 +2,12 @@
 
 ## Status
 
-- Pekerjaan aktif: penyederhanaan halaman Penugasan Kelas.
-- Branch: `fitur/penyederhanaan-penugasan-kelas`.
+- Pekerjaan aktif: belum ada implementasi baru; checkpoint berikutnya adalah
+  penghapusan Pengalihan Permasalahan.
+- Branch fitur berikutnya: belum dibuat.
 - Worktree: `.worktrees/penyederhanaan-penugasan-kelas`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status: **KOREKSI LAPORAN SELESAI; CHECKPOINT BERIKUTNYA BELUM DIMULAI**.
+- Status: **KOREKSI LAPORAN SELESAI DAN PR #32 SUDAH DI-MERGE KE `cobasidebar`**.
 - Spec: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
 
 ## Hasil implementasi 22–23 September 2026
