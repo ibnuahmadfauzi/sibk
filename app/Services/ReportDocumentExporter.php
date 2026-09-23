@@ -72,7 +72,7 @@ final class ReportDocumentExporter
                 $row['service']."\n".$row['service_field'],
                 $row['detail_note'],
                 $row['counselor'],
-                $row['follow_up_label'],
+                $row['document_note'],
             ];
 
             foreach ($values as $columnIndex => $value) {

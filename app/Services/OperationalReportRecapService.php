@@ -317,6 +317,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->with([
                 'student.classMemberships.classroom',
                 'temporaryStudent.reconciledStudent.classMemberships.classroom',
+                'source',
                 'serviceField',
                 'status',
                 'followUpType',
@@ -367,6 +368,13 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 : ($record->result ?: '—'),
             'follow_up_label' => $isCase
                 ? ($record->followUpType?->label ?? $record->status?->label ?? '—')
+                : 'Selesai',
+            'document_note' => $isCase
+                ? sprintf(
+                    "Sumber: %s\nTindak Lanjut: %s",
+                    $record->source?->label ?? '—',
+                    $record->followUpType?->label ?? '—',
+                )
                 : 'Selesai',
             'counselor' => $isCase
                 ? ($record->assignments
