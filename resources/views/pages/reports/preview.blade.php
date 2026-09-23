@@ -99,7 +99,7 @@
                             </td>
                             <td>{{ $row['detail_note'] }}</td>
                             <td>{{ $row['counselor'] }}</td>
-                            <td>{{ $row['follow_up_label'] }}</td>
+                            <td>{!! nl2br(e($row['document_note'])) !!}</td>
                         </tr>
                     @empty
                         <tr>

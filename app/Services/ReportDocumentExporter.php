@@ -16,7 +16,7 @@ use RuntimeException;
 final class ReportDocumentExporter
 {
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      * @return array{path: string, filename: string, content_type: string}
      */
     public function export(string $format, array $report): array
@@ -30,7 +30,7 @@ final class ReportDocumentExporter
     /** @param array<string, mixed> $report @return array{path: string, filename: string, content_type: string} */
     private function excel(array $report): array
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Laporan Layanan BK');
         $sheet->getPageSetup()
@@ -72,13 +72,14 @@ final class ReportDocumentExporter
                 $row['service']."\n".$row['service_field'],
                 $row['detail_note'],
                 $row['counselor'],
-                $row['follow_up_label'],
+                $row['document_note'],
             ];
 
             foreach ($values as $columnIndex => $value) {
                 $coordinate = Coordinate::stringFromColumnIndex($columnIndex + 1).$excelRow;
                 if ($columnIndex === 0) {
                     $sheet->setCellValue($coordinate, $value);
+
                     continue;
                 }
 

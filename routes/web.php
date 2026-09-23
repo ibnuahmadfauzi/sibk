@@ -40,7 +40,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
 
         Route::get('/account', [AccountController::class, 'index'])->name('account.index');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
-        
+
         Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
         Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
         Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');

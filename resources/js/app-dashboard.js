@@ -67,30 +67,18 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
         });
 });
 
-document.querySelectorAll('[data-report-text-toggle]').forEach((button) => {
-    button.addEventListener('click', () => {
-        const record = button.closest('[data-report-record]');
-        const expanded = button.getAttribute('aria-expanded') === 'true';
-
-        record.querySelectorAll('[data-report-text-preview]')
-            .forEach((text) => text.classList.toggle('d-none', !expanded));
-        record.querySelectorAll('[data-report-text-full]')
-            .forEach((text) => text.classList.toggle('d-none', expanded));
-        button.setAttribute('aria-expanded', String(!expanded));
-        button.title = expanded ? 'Tampilkan teks lengkap' : 'Ringkas teks';
-        button.setAttribute('aria-label', button.title);
-    });
-});
-
-document.querySelectorAll('[data-report-result-toggle]').forEach((button) => {
+document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
         const detail = document.getElementById(button.getAttribute('aria-controls'));
         const expanded = button.getAttribute('aria-expanded') === 'true';
 
         detail.classList.toggle('d-none', expanded);
         button.setAttribute('aria-expanded', String(!expanded));
-        button.title = expanded ? 'Tampilkan hasil layanan' : 'Tutup hasil layanan';
-        button.setAttribute('aria-label', button.title);
+        button.title = expanded ? 'Tampilkan detail layanan' : 'Tutup detail layanan';
+        button.setAttribute(
+            'aria-label',
+            `${button.title} ${button.dataset.reportDetailName}`,
+        );
     });
 });
 
