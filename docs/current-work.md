@@ -6,7 +6,7 @@
 - Branch: `fitur/revisi-laporan-catatan-layanan`.
 - Worktree: `.worktrees/revisi-laporan-catatan-layanan`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status implementasi: **DIPERBARUI — MENUNGGU REVIEW PR**.
+- Status implementasi: **SELESAI — PR #29 SUDAH DI-MERGE KE `cobasidebar`**.
 - Commit perencanaan: `30be68f docs: perbarui rencana laporan layanan BK`.
 
 ## Hasil implementasi 22–23 September 2026
