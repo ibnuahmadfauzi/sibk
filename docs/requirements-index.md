@@ -82,7 +82,11 @@ Untuk task tersebut gunakan:
 - Student profile/history: `STU-*`
 - Achievement: `ACH-*`
 - Dashboard: `DASH-*`
-- Reports: `REP-01`–`REP-04` untuk tiga tab Pelanggaran & Poin, Layanan BK, dan Prestasi; `DASH-03`, `REP-05` untuk Dashboard, Murid dengan Kasus, Monitoring Penanganan, Rekap Periode, dan placeholder Laporan Akhir Waka.
+- Reports: `REP-01`–`REP-04` untuk daftar catatan kasus/konsultasi, filter
+  kelas per tahun ajaran, pagination UI, seluruh dataset dokumen, preview rekap
+  landscape/per catatan portrait, tanda tangan, cetak/PDF browser, Excel, dan Word;
+  `DASH-03`, `REP-05` untuk Dashboard, Murid dengan Kasus, dan daftar laporan
+  Waka hanya-baca tanpa preview, cetak, unduhan, atau aksi.
 - Audit append-only tanpa halaman pembaca MVP: `AUD-01`
 - Nonfunctional: `NFR-*`
 

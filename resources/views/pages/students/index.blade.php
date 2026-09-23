@@ -11,7 +11,7 @@
             <div class="col-12 col-md-2"><button class="btn btn-primary w-100">Cari</button></div>
         </form></div></div>
 
-        <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>NISN</th><th>Nama Murid</th><th>Kelas Aktif</th><th>Kasus Aktif</th><th></th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>NISN</th><th>Nama Murid</th><th>Kelas Aktif</th><th>Permasalahan Aktif</th><th></th></tr></thead><tbody>
             @forelse($students as $student)
                 @php
                     $membership = $student->classMemberships->first();

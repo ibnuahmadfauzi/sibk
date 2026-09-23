@@ -198,32 +198,36 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 
 # Arsitektur informasi dan laporan
 
-Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Laporan. Guru BK dan Koordinator BK memakai satu halaman Laporan bertab: **Pelanggaran & Poin**, **Layanan BK**, dan **Prestasi**. Setiap tab menampilkan rekap satu baris per murid; identitas sementara yang sah hanya dapat muncul pada tab Layanan. Akun Waka murni memakai tampilan khusus: Dashboard, Murid dengan Kasus, Laporan, dan Akun Saya. Halaman Laporan Waka mempunyai tab Monitoring Penanganan, Rekap Periode, dan Laporan Akhir. Laporan Akhir hanya menampilkan status **Dalam pengembangan** sampai format resmi sekolah disepakati. Proses keluar murid tersedia read-only bagi Waka. Penugasan tersedia sesuai peran Koordinator, sedangkan pengelolaan akun, rekonsiliasi identitas, data master, dan sinkronisasi tersedia bagi Admin IT. Dapodik dan e-Tatib tetap menjadi sistem sumber, bukan modul navigasi utama. Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak menjadi menu atau halaman MVP.
+Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Laporan. Guru BK, Koordinator BK, dan Waka memakai halaman Laporan yang sama secara visual berupa daftar catatan kasus dan konsultasi sesuai scope. Waka tetap memakai navigasi khusus Dashboard, Murid dengan Kasus, Laporan, dan Akun Saya, tetapi tidak mempunyai portal laporan bertab terpisah. Proses keluar murid tersedia read-only bagi Waka. Penugasan tersedia sesuai peran Koordinator, sedangkan pengelolaan akun, rekonsiliasi identitas, data master, dan sinkronisasi tersedia bagi Admin IT. Dapodik dan e-Tatib tetap menjadi sistem sumber, bukan modul navigasi utama. Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak menjadi menu atau halaman MVP.
 
 | **Area**            | **Fungsi**                                                                                                |
 |---------------------|-----------------------------------------------------------------------------------------------------------|
 | Dashboard           | Konteks operasional sesuai peran tanpa daftar audit; Dashboard Waka menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, dan akses baca proses keluar dari proyeksi aman seluruh sekolah. |
 | Layanan BK          | Daftar kasus, pembuatan kasus, penanganan, klasifikasi tindak lanjut, konsultasi mandiri, dan penyelesaian. |
 | Data Murid          | Profil serta histori pelanggaran, kasus, layanan, konsultasi, tindak lanjut, dan prestasi yang diizinkan. |
-| Laporan             | Guru BK dan Koordinator memakai tiga tab rekap operasional sesuai scope. Waka memakai satu halaman bertab untuk monitoring, rekap agregat, dan placeholder Laporan Akhir. |
+| Laporan             | Guru BK dan Koordinator memakai daftar catatan kasus/konsultasi dan preview rekap sesuai scope. Waka memakai daftar yang sama dalam mode hanya-baca tanpa preview, cetak, unduhan, atau aksi. |
 | Penugasan           | Pembagian kelas, periode efektif, kasus khusus, pengalihan, dan dasar keputusan resmi.                    |
 | Administrasi teknis | Akun, infrastruktur, konfigurasi koneksi PG-501, status sinkronisasi, kesalahan pemetaan, dan rekonsiliasi identitas. |
 
 ## Laporan P0
 
-| **Tab laporan**       | **Filter utama**                                             | **Cakupan peran**                              |
-|-----------------------|--------------------------------------------------------------|------------------------------------------------|
-| Pelanggaran & Poin    | Nama murid, tahun ajaran, periode, kelas                     | Guru BK: scope; Koordinator: gabungan.         |
-| Layanan BK            | Nama murid, tahun ajaran, periode, kelas, dan Guru BK        | Guru BK: scope; Koordinator: gabungan.         |
-| Prestasi              | Nama murid, tahun ajaran, periode, kelas                     | Guru BK: scope; Koordinator: gabungan.         |
+| **Daftar laporan** | **Filter utama** | **Cakupan peran** |
+|---|---|---|
+| Catatan layanan BK | Tahun ajaran, kelas, dan jenis layanan `Semua`, `Catatan Kasus`, atau `Catatan Konsultasi` | Guru BK: scope profesional/kasus khusus; Koordinator: gabungan yang diizinkan; Waka: seluruh sekolah dalam proyeksi hanya-baca. |
 
-Ketiga tab memakai rekap satu baris per murid, dataset terscope yang sama untuk tabel, cetak, dan CSV, serta identitas tersamarkan. Filter Guru BK pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record. Tujuh tipe laporan lama tidak lagi menjadi katalog navigasi, tetapi kontrak URL-nya dipertahankan sementara.
+Setiap baris mewakili satu catatan. Tabel menampilkan No, Hari/Tanggal, Nama & Kelas, Layanan/Jenis Masalah, Latar Belakang Masalah ringkas, Penanganan ringkas, serta Aksi. Kontrol detail membuka atau meringkas narasi lengkap. Ikon chevron membuka baris Hasil Layanan dengan latar berbeda. Klik baris tidak membuka modal dan cetak per catatan tidak ditampilkan. Hapus tetap berarti archive/soft delete dan hanya tersedia bila policy objek mengizinkan. Kelas yang dapat dipilih wajib berasal dari tahun ajaran terpilih dan scope pengguna.
 
-Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan yang sudah ada, dan Laravel Pagination tanpa dependency tabel baru.
+Header tabel menampilkan ringkasan seluruh hasil filter, bukan hanya halaman aktif. Ringkasan selalu memuat Total Catatan. Permasalahan disembunyikan ketika filter hanya Konsultasi, dan Konsultasi disembunyikan ketika filter hanya Permasalahan. Preview cetak/PDF dan Excel menyajikan angka tersebut sebagai kalimat lengkap yang menjelaskan total serta komposisi hasil filter.
 
-Laporan pelanggaran per murid/per kelas, poin, tindak lanjut, dan prestasi tidak menjadi menu terpisah bagi Waka. Data tersebut hanya menjadi konteks agregat dalam tab Rekap Periode.
+Halaman utama menampilkan 10 catatan terbaru secara default dan menyediakan pilihan 10, 25, 50, atau 100 data per halaman. Pagination hanya berlaku pada UI. Satu tombol **Cetak / Unduh Rekap** membuka preview rekap A4 portrait; dari sana pengguna dapat mengunduh Excel atau mencetak/menyimpan PDF. Preview dan unduhan selalu memakai seluruh dataset terscope dari tanggal layanan paling awal. Tabel dokumen putih polos memuat No, Hari/Tanggal, Nama/Kelas, Jenis Masalah, Ringkasan dari `resolution_summary|result`, Guru BK, dan Keterangan. Guru BK memakai owner kasus terakhir atau pencatat konsultasi. Jam tidak ditampilkan karena waktu layanan tidak disimpan.
 
-Portal Waka mempunyai daftar Murid dengan Kasus dan satu halaman Laporan bertab. Monitoring Penanganan memakai filter bulan/status serta sorting allowlist. Rekap Periode menampilkan metric **Murid ditangani**, **Kasus tercatat**, **Tindak Lanjut**, dan **Kasus selesai**, ditambah konteks agregat **Pelanggaran tercatat**, **Murid terkait pelanggaran**, serta **Prestasi terverifikasi**. Laporan Akhir hanya menampilkan status **Dalam pengembangan** tanpa form, penerbitan, cetak, PDF, atau ekspor. Waka dapat membaca proyeksi detail layanan yang disetujui, tetapi tidak menerima kode kasus, NISN, catatan internal, payload provider mentah, dokumen sensitif, atau narasi pada keluaran massal.
+Preview rekap menyediakan tanda tangan Koordinator BK serta Waka Kesiswaan. Dokumen satu kasus memakai Guru BK pemilik kasus terakhir dan Waka; konsultasi memakai Guru BK pencatat pada `counselor_id` dan Waka. Nama bersumber dari akun aktif/penugasan, bukan pengguna yang sedang login. Jika sumber Koordinator atau Waka kosong maupun ganda, dokumen menampilkan bahwa penandatangan belum tersedia. NIP dan Kepala Sekolah tidak ditampilkan sampai tersedia sumber data resmi; Excel tidak memuat tanda tangan. Kop dan blok tanda tangan memakai partial reusable agar template resmi dapat disesuaikan tanpa mengubah kontrak data.
+
+Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan existing, Laravel Pagination, dan PhpSpreadsheet untuk `.xlsx`. Unduhan Word tidak disediakan.
+
+Laporan pelanggaran, poin, tindak lanjut, dan prestasi tidak menjadi menu laporan terpisah bagi Waka.
+
+Waka melihat daftar layanan dengan filter, ringkasan, urutan, dan pagination yang sama seperti Koordinator. Kolomnya dibatasi ke **No**, **Hari/Tanggal**, **Nama/Kelas**, **Jenis Masalah**, **Ringkasan**, **Guru BK**, dan **Keterangan**. Ringkasan memakai `resolution_summary|result`; latar belakang masalah, penanganan, hasil terpisah, aksi, preview, cetak/PDF, dan ekspor tidak tersedia. Waka tidak menerima kode kasus, NISN, catatan internal, payload provider mentah, atau dokumen sensitif.
 
 # Risiko dan ketergantungan
 
@@ -257,7 +261,7 @@ Portal Waka mempunyai daftar Murid dengan Kasus dan satu halaman Laporan bertab.
 
 # Sumber dan riwayat versi
 
-Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, diskusi perancangan, PRD v0.5, SRS v0.3, inventaris antarmuka v0.1, keputusan validasi Koordinator BK/Guru BK dan Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional BK yang disetujui 12 September 2026, penyederhanaan Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan 15 September 2026, serta Revisi SIBK 3.2 yang disetujui 17 September 2026.
+Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, diskusi perancangan, PRD v0.5, SRS v0.3, inventaris antarmuka v0.1, keputusan validasi Koordinator BK/Guru BK dan Waka Kesiswaan sampai 13 Agustus 2026, keputusan arsitektur fondasi konfigurasi integrasi tanggal 23 Agustus 2026, amandemen keterlambatan Dapodik yang disetujui 9 September 2026, keputusan alur operasional BK yang disetujui 12 September 2026, penyederhanaan Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan 15 September 2026, Revisi SIBK 3.2 yang disetujui 17 September 2026, serta revisi laporan catatan layanan 21 sampai 23 September 2026.
 
 | **Versi** | **Tanggal**     | **Perubahan**                                                                                                                                                                                                                     |
 |-----------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -265,3 +269,9 @@ Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, 
 | 1.0       | 15 Agustus 2026 | Menetapkan Koordinator sebagai penanggung jawab operasional; akses detail Waka pada kasus terkoordinasi; histori lintas guru; NISN sementara dan rekonsiliasi; laporan gabungan; akun Admin IT; serta retensi minimum tiga tahun. |
 | 1.1       | 23 Agustus 2026; diamandemen 9, 12, 13, 14, dan 15 September 2026 | Menetapkan konfigurasi koneksi aman melalui PG-501, fallback data persiapan, empat status pelayanan, edit terminal beralasan, arsip layanan, proses keluar murid, password sementara, audit tanpa UI pembaca, panel dashboard role-aware, Portal Waka berbasis tujuan, serta tiga tab rekap laporan Guru BK/Koordinator. |
 | 1.1       | 17 September 2026 | Revisi SIBK 3.2: tiga status kasus, satu tindak lanjut terkini, konsultasi mandiri, detail Waka hanya-baca, audit perubahan-delta, autosave lokal, sorting allowlist, dan optimistic concurrency. |
+| 1.1       | 21 September 2026 | Mengganti tiga tab rekap Guru BK/Koordinator dengan daftar catatan kasus/konsultasi, preview rekap dan per catatan, cetak/PDF browser, serta unduhan Excel dan Word kompatibel. |
+| 1.1       | 22 September 2026 | Menetapkan istilah Penanganan, preview rekap landscape dan individual portrait, seluruh dataset dokumen tanpa pagination UI, validasi kelas per tahun ajaran, serta tanda tangan Koordinator/Guru BK dan Waka tanpa NIP. |
+| 1.1       | 23 September 2026 | Menyatukan UI laporan Waka dengan halaman laporan operasional dalam mode hanya-baca, membatasi kolom ke struktur dokumen Koordinator, serta menolak preview/cetak/unduhan Waka. |
+| 1.1       | 22 September 2026 | Merevisi daftar dengan Hari/Tanggal, Layanan/Jenis Masalah, disclosure narasi dan Hasil Layanan, serta menghapus akses modal/cetak individual dari halaman laporan. |
+| 1.1       | 22 September 2026 | Menyederhanakan dokumen rekap menjadi enam kolom putih polos dan menghapus unduhan Word. |
+| 1.1       | 23 September 2026 | Mengubah rekap menjadi A4 portrait dan menambahkan kolom Guru BK sebelum Keterangan. |

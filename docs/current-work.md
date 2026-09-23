@@ -2,89 +2,103 @@
 
 ## Status
 
-- Pekerjaan aktif: tidak ada; Revisi SIBK 3.2 selesai sampai Checkpoint 7C.
-- Branch aktif: `cobasidebar` pada merge commit PR #27 `6e16498`.
-- Checkpoint 7A, 7B, dan 7C telah terintegrasi melalui PR #25, #26, dan #27.
-- Branch sumber remote/lokal dan worktree Checkpoint 7C telah dibersihkan.
-- `main` tidak disentuh.
+- Pekerjaan aktif: revisi halaman Laporan Guru BK/Koordinator/Waka.
+- Branch: `fitur/revisi-laporan-catatan-layanan`.
+- Worktree: `.worktrees/revisi-laporan-catatan-layanan`.
+- Base: `cobasidebar`; `main` tidak disentuh.
+- Status implementasi: **DIPERBARUI — MENUNGGU REVIEW PR**.
+- Commit perencanaan: `30be68f docs: perbarui rencana laporan layanan BK`.
 
-## Hasil Checkpoint 7C
+## Hasil implementasi 22–23 September 2026
 
-- Migration forward-only menghapus tabel `consultation_private_notes`,
-  `follow_ups`, dan `case_coordinations` setelah consumer runtime bersih.
-- Kolom retired pada kasus (`waka_summary`, `final_result`, `continued_plan`)
-  dan sembilan kolom retired konsultasi telah dihapus.
-- Consumer sementara pada model, service, seeder, dan fixture test diselaraskan
-  ke skema final; klasifikasi tindak lanjut singular tetap aktif pada kasus.
-- Jalur SQLite eksplisit mempertahankan data aktif dan foreign key karena
-  `references` merupakan nama reserved; jalur database lain memakai Schema
-  Builder.
-- Tidak ada dependency, route, adapter production, atau perubahan UI baru.
+- Halaman tiga tab diganti satu daftar catatan kasus dan konsultasi.
+- Filter dibatasi ke Tahun Ajaran, Kelas, Jenis Layanan BK, dan jumlah data
+  `10/25/50/100`; default daftar adalah 10 data terbaru.
+- Jumlah data ditempatkan pada header tabel dan langsung memuat ulang tabel.
+  Panel filter memakai satu tombol: `Terapkan` saat belum aktif/ada perubahan,
+  lalu `Reset` dengan warna berbeda saat filter aktif tanpa perubahan.
+- Teks urutan pada header tabel diganti ringkasan seluruh hasil filter. Total
+  Catatan selalu tampil; Permasalahan/Konsultasi yang tidak relevan dengan
+  filter disembunyikan. Ringkasan yang sama masuk preview/PDF dan Excel.
+- Daftar menampilkan Hari/Tanggal, Layanan/Jenis Masalah, serta cuplikan 80
+  karakter untuk Latar Belakang Masalah dan Penanganan. Ikon kaca pembesar
+  membuka teks lengkap; ikon chevron membuka panel Hasil Layanan bertingkat
+  mulai dari kolom Hari/Tanggal, dengan latar lembut, garis aksen kiri, dan
+  bayangan inset agar terlihat tenggelam.
+- Jenis catatan ditampilkan kecil sebagai Permasalahan/Konsultasi tanpa kata
+  `Catatan`; bidang layanan tampil lebih besar dan tebal.
+- Klik baris tidak membuka modal dan aksi cetak individual tidak ditampilkan;
+  aksi arsip hanya tampil bila policy objek mengizinkan.
+- Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan
+  tanggal paling awal. Preview tidak membuka dialog cetak otomatis.
+- Preview rekap memakai A4 portrait dengan Download Excel dan Cetak/Simpan PDF.
+- Font tabel preview/PDF diperkecil secara terlokalisasi menjadi 8 pt, padding
+  dirapatkan, header diizinkan membungkus, dan proporsi kolom portrait diperbaiki.
+  Font tabel Excel memakai 9 pt.
+- Tabel dokumen putih polos memakai tujuh kolom: No, Hari/Tanggal, Nama/Kelas,
+  Jenis Masalah, Ringkasan, Guru BK, dan Keterangan. Ringkasan mengambil
+  `resolution_summary` kasus atau `result` konsultasi.
+- Garis luar tabel dokumen tetap utuh sampai sisi bawah baris terakhir.
+- Kolom Guru BK memakai owner kasus terakhir untuk Permasalahan atau pencatat
+  konsultasi pada `counselor_id`.
+- Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; unduhan Word dihapus.
+- Kop menempatkan dua placeholder logo dan garis tepat setelah alamat. Subtitle
+  dokumen hanya menampilkan tahun ajaran.
+- Preview/PDF dan Excel menyajikan ringkasan sebagai kalimat lengkap yang
+  menjelaskan total serta komposisi hasil filter, bukan deretan angka singkat.
+- Rekap memakai Koordinator BK dan Waka Kesiswaan. Kondisi akun penandatangan kosong/ganda
+  menampilkan `Penandatangan belum tersedia`; NIP tidak ditampilkan.
+- Waka memakai `/reports` dan Blade yang sama dengan Koordinator tanpa penanda
+  hanya-baca. Kolom Waka dibatasi ke struktur tabel dokumen: No, Hari/Tanggal,
+  Nama/Kelas, Jenis Masalah, Ringkasan, Guru BK, dan Keterangan.
+- Waka tidak menerima latar belakang, penanganan, hasil terpisah, URL aksi, atau
+  kemampuan arsip pada payload view. Preview, cetak/PDF, Excel, dan preview per
+  catatan ditolak server melalui policy dokumen terpisah.
+- Portal laporan Waka tiga tab, request, service rekap, dan empat Blade khusus
+  dipensiunkan. URL lama diarahkan ke `/reports` untuk akun Waka dan endpoint
+  ekspor CSV monitoring lama dihapus.
 
-## Bukti verifikasi
+## Batas dan catatan deployment
 
-- TDD skema final gagal sebelum migration lalu lulus setelah implementasi.
-- Focused migration gate: 42 test / 338 assertion.
-- Focused security/privacy gate: 88 test / 824 assertion.
-- Full gate kandidat 7C: 454 test / 3.540 assertion.
-- SQLite disposable lulus `migrate:fresh`, rollback, dan upgrade dengan 15 data
-  konsultasi tetap tersedia setelah migration.
-- MySQL 8.4 disposable lulus fresh, rollback, dan upgrade; 15 kasus serta 15
-  konsultasi tetap tersedia dan indeks foreign key/rollback terverifikasi.
-- Review independen menemukan dua masalah indeks Important; keduanya diperbaiki
-  dengan regression test. Tidak ada temuan Critical atau Minor.
-- `php vendor/bin/pint --test`: lulus.
-- `npm run check:frontend`: lulus.
-- `npm run build`: lulus.
-- `composer validate --strict`: lulus.
-- `git diff --check`: lulus.
-- Verifikasi memakai `APP_KEY` testing dan `CACHE_STORE=array` hanya pada
-  environment proses; tidak ada `.env` atau credential dibuat.
+- Tidak ada migration atau perubahan database.
+- `ReportPreviewSeeder` tersedia untuk data pratinjau lokal: satu kasus dan dua
+  konsultasi. Seeder bersifat idempoten, dibatasi ke environment local/testing,
+  dan tidak didaftarkan ke `DatabaseSeeder`.
+- Database lokal `sibk_uji` sudah menjalankan migration
+  `2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema` sebelum data contoh
+  dibuat; database shared/production tidak disentuh.
+- Dockerfile sudah memasang ekstensi PHP `zip`. Runtime lain wajib mengaktifkan
+  ekstensi yang dipersyaratkan PhpSpreadsheet sebelum ekspor Excel digunakan.
+- Template kop dan dokumen bersifat sementara sampai template resmi sekolah
+  selesai; partial terpusat memudahkan penggantian tanpa mengubah query/ekspor.
+- Temporary file Excel dihapus setelah response; data spreadsheet yang
+  berpotensi menjadi formula dinetralkan.
+- Adapter production Dapodik/e-Tatib tetap di luar scope dan `unavailable`.
 
-## Hasil scan consumer
+## Verifikasi yang belum dijalankan
 
-Scan ketat tidak menemukan consumer skema retired pada runtime. Match tersisa:
+Sesuai instruksi pengguna, test, Pint, checker frontend, build, Composer strict,
+dan gate lain belum dijalankan. Skenario berikut menunggu perintah terpisah:
 
-- assertion bahwa tabel/kolom retired sudah tidak ada;
-- probe migration historis timestamp koordinasi;
-- istilah `followUps` pada rekap aktif berbasis status `BkCase`.
-
-Match tersebut bukan consumer tabel retired. Placeholder yang ditemukan scan
-adalah atribut input HTML dan Laporan Akhir Waka yang memang disetujui.
-
-## Batas wajib
-
-- Migration 7C hanya boleh dijalankan lewat prosedur deployment; database
-  shared/production tidak boleh di-reset.
-- Jangan menambah dependency.
-- Semua PR checkpoint menargetkan `cobasidebar`; `main` hanya untuk PR rilis
-  terpisah setelah persetujuan pengguna.
-- Driver production Dapodik/e-Tatib tetap `unavailable` sampai kontrak resmi
-  lolos admission gate.
-- Jangan menghapus view detail Waka aktif; view tersebut memakai proyeksi
-  allowlist dan audit pembukaan.
+1. Scope Guru BK/Koordinator dan penolakan akses URL langsung.
+2. Validasi pasangan Tahun Ajaran dan Kelas.
+3. Pagination UI tidak mengurangi isi preview/unduhan.
+4. Orientasi cetak, urutan data, tanda tangan, serta keluaran Excel.
+5. Pemeriksaan privasi bahwa NISN, kode kasus, dan catatan internal tidak keluar.
+6. Proyeksi aman Waka serta penolakan preview, cetak/PDF, Excel, dan preview per
+   catatan melalui URL langsung.
 
 ## Langkah berikutnya
 
-1. Pause pada `cobasidebar`; tidak ada task implementasi aktif.
-2. Jangan membuat PR rilis ke `main` tanpa persetujuan pengguna.
-3. Jika rilis disetujui, gunakan PR rilis terpisah dan prosedur deployment
-   dengan backup serta migration forward-only.
-
-## Blocker
-
-- Tidak ada blocker implementasi atau gate; rilis sengaja belum dimulai.
-- Risiko residual: Waka membaca narasi terstruktur sesuai keputusan BK; draft
-  `localStorage` hanya tersedia pada perangkat/browser yang sama.
+1. Review PR ke `cobasidebar`.
+2. Jalankan atau perbarui test dan gate hanya bila pengguna memerintahkan.
+3. Setelah PR digabung, verifikasi status `MERGED` lalu hapus branch sumber di
+   GitHub sesuai aturan repository.
 
 ## Acuan
 
-- Laporan progress:
-  `docs/laporan-progress-revisi-sibk-3-2.md`
-- Plan selesai:
-  `docs/superpowers/plans/2026-09-17-revisi-sibk-3-2-guru-bk.md`
-- Spec aktif:
-  `docs/superpowers/specs/2026-09-17-revisi-sibk-3-2-guru-bk-design.md`
-- Matriks otorisasi: `docs/testing/authorization-matrix.md`
-- Kontrak provider: `docs/integrations/provider-contract-admission.md`
-- Requirement index: `docs/requirements-index.md`
+- Plan: `docs/superpowers/plans/2026-09-21-revisi-laporan-catatan-layanan.md`.
+- Spec: `docs/superpowers/specs/2026-09-14-penyederhanaan-laporan-guru-koordinator-design.md`.
+- Requirement index: `docs/requirements-index.md`.
+- API contract: `docs/api-contract.md`.
+- Matriks otorisasi: `docs/testing/authorization-matrix.md`.

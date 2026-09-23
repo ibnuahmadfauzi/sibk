@@ -14,14 +14,18 @@ lokal dan database test, tanpa dataset atau alat penelitian.
 | Narasi konsultasi | Scope murid/kasus yang sah, termasuk histori | Hanya bila juga Guru BK dalam scope | Proyeksi enam field layanan yang disetujui | Ditolak |
 | Edit/arsip layanan | Owner/penulis asli dengan kewenangan aktif | Role Koordinator tidak memberikan hak edit/arsip owner | Ditolak | Ditolak |
 | Penugasan kelas/kasus | Ditolak | Diizinkan | Ditolak | Ditolak |
-| Laporan BK dan CSV | Scope profesional/kasus khusus; identitas tersamarkan | Rekap gabungan; tanpa narasi sensitif | Ditolak | Ditolak |
-| Portal Waka | Ditolak | Laporan Akhir placeholder saja | Monitoring/rekap aman; hanya-baca | Ditolak |
+| Laporan BK dan dokumen | Scope profesional/kasus khusus; preview/cetak/Excel | Rekap gabungan; preview/cetak/Excel | Daftar ringkasan aman; preview/cetak/unduhan ditolak | Ditolak |
+| Portal Waka | Ditolak | Ditolak kecuali juga berperan Waka | Murid dengan kasus dan laporan hanya-baca | Ditolak |
 | Akun, master, integrasi | Ditolak | Ditolak | Ditolak | Diizinkan tanpa isi layanan BK |
 
 Akun multi-role menggabungkan capability fungsi, tetapi fungsi Koordinator tidak
 memperluas isi privat di luar scope Guru BK. Penugasan yang belum efektif atau
 sudah berakhir tidak membuka daftar maupun URL detail. Histori dapat dibaca
 penerus dalam scope, tetapi tidak otomatis dapat diedit.
+
+Khusus laporan, akun Waka+Guru tetap memakai proyeksi Waka tanpa dokumen agar
+cakupan seluruh sekolah dari fungsi Waka tidak dapat dicetak melalui fungsi Guru
+BK. Peran Koordinator tetap dapat membuat dokumen sesuai kewenangan sekolah.
 
 `/consultations` mengarahkan ke `/cases?tab=konsultasi`; tujuan redirect memeriksa
 otorisasi. Route koreksi, notifikasi, riwayat audit, dan bookmark pratinjaunya

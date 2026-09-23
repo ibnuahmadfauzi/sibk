@@ -4,7 +4,7 @@ Status: **AKTIF — IMPLEMENTASI BACKEND**
 
 Dokumen ini mendefinisikan kontrak endpoint, input, output, otorisasi, dan penanganan data untuk modul-modul P0 Ruang BK.
 
-Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan operasional 15 September 2026, dan Revisi SIBK 3.2 tanggal 17 September 2026.
+Sumber perilaku aktif: PRD dan SRS v1.1, termasuk amandemen keterlambatan Dapodik 9 September 2026, alur operasional BK 12 September 2026, Portal Waka berbasis tujuan 13 September 2026, laporan tiga tab 14 September 2026, penyederhanaan operasional 15 September 2026, Revisi SIBK 3.2 tanggal 17 September 2026, serta revisi laporan catatan layanan 21 sampai 23 September 2026.
 
 ## Kontrak Bersama Pengembangan Paralel
 
@@ -17,8 +17,8 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - Proyeksi detail Waka memakai field layanan aktual yang diizinkan, tanpa `waka_summary`, catatan internal, atau payload provider mentah.
 - Route baru lifecycle pelayanan dimiliki `routes/bk-services.php`; route portal Waka dimiliki `routes/waka.php`. Keduanya dimuat di dalam middleware `auth` dan `account.active`.
 - Jalur B memakai nama route `cases.edit` untuk `GET /cases/{case}/edit` dan `cases.update` untuk `PATCH /cases/{case}`.
-- Portal Waka memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases`, `waka.reports` untuk `GET /waka/reports`, serta route kompatibilitas `waka.monitoring.handling` untuk `GET /waka/handling-reports` yang mengarah ke tab penanganan.
-- Filter daftar murid dan Monitoring Penanganan menerima `period` (`YYYY-MM`), `status`, `sort`, `direction`, dan `page`. Daftar murid hanya menerima sort `murid`, `kelas`, `status`, atau `guru_bk`; Monitoring Penanganan juga menerima `bidang` dan `tanggal`. `direction` hanya `asc` atau `desc`. Rekap Periode menerima `academic_year_id`, `date_start`, dan `date_end` di dalam batas tahun ajaran terpilih.
+- Portal Waka memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases` dan halaman bersama `reports.index` untuk `GET /reports`. `GET /waka/reports` serta `GET /waka/handling-reports` hanya menjadi pengalihan kompatibilitas ke `/reports`.
+- Filter daftar murid menerima `period` (`YYYY-MM`), `status`, `sort`, `direction`, dan `page`. Daftar laporan Waka memakai `academic_year_id`, `classroom_id`, `service_type`, `per_page`, dan `page` yang sama dengan laporan operasional.
 - Waka aktif dapat membaca seluruh kasus dan konsultasi melalui policy/query scope khusus; route portal Waka tidak menyediakan tindakan mutasi.
 - Autosave form tambah/edit data bisnis memakai `localStorage` per pengguna/form/record selama maksimal 24 jam, tidak dikirim atau diaudit, dan mengecualikan password, token, credential, file, CSRF, serta method spoofing.
 
@@ -353,44 +353,47 @@ terlihat pada dashboard serta halaman operasional terkait.
 ## 8. Modul Laporan (`REP`)
 
 ### Portal Pemantauan Waka
-- **Endpoint canonical:** `GET /waka/students-with-cases`; `GET /waka/reports?tab=penanganan`; `GET /waka/reports?tab=rekap`; `GET /waka/reports?tab=laporan-akhir`.
-- **Kompatibilitas:** `GET /waka/handling-reports` mempertahankan filter tervalidasi lalu mengarahkan ke `GET /waka/reports?tab=penanganan`; `GET /waka/handling-reports/export` mengekspor CSV Monitoring Penanganan.
-- **Controller:** `WakaMonitoringController`.
-- **Form Request:** `WakaMonitoringRequest` untuk daftar/ekspor dan `WakaReportRequest` untuk halaman laporan bertab.
-- **Authorization:** Waka Kesiswaan aktif memperoleh portal hanya-baca. Koordinator BK aktif hanya boleh membuka tab `laporan-akhir` untuk melihat status placeholder yang sama; daftar murid, Monitoring Penanganan, Rekap Periode, dan ekspor Waka tetap ditolak kecuali akunnya juga memiliki role Waka.
+- **Endpoint canonical:** `GET /waka/students-with-cases` dan `GET /reports`.
+- **Kompatibilitas:** `GET /waka/reports` serta `GET /waka/handling-reports` mengarahkan akun Waka ke `GET /reports`; endpoint ekspor CSV portal lama dipensiunkan.
+- **Controller:** `WakaMonitoringController` untuk daftar murid dan `ReportController` untuk laporan bersama.
+- **Form Request:** `WakaMonitoringRequest` untuk daftar murid dan `OperationalReportRequest` untuk halaman laporan bersama.
+- **Authorization:** Waka Kesiswaan aktif memperoleh daftar laporan hanya-baca. `ReportPolicy::viewDocument` menolak preview, cetak/PDF, ekspor Excel, dan preview per catatan bagi akun Waka murni.
 - **Arsitektur informasi akun Waka murni:** Dashboard; PEMANTAUAN WAKA berisi Murid dengan Kasus, Proses Keluar Murid, dan Laporan; UTILITAS berisi Akun Saya.
 - **Murid dengan Kasus:** satu row per identitas internal, dengan nama, kelas historis, jumlah kasus, jumlah aktif, status terbaru, dan Guru BK. Filter `period/status`; sort hanya `murid`, `kelas`, `status`, atau `guru_bk`.
-- **Monitoring Penanganan:** satu row per kasus, filter `period/status`, sort `murid`, `kelas`, `bidang`, `status`, `guru_bk`, atau `tanggal`, dan pagination stabil.
-- **Rekap Periode:** filter `academic_year_id`, `date_start`, dan `date_end`; menampilkan agregat murid ditangani, kasus tercatat, kasus Tindak Lanjut, kasus selesai, distribusi bidang/status, konteks e-Tatib/prestasi terverifikasi, dan ringkasan kelas tanpa identitas atau narasi kasus.
-- **Laporan Akhir:** hanya menampilkan `Dalam pengembangan` serta penjelasan bahwa susunan laporan sedang disiapkan bersama pihak BK dan sekolah. Tidak tersedia form, migration, penerbitan, cetak, PDF, atau ekspor.
-- **Field detail kasus:** nama, tanggal, kelas, status, Guru BK, latar belakang, penanganan, dan Catatan Penyelesaian. Field detail konsultasi: tanggal, murid/kelas, jenis layanan, permasalahan, penanganan, dan hasil.
-- **Field terlarang:** NISN, kode kasus, catatan internal, payload provider mentah, dokumen sensitif, audit teknis, dan field di luar allowlist.
-- **Detail:** Waka aktif dapat meminta detail seluruh kasus/konsultasi; tidak ada tombol atau endpoint mutasi.
-- **Audit pembacaan:** setiap response sukses mencatat `waka.monitoring.viewed` dengan actor, waktu, mode `dashboard`, `students`, `reports.penanganan`, `reports.rekap`, atau `reports.laporan-akhir`, parameter allowlist yang sudah dinormalisasi, jumlah hasil halaman/agregat aman, IP, dan user agent.
-- **Audit ekspor:** setiap dataset ekspor yang berhasil disiapkan mencatat `waka.monitoring.exported` dengan actor, waktu, parameter tervalidasi, format, jumlah baris, IP, dan user agent sebelum response stream dikirim.
+- **Laporan:** memakai filter dan pagination laporan operasional. Proyeksi Blade hanya berisi No, Hari/Tanggal, Nama/Kelas, Jenis Masalah, Ringkasan, Guru BK, dan Keterangan; latar belakang, penanganan, hasil terpisah, URL aksi, dan kemampuan arsip tidak dikirim.
+- **Field terlarang:** NISN, kode kasus, catatan internal, latar belakang, penanganan, payload provider mentah, dokumen sensitif, audit teknis, dan field di luar allowlist.
+- **Audit pembacaan:** setiap response sukses mencatat `waka.monitoring.viewed` dengan actor, waktu, mode `dashboard`, `students`, atau `reports.layanan`, parameter allowlist yang sudah dinormalisasi, jumlah hasil halaman aman, IP, dan user agent.
 - **Audit detail:** setiap detail kasus/konsultasi Waka mencatat event pembacaan.
 - **Data terlarang pada audit pembacaan:** nama/NISN murid, kode kasus, dan narasi pelayanan tidak boleh masuk summary maupun before/after. Audit bersifat append-only dan disimpan minimum tiga tahun.
 
 ### Pusat, Pratinjau, dan Ekspor Laporan
-- **Endpoint tab:** `GET /reports?tab=pelanggaran|layanan|prestasi` dan `GET /reports/export?tab=pelanggaran|layanan|prestasi&format=csv`; tab default adalah `layanan`.
-- **Endpoint legacy:** `GET /reports/preview?type={legacy-type}` dan `GET /reports/export?type={legacy-type}&format=csv`.
-- **Controller:** `ReportController@index/preview/export`.
-- **Form Request:** `OperationalReportRequest` untuk halaman/ekspor tab dan ekspor legacy; `ReportRequest` tetap melayani pratinjau legacy.
+- **Endpoint daftar:** `GET /reports`.
+- **Endpoint preview rekap:** `GET /reports/preview?academic_year_id={id}&classroom_id={id?}&service_type=all|case|consultation`.
+- **Endpoint preview catatan:** `GET /reports/records/{type}/{id}/preview`, dengan `type=case|consultation`.
+- **Endpoint unduhan:** `GET /reports/export?format=xlsx&academic_year_id={id}&classroom_id={id?}&service_type=all|case|consultation`.
+- **Controller:** `ReportController@index/preview/recordPreview/export`.
+- **Form Request:** `OperationalReportRequest` untuk daftar, preview, dan ekspor; policy objek existing tetap melindungi preview per catatan.
 - **Query Params:**
-  - `tab`: `pelanggaran`, `layanan`, atau `prestasi`; mode `tab` dan mode legacy `type` tidak boleh dikirim bersamaan.
-  - `type`: `pelanggaran-murid`, `pelanggaran-kelas`, `poin-pelanggaran`, `konsultasi`, `status-tindak-lanjut`, `rekap-layanan-bk`, atau `prestasi`.
-  - Mode tab menerima `q`, `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `page`, dan `counselor_id` khusus Koordinator pada tab Layanan.
-  - Mode legacy menerima `academic_year_id`, `date_start`, `date_end`, `classroom_id`, `student_id`, `category`, `service_field_id`, `status_id`, `counselor_id`, `minimum_points`, `achievement_type_id`, `achievement_level_id`, dan `page` sesuai tipe.
-  - `format=csv` wajib pada endpoint ekspor. XLSX dan PDF server belum tersedia sampai `DEP-07` disahkan.
-- **Authorization:** `ReportPolicy` mengizinkan Guru BK dan Koordinator BK; Admin IT dan akun Waka murni ditolak. Akun multi-role memakai fungsi Guru BK/Koordinator yang sah, sedangkan fungsi Waka tersedia melalui `/waka/reports`.
-- **Business Logic:** `OperationalReportRecapService` menghasilkan tiga rekap satu baris per murid; identitas sementara yang sah hanya muncul pada tab Layanan. `ReportService` mempertahankan tujuh tipe legacy. Keduanya memakai scope objek yang sama dengan daftar/detail. Guru BK dibatasi scope profesional atau kasus khusus, Koordinator memperoleh rekap gabungan, dan akun multi-role dihitung berdasarkan fungsi yang sah.
-- **Filter Guru BK:** pada tab Layanan mengikuti penanggung jawab kasus yang efektif pada tanggal layanan serta `consultations.counselor_id`, bukan pengguna yang pertama membuat atau terakhir mencatat record.
-- **Teknologi:** Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript ringan existing, dan Laravel Pagination; tidak ada dependency tabel baru.
-- **Periode dan kelas:** periode default mengikuti tahun ajaran aktif. Kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kejadian, sesi, atau layanan.
-- **Privasi:** laporan umum Guru BK/Koordinator memakai inisial murid dan NISN tersamarkan. Portal Waka boleh memakai nama murid dan kelas untuk kebutuhan pemantauan, tetapi tidak memuat NISN, kode kasus, catatan privat konsultasi, catatan internal kasus, dokumen, atau narasi sensitif.
-- **Pratinjau:** KPI dihitung dari seluruh dataset terfilter dan tabel dipaginasi 20 baris.
-- **CSV:** memakai dataset tidak terpagina dari pipeline yang sama. Dataset detail dibaca bertahap dalam chunk agar tidak dimuat seluruhnya ke memori, memakai UTF-8 BOM, nama file terkontrol, serta perlindungan formula injection.
-- **Prestasi:** laporan umum memakai data `achievements`, kelas historis pada tanggal prestasi, filter jenis/tingkat/status, inisial dan NISN tersamarkan, serta mengecualikan bukti dan catatan dari pratinjau maupun CSV. Portal Waka hanya memakai jumlah prestasi terverifikasi sebagai konteks agregat Rekap Periode.
+  - `academic_year_id`: tahun ajaran tersedia; default tahun ajaran aktif.
+  - `classroom_id`: opsional dan wajib tersedia pada tahun ajaran serta scope actor.
+  - `service_type`: `all`, `case`, atau `consultation`; default `all`.
+  - `per_page`: `10`, `25`, `50`, atau `100`; default `10` dan hanya berlaku pada daftar.
+  - `page`: integer minimum 1 dan hanya berlaku pada daftar.
+  - `format`: hanya `xlsx`; hanya berlaku pada endpoint ekspor.
+- **Authorization:** `ReportPolicy::viewAny` mengizinkan Guru BK, Koordinator BK, dan Waka. `ReportPolicy::viewDocument` mengizinkan Koordinator serta Guru BK yang tidak merangkap Waka; Admin IT ditolak. Akun Waka+Guru tetap memakai proyeksi Waka tanpa dokumen agar cakupan seluruh sekolah tidak berpindah ke kemampuan cetak Guru BK; Koordinator tetap memperoleh dokumen sesuai kewenangannya.
+- **Business Logic:** `OperationalReportRecapService` menyatukan query `BkCase::accessibleTo()` dan `Consultation::accessibleTo()` sebagai satu row per catatan. Guru BK dibatasi scope profesional atau kasus khusus; Koordinator memperoleh gabungan yang diizinkan.
+- **Kolom:** No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Latar Belakang Masalah; Penanganan; Aksi. UI menampilkan jenis catatan kecil sebagai `Permasalahan|Konsultasi` tanpa kata `Catatan`, lalu label bidang layanan lebih besar dan tebal. Narasi dibatasi 80 karakter; kontrol detail menampilkan nilai lengkap dan ikon chevron membuka baris Hasil Layanan.
+- **Ringkasan:** dihitung dari seluruh query terscope setelah filter tahun ajaran, kelas, dan jenis layanan, sebelum pagination. Total Catatan selalu tampil. Permasalahan atau Konsultasi yang tidak relevan dengan filter jenis layanan disembunyikan. UI memakai kartu angka; preview/PDF dan Excel memakai kalimat naratif yang menjelaskan total serta komposisi hasil filter.
+- **Mapping:** kasus memakai `initial_info` sebagai Latar Belakang Masalah, `initial_action` sebagai Penanganan, dan `resolution_summary` sebagai Hasil Layanan. Konsultasi memakai `problem` sebagai Latar Belakang Masalah, `handling` sebagai Penanganan, dan `result` sebagai Hasil Layanan. `internal_note` kasus tidak masuk laporan.
+- **Urutan:** daftar memakai tanggal layanan `DESC`; preview/ekspor memakai tanggal layanan `ASC`; keduanya memakai tipe dan ID sebagai tie-breaker stabil.
+- **Pagination:** `per_page` hanya memengaruhi daftar. Preview dan ekspor selalu mengambil seluruh dataset hasil filter.
+- **Kelas:** kelas ditentukan dari histori keanggotaan yang efektif pada tanggal kasus/konsultasi. `classroom_id` wajib berasal dari `academic_year_id` terpilih dan scope actor; pasangan yang tidak cocok ditolak server.
+- **Preview:** satu tombol `Cetak / Unduh Rekap` membuka preview A4 portrait. Tabel putih polos memuat No, Hari/Tanggal dari `service_date|session_date`, Nama/Kelas, Jenis Masalah berupa jenis catatan dan label `service_field_id`, Ringkasan dari `resolution_summary|result`, Guru BK dari owner kasus terakhir atau `counselor_id`, serta Keterangan dari label `follow_up_type_id` atau status kasus. Konsultasi tanpa status/tindak lanjut ditampilkan Selesai. Action bar menyediakan Kembali, Download Excel, serta Cetak/Simpan PDF. Halaman laporan tidak menautkan preview individual.
+- **Penandatangan:** rekap memakai Koordinator BK dan Waka Kesiswaan; kasus memakai assignment owner terakhir dan Waka; konsultasi memakai `counselor_id` dan Waka. Koordinator/Waka hanya dipilih bila tepat satu akun aktif tersedia. Kondisi kosong/ganda menampilkan `Penandatangan belum tersedia`; pengguna login bukan fallback. Kepala Sekolah dan NIP tidak ditampilkan karena belum memiliki sumber data.
+- **Layout bersama:** preview memakai partial kop dan tanda tangan. Blok tanda tangan hanya berada di akhir dokumen dan tidak terpotong page break. Excel tidak memuat tanda tangan.
+- **Ekspor:** hanya Excel `.xlsx` dengan PhpSpreadsheet dan perlindungan formula injection; unduhan Word tidak tersedia.
+- **Arsip:** aksi Hapus meneruskan ke endpoint archive existing dan hanya ditampilkan bila policy objek mengizinkan.
+- **Privasi:** kode kasus, catatan internal, payload provider, dan field di luar allowlist tidak masuk daftar atau keluaran.
 
 ---
 

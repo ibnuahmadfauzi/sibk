@@ -1,35 +1,123 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Pratinjau ' . $report['title'] . ' - Ruang BK')
+@section('page-title', 'Preview Laporan Layanan BK - Ruang BK')
 
 @section('body')
-<div class="sibk-dashboard sibk-report-preview-page" data-page-id="PG-302">
-    <div class="sibk-print-header"><p class="sibk-print-header__instansi">Pemerintah Provinsi Jawa Timur · Dinas Pendidikan</p><h1 class="sibk-print-header__sekolah">SMK Negeri 1 Surabaya</h1><p class="sibk-print-header__alamat">Jl. SMEA No. 4, Wonokromo, Surabaya, Jawa Timur 60243</p><h2 class="sibk-print-header__judul">Laporan Bimbingan dan Konseling: {{ $report['title'] }}</h2><p class="sibk-print-header__periode">Periode {{ $report['period_start']->locale('id')->translatedFormat('d M Y') }}–{{ $report['period_end']->locale('id')->translatedFormat('d M Y') }} · {{ $report['academic_year']?->name ?? 'Tanpa tahun ajaran' }}</p></div>
-    <div class="sibk-page-header mb-4 no-print"><div class="d-flex align-items-center gap-2 mb-2"><a href="{{ route('reports.index') }}" class="sibk-back-link text-decoration-none text-muted small fw-semibold">← Pusat Laporan</a></div><div class="sibk-page-header__copy"><h1>Pratinjau Laporan</h1><p>{{ $report['title'] }} — <span class="text-muted">{{ $report['description'] }}</span></p></div></div>
+@php
+    $documentFilters = array_filter([
+        'academic_year_id' => $report['filters']['academic_year_id'],
+        'classroom_id' => $report['filters']['classroom_id'],
+        'service_type' => $report['filters']['service_type'],
+    ], fn ($value) => $value !== null && $value !== '');
+@endphp
+<div
+    class="sibk-dashboard sibk-report-preview-page sibk-report-preview-page--portrait"
+    data-page-id="PG-302"
+>
+    <div class="sibk-report-preview-actions no-print mb-4">
+        <a
+            class="btn btn-outline-secondary"
+            href="{{ route('reports.index', $documentFilters) }}"
+        >
+            Kembali ke Laporan
+        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a
+                class="btn btn-outline-success"
+                href="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}"
+            >
+                Download Excel
+            </a>
+            <button
+                class="btn btn-primary"
+                type="button"
+                data-print-report
+            >
+                Cetak / Simpan PDF
+            </button>
+        </div>
+    </div>
 
-    <div class="sibk-panel mb-4 sibk-filter-panel no-print"><div class="sibk-panel__body p-4"><form class="row g-3 align-items-end" action="{{ route('reports.preview') }}" method="GET"><input type="hidden" name="type" value="{{ $report['id'] }}">
-        @if(in_array('period', $report['filter_keys'], true))
-            <div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="academic_year_id">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id">@foreach($report['filter_options']['academic_years'] as $year)<option value="{{ $year->id }}" @selected((int) $report['filters']['academic_year_id'] === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
-            <div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="date_start">Tanggal Awal</label><input class="form-control" id="date_start" name="date_start" type="date" value="{{ $report['filters']['date_start'] }}"></div>
-            <div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="date_end">Tanggal Akhir</label><input class="form-control" id="date_end" name="date_end" type="date" value="{{ $report['filters']['date_end'] }}"></div>
-        @endif
-        @if(in_array('classroom', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="classroom_id">Kelas</label><select class="form-select" id="classroom_id" name="classroom_id"><option value="">Semua kelas</option>@foreach($report['filter_options']['classrooms'] as $classroom)<option value="{{ $classroom->id }}" @selected((int) ($report['filters']['classroom_id'] ?? 0) === $classroom->id)>{{ $classroom->name }}</option>@endforeach</select></div>@endif
-        @if(in_array('student', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="student_id">Murid</label><select class="form-select" id="student_id" name="student_id"><option value="">Semua murid</option>@foreach($report['filter_options']['students'] as $student)<option value="{{ $student['id'] }}" @selected((int) ($report['filters']['student_id'] ?? 0) === $student['id'])>{{ $student['label'] }}</option>@endforeach</select></div>@endif
-        @if(in_array('category', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="category">Kategori</label><select class="form-select" id="category" name="category"><option value="">Semua kategori</option>@foreach($report['filter_options']['categories'] as $category)<option value="{{ $category }}" @selected(($report['filters']['category'] ?? '') === $category)>{{ $category }}</option>@endforeach</select></div>@endif
-        @if(in_array('service_field', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="service_field_id">Bidang</label><select class="form-select" id="service_field_id" name="service_field_id"><option value="">Semua bidang</option>@foreach($report['filter_options']['service_fields'] as $field)<option value="{{ $field->id }}" @selected((int) ($report['filters']['service_field_id'] ?? 0) === $field->id)>{{ $field->label }}</option>@endforeach</select></div>@endif
-        @if(in_array('status', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="status_id">Status</label><select class="form-select" id="status_id" name="status_id"><option value="">Semua status</option>@foreach($report['filter_options']['statuses'] as $status)<option value="{{ $status->id }}" @selected((int) ($report['filters']['status_id'] ?? 0) === $status->id)>{{ $status->label }}</option>@endforeach</select></div>@endif
-        @if(in_array('achievement_type', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="achievement_type_id">Jenis Prestasi</label><select class="form-select" id="achievement_type_id" name="achievement_type_id"><option value="">Semua jenis</option>@foreach($report['filter_options']['achievement_types'] as $type)<option value="{{ $type->id }}" @selected((int) ($report['filters']['achievement_type_id'] ?? 0) === $type->id)>{{ $type->label }}</option>@endforeach</select></div>@endif
-        @if(in_array('achievement_level', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="achievement_level_id">Tingkat Prestasi</label><select class="form-select" id="achievement_level_id" name="achievement_level_id"><option value="">Semua tingkat</option>@foreach($report['filter_options']['achievement_levels'] as $level)<option value="{{ $level->id }}" @selected((int) ($report['filters']['achievement_level_id'] ?? 0) === $level->id)>{{ $level->label }}</option>@endforeach</select></div>@endif
-        @if(in_array('counselor', $report['filter_keys'], true) && $report['filter_options']['counselors']->isNotEmpty())<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="counselor_id">Guru BK</label><select class="form-select" id="counselor_id" name="counselor_id"><option value="">Semua Guru BK</option>@foreach($report['filter_options']['counselors'] as $counselor)<option value="{{ $counselor->id }}" @selected((int) ($report['filters']['counselor_id'] ?? 0) === $counselor->id)>{{ $counselor->name }}</option>@endforeach</select></div>@endif
-        @if(in_array('minimum_points', $report['filter_keys'], true))<div class="col-12 col-sm-6 col-lg-2"><label class="form-label" for="minimum_points">Ambang Poin</label><input class="form-control" id="minimum_points" name="minimum_points" type="number" min="0" value="{{ $report['filters']['minimum_points'] ?? '' }}" placeholder="0"></div>@endif
-        <div class="col-12 col-sm-6 col-lg-2 ms-auto"><button type="submit" class="btn btn-primary w-100">Terapkan</button></div>
-    </form></div></div>
+    <article class="sibk-document-sheet sibk-document-sheet--portrait">
+        @include('pages.reports.print._letterhead', [
+            'title' => 'Laporan Layanan Bimbingan dan Konseling',
+            'subtitle' => 'Tahun Ajaran '.(
+                $report['academic_year']?->name ?? 'belum tersedia'
+            ),
+        ])
 
-    <div class="row g-3 mb-4 sibk-report-kpi-row">@foreach(['total' => 'primary', 'active' => 'warning', 'completed' => 'success'] as $key => $tone)<div class="col-12 col-md-4"><article class="sibk-stat-card sibk-tone--{{ $tone }} p-3"><h2 class="sibk-stat-card__label text-muted small fw-semibold mb-1">{{ $report['stats'][$key]['label'] }}</h2><div class="sibk-stat-card__value fs-2 fw-bold text-dark">{{ $report['stats'][$key]['value'] }}</div><span class="sibk-stat-meta text-muted small">{{ $report['stats'][$key]['sub'] }}</span></article></div>@endforeach</div>
+        <p class="sibk-document-summary">
+            <strong>Ringkasan laporan:</strong>
+            {{ $report['summary_sentence'] }}
+        </p>
 
-    <div class="table-responsive mb-4"><table class="table sibk-table align-middle mb-0"><thead><tr>@foreach($report['columns'] as $column)<th scope="col">{{ $column }}</th>@endforeach</tr></thead><tbody>@forelse($report['rows'] as $row)<tr>@foreach($row['cells'] as $cell)<td>@if($cell['badge_tone'])<span class="sibk-badge sibk-badge--{{ $cell['badge_tone'] }}">{{ $cell['value'] }}</span>@else{{ $cell['value'] }}@endif</td>@endforeach</tr>@empty<tr><td colspan="{{ count($report['columns']) }}" class="text-center py-5 text-muted">Tidak ada data untuk filter dan kewenangan yang dipilih.</td></tr>@endforelse</tbody></table></div>@if($report['rows']->hasPages())<div class="mb-4 no-print">{{ $report['rows']->links() }}</div>@endif
+        <div class="table-responsive">
+            <table class="table sibk-table sibk-document-table mb-0">
+                <colgroup>
+                    <col class="sibk-document-table__col-number">
+                    <col class="sibk-document-table__col-date">
+                    <col class="sibk-document-table__col-student">
+                    <col class="sibk-document-table__col-type">
+                    <col class="sibk-document-table__col-summary">
+                    <col class="sibk-document-table__col-counselor">
+                    <col class="sibk-document-table__col-note">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col">No</th>
+                        <th scope="col">Hari / Tanggal</th>
+                        <th scope="col">Nama / Kelas</th>
+                        <th scope="col">Jenis Masalah</th>
+                        <th scope="col">Ringkasan</th>
+                        <th scope="col">Guru BK</th>
+                        <th scope="col">Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($report['rows'] as $row)
+                        <tr>
+                            <td>{{ $row['number'] }}</td>
+                            <td>
+                                <strong class="d-block">
+                                    {{ $row['date']->locale('id')->translatedFormat('l') }}
+                                </strong>
+                                <span class="sibk-document-meta">
+                                    {{ $row['date']->locale('id')->translatedFormat('d F Y') }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong class="d-block text-uppercase">
+                                    {{ $row['name'] }}
+                                </strong>
+                                <span class="sibk-document-meta">{{ $row['classroom'] }}</span>
+                            </td>
+                            <td>
+                                <span class="sibk-document-meta">{{ $row['service'] }}</span>
+                                <strong class="sibk-report-service-field d-block">
+                                    {{ $row['service_field'] }}
+                                </strong>
+                            </td>
+                            <td>{{ $row['detail_note'] }}</td>
+                            <td>{{ $row['counselor'] }}</td>
+                            <td>{{ $row['follow_up_label'] }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td
+                                class="text-center py-4"
+                                colspan="7"
+                            >
+                                Tidak ada data sesuai filter.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
-    <div class="d-flex flex-wrap justify-content-end gap-3 no-print mb-4"><button type="button" class="btn btn-outline-secondary" data-print-report>Cetak Laporan</button><a class="btn btn-primary" href="{{ route('reports.export', [...request()->except('page'), 'type' => $report['id'], 'format' => 'csv']) }}">Unduh CSV</a><button class="btn btn-outline-secondary" type="button" disabled title="Menunggu keputusan DEP-07">XLSX belum tersedia</button><button class="btn btn-outline-secondary" type="button" disabled title="Gunakan Cetak Laporan untuk menyimpan PDF">PDF server belum tersedia</button></div>
-    <div class="sibk-print-footer"><div class="sibk-print-footer__grid"><div class="sibk-print-footer__col"><p class="sibk-print-footer__role">Mengetahui,<br>Koordinator Bimbingan dan Konseling</p><p class="sibk-print-footer__name">(........................................)</p></div><div class="sibk-print-footer__col"><p class="sibk-print-footer__role">Surabaya, {{ $report['generated_at']->locale('id')->translatedFormat('d F Y') }}<br>Dicetak oleh {{ $report['generated_by'] }}</p><p class="sibk-print-footer__name">(........................................)</p></div></div></div>
+        @include('pages.reports.print._signature-block', [
+            'generatedAt' => $report['generated_at'],
+        ])
+    </article>
 </div>
 @endsection

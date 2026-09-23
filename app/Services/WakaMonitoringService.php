@@ -10,8 +10,6 @@ use App\Models\CaseAssignment;
 use App\Models\StudentClassMembership;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
 final class WakaMonitoringService
@@ -20,41 +18,10 @@ final class WakaMonitoringService
     private const array VIEW_MODES = [
         'dashboard',
         'students',
-        'reports.penanganan',
-        'reports.rekap',
-        'reports.laporan-akhir',
+        'reports.layanan',
     ];
 
     public function __construct(private readonly WakaCaseProjectionQuery $projectionQuery) {}
-
-    /**
-     * @param  array<string, string|null>  $filters
-     * @return LengthAwarePaginator<array<string, mixed>>
-     */
-    public function paginateSafe(User $waka, array $filters, int $perPage = 20): LengthAwarePaginator
-    {
-        $paginator = $this->projectionQuery
-            ->build($waka, $filters)
-            ->paginate($perPage, ['*'], 'page', (int) ($filters['page'] ?? 1));
-
-        $paginator->setCollection(
-            $paginator->getCollection()->map(fn (BkCase $case): array => $this->toSafeRow($case)),
-        );
-
-        return $paginator;
-    }
-
-    /**
-     * @param  array<string, string|null>  $filters
-     * @return Collection<int, array<string, string>>
-     */
-    public function exportCsvRows(User $waka, array $filters): Collection
-    {
-        return $this->projectionQuery
-            ->build($waka, $filters)
-            ->get()
-            ->map(fn (BkCase $case): array => $this->toCsvRow($case));
-    }
 
     /** @return array<string, mixed> */
     public function detailSafe(User $waka, int $caseId): array
@@ -69,7 +36,7 @@ final class WakaMonitoringService
         ];
     }
 
-    /** @param array<string, string|null> $filters */
+    /** @param array<string, mixed> $filters */
     public function auditViewed(
         User $actor,
         string $mode,
@@ -93,28 +60,6 @@ final class WakaMonitoringService
                 $mode,
                 json_encode($safeFilters, JSON_THROW_ON_ERROR),
                 $resultCount,
-            ),
-            'before_values' => null,
-            'after_values' => null,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-    }
-
-    /** @param array<string, string|null> $filters */
-    public function auditExported(User $actor, array $filters, int $rowCount, string $format, Request $request): void
-    {
-        AuditLog::query()->create([
-            'actor_id' => $actor->getKey(),
-            'action' => 'waka.monitoring.exported',
-            'auditable_type' => 'waka_monitoring',
-            'auditable_id' => $actor->getKey(),
-            'summary' => sprintf(
-                'Waka mengekspor data monitoring. Periode: %s, Status: %s, Format: %s, Jumlah baris: %d.',
-                $filters['period'] ?? 'semua',
-                $filters['status'] ?? 'semua',
-                $format,
-                $rowCount,
             ),
             'before_values' => null,
             'after_values' => null,
@@ -150,38 +95,19 @@ final class WakaMonitoringService
         ];
     }
 
-    /** @return array<string, string> */
-    private function toCsvRow(BkCase $case): array
-    {
-        $row = $this->toSafeRow($case);
-
-        return collect([
-            'Murid' => $row['nama_murid'],
-            'Kelas' => $row['kelas'],
-            'Bidang Layanan' => $row['bidang'],
-            'Status' => $row['status'],
-            'Guru BK' => $row['guru_bk'],
-            'Tanggal Pelayanan' => $row['tanggal'],
-            'Jenis Tindak Lanjut' => $row['tindak_lanjut'],
-        ])->map(static fn (mixed $value): string => self::escapeCsvFormula((string) $value))->all();
-    }
-
-    private static function escapeCsvFormula(string $value): string
-    {
-        return preg_match('/^[=+\-@\t\r]/u', $value) === 1 ? "'{$value}" : $value;
-    }
-
-    /**
-     * @param  array<string, string|null>  $filters
-     * @return array<string, string|null>
-     */
+    /** @param array<string, mixed> $filters @return array<string, mixed> */
     private function safeAuditFilters(string $mode, array $filters): array
     {
         $keys = match ($mode) {
             'dashboard' => ['academic_year_id'],
-            'students', 'reports.penanganan' => ['period', 'status', 'sort', 'direction', 'page'],
-            'reports.rekap' => ['academic_year_id', 'date_start', 'date_end'],
-            'reports.laporan-akhir' => [],
+            'students' => ['period', 'status', 'sort', 'direction', 'page'],
+            'reports.layanan' => [
+                'academic_year_id',
+                'classroom_id',
+                'service_type',
+                'per_page',
+                'page',
+            ],
         };
 
         return collect($filters)->only($keys)->all();

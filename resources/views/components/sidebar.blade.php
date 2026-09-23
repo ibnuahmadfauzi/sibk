@@ -32,11 +32,20 @@
                 <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.students') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.students') }}"
                     aria-current="{{ request()->routeIs('waka.monitoring.students') ? 'page' : 'false' }}">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-                    <span>Murid dengan Kasus</span>
+                    <span>Murid dengan Permasalahan</span>
                 </a>
-                <a class="sibk-nav-link {{ request()->routeIs('waka.reports') || request()->routeIs('cases.show') ? 'is-active' : '' }}" href="{{ route('waka.reports') }}"
-                    aria-current="{{ request()->routeIs('waka.reports') || request()->routeIs('cases.show') ? 'page' : 'false' }}">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                <a
+                    class="sibk-nav-link {{ request()->routeIs('reports.*') ? 'is-active' : '' }}"
+                    href="{{ route('reports.index') }}"
+                    aria-current="{{ request()->routeIs('reports.*') ? 'page' : 'false' }}"
+                >
+                    <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z" />
+                        <path d="M8 8h8M8 12h8M8 16h5" />
+                    </svg>
                     <span>Laporan</span>
                 </a>
             @else
@@ -78,7 +87,7 @@
             <a class="sibk-nav-link {{ request()->routeIs('assignments.cases.*') ? 'is-active' : '' }}" href="{{ route('assignments.cases.index') }}"
                 aria-current="{{ request()->routeIs('assignments.cases.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-                <span>Pengalihan Kasus</span>
+                <span>Pengalihan Permasalahan</span>
             </a>
             @endcan
 
@@ -100,12 +109,7 @@
             <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.students') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.students') }}"
                 aria-current="{{ request()->routeIs('waka.monitoring.students') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-                <span>Murid dengan Kasus</span>
-            </a>
-            <a class="sibk-nav-link {{ request()->routeIs('waka.reports') ? 'is-active' : '' }}" href="{{ route('waka.reports') }}"
-                aria-current="{{ request()->routeIs('waka.reports') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"/></svg>
-                <span>Laporan</span>
+                <span>Murid dengan Permasalahan</span>
             </a>
             @endcan
             @endif

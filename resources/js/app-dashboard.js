@@ -10,6 +10,90 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });
 
+document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
+    select.addEventListener('change', () => {
+        const form = select.closest('form');
+        const classroom = form?.querySelector('[name="classroom_id"]');
+
+        if (classroom) classroom.value = '';
+    });
+});
+
+document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
+    const button = form.querySelector('[data-report-filter-action]');
+    const filters = [...form.querySelectorAll('[data-report-filter]')];
+    const initialValues = filters.map((field) => field.value).join('|');
+    const filtersAreActive = form.dataset.filtersActive === 'true';
+
+    const showApply = () => {
+        button.dataset.mode = 'apply';
+        button.textContent = 'Terapkan';
+        button.classList.remove('btn-outline-primary');
+        button.classList.add('btn-primary');
+    };
+
+    const showReset = () => {
+        button.dataset.mode = 'reset';
+        button.textContent = 'Reset';
+        button.classList.remove('btn-primary');
+        button.classList.add('btn-outline-primary');
+    };
+
+    form.addEventListener('change', () => {
+        const currentValues = filters.map((field) => field.value).join('|');
+
+        if (filtersAreActive && currentValues === initialValues) {
+            showReset();
+            return;
+        }
+
+        showApply();
+    });
+
+    form.addEventListener('submit', (event) => {
+        if (button.dataset.mode !== 'reset') return;
+
+        event.preventDefault();
+        window.location.assign(button.dataset.resetUrl);
+    });
+
+    document
+        .querySelectorAll('[data-report-page-size][form="report-filter-form"]')
+        .forEach((select) => {
+            select.addEventListener('change', () => {
+                showApply();
+                form.requestSubmit();
+            });
+        });
+});
+
+document.querySelectorAll('[data-report-text-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const record = button.closest('[data-report-record]');
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+
+        record.querySelectorAll('[data-report-text-preview]')
+            .forEach((text) => text.classList.toggle('d-none', !expanded));
+        record.querySelectorAll('[data-report-text-full]')
+            .forEach((text) => text.classList.toggle('d-none', expanded));
+        button.setAttribute('aria-expanded', String(!expanded));
+        button.title = expanded ? 'Tampilkan teks lengkap' : 'Ringkas teks';
+        button.setAttribute('aria-label', button.title);
+    });
+});
+
+document.querySelectorAll('[data-report-result-toggle]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const detail = document.getElementById(button.getAttribute('aria-controls'));
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+
+        detail.classList.toggle('d-none', expanded);
+        button.setAttribute('aria-expanded', String(!expanded));
+        button.title = expanded ? 'Tampilkan hasil layanan' : 'Tutup hasil layanan';
+        button.setAttribute('aria-label', button.title);
+    });
+});
+
 document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     form.addEventListener('submit', (event) => {
         const message = form.dataset.confirmMessage;

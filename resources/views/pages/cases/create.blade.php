@@ -1,13 +1,13 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Buat Kasus Baru - Ruang BK')
+@section('page-title', 'Catat Permasalahan - Ruang BK')
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-102">
         <div class="sibk-page-header mb-4">
             <div class="d-flex align-items-center gap-3">
                 <a href="{{ route('cases.index') }}" class="btn btn-icon btn-light" aria-label="Kembali">←</a>
-                <div class="sibk-page-header__copy m-0"><h1 class="mb-1">Buat Kasus Baru</h1><p class="mb-0">Catat informasi awal layanan BK secara terstruktur.</p></div>
+                <div class="sibk-page-header__copy m-0"><h1 class="mb-1">Catat Permasalahan</h1><p class="mb-0">Catat informasi awal layanan BK secara terstruktur.</p></div>
             </div>
         </div>
 
@@ -56,20 +56,20 @@
 
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
-                    <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Kasus</h4>
+                    <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Permasalahan</h4>
                     <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
                     <div class="row g-4">
                         <div class="col-md-4">
-                            <label for="sumber" class="form-label sibk-form-label">Sumber Kasus</label>
+                            <label for="sumber" class="form-label sibk-form-label">Sumber</label>
                             <select class="form-select sibk-form-select" id="sumber" name="case_source_id" required>
-                                <option value="">Pilih sumber kasus</option>
+                                <option value="">Pilih sumber</option>
                                 @foreach($caseSources as $source)<option value="{{ $source->id }}" data-code="{{ $source->code }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label for="service_field_id" class="form-label sibk-form-label">Bidang Layanan</label>
+                            <label for="service_field_id" class="form-label sibk-form-label">Jenis Masalah</label>
                             <select class="form-select sibk-form-select" id="service_field_id" name="service_field_id" required>
-                                <option value="">Pilih bidang layanan</option>
+                                <option value="">Pilih jenis masalah</option>
                                 @foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) old('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach
                             </select>
                         </div>
@@ -83,7 +83,7 @@
                         @endphp
                         <div @class(['col-12', 'd-none' => ! $isRujukanInitial]) id="referrer-group">
                             <label for="referrer" class="form-label sibk-form-label">Pihak Perujuk</label>
-                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber kasus berasal dari rujukan">
+                            <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber permasalahan berasal dari rujukan">
                         </div>
                     </div>
                 </div>
@@ -91,7 +91,7 @@
 
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
-                    <h4 class="fs-5 mb-1 text-dark fw-bold">Informasi Kasus</h4>
+                    <h4 class="fs-5 mb-1 text-dark fw-bold">Informasi Permasalahan</h4>
                     <p class="text-muted small mb-4">Tuliskan informasi yang diperlukan untuk memulai penanganan.</p>
                     <div class="row g-4">
                         <div class="col-md-6"><label for="initial_info" class="form-label sibk-form-label">Informasi Awal</label><textarea class="form-control sibk-form-control" id="initial_info" name="initial_info" rows="4" required>{{ old('initial_info') }}</textarea></div>
@@ -104,7 +104,7 @@
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
-                    <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber kasus adalah e-Tatib.</p>
+                    <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber permasalahan adalah e-Tatib.</p>
                     @if($etatibRecordsCapped)
                         <div class="alert alert-info py-2">Daftar data e-Tatib dibatasi pada {{ $etatibRecords->count() }} record terbaru. Gunakan pencarian NISN yang sama persis untuk mempersempit hasil.</div>
                     @endif
@@ -126,7 +126,7 @@
                 <span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span>
                 <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
                 <a href="{{ route('cases.index') }}" class="btn btn-outline-secondary px-4">Batal</a>
-                <button type="submit" class="btn btn-primary px-4">Simpan Kasus</button>
+                <button type="submit" class="btn btn-primary px-4">Simpan</button>
             </div>
         </form>
     </div>

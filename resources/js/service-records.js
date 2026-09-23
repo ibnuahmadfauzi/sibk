@@ -167,6 +167,11 @@ export const initServiceRecords = async (root = document) => {
                 if (error.name !== 'AbortError') modalElement.querySelector('.modal-content').textContent = error.message;
             }
         }));
+        root.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && event.target.matches?.('[data-modal-url]')) {
+                event.target.click();
+            }
+        });
         modalElement.addEventListener('submit', (event) => { void handleModalSubmit(event); });
     }
 

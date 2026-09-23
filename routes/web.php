@@ -40,7 +40,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
 
         Route::get('/account', [AccountController::class, 'index'])->name('account.index');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
-
+        
         Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
         Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
         Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
@@ -70,6 +70,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
 
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/preview', [ReportController::class, 'preview'])->name('reports.preview');
+        Route::get('/reports/records/{type}/{id}/preview', [ReportController::class, 'recordPreview'])
+            ->whereIn('type', ['case', 'consultation'])
+            ->whereNumber('id')
+            ->name('reports.records.preview');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
 
         Route::get('/assignments/classes', [AssignmentController::class, 'index'])->name('assignments.classes.index');

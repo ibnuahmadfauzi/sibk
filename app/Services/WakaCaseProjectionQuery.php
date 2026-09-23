@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Http\Requests\WakaMonitoringRequest;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\ReferenceValue;
@@ -16,6 +15,16 @@ use InvalidArgumentException;
 
 final class WakaCaseProjectionQuery
 {
+    /** @var list<string> */
+    private const array SORT_ALLOWLIST = [
+        'murid',
+        'kelas',
+        'bidang',
+        'status',
+        'guru_bk',
+        'tanggal',
+    ];
+
     /**
      * @param  array<string, string|null>  $filters
      * @return Builder<BkCase>
@@ -142,7 +151,7 @@ final class WakaCaseProjectionQuery
         $sort = $filters['sort'] ?? 'tanggal';
         $direction = $filters['direction'] ?? 'desc';
 
-        if (! in_array($sort, WakaMonitoringRequest::HANDLING_SORT_ALLOWLIST, true)) {
+        if (! in_array($sort, self::SORT_ALLOWLIST, true)) {
             throw new InvalidArgumentException('Pilihan urutan Waka tidak valid.');
         }
 

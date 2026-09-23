@@ -5,11 +5,149 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
+- Revisi laporan catatan layanan sudah diimplementasikan pada branch fitur dan
+  berstatus `MENUNGGU VERIFIKASI`.
+- Test, formatter, build, dan gate belum dijalankan sesuai instruksi pengguna;
+  test lama untuk jalur laporan yang dipensiunkan juga belum diperbarui.
 - Revisi SIBK 3.2 selesai sampai Checkpoint 7C dan terintegrasi ke
   `cobasidebar`; belum ada pekerjaan rilis ke `main`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
 
 ## Pekerjaan selesai
+
+### 23 September 2026 — Penyatuan laporan Waka
+
+- Waka memakai halaman `/reports`, filter, ringkasan, dan pagination yang sama
+  secara visual dengan Koordinator; empat Blade laporan Waka khusus dihapus.
+- Tabel Waka hanya memuat No, Hari/Tanggal, Nama/Kelas, Jenis Masalah,
+  Ringkasan, Guru BK, dan Keterangan. Data narasi mentah serta aksi tidak dikirim
+  ke view Waka.
+- Policy dokumen terpisah menolak preview, cetak/PDF, Excel, dan preview per
+  catatan bagi Waka; endpoint CSV portal lama dihapus dan audit pembacaan tetap
+  dicatat sebagai `reports.layanan`.
+- Font tabel preview/PDF diperkecil menjadi 8 pt dan Excel menjadi 9 pt; wrapping,
+  padding, dan lebar kolom portrait dirapikan. Garis bawah baris terakhir pada
+  tabel dokumen dipertahankan. Test, formatter, dan build tidak dijalankan sesuai
+  instruksi pengguna.
+
+### 23 September 2026 — Orientasi dan kolom Guru BK
+
+- Preview, cetak/PDF, dan Excel rekap diubah menjadi A4 portrait.
+- Kolom Guru BK ditambahkan sebelum Keterangan; kasus memakai owner terakhir
+  dan konsultasi memakai pencatat pada `counselor_id`.
+- Lebar tujuh kolom dokumen dirapatkan agar tetap terbaca pada portrait. Test,
+  formatter, dan build tidak dijalankan.
+
+### 22 September 2026 — Penyederhanaan dokumen rekap
+
+- Preview/PDF dan Excel memakai enam kolom: No, Hari/Tanggal, Nama/Kelas, Jenis
+  Masalah, Ringkasan, dan Keterangan. Ringkasan memakai nilai yang diinput Guru
+  BK pada `resolution_summary` atau `result`.
+- Preview dibuat putih polos tanpa latar atau efek inset pada ringkasan dan
+  tabel. Kop memakai placeholder logo kiri/kanan dan garis tepat setelah alamat.
+- Ringkasan preview/PDF dan Excel disajikan sebagai kalimat naratif yang
+  menyesuaikan jenis layanan terpilih.
+- Unduhan Word beserta template dan format request-nya dihapus. Test, formatter,
+  dan build tidak dijalankan.
+
+### 22 September 2026 — Ringkasan rekap laporan
+
+- Teks urutan pada header tabel diganti ringkasan Total Catatan, Permasalahan,
+  dan Konsultasi dari seluruh hasil filter sebelum pagination.
+- Informasi jenis yang tidak relevan dengan filter disembunyikan, bukan
+  ditampilkan nol. Filter tahun ajaran dan kelas tetap memengaruhi semua angka.
+- Ringkasan yang sama ditambahkan ke preview/PDF, Word, dan Excel. Test,
+  formatter, dan build tidak dijalankan.
+
+### 22 September 2026 — Penyempurnaan detail inline laporan
+
+- Setelah perbandingan visual, ikon kaca pembesar dipilih sebagai kontrol detail
+  dan ikon informasi dihapus.
+- Kontrol detail dan chevron tidak memakai outline; latar lembut muncul saat
+  hover/focus.
+- Hasil Layanan ditampilkan sebagai panel bertingkat mulai dari kolom
+  Hari/Tanggal, memakai latar lembut dan garis aksen kiri agar terhubung ke row
+  induk. Token bayangan inset existing dipakai agar panel terlihat tenggelam.
+- Narasi seed diperpanjang melewati batas 80 karakter agar interaksi dapat
+  diamati; sebelumnya seluruh contoh hanya 63–77 karakter. Test dan build tidak
+  dijalankan.
+
+### 22 September 2026 — Penyajian tabel laporan
+
+- Daftar menambahkan Hari/Tanggal dan Jenis Masalah; Latar Belakang Masalah
+  serta Penanganan diringkas menjadi 80 karakter.
+- Kontrol detail membuka teks lengkap dan ikon chevron membuka baris Hasil Layanan
+  dengan latar berbeda pada tampilan desktop maupun mobile.
+- Klik baris, ikon cetak individual, dan tombol cetak pada modal dihilangkan.
+  Cetak/unduh rekap tetap tersedia. Test, formatter, dan build tidak dijalankan.
+
+### 22 September 2026 — Penyederhanaan kontrol filter laporan
+
+- Pilihan jumlah data dipindahkan dari panel filter ke header tabel dan langsung
+  diterapkan ketika nilainya berubah.
+- Tombol Terapkan dan Reset digabung menjadi satu kontrol yang berubah teks dan
+  warna sesuai status filter serta perubahan pilihan yang belum diterapkan.
+- Perubahan Tahun Ajaran tidak lagi mengirim form otomatis. Test, formatter, dan
+  build tidak dijalankan.
+
+### 22 September 2026 — Data contoh pratinjau laporan
+
+- Seeder manual lokal menyiapkan satu catatan kasus bertindak lanjut Home Visit
+  dan dua catatan konsultasi memakai data master contoh existing.
+- Seeder aman dijalankan ulang, hanya tersedia pada environment local/testing,
+  dan tidak ikut `DatabaseSeeder`.
+- Database lokal `sibk_uji` diselaraskan ke migration aktif lalu seeder berhasil
+  dijalankan. Test, formatter, dan build tidak dijalankan.
+
+### 22 September 2026 — Implementasi revisi laporan catatan layanan
+
+- Daftar laporan kini memuat satu row per kasus/konsultasi dengan tiga filter,
+  pilihan jumlah data, urutan terbaru, modal detail, preview individual, dan
+  aksi arsip berbasis policy.
+- Template rekap disesuaikan menjadi tabel polos tujuh kolom; hasil penyelesaian
+  digabungkan ke Penanganan dan klasifikasi tindak lanjut/status memakai field
+  aktif. Jam layanan tidak ditampilkan karena tidak tersedia pada schema.
+- Preview rekap mengambil seluruh hasil filter dengan urutan paling awal dan
+  menyediakan Excel `.xlsx`, Word `.doc`, serta Cetak/Simpan PDF dari browser.
+- PhpSpreadsheet 5.10 ditambahkan; formula injection dan pembersihan temporary
+  file ditangani. PHPWord tidak ditambahkan.
+- Partial kop/tanda tangan dipakai ulang oleh preview dan Word; resolver tidak
+  memilih akun penandatangan secara diam-diam saat role kosong atau ganda.
+- Jalur tiga tab, CSV, dan tujuh service/request legacy dipensiunkan setelah scan
+  tidak menemukan consumer runtime.
+- Tidak ada test, formatter, build, atau gate yang dijalankan pada checkpoint ini.
+
+### 22 September 2026 — Amandemen kontrak dokumen laporan
+
+- Terminologi tabel diperbaiki menjadi Penanganan; detail kasus memakai Catatan
+  Penyelesaian dan konsultasi memakai Hasil.
+- Preview rekap ditetapkan A4 landscape dan memakai seluruh hasil filter;
+  preview satu catatan memakai A4 portrait. Pagination tetap khusus UI.
+- Rekap memakai tanda tangan Koordinator BK dan Waka; dokumen individual memakai
+  Guru BK penanggung jawab dan Waka. NIP/Kepala Sekolah tidak diasumsikan atau
+  di-hardcode karena belum tersedia pada schema.
+- Plan mewajibkan partial kop/tanda tangan dan resolver yang menolak pemilihan
+  diam-diam ketika akun penandatangan kosong atau ganda.
+- Tidak ada implementasi, dependency, test, formatter, build, atau gate yang
+  dijalankan pada amandemen dokumentasi ini.
+
+### 21 September 2026 — Perencanaan revisi laporan catatan layanan
+
+- Kelayakan ditinjau terhadap PRD/SRS aktif, route, request, policy, service,
+  modal detail, archive, pagination, serta jalur preview/CSV existing.
+- Plan mengusulkan daftar per catatan kasus/konsultasi dengan tiga filter,
+  pagination 10/25/50/100, urutan UI terbaru, urutan dokumen paling awal,
+  preview web, serta unduhan Excel/Word.
+- REP-01–REP-04, PRD, indeks, API contract, dan spec aktif telah diamendemen.
+  PhpSpreadsheet tetap menjadi gate; implementasi dan testing belum dilakukan.
+- Repository referensi menunjukkan preview rekap dan per-item dipisahkan;
+  Excel memakai library XLSX, sedangkan Word memakai HTML `.doc`. Pola alur
+  diadaptasi tanpa menyalin React/Tailwind atau aset referensi.
+- Aturan markup ditambah agar tag Blade/HTML panjang memakai atribut multi-line
+  dan struktur tag mudah diperiksa.
+- Wireframe dikunci menjadi satu tombol `Cetak / Unduh Rekap` menuju preview
+  terpadu. Modal dan preview satu layanan menambahkan Catatan setelah
+  Penyelesaian tanpa mengekspos `internal_note` kasus.
 
 ### 20 September 2026 — Checkpoint 7C: cleanup skema dan gate akhir
 
