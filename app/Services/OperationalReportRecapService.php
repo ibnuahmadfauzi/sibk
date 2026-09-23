@@ -15,6 +15,7 @@ use App\Policies\ReportPolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -37,12 +38,29 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->paginate((int) $filters['per_page'])
             ->withQueryString();
 
-        $events->setCollection($this->hydrateRows(
+        $rows = $this->hydrateRows(
             $actor,
             $events->getCollection(),
             $year,
             $events->firstItem() ?? 1,
-        ));
+        );
+
+        if (! $this->policy->viewDocument($actor)) {
+            $rows = $rows->map(static fn (array $row): array => Arr::only($row, [
+                'number',
+                'day_label',
+                'date_label',
+                'name',
+                'classroom',
+                'service',
+                'service_field',
+                'detail_note',
+                'counselor',
+                'follow_up_label',
+            ]));
+        }
+
+        $events->setCollection($rows);
 
         return $this->reportData($actor, $filters, $year, $events, $summary);
     }
@@ -50,7 +68,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     /** @param array<string, mixed> $filters @return array<string, mixed> */
     public function allForDocument(User $actor, array $filters): array
     {
-        abort_unless($this->policy->viewAny($actor), 403);
+        abort_unless($this->policy->viewDocument($actor), 403);
 
         [$year, $filters] = $this->normalizedFilters($filters);
         $eventQuery = $this->eventQuery($actor, $filters, $year);
@@ -67,7 +85,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
 
     public function findRecord(User $actor, string $type, int $id): BkCase|Consultation
     {
-        abort_unless($this->policy->viewAny($actor), 403);
+        abort_unless($this->policy->viewDocument($actor), 403);
 
         return match ($type) {
             'case' => $this->caseQuery($actor)->whereKey($id)->firstOrFail(),
@@ -406,17 +424,29 @@ final class OperationalReportRecapService implements OperationalReportRecap
         LengthAwarePaginator|Collection $rows,
         array $summary,
     ): array {
+        $canViewDocument = $this->policy->viewDocument($actor);
+
         return [
             'title' => 'Laporan Layanan BK',
-            'columns' => [
-                'No',
-                'Hari/Tanggal',
-                'Nama & Kelas',
-                'Layanan/Jenis Masalah',
-                'Latar Belakang Masalah',
-                'Penanganan',
-                'Aksi',
-            ],
+            'columns' => $canViewDocument
+                ? [
+                    'No',
+                    'Hari/Tanggal',
+                    'Nama & Kelas',
+                    'Layanan/Jenis Masalah',
+                    'Latar Belakang Masalah',
+                    'Penanganan',
+                    'Aksi',
+                ]
+                : [
+                    'No',
+                    'Hari / Tanggal',
+                    'Nama / Kelas',
+                    'Jenis Masalah',
+                    'Ringkasan',
+                    'Guru BK',
+                    'Keterangan',
+                ],
             'rows' => $rows,
             'summary' => $summary,
             'summary_sentence' => $this->summarySentence($summary),
@@ -431,6 +461,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     ->get(['id', 'name']),
             ],
             'academic_year' => $year,
+            'can_view_document' => $canViewDocument,
             'generated_by' => $actor->name,
             'generated_at' => now(),
         ];
@@ -447,9 +478,12 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     $selected->getKey(),
                 ),
             )
-            ->whereHas(
-                'studentClassMemberships.student',
-                fn (Builder $students): Builder => $students->accessibleTo($actor),
+            ->when(
+                ! $actor->hasRole('waka_kesiswaan'),
+                fn (Builder $query): Builder => $query->whereHas(
+                    'studentClassMemberships.student',
+                    fn (Builder $students): Builder => $students->accessibleTo($actor),
+                ),
             );
     }
 

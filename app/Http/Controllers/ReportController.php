@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\OperationalReportRecapService;
 use App\Services\ReportDocumentExporter;
 use App\Services\ReportSignatoryResolver;
+use App\Services\WakaMonitoringService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -18,12 +19,24 @@ class ReportController extends Controller
     public function index(
         OperationalReportRequest $request,
         OperationalReportRecapService $service,
+        WakaMonitoringService $wakaMonitoring,
     ): View {
         /** @var User $user */
         $user = $request->user();
+        $report = $service->paginateForUi($user, $request->filters());
+
+        if ($user->hasRole('waka_kesiswaan')) {
+            $wakaMonitoring->auditViewed(
+                $user,
+                'reports.layanan',
+                $report['filters'],
+                $report['rows']->count(),
+                $request,
+            );
+        }
 
         return view('pages.reports.index', [
-            'report' => $service->paginateForUi($user, $request->filters()),
+            'report' => $report,
         ]);
     }
 

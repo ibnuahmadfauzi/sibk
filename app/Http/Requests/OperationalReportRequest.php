@@ -20,7 +20,15 @@ final class OperationalReportRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && app(ReportPolicy::class)->viewAny($user);
+        if ($user === null) {
+            return false;
+        }
+
+        $policy = app(ReportPolicy::class);
+
+        return $this->routeIs('reports.index')
+            ? $policy->viewAny($user)
+            : $policy->viewDocument($user);
     }
 
     /** @return array<string, list<mixed>> */
@@ -71,9 +79,12 @@ final class OperationalReportRequest extends FormRequest
                         $this->integer('academic_year_id'),
                     ),
                 )
-                ->whereHas(
-                    'studentClassMemberships.student',
-                    fn (Builder $students): Builder => $students->accessibleTo($actor),
+                ->when(
+                    ! $actor->hasRole('waka_kesiswaan'),
+                    fn (Builder $query): Builder => $query->whereHas(
+                        'studentClassMemberships.student',
+                        fn (Builder $students): Builder => $students->accessibleTo($actor),
+                    ),
                 )
                 ->exists();
 

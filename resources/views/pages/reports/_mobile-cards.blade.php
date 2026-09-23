@@ -1,4 +1,46 @@
 <div class="sibk-operational-report-cards p-3">
+    @if(! $report['can_view_document'])
+        @foreach($report['rows'] as $row)
+            <article
+                class="sibk-panel sibk-operational-report-card p-3"
+            >
+                <div
+                    class="d-flex justify-content-between gap-3 mb-3"
+                >
+                    <div>
+                        <h3 class="h6 mb-1">{{ $row['name'] }}</h3>
+                        <p class="small text-muted mb-0">
+                            {{ $row['classroom'] }} &middot;
+                            {{ $row['day_label'] }}, {{ $row['date_label'] }}
+                        </p>
+                    </div>
+                    <span
+                        class="sibk-badge flex-column align-items-start gap-0"
+                    >
+                        <span class="small fw-normal">
+                            {{ $row['service'] }}
+                        </span>
+                        <strong>{{ $row['service_field'] }}</strong>
+                    </span>
+                </div>
+                <dl class="mb-0">
+                    <div class="py-2">
+                        <dt>Ringkasan</dt>
+                        <dd class="mb-0">{{ $row['detail_note'] }}</dd>
+                    </div>
+                    <div class="py-2">
+                        <dt>Guru BK</dt>
+                        <dd class="mb-0">{{ $row['counselor'] }}</dd>
+                    </div>
+                    <div class="py-2">
+                        <dt>Keterangan</dt>
+                        <dd class="mb-0">{{ $row['follow_up_label'] }}</dd>
+                    </div>
+                </dl>
+            </article>
+        @endforeach
+    @endif
+    @if($report['can_view_document'])
     @foreach($report['rows'] as $row)
         @php
             $problem = $row['problem'] ?: '—';
@@ -106,4 +148,5 @@
             </div>
         </article>
     @endforeach
+    @endif
 </div>

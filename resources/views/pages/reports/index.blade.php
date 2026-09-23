@@ -19,14 +19,16 @@
             <h1>Laporan Layanan BK</h1>
             <p>Daftar catatan permasalahan dan konsultasi sesuai kewenangan Anda.</p>
         </div>
-        <div class="sibk-page-header__actions no-print">
-            <a
-                class="btn btn-primary"
-                href="{{ route('reports.preview', $documentFilters) }}"
-            >
-                Cetak / Unduh Rekap
-            </a>
-        </div>
+        @if($report['can_view_document'])
+            <div class="sibk-page-header__actions no-print">
+                <a
+                    class="btn btn-primary"
+                    href="{{ route('reports.preview', $documentFilters) }}"
+                >
+                    Cetak / Unduh Rekap
+                </a>
+            </div>
+        @endif
     </header>
 
     @if($errors->any())

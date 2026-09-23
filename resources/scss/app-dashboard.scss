@@ -2755,24 +2755,34 @@ small, .small {
   background: #fff !important;
   border-collapse: collapse;
   box-shadow: none !important;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   min-width: 0;
   table-layout: fixed;
 
-  &__col-number { width: 5%; }
+  &__col-number { width: 4%; }
   &__col-date { width: 13%; }
   &__col-student { width: 16%; }
   &__col-type { width: 14%; }
-  &__col-summary { width: 27%; }
-  &__col-counselor { width: 15%; }
-  &__col-note { width: 10%; }
+  &__col-summary { width: 26%; }
+  &__col-counselor { width: 14%; }
+  &__col-note { width: 13%; }
 
   th,
   td {
     background: #fff !important;
     border: 1px solid #777;
-    padding: 0.4rem;
+    line-height: 1.3;
     vertical-align: top;
+  }
+
+  thead th,
+  tbody td {
+    font-size: 0.72rem;
+    padding: 0.3rem;
+  }
+
+  thead th {
+    white-space: normal;
   }
 
   tbody tr:hover {
@@ -2790,7 +2800,7 @@ small, .small {
 
 .sibk-document-meta {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 400;
   margin-top: 0.2rem;
 }
@@ -3043,6 +3053,10 @@ small, .small {
     td {
       background: #fff !important;
       border: 1px solid #777 !important;
+      font-size: 8pt !important;
+      line-height: 1.25;
+      padding: 0.25rem !important;
+      white-space: normal !important;
     }
 
     thead {

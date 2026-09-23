@@ -51,7 +51,12 @@
             <section class="sibk-panel sibk-panel--inset" aria-labelledby="waka-attention-title">
                 <header class="sibk-panel__header">
                     <div class="sibk-panel__title-group"><h2 id="waka-attention-title">Membutuhkan Perhatian</h2></div>
-                    <a href="{{ route('waka.reports', ['tab' => 'penanganan', 'status' => 'membutuhkan_tindak_lanjut']) }}" class="btn btn-sm btn-outline-primary">Lihat semua penanganan</a>
+                    <a
+                        class="btn btn-sm btn-outline-primary"
+                        href="{{ route('reports.index', ['service_type' => 'case']) }}"
+                    >
+                        Lihat semua penanganan
+                    </a>
                 </header>
                 @if(empty($dashboard['attention']))
                     <x-empty-state title="Tidak ada penanganan mendesak" description="Belum ada permasalahan yang membutuhkan tindak lanjut atau perhatian khusus." />
@@ -89,7 +94,12 @@
     <section class="sibk-panel mt-3" aria-labelledby="waka-latest-title">
         <header class="sibk-panel__header">
             <div class="sibk-panel__title-group"><h2 id="waka-latest-title">Penanganan Terbaru</h2></div>
-            <a href="{{ route('waka.reports', ['tab' => 'penanganan']) }}" class="btn btn-sm btn-outline-primary">Buka Monitoring Penanganan</a>
+            <a
+                class="btn btn-sm btn-outline-primary"
+                href="{{ route('reports.index') }}"
+            >
+                Buka Laporan
+            </a>
         </header>
         @if(empty($dashboard['latest']))
             <x-empty-state title="Belum ada penanganan" description="Penanganan terbaru pada tahun ajaran terpilih akan tampil di sini." />

@@ -2,14 +2,14 @@
 
 ## Status
 
-- Pekerjaan aktif: revisi halaman Laporan Guru BK/Koordinator.
+- Pekerjaan aktif: revisi halaman Laporan Guru BK/Koordinator/Waka.
 - Branch: `fitur/revisi-laporan-catatan-layanan`.
 - Worktree: `.worktrees/revisi-laporan-catatan-layanan`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status implementasi: **SELESAI — SIAP REVIEW PR**.
+- Status implementasi: **DIPERBARUI — MENUNGGU REVIEW PR**.
 - Commit perencanaan: `30be68f docs: perbarui rencana laporan layanan BK`.
 
-## Hasil implementasi 22 September 2026
+## Hasil implementasi 22–23 September 2026
 
 - Halaman tiga tab diganti satu daftar catatan kasus dan konsultasi.
 - Filter dibatasi ke Tahun Ajaran, Kelas, Jenis Layanan BK, dan jumlah data
@@ -32,6 +32,9 @@
 - Tombol `Cetak / Unduh Rekap` membuka preview seluruh hasil filter dengan urutan
   tanggal paling awal. Preview tidak membuka dialog cetak otomatis.
 - Preview rekap memakai A4 portrait dengan Download Excel dan Cetak/Simpan PDF.
+- Font tabel preview/PDF diperkecil secara terlokalisasi menjadi 8 pt, padding
+  dirapatkan, header diizinkan membungkus, dan proporsi kolom portrait diperbaiki.
+  Font tabel Excel memakai 9 pt.
 - Tabel dokumen putih polos memakai tujuh kolom: No, Hari/Tanggal, Nama/Kelas,
   Jenis Masalah, Ringkasan, Guru BK, dan Keterangan. Ringkasan mengambil
   `resolution_summary` kasus atau `result` konsultasi.
@@ -44,9 +47,15 @@
   menjelaskan total serta komposisi hasil filter, bukan deretan angka singkat.
 - Rekap memakai Koordinator BK dan Waka Kesiswaan. Kondisi akun penandatangan kosong/ganda
   menampilkan `Penandatangan belum tersedia`; NIP tidak ditampilkan.
-- Jalur laporan legacy tiga tab dan CSV tidak memiliki consumer runtime sehingga
-  request/service legacy dipensiunkan. Test lama yang merujuk jalur tersebut
-  belum diperbarui karena pekerjaan test belum diizinkan.
+- Waka memakai `/reports` dan Blade yang sama dengan Koordinator tanpa penanda
+  hanya-baca. Kolom Waka dibatasi ke struktur tabel dokumen: No, Hari/Tanggal,
+  Nama/Kelas, Jenis Masalah, Ringkasan, Guru BK, dan Keterangan.
+- Waka tidak menerima latar belakang, penanganan, hasil terpisah, URL aksi, atau
+  kemampuan arsip pada payload view. Preview, cetak/PDF, Excel, dan preview per
+  catatan ditolak server melalui policy dokumen terpisah.
+- Portal laporan Waka tiga tab, request, service rekap, dan empat Blade khusus
+  dipensiunkan. URL lama diarahkan ke `/reports` untuk akun Waka dan endpoint
+  ekspor CSV monitoring lama dihapus.
 
 ## Batas dan catatan deployment
 
@@ -75,6 +84,8 @@ dan gate lain belum dijalankan. Skenario berikut menunggu perintah terpisah:
 3. Pagination UI tidak mengurangi isi preview/unduhan.
 4. Orientasi cetak, urutan data, tanda tangan, serta keluaran Excel.
 5. Pemeriksaan privasi bahwa NISN, kode kasus, dan catatan internal tidak keluar.
+6. Proyeksi aman Waka serta penolakan preview, cetak/PDF, Excel, dan preview per
+   catatan melalui URL langsung.
 
 ## Langkah berikutnya
 

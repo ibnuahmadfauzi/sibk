@@ -6,7 +6,12 @@
 <div class="sibk-dashboard" data-page-id="PG-WAKA-CASE-DETAIL">
     <header class="sibk-page-header mb-4">
         <div class="sibk-page-header__copy">
-            <a href="{{ route('waka.reports', ['tab' => 'penanganan']) }}" class="text-decoration-none small">&larr; Kembali ke Monitoring Penanganan</a>
+            <a
+                class="text-decoration-none small"
+                href="{{ route('reports.index', ['service_type' => 'case']) }}"
+            >
+                &larr; Kembali ke Laporan
+            </a>
             <h1>Detail Permasalahan</h1>
             <p>Informasi layanan yang dapat dibaca Waka Kesiswaan.</p>
         </div>

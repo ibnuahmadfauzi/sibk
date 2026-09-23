@@ -75,7 +75,9 @@ dan print dapat memakai fondasi existing tanpa migration.
 - AUTH-01–AUTH-07 dan scope `accessibleTo()` berlaku pada daftar, detail,
   preview, unduhan, URL langsung, dan archive.
 - Guru BK hanya melihat data dalam scope profesional/kasus khusus; Koordinator
-  melihat gabungan yang diizinkan; Admin IT dan Waka ditolak dari pusat laporan.
+  melihat gabungan yang diizinkan; Admin IT ditolak. Waka memakai daftar yang
+  sama dengan proyeksi ringkasan aman, tetapi preview, cetak, unduhan, dan aksi
+  tetap ditolak.
 - Jangan tampilkan kode kasus, catatan internal, payload provider, NISN, atau
   field rahasia lain.
 - Gunakan nama dan kelas yang berlaku pada tanggal layanan, termasuk identitas

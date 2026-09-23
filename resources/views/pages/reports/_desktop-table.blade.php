@@ -8,6 +8,33 @@
             </tr>
         </thead>
         <tbody>
+            @if(! $report['can_view_document'])
+                @foreach($report['rows'] as $row)
+                    <tr>
+                        <td>{{ $row['number'] }}</td>
+                        <td>
+                            <strong>{{ $row['day_label'] }}</strong>
+                            <div class="small text-muted">{{ $row['date_label'] }}</div>
+                        </td>
+                        <td>
+                            <strong>{{ $row['name'] }}</strong>
+                            <div class="small text-muted">{{ $row['classroom'] }}</div>
+                        </td>
+                        <td>
+                            <span class="d-block small text-muted">
+                                {{ $row['service'] }}
+                            </span>
+                            <strong class="sibk-report-service-field d-block">
+                                {{ $row['service_field'] }}
+                            </strong>
+                        </td>
+                        <td>{{ $row['detail_note'] }}</td>
+                        <td>{{ $row['counselor'] }}</td>
+                        <td>{{ $row['follow_up_label'] }}</td>
+                    </tr>
+                @endforeach
+            @endif
+            @if($report['can_view_document'])
             @foreach($report['rows'] as $row)
                 @php
                     $problem = $row['problem'] ?: '—';
@@ -129,6 +156,7 @@
                     </td>
                 </tr>
             @endforeach
+            @endif
         </tbody>
     </table>
 </div>

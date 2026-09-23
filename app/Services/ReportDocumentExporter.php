@@ -93,6 +93,7 @@ final class ReportDocumentExporter
         $lastRow = max(4, count($report['rows']) + 4);
         $sheet->getStyle("A4:G{$lastRow}")->getBorders()->getAllBorders()
             ->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A4:G{$lastRow}")->getFont()->setSize(9);
         $sheet->getStyle('A4:G4')->getFont()->setBold(true);
         $sheet->getStyle("A4:G{$lastRow}")->getAlignment()
             ->setVertical(Alignment::VERTICAL_TOP)

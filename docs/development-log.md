@@ -15,6 +15,20 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Pekerjaan selesai
 
+### 23 September 2026 — Penyatuan laporan Waka
+
+- Waka memakai halaman `/reports`, filter, ringkasan, dan pagination yang sama
+  secara visual dengan Koordinator; empat Blade laporan Waka khusus dihapus.
+- Tabel Waka hanya memuat No, Hari/Tanggal, Nama/Kelas, Jenis Masalah,
+  Ringkasan, Guru BK, dan Keterangan. Data narasi mentah serta aksi tidak dikirim
+  ke view Waka.
+- Policy dokumen terpisah menolak preview, cetak/PDF, Excel, dan preview per
+  catatan bagi Waka; endpoint CSV portal lama dihapus dan audit pembacaan tetap
+  dicatat sebagai `reports.layanan`.
+- Font tabel preview/PDF diperkecil menjadi 8 pt dan Excel menjadi 9 pt; wrapping,
+  padding, dan lebar kolom portrait dirapikan. Test, formatter, dan build tidak
+  dijalankan sesuai instruksi pengguna.
+
 ### 23 September 2026 — Orientasi dan kolom Guru BK
 
 - Preview, cetak/PDF, dan Excel rekap diubah menjadi A4 portrait.
