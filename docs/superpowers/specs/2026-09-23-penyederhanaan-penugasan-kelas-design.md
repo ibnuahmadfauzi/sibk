@@ -312,9 +312,10 @@ lama per narasi serta ikon chevron dihapus. Label aksesibel kontrol memakai
 istilah `detail layanan`.
 
 Sumber dan Tindak Lanjut tidak ditampilkan pada daftar maupun baris rincian
-laporan. Riwayat Tindak Lanjut menjadi pekerjaan terpisah berikutnya karena
-schema saat ini hanya menyimpan satu `follow_up_type_id` terbaru. Struktur
-preview/PDF/Excel dan proyeksi laporan Waka tidak berubah.
+laporan. Pada preview/PDF/Excel, kolom Keterangan untuk Permasalahan memuat
+`Sumber: {label}` dan `Tindak Lanjut: {label}`. Nilai tindak lanjut memakai
+`follow_up_type_id` terbaru; riwayatnya menjadi pekerjaan terpisah berikutnya.
+Keterangan Konsultasi tetap `Selesai`. Proyeksi laporan Waka tidak berubah.
 
 ## 16. Kriteria Penerimaan
 
@@ -339,6 +340,8 @@ preview/PDF/Excel dan proyeksi laporan Waka tidak berubah.
 15. Tabel laporan Guru BK dan Koordinator hanya menampilkan Hasil sebagai
     narasi utama; satu ikon kaca pembesar membuka Latar Belakang Masalah dan
     Penanganan tanpa menampilkan Sumber atau Tindak Lanjut.
+16. Keterangan preview/PDF/Excel menampilkan Sumber dan Tindak Lanjut terbaru
+    untuk Permasalahan, sedangkan Konsultasi tetap ditampilkan `Selesai`.
 
 ## 17. Strategi Verifikasi
 
@@ -348,7 +351,8 @@ penugasan, no-op, concurrency/overlap, redirect lama, readiness, aktivasi, serta
 migration pada database disposable SQLite dan MySQL. Verifikasi juga memastikan
 endpoint pengalihan tidak tersedia dan pembuatan kasus tetap mempunyai owner.
 Verifikasi laporan memastikan satu kontrol detail berfungsi pada catatan kasus
-dan konsultasi serta tidak mengubah preview, PDF, Excel, atau proyeksi Waka.
+dan konsultasi, Keterangan dokumen mengikuti jenis layanan, serta proyeksi Waka
+tidak berubah.
 
 Gate repository dijalankan menjelang integrasi sesuai perintah pengguna.
 Penyusunan spec dan plan tidak menjalankan test, formatter, atau build.

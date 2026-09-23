@@ -64,9 +64,11 @@
   narasi yang terlihat.
 - Satu ikon kaca pembesar menggantikan ikon detail lama dan chevron. Ikon ini
   membuka baris Latar Belakang Masalah dan Penanganan; Hasil tidak diulang.
-- Sumber dan Tindak Lanjut tidak masuk laporan. Riwayat Tindak Lanjut ditunda
-  untuk pekerjaan berikutnya.
-- Preview/PDF/Excel serta proyeksi laporan Waka tidak berubah.
+- Sumber dan Tindak Lanjut tidak muncul pada tabel atau row detail. Keduanya
+  masuk kolom Keterangan preview/PDF/Excel untuk Permasalahan; Keterangan
+  Konsultasi tetap Selesai.
+- Dokumen hanya memakai tindak lanjut terbaru. Riwayat Tindak Lanjut ditunda
+  untuk pekerjaan berikutnya dan proyeksi laporan Waka tidak berubah.
 
 ## Batas dan catatan deployment
 
@@ -100,7 +102,9 @@ Verifikasi implementasi kelak mencakup:
 7. Penghapusan menu, halaman, endpoint, dan mutasi Pengalihan Permasalahan tanpa
    mengganggu owner awal serta scope akses kasus existing.
 8. Penyederhanaan tabel laporan Guru BK/Koordinator menjadi Hasil dan satu
-   kontrol detail tanpa mengubah dokumen rekap atau tampilan Waka.
+   kontrol detail tanpa mengubah tampilan Waka.
+9. Mapping Keterangan preview/PDF/Excel menjadi Sumber dan Tindak Lanjut terbaru
+   untuk Permasalahan tanpa mengubah proyeksi Waka.
 
 ## Langkah berikutnya
 
