@@ -9,9 +9,10 @@ Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 - Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
 - Jangan force push, menghapus `main`, atau reset database bersama/produksi.
 
-Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung; periksa
-[pekerjaan aktif](docs/current-work.md) sebelum mulai. Fondasi integrasi Dapodik
-dan e-Tatib sudah selesai, tetapi adapter production belum tersedia.
+Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung.
+Pekerjaan aktif ditentukan dari instruksi/issue, branch/worktree, dan plan/spec
+yang relevan. Fondasi integrasi Dapodik dan e-Tatib sudah selesai, tetapi adapter
+production belum tersedia.
 
 ## Persyaratan
 
@@ -59,9 +60,9 @@ menjalankan `migrate:fresh` atau reset pada database bersama.
 
 ## Alur kerja tim
 
-Sebelum mulai, baca [AGENTS](AGENTS.md), [pekerjaan aktif](docs/current-work.md),
-dan bagian plan yang relevan. Bila bekerja di worktree yang sudah ada, periksa
-branch dan statusnya; jangan berpindah branch ketika ada perubahan belum disimpan.
+Sebelum mulai, baca [AGENTS](AGENTS.md), periksa branch dan status repository,
+serta pertahankan perubahan yang sudah ada. Jika pekerjaan memiliki plan/spec
+aktif, baca hanya bagian yang relevan dengan task yang sedang dikerjakan.
 
 Contoh untuk checkout biasa yang bersih:
 
@@ -127,11 +128,11 @@ credential dijelaskan dalam admission gate; jangan mengganti key tanpa prosedur.
 
 ## Dokumentasi
 
-- [Indeks kebutuhan aktif PRD/SRS v1.1](docs/requirements-index.md)
+- [PRD aktif](docs/requirements/PRD_Aplikasi_BK_v1.1.md)
+- [SRS aktif](docs/requirements/SRS_Aplikasi_BK_v1.1.md)
 - [Kontrak endpoint dan service](docs/api-contract.md)
-- [Istilah data](CONTEXT.md)
-- [Riwayat pengembangan ringkas](docs/development-log.md)
+- [Admission integrasi provider](docs/integrations/provider-contract-admission.md)
 - [Arsip historis privat](https://github.com/Aflahul/sibk-docs-archive)
 
-PRD/SRS v1.0, plan selesai, dan UAT lama berada di repository arsip terpisah.
-Akses arsip memerlukan izin; histori asli juga tetap tersedia di Git aplikasi.
+Plan/spec pekerjaan berada di `docs/superpowers/` dan dibaca hanya bila relevan.
+Histori implementasi tersedia melalui Git.

@@ -25,7 +25,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 ### Otorisasi Produk
 
 - **Model otorisasi:** capability global diperiksa oleh Gate/Policy, sedangkan hak atas data diperiksa oleh query scope, periode efektif, penugasan, kepemilikan, dan policy per objek. Tidak tersedia tabel maupun endpoint permission generik.
-- **Pengujian:** [matriks otorisasi umum](testing/authorization-matrix.md) menunjuk feature test reguler untuk empat role, URL langsung, scope data, histori, privasi, dan ekspor.
+- **Pengujian:** enforcement otorisasi dibuktikan oleh feature test yang relevan terhadap requirement `AUTH-*` dan policy/query scope.
 
 ---
 
