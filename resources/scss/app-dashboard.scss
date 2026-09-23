@@ -2789,6 +2789,10 @@ small, .small {
     background: #fff !important;
     box-shadow: none;
   }
+
+  tbody tr:last-child td {
+    border-bottom: 1px solid #777;
+  }
 }
 
 .sibk-document-sheet .table-responsive {

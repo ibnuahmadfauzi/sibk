@@ -26,8 +26,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
   catatan bagi Waka; endpoint CSV portal lama dihapus dan audit pembacaan tetap
   dicatat sebagai `reports.layanan`.
 - Font tabel preview/PDF diperkecil menjadi 8 pt dan Excel menjadi 9 pt; wrapping,
-  padding, dan lebar kolom portrait dirapikan. Test, formatter, dan build tidak
-  dijalankan sesuai instruksi pengguna.
+  padding, dan lebar kolom portrait dirapikan. Garis bawah baris terakhir pada
+  tabel dokumen dipertahankan. Test, formatter, dan build tidak dijalankan sesuai
+  instruksi pengguna.
 
 ### 23 September 2026 — Orientasi dan kolom Guru BK
 

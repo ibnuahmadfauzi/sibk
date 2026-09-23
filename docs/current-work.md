@@ -38,6 +38,7 @@
 - Tabel dokumen putih polos memakai tujuh kolom: No, Hari/Tanggal, Nama/Kelas,
   Jenis Masalah, Ringkasan, Guru BK, dan Keterangan. Ringkasan mengambil
   `resolution_summary` kasus atau `result` konsultasi.
+- Garis luar tabel dokumen tetap utuh sampai sisi bawah baris terakhir.
 - Kolom Guru BK memakai owner kasus terakhir untuk Permasalahan atau pencatat
   konsultasi pada `counselor_id`.
 - Excel `.xlsx` memakai `phpoffice/phpspreadsheet:^5.10`; unduhan Word dihapus.
