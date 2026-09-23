@@ -50,7 +50,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/cases/create', [CaseController::class, 'create'])->name('cases.create');
         Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
-        Route::post('/cases/{case}/assign', [AssignmentController::class, 'assignCase'])->name('cases.assign');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
 
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
@@ -81,8 +80,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/assignments/classes', [AssignmentController::class, 'storeClassAssignment'])->name('assignments.classes.store');
         Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
             ->name('assignments.academic-years.activate');
-        Route::get('/assignments/cases', [AssignmentController::class, 'caseIndex'])->name('assignments.cases.index');
-
         Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
         Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
         Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
@@ -136,6 +133,5 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/_preview/students', LegacyPreviewController::class)->defaults('destination', 'students.index')->name('fixtures.students.index');
         Route::get('/_preview/students/show', LegacyPreviewController::class)->defaults('destination', 'students.legacy')->name('fixtures.students.show');
         Route::get('/_preview/consultations/show', LegacyPreviewController::class)->defaults('destination', 'consultations.index')->name('fixtures.consultations.show');
-        Route::get('/_preview/assignments/cases', LegacyPreviewController::class)->defaults('destination', 'assignments.cases.index')->name('fixtures.assignments.cases.index');
     });
 });

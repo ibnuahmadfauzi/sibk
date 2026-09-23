@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\AssignCaseRequest;
 use App\Http\Requests\StoreClassAssignmentRequest;
 use App\Models\AcademicYear;
-use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
@@ -16,7 +14,6 @@ use App\Services\AssignmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class AssignmentController extends Controller
 {
@@ -116,36 +113,4 @@ class AssignmentController extends Controller
             ->with('success', 'Penugasan kelas berhasil disimpan.');
     }
 
-    public function caseIndex(Request $request): View
-    {
-        /** @var User $user */
-        $user = $request->user();
-        Gate::forUser($user)->authorize('manageCaseAssignments');
-
-        $cases = BkCase::query()
-            ->whereNull('closed_at')
-            ->with(['student.classMemberships.classroom', 'temporaryStudent', 'status', 'assignments.teacher'])
-            ->latest('service_date')
-            ->get();
-        $selectedCase = $cases->firstWhere('id', $request->integer('case_id')) ?? $cases->first();
-        $counselors = User::query()
-            ->active()
-            ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
-            ->orderBy('name')
-            ->get();
-
-        return view('pages.assignments.cases.index', compact('cases', 'selectedCase', 'counselors'));
-    }
-
-    public function assignCase(
-        AssignCaseRequest $request,
-        BkCase $case,
-        AssignmentService $assignmentService,
-    ): RedirectResponse {
-        /** @var User $actor */
-        $actor = $request->user();
-        $assignmentService->assignCase($case, $request->validated(), $actor);
-
-        return redirect()->route('cases.show', $case)->with('success', 'Penugasan kasus berhasil diperbarui.');
-    }
 }

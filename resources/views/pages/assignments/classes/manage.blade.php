@@ -221,7 +221,7 @@
                     <strong>Ketentuan Tata Kelola Penugasan Guru BK:</strong>
                     <ul class="mb-0 ps-3 mt-1 text-muted">
                         <li>Penetapan penugasan baru akan mengarsipkan penugasan sebelumnya tanpa menghapus rekam jejak histori (<em>ASN-02</em>).</li>
-                        <li>Perubahan penugasan kelas di tengah tahun <strong>tidak otomatis memindahkan permasalahan aktif</strong> yang sedang berjalan (<em>ASN-03</em>). Pengalihan permasalahan khusus dilakukan terpisah melalui menu <a href="{{ route('assignments.cases.index') }}" class="text-primary fw-semibold text-decoration-none">Pengalihan Permasalahan</a>.</li>
+                        <li>Perubahan penugasan kelas di tengah tahun <strong>tidak otomatis memindahkan permasalahan aktif</strong> yang sedang berjalan (<em>ASN-03</em>). Bantuan Guru BK lain dilakukan di luar aplikasi dan pencatatan resmi tetap dilakukan Guru BK pengampu.</li>
                     </ul>
                 </div>
             </div>

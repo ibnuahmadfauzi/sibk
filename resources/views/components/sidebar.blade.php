@@ -83,14 +83,6 @@
             </a>
             @endcan
 
-            @can('manageCaseAssignments')
-            <a class="sibk-nav-link {{ request()->routeIs('assignments.cases.*') ? 'is-active' : '' }}" href="{{ route('assignments.cases.index') }}"
-                aria-current="{{ request()->routeIs('assignments.cases.*') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-                <span>Pengalihan Permasalahan</span>
-            </a>
-            @endcan
-
             @can('manageDataMaster')
                 <a class="sibk-nav-link {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}" href="{{ route('admin.users.index') }}"
                     aria-current="{{ request()->routeIs('admin.users.*') ? 'page' : 'false' }}">

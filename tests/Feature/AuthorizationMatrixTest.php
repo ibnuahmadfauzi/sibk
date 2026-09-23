@@ -29,7 +29,7 @@ class AuthorizationMatrixTest extends TestCase
     {
         yield 'Guru BK' => ['guru_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/assignments/classes' => 403,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 200,
@@ -37,7 +37,7 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Koordinator BK' => ['koordinator_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 200, '/assignments/cases' => 200,
+            '/assignments/classes' => 200,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 200,
             '/consultations' => 302, '/consultations/create' => 403,
@@ -45,7 +45,7 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/assignments/classes' => 403,
             '/achievements' => 403, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 200,
@@ -54,7 +54,7 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/assignments/classes' => 403,
             '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
