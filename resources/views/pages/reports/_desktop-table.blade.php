@@ -39,14 +39,9 @@
                 @php
                     $problem = $row['problem'] ?: '—';
                     $handling = $row['handling'] ?: '—';
-                    $problemPreview = \Illuminate\Support\Str::limit($problem, 80, '...');
-                    $handlingPreview = \Illuminate\Support\Str::limit($handling, 80, '...');
-                    $resultId = "report-result-{$row['type']}-{$row['record_id']}";
+                    $detailId = "report-detail-{$row['type']}-{$row['record_id']}";
                 @endphp
-                <tr
-                    class="sibk-report-row"
-                    data-report-record
-                >
+                <tr class="sibk-report-row">
                     <td>{{ $row['number'] }}</td>
                     <td>
                         <strong>{{ $row['day_label'] }}</strong>
@@ -62,29 +57,18 @@
                             {{ $row['service_field'] }}
                         </strong>
                     </td>
-                    <td>
-                        <span data-report-text-preview>{{ $problemPreview }}</span>
-                        <span
-                            class="d-none"
-                            data-report-text-full
-                        >{{ $problem }}</span>
-                    </td>
-                    <td>
-                        <span data-report-text-preview>{{ $handlingPreview }}</span>
-                        <span
-                            class="d-none"
-                            data-report-text-full
-                        >{{ $handling }}</span>
-                    </td>
+                    <td>{{ $row['detail_note'] }}</td>
                     <td>
                         <div class="d-flex gap-2">
                             <button
                                 class="btn btn-sm sibk-icon-button sibk-report-control"
                                 type="button"
-                                data-report-text-toggle
+                                data-report-detail-toggle
+                                data-report-detail-name="{{ $row['name'] }}"
+                                aria-controls="{{ $detailId }}"
                                 aria-expanded="false"
-                                aria-label="Tampilkan teks lengkap {{ $row['name'] }}"
-                                title="Tampilkan teks lengkap"
+                                aria-label="Tampilkan detail layanan {{ $row['name'] }}"
+                                title="Tampilkan detail layanan"
                             >
                                 <svg
                                     aria-hidden="true"
@@ -92,22 +76,6 @@
                                 >
                                     <circle cx="11" cy="11" r="7" />
                                     <path d="m16 16 5 5" />
-                                </svg>
-                            </button>
-                            <button
-                                class="btn btn-sm sibk-icon-button sibk-report-control"
-                                type="button"
-                                data-report-result-toggle
-                                aria-controls="{{ $resultId }}"
-                                aria-expanded="false"
-                                aria-label="Tampilkan hasil layanan {{ $row['name'] }}"
-                                title="Tampilkan hasil layanan"
-                            >
-                                <svg
-                                    aria-hidden="true"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path d="m6 9 6 6 6-6" />
                                 </svg>
                             </button>
                             @if($row['can_archive'])
@@ -141,17 +109,27 @@
                     </td>
                 </tr>
                 <tr
-                    class="sibk-report-result-row d-none"
-                    id="{{ $resultId }}"
+                    class="sibk-report-detail-row d-none"
+                    id="{{ $detailId }}"
                 >
                     <td
-                        class="sibk-report-result-spacer"
+                        class="sibk-report-detail-spacer"
                         aria-hidden="true"
                     ></td>
-                    <td colspan="6">
-                        <div class="sibk-report-result-panel">
-                            <strong class="d-block mb-1">Hasil Layanan</strong>
-                            <p class="mb-0">{{ $row['detail_note'] }}</p>
+                    <td colspan="5">
+                        <div class="sibk-report-detail-panel">
+                            <div class="row g-3">
+                                <div class="col-12 col-lg-6">
+                                    <strong class="d-block mb-1">
+                                        Latar Belakang Masalah
+                                    </strong>
+                                    <p class="mb-0">{{ $problem }}</p>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <strong class="d-block mb-1">Penanganan</strong>
+                                    <p class="mb-0">{{ $handling }}</p>
+                                </div>
+                            </div>
                         </div>
                     </td>
                 </tr>

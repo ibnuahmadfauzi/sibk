@@ -442,8 +442,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     'Hari/Tanggal',
                     'Nama & Kelas',
                     'Layanan/Jenis Masalah',
-                    'Latar Belakang Masalah',
-                    'Penanganan',
+                    'Hasil',
                     'Aksi',
                 ]
                 : [
