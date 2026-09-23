@@ -40,6 +40,8 @@ Keberhasilan desain ini ditandai oleh:
 8. `/assignments/classes/manage` dipertahankan sebagai redirect kompatibilitas.
 9. Fitur Pengalihan Permasalahan dihapus. Penanganan oleh Guru BK lain dilakukan
    di luar aplikasi dan pencatatan resmi tetap dilakukan Guru BK pengampu.
+10. Daftar laporan Guru BK dan Koordinator hanya menampilkan Ringkasan sebagai
+    kolom narasi. Satu ikon kaca pembesar membuka rincian narasi layanan.
 
 ## 3. Scope
 
@@ -55,6 +57,8 @@ Keberhasilan desain ini ditandai oleh:
 - migration penghapusan `teacher_assignments.decision_number`;
 - penghapusan route, UI, request, controller, service, dan kontrak Pengalihan
   Permasalahan;
+- penyederhanaan kolom serta kontrol detail pada daftar laporan Guru BK dan
+  Koordinator;
 - amendemen PRD, SRS, API contract, dan dokumentasi terkait;
 - penyesuaian seeder serta fixture yang masih mengirim `decision_number`.
 
@@ -65,6 +69,7 @@ Keberhasilan desain ini ditandai oleh:
 - penghapusan histori `teacher_assignments`;
 - menu aktivasi tahun ajaran baru;
 - dropdown kustom, library frontend baru, atau komponen JavaScript baru;
+- penayangan Sumber atau riwayat Tindak Lanjut pada daftar laporan;
 - pagination tabel kelas;
 - perubahan data audit lama;
 - perubahan policy penugasan kelas selain mempertahankan kewenangan
@@ -294,7 +299,23 @@ PRD, SRS, API contract, frontend map, serta matriks otorisasi diamendemen untuk
 menghapus kewajiban `ASN-04`/`ASN-05` dan endpoint pengalihan. Audit lama
 `case.transferred` tetap append-only dan tidak ditulis ulang.
 
-## 15. Kriteria Penerimaan
+## 15. Koreksi Daftar Laporan
+
+Daftar laporan Guru BK dan Koordinator mempertahankan kolom identitas layanan,
+tetapi kolom narasi yang terlihat hanya `Ringkasan`. Nilainya memakai
+`resolution_summary` untuk Permasalahan dan `result` untuk Konsultasi.
+
+Kontrol detail disederhanakan menjadi satu ikon kaca pembesar pada kolom Aksi.
+Ikon ini membuka satu baris rincian di bawah catatan yang memuat Latar Belakang
+Masalah, Penanganan, dan Hasil. Ikon kaca pembesar lama per narasi serta ikon
+chevron dihapus. Label aksesibel kontrol memakai istilah `detail layanan`.
+
+Sumber dan Tindak Lanjut tidak ditampilkan pada daftar maupun baris rincian
+laporan. Riwayat Tindak Lanjut menjadi pekerjaan terpisah berikutnya karena
+schema saat ini hanya menyimpan satu `follow_up_type_id` terbaru. Struktur
+preview/PDF/Excel dan proyeksi laporan Waka tidak berubah.
+
+## 16. Kriteria Penerimaan
 
 1. Semua kelas aktif pada tahun konteks muncul meskipun belum mempunyai Guru BK.
 2. Jumlah murid hanya menghitung membership aktif dan murid aktif pada tahun itu.
@@ -314,14 +335,19 @@ menghapus kewajiban `ASN-04`/`ASN-05` dan endpoint pengalihan. Audit lama
 13. Audit lama tidak ditulis ulang dan kasus aktif tidak berpindah otomatis.
 14. Menu, halaman, route, request, dan mutasi Pengalihan Permasalahan tidak lagi
     tersedia, sementara owner kasus existing tetap dapat dipakai untuk scope.
+15. Tabel laporan Guru BK dan Koordinator hanya menampilkan Ringkasan sebagai
+    narasi utama; satu ikon kaca pembesar membuka Latar Belakang Masalah,
+    Penanganan, dan Hasil tanpa menampilkan Sumber atau Tindak Lanjut.
 
-## 16. Strategi Verifikasi
+## 17. Strategi Verifikasi
 
 Verifikasi terarah harus mencakup daftar kelas kosong/terisi, jumlah murid,
 filter status, validasi role dan konteks tahun, seluruh cabang lifecycle
 penugasan, no-op, concurrency/overlap, redirect lama, readiness, aktivasi, serta
 migration pada database disposable SQLite dan MySQL. Verifikasi juga memastikan
 endpoint pengalihan tidak tersedia dan pembuatan kasus tetap mempunyai owner.
+Verifikasi laporan memastikan satu kontrol detail berfungsi pada catatan kasus
+dan konsultasi serta tidak mengubah preview, PDF, Excel, atau proyeksi Waka.
 
 Gate repository dijalankan menjelang integrasi sesuai perintah pengguna.
 Penyusunan spec dan plan tidak menjalankan test, formatter, atau build.
