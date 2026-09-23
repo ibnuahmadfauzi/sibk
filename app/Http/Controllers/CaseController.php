@@ -240,7 +240,6 @@ class CaseController extends Controller
             'canViewInternal' => $user->can('viewInternal', $case),
             'canUpdateCase' => $user->can('update', $case),
             'canArchiveCase' => $user->can('archive', $case),
-            'canAssignCase' => $user->can('assign', $case),
         ]);
     }
 

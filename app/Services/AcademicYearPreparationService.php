@@ -270,7 +270,7 @@ class AcademicYearPreparationService
 
     public function activate(AcademicYear $academicYear, User $actor): AcademicYear
     {
-        Gate::forUser($actor)->authorize('manageCaseAssignments');
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
 
         return DB::transaction(function () use ($academicYear, $actor): AcademicYear {
             $year = AcademicYear::query()->lockForUpdate()->findOrFail($academicYear->getKey());

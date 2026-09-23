@@ -7,7 +7,6 @@ namespace App\Policies;
 use App\Models\BkCase;
 use App\Models\Student;
 use App\Models\User;
-use App\Support\ServiceRecordStatus;
 
 class CasePolicy
 {
@@ -61,9 +60,4 @@ class CasePolicy
         return $this->update($user, $case);
     }
 
-    public function assign(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && $user->hasRole('koordinator_bk');
-    }
 }

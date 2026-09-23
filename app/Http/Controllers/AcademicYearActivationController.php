@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AcademicYearPreparationService;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,7 @@ class AcademicYearActivationController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        Gate::forUser($actor)->authorize('manageCaseAssignments');
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
         $service->activate($academicYear, $actor);
 
         return redirect()
