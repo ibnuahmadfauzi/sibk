@@ -60,10 +60,10 @@
 
 ## Koreksi laporan disetujui, belum diimplementasikan
 
-- Tabel laporan Guru BK dan Koordinator hanya memakai Ringkasan sebagai kolom
+- Tabel laporan Guru BK dan Koordinator hanya memakai Hasil sebagai kolom
   narasi yang terlihat.
 - Satu ikon kaca pembesar menggantikan ikon detail lama dan chevron. Ikon ini
-  membuka baris Latar Belakang Masalah, Penanganan, dan Hasil.
+  membuka baris Latar Belakang Masalah dan Penanganan; Hasil tidak diulang.
 - Sumber dan Tindak Lanjut tidak masuk laporan. Riwayat Tindak Lanjut ditunda
   untuk pekerjaan berikutnya.
 - Preview/PDF/Excel serta proyeksi laporan Waka tidak berubah.
@@ -99,7 +99,7 @@ Verifikasi implementasi kelak mencakup:
 6. Migration penghapusan `decision_number` dan pembersihan seluruh consumer.
 7. Penghapusan menu, halaman, endpoint, dan mutasi Pengalihan Permasalahan tanpa
    mengganggu owner awal serta scope akses kasus existing.
-8. Penyederhanaan tabel laporan Guru BK/Koordinator menjadi Ringkasan dan satu
+8. Penyederhanaan tabel laporan Guru BK/Koordinator menjadi Hasil dan satu
    kontrol detail tanpa mengubah dokumen rekap atau tampilan Waka.
 
 ## Langkah berikutnya

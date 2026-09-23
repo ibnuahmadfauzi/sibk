@@ -40,7 +40,7 @@ Keberhasilan desain ini ditandai oleh:
 8. `/assignments/classes/manage` dipertahankan sebagai redirect kompatibilitas.
 9. Fitur Pengalihan Permasalahan dihapus. Penanganan oleh Guru BK lain dilakukan
    di luar aplikasi dan pencatatan resmi tetap dilakukan Guru BK pengampu.
-10. Daftar laporan Guru BK dan Koordinator hanya menampilkan Ringkasan sebagai
+10. Daftar laporan Guru BK dan Koordinator hanya menampilkan Hasil sebagai
     kolom narasi. Satu ikon kaca pembesar membuka rincian narasi layanan.
 
 ## 3. Scope
@@ -302,13 +302,14 @@ menghapus kewajiban `ASN-04`/`ASN-05` dan endpoint pengalihan. Audit lama
 ## 15. Koreksi Daftar Laporan
 
 Daftar laporan Guru BK dan Koordinator mempertahankan kolom identitas layanan,
-tetapi kolom narasi yang terlihat hanya `Ringkasan`. Nilainya memakai
+tetapi kolom narasi yang terlihat hanya `Hasil`. Nilainya memakai
 `resolution_summary` untuk Permasalahan dan `result` untuk Konsultasi.
 
 Kontrol detail disederhanakan menjadi satu ikon kaca pembesar pada kolom Aksi.
 Ikon ini membuka satu baris rincian di bawah catatan yang memuat Latar Belakang
-Masalah, Penanganan, dan Hasil. Ikon kaca pembesar lama per narasi serta ikon
-chevron dihapus. Label aksesibel kontrol memakai istilah `detail layanan`.
+Masalah dan Penanganan. Hasil tidak diulang di baris rincian. Ikon kaca pembesar
+lama per narasi serta ikon chevron dihapus. Label aksesibel kontrol memakai
+istilah `detail layanan`.
 
 Sumber dan Tindak Lanjut tidak ditampilkan pada daftar maupun baris rincian
 laporan. Riwayat Tindak Lanjut menjadi pekerjaan terpisah berikutnya karena
@@ -335,9 +336,9 @@ preview/PDF/Excel dan proyeksi laporan Waka tidak berubah.
 13. Audit lama tidak ditulis ulang dan kasus aktif tidak berpindah otomatis.
 14. Menu, halaman, route, request, dan mutasi Pengalihan Permasalahan tidak lagi
     tersedia, sementara owner kasus existing tetap dapat dipakai untuk scope.
-15. Tabel laporan Guru BK dan Koordinator hanya menampilkan Ringkasan sebagai
-    narasi utama; satu ikon kaca pembesar membuka Latar Belakang Masalah,
-    Penanganan, dan Hasil tanpa menampilkan Sumber atau Tindak Lanjut.
+15. Tabel laporan Guru BK dan Koordinator hanya menampilkan Hasil sebagai
+    narasi utama; satu ikon kaca pembesar membuka Latar Belakang Masalah dan
+    Penanganan tanpa menampilkan Sumber atau Tindak Lanjut.
 
 ## 17. Strategi Verifikasi
 
