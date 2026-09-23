@@ -91,11 +91,11 @@ class DashboardService
         $scopeText = match ($mode) {
             'coordinator' => sprintf('Rekap tata kelola %d Guru BK aktif', User::query()->active()->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))->count()),
             'teacher' => $this->teacherScope($user, $year),
-            default => 'Tampilan koordinasi hanya-baca dari seluruh kasus aktif sekolah',
+            default => 'Tampilan koordinasi hanya-baca dari seluruh permasalahan aktif sekolah',
         };
         $activeCases = (clone $cases)->whereNull('closed_at')->count();
         $stats = [
-            ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan kasus aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
+            ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan permasalahan aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
             ['label' => $mode === 'waka' ? 'Seluruh permasalahan aktif' : 'Permasalahan aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
             ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => 'Perlu ditindaklanjuti', 'tone' => 'success', 'kind' => 'schedule'],
             ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Mirror read-only dalam kewenangan', 'tone' => 'info', 'kind' => 'etatib'],
@@ -109,7 +109,7 @@ class DashboardService
             'user_name' => $user->name,
             'scope' => $scopeText,
             'read_only' => $mode === 'waka',
-            'description' => $mode === 'waka' ? 'Ringkasan seluruh kasus aktif sekolah — tampilan hanya-baca tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
+            'description' => $mode === 'waka' ? 'Ringkasan seluruh permasalahan aktif sekolah — tampilan hanya-baca tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
             'stats' => $stats,
             'schedule_title' => $mode === 'waka' ? 'Permasalahan aktif sekolah' : 'Permasalahan Tindak Lanjut',
             'schedule_url' => $mode === 'waka' ? route('waka.monitoring.handling') : route('cases.index'),

@@ -1258,7 +1258,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($assignedTeacher)->get(route('cases.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
-            ->assertSee('Buat Kasus');
+            ->assertSee('Catat Permasalahan');
         $this->actingAs($assignedTeacher)->get(route('consultations.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')

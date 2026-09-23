@@ -57,13 +57,13 @@ class DashboardTest extends TestCase
         $service = app(DashboardService::class);
         $teacherDashboard = $service->forUser($teacherA, $this->year);
         $this->assertSame('1', $this->stat($teacherDashboard, 'Murid dalam cakupan'));
-        $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus aktif'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Permasalahan aktif'));
         $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kelas ampuan'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus khusus aktif'));
-        $this->assertSame('1', $this->stat($teacherDashboard, 'Kasus Tindak Lanjut'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Permasalahan khusus aktif'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Permasalahan Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Permasalahan Tindak Lanjut'));
         $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['title']);
-        $this->assertSame('Layanan kasus', $teacherDashboard['tindak_lanjut'][0]['code']);
+        $this->assertSame('Layanan permasalahan', $teacherDashboard['tindak_lanjut'][0]['code']);
         $this->assertSame('Tindak Lanjut', $teacherDashboard['tindak_lanjut'][0]['status']);
         $this->assertStringContainsString($studentA->name, $teacherDashboard['tindak_lanjut'][0]['context_label']);
         $this->assertStringNotContainsString($studentB->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
@@ -72,15 +72,15 @@ class DashboardTest extends TestCase
         $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator');
         $coordinatorDashboard = $service->forUser($coordinator, $this->year);
         $this->assertSame('2', $this->stat($coordinatorDashboard, 'Murid dalam cakupan'));
-        $this->assertSame('2', $this->stat($coordinatorDashboard, 'Kasus aktif'));
+        $this->assertSame('2', $this->stat($coordinatorDashboard, 'Permasalahan aktif'));
         $this->assertSame('2', $this->contextValue($coordinatorDashboard, 'Guru BK aktif'));
         $this->assertSame('0', $this->contextValue($coordinatorDashboard, 'Kelas tanpa penugasan'));
-        $this->assertSame('1', $this->stat($coordinatorDashboard, 'Kasus Tindak Lanjut'));
-        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Kasus Tindak Lanjut'));
+        $this->assertSame('1', $this->stat($coordinatorDashboard, 'Permasalahan Tindak Lanjut'));
+        $this->assertSame('1', $this->contextValue($coordinatorDashboard, 'Permasalahan Tindak Lanjut'));
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
-        $this->assertSame('2', $this->stat($wakaDashboard, 'Kasus berjalan'));
+        $this->assertSame('2', $this->stat($wakaDashboard, 'Permasalahan berjalan'));
         $this->assertStringContainsString($studentA->name, json_encode($wakaDashboard['latest'], JSON_THROW_ON_ERROR));
         $this->assertStringContainsString($studentB->name, json_encode($wakaDashboard['latest'], JSON_THROW_ON_ERROR));
 
@@ -135,7 +135,7 @@ class DashboardTest extends TestCase
 
         $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('Tidak ada kasus berstatus Tindak Lanjut.')
+            ->assertSee('Tidak ada permasalahan berstatus Tindak Lanjut.')
             ->assertDontSee('Tidak ada jadwal tindak lanjut dalam waktu dekat.');
     }
 
@@ -158,7 +158,7 @@ class DashboardTest extends TestCase
         $dashboard = app(DashboardService::class)->forUser($teacher, $this->year);
 
         $this->assertSame('0', $this->stat($dashboard, 'Murid dalam cakupan'));
-        $this->assertSame('1', $this->stat($dashboard, 'Kasus aktif'));
+        $this->assertSame('1', $this->stat($dashboard, 'Permasalahan aktif'));
     }
 
     public function test_teacher_quick_actions_provide_an_allowed_icon_and_tone(): void
