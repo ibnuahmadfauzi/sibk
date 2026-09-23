@@ -41,9 +41,9 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 
 | **Objek/tindakan**  | **Guru BK**                                           | **Koordinator BK**                                    | **Waka Kesiswaan**                                  | **Admin IT**                   |
 |---------------------|-------------------------------------------------------|-------------------------------------------------------|-----------------------------------------------------|--------------------------------|
-| Daftar/profil murid | Scope aktif dan kasus khusus; termasuk histori murid. | Sesuai scope Guru BK/penugasan. | Proyeksi portal hanya-baca sesuai allowlist. | Master untuk tugas teknis. |
-| Kasus BK            | Buat, baca, ubah sebagai penanggung jawab aktif.      | Alihkan penanggung jawab; baca bila berwenang. | Proyeksi detail seluruh kasus/konsultasi hanya-baca. | Tidak otomatis. |
-| Konsultasi sensitif | Baca bila scope murid aktif atau kasus khusus.        | Tidak otomatis di luar scope Guru BK.                 | Tidak otomatis; isi lengkap dikecualikan.           | Tidak.                         |
+| Daftar/profil murid | Scope aktif dan kasus yang menjadi tanggung jawabnya; termasuk histori murid. | Sesuai scope Guru BK/penugasan. | Proyeksi portal hanya-baca sesuai allowlist. | Master untuk tugas teknis. |
+| Kasus BK            | Buat, baca, ubah sebagai penanggung jawab aktif.      | Baca sesuai kewenangan; tidak mengalihkan owner kasus. | Proyeksi detail seluruh kasus/konsultasi hanya-baca. | Tidak otomatis. |
+| Konsultasi sensitif | Baca bila murid berada dalam scope profesional yang sah. | Tidak otomatis di luar scope Guru BK.                 | Tidak otomatis; isi lengkap dikecualikan.           | Tidak.                         |
 | Penugasan           | Lihat penugasannya.                                   | Buat/ubah berdasarkan keputusan resmi.                | Lihat ringkasan tata kelola.                        | Dukungan teknis.               |
 | Edit/arsip layanan  | Hanya sebagai pemilik catatan yang masih berwenang.    | Tidak mengubah catatan profesional milik Guru BK.     | Tidak.                                              | Tidak.                         |
 | Proses keluar murid | Catat rencana untuk murid dalam scope.                 | Putuskan batal atau resmi keluar.                     | Baca daftar/detail operasional tanpa mutasi.        | Tidak membaca isi layanan BK.  |
@@ -54,7 +54,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 
 - Koordinator BK menjadi penanggung jawab operasional Aplikasi BK.
 
-- Koordinator yang merangkap Guru BK tetap memperoleh akses sensitif hanya melalui scope Guru BK atau penugasan kasus.
+- Koordinator yang merangkap Guru BK tetap memperoleh akses sensitif hanya melalui scope Guru BK yang sah; fungsi Koordinator tidak memperluas akses privat.
 
 - Waka aktif memperoleh proyeksi detail seluruh kasus dan konsultasi yang disetujui; seluruh akses tetap hanya-baca dan dicatat pada audit.
 
@@ -71,7 +71,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | **ID**  | **Kebutuhan**                                                                                             | **Pri.** | **Kriteria penerimaan**                                                                                 |
 |---------|-----------------------------------------------------------------------------------------------------------|----------|---------------------------------------------------------------------------------------------------------|
 | AUTH-01 | Pengguna harus masuk dengan akun aktif sebelum mengakses data BK.                                         | P0       | Data operasional tidak tersedia tanpa sesi sah.                                                         |
-| AUTH-02 | Guru BK hanya dapat mengakses murid dalam scope aktif dan kasus khusus yang ditugaskan.                   | P0       | Daftar, pencarian, detail, dashboard, laporan, ekspor, URL, dan API memakai batas yang sama.            |
+| AUTH-02 | Guru BK hanya dapat mengakses murid dalam scope aktif dan kasus yang menjadi tanggung jawabnya.                   | P0       | Daftar, pencarian, detail, dashboard, laporan, ekspor, URL, dan API memakai batas yang sama.            |
 | AUTH-03 | Server harus memeriksa kewenangan pada setiap objek, bagian data, dan tindakan sensitif.                  | P0       | Permintaan langsung di luar kewenangan ditolak tanpa membocorkan isi objek.                             |
 | AUTH-04 | Isi konsultasi hanya dapat dibaca Guru BK dalam scope profesional, Koordinator sesuai proyeksi, atau Waka aktif melalui proyeksi detail yang disetujui. | P0 | Admin IT tidak memperoleh isi layanan; akses Waka selalu hanya-baca dan diaudit. |
 | AUTH-05 | Waka aktif harus dapat `viewAny` dan `view` seluruh kasus serta konsultasi melalui proyeksi allowlist hanya-baca. | P0 | Server menolak `create`, `update`, `archive`, `resolve`, dan perubahan tindak lanjut oleh Waka; pembacaan detail dicatat. |
@@ -106,10 +106,10 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | ASN-01 | Koordinator harus dapat menetapkan Guru BK untuk kelas dan tahun ajaran tertentu.                                     | P0       | Penugasan menyimpan periode efektif dan dasar keputusan.                                       |
 | ASN-02 | Penugasan baru tidak boleh menimpa riwayat lama.                                                                      | P0       | Riwayat penanggung jawab tetap dapat ditelusuri.                                               |
 | ASN-03 | Koordinator harus dapat mengubah penugasan di tengah tahun.                                                           | P0       | Perubahan memiliki tanggal efektif dan audit; kasus aktif tidak berpindah otomatis.            |
-| ASN-04 | Koordinator harus dapat menetapkan penanggung jawab pada kasus khusus di luar scope kelas.                            | P0       | Kasus hanya mempunyai satu penanggung jawab aktif; penetapan menyimpan alasan dan histori.     |
-| ASN-05 | Pengalihan kasus aktif harus dilakukan secara eksplisit dan atomik.                                                   | P0       | Dalam satu transaksi sistem mengunci kasus serta seluruh assignment owner, memvalidasi satu owner aktif, menutup periode lama, membuat owner baru, lalu menyimpan audit; kegagalan me-rollback seluruh perubahan. |
 | ASN-06 | Rolling atau perubahan pembagian dua tahunan tidak boleh dijalankan otomatis.                                         | P0       | Sistem hanya mencatat keputusan resmi yang dimasukkan Koordinator.                             |
 | REF-01 | Nilai referensi layanan harus dapat dikelola tanpa mengubah kode.                                                     | P0       | Bidang layanan, jenis tindak lanjut, dan status disimpan sebagai data referensi.               |
+
+Kasus baru tetap memperoleh satu owner ketika dibuat. Pergantian penugasan kelas tidak memindahkan kasus aktif. Bantuan Guru BK lain dilakukan di luar aplikasi dan pencatatan resmi tetap dilakukan Guru BK pengampu. Owner serta histori penanggung jawab yang sudah tersimpan tetap dipertahankan untuk kebutuhan scope akses dan audit.
 
 ## Kasus dan tindak lanjut
 
@@ -127,7 +127,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | CASE-10 | Sistem membedakan waktu pencatatan, tanggal layanan, dan tanggal penyelesaian. | P0 | Tidak ada tanggal rencana/pelaksanaan tindak lanjut. |
 | CASE-11 | Catatan internal harus opsional dan hanya dapat dibaca pengguna berwenang.                                        | P0       | Tidak tampil pada laporan umum atau Waka secara otomatis.                                                                        |
 | CASE-12 | Penyelesaian kasus dilakukan dari edit kasus. | P0 | Hanya `action=complete` yang mewajibkan Catatan Penyelesaian, menetapkan status Selesai dan `closed_at` tanggal server; `action=save` hanya menyimpan field yang diubah. |
-| CASE-13 | Hanya Guru BK penanggung jawab aktif yang dapat mengubah atau mengarsipkan kasus.                                 | P0       | Policy dan service menolak Guru lain, termasuk pemegang akses tambahan lama; Koordinator hanya mengatur penugasan.               |
+| CASE-13 | Hanya Guru BK penanggung jawab aktif yang dapat mengubah atau mengarsipkan kasus. | P0 | Policy dan service menolak Guru lain, termasuk pemegang akses tambahan lama; fungsi Koordinator tidak memberikan hak mengubah, mengarsipkan, atau mengalihkan owner kasus. |
 | CASE-14 | Kasus selesai hanya dapat diedit pemilik setelah konfirmasi. | P0 | Tidak ada alasan perubahan tambahan; identitas, pemilik, dan status terminal tetap; perubahan diaudit dan arsip memakai soft delete. |
 | CASE-15 | Kode kasus harus dipertahankan sebagai identitas internal dan disembunyikan dari keluaran pengguna.              | P0       | Kode tetap unik di database tetapi tidak muncul pada UI, pencarian pengguna, laporan, ekspor, dashboard, atau audit yang ditampilkan. |
 | CASE-16 | Tindak lanjut memakai `follow_up_type_id` nullable dari reference aktif kategori `follow_up_type`. | P0 | Hanya Surat Panggilan Orang Tua, Surat Pernyataan, Home Visit, dan Pengunduran Diri yang aktif; perubahan langsung memakai lock dan audit. |
@@ -163,7 +163,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 
 | **ID**  | **Kebutuhan**                                                                                                     | **Pri.** | **Kriteria penerimaan**                                                                          |
 |---------|-------------------------------------------------------------------------------------------------------------------|----------|--------------------------------------------------------------------------------------------------|
-| DASH-01 | Dashboard harus mengikuti peran, scope murid, dan penugasan kasus. | P0 | Hitungan dan tautan tidak memuat data di luar kewenangan. |
+| DASH-01 | Dashboard harus mengikuti peran, scope profesional, dan kepemilikan kasus yang sah. | P0 | Hitungan dan tautan tidak memuat data di luar kewenangan. |
 | DASH-02 | Dashboard harus menampilkan konteks operasional sesuai fungsi akun tanpa membaca daftar audit.                    | P0       | Guru BK melihat cakupan layanan; Koordinator melihat kesiapan penugasan; Admin IT melihat kesiapan data/integrasi tanpa isi layanan BK. |
 | DASH-03 | Dashboard Waka harus menampilkan kondisi layanan BK tingkat sekolah dari proyeksi aman seluruh kasus.              | P0       | Dashboard menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, serta akses baca proses keluar; tidak memuat field sensitif dan tidak menyediakan aksi ubah. |
 | DASH-04 | Form tambah/edit data bisnis menggunakan autosave lokal yang aman. | P0 | Draft per pengguna/form/record ber-TTL 24 jam, tidak dikirim/audit, dan mengecualikan password, token, credential, file, CSRF, serta method spoofing. |
@@ -216,7 +216,7 @@ Rekap ditandatangani Koordinator BK dan Waka Kesiswaan. Dokumen kasus ditandatan
 | Murid                     | Referensi profil, kasus, layanan, konsultasi, dan prestasi.                  |
 | Data e-Tatib              | Referensi eksternal pelanggaran dan poin resmi.                              |
 | Kasus                     | Wadah penanganan dari informasi awal sampai penyelesaian.                    |
-| Penugasan Kasus           | Satu pemilik aktif, pengalihan eksplisit, dan riwayat penanggung jawab.      |
+| Kepemilikan Kasus           | Owner kasus dan histori penanggung jawab yang sudah tercatat untuk kebutuhan scope akses dan audit; aplikasi tidak menyediakan perubahan atau pengalihan owner kasus setelah pembuatan.      |
 | Tindak Lanjut             | Klasifikasi terkini pada kasus melalui `follow_up_type_id`.                  |
 | Konsultasi                | Layanan mandiri terkait murid dengan tiga narasi layanan dan batas akses.    |
 | Prestasi                  | Riwayat prestasi, bukti yang diizinkan, dan verifikasi.                      |

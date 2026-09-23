@@ -17,7 +17,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - Proyeksi detail Waka memakai field layanan aktual yang diizinkan, tanpa `waka_summary`, catatan internal, atau payload provider mentah.
 - Route baru lifecycle pelayanan dimiliki `routes/bk-services.php`; route portal Waka dimiliki `routes/waka.php`. Keduanya dimuat di dalam middleware `auth` dan `account.active`.
 - Jalur B memakai nama route `cases.edit` untuk `GET /cases/{case}/edit` dan `cases.update` untuk `PATCH /cases/{case}`.
-- Portal Waka memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases` dan halaman bersama `reports.index` untuk `GET /reports`. `GET /waka/reports` serta `GET /waka/handling-reports` hanya menjadi pengalihan kompatibilitas ke `/reports`.
+- Portal Waka memakai `waka.monitoring.students` untuk `GET /waka/students-with-cases` dan halaman bersama `reports.index` untuk `GET /reports`. `GET /waka/reports` serta `GET /waka/handling-reports` hanya menjadi redirect kompatibilitas ke `/reports`.
 - Filter daftar murid menerima `period` (`YYYY-MM`), `status`, `sort`, `direction`, dan `page`. Daftar laporan Waka memakai `academic_year_id`, `classroom_id`, `service_type`, `per_page`, dan `page` yang sama dengan laporan operasional.
 - Waka aktif dapat membaca seluruh kasus dan konsultasi melalui policy/query scope khusus; route portal Waka tidak menyediakan tindakan mutasi.
 - Autosave form tambah/edit data bisnis memakai `localStorage` per pengguna/form/record selama maksimal 24 jam, tidak dikirim atau diaudit, dan mengecualikan password, token, credential, file, CSRF, serta method spoofing.
@@ -70,7 +70,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 ### Daftar dan Form Kasus
 - **Endpoint:** `GET /cases`, `GET /cases/create`
 - **Controller:** `CaseController@index`
-- **Authorization:** `Guru BK` (scope kelas aktif/kasus khusus), `Koordinator BK` (semua kasus), dan Waka aktif (proyeksi hanya-baca seluruh kasus).
+- **Authorization:** `Guru BK` (scope profesional yang diizinkan), `Koordinator BK` (semua kasus), dan Waka aktif (proyeksi hanya-baca seluruh kasus).
 - **Query Params:** `search` (nama), `status_id`, `sort`, `direction`, `tab`, dan `page`; sort memakai allowlist dan ID sebagai tie-breaker.
 - **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
@@ -101,7 +101,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Form Request:** `UpdateCaseRequest`.
 - **Field:** `initial_info`, `initial_action`, `resolution_summary`, `expected_updated_at`, dan `action=save|complete`.
 - **Field tetap:** murid/identitas sementara, kode internal, sumber kasus, tautan e-Tatib, pemilik, dan status terminal tidak dapat diubah melalui form ini.
-- **Authorization:** hanya Guru BK pemilik aktif. Koordinator mengatur penugasan tetapi tidak mengubah catatan profesional.
+- **Authorization:** hanya Guru BK pemilik aktif. Fungsi Koordinator tidak memberikan hak mengubah catatan profesional atau mengalihkan owner kasus.
 - **Edit selesai:** memerlukan konfirmasi; setiap narasi maksimal 10.000 karakter. `action=complete` mewajibkan `resolution_summary`, menetapkan `closed_at` dari server, dan audit menyimpan hanya field berubah.
 - **Payload update:**
 
@@ -121,7 +121,7 @@ Kontrak berikut dibekukan sebelum Jalur A, B, dan C mulai bekerja:
 - **Controller:** `CaseController@show`
 - **Authorization:** `CasePolicy@view`
   - Waka Kesiswaan membaca proyeksi hanya-baca seluruh kasus tanpa catatan internal atau payload e-Tatib mentah.
-  - Koordinator melihat ringkasan lintas kasus; catatan internal hanya terlihat jika juga memiliki penugasan Guru BK aktif pada kasus.
+  - Koordinator melihat ringkasan lintas kasus; catatan internal hanya terlihat jika juga berperan sebagai Guru BK dan merupakan owner aktif kasus tersebut.
   - Admin IT tidak memiliki akses daftar/detail kasus hanya karena role teknis.
 
 ### Riwayat koordinasi Waka (dipensiunkan Revisi 3.2)
@@ -177,7 +177,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ### Daftar dan profil murid
 - **Endpoint:** `GET /students`; `GET /students/{student}`. URL kompatibilitas `GET /students/show?nisn=...` mengalihkan ke profil database setelah policy disetujui.
 - **Controller:** `StudentController@index`, `StudentController@show`, `StudentController@legacy`.
-- **Authorization:** Guru BK melihat murid dari penugasan kelas atau kasus aktif; Koordinator melihat ringkasan; Waka memakai proyeksi portalnya dan Admin IT diarahkan menggunakan Data Master.
+- **Authorization:** Guru BK melihat murid dari penugasan kelas atau kasus yang menjadi tanggung jawabnya; Koordinator melihat ringkasan; Waka memakai proyeksi portalnya dan Admin IT diarahkan menggunakan Data Master.
 - **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi serta prestasi yang diizinkan, dan statistik berbasis scope. Proyeksi Waka tidak memuat payload e-Tatib mentah atau catatan internal.
 
 ### Pencatatan dan verifikasi prestasi
@@ -224,12 +224,6 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Business Logic:** `AcademicYearPreparationService::activate()` memakai pemeriksaan blocking yang sama dengan `activationReadiness()`. Tahun lengkap sebelum tanggal mulai berstatus `scheduled`; direct request aktivasi ditolak. Aktivasi yang sah menutup tahun ajaran aktif sebelumnya tanpa menghapus histori atau mengubah `master_source`.
 - **Batas provider:** nilai tahun aktif dari Dapodik tidak pernah mengaktifkan atau mengganti tahun ajaran Ruang BK.
 
-### Pengalihan / Penugasan Kasus Khusus
-- **Endpoint:** `GET /assignments/cases`, `POST /cases/{case}/assign`
-- **Controller:** `AssignmentController@assignCase`
-- **Authorization:** `Koordinator BK` only.
-- **Request:** `assignment_type=transfer`, `to_user_id`, `reason`, `effective_date`.
-- **Business Logic:** `AssignmentService::assignCase()` menjalankan pengalihan dalam satu transaksi: lock kasus; tolak status terminal; lock seluruh assignment owner; pastikan satu owner aktif pada tanggal berlaku; tutup owner lama satu hari sebelum tanggal berlaku; buat satu owner baru; lalu tulis audit. Kegagalan tahap mana pun me-rollback seluruh perubahan. Assignment `additional` lama dipertahankan sebagai histori/akses baca tetapi tidak dapat mengubah kasus dan tidak dibuat lagi. Target wajib Guru BK aktif.
 
 ---
 
@@ -338,7 +332,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Controller:** `DashboardController@index`.
 - **Query Params:** `academic_year_id` (opsional; harus merujuk tahun ajaran yang tersedia).
 - **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
-  - Guru BK menerima cakupan kelas, kasus khusus aktif, dan kasus berstatus Tindak Lanjut.
+  - Guru BK menerima data dalam cakupan profesional yang diizinkan, termasuk kasus yang menjadi tanggung jawabnya dan kasus dalam cakupan tersebut yang berstatus Tindak Lanjut.
   - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan efektif, dan jumlah kasus Tindak Lanjut tanpa catatan internal.
   - Waka Kesiswaan menerima agregat aman seluruh kasus sekolah dan tautan detail hanya-baca untuk kasus serta konsultasi sesuai proyeksi allowlist.
   - Admin IT hanya menerima kesiapan akun, tahun ajaran, sinkronisasi, konflik sumber, dan status provider tanpa identitas atau isi layanan BK.
@@ -381,7 +375,7 @@ terlihat pada dashboard serta halaman operasional terkait.
   - `page`: integer minimum 1 dan hanya berlaku pada daftar.
   - `format`: hanya `xlsx`; hanya berlaku pada endpoint ekspor.
 - **Authorization:** `ReportPolicy::viewAny` mengizinkan Guru BK, Koordinator BK, dan Waka. `ReportPolicy::viewDocument` mengizinkan Koordinator serta Guru BK yang tidak merangkap Waka; Admin IT ditolak. Akun Waka+Guru tetap memakai proyeksi Waka tanpa dokumen agar cakupan seluruh sekolah tidak berpindah ke kemampuan cetak Guru BK; Koordinator tetap memperoleh dokumen sesuai kewenangannya.
-- **Business Logic:** `OperationalReportRecapService` menyatukan query `BkCase::accessibleTo()` dan `Consultation::accessibleTo()` sebagai satu row per catatan. Guru BK dibatasi scope profesional atau kasus khusus; Koordinator memperoleh gabungan yang diizinkan.
+- **Business Logic:** `OperationalReportRecapService` menyatukan query `BkCase::accessibleTo()` dan `Consultation::accessibleTo()` sebagai satu row per catatan. Guru BK dibatasi scope profesional atau kasus yang menjadi tanggung jawabnya; Koordinator memperoleh gabungan yang diizinkan.
 - **Kolom:** No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Hasil; Aksi. UI Guru BK/Koordinator menampilkan jenis catatan kecil sebagai `Permasalahan|Konsultasi` tanpa kata `Catatan`, lalu label bidang layanan lebih besar dan tebal. Satu ikon kaca pembesar membuka baris detail Latar Belakang Masalah dan Penanganan; Hasil tidak diulang pada baris detail.
 - **Ringkasan:** dihitung dari seluruh query terscope setelah filter tahun ajaran, kelas, dan jenis layanan, sebelum pagination. Total Catatan selalu tampil. Permasalahan atau Konsultasi yang tidak relevan dengan filter jenis layanan disembunyikan. UI memakai kartu angka; preview/PDF dan Excel memakai kalimat naratif yang menjelaskan total serta komposisi hasil filter.
 - **Mapping:** kasus memakai `resolution_summary` sebagai Hasil, `initial_info` sebagai Latar Belakang Masalah, dan `initial_action` sebagai Penanganan. Konsultasi memakai `result` sebagai Hasil, `problem` sebagai Latar Belakang Masalah, dan `handling` sebagai Penanganan. `internal_note` kasus tidak masuk laporan.

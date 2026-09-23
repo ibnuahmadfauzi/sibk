@@ -94,8 +94,8 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 | **Peran**      | **Tanggung jawab**                                                                                                                              | **Batas akses**                                                                                                                                                 |
 |----------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Guru BK        | Mengelola layanan untuk kelas ampuan dan kasus khusus; membaca histori murid dalam scope aktif; serta mencatat rencana proses keluar murid. | Tidak mengakses murid di luar tanggung jawabnya dan tidak mengubah atau mengarsipkan catatan profesional milik Guru BK sebelumnya. |
-| Koordinator BK | Penanggung jawab operasional; mengatur pembagian, kasus khusus, pengalihan, keputusan akhir proses keluar, aktivasi tahun ajaran setelah penugasan lengkap, serta rekap gabungan seluruh Guru BK aktif. | Jabatan koordinator tidak otomatis membuka konsultasi sensitif atau mengubah catatan profesional Guru BK. Jika merangkap Guru BK, akses sensitif tetap mengikuti scope Guru BK. |
+| Guru BK        | Mengelola layanan untuk kelas ampuan dan kasus yang menjadi tanggung jawabnya; membaca histori murid dalam scope aktif; serta mencatat rencana proses keluar murid. | Tidak mengakses murid di luar tanggung jawabnya dan tidak mengubah atau mengarsipkan catatan profesional milik Guru BK sebelumnya. |
+| Koordinator BK | Penanggung jawab operasional; mengatur pembagian Guru BK, keputusan akhir proses keluar, aktivasi tahun ajaran setelah penugasan lengkap, serta rekap gabungan seluruh Guru BK aktif. | Jabatan koordinator tidak otomatis membuka konsultasi sensitif atau mengubah catatan profesional Guru BK. Jika merangkap Guru BK, akses sensitif tetap mengikuti scope Guru BK. |
 | Waka Kesiswaan | Memantau kondisi layanan BK tingkat sekolah serta membaca proses keluar murid melalui Dashboard, Murid dengan Kasus, dan Laporan bertab. | Hanya-baca. Detail kasus dan konsultasi memakai proyeksi allowlist yang diaudit; tidak mengubah proses keluar/catatan profesional, tidak mengakses payload provider mentah, dokumen sensitif, kode kasus, atau NISN. |
 | Admin IT       | Mengelola akun dan password sementara, infrastruktur, konfigurasi koneksi PG-501, persiapan data tahun ajaran berdasarkan dasar resmi sekolah, sinkronisasi, pratinjau pencocokan, rekonsiliasi identitas, dan kesalahan master melalui sumber resmi. | Hak teknis tidak otomatis memberi akses ke isi kasus, layanan, konsultasi, atau proses keluar; credential dan password tidak ditampilkan kembali. |
 | Wali kelas     | Pengguna tahap P1 untuk informasi terbatas pada kelasnya.                                                                                       | Batas informasi ditetapkan sebelum P1 dibangun.                                                                                                                 |
@@ -105,7 +105,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 - Rolling atau perubahan pembagian dua tahunan hanya dicatat Koordinator BK berdasarkan keputusan resmi dan tidak dijalankan otomatis oleh sistem.
 
-- Kasus aktif hanya dialihkan secara eksplisit, dengan penanggung jawab lama, penerima, alasan, waktu berlaku, dan audit.
+- Kasus baru memperoleh satu owner saat dibuat. Pergantian penugasan kelas tidak memindahkan kasus aktif. Bantuan Guru BK lain dilakukan di luar aplikasi dan pencatatan resmi tetap dilakukan Guru BK pengampu.
 
 - Hak membaca histori murid tidak memberi hak mengubah catatan layanan lama.
 
@@ -116,7 +116,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | **Area**                       | **Cakupan**                                                                                            | **Urutan**  |
 |--------------------------------|--------------------------------------------------------------------------------------------------------|-------------|
 | Akses dan akun                 | Login, akun aktif, password sementara unik, wajib ganti password, pengelolaan akun oleh Admin IT, dan pembatasan akses per peran serta objek. | Inti        |
-| Penugasan                      | Pembagian Guru BK per kelas, periode efektif, perubahan resmi, kasus khusus, dan pengalihan eksplisit. | Inti        |
+| Penugasan                      | Pembagian Guru BK per kelas, periode efektif, dan perubahan resmi. | Inti        |
 | Master dan identitas sementara | Master Dapodik; data persiapan sementara tahun ajaran dengan impor minimum NISN, nama, dan rombel; serta identitas sementara ketika kasus muncul sebelum sinkronisasi. | Inti        |
 | Proses keluar murid            | Satu proses per murid, pencatatan awal oleh Guru BK, keputusan akhir Koordinator, dan akses baca Waka. | Inti        |
 | Kasus dan tindak lanjut        | Pembuatan kasus, penanganan awal, satu klasifikasi tindak lanjut terkini, dan penyelesaian.              | Inti        |
@@ -190,7 +190,7 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Waka                | Waka aktif membaca proyeksi detail kasus dan konsultasi yang disetujui, tanpa aksi buat, ubah, selesai, tindak lanjut, atau arsip. Koordinasi berlangsung di luar aplikasi dan tidak dicatat sebagai fitur/data layanan. |
 | Autosave dan konflik | Form tambah/edit data bisnis menyimpan draft lokal per pengguna/form/record maksimal 24 jam tanpa mengirim atau mengaudit draft. Simpan resmi memakai `updated_at` dan menolak konflik agar perubahan tidak saling menimpa. |
 | Daftar layanan      | Daftar kasus dan konsultasi hanya menerima search/filter/sorting yang berada pada allowlist server dengan arah `asc`/`desc` dan tie-breaker ID. |
-| Penugasan           | Setiap kasus memiliki satu penanggung jawab aktif. Pengalihan menutup pemilik lama dan membuka pemilik baru secara atomik dalam satu transaksi; perubahan menyimpan tanggal efektif dan dasar keputusan. Kasus aktif tidak berpindah otomatis akibat pergantian kelas atau tahun ajaran. |
+| Penugasan           | Kasus baru memperoleh satu owner saat dibuat. Owner dan histori penanggung jawab yang sudah tercatat tetap dipertahankan untuk scope akses. Aplikasi tidak menyediakan pengalihan owner kasus; pergantian kelas atau tahun ajaran tidak memindahkan kasus aktif. |
 | Edit dan arsip      | Tombol Hapus mengarsipkan kasus/konsultasi dengan soft delete. Kesalahan data master dikoordinasikan di luar aplikasi, diperbaiki pada sumber resmi, lalu masuk melalui sinkronisasi atau rekonsiliasi. |
 | Proses keluar murid | Pencatatan awal selalu `dalam_proses`; hanya Koordinator menetapkan `batal` atau `resmi_keluar`. Hanya `resmi_keluar` dengan tanggal efektif yang menghentikan layanan baru dan memulai retensi. Provider tidak menentukan status ini. |
 | Audit               | Setiap simpan resmi mencatat actor, waktu, tipe/ID record, serta nilai sebelum/sesudah hanya untuk field yang berubah. Pembacaan detail Waka dicatat; draft lokal tidak membuat audit. |
@@ -206,14 +206,14 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 | Layanan BK          | Daftar kasus, pembuatan kasus, penanganan, klasifikasi tindak lanjut, konsultasi mandiri, dan penyelesaian. |
 | Data Murid          | Profil serta histori pelanggaran, kasus, layanan, konsultasi, tindak lanjut, dan prestasi yang diizinkan. |
 | Laporan             | Guru BK dan Koordinator memakai daftar catatan kasus/konsultasi dan preview rekap sesuai scope. Waka memakai daftar yang sama dalam mode hanya-baca tanpa preview, cetak, unduhan, atau aksi. |
-| Penugasan           | Pembagian kelas, periode efektif, kasus khusus, pengalihan, dan dasar keputusan resmi.                    |
+| Penugasan           | Pembagian kelas, periode efektif, perubahan resmi, dan dasar keputusan resmi.                    |
 | Administrasi teknis | Akun, infrastruktur, konfigurasi koneksi PG-501, status sinkronisasi, kesalahan pemetaan, dan rekonsiliasi identitas. |
 
 ## Laporan P0
 
 | **Daftar laporan** | **Filter utama** | **Cakupan peran** |
 |---|---|---|
-| Catatan layanan BK | Tahun ajaran, kelas, dan jenis layanan `Semua`, `Catatan Kasus`, atau `Catatan Konsultasi` | Guru BK: scope profesional/kasus khusus; Koordinator: gabungan yang diizinkan; Waka: seluruh sekolah dalam proyeksi hanya-baca. |
+| Catatan layanan BK | Tahun ajaran, kelas, dan jenis layanan `Semua`, `Catatan Kasus`, atau `Catatan Konsultasi` | Guru BK: scope profesional dan kasus yang menjadi tanggung jawabnya; Koordinator: gabungan yang diizinkan; Waka: seluruh sekolah dalam proyeksi hanya-baca. |
 
 Setiap baris mewakili satu catatan. Tabel Guru BK dan Koordinator menampilkan No, Hari/Tanggal, Nama & Kelas, Layanan/Jenis Masalah, Hasil, serta Aksi. Satu ikon kaca pembesar membuka baris detail Latar Belakang Masalah dan Penanganan; Hasil tidak diulang pada baris detail. Klik baris tidak membuka modal dan cetak per catatan tidak ditampilkan. Hapus tetap berarti archive/soft delete dan hanya tersedia bila policy objek mengizinkan. Kelas yang dapat dipilih wajib berasal dari tahun ajaran terpilih dan scope pengguna.
 
