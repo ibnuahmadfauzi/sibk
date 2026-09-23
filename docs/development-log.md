@@ -7,8 +7,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 - Revisi laporan catatan layanan sudah diimplementasikan pada branch fitur dan
   berstatus `MENUNGGU VERIFIKASI`.
-- Test, formatter, build, dan gate belum dijalankan sesuai instruksi pengguna;
-  test lama untuk jalur laporan yang dipensiunkan juga belum diperbarui.
+- Pint, build frontend, Composer strict, dan pemeriksaan diff lulus. Automated
+  test dan checker frontend belum dijalankan; test lama untuk jalur laporan
+  yang dipensiunkan juga belum diperbarui.
 - Revisi SIBK 3.2 selesai sampai Checkpoint 7C dan terintegrasi ke
   `cobasidebar`; belum ada pekerjaan rilis ke `main`.
 - Adapter production menunggu kontrak resmi provider dan admission gate.
@@ -23,8 +24,9 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 - Keterangan preview/PDF/Excel untuk Permasalahan menampilkan Sumber serta
   Tindak Lanjut terbaru. Keterangan Konsultasi tetap `Selesai` dan proyeksi
   aman Waka tidak berubah.
-- Riwayat Tindak Lanjut tetap di luar scope. Test, formatter, checker frontend,
-  dan build tidak dijalankan sesuai instruksi pengguna.
+- Riwayat Tindak Lanjut tetap di luar scope. Pint, build frontend, Composer
+  strict, dan pemeriksaan diff lulus; automated test serta checker frontend
+  tidak dijalankan sesuai instruksi pengguna.
 
 ### 23 September 2026 — Penyatuan laporan Waka
 

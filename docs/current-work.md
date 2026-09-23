@@ -78,9 +78,11 @@
 
 ## Verifikasi yang belum dijalankan
 
-Pekerjaan masih berada pada tahap spec. Sesuai instruksi pengguna, test, Pint,
-checker frontend, build, Composer strict, dan gate lain belum dijalankan.
-Verifikasi implementasi kelak mencakup:
+Koreksi laporan sudah diimplementasikan dan diperiksa secara statis. Pint,
+build frontend, Composer strict, dan `git diff --check` lulus pada 23 September
+2026. Sesuai instruksi pengguna, automated test dan checker frontend belum
+dijalankan. Checkpoint penghapusan Pengalihan Permasalahan dan penyederhanaan
+Penugasan Kelas masih berada pada tahap spec. Verifikasi perilaku kelak mencakup:
 
 1. Akses halaman dan mutasi hanya untuk Koordinator BK.
 2. Seluruh kelas konteks, jumlah murid aktif, pencarian, dan filter status.

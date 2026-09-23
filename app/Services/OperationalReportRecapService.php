@@ -269,7 +269,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     }
 
     /**
-     * @param Collection<int, object> $events
+     * @param  Collection<int, object>  $events
      * @return Collection<int, array<string, mixed>>
      */
     private function hydrateRows(
@@ -420,9 +420,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
     }
 
     /**
-     * @param LengthAwarePaginator<int, array<string, mixed>>|Collection<int, array<string, mixed>> $rows
-     * @param array<string, mixed> $filters
-     * @param list<array{label: string, value: int}> $summary
+     * @param  LengthAwarePaginator<int, array<string, mixed>>|Collection<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>  $filters
+     * @param  list<array{label: string, value: int}>  $summary
      * @return array<string, mixed>
      */
     private function reportData(
