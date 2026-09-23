@@ -6,7 +6,7 @@
 - Branch: `fitur/penyederhanaan-penugasan-kelas`.
 - Worktree: `.worktrees/penyederhanaan-penugasan-kelas`.
 - Base: `cobasidebar`; `main` tidak disentuh.
-- Status: **SPEC MENUNGGU REVIEW PENGGUNA**.
+- Status: **SPEC DIREVISI, MENUNGGU REVIEW PENGGUNA**.
 - Spec: `docs/superpowers/specs/2026-09-23-penyederhanaan-penugasan-kelas-design.md`.
 
 ## Hasil implementasi 22–23 September 2026
@@ -87,6 +87,8 @@ Verifikasi implementasi kelak mencakup:
 4. Create, no-op, penggantian terjadwal, pergantian aktif, histori, dan overlap.
 5. Readiness serta aktivasi tahun ajaran pada halaman yang sama.
 6. Migration penghapusan `decision_number` dan pembersihan seluruh consumer.
+7. Penghapusan menu, halaman, endpoint, dan mutasi Pengalihan Permasalahan tanpa
+   mengganggu owner awal serta scope akses kasus existing.
 
 ## Langkah berikutnya
 

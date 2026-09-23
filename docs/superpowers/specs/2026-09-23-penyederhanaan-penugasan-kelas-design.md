@@ -20,7 +20,7 @@ Keberhasilan desain ini ditandai oleh:
 - histori pergantian Guru BK tetap akurat;
 - aktivasi tahun ajaran berikutnya tetap dapat dilakukan tanpa menu baru;
 - `decision_number` tidak lagi berada pada schema, request, model, atau UI;
-- transaksi, locking, audit, otorisasi, dan pengalihan kasus tetap berlaku.
+- transaksi, locking, audit, serta otorisasi penugasan kelas tetap berlaku.
 
 ## 2. Keputusan Utama
 
@@ -38,6 +38,8 @@ Keberhasilan desain ini ditandai oleh:
 7. Kesiapan dan aktivasi tahun ajaran tetap berada pada halaman yang sama.
    Tidak dibuat menu, route halaman, service, atau Blade aktivasi baru.
 8. `/assignments/classes/manage` dipertahankan sebagai redirect kompatibilitas.
+9. Fitur Pengalihan Permasalahan dihapus. Penanganan oleh Guru BK lain dilakukan
+   di luar aplikasi dan pencatatan resmi tetap dilakukan Guru BK pengampu.
 
 ## 3. Scope
 
@@ -51,13 +53,15 @@ Keberhasilan desain ini ditandai oleh:
 - ringkasan kesiapan dan aksi aktivasi tahun ajaran berikutnya;
 - redirect URL `/assignments/classes/manage`;
 - migration penghapusan `teacher_assignments.decision_number`;
+- penghapusan route, UI, request, controller, service, dan kontrak Pengalihan
+  Permasalahan;
 - amendemen PRD, SRS, API contract, dan dokumentasi terkait;
 - penyesuaian seeder serta fixture yang masih mengirim `decision_number`.
 
 ### 3.2 Tidak termasuk
 
 - pemindahan kasus aktif ketika Guru BK kelas berubah;
-- perubahan fitur Pengalihan Permasalahan;
+- penghapusan tabel/model `case_assignments` atau histori pemilik kasus existing;
 - penghapusan histori `teacher_assignments`;
 - menu aktivasi tahun ajaran baru;
 - dropdown kustom, library frontend baru, atau komponen JavaScript baru;
@@ -74,8 +78,8 @@ controller aktivasi, dan service; menyembunyikan tombol bukan mekanisme
 keamanan.
 
 Guru BK, Waka Kesiswaan, dan Admin IT tidak memperoleh akses halaman atau aksi
-penugasan hanya karena struktur UI disederhanakan. Pengaturan kasus khusus tetap
-melalui halaman Pengalihan Permasalahan.
+penugasan hanya karena struktur UI disederhanakan. Aplikasi tidak menyediakan
+pengalihan pemilik kasus atau penugasan kasus khusus.
 
 ## 5. Penentuan Konteks Tahun Ajaran
 
@@ -186,8 +190,9 @@ mengikuti akhir tahun ajaran melalui perilaku model yang sudah ada.
 Penugasan pertama yang terlambat pada tahun aktif tidak dimundurkan ke awal
 tahun. Aturan ini mencegah pemberian scope akses retrospektif kepada Guru BK.
 Pergantian Guru BK kelas tidak memindahkan kasus aktif. Kasus tetap mempunyai
-pemilik yang sudah tercatat sampai Koordinator memakai fitur Pengalihan
-Permasalahan.
+pemilik yang sudah tercatat. Penanganan bantuan oleh Guru BK lain berlangsung
+di luar aplikasi, sedangkan pencatatan resmi pada aplikasi dilakukan oleh Guru
+BK pengampu yang berwenang.
 
 ## 9. Kesiapan dan Aktivasi Tahun Ajaran
 
@@ -269,7 +274,27 @@ PRD, SRS, dan API contract harus berubah bersama implementasi:
 - aktivasi tahun ajaran tetap menjadi kewenangan Koordinator dan memakai
   readiness existing.
 
-## 14. Kriteria Penerimaan
+## 14. Penghapusan Pengalihan Permasalahan
+
+Fitur Pengalihan Permasalahan dikeluarkan dari scope aplikasi saat ini. Yang
+dihapus meliputi menu sidebar, halaman `assignments/cases`, route daftar dan
+mutasi, `AssignCaseRequest`, method controller, method service, fixture preview,
+serta test khusus pengalihan.
+
+`case_assignments` dan model `CaseAssignment` tetap dipertahankan karena masih
+menjadi sumber pemilik awal, otorisasi kasus, dan histori data existing. Tidak
+ada migration yang menghapus tabel atau record pemilik lama.
+
+Kasus baru tetap memperoleh satu owner ketika dibuat. Jika Guru BK lain ikut
+menangani secara offline, hasilnya diserahkan kepada Guru BK pengampu dan tidak
+dicatat sebagai perpindahan owner. Pergantian penugasan kelas tidak memindahkan
+kasus aktif dan aplikasi tidak menyediakan mekanisme darurat pengalihan.
+
+PRD, SRS, API contract, frontend map, serta matriks otorisasi diamendemen untuk
+menghapus kewajiban `ASN-04`/`ASN-05` dan endpoint pengalihan. Audit lama
+`case.transferred` tetap append-only dan tidak ditulis ulang.
+
+## 15. Kriteria Penerimaan
 
 1. Semua kelas aktif pada tahun konteks muncul meskipun belum mempunyai Guru BK.
 2. Jumlah murid hanya menghitung membership aktif dan murid aktif pada tahun itu.
@@ -287,13 +312,16 @@ PRD, SRS, dan API contract harus berubah bersama implementasi:
 12. Schema akhir tidak mempunyai kolom `decision_number` dan aplikasi tidak
     mengirim atau membacanya.
 13. Audit lama tidak ditulis ulang dan kasus aktif tidak berpindah otomatis.
+14. Menu, halaman, route, request, dan mutasi Pengalihan Permasalahan tidak lagi
+    tersedia, sementara owner kasus existing tetap dapat dipakai untuk scope.
 
-## 15. Strategi Verifikasi
+## 16. Strategi Verifikasi
 
 Verifikasi terarah harus mencakup daftar kelas kosong/terisi, jumlah murid,
 filter status, validasi role dan konteks tahun, seluruh cabang lifecycle
 penugasan, no-op, concurrency/overlap, redirect lama, readiness, aktivasi, serta
-migration pada database disposable SQLite dan MySQL.
+migration pada database disposable SQLite dan MySQL. Verifikasi juga memastikan
+endpoint pengalihan tidak tersedia dan pembuatan kasus tetap mempunyai owner.
 
 Gate repository dijalankan menjelang integrasi sesuai perintah pengguna.
 Penyusunan spec dan plan tidak menjalankan test, formatter, atau build.
