@@ -52,7 +52,7 @@
                                 data-bs-toggle="modal"
                                 data-bs-target="#restorePreviousYearModal"
                             >
-                                Kembalikan tahun sebelumnya
+                                Batalkan aktivasi
                             </button>
                         @endif
                     @else
@@ -97,7 +97,7 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h2 class="modal-title fs-5" id="restorePreviousYearTitle">Kembalikan tahun ajaran?</h2>
+                            <h2 class="modal-title fs-5" id="restorePreviousYearTitle">Batalkan aktivasi tahun ajaran?</h2>
                             <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                         </div>
                         <div class="modal-body">

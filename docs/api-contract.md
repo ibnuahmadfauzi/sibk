@@ -40,7 +40,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Request buat:** `name`, `email`, `roles[]` (slug role), dan `is_active` (opsional); password tidak diterima dari form.
 - **Request ubah:** Field yang berubah dari `name`, `email`, `roles[]`, dan `is_active`; password memakai alur reset tersendiri.
 - **Reset password:** `POST /admin/users/{user}/reset-password` hanya untuk Admin IT aktif terhadap target lain.
-- **Response buat/reset:** menampilkan password sementara unik satu kali dengan `Cache-Control: no-store, private`; JSON tidak memuat hash atau token sesi.
+- **Response buat/reset:** browser menerima redirect ke daftar akun. Hasil sandi sementara disimpan sebagai flash terenkripsi untuk satu GET berikutnya, tampil hanya pada detail baris akun terkait, dan respons GET memakai `Cache-Control: no-store, private`. Refresh berikutnya tidak membawa nilainya dan tidak mengulang POST. JSON tetap mengembalikan password sementara sekali tanpa hash atau token sesi.
 - **Business Logic:** `AccountService` menyimpan akun dan role dalam transaksi; `TemporaryPasswordService` menerbitkan password sementara 24 jam, memutus sesi target, menetapkan `must_change_password`, dan menulis audit tanpa nilai password.
 - **Status akun:** Penonaktifan/pemulihan menggunakan `is_active`; tidak tersedia endpoint hapus akun permanen.
 
@@ -229,7 +229,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
   - `GET /data-master/academic-years/{academicYear}/roster-imports/{importRun}` untuk melihat hasil pratinjau.
   - `POST /data-master/academic-years/{academicYear}/roster-imports/{importRun}/apply` untuk menerapkan hasil setelah konfirmasi Admin IT.
 - **Authorization:** hanya Admin IT aktif melalui capability `manageDataMaster`. Modul ini tidak memberi Admin IT hak aktivasi operasional atau akses isi layanan BK.
-- **Request tahun ajaran:** `name` (contoh `2027/2028`). Tahun baru selalu dibuat `is_active=false`; tidak ada input tanggal mulai/selesai.
+- **Request tahun ajaran:** `name` (contoh `2027/2028`) dan `preparation_reference`. Tahun baru selalu dibuat `is_active=false`; tidak ada input tanggal mulai/selesai. Rentang internal Juli–Juni diturunkan dari nama dua tahun berurutan untuk kompatibilitas impor dan laporan.
 - **Hapus draf:** Tahun yang pernah aktif atau memiliki rombel, membership, penugasan, kasus, konsultasi, atau relasi lain tidak dapat dihapus. Tidak ada cascade; audit menyimpan snapshot draf sebelum penghapusan.
 - **Request roster:** file `.xlsx` dengan data minimum NISN, nama, dan rombel. NISN menjadi kunci exact dan file mentah tidak disimpan.
 - **Pratinjau roster:** seluruh baris divalidasi sebelum preview diterima. Hasil diklasifikasikan sebagai cocok, baru, berubah, atau konflik. Konflik menahan penerapan sampai sumber diperbaiki atau keputusan yang sah tersedia.

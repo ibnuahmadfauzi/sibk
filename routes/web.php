@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\DapodikReconciliationController;
 use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
 use App\Http\Controllers\Admin\UserManagementController;
-use App\Http\Controllers\Admin\UserPasswordResetController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
@@ -44,7 +43,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
         Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
         Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
-        Route::post('/admin/users/{user}/reset-password', UserPasswordResetController::class)->name('admin.users.reset-password');
+        Route::post('/admin/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.users.reset-password');
 
         Route::get('/cases', [CaseController::class, 'index'])->name('cases.index');
         Route::get('/cases/create', [CaseController::class, 'create'])->name('cases.create');

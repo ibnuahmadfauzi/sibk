@@ -4,7 +4,7 @@
 
 **Goal:** Kelola Akun memakai tabel ringkas dan modal tambah/edit, dengan pemilihan peran sementara seperti Penugasan Kelas dan sandi sementara yang tampil sekali di detail baris setelah Buat/Reset.
 
-**Architecture:** Pertahankan `AccountService`, `TemporaryPasswordService`, Form Request, policy, dan route akun yang ada. Ubah penyajian Blade, gunakan satu modal akun untuk tambah/edit dan satu modal peran untuk mengirim seluruh pilihan peran melalui PATCH existing. Respons HTML Buat/Reset merender daftar akun langsung dengan hasil sandi sementara satu kali dan `Cache-Control: no-store, private`; GET biasa tidak pernah menerima sandi itu.
+**Architecture:** Pertahankan `AccountService`, `TemporaryPasswordService`, Form Request, policy, dan route akun yang ada. Ubah penyajian Blade, gunakan satu modal akun untuk tambah/edit dan satu modal peran untuk mengirim seluruh pilihan peran melalui PATCH existing. Respons HTML Buat/Reset memakai redirect; sandi sementara disimpan sebagai flash terenkripsi untuk satu GET daftar berikutnya dengan `Cache-Control: no-store, private`.
 
 **Tech Stack:** Laravel/PHP 8.3, Blade, Bootstrap, JavaScript dashboard yang sudah ada, PHPUnit.
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Hanya Admin IT aktif dapat membuat, mengubah, dan mereset akun; reset akun sendiri tetap ditolak.
-- Sandi tetap di-hash, sementara unik berlaku 24 jam, wajib diganti saat login, dan tidak muncul di GET, audit, HTML yang dapat di-cache, atau daftar akun berikutnya.
+- Sandi tetap di-hash, sementara unik berlaku 24 jam, wajib diganti saat login, dan tidak muncul di GET biasa, audit, HTML yang dapat di-cache, atau daftar akun berikutnya.
 - Jangan menambah tabel, migration, endpoint baru, dependency, atau komponen UI generik. Pertahankan paginasi 20 akun.
 - Status aktif/nonaktif tetap tersedia pada modal edit; jangan menghapus kemampuan ACC-01.
 - Ikuti `AGENTS.md`: test terarah oleh agent; full suite/build dijalankan pengguna.
@@ -58,15 +58,20 @@
 **Files:**
 - Modify: `resources/views/pages/admin/users/index.blade.php`.
 - Modify: `app/Http/Controllers/Admin/UserManagementController.php`.
-- Modify: `app/Http/Controllers/Admin/UserPasswordResetController.php`.
+- Modify: `routes/web.php`; pindahkan handler reset ke `UserManagementController` agar halaman daftar dirender dari satu controller.
+- Delete: `app/Http/Controllers/Admin/UserPasswordResetController.php` dan `resources/views/pages/admin/users/temporary-password.blade.php` setelah tidak dipakai.
 - Modify: `docs/api-contract.md` bila respons HTML Buat/Reset berubah.
 - Test: `tests/Feature/AccountManagementTest.php` dan test reset password existing.
 
-- [ ] **Step 1:** Tulis test bahwa kaca pembesar membuka detail email dan status sandi; Buat/Reset mengembalikan HTML daftar dengan sandi sementara hanya di baris akun terkait, header `Cache-Control: no-store, private`, dan GET biasa tidak mengandung sandi. Test reset akun sendiri ditolak dan audit tidak memuat sandi.
+- [ ] **Step 1:** Tulis test bahwa kaca pembesar membuka detail email dan status sandi; Buat/Reset redirect ke GET daftar dengan sandi sementara hanya di baris akun terkait, header `Cache-Control: no-store, private`, dan GET berikutnya tidak mengandung sandi. Test reset akun sendiri ditolak dan audit tidak memuat sandi.
 - [ ] **Step 2:** Kolom Aksi memakai ikon kaca pembesar dengan perilaku detail baris seperti Laporan, serta ikon pensil untuk modal edit. Detail biasa menampilkan email, status `Sandi sementara aktif sampai ...` atau `Sandi sudah diganti`, dan waktu login terakhir bila ada. Jangan tampilkan hash ataupun sandi lama.
-- [ ] **Step 3:** Kolom Sandi memakai tombol `Reset sandi`, kecuali akun Admin IT yang sedang masuk. `store` dan reset tetap pada controller serta route existing; masing-masing respons HTML merender Blade daftar dengan query akun/peran yang sama, satu `TemporaryPasswordResult`, dan header `no-store, private`. Buka detail baris terkait yang menampilkan sandi sementara, masa berlaku, dan petunjuk salin/sampaikan. Reload atau kunjungan GET berikutnya tidak membawa nilai itu. JSON API tetap memakai kontrak satu kali existing.
-- [ ] **Step 4:** Jalankan test akun/reset terarah, syntax/lint file yang berubah, dan `git diff --check`. Tinjau agar tidak ada nilai sandi pada query string, session flash, audit, atau log. Commit terpisah dari implementasi tahun ajaran.
+- [x] **Step 3:** Kolom Sandi memakai tombol `Reset sandi`, kecuali akun Admin IT yang sedang masuk. Route existing memakai satu controller untuk `store` dan reset; respons HTML memakai redirect dengan flash terenkripsi yang dibaca satu kali pada GET daftar dengan header `no-store, private`. Detail baris terkait menampilkan sandi sementara, masa berlaku, dan petunjuk salin/sampaikan. GET berikutnya tidak membawa nilai itu. JSON API tetap memakai kontrak satu kali existing.
+- [ ] **Step 4:** Jalankan test akun/reset terarah, syntax/lint file yang berubah, dan `git diff --check`. Tinjau agar tidak ada nilai sandi mentah pada query string, session flash, audit, atau log. Commit terpisah dari implementasi tahun ajaran.
 
 ## Batas keputusan
 
 Tidak ada `password default` tetap per akun. Sandi sementara berbeda pada setiap Buat/Reset dan hanya muncul sekali di detail baris respons tindakan itu. Akun yang sandinya sudah diganti hanya menampilkan status, bukan nilainya.
+
+## Checkpoint implementasi
+
+Tabel akun, modal tambah/edit, pemilih peran sementara, detail baris, reset, dan respons sandi satu kali sudah dibuat di worktree yang sama. Test JSON terarah untuk buat/reset/perubahan peran lulus. Test HTML ditulis, tetapi pemeriksaan render Blade pada lingkungan agent masih tertahan izin tulis `storage/framework/views`; jalankan gate penuh dan pemeriksaan visual sesuai `AGENTS.md` sebelum PR.

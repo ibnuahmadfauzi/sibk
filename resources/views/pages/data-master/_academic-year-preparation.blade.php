@@ -45,30 +45,6 @@
                         >
                         @error('preparation_reference')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-12 col-sm-6">
-                        <label for="provisional_year_start" class="form-label sibk-form-label">Tanggal Mulai</label>
-                        <input
-                            type="date"
-                            class="form-control sibk-form-control @error('starts_on') is-invalid @enderror"
-                            id="provisional_year_start"
-                            name="starts_on"
-                            value="{{ old('starts_on') }}"
-                            required
-                        >
-                        @error('starts_on')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <label for="provisional_year_end" class="form-label sibk-form-label">Tanggal Selesai</label>
-                        <input
-                            type="date"
-                            class="form-control sibk-form-control @error('ends_on') is-invalid @enderror"
-                            id="provisional_year_end"
-                            name="ends_on"
-                            value="{{ old('ends_on') }}"
-                            required
-                        >
-                        @error('ends_on')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
                     <div class="col-12 d-flex align-items-center gap-2">
                         <span class="small text-muted me-auto" data-draft-status aria-live="polite"></span>
                         <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
@@ -93,11 +69,6 @@
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <div>
                                     <strong>{{ $year->name }}</strong>
-                                    <span class="text-muted small d-block">
-                                        {{ $year->starts_on?->locale('id')->translatedFormat('d M Y') ?? 'Tanggal belum lengkap' }}
-                                        s.d.
-                                        {{ $year->ends_on?->locale('id')->translatedFormat('d M Y') ?? 'tanggal belum lengkap' }}
-                                    </span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     <span class="sibk-badge sibk-badge--{{ $sourceTone }}">{{ $sourceLabel }}</span>

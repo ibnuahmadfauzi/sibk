@@ -2621,6 +2621,35 @@ small, .small {
   padding: 0.875rem 1rem;
 }
 
+.sibk-account-table {
+  min-width: 38rem;
+
+  th,
+  td {
+    vertical-align: middle;
+  }
+
+  th:nth-child(1) { width: 28%; }
+  th:nth-child(2) { width: 42%; }
+  th:nth-child(3) { width: 18%; }
+  th:nth-child(4) { width: 12%; }
+}
+
+.sibk-account-role-chip {
+  background: var(--sibk-color-primary-soft);
+  border: 0;
+  border-radius: 0.5rem;
+  color: var(--sibk-color-text-dark);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.45rem;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--sibk-color-primary);
+    color: #fff;
+  }
+}
+
 .sibk-report-control {
   border-color: transparent;
   color: var(--sibk-color-primary);

@@ -82,3 +82,5 @@ Tidak ada status `Dibatalkan`, penghapusan roster, atau rollback otomatis ke tah
 ## Checkpoint implementasi 25 September 2026
 
 Implementasi route, service, UI, audit, dan kontrak sudah dibuat pada worktree Penugasan Kelas yang sama. Lima test terarah untuk hapus draf, rollback, otorisasi, aktivitas, dan waktu pendahulu ambigu lulus. Pint terarah dan `git diff --check` lulus. Dua test lama yang merender halaman tertahan izin tulis `storage/framework/views` pada lingkungan agent; tidak ada perubahan aplikasi untuk mengatasi batas lingkungan tersebut. Build frontend dan suite penuh mengikuti kebijakan `AGENTS.md` untuk dijalankan pengguna.
+
+Lanjutan 25 September: form Admin IT tidak lagi meminta tanggal mulai/selesai. Sistem menghitung rentang internal Juli–Juni dari nama dua tahun berurutan agar impor roster dan laporan yang sudah ada tetap berfungsi. Tombol Koordinator diberi label `Batalkan aktivasi`; pembatalan tetap mengembalikan tahun sebelumnya sesuai guard rollback.

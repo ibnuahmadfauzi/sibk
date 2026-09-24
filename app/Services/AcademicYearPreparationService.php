@@ -38,32 +38,29 @@ class AcademicYearPreparationService
 
         $normalized = [
             'name' => trim((string) ($data['name'] ?? '')),
-            'starts_on' => trim((string) ($data['starts_on'] ?? '')),
-            'ends_on' => trim((string) ($data['ends_on'] ?? '')),
             'preparation_reference' => trim((string) ($data['preparation_reference'] ?? '')),
         ];
         $validated = Validator::make($normalized, [
-            'name' => ['required', 'string', 'max:20'],
-            'starts_on' => ['required', 'date_format:Y-m-d'],
-            'ends_on' => ['required', 'date_format:Y-m-d', 'after:starts_on'],
+            'name' => ['required', 'string', 'max:20', 'regex:/^\d{4}\/\d{4}$/D'],
             'preparation_reference' => ['required', 'string', 'max:500'],
         ])->validate();
 
-        return DB::transaction(function () use ($validated, $actor): AcademicYear {
+        [$firstYear, $lastYear] = array_map('intval', explode('/', $validated['name']));
+        if ($lastYear !== $firstYear + 1) {
+            throw ValidationException::withMessages([
+                'name' => 'Tahun ajaran harus terdiri dari dua tahun berurutan.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($validated, $actor, $firstYear, $lastYear): AcademicYear {
             if (AcademicYear::query()->where('name', $validated['name'])->lockForUpdate()->exists()) {
                 throw ValidationException::withMessages(['name' => 'Nama tahun ajaran sudah digunakan.']);
             }
 
-            if (AcademicYear::query()
-                ->whereDate('starts_on', $validated['starts_on'])
-                ->whereDate('ends_on', $validated['ends_on'])
-                ->lockForUpdate()
-                ->exists()) {
-                throw ValidationException::withMessages(['period' => 'Periode tahun ajaran sudah digunakan.']);
-            }
-
             $year = AcademicYear::query()->create([
                 ...$validated,
+                'starts_on' => sprintf('%04d-07-01', $firstYear),
+                'ends_on' => sprintf('%04d-06-30', $lastYear),
                 'is_active' => false,
                 'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
                 'source_confirmed_at' => null,

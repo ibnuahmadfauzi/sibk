@@ -1,7 +1,7 @@
 import 'bootstrap/js/dist/dropdown';
 import Toast from 'bootstrap/js/dist/toast';
 import 'bootstrap/js/dist/offcanvas';
-import 'bootstrap/js/dist/modal';
+import Modal from 'bootstrap/js/dist/modal';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
 
@@ -206,6 +206,138 @@ if (classPicker) {
             search.focus();
         });
     });
+}
+
+const accountPage = document.querySelector('[data-page-id="ADMIN-USERS"]');
+if (accountPage) {
+    const successToast = document.getElementById('accountSuccessToast');
+    if (successToast) new Toast(successToast, { delay: 4500 }).show();
+
+    const rolePicker = (root) => {
+        const selected = new Map();
+        const options = [...root.querySelectorAll('[data-account-role-option]')];
+        const selectedItems = root.querySelector('[data-account-selected]');
+        const inputs = root.querySelector('[data-account-inputs]');
+        const placeholder = root.querySelector('[data-account-placeholder]');
+        const submit = root.closest('form').querySelector('[data-account-submit]');
+
+        const render = () => {
+            selectedItems.replaceChildren();
+            inputs.replaceChildren();
+            selected.forEach((name, slug) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'sibk-class-picker-selected-chip';
+                chip.textContent = `${name} ×`;
+                chip.setAttribute('aria-label', `Batalkan pilihan ${name}`);
+                chip.addEventListener('click', () => {
+                    selected.delete(slug);
+                    render();
+                });
+                selectedItems.append(chip);
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'roles[]';
+                input.value = slug;
+                inputs.append(input);
+            });
+            options.forEach((option) => {
+                option.hidden = selected.has(option.dataset.roleSlug);
+            });
+            placeholder.hidden = selected.size > 0;
+            submit.disabled = selected.size === 0;
+        };
+
+        options.forEach((option) => {
+            option.addEventListener('click', () => {
+                selected.set(option.dataset.roleSlug, option.dataset.roleName);
+                render();
+            });
+        });
+
+        return (slugs) => {
+            selected.clear();
+            slugs.filter(Boolean).forEach((slug) => {
+                const option = options.find((item) => item.dataset.roleSlug === slug);
+                if (option) selected.set(slug, option.dataset.roleName);
+            });
+            render();
+        };
+    };
+
+    const accountModal = document.getElementById('accountModal');
+    const accountForm = document.getElementById('accountForm');
+    const accountRolesModal = document.getElementById('accountRolesModal');
+    const rolesForm = document.getElementById('accountRolesForm');
+    const setAccountRoles = rolePicker(accountModal.querySelector('[data-account-role-picker]'));
+    const setQuickRoles = rolePicker(accountRolesModal.querySelector('[data-account-role-picker]'));
+
+    const setupAccount = (button, keepInput = false) => {
+        const edit = button?.matches('[data-account-edit]') ?? false;
+        accountForm.action = edit ? button.dataset.accountUrl : accountPage.querySelector('[data-account-create]').dataset.storeUrl;
+        accountForm.querySelector('[name="_method"]').disabled = !edit;
+        accountForm.querySelector('[name="_account_action"]').value = edit ? 'edit' : 'create';
+        accountForm.querySelector('[name="_account_target"]').value = edit ? button.dataset.accountId : '';
+        accountModal.querySelector('#accountModalTitle').textContent = edit ? `Edit ${button.dataset.accountName}` : 'Tambah akun';
+        accountForm.querySelector('[data-account-submit]').textContent = edit ? 'Simpan akun' : 'Buat akun';
+        if (!keepInput) {
+            accountForm.querySelector('[name="name"]').value = edit ? button.dataset.accountName : '';
+            accountForm.querySelector('[name="email"]').value = edit ? button.dataset.accountEmail : '';
+            accountForm.querySelector('#accountActive').checked = edit ? button.dataset.accountActive === '1' : true;
+            setAccountRoles(edit ? button.dataset.accountRoles.split(',') : []);
+        }
+    };
+
+    accountModal.addEventListener('show.bs.modal', (event) => {
+        if (event.relatedTarget) setupAccount(event.relatedTarget);
+    });
+    accountModal.addEventListener('shown.bs.modal', () => accountForm.querySelector('#accountName').focus());
+    accountRolesModal.addEventListener('show.bs.modal', (event) => {
+        if (!event.relatedTarget) return;
+        const button = event.relatedTarget;
+        rolesForm.action = button.dataset.accountUrl;
+        rolesForm.querySelector('[name="_account_target"]').value = button.dataset.accountId;
+        accountRolesModal.querySelector('#accountRolesTitle').textContent = `Peran ${button.dataset.accountName}`;
+        setQuickRoles(button.dataset.accountRoles.split(','));
+    });
+    accountRolesModal.addEventListener('shown.bs.modal', () => {
+        accountRolesModal.querySelector('[data-account-role-option]:not([hidden])')?.focus();
+    });
+
+    accountPage.querySelectorAll('[data-account-detail-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const detail = document.getElementById(button.getAttribute('aria-controls'));
+            const expanded = button.getAttribute('aria-expanded') === 'true';
+            detail.classList.toggle('d-none', expanded);
+            button.setAttribute('aria-expanded', String(!expanded));
+            button.title = expanded ? 'Tampilkan detail akun' : 'Tutup detail akun';
+        });
+    });
+
+    if (accountPage.dataset.accountOldAction) {
+        const target = accountPage.dataset.accountOldTarget;
+        const oldRoles = accountPage.dataset.accountOldRoles.split(',');
+        if (accountPage.dataset.accountOldAction === 'roles') {
+            const button = [...accountPage.querySelectorAll('[data-account-role-edit]')]
+                .find((item) => item.dataset.accountId === target);
+            if (button) {
+                rolesForm.action = button.dataset.accountUrl;
+                rolesForm.querySelector('[name="_account_target"]').value = target;
+                accountRolesModal.querySelector('#accountRolesTitle').textContent = `Peran ${button.dataset.accountName}`;
+                setQuickRoles(oldRoles);
+                Modal.getOrCreateInstance(accountRolesModal).show();
+            }
+        } else {
+            const button = accountPage.dataset.accountOldAction === 'edit'
+                ? [...accountPage.querySelectorAll('[data-account-edit]')]
+                    .find((item) => item.dataset.accountId === target)
+                : null;
+            setupAccount(button, true);
+            setAccountRoles(oldRoles);
+            Modal.getOrCreateInstance(accountModal).show();
+        }
+    }
 }
 
 // ── Magic Sidebar Indicator ──────────────────────────────────────────────────
