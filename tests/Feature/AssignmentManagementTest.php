@@ -42,7 +42,9 @@ class AssignmentManagementTest extends TestCase
 
         $this->actingAs($waka)->post(route('assignments.classes.store'), $payload)->assertForbidden();
         $this->actingAs($coordinator)->post(route('assignments.classes.store'), $payload)
-            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]))
+            ->assertSessionHas('success_title', 'Kelas ditugaskan')
+            ->assertSessionHas('success', "{$classroom->name} kini diampu {$firstTeacher->name}.");
         $this->assertDatabaseCount('audit_logs', 1);
 
         $this->actingAs($coordinator)->post(route('assignments.classes.store'), $payload)->assertRedirect();
@@ -158,7 +160,9 @@ class AssignmentManagementTest extends TestCase
         $this->actingAs($coordinator)->delete($url, ['user_id' => $secondTeacher->id])
             ->assertSessionHasErrors('classroom_id');
         $this->actingAs($coordinator)->delete($url, ['user_id' => $firstTeacher->id])
-            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]))
+            ->assertSessionHas('success_title', 'Penugasan dibatalkan')
+            ->assertSessionHas('success', "{$classroom->name} kembali tersedia untuk ditugaskan.");
         $this->assertDatabaseMissing('teacher_assignments', ['classroom_id' => $classroom->id]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'class_assignment.deleted']);
         $audit = AuditLog::query()->where('action', 'class_assignment.deleted')->firstOrFail();

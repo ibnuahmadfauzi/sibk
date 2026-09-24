@@ -99,7 +99,12 @@ class AssignmentController extends Controller
 
         return redirect()
             ->route('assignments.classes.index', ['academic_year_id' => $assignment->academic_year_id])
-            ->with('success', 'Penugasan kelas berhasil disimpan.');
+            ->with('success_title', 'Kelas ditugaskan')
+            ->with('success', sprintf(
+                '%s kini diampu %s.',
+                $assignment->classroom->name,
+                $assignment->teacher->name,
+            ));
     }
 
     public function destroyClassAssignment(
@@ -111,6 +116,7 @@ class AssignmentController extends Controller
 
         return redirect()
             ->route('assignments.classes.index', ['academic_year_id' => $classroom->academic_year_id])
-            ->with('success', 'Penugasan kelas berhasil dibatalkan.');
+            ->with('success_title', 'Penugasan dibatalkan')
+            ->with('success', sprintf('%s kembali tersedia untuk ditugaskan.', $classroom->name));
     }
 }

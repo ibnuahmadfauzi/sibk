@@ -4,16 +4,32 @@
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-401">
-        @if(session('success'))
-            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
-        @endif
-
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy">
                 <h1>Penugasan Kelas</h1>
                 <p>Guru BK dan kelas yang diampu pada tahun ajaran yang dipilih.</p>
             </div>
         </div>
+
+        @if(session('success'))
+            <div class="alert sibk-assignment-notice d-flex align-items-start gap-3" role="status">
+                <span class="sibk-assignment-notice__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="m5 12 4 4L19 6" />
+                    </svg>
+                </span>
+                <div class="flex-grow-1">
+                    <strong class="d-block">{{ session('success_title', 'Perubahan berhasil') }}</strong>
+                    <span>{{ session('success') }}</span>
+                </div>
+                <button
+                    class="btn-close"
+                    type="button"
+                    data-bs-dismiss="alert"
+                    aria-label="Tutup pemberitahuan"
+                ></button>
+            </div>
+        @endif
 
         <div class="sibk-panel mb-4">
             <div class="sibk-panel__body p-4">

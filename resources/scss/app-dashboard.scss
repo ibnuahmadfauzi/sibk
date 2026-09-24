@@ -2652,6 +2652,42 @@ small, .small {
   }
 }
 
+.sibk-assignment-notice {
+  background: var(--sibk-color-success-soft);
+  border: 1px solid var(--sibk-color-border-light);
+  border-left: 4px solid var(--sibk-color-success);
+  border-radius: var(--sibk-radius-md);
+  color: var(--sibk-color-text-dark);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+
+  strong {
+    font-size: 0.9375rem;
+  }
+
+  &__icon {
+    align-items: center;
+    background: var(--sibk-color-success);
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    flex: 0 0 2rem;
+    height: 2rem;
+    justify-content: center;
+
+    svg {
+      fill: none;
+      height: 1rem;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2.5;
+      width: 1rem;
+    }
+  }
+}
+
 .sibk-class-chip {
   align-items: center;
   background: var(--sibk-color-primary-soft);
