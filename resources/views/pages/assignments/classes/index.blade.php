@@ -12,22 +12,26 @@
         </div>
 
         @if(session('success'))
-            <div class="alert sibk-assignment-notice d-flex align-items-start gap-3" role="status">
-                <span class="sibk-assignment-notice__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                        <path d="m5 12 4 4L19 6" />
-                    </svg>
-                </span>
-                <div class="flex-grow-1">
-                    <strong class="d-block">{{ session('success_title', 'Perubahan berhasil') }}</strong>
-                    <span>{{ session('success') }}</span>
+            <div class="sibk-assignment-toast-region" aria-live="polite" aria-atomic="true">
+                <div class="toast sibk-assignment-toast" id="assignmentSuccessToast" role="status">
+                    <div class="toast-body d-flex align-items-start gap-2">
+                        <span class="sibk-assignment-toast__icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="m5 12 4 4L19 6" />
+                            </svg>
+                        </span>
+                        <div class="flex-grow-1">
+                            <strong class="d-block">{{ session('success_title', 'Perubahan berhasil') }}</strong>
+                            <span>{{ session('success') }}</span>
+                        </div>
+                        <button
+                            class="btn-close"
+                            type="button"
+                            data-bs-dismiss="toast"
+                            aria-label="Tutup pemberitahuan"
+                        ></button>
+                    </div>
                 </div>
-                <button
-                    class="btn-close"
-                    type="button"
-                    data-bs-dismiss="alert"
-                    aria-label="Tutup pemberitahuan"
-                ></button>
             </div>
         @endif
 
@@ -142,15 +146,17 @@
                                                 <form
                                                     action="{{ route('assignments.classes.destroy', $classroom) }}"
                                                     method="POST"
-                                                    data-confirm-submit
-                                                    data-confirm-message="Batalkan penugasan {{ $classroom->name }} dari {{ $row['teacher']->name }}? Scope murid guru ini langsung berkurang."
                                                 >
                                                     @csrf
                                                     @method('DELETE')
                                                     <input name="user_id" type="hidden" value="{{ $row['teacher']->id }}">
                                                     <button
                                                         class="sibk-class-chip__remove"
-                                                        type="submit"
+                                                        type="button"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#classUnassignModal"
+                                                        data-class-name="{{ $classroom->name }}"
+                                                        data-teacher-name="{{ $row['teacher']->name }}"
                                                         aria-label="Batalkan penugasan {{ $classroom->name }} dari {{ $row['teacher']->name }}"
                                                     >
                                                         <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -200,6 +206,47 @@
         </div>
 
         @if($canManage)
+            <div
+                class="modal fade"
+                id="classUnassignModal"
+                tabindex="-1"
+                aria-labelledby="classUnassignTitle"
+                aria-describedby="classUnassignDescription"
+                aria-hidden="true"
+            >
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 class="modal-title fs-5" id="classUnassignTitle">Batalkan penugasan?</h2>
+                            <button
+                                class="btn-close"
+                                type="button"
+                                data-bs-dismiss="modal"
+                                aria-label="Tutup"
+                            ></button>
+                        </div>
+                        <div class="modal-body" id="classUnassignDescription">
+                            <p class="mb-2">
+                                <strong data-unassign-class></strong> akan dilepas dari
+                                <strong data-unassign-teacher></strong>.
+                            </p>
+                            <p class="text-muted mb-0">
+                                Kelas kembali belum ditugaskan. Pada tahun aktif, akses murid Guru BK
+                                langsung berkurang; catatan layanan tetap tersimpan.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">
+                                Kembali
+                            </button>
+                            <button class="btn btn-outline-danger" type="button" data-confirm-unassign>
+                                Ya, batalkan penugasan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div
                 class="modal fade"
                 id="classPickerModal"

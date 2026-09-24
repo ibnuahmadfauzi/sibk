@@ -1,5 +1,5 @@
 import 'bootstrap/js/dist/dropdown';
-import 'bootstrap/js/dist/alert';
+import Toast from 'bootstrap/js/dist/toast';
 import 'bootstrap/js/dist/offcanvas';
 import 'bootstrap/js/dist/modal';
 import { initFormDrafts } from './form-draft';
@@ -93,6 +93,34 @@ document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
         }
     });
 });
+
+const assignmentSuccessToast = document.getElementById('assignmentSuccessToast');
+if (assignmentSuccessToast) {
+    new Toast(assignmentSuccessToast, { delay: 4500 }).show();
+}
+
+const classUnassignModal = document.getElementById('classUnassignModal');
+if (classUnassignModal) {
+    const confirm = classUnassignModal.querySelector('[data-confirm-unassign]');
+    let pendingForm = null;
+
+    classUnassignModal.addEventListener('show.bs.modal', (event) => {
+        const button = event.relatedTarget;
+        pendingForm = button.closest('form');
+        classUnassignModal.querySelector('[data-unassign-class]').textContent = button.dataset.className;
+        classUnassignModal.querySelector('[data-unassign-teacher]').textContent = button.dataset.teacherName;
+    });
+    classUnassignModal.addEventListener('hidden.bs.modal', () => {
+        pendingForm = null;
+        confirm.disabled = false;
+    });
+    confirm.addEventListener('click', () => {
+        if (!pendingForm) return;
+
+        confirm.disabled = true;
+        pendingForm.requestSubmit();
+    });
+}
 
 const classPicker = document.getElementById('classPickerModal');
 if (classPicker) {

@@ -2662,18 +2662,27 @@ small, .small {
   }
 }
 
-.sibk-assignment-notice {
-  background: var(--sibk-color-success-soft);
+.sibk-assignment-toast-region {
+  bottom: 1.25rem;
+  position: fixed;
+  right: 1.25rem;
+  width: min(24rem, calc(100vw - 2.5rem));
+  z-index: 1090;
+}
+
+.sibk-assignment-toast {
+  background: var(--sibk-color-surface);
   border: 1px solid var(--sibk-color-border-light);
-  border-left: 4px solid var(--sibk-color-success);
+  border-left: 3px solid var(--sibk-color-success);
   border-radius: var(--sibk-radius-md);
+  box-shadow: var(--sibk-shadow-raised);
   color: var(--sibk-color-text-dark);
-  font-size: 0.875rem;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  max-width: none;
+  width: 100%;
 
   strong {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
   }
 
   &__icon {
@@ -2682,18 +2691,18 @@ small, .small {
     border-radius: 50%;
     color: #fff;
     display: inline-flex;
-    flex: 0 0 2rem;
-    height: 2rem;
+    flex: 0 0 1.5rem;
+    height: 1.5rem;
     justify-content: center;
 
     svg {
       fill: none;
-      height: 1rem;
+      height: 0.8rem;
       stroke: currentColor;
       stroke-linecap: round;
       stroke-linejoin: round;
       stroke-width: 2.5;
-      width: 1rem;
+      width: 0.8rem;
     }
   }
 }
