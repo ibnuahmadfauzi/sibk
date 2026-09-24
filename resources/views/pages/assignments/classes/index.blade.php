@@ -35,6 +35,47 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
+        @endif
+
+        @if($activationReadiness !== null)
+            <section class="sibk-panel sibk-activation-panel mb-4" aria-labelledby="activation-readiness-title">
+                <div class="sibk-panel__body p-4">
+                    <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
+                    @if($activationReadiness['state'] === 'active')
+                        <p class="mb-0">Tahun ajaran ini sudah aktif.</p>
+                    @else
+                        @if($activationReadiness['issues'] !== [])
+                            <ul class="text-warning-emphasis mb-2">
+                                @foreach($activationReadiness['issues'] as $issue)
+                                    <li>{{ $issue }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($activationReadiness['warnings'] !== [])
+                            <ul class="text-info-emphasis mb-2">
+                                @foreach($activationReadiness['warnings'] as $warning)
+                                    <li>{{ $warning }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($activationReadiness['ready'])
+                            <form
+                                action="{{ route('assignments.academic-years.activate', $selectedYear) }}"
+                                method="POST"
+                            >
+                                @csrf
+                                <button class="btn btn-primary" type="submit">Aktifkan Tahun Ajaran</button>
+                            </form>
+                        @elseif($activationReadiness['state'] === 'not_ready')
+                            <button class="btn btn-primary" type="button" disabled>Aktifkan Tahun Ajaran</button>
+                        @endif
+                    @endif
+                </div>
+            </section>
+        @endif
+
         <div class="sibk-panel mb-4">
             <div class="sibk-panel__body p-4">
                 <form
@@ -79,47 +120,6 @@
                 </form>
             </div>
         </div>
-
-        @if($errors->any())
-            <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
-        @endif
-
-        @if($activationReadiness !== null)
-            <section class="sibk-panel sibk-activation-panel mb-4" aria-labelledby="activation-readiness-title">
-                <div class="sibk-panel__body p-4">
-                    <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
-                    @if($activationReadiness['state'] === 'active')
-                        <p class="mb-0">Tahun ajaran ini sudah aktif.</p>
-                    @else
-                        @if($activationReadiness['issues'] !== [])
-                            <ul class="text-warning-emphasis mb-2">
-                                @foreach($activationReadiness['issues'] as $issue)
-                                    <li>{{ $issue }}</li>
-                                @endforeach
-                            </ul>
-                        @endif
-                        @if($activationReadiness['warnings'] !== [])
-                            <ul class="text-info-emphasis mb-2">
-                                @foreach($activationReadiness['warnings'] as $warning)
-                                    <li>{{ $warning }}</li>
-                                @endforeach
-                            </ul>
-                        @endif
-                        @if($activationReadiness['ready'])
-                            <form
-                                action="{{ route('assignments.academic-years.activate', $selectedYear) }}"
-                                method="POST"
-                            >
-                                @csrf
-                                <button class="btn btn-primary" type="submit">Aktifkan Tahun Ajaran</button>
-                            </form>
-                        @elseif($activationReadiness['state'] === 'not_ready')
-                            <button class="btn btn-primary" type="button" disabled>Aktifkan Tahun Ajaran</button>
-                        @endif
-                    @endif
-                </div>
-            </section>
-        @endif
 
         <div class="table-responsive">
             <table class="table sibk-table mb-0">
