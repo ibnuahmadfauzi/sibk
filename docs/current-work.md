@@ -2,8 +2,9 @@
 
 ## Status
 
-- Pekerjaan aktif: belum ada implementasi baru; checkpoint berikutnya adalah
-  penghapusan Pengalihan Permasalahan.
+- Pekerjaan aktif: data contoh lintas tahun pada branch
+  `fitur/dummy-lintas-tahun-guru-bk`; checkpoint penyederhanaan berikutnya
+  adalah penghapusan Pengalihan Permasalahan.
 - Branch fitur berikutnya: belum dibuat.
 - Worktree: `.worktrees/penyederhanaan-penugasan-kelas`.
 - Base: `cobasidebar`; `main` tidak disentuh.
@@ -62,7 +63,15 @@
 
 ## Batas dan catatan deployment
 
-- Tidak ada migration atau perubahan database.
+- Pada 24 September 2026, branch `fitur/dummy-lintas-tahun-guru-bk` menambah data
+  contoh lokal: tahun demo sebelumnya, 22 riwayat kelas X→XI dan XI→XII,
+  dua Guru BK tambahan, pembagian enam kelas aktif (dua kelas per guru),
+  17 kasus (dua dari tahun lalu), dan 15 konsultasi. Seeder
+  `DummyCaseAndServiceSeeder` berhasil dijalankan pada database lokal `sibk_uji`.
+  Ulangi dengan `php artisan db:seed --class=DummyCaseAndServiceSeeder` bila
+  membutuhkan data contoh di database lokal lain. Seeder tetap dibatasi ke
+  environment local/testing dan tidak masuk `DatabaseSeeder`.
+- Tidak ada migration atau perubahan skema database pada pekerjaan laporan.
 - `ReportPreviewSeeder` tersedia untuk data pratinjau lokal: satu kasus dan dua
   konsultasi. Seeder bersifat idempoten, dibatasi ke environment local/testing,
   dan tidak didaftarkan ke `DatabaseSeeder`.

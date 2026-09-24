@@ -5,6 +5,12 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
+- 24 September 2026: branch `fitur/dummy-lintas-tahun-guru-bk` menambah dua
+  Guru BK demo, tahun ajaran sebelumnya, 22 riwayat kelas murid, dan dua kasus
+  historis. Enam kelas aktif dibagi rata kepada tiga Guru BK; 17 kasus dan
+  15 konsultasi mengikuti pengampu kelas. Seeder berhasil dijalankan pada
+  database lokal `sibk_uji`. Sintaks PHP, Pint terarah, dan diff-check lulus;
+  automated test tidak dijalankan sesuai instruksi pengguna.
 - Revisi laporan catatan layanan sudah di-merge melalui PR #32 ke `cobasidebar`
   pada commit `eaf39a1`.
 - Pint, build frontend, Composer strict, dan pemeriksaan diff lulus. Automated
