@@ -2774,8 +2774,15 @@ small, .small {
 }
 
 .sibk-class-picker-list {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   max-height: min(45vh, 20rem);
   overflow-y: auto;
+
+  p {
+    grid-column: 1 / -1;
+  }
 }
 
 .sibk-class-picker-selected {
@@ -2801,12 +2808,13 @@ small, .small {
 }
 
 .sibk-class-picker-option {
-  background: transparent;
-  border: 0;
+  background: var(--sibk-color-surface);
+  border: 1px solid var(--sibk-color-border-light);
   border-radius: 0.5rem;
   color: var(--sibk-color-text-dark);
-  display: block;
-  padding: 0.6rem 0.75rem;
+  min-height: 2.75rem;
+  overflow-wrap: anywhere;
+  padding: 0.5rem;
   text-align: left;
   width: 100%;
 
@@ -2818,6 +2826,12 @@ small, .small {
 
   &[hidden] {
     display: none;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .sibk-class-picker-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
