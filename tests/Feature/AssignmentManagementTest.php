@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\ReferenceValue;
@@ -61,7 +62,7 @@ class AssignmentManagementTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'class_assignment.updated']);
     }
 
-    public function test_request_rejects_forged_year_and_list_shows_unassigned_classes(): void
+    public function test_request_rejects_forged_year_and_list_shows_unassigned_classes_in_add_menu(): void
     {
         [$year, $classroom] = $this->masterContext();
         Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 2']);
@@ -85,11 +86,97 @@ class AssignmentManagementTest extends TestCase
             ->assertOk()
             ->assertSee('X RPL 1')
             ->assertSee('X RPL 2')
-            ->assertSee('aria-label="Atur Guru BK untuk X RPL 1"', false)
-            ->assertSee('data-bs-target="#classAssignmentModal"', false)
+            ->assertSee('aria-label="Tambah kelas untuk '.$teacher->name.'"', false)
+            ->assertSee('name="only_if_unassigned"', false)
+            ->assertDontSee('classAssignmentModal')
             ->assertSee('Tahun ajaran ini sudah aktif.');
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
-            ->assertOk()->assertSee('X RPL 2');
+            ->assertOk()->assertSee($teacher->name);
+    }
+
+    public function test_teacher_rows_count_active_students_and_filter_by_teacher_status(): void
+    {
+        [$year, $firstClass] = $this->masterContext();
+        $secondClass = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 2']);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $withoutClass = $this->userWithRole('guru_bk');
+        foreach ([$firstClass, $secondClass] as $index => $classroom) {
+            app(AssignmentService::class)->assignClass([
+                'classroom_id' => $classroom->id,
+                'user_id' => $teacher->id,
+            ], $coordinator);
+            for ($number = 0; $number <= $index; $number++) {
+                $student = Student::query()->create([
+                    'nisn' => sprintf('%010d', $index * 10 + $number + 1),
+                    'name' => 'Murid '.$index.'-'.$number,
+                ]);
+                StudentClassMembership::query()->create([
+                    'student_id' => $student->id,
+                    'classroom_id' => $classroom->id,
+                    'academic_year_id' => $year->id,
+                ]);
+            }
+        }
+
+        $this->actingAs($coordinator)->get(route('assignments.classes.index'))
+            ->assertOk()->assertSee($teacher->name)->assertSee($withoutClass->name)
+            ->assertSee('>3</td>', false);
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
+            ->assertOk()->assertSee($withoutClass->name)->assertDontSee($teacher->name);
+        $this->actingAs($teacher)->get(route('assignments.classes.index'))
+            ->assertOk()->assertSee($teacher->name)->assertDontSee($withoutClass->name)
+            ->assertDontSee('Tambah kelas untuk');
+    }
+
+    public function test_add_guard_and_cancel_reject_stale_requests_without_changing_owner(): void
+    {
+        [$year, $classroom] = $this->masterContext();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $firstTeacher = $this->userWithRole('guru_bk');
+        $secondTeacher = $this->userWithRole('guru_bk');
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $payload = [
+            'classroom_id' => $classroom->id,
+            'user_id' => $firstTeacher->id,
+            'only_if_unassigned' => 1,
+        ];
+
+        $this->actingAs($coordinator)->post(route('assignments.classes.store'), $payload)->assertRedirect();
+        $this->actingAs($coordinator)->post(route('assignments.classes.store'), [
+            ...$payload,
+            'user_id' => $secondTeacher->id,
+        ])->assertSessionHasErrors('classroom_id');
+        $this->assertDatabaseHas('teacher_assignments', [
+            'classroom_id' => $classroom->id,
+            'user_id' => $firstTeacher->id,
+        ]);
+
+        $url = route('assignments.classes.destroy', $classroom);
+        $this->actingAs($waka)->delete($url, ['user_id' => $firstTeacher->id])->assertForbidden();
+        $this->actingAs($coordinator)->delete($url, ['user_id' => $secondTeacher->id])
+            ->assertSessionHasErrors('classroom_id');
+        $this->actingAs($coordinator)->delete($url, ['user_id' => $firstTeacher->id])
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+        $this->assertDatabaseMissing('teacher_assignments', ['classroom_id' => $classroom->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'class_assignment.deleted']);
+        $audit = AuditLog::query()->where('action', 'class_assignment.deleted')->firstOrFail();
+        $this->assertSame($firstTeacher->id, $audit->before_values['user_id']);
+        $this->assertNull($audit->after_values['user_id']);
+        $this->actingAs($coordinator)->delete($url, ['user_id' => $firstTeacher->id])
+            ->assertSessionHasErrors('classroom_id');
+
+        app(AssignmentService::class)->assignClass([
+            'classroom_id' => $classroom->id,
+            'user_id' => $firstTeacher->id,
+        ], $coordinator);
+        $year->update(['is_active' => false, 'activated_at' => now()]);
+        $this->actingAs($coordinator)->delete($url, ['user_id' => $firstTeacher->id])
+            ->assertSessionHasErrors('classroom_id');
+        $this->assertDatabaseHas('teacher_assignments', [
+            'classroom_id' => $classroom->id,
+            'user_id' => $firstTeacher->id,
+        ]);
     }
 
     public function test_preparation_assignment_does_not_grant_student_scope(): void

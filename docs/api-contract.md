@@ -180,14 +180,22 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Controller:** `AssignmentController@index`, `AssignmentController@manage`.
 - **Authorization daftar:** Guru BK melihat penugasannya; Koordinator, Waka, dan Admin IT memperoleh ringkasan sesuai fungsi masing-masing.
 - **Authorization form:** hanya Koordinator BK.
-- **Filter daftar:** `academic_year_id`, `search_kelas`, dan `status` (`all`, `assigned`, atau `unassigned`).
+- **Daftar:** satu baris per Guru BK aktif, termasuk yang belum mempunyai kelas. Kolom kelas memuat kelas aktif pada tahun terpilih; jumlah murid hanya menghitung membership aktif milik murid aktif pada tahun tersebut. Guru BK hanya menerima barisnya sendiri.
+- **Filter daftar:** `academic_year_id`, `search_kelas` (nama kelas ampuan), dan `status` (`all`, `assigned`, atau `unassigned` berdasarkan status guru). Kelas kosong tetap tersedia dalam pilihan tambah bagi Koordinator meskipun daftar difilter.
 
 ### Atur Penugasan Kelas
 - **Endpoint:** `POST /assignments/classes`
 - **Controller:** `AssignmentController@storeClassAssignment`
 - **Authorization:** `Koordinator BK` only.
-- **Request:** `user_id` dan `classroom_id`. Tahun ajaran berasal dari kelas dan konteks halaman yang diotorisasi, bukan input terpisah.
-- **Business Logic:** `AssignmentService::assignClass()` mengunci kelas, tahun, Guru BK, dan state assignment kelas+tahun. Guru yang sama menghasilkan no-op; Guru berbeda memperbarui state dan menulis audit before/after. Assignment tahun aktif langsung berlaku untuk scope tahun tersebut, sedangkan assignment Persiapan belum memberi scope. Operasi ini tidak mengubah owner kasus.
+- **Request:** `user_id` dan `classroom_id`; form tambah kelas kosong mengirim `only_if_unassigned=1`. Tahun ajaran berasal dari kelas dan konteks halaman yang diotorisasi, bukan input terpisah.
+- **Business Logic:** `AssignmentService::assignClass()` mengunci kelas, tahun, Guru BK, dan state assignment kelas+tahun. Form tambah menolak kelas yang sudah ditugaskan setelah tampilan dimuat; POST existing tanpa precondition tetap dapat mengganti guru. Guru yang sama menghasilkan no-op; Guru berbeda memperbarui state dan menulis audit before/after. Assignment tahun aktif langsung berlaku untuk scope tahun tersebut, sedangkan assignment Persiapan belum memberi scope. Operasi ini tidak mengubah owner kasus.
+
+### Batalkan Penugasan Kelas
+- **Endpoint:** `DELETE /assignments/classes/{classroom}`.
+- **Controller:** `AssignmentController@destroyClassAssignment`.
+- **Authorization:** hanya Koordinator BK aktif; tahun aktif atau Persiapan.
+- **Request:** `user_id` pengampu yang terlihat saat konfirmasi. Server menolak bila penugasan kosong, pengampu berubah, atau tahun sudah menjadi arsip.
+- **Business Logic:** `AssignmentService::unassignClass()` mengunci kelas, tahun, dan assignment; mencatat audit `class_assignment.deleted` dengan `user_id` sebelum dan `null` sesudah, lalu menghapus state penugasan dalam transaksi. Scope murid tahun aktif langsung berkurang; owner kasus tetap.
 
 ### Aktivasi Operasional Tahun Ajaran
 - **Endpoint:** `POST /assignments/academic-years/{academicYear}/activate`.

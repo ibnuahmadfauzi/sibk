@@ -93,15 +93,6 @@ document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     });
 });
 
-document.getElementById('classAssignmentModal')?.addEventListener('show.bs.modal', (event) => {
-    const button = event.relatedTarget;
-    const modal = event.currentTarget;
-
-    modal.querySelector('[name="classroom_id"]').value = button.dataset.classroomId;
-    modal.querySelector('[name="user_id"]').value = button.dataset.userId || '';
-    modal.querySelector('[data-assignment-class-name]').textContent = button.dataset.classroomName;
-});
-
 // ── Magic Sidebar Indicator ──────────────────────────────────────────────────
 // Menciptakan indikator yang meluncur mulus di antara item menu aktif.
 // Efek "cutout": indikator berwarna halaman sehingga terlihat berlubang.

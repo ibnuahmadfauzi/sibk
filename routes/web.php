@@ -78,6 +78,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/assignments/classes', [AssignmentController::class, 'index'])->name('assignments.classes.index');
         Route::get('/assignments/classes/manage', [AssignmentController::class, 'manage'])->name('assignments.classes.manage');
         Route::post('/assignments/classes', [AssignmentController::class, 'storeClassAssignment'])->name('assignments.classes.store');
+        Route::delete('/assignments/classes/{classroom}', [AssignmentController::class, 'destroyClassAssignment'])
+            ->name('assignments.classes.destroy');
         Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
             ->name('assignments.academic-years.activate');
         Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');

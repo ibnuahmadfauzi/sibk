@@ -21,6 +21,7 @@ class StoreClassAssignmentRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')],
             'classroom_id' => ['required', 'integer', Rule::exists('classrooms', 'id')],
+            'only_if_unassigned' => ['sometimes', 'boolean'],
             'academic_year_id' => ['prohibited'],
             'decision_number' => ['prohibited'],
             'effective_from' => ['prohibited'],

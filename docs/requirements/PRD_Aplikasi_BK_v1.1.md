@@ -116,7 +116,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | **Area**                       | **Cakupan**                                                                                            | **Urutan**  |
 |--------------------------------|--------------------------------------------------------------------------------------------------------|-------------|
 | Akses dan akun                 | Login, akun aktif, password sementara unik, wajib ganti password, pengelolaan akun oleh Admin IT, dan pembatasan akses per peran serta objek. | Inti        |
-| Penugasan                      | Pembagian Guru BK per kelas dan tahun ajaran sebagai state berjalan yang dapat diubah Koordinator serta diaudit. | Inti        |
+| Penugasan                      | Daftar per Guru BK memuat kelas dan jumlah murid aktif. Koordinator menambah kelas kosong atau membatalkan penugasan setelah konfirmasi; perubahan state diaudit. | Inti        |
 | Master murid dan roster        | Tahun ajaran tanpa tanggal wajib; roster murid melalui impor Excel atau tarik API Dapodik/data siswa; pratinjau pencocokan NISN; serta identitas sementara ketika layanan harus dicatat sebelum sinkronisasi. | Inti        |
 | Proses keluar murid            | Satu proses per murid, pencatatan awal oleh Guru BK, keputusan akhir Koordinator, dan akses baca Waka. | Inti        |
 | Kasus dan tindak lanjut        | Pembuatan kasus dengan Latar Belakang Masalah dan Penanganan, nol atau lebih tindak lanjut unik per jenis, serta penyelesaian dengan Hasil / Ringkasan. | Inti        |

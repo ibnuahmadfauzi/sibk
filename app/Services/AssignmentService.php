@@ -9,6 +9,7 @@ use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class AssignmentService
@@ -16,10 +17,12 @@ class AssignmentService
     public function __construct(private readonly AuditService $auditService) {}
 
     /**
-     * @param  array{user_id: int, classroom_id: int}  $data
+     * @param  array{user_id: int, classroom_id: int, only_if_unassigned?: bool}  $data
      */
     public function assignClass(array $data, User $actor): TeacherAssignment
     {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+
         return DB::transaction(function () use ($data, $actor): TeacherAssignment {
             $classroom = Classroom::query()->lockForUpdate()->findOrFail($data['classroom_id']);
             $academicYear = AcademicYear::query()->lockForUpdate()->findOrFail($classroom->academic_year_id);
@@ -39,6 +42,12 @@ class AssignmentService
                 ->where('academic_year_id', $classroom->academic_year_id)
                 ->lockForUpdate()
                 ->first();
+
+            if (($data['only_if_unassigned'] ?? false) && $assignment !== null) {
+                throw ValidationException::withMessages([
+                    'classroom_id' => 'Kelas sudah ditugaskan. Muat ulang daftar sebelum memilih kelas lain.',
+                ]);
+            }
 
             if ($assignment?->user_id === $teacher->getKey()) {
                 return $assignment->load(['teacher', 'classroom', 'academicYear']);
@@ -64,6 +73,41 @@ class AssignmentService
             );
 
             return $assignment->load(['teacher.roles', 'classroom', 'academicYear']);
+        });
+    }
+
+    public function unassignClass(Classroom $classroom, int $expectedUserId, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+
+        DB::transaction(function () use ($classroom, $expectedUserId, $actor): void {
+            $classroom = Classroom::query()->lockForUpdate()->findOrFail($classroom->getKey());
+            $year = AcademicYear::query()->lockForUpdate()->findOrFail($classroom->academic_year_id);
+            if (! $classroom->is_active || (! $year->is_active && $year->activated_at !== null)) {
+                throw ValidationException::withMessages(['classroom_id' => 'Kelas tidak tersedia untuk penugasan.']);
+            }
+
+            $assignment = TeacherAssignment::query()
+                ->where('classroom_id', $classroom->getKey())
+                ->where('academic_year_id', $year->getKey())
+                ->lockForUpdate()
+                ->first();
+            if ($assignment === null || $assignment->user_id !== $expectedUserId) {
+                throw ValidationException::withMessages([
+                    'classroom_id' => 'Penugasan berubah. Muat ulang daftar sebelum membatalkan.',
+                ]);
+            }
+
+            $before = $this->snapshot($assignment);
+            $this->auditService->record(
+                action: 'class_assignment.deleted',
+                auditable: $assignment,
+                summary: sprintf('Penugasan Guru BK kelas %s dibatalkan.', $classroom->name),
+                actor: $actor,
+                before: $before,
+                after: [...$before, 'user_id' => null],
+            );
+            $assignment->delete();
         });
     }
 
