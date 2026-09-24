@@ -627,7 +627,6 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $dapodikStudent->id,
             'classroom_id' => $confirmedClassroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
             'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
             'source_confirmed_at' => $confirmedAt,
         ]);
@@ -711,7 +710,6 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $existingClass->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
         ]);
         $conflictingFile = $this->csv(implode("\n", [
             'nisn,nama,rombel',
@@ -884,7 +882,6 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $otherYearClassroom->id,
             'academic_year_id' => $targetYear->id,
-            'effective_from' => $targetYear->starts_on,
         ]);
         $auditCountBefore = AuditLog::query()->count();
 
@@ -1017,28 +1014,20 @@ class DelayedDapodikPreparationTest extends TestCase
             'user_id' => $teacher->id,
             'classroom_id' => $classes[0]->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-GURU-1',
             'assigned_by' => $coordinator->id,
         ]);
 
-        $this->assertFalse(Student::query()->forActiveTeacherAssignment($teacher, '2027-07-01')->whereKey($student)->exists());
+        $this->assertFalse(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
         $this->assertValidationError(fn () => $service->activate($year, $coordinator), 'assignments');
         $this->assertTrue($oldYear->refresh()->is_active);
         $this->assertFalse($year->refresh()->is_active);
 
-        foreach ([$teacher, $otherTeacher] as $assignedTeacher) {
-            TeacherAssignment::query()->create([
-                'user_id' => $assignedTeacher->id,
-                'classroom_id' => $classes[1]->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => $year->starts_on,
-                'decision_number' => 'SK-GANDA-'.$assignedTeacher->id,
-                'assigned_by' => $coordinator->id,
-            ]);
-        }
-        $this->assertValidationError(fn () => $service->activate($year, $coordinator), 'assignments');
-        TeacherAssignment::query()->where('classroom_id', $classes[1]->id)->where('user_id', $otherTeacher->id)->delete();
+        TeacherAssignment::query()->create([
+            'user_id' => $otherTeacher->id,
+            'classroom_id' => $classes[1]->id,
+            'academic_year_id' => $year->id,
+            'assigned_by' => $coordinator->id,
+        ]);
 
         try {
             $service->activate($year, $admin);
@@ -1055,7 +1044,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertSame(AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL, $activated->master_source);
         $this->assertFalse($oldYear->refresh()->is_active);
         $this->assertSame(AcademicYear::MASTER_SOURCE_DAPODIK, $oldYear->master_source);
-        $this->assertTrue(Student::query()->forActiveTeacherAssignment($teacher, '2027-07-01')->whereKey($student)->exists());
+        $this->assertTrue(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'academic_year.activated',
             'auditable_id' => $year->id,
@@ -1132,7 +1121,7 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $classroom = Classroom::query()->where('academic_year_id', $year->id)->firstOrFail();
         $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
             ->assertSee('Kesiapan Aktivasi')
             ->assertDontSee('Aktifkan Tahun Ajaran');
@@ -1148,21 +1137,18 @@ class DelayedDapodikPreparationTest extends TestCase
                 'user_id' => $teacher->id,
                 'classroom_id' => $classroom->id,
                 'academic_year_id' => $otherYear->id,
-                'decision_number' => 'SK-SILANG',
                 'effective_date' => '2028-07-01',
             ])
-            ->assertSessionHasErrors('classroom_id');
+            ->assertSessionHasErrors('academic_year_id');
 
         TeacherAssignment::query()->create([
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-AKTIVASI',
             'assigned_by' => $coordinator->id,
         ]);
         $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
             ->assertSee('Aktifkan Tahun Ajaran');
         $this->app['auth']->guard()->logout();
@@ -1225,16 +1211,12 @@ class DelayedDapodikPreparationTest extends TestCase
             'user_id' => $assignedTeacher->id,
             'classroom_id' => $classes[0]->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-GURU-UTAMA',
             'assigned_by' => $coordinator->id,
         ]);
         TeacherAssignment::query()->create([
             'user_id' => $otherTeacher->id,
             'classroom_id' => $classes[1]->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-GURU-LAIN',
             'assigned_by' => $coordinator->id,
         ]);
 

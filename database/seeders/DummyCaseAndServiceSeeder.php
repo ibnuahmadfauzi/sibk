@@ -101,18 +101,13 @@ class DummyCaseAndServiceSeeder extends Seeder
                 continue;
             }
 
-            $assignment = TeacherAssignment::query()->withTrashed()->firstOrNew([
+            $assignment = TeacherAssignment::query()->firstOrNew([
                 'classroom_id' => $classroom->id,
                 'academic_year_id' => $academicYear->id,
             ]);
             $assignment->forceFill([
                 'user_id' => $teacher->id,
-                'effective_from' => $academicYear->starts_on,
-                'effective_until' => $academicYear->ends_on,
-                'decision_number' => 'SK-BK-DEMO',
-                'notes' => 'Penugasan kelas contoh.',
                 'assigned_by' => $teachers['awal']->id,
-                'deleted_at' => null,
             ])->save();
             $teachersByClassroom[$classroom->id] = $teacher;
         }
@@ -443,6 +438,7 @@ class DummyCaseAndServiceSeeder extends Seeder
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
             $caseYear = $def['academic_year'] ?? $academicYear;
             $teacher = $this->teacherFor($student, $caseYear, $teachersByClassroom);
+            $membership = $student->classMemberships()->where('academic_year_id', $caseYear->id)->firstOrFail();
             $regNumber = sprintf('K-%s-%04d', substr($def['service_date'], 0, 4), $def['index']);
 
             /** @var BkCase $case */
@@ -451,6 +447,8 @@ class DummyCaseAndServiceSeeder extends Seeder
                 [
                     'student_id' => $student->id,
                     'temporary_student_id' => null,
+                    'academic_year_id' => $caseYear->id,
+                    'classroom_id' => $membership->classroom_id,
                     'case_source_id' => $sources[$def['source']],
                     'service_field_id' => $fields[$def['field']],
                     'status_id' => $caseStatuses[$def['status']],
@@ -470,12 +468,9 @@ class DummyCaseAndServiceSeeder extends Seeder
             CaseAssignment::query()->updateOrCreate(
                 [
                     'case_id' => $case->id,
-                    'assignment_type' => CaseAssignment::TYPE_OWNER,
                 ],
                 [
                     'user_id' => $teacher->id,
-                    'effective_from' => $def['service_date'],
-                    'effective_until' => null,
                     'reason' => 'Penanggung jawab utama kasus murid.',
                     'assigned_by' => $teacher->id,
                 ],
@@ -764,6 +759,7 @@ class DummyCaseAndServiceSeeder extends Seeder
         foreach ($definitions as $def) {
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
             $teacher = $this->teacherFor($student, $academicYear, $teachersByClassroom);
+            $membership = $student->classMemberships()->where('academic_year_id', $academicYear->id)->firstOrFail();
 
             /** @var Consultation $consultation */
             $consultation = Consultation::query()
@@ -774,6 +770,8 @@ class DummyCaseAndServiceSeeder extends Seeder
             $consultation->forceFill([
                 'student_id' => $student->id,
                 'temporary_student_id' => null,
+                'academic_year_id' => $academicYear->id,
+                'classroom_id' => $membership->classroom_id,
                 'service_field_id' => $fields[$def['field']],
                 'session_date' => $def['session_date'],
                 'problem' => $def['topic'],

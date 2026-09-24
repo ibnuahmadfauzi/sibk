@@ -33,7 +33,7 @@ class StoreCaseRequest extends FormRequest
                         ->where('student_id', $studentId)
                         ->whereIn('student_id', Student::query()
                             ->active()
-                            ->forActiveTeacherAssignment($actor, now())
+                            ->forActiveTeacherAssignment($actor)
                             ->select('students.id'));
 
                     return;

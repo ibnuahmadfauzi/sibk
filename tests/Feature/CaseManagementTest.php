@@ -230,7 +230,7 @@ class CaseManagementTest extends TestCase
         $response = $this->actingAs($teacher)->get(route('cases.index'));
 
         $response->assertOk()
-            ->assertSeeInOrder(['Murid', 'Kelas', 'Tanggal', 'Sumber', 'Bidang', 'Status', 'Tindak Lanjut', 'Aksi'])
+            ->assertSeeInOrder(['Murid', 'Kelas', 'Tanggal', 'Sumber', 'Jenis Masalah', 'Status', 'Tindak Lanjut', 'Aksi'])
             ->assertSee('<tr data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'">', false)
             ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false)
             ->assertSee('data-follow-up-url="'.$this->followUpUrl($case).'"', false)
@@ -316,12 +316,12 @@ class CaseManagementTest extends TestCase
         $case = $this->createCase($teacher, $this->scopedStudent($teacher));
 
         $this->actingAs($teacher)->get(route('cases.show', $case))
-            ->assertOk()->assertViewIs('pages.cases.show')->assertSee('Detail Kasus');
+            ->assertOk()->assertViewIs('pages.cases.show')->assertSee('Detail Permasalahan');
         $this->actingAs($teacher)->get(route('cases.show', [$case, 'modal' => 1]))
             ->assertOk()->assertViewIs('pages.cases._detail-modal')
-            ->assertSeeInOrder(['Nama', 'Tanggal', 'Kelas', 'Status', 'Guru BK', 'Latar Belakang', 'Penanganan', 'Catatan Penyelesaian']);
+            ->assertSeeInOrder(['Nama', 'Tanggal', 'Kelas', 'Jenis Masalah', 'Status', 'Guru BK', 'Latar Belakang', 'Penanganan', 'Catatan Penyelesaian']);
         $this->actingAs($teacher)->get(route('cases.edit', $case))
-            ->assertOk()->assertViewIs('pages.cases.edit')->assertSee('Ubah Kasus');
+            ->assertOk()->assertViewIs('pages.cases.edit')->assertSee('Ubah Permasalahan');
         $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
             ->assertOk()->assertViewIs('pages.cases._edit-modal')
             ->assertSee('name="expected_updated_at"', false)
@@ -336,10 +336,10 @@ class CaseManagementTest extends TestCase
         $teacher = $this->userWithRole('guru_bk');
         $case = $this->createCase($teacher, $this->scopedStudent($teacher));
         $this->completeCase($teacher, $case);
-        $confirmation = "if (! window.confirm('Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }";
+        $confirmation = "if (! window.confirm('Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }";
 
         $this->actingAs($teacher)->get(route('cases.index'))
-            ->assertSee('data-confirm-message="Kasus ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false)
+            ->assertSee('data-confirm-message="Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false)
             ->assertSee('onclick="'.$confirmation.'"', false);
         $this->actingAs($teacher)->get(route('cases.show', $case))
             ->assertSee('onclick="'.$confirmation.'"', false);
@@ -389,6 +389,8 @@ class CaseManagementTest extends TestCase
         $case = BkCase::query()->create([
             'registration_number' => 'K-2026-'.str_pad((string) (BkCase::query()->count() + 1), 4, '0', STR_PAD_LEFT),
             'student_id' => $student->id,
+            'academic_year_id' => $student->classMemberships()->firstOrFail()->academic_year_id,
+            'classroom_id' => $student->classMemberships()->firstOrFail()->classroom_id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
             'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
@@ -401,8 +403,6 @@ class CaseManagementTest extends TestCase
         CaseAssignment::query()->create([
             'case_id' => $case->id,
             'user_id' => $teacher->id,
-            'assignment_type' => CaseAssignment::TYPE_OWNER,
-            'effective_from' => $case->service_date->toDateString(),
             'reason' => 'Fixture pemilik kasus.',
             'assigned_by' => $teacher->id,
         ]);
@@ -434,16 +434,13 @@ class CaseManagementTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
         ]);
         TeacherAssignment::query()->firstOrCreate([
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
         ], [
-            'decision_number' => 'SK-'.$classroom->id,
             'assigned_by' => $teacher->id,
         ]);
 

@@ -17,87 +17,59 @@ use Illuminate\Http\Request;
 
 class AssignmentController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, AcademicYearPreparationService $preparationService): View
     {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('viewAny', TeacherAssignment::class), 403);
 
-        $query = TeacherAssignment::query()->with(['teacher', 'classroom', 'academicYear']);
+        $academicYears = AcademicYear::query()->orderByDesc('id')->get();
+        $selectedYear = $academicYears->firstWhere('id', $request->integer('academic_year_id'))
+            ?? $academicYears->firstWhere('is_active', true)
+            ?? $academicYears->first();
+        $canManage = $user->can('create', TeacherAssignment::class)
+            && $selectedYear !== null
+            && ($selectedYear->is_active || $selectedYear->activated_at === null);
+        $isSummaryRole = $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan', 'admin_it']);
 
-        if (! $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan', 'admin_it'])) {
-            $query->where('user_id', $user->getKey());
-        }
+        $classes = Classroom::query()
+            ->active()
+            ->with(['academicYear', 'teacherAssignments.teacher'])
+            ->withCount(['studentClassMemberships as student_count' => fn ($memberships) => $memberships
+                ->active()->whereHas('student', fn ($students) => $students->active())])
+            ->when($selectedYear !== null, fn ($query) => $query->where('academic_year_id', $selectedYear->getKey()))
+            ->when($request->string('search_kelas')->toString(), fn ($query, $search) => $query->where('name', 'like', '%'.$search.'%'))
+            ->when($isSummaryRole === false,
+                fn ($query) => $query->whereHas('teacherAssignments', fn ($assignments) => $assignments->where('user_id', $user->getKey())))
+            ->orderBy('name')
+            ->get();
 
-        $query
-            ->when($request->integer('academic_year_id'), fn ($builder, int $yearId) => $builder->where('academic_year_id', $yearId))
-            ->when($request->string('search_kelas')->toString(), fn ($builder, string $search) => $builder->whereHas(
-                'classroom',
-                fn ($classrooms) => $classrooms->where('name', 'like', '%'.$search.'%'),
-            ));
-
-        if ($request->string('status')->toString() === 'aktif') {
-            $query->activeOn(now());
-        } elseif ($request->string('status')->toString() === 'terjadwal') {
-            $query->scheduledOn(now());
-        } elseif (in_array($request->string('status')->toString(), ['berakhir', 'nonaktif'], true)) {
-            $query->endedOn(now());
+        $status = $request->string('status')->toString();
+        if ($status === 'assigned') {
+            $classes = $classes->filter(fn (Classroom $classroom) => $classroom->teacherAssignments->isNotEmpty());
+        } elseif ($status === 'unassigned') {
+            $classes = $classes->filter(fn (Classroom $classroom) => $classroom->teacherAssignments->isEmpty());
         }
 
         return view('pages.assignments.classes.index', [
-            'assignments' => $query->orderByDesc('effective_from')->get(),
-            'academicYears' => AcademicYear::query()->orderByDesc('starts_on')->orderByDesc('name')->get(),
-            'canManage' => $user->can('create', TeacherAssignment::class),
+            'classes' => $classes,
+            'academicYears' => $academicYears,
+            'selectedYear' => $selectedYear,
+            'canManage' => $canManage,
+            'activationReadiness' => $canManage ? $preparationService->activationReadiness($selectedYear) : null,
+            'counselors' => $canManage ? User::query()->active()
+                ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
+                ->orderBy('name')->get() : collect(),
         ]);
     }
 
-    public function manage(
-        Request $request,
-        AcademicYearPreparationService $preparationService,
-    ): View {
+    public function manage(Request $request): RedirectResponse
+    {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('create', TeacherAssignment::class), 403);
 
-        $academicYears = AcademicYear::query()->orderByDesc('starts_on')->orderByDesc('name')->get();
-        $selectedYear = AcademicYear::query()->find($request->integer('academic_year_id'))
-            ?? AcademicYear::query()->active()->orderByDesc('starts_on')->first()
-            ?? $academicYears->first();
-        $classes = Classroom::query()
-            ->with('academicYear')
-            ->active()
-            ->when($selectedYear !== null, fn ($query) => $query->where('academic_year_id', $selectedYear->getKey()))
-            ->orderBy('name')
-            ->get();
-        $selectedClass = $classes->firstWhere('id', $request->integer('classroom_id'))
-            ?? $classes->firstWhere('academic_year_id', $selectedYear?->getKey())
-            ?? $classes->first();
-        $counselors = User::query()
-            ->active()
-            ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
-            ->orderBy('name')
-            ->get();
-        $currentAssignment = null;
-        if ($selectedClass !== null) {
-            $assignmentQuery = TeacherAssignment::query()
-                ->with(['teacher', 'academicYear', 'classroom'])
-                ->where('classroom_id', $selectedClass->getKey());
-            $currentAssignment = (clone $assignmentQuery)->activeOn(now())->latest('effective_from')->first()
-                ?? (clone $assignmentQuery)->scheduledOn(now())->oldest('effective_from')->first();
-        }
-        $activationReadiness = $selectedYear !== null
-            ? $preparationService->activationReadiness($selectedYear)
-            : ['ready' => false, 'issues' => ['Tahun ajaran belum tersedia.'], 'classrooms' => collect()];
-
-        return view('pages.assignments.classes.manage', compact(
-            'academicYears',
-            'selectedYear',
-            'classes',
-            'selectedClass',
-            'counselors',
-            'currentAssignment',
-            'activationReadiness',
-        ));
+        return redirect()->route('assignments.classes.index', $request->only('academic_year_id', 'classroom_id'));
     }
 
     public function storeClassAssignment(
@@ -106,11 +78,10 @@ class AssignmentController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $assignmentService->assignClass($request->validated(), $actor);
+        $assignment = $assignmentService->assignClass($request->validated(), $actor);
 
         return redirect()
-            ->route('assignments.classes.index', ['academic_year_id' => $request->integer('academic_year_id')])
+            ->route('assignments.classes.index', ['academic_year_id' => $assignment->academic_year_id])
             ->with('success', 'Penugasan kelas berhasil disimpan.');
     }
-
 }

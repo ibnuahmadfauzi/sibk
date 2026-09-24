@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\BkCase;
-use App\Models\CaseAssignment;
 use App\Models\Consultation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,14 +24,7 @@ final class ReportSignatoryResolver
     public function forRecord(BkCase|Consultation $record): array
     {
         $teacher = $record instanceof BkCase
-            ? $record->assignments
-                ->where('assignment_type', CaseAssignment::TYPE_OWNER)
-                ->sortByDesc(fn (CaseAssignment $assignment): string => sprintf(
-                    '%s-%010d',
-                    $assignment->effective_from->format('Y-m-d'),
-                    $assignment->id,
-                ))
-                ->first()?->teacher
+            ? $record->assignments->first()?->teacher
             : $record->counselor;
 
         return [

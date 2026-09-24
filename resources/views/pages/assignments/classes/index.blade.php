@@ -8,116 +8,204 @@
             <div class="alert alert-success" role="alert">{{ session('success') }}</div>
         @endif
 
-        <!-- Header -->
-        <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+        <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy">
                 <h1>Penugasan Kelas</h1>
-                <p>Daftar penanggung jawab layanan BK per kelas.</p>
+                <p>Guru BK penanggung jawab setiap kelas pada tahun ajaran yang dipilih.</p>
             </div>
-            @if($canManage)
-            <div class="sibk-page-header__actions">
-                <a href="{{ route('assignments.classes.manage') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/>
-                    </svg>
-                    Atur Penugasan
-                </a>
-            </div>
-            @endif
         </div>
 
-        <!-- Filter Panel -->
         <div class="sibk-panel mb-4">
             <div class="sibk-panel__body p-4">
-                <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('assignments.classes.index') }}" method="GET">
+                <form
+                    class="row g-3 align-items-end"
+                    action="{{ route('assignments.classes.index') }}"
+                    method="GET"
+                >
                     <div class="col-12 col-md-3">
-                        <label for="tahun_ajaran" class="form-label sibk-form-label">Tahun Ajaran</label>
-                        <select class="form-select sibk-form-select" id="tahun_ajaran" name="academic_year_id">
-                            <option value="">Semua tahun ajaran</option>
+                        <label class="form-label" for="academic_year_id">Tahun ajaran</label>
+                        <select class="form-select" id="academic_year_id" name="academic_year_id">
                             @foreach($academicYears as $year)
-                                <option value="{{ $year->id }}" @selected((string) request('academic_year_id') === (string) $year->id)>{{ $year->name }}</option>
+                                <option
+                                    value="{{ $year->id }}"
+                                    @selected($selectedYear?->id === $year->id)
+                                >
+                                    {{ $year->name }}{{ $year->is_active ? ' (Aktif)' : ($year->activated_at ? ' (Arsip)' : ' (Persiapan)') }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-12 col-md-4">
-                        <label for="search_kelas" class="form-label sibk-form-label">Cari Kelas</label>
-                        <input type="text" class="form-control sibk-form-control" id="search_kelas" name="search_kelas" value="{{ request('search_kelas') }}" placeholder="Nama kelas">
+                        <label class="form-label" for="search_kelas">Cari kelas</label>
+                        <input
+                            class="form-control"
+                            id="search_kelas"
+                            name="search_kelas"
+                            type="search"
+                            value="{{ request('search_kelas') }}"
+                        >
                     </div>
                     <div class="col-12 col-md-3">
-                        <label for="status" class="form-label sibk-form-label">Status</label>
-                        <select class="form-select sibk-form-select" id="status" name="status">
-                            <option value="">Semua status</option>
-                            <option value="aktif" @selected(request('status') === 'aktif')>Aktif</option>
-                            <option value="terjadwal" @selected(request('status') === 'terjadwal')>Terjadwal</option>
-                            <option value="berakhir" @selected(in_array(request('status'), ['berakhir', 'nonaktif'], true))>Berakhir</option>
+                        <label class="form-label" for="status">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="all">Semua</option>
+                            <option value="assigned" @selected(request('status') === 'assigned')>Sudah ditugaskan</option>
+                            <option value="unassigned" @selected(request('status') === 'unassigned')>Belum ditugaskan</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-2">
-                        <button type="submit" class="btn btn-outline-primary w-100 sibk-btn-apply d-inline-flex align-items-center justify-content-center gap-1">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                            </svg>
-                            Filter
-                        </button>
+                        <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Table -->
+        @if($errors->any())
+            <div class="alert alert-danger" role="alert">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+        @if($activationReadiness !== null)
+            <section class="sibk-panel mb-4" aria-labelledby="activation-readiness-title">
+                <div class="sibk-panel__body p-4">
+                    <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
+                    @if($activationReadiness['issues'] !== [])
+                        <ul class="text-warning-emphasis mb-2">
+                            @foreach($activationReadiness['issues'] as $issue)
+                                <li>{{ $issue }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    @if($activationReadiness['warnings'] !== [])
+                        <ul class="text-info-emphasis mb-2">
+                            @foreach($activationReadiness['warnings'] as $warning)
+                                <li>{{ $warning }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    @if($activationReadiness['ready'])
+                        <form
+                            action="{{ route('assignments.academic-years.activate', $selectedYear) }}"
+                            method="POST"
+                        >
+                            @csrf
+                            <button class="btn btn-primary" type="submit">Aktifkan Tahun Ajaran</button>
+                        </form>
+                    @elseif($activationReadiness['state'] === 'scheduled')
+                        <p class="mb-0">
+                            Siap diaktifkan mulai {{ $selectedYear->starts_on?->locale('id')->translatedFormat('j F Y') }}.
+                        </p>
+                    @elseif($activationReadiness['state'] === 'ended')
+                        <p class="mb-0">Periode selesai.</p>
+                    @endif
+                </div>
+            </section>
+        @endif
+
         <div class="table-responsive">
             <table class="table sibk-table mb-0">
                 <thead>
                     <tr>
                         <th>Kelas</th>
-                        <th>Penanggung Jawab</th>
-                        <th>Mulai Berlaku</th>
-                        <th>Akhir Berlaku</th>
+                        <th>Murid</th>
+                        <th>Guru BK</th>
                         <th>Status</th>
-                        <th>Aksi</th>
+                        @if($canManage)
+                            <th>Aksi</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($assignments as $assignment)
-                        @php
-                            $assignmentStatus = $assignment->statusOn(now());
-                            [$statusLabel, $statusTone] = match ($assignmentStatus) {
-                                \App\Models\TeacherAssignment::STATUS_ACTIVE => ['Aktif', 'success'],
-                                \App\Models\TeacherAssignment::STATUS_SCHEDULED => ['Terjadwal', 'info'],
-                                default => ['Berakhir', 'neutral'],
-                            };
-                        @endphp
+                    @forelse($classes as $classroom)
+                        @php($assignment = $classroom->teacherAssignments->first())
                         <tr>
-                            <td class="fw-bold text-dark">{{ $assignment->classroom->name }}</td>
-                            <td class="fw-semibold text-primary">{{ $assignment->teacher->name }}</td>
-                            <td>{{ $assignment->effective_from->locale('id')->translatedFormat('d M Y') }}</td>
-                            <td class="text-muted">{{ $assignment->effectiveEnd()?->locale('id')->translatedFormat('d M Y') ?? '—' }}</td>
+                            <td class="fw-bold">{{ $classroom->name }}</td>
+                            <td>{{ $classroom->student_count }}</td>
+                            <td>{{ $assignment?->teacher?->name ?? '—' }}</td>
                             <td>
-                                <span class="sibk-badge sibk-badge--{{ $statusTone }}">
-                                    {{ $statusLabel }}
+                                <span class="sibk-badge sibk-badge--{{ $assignment ? 'success' : 'neutral' }}">
+                                    {{ $assignment ? 'Ditugaskan' : 'Belum ditugaskan' }}
                                 </span>
                             </td>
-                            <td>
-                                @if($canManage)
-                                    <a href="{{ route('assignments.classes.manage', ['classroom_id' => $assignment->classroom_id, 'academic_year_id' => $assignment->academic_year_id]) }}" class="fw-bold text-decoration-none text-primary">
+                            @if($canManage)
+                                <td>
+                                    <button
+                                        class="btn btn-sm btn-outline-primary"
+                                        type="button"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#classAssignmentModal"
+                                        data-classroom-id="{{ $classroom->id }}"
+                                        data-classroom-name="{{ $classroom->name }}"
+                                        data-user-id="{{ $assignment?->user_id }}"
+                                    >
                                         Atur
-                                    </a>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
+                                    </button>
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">Belum ada penugasan kelas yang dicatat.</td>
+                            <td
+                                class="text-center py-4 text-muted"
+                                colspan="{{ $canManage ? 5 : 4 }}"
+                            >
+                                Belum ada kelas yang sesuai.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        <div class="text-muted small fw-medium mt-2">
-            Menampilkan {{ $assignments->isEmpty() ? 0 : 1 }}–{{ $assignments->count() }} dari {{ $assignments->count() }} penugasan kelas
-        </div>
+        @if($canManage)
+            <div
+                class="modal fade"
+                id="classAssignmentModal"
+                tabindex="-1"
+                aria-labelledby="classAssignmentTitle"
+                aria-hidden="true"
+            >
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form action="{{ route('assignments.classes.store') }}" method="POST">
+                            @csrf
+                            <div class="modal-header">
+                                <h2 class="modal-title fs-5" id="classAssignmentTitle">Atur penugasan kelas</h2>
+                                <button
+                                    class="btn-close"
+                                    type="button"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Tutup"
+                                ></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-3" data-assignment-class-name></p>
+                                <input name="classroom_id" type="hidden" required>
+                                <label class="form-label" for="assignment_user_id">Guru BK</label>
+                                <select
+                                    class="form-select"
+                                    id="assignment_user_id"
+                                    name="user_id"
+                                    required
+                                >
+                                    <option value="">Pilih Guru BK</option>
+                                    @foreach($counselors as $counselor)
+                                        <option value="{{ $counselor->id }}">{{ $counselor->name }}</option>
+                                    @endforeach
+                                </select>
+                                @if($selectedYear !== null && ! $selectedYear->is_active)
+                                    <p class="form-text">Penugasan tahun Persiapan belum memberi akses murid.</p>
+                                @endif
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Batal</button>
+                                <button class="btn btn-primary" type="submit">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection

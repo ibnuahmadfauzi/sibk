@@ -1,11 +1,5 @@
 @php
-    $detailStudent = $consultation->student
-        ?? $consultation->temporaryStudent?->reconciledStudent;
-    $detailClass = $detailStudent?->classMemberships
-        ->first(fn ($membership) => $membership->effective_from->lte($consultation->session_date)
-            && ($membership->effective_until === null
-                || $membership->effective_until->gte($consultation->session_date)))
-        ?->classroom?->name ?? '—';
+    $detailClass = $consultation->classroom?->name ?? '—';
 @endphp
 <div data-consultation-detail-modal>
     <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">

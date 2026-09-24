@@ -31,7 +31,6 @@ class StudentController extends Controller
             ->with([
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
-                    ->effectiveOn(now()->toDateString())
                     ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom.academicYear'),
                 'cases' => fn ($cases) => $cases
@@ -45,8 +44,7 @@ class StudentController extends Controller
             ->whereHas('classMemberships', fn ($memberships) => $memberships
                 ->where('classroom_id', $classroomId)
                 ->active()
-                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
-                ->effectiveOn(now()->toDateString())));
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))));
 
         return view('pages.students.index', [
             'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
@@ -65,18 +63,17 @@ class StudentController extends Controller
         abort_unless($user->can('view', $student), 403);
         $student->load(['classMemberships.classroom.academicYear', 'departure.recorder', 'departure.finalizer']);
         $currentMembership = $student->classMemberships()
-            ->activeOn(now()->toDateString())
+            ->inActiveYear()
             ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
             ->with(['classroom', 'academicYear'])
-            ->latest('effective_from')
             ->first();
 
         $activeTab = $request->string('tab', 'ringkasan')->toString();
         $allowedTabs = ['ringkasan', 'kasus', 'etatib', 'konsultasi', 'prestasi'];
-        if (! in_array($activeTab, $allowedTabs, true)) {
+        if (in_array($activeTab, $allowedTabs, true) === false) {
             $activeTab = 'ringkasan';
         }
-        if ($user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']) && $activeTab === 'konsultasi') {
+        if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false && $activeTab === 'konsultasi') {
             $activeTab = 'ringkasan';
         }
 
@@ -87,7 +84,7 @@ class StudentController extends Controller
             ->latest('service_date')
             ->get();
         $etatibQuery = ExternalTatibRecord::query()->active()->where('student_id', $student->getKey());
-        if ($user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk'])) {
+        if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false) {
             $etatibQuery->whereHas('cases', fn ($cases) => $cases->accessibleTo($user));
         }
         $etatibRecords = $etatibQuery->latest('occurred_at')->get();
@@ -123,7 +120,9 @@ class StudentController extends Controller
             'cases' => $cases,
             'etatibRecords' => $etatibRecords,
             'consultations' => $consultations,
-            'memberships' => $student->classMemberships->sortByDesc('effective_from'),
+            'memberships' => $student->classMemberships->sortByDesc(
+                fn ($membership) => $membership->academicYear?->name ?? '',
+            ),
             'currentMembership' => $currentMembership,
             'stats' => [
                 'active_cases' => $cases->whereNull('closed_at')->count(),
@@ -143,7 +142,7 @@ class StudentController extends Controller
             'canFinalizeDeparture' => $departure !== null
                 && $departure->status === StudentDeparture::STATUS_IN_PROGRESS
                 && $user->can('finalize', $departure),
-            'isWakaSummary' => $user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']),
+            'isWakaSummary' => $user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false,
         ]);
     }
 

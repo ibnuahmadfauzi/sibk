@@ -116,7 +116,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | **Area**                       | **Cakupan**                                                                                            | **Urutan**  |
 |--------------------------------|--------------------------------------------------------------------------------------------------------|-------------|
 | Akses dan akun                 | Login, akun aktif, password sementara unik, wajib ganti password, pengelolaan akun oleh Admin IT, dan pembatasan akses per peran serta objek. | Inti        |
-| Penugasan                      | Pembagian Guru BK per kelas, periode efektif, dan perubahan resmi. | Inti        |
+| Penugasan                      | Pembagian Guru BK per kelas dan tahun ajaran sebagai state berjalan yang dapat diubah Koordinator serta diaudit. | Inti        |
 | Master murid dan roster        | Tahun ajaran tanpa tanggal wajib; roster murid melalui impor Excel atau tarik API Dapodik/data siswa; pratinjau pencocokan NISN; serta identitas sementara ketika layanan harus dicatat sebelum sinkronisasi. | Inti        |
 | Proses keluar murid            | Satu proses per murid, pencatatan awal oleh Guru BK, keputusan akhir Koordinator, dan akses baca Waka. | Inti        |
 | Kasus dan tindak lanjut        | Pembuatan kasus dengan Latar Belakang Masalah dan Penanganan, nol atau lebih tindak lanjut unik per jenis, serta penyelesaian dengan Hasil / Ringkasan. | Inti        |
@@ -191,7 +191,8 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Prestasi            | Waka Kesiswaan menjadi pemilik pengelolaan prestasi melalui input manual atau impor Excel. Guru BK hanya membaca prestasi murid dalam scope sebagai konteks; prestasi tidak memiliki bukti/verifikasi dan tidak otomatis memengaruhi lifecycle layanan BK. |
 | Autosave dan konflik | Form tambah/edit data bisnis menyimpan draft lokal per pengguna/form/record maksimal 24 jam tanpa mengirim atau mengaudit draft. Simpan resmi memakai `updated_at` dan menolak konflik agar perubahan tidak saling menimpa. |
 | Daftar layanan      | Daftar kasus dan konsultasi hanya menerima search/filter/sorting yang berada pada allowlist server dengan arah `asc`/`desc` dan tie-breaker ID. |
-| Penugasan           | Kasus baru memperoleh satu owner saat dibuat. Owner dan histori penanggung jawab yang sudah tercatat tetap dipertahankan untuk scope akses. Aplikasi tidak menyediakan pengalihan owner kasus; pergantian kelas atau tahun ajaran tidak memindahkan kasus aktif. |
+| Penugasan           | Membership murid dan penugasan Guru BK berbasis tahun ajaran tanpa periode tanggal. Perubahan state mencatat nilai sebelum/sesudah pada audit. Kasus baru memperoleh satu owner tetap saat dibuat; aplikasi tidak menyediakan pengalihan owner dan pergantian Guru BK kelas tidak memindahkan owner kasus. |
+| Histori konteks     | Record layanan yang relevan menyimpan snapshot tahun ajaran dan kelas saat dicatat agar histori tidak berubah ketika membership atau penugasan berubah. |
 | Edit dan arsip      | Tombol Hapus mengarsipkan kasus/konsultasi dengan soft delete. Kesalahan data master dikoordinasikan di luar aplikasi, diperbaiki pada sumber resmi, lalu masuk melalui sinkronisasi atau rekonsiliasi. |
 | Proses keluar murid | Pencatatan awal selalu `dalam_proses`; hanya Koordinator menetapkan `batal` atau `resmi_keluar`. Hanya `resmi_keluar` dengan tanggal efektif yang menghentikan layanan baru dan memulai retensi. Provider tidak menentukan status ini. |
 | Audit               | Setiap simpan resmi mencatat actor, waktu, tipe/ID record, serta nilai sebelum/sesudah hanya untuk field yang berubah. Pembacaan detail Waka dicatat; draft lokal tidak membuat audit. |
@@ -208,7 +209,7 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 | Data Murid          | Profil, histori kelas lintas tahun, mirror e-Tatib beserta penanda data baru, kasus, konsultasi, tindak lanjut, dan prestasi yang diizinkan. |
 | Laporan             | Guru BK dan Koordinator memakai daftar catatan kasus/konsultasi dan preview rekap sesuai scope. Waka memakai daftar yang sama dalam mode hanya-baca tanpa preview, cetak, unduhan, atau aksi. |
 | Prestasi            | Waka mengelola prestasi manual/Excel; Guru BK membaca prestasi sesuai scope dari profil murid. |
-| Penugasan           | Pembagian kelas, periode efektif, perubahan resmi, dan dasar keputusan resmi.                    |
+| Penugasan           | Pembagian Guru BK per kelas dan tahun ajaran, perubahan state yang diaudit, serta owner kasus tetap sejak pembuatan. |
 | Administrasi teknis | Akun, infrastruktur, konfigurasi koneksi PG-501, status sinkronisasi, kesalahan pemetaan, dan rekonsiliasi identitas. |
 
 ## Laporan P0
@@ -277,4 +278,4 @@ Sumber penyusunan: kuesioner kebutuhan Aplikasi BK, contoh pencatatan berjalan, 
 | 1.1       | 22 September 2026 | Menyederhanakan dokumen rekap menjadi enam kolom putih polos dan menghapus unduhan Word. |
 | 1.1       | 23 September 2026 | Mengubah rekap menjadi A4 portrait dan menambahkan kolom Guru BK sebelum Keterangan. |
 | 1.1       | 23 September 2026 | Menampilkan Hasil pada daftar Guru BK/Koordinator, menyatukan detail Latar Belakang Masalah dan Penanganan pada satu kontrol, serta menambahkan Sumber dan Tindak Lanjut terbaru ke Keterangan dokumen. |
-| 1.1       | 24 September 2026 | Menyelaraskan roster Excel/API Dapodik, aktivasi tahun ajaran tanpa tanggal, mirror read-only e-Tatib dan penanda data baru, narasi layanan, multi-tindak-lanjut, penyelesaian Hasil / Ringkasan, serta pengelolaan prestasi oleh Waka. |
+| 1.1       | 24 September 2026 | Menyelaraskan roster Excel/API Dapodik, aktivasi tahun ajaran tanpa tanggal, membership/penugasan berbasis tahun tanpa periode tanggal, owner kasus tetap, snapshot konteks layanan, penghapusan dasar keputusan penugasan, mirror read-only e-Tatib dan penanda data baru, narasi layanan, multi-tindak-lanjut, penyelesaian Hasil / Ringkasan, serta pengelolaan prestasi oleh Waka. |

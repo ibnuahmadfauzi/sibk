@@ -52,18 +52,14 @@ final class DummyCaseAndServiceSeederTest extends TestCase
         $currentYear = AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->firstOrFail();
         $previousYear = AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR-PREVIOUS')->firstOrFail();
         $fajar = Student::query()->where('nisn', '0091234506')->firstOrFail();
-        $classes = $fajar->classMemberships()
-            ->with('classroom')
-            ->orderBy('effective_from')
-            ->get()
-            ->pluck('classroom.name')
-            ->all();
-
-        $this->assertSame(['X-RPL-1', 'XI-RPL-1'], $classes);
+        $this->assertSame('X-RPL-1', $fajar->classMemberships()
+            ->where('academic_year_id', $previousYear->id)->firstOrFail()->classroom->name);
+        $this->assertSame('XI-RPL-1', $fajar->classMemberships()
+            ->where('academic_year_id', $currentYear->id)->firstOrFail()->classroom->name);
         $this->assertFalse($previousYear->is_active);
         $this->assertSame(6, TeacherAssignment::query()->where('academic_year_id', $currentYear->id)->count());
         $this->assertSame(17, BkCase::query()->count());
-        $this->assertSame(2, BkCase::query()->whereDate('service_date', '<=', $previousYear->ends_on)->count());
+        $this->assertSame(2, BkCase::query()->where('academic_year_id', $previousYear->id)->count());
 
         foreach (['guru.bk@ruangbk.test', 'guru.bk.rina@ruangbk.test', 'guru.bk.budi@ruangbk.test'] as $email) {
             $teacher = User::query()->where('email', $email)->firstOrFail();

@@ -179,7 +179,7 @@ class FoundationDataTest extends TestCase
         }
     }
 
-    public function test_master_cache_keeps_class_membership_history(): void
+    public function test_master_cache_keeps_one_class_membership_per_year(): void
     {
         $year = AcademicYear::query()->create(['name' => '2026/2027', 'is_active' => true]);
         $classroom = Classroom::query()->create([
@@ -192,12 +192,9 @@ class FoundationDataTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
-            'effective_until' => '2026-12-31',
         ]);
 
-        $this->assertSame(1, $student->classMemberships()->effectiveOn('2026-08-20')->count());
-        $this->assertSame(0, $student->classMemberships()->effectiveOn('2027-01-01')->count());
+        $this->assertSame(1, $student->classMemberships()->where('academic_year_id', $year->id)->count());
     }
 
     public function test_demo_student_seeder_is_idempotent(): void

@@ -171,8 +171,6 @@ class StudentSeeder extends Seeder
                 'student_id' => $student->id,
                 'classroom_id' => $classes[$classKey]->id,
                 'academic_year_id' => $year->id,
-                'effective_from' => $start,
-                'effective_until' => null,
                 'is_active' => true,
                 'synced_at' => now(),
             ])->save();
@@ -184,8 +182,6 @@ class StudentSeeder extends Seeder
                         'student_id' => $student->id,
                         'classroom_id' => $previousClasses[$classKey]->id,
                         'academic_year_id' => $previousYear->id,
-                        'effective_from' => $previousStart,
-                        'effective_until' => $previousEnd,
                         'is_active' => true,
                         'synced_at' => now(),
                     ],

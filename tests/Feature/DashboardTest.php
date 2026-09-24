@@ -183,19 +183,18 @@ class DashboardTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $this->year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
         ]);
         TeacherAssignment::query()->create([
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $this->year->id,
-            'effective_from' => '2026-07-15',
-            'decision_number' => 'SK-'.$className,
             'assigned_by' => $teacher->id,
         ]);
         $case = BkCase::query()->create([
             'student_id' => $student->id,
+            'academic_year_id' => $this->year->id,
+            'classroom_id' => $classroom->id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
             'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
@@ -209,8 +208,6 @@ class DashboardTest extends TestCase
         CaseAssignment::query()->create([
             'case_id' => $case->id,
             'user_id' => $teacher->id,
-            'assignment_type' => CaseAssignment::TYPE_OWNER,
-            'effective_from' => '2026-08-20',
             'reason' => 'Fixture cakupan dashboard.',
             'assigned_by' => $teacher->id,
         ]);

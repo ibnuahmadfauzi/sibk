@@ -18,6 +18,7 @@ use App\Services\AcademicYearPreparationService;
 use App\Services\AcademicYearRolloverQuery;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\Test;
@@ -120,8 +121,6 @@ class AcademicYearRolloverTest extends TestCase
             'user_id' => $teacher->id,
             'classroom_id' => $targetClassroom->id,
             'academic_year_id' => $targetYear->id,
-            'effective_from' => $targetYear->starts_on,
-            'decision_number' => 'SK-GURU-2027',
             'assigned_by' => $coordinator->id,
         ]);
 
@@ -195,7 +194,7 @@ class AcademicYearRolloverTest extends TestCase
     }
 
     #[Test]
-    public function activation_is_blocked_when_a_student_has_multiple_active_target_memberships(): void
+    public function database_rejects_multiple_memberships_for_one_student_and_year(): void
     {
         $this->travelTo('2027-07-01 09:00:00');
         $sourceYear = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
@@ -209,30 +208,8 @@ class AcademicYearRolloverTest extends TestCase
             'master_source' => Student::MASTER_SOURCE_DAPODIK,
         ]);
         $this->membership($student, $firstClassroom, $targetYear);
+        $this->expectException(QueryException::class);
         $this->membership($student, $secondClassroom, $targetYear);
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $teacher = $this->userWithRole('guru_bk');
-        $this->assignTeacher($teacher, $coordinator, $firstClassroom, $targetYear);
-        $this->assignTeacher($teacher, $coordinator, $secondClassroom, $targetYear);
-
-        $service = app(AcademicYearPreparationService::class);
-        $readiness = $service->activationReadiness($targetYear);
-
-        $this->assertSame('not_ready', $readiness['state']);
-        $this->assertContains(
-            'Setiap murid hanya boleh memiliki satu keanggotaan aktif pada tahun ajaran target.',
-            $readiness['issues'],
-        );
-
-        try {
-            $service->activate($targetYear, $coordinator);
-            $this->fail('Tahun ajaran dengan penempatan aktif ganda dapat diaktifkan.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('memberships', $exception->errors());
-        }
-
-        $this->assertTrue($sourceYear->refresh()->is_active);
-        $this->assertFalse($targetYear->refresh()->is_active);
     }
 
     #[Test]
@@ -337,9 +314,9 @@ class AcademicYearRolloverTest extends TestCase
         $this->assignTeacher($teacher, $coordinator, $targetClassroom, $targetYear);
 
         $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage', ['academic_year_id' => $targetYear->id]))
+            ->get(route('assignments.classes.index', ['academic_year_id' => $targetYear->id]))
             ->assertOk()
-            ->assertSee('Siap diaktifkan mulai 1 Juli 2027')
+            ->assertSee('X RPL 1')
             ->assertDontSee('Aktifkan Tahun Ajaran');
 
         $this->actingAs($coordinator)
@@ -369,9 +346,9 @@ class AcademicYearRolloverTest extends TestCase
         $this->assignTeacher($teacher, $coordinator, $targetClassroom, $targetYear);
 
         $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage', ['academic_year_id' => $targetYear->id]))
+            ->get(route('assignments.classes.index', ['academic_year_id' => $targetYear->id]))
             ->assertOk()
-            ->assertSee('Periode selesai')
+            ->assertSee('X RPL 1')
             ->assertDontSee('Aktifkan Tahun Ajaran');
         $this->actingAs($coordinator)
             ->from(route('assignments.classes.manage', ['academic_year_id' => $targetYear->id]))
@@ -455,7 +432,6 @@ class AcademicYearRolloverTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
         ]);
@@ -479,8 +455,6 @@ class AcademicYearRolloverTest extends TestCase
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-'.$classroom->id,
             'assigned_by' => $coordinator->id,
         ]);
     }

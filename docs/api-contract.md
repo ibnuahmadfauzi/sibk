@@ -78,7 +78,8 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
   - Generate nomor registrasi kasus unik (`K-YYYY-XXXX`) untuk kebutuhan internal; nilainya tidak masuk keluaran pengguna.
   - Set status default ke `sedang_diproses` (**Sedang Proses**).
   - Hubungkan ke `temporary_students` jika murid belum tersinkron di Dapodik.
-  - Buat penugasan pemilik awal untuk Guru BK pencatat.
+  - Buat tepat satu `CaseAssignment` bertipe `owner` untuk Guru BK pencatat,
+    tanpa periode tanggal; relasi ini tidak dapat diganti melalui aplikasi.
   - Catat jejak audit otomatis.
 
 ### Ubah dan Arsip Kasus
@@ -90,7 +91,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Authorization:** hanya Guru BK pemilik yang masih berwenang. Fungsi Koordinator tidak memberikan hak mengubah catatan profesional atau mengalihkan pemilik kasus.
 - **Kasus selesai:** `action=save` tetap dapat dipakai oleh pemilik yang masih berwenang sesuai `CASE-14`; status `selesai`, `closed_at`, identitas, dan pemilik tidak berubah.
 - **Optimistic concurrency:** konflik `expected_updated_at` ditolak tanpa menimpa perubahan lain.
-- **Arsip:** `DELETE /cases/{case}` hanya untuk pemilik aktif, memakai soft delete, dan tidak mengubah status bisnis.
+- **Arsip:** `DELETE /cases/{case}` hanya untuk owner kasus, memakai soft delete, dan tidak mengubah status bisnis.
 
 ### Detail Kasus
 - **Endpoint:** `GET /cases/{case}`
@@ -179,14 +180,14 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Controller:** `AssignmentController@index`, `AssignmentController@manage`.
 - **Authorization daftar:** Guru BK melihat penugasannya; Koordinator, Waka, dan Admin IT memperoleh ringkasan sesuai fungsi masing-masing.
 - **Authorization form:** hanya Koordinator BK.
-- **Filter daftar:** `academic_year_id`, `search_kelas`, dan `status` (`aktif` atau `nonaktif`).
+- **Filter daftar:** `academic_year_id`, `search_kelas`, dan `status` (`all`, `assigned`, atau `unassigned`).
 
 ### Atur Penugasan Kelas
 - **Endpoint:** `POST /assignments/classes`
 - **Controller:** `AssignmentController@storeClassAssignment`
 - **Authorization:** `Koordinator BK` only.
-- **Request:** `user_id`, `classroom_id`, `academic_year_id`, `decision_number`, `effective_date`, `effective_until` (opsional), dan `notes` (opsional).
-- **Business Logic:** `AssignmentService::assignClass()` menolak overlap, menutup periode lama ketika terjadi pergantian tengah tahun, serta mencatat histori dan audit tanpa memindahkan kasus aktif.
+- **Request:** `user_id` dan `classroom_id`. Tahun ajaran berasal dari kelas dan konteks halaman yang diotorisasi, bukan input terpisah.
+- **Business Logic:** `AssignmentService::assignClass()` mengunci kelas, tahun, Guru BK, dan state assignment kelas+tahun. Guru yang sama menghasilkan no-op; Guru berbeda memperbarui state dan menulis audit before/after. Assignment tahun aktif langsung berlaku untuk scope tahun tersebut, sedangkan assignment Persiapan belum memberi scope. Operasi ini tidak mengubah owner kasus.
 
 ### Aktivasi Operasional Tahun Ajaran
 - **Endpoint:** `POST /assignments/academic-years/{academicYear}/activate`.
@@ -212,7 +213,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Request roster:** file `.xlsx` dengan data minimum NISN, nama, dan rombel. NISN menjadi kunci exact dan file mentah tidak disimpan.
 - **Pratinjau roster:** seluruh baris divalidasi sebelum preview diterima. Hasil diklasifikasikan sebagai cocok, baru, berubah, atau konflik. Konflik menahan penerapan sampai sumber diperbaiki atau keputusan yang sah tersedia.
 - **Business Logic:** `AcademicYearPreparationService` membentuk preview tanpa memutasi master. Setelah konfirmasi Admin IT, hasil divalidasi ulang dan diterapkan dalam satu transaksi atomik sambil mempertahankan ID internal serta provenance yang sudah ada.
-- **Rollover:** roster tahun target membuat histori keanggotaan baru dan tidak menaikkan kelas, memindahkan, meluluskan, atau mengeluarkan murid secara otomatis. Murid tahun sebelumnya tanpa keanggotaan target ditampilkan **Perlu Konfirmasi** sampai penempatan resmi tersedia.
+- **Rollover:** roster tahun target membuat state membership murid+kelas+tahun tanpa periode tanggal dan tidak menaikkan kelas, memindahkan, meluluskan, atau mengeluarkan murid secara otomatis. Murid tahun sebelumnya tanpa keanggotaan target ditampilkan **Perlu Konfirmasi** sampai penempatan resmi tersedia.
 - **Status:** data hasil Excel memakai `master_source=school_provisional`; hasil API Dapodik yang sudah diterapkan memakai `dapodik`; keduanya terpisah dari `is_active`.
 - **Scope layanan:** Guru BK memperoleh scope dari tahun ajaran aktif dan penugasan. Histori layanan, kelas lama, dan kasus aktif tidak dibuat ulang ketika roster tahun baru diterapkan.
 
@@ -317,7 +318,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Query Params:** `academic_year_id` (opsional; harus merujuk tahun ajaran yang tersedia).
 - **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
   - Guru BK menerima data dalam cakupan profesional yang diizinkan, termasuk kasus yang menjadi tanggung jawabnya dan kasus dalam cakupan tersebut yang berstatus Tindak Lanjut.
-  - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan efektif, dan jumlah kasus Tindak Lanjut tanpa catatan internal.
+  - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan pada tahun terpilih, dan jumlah kasus Tindak Lanjut tanpa catatan internal.
   - Waka Kesiswaan menerima agregat aman seluruh kasus sekolah dan tautan detail hanya-baca untuk kasus serta konsultasi sesuai proyeksi allowlist.
   - Admin IT hanya menerima kesiapan akun, tahun ajaran, sinkronisasi, konflik sumber, dan status provider tanpa identitas atau isi layanan BK.
 - **Multi-role:** fungsi Koordinator diprioritaskan sebagai rekap tata kelola; role teknis tidak membuka isi layanan sensitif.
@@ -365,7 +366,7 @@ terlihat pada dashboard serta halaman operasional terkait.
 - **Mapping:** kasus memakai `resolution_summary` sebagai Hasil / Ringkasan, `initial_info` sebagai Latar Belakang Masalah, dan `initial_action` sebagai Penanganan. Konsultasi memakai `result` sebagai Hasil / Ringkasan, `problem` sebagai Latar Belakang Masalah, dan `handling` sebagai Penanganan. Nilai hasil null ditampilkan `—`.
 - **Urutan:** daftar memakai tanggal layanan `DESC`; preview/ekspor memakai tanggal layanan `ASC`; keduanya memakai tipe dan ID sebagai tie-breaker stabil.
 - **Pagination:** `per_page` hanya memengaruhi daftar. Preview dan ekspor selalu mengambil seluruh dataset hasil filter.
-- **Kelas:** kelas laporan berasal dari histori keanggotaan murid pada `academic_year_id` yang melekat pada kasus/konsultasi; pergantian kelas atau tahun ajaran tidak menulis ulang konteks layanan lama. `classroom_id` wajib berasal dari `academic_year_id` terpilih dan scope actor; pasangan yang tidak cocok ditolak server.
+- **Kelas:** kasus/konsultasi menyimpan snapshot `academic_year_id` dan `classroom_id` saat dicatat. Laporan membaca snapshot tersebut secara langsung; pergantian membership atau tahun ajaran tidak menulis ulang konteks layanan lama. `classroom_id` wajib berasal dari `academic_year_id` terpilih dan scope actor; pasangan yang tidak cocok ditolak server.
 - **Preview:** satu tombol `Cetak / Unduh Rekap` membuka preview A4 portrait. Tabel putih polos memuat No, Hari/Tanggal dari `service_date|session_date`, Nama/Kelas, Jenis Masalah berupa jenis catatan dan label `service_field_id`, Ringkasan dari `resolution_summary|result`, Guru BK dari pemilik kasus atau `counselor_id`, serta Keterangan. Keterangan Permasalahan memuat label `case_source_id` dan label seluruh tindak lanjut yang tercatat; nilai kosong memakai `—`. Keterangan Konsultasi memakai `—`. Action bar menyediakan Kembali, Download Excel, serta Cetak/Simpan PDF. Halaman laporan tidak menautkan preview individual.
 - **Penandatangan:** rekap memakai Koordinator BK dan Waka Kesiswaan; kasus memakai Guru BK pemilik kasus dan Waka; konsultasi memakai `counselor_id` dan Waka. Koordinator/Waka hanya dipilih bila tepat satu akun aktif tersedia. Kondisi kosong/ganda menampilkan `Penandatangan belum tersedia`; pengguna login bukan fallback. Kepala Sekolah dan NIP tidak ditampilkan karena belum memiliki sumber data.
 - **Layout bersama:** preview memakai partial kop dan tanda tangan. Blok tanda tangan hanya berada di akhir dokumen dan tidak terpotong page break. Excel tidak memuat tanda tangan.
@@ -387,4 +388,4 @@ terlihat pada dashboard serta halaman operasional terkait.
 - Disk private tidak dilayani melalui route aplikasi sampai `DEP-06`; tidak ada endpoint upload, unduh, atau hapus dokumen.
 - `DatabaseSeeder` membuat akun sintetis hanya pada environment `local` atau `testing`, dengan password eksplisit dari `SIBK_SEED_ACCOUNT_PASSWORD`.
 - Data operasional memakai soft delete dan audit tetap append-only. Tidak tersedia job, command, route, atau kebijakan penghapusan otomatis sebelum prosedur retensi disahkan.
-- Indeks hardening mendukung scope periode/kelas, e-Tatib, kasus, konsultasi, tindak lanjut, prestasi, dan log sinkronisasi tanpa mengubah histori domain.
+- Indeks hardening mendukung scope tahun/kelas, e-Tatib, kasus, konsultasi, tindak lanjut, prestasi, dan log sinkronisasi tanpa mengubah histori domain.

@@ -41,11 +41,7 @@ class AchievementController extends Controller
         $query->when($filters['date_start'] ?? null, fn (Builder $items, string $date): Builder => $items->whereDate('achievement_date', '>=', $date));
         $query->when($filters['date_end'] ?? null, fn (Builder $items, string $date): Builder => $items->whereDate('achievement_date', '<=', $date));
         $query->when($filters['classroom_id'] ?? null, fn (Builder $items, int $id): Builder => $items->whereHas('student.classMemberships', fn (Builder $memberships): Builder => $memberships
-            ->where('classroom_id', $id)
-            ->whereColumn('effective_from', '<=', 'achievements.achievement_date')
-            ->where(function (Builder $period): void {
-                $period->whereNull('effective_until')->orWhereColumn('effective_until', '>=', 'achievements.achievement_date');
-            })));
+            ->where('classroom_id', $id)));
 
         return view('pages.achievements.index', [
             'achievements' => $query->latest('achievement_date')->latest('id')->paginate(20)->withQueryString(),
@@ -94,7 +90,6 @@ class AchievementController extends Controller
         $achievement->load([
             'student.classMemberships' => fn ($memberships) => $memberships
                 ->active()
-                ->effectiveOn(now()->toDateString())
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom'),
             'verificationStatus',
@@ -130,7 +125,6 @@ class AchievementController extends Controller
             'students' => Student::query()->availableForService()->professionallyAccessibleTo($user)
                 ->with(['classMemberships' => fn ($memberships) => $memberships
                     ->active()
-                    ->effectiveOn(now()->toDateString())
                     ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom')])
                 ->orderBy('name')->get(),

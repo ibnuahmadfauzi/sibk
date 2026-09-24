@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
-use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AssignmentService;
 use App\Services\CaseService;
+use App\Services\OperationalReportRecapService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,396 +30,140 @@ class AssignmentManagementTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
-    public function test_only_coordinator_can_open_manage_page_and_store_assignment(): void
-    {
-        [$year, $classroom] = $this->masterContext();
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $teacher = $this->userWithRole('guru_bk');
-        $waka = $this->userWithRole('waka_kesiswaan');
-
-        $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage'))
-            ->assertOk()
-            ->assertSee('Atur Penugasan Kelas');
-
-        $this->actingAs($waka)
-            ->get(route('assignments.classes.manage'))
-            ->assertForbidden();
-
-        $payload = [
-            'user_id' => $teacher->id,
-            'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id,
-            'decision_number' => 'SK-001/2026',
-            'effective_date' => '2026-07-15',
-        ];
-
-        $this->actingAs($waka)
-            ->post(route('assignments.classes.store'), $payload)
-            ->assertForbidden();
-
-        $this->actingAs($coordinator)
-            ->post(route('assignments.classes.store'), $payload)
-            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
-
-        $this->assertDatabaseHas('teacher_assignments', [
-            'user_id' => $teacher->id,
-            'classroom_id' => $classroom->id,
-            'decision_number' => 'SK-001/2026',
-        ]);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'class_assignment.created']);
-    }
-
-    public function test_midyear_assignment_closes_previous_period_without_overwriting_history(): void
+    public function test_assignment_updates_one_state_and_same_teacher_is_no_op(): void
     {
         [$year, $classroom] = $this->masterContext();
         $coordinator = $this->userWithRole('koordinator_bk');
         $firstTeacher = $this->userWithRole('guru_bk');
         $secondTeacher = $this->userWithRole('guru_bk');
-        $service = app(AssignmentService::class);
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $payload = ['classroom_id' => $classroom->id, 'user_id' => $firstTeacher->id];
 
-        $first = $service->assignClass([
-            'user_id' => $firstTeacher->id,
+        $this->actingAs($waka)->post(route('assignments.classes.store'), $payload)->assertForbidden();
+        $this->actingAs($coordinator)->post(route('assignments.classes.store'), $payload)
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+        $this->assertDatabaseCount('audit_logs', 1);
+
+        $this->actingAs($coordinator)->post(route('assignments.classes.store'), $payload)->assertRedirect();
+        $this->assertDatabaseCount('audit_logs', 1);
+
+        app(AssignmentService::class)->assignClass([
             'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id,
-            'decision_number' => 'SK-AWAL',
-            'effective_date' => '2026-07-15',
-        ], $coordinator);
-
-        $second = $service->assignClass([
             'user_id' => $secondTeacher->id,
-            'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id,
-            'decision_number' => 'SK-PERUBAHAN',
-            'effective_date' => '2027-01-01',
         ], $coordinator);
 
-        $this->assertSame('2026-12-31', $first->refresh()->effective_until?->toDateString());
-        $this->assertSame('2027-01-01', $second->effective_from->toDateString());
-        $this->assertSame(2, TeacherAssignment::query()->count());
-        $this->assertDatabaseHas('audit_logs', ['action' => 'class_assignment.closed']);
+        $this->assertDatabaseCount('teacher_assignments', 1);
+        $this->assertDatabaseHas('teacher_assignments', [
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'user_id' => $secondTeacher->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'class_assignment.updated']);
     }
 
-    public function test_inactive_teacher_and_overlapping_period_are_rejected(): void
+    public function test_request_rejects_forged_year_and_list_shows_unassigned_classes(): void
     {
         [$year, $classroom] = $this->masterContext();
+        Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 2']);
         $coordinator = $this->userWithRole('koordinator_bk');
         $teacher = $this->userWithRole('guru_bk');
-        $inactiveTeacher = $this->userWithRole('guru_bk', false);
 
-        TeacherAssignment::query()->create([
+        $this->actingAs($coordinator)->post(route('assignments.classes.store'), [
+            'classroom_id' => $classroom->id,
             'user_id' => $teacher->id,
+            'academic_year_id' => $year->id,
+            'effective_from' => '2026-07-01',
+        ])->assertSessionHasErrors('academic_year_id');
+        $this->actingAs($coordinator)->post(route('assignments.classes.store'), [
             'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
-            'effective_until' => '2026-12-31',
-            'decision_number' => 'SK-001',
-            'assigned_by' => $coordinator->id,
-        ]);
-
-        $base = [
-            'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id,
-            'decision_number' => 'SK-002',
-            'effective_date' => '2026-07-15',
-        ];
-
-        $this->actingAs($coordinator)
-            ->from(route('assignments.classes.manage'))
-            ->post(route('assignments.classes.store'), [...$base, 'user_id' => $teacher->id])
-            ->assertSessionHasErrors('effective_date');
-
-        $this->actingAs($coordinator)
-            ->from(route('assignments.classes.manage'))
-            ->post(route('assignments.classes.store'), [
-                ...$base,
-                'user_id' => $inactiveTeacher->id,
-                'effective_date' => '2027-01-01',
-            ])
-            ->assertSessionHasErrors('user_id');
-    }
-
-    public function test_teacher_list_and_student_scope_only_include_active_assignment(): void
-    {
-        [$year, $classroom] = $this->masterContext();
-        $otherClass = Classroom::query()->create([
-            'academic_year_id' => $year->id,
-            'name' => 'X RPL 2',
-        ]);
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $teacher = $this->userWithRole('guru_bk');
-        $otherTeacher = $this->userWithRole('guru_bk');
-        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Scope']);
-        $outsideStudent = Student::query()->create(['nisn' => '0098765432', 'name' => 'Murid Luar']);
-
-        foreach ([[$student, $classroom], [$outsideStudent, $otherClass]] as [$member, $memberClass]) {
-            StudentClassMembership::query()->create([
-                'student_id' => $member->id,
-                'classroom_id' => $memberClass->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => '2026-07-15',
-            ]);
-        }
-
-        foreach ([[$teacher, $classroom], [$otherTeacher, $otherClass]] as [$assignedTeacher, $assignedClass]) {
-            TeacherAssignment::query()->create([
-                'user_id' => $assignedTeacher->id,
-                'classroom_id' => $assignedClass->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => '2026-07-15',
-                'decision_number' => 'SK-SCOPE',
-                'assigned_by' => $coordinator->id,
-            ]);
-        }
-
-        $scopedIds = Student::query()
-            ->forActiveTeacherAssignment($teacher, '2026-08-20')
-            ->pluck('id');
-
-        $this->assertTrue($scopedIds->contains($student->id));
-        $this->assertFalse($scopedIds->contains($outsideStudent->id));
-
-        $this->actingAs($coordinator)
-            ->get(route('assignments.classes.index'))
-            ->assertOk()
-            ->assertSee('X RPL 1')
-            ->assertSee('X RPL 2');
-
-        $this->actingAs($teacher)
-            ->get(route('assignments.classes.index'))
-            ->assertForbidden();
-    }
-
-    public function test_academic_year_rollover_moves_class_scope_without_extending_open_ended_old_periods(): void
-    {
-        [$oldYear, $oldClass] = $this->masterContext();
-        $oldYear->update(['is_active' => false]);
-        $newYear = AcademicYear::query()->create([
-            'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
-            'is_active' => true,
-        ]);
-        $newClass = Classroom::query()->create([
-            'academic_year_id' => $newYear->id,
-            'name' => 'XI RPL 1',
-            'is_active' => true,
-        ]);
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $oldTeacher = $this->userWithRole('guru_bk');
-        $newTeacher = $this->userWithRole('guru_bk');
-        $student = Student::query()->create([
-            'nisn' => '0012345678',
-            'name' => 'Murid Naik Kelas',
-            'is_active' => true,
-        ]);
-
-        foreach ([
-            [$oldYear, $oldClass, '2026-07-01'],
-            [$newYear, $newClass, '2027-07-01'],
-        ] as [$year, $classroom, $effectiveFrom]) {
-            StudentClassMembership::query()->create([
-                'student_id' => $student->id,
-                'classroom_id' => $classroom->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => $effectiveFrom,
-                'effective_until' => null,
-                'is_active' => true,
-            ]);
-        }
-
-        foreach ([
-            [$oldTeacher, $oldYear, $oldClass, '2026-07-01', 'SK-2026'],
-            [$newTeacher, $newYear, $newClass, '2027-07-01', 'SK-2027'],
-        ] as [$teacher, $year, $classroom, $effectiveFrom, $decisionNumber]) {
-            TeacherAssignment::query()->create([
-                'user_id' => $teacher->id,
-                'classroom_id' => $classroom->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => $effectiveFrom,
-                'effective_until' => null,
-                'decision_number' => $decisionNumber,
-                'assigned_by' => $coordinator->id,
-            ]);
-        }
-
-        $this->assertFalse(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-06-30')->whereKey($student)->exists());
-        $this->assertFalse(Student::query()->forActiveTeacherAssignment($newTeacher, '2027-06-30')->whereKey($student)->exists());
-        $this->assertFalse(Student::query()->forActiveTeacherAssignment($oldTeacher, '2027-07-01')->whereKey($student)->exists());
-        $this->assertTrue(Student::query()->forActiveTeacherAssignment($newTeacher, '2027-07-01')->whereKey($student)->exists());
-
-        $this->assertFalse($oldTeacher->teacherAssignments()->effectiveOn('2027-07-01')->exists());
-        $this->assertFalse($student->classMemberships()->whereKey(
-            $student->classMemberships()->oldest('effective_from')->value('id'),
-        )->effectiveOn('2027-07-01')->exists());
-        $this->assertSame(2, $student->classMemberships()->count());
-        $this->assertSame(2, TeacherAssignment::query()->count());
-
-        $this->travelTo('2027-07-01 08:00:00');
-        $this->actingAs($oldTeacher)->get(route('students.show', $student))->assertForbidden();
-        $this->actingAs($newTeacher)->get(route('students.show', $student))
-            ->assertOk()
-            ->assertSee('XI RPL 1')
-            ->assertSee('X RPL 1');
-    }
-
-    public function test_assignment_status_distinguishes_scheduled_active_and_ended_across_year_boundaries(): void
-    {
-        $this->travelTo('2027-07-15 08:00:00');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $teacher = $this->userWithRole('guru_bk');
-        $endedYear = AcademicYear::query()->create([
-            'name' => '2026/2027',
-            'starts_on' => '2026-07-01',
-            'ends_on' => '2027-06-30',
-            'is_active' => true,
-        ]);
-        $activeYear = AcademicYear::query()->create([
-            'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
-            'is_active' => true,
-        ]);
-        $futureYear = AcademicYear::query()->create([
-            'name' => '2028/2029',
-            'starts_on' => '2028-07-01',
-            'ends_on' => '2029-06-30',
-            'is_active' => true,
-        ]);
-
-        foreach ([
-            [$endedYear, 'X RPL Berakhir', '2026-07-01', 'SK-END'],
-            [$activeYear, 'XI RPL Aktif', '2027-07-01', 'SK-ACTIVE'],
-            [$futureYear, 'XII RPL Terjadwal', '2028-07-01', 'SK-SCHEDULED'],
-        ] as [$year, $className, $effectiveFrom, $decisionNumber]) {
-            $classroom = Classroom::query()->create([
-                'academic_year_id' => $year->id,
-                'name' => $className,
-                'is_active' => true,
-            ]);
-            TeacherAssignment::query()->create([
-                'user_id' => $teacher->id,
-                'classroom_id' => $classroom->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => $effectiveFrom,
-                'effective_until' => null,
-                'decision_number' => $decisionNumber,
-                'assigned_by' => $coordinator->id,
-            ]);
-        }
+            'user_id' => $teacher->id,
+            'effective_from' => '2026-07-01',
+        ])->assertSessionHasErrors('effective_from');
+        $this->assertDatabaseCount('teacher_assignments', 0);
 
         $this->actingAs($coordinator)->get(route('assignments.classes.index'))
-            ->assertOk()
-            ->assertSeeInOrder(['XII RPL Terjadwal', 'Terjadwal', 'XI RPL Aktif', 'Aktif', 'X RPL Berakhir', '30 Jun 2027', 'Berakhir']);
-
-        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'terjadwal']))
-            ->assertSee('XII RPL Terjadwal')
-            ->assertDontSee('XI RPL Aktif')
-            ->assertDontSee('X RPL Berakhir');
-
-        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'berakhir']))
-            ->assertSee('X RPL Berakhir')
-            ->assertDontSee('XI RPL Aktif')
-            ->assertDontSee('XII RPL Terjadwal');
+            ->assertOk()->assertSee('X RPL 1')->assertSee('X RPL 2');
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
+            ->assertOk()->assertSee('X RPL 2');
     }
 
-    public function test_manage_form_only_offers_classes_from_selected_year_and_rejects_forged_pair(): void
+    public function test_preparation_assignment_does_not_grant_student_scope(): void
     {
-        [$firstYear, $firstClass] = $this->masterContext();
-        $secondYear = AcademicYear::query()->create([
-            'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
-            'is_active' => true,
-        ]);
-        $secondClass = Classroom::query()->create([
-            'academic_year_id' => $secondYear->id,
-            'name' => 'XI TKJ Pasangan Tahun Kedua',
-            'is_active' => true,
-        ]);
+        [$year, $classroom] = $this->masterContext(false);
         $coordinator = $this->userWithRole('koordinator_bk');
         $teacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Persiapan']);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+        ]);
+        app(AssignmentService::class)->assignClass([
+            'classroom_id' => $classroom->id,
+            'user_id' => $teacher->id,
+        ], $coordinator);
 
-        $this->actingAs($coordinator)->get(route('assignments.classes.manage', [
-            'academic_year_id' => $firstYear->id,
-        ]))
-            ->assertOk()
-            ->assertSee($firstClass->name)
-            ->assertDontSee($secondClass->name);
-
-        $this->actingAs($coordinator)
-            ->from(route('assignments.classes.manage', ['academic_year_id' => $firstYear->id]))
-            ->post(route('assignments.classes.store'), [
-                'user_id' => $teacher->id,
-                'classroom_id' => $secondClass->id,
-                'academic_year_id' => $firstYear->id,
-                'decision_number' => 'SK-FORGED-PAIR',
-                'effective_date' => '2026-08-01',
-            ])
-            ->assertSessionHasErrors('classroom_id');
-
-        $this->assertDatabaseCount('teacher_assignments', 0);
+        $this->assertFalse(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
+        $year->update(['is_active' => true]);
+        $this->assertTrue(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
     }
 
-    public function test_direct_student_and_case_urls_follow_assignment_effective_dates(): void
+    public function test_changing_class_teacher_keeps_case_owner_and_service_snapshot(): void
     {
-        $this->travelTo('2026-08-20 10:00:00');
         [$year, $classroom] = $this->masterContext();
+        $coordinator = $this->userWithRole('koordinator_bk');
         $owner = $this->userWithRole('guru_bk');
-        $teacher = $this->userWithRole('guru_bk');
-        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Penugasan Terjadwal']);
+        $nextTeacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Kasus']);
         StudentClassMembership::query()->create([
-            'student_id' => $student->id, 'classroom_id' => $classroom->id,
-            'academic_year_id' => $year->id, 'effective_from' => '2026-07-01',
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
         ]);
-        foreach ([[$owner, '2026-07-01', null], [$teacher, '2026-10-01', '2026-12-01']] as [$actor, $start, $end]) {
-            TeacherAssignment::query()->create([
-                'user_id' => $actor->id, 'classroom_id' => $classroom->id,
-                'academic_year_id' => $year->id, 'effective_from' => $start,
-                'effective_until' => $end, 'decision_number' => 'SK-PERIODE', 'assigned_by' => $owner->id,
-            ]);
-        }
+        app(AssignmentService::class)->assignClass(['classroom_id' => $classroom->id, 'user_id' => $owner->id], $coordinator);
+
         $case = app(CaseService::class)->createCase([
             'student_id' => $student->id,
             'case_source_id' => ReferenceValue::query()->forCategory('case_source')->where('code', 'temuan_guru_bk')->firstOrFail()->id,
             'service_field_id' => ReferenceValue::query()->forCategory('service_field')->where('code', 'pribadi')->firstOrFail()->id,
-            'service_date' => '2026-08-20', 'initial_info' => 'Informasi awal.', 'initial_action' => 'Asesmen awal.',
+            'service_date' => today()->toDateString(),
+            'initial_info' => 'Informasi awal.',
+            'initial_action' => 'Asesmen awal.',
         ], $owner);
 
-        foreach (['2026-09-30' => 403, '2026-10-01' => 200, '2026-12-01' => 200, '2026-12-02' => 403] as $date => $status) {
-            $this->travelTo($date.' 10:00:00');
-            $this->actingAs($teacher)->get(route('students.show', $student))->assertStatus($status);
-            $this->actingAs($teacher)->get(route('cases.show', $case))->assertStatus($status);
-            $list = $this->actingAs($teacher)->get(route('students.index'))->assertOk();
-            if ($status === 200) {
-                $list->assertSee($student->name);
-            } else {
-                $list->assertDontSee($student->name);
-            }
-        }
+        app(AssignmentService::class)->assignClass(['classroom_id' => $classroom->id, 'user_id' => $nextTeacher->id], $coordinator);
+
+        $this->assertSame($owner->id, $case->ownerAssignment()?->user_id);
+        $this->assertSame($classroom->id, $case->fresh()->classroom_id);
+        $this->assertSame($year->id, $case->fresh()->academic_year_id);
+        $this->assertTrue(BkCase::query()->accessibleTo($owner)->whereKey($case)->exists());
+        $this->assertTrue(Student::query()->forActiveTeacherAssignment($nextTeacher)->whereKey($student)->exists());
+        $report = app(OperationalReportRecapService::class)->paginateForUi($owner, [
+            'academic_year_id' => $year->id,
+        ]);
+        $this->assertSame($classroom->name, $report['rows']->first()['classroom']);
     }
 
     /** @return array{AcademicYear, Classroom} */
-    private function masterContext(): array
+    private function masterContext(bool $active = true): array
     {
         $year = AcademicYear::query()->create([
             'name' => '2026/2027',
             'starts_on' => '2026-07-01',
             'ends_on' => '2027-06-30',
-            'is_active' => true,
+            'is_active' => $active,
         ]);
         $classroom = Classroom::query()->create([
             'academic_year_id' => $year->id,
             'name' => 'X RPL 1',
-            'is_active' => true,
         ]);
 
         return [$year, $classroom];
     }
 
-    private function userWithRole(string $slug, bool $active = true): User
+    private function userWithRole(string $slug): User
     {
-        $user = User::factory()->create(['is_active' => $active]);
+        $user = User::factory()->create();
         $user->roles()->attach(Role::query()->where('slug', $slug)->firstOrFail());
 
         return $user;

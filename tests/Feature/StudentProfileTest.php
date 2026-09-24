@@ -121,7 +121,7 @@ class StudentProfileTest extends TestCase
             ->assertRedirect(route('students.show', ['student' => $student, 'tab' => 'kasus']));
     }
 
-    public function test_profile_has_no_current_class_after_year_end_even_when_membership_is_open_ended(): void
+    public function test_profile_keeps_class_history_after_year_is_deactivated(): void
     {
         $coordinator = $this->userWithRole('koordinator_bk');
         $year = AcademicYear::query()->create([
@@ -144,18 +144,17 @@ class StudentProfileTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
-            'effective_until' => null,
             'is_active' => true,
         ]);
 
         $this->travelTo('2027-07-15 08:00:00');
+        $year->update(['is_active' => false]);
 
         $this->actingAs($coordinator)->get(route('students.show', $student))
             ->assertOk()
             ->assertSee('Tanpa kelas aktif')
             ->assertSee('X AKL Histori')
-            ->assertSee('30-06-2027')
+            ->assertSee('2026/2027')
             ->assertDontSee('s.d. sekarang');
     }
 
@@ -183,15 +182,12 @@ class StudentProfileTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
         ]);
         TeacherAssignment::query()->create([
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
-            'decision_number' => 'SK-PROFIL',
             'assigned_by' => $teacher->id,
         ]);
 

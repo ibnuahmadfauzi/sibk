@@ -1,9 +1,5 @@
 @php
-    $membership = $case->student?->classMemberships
-        ->sortByDesc('effective_from')
-        ->first(fn ($item) => $item->effective_from->lte($case->service_date)
-            && ($item->effective_until === null || $item->effective_until->gte($case->service_date)));
-    $owner = $case->activeOwnerAssignment($case->service_date)?->teacher;
+    $owner = $case->ownerAssignment()?->teacher;
 @endphp
 <div class="modal-header">
     <h2
@@ -30,7 +26,7 @@
         </dd>
 
         <dt class="col-sm-4">Kelas</dt>
-        <dd class="col-sm-8">{{ $membership?->classroom?->name ?? '—' }}</dd>
+        <dd class="col-sm-8">{{ $case->classroom?->name ?? '—' }}</dd>
 
         <dt class="col-sm-4">Jenis Masalah</dt>
         <dd class="col-sm-8">{{ $case->serviceField?->label ?? '—' }}</dd>

@@ -19,7 +19,7 @@ final class WakaStudentDepartureService
             ->with([
                 'student.classMemberships' => fn ($memberships) => $memberships
                     ->with('classroom')
-                    ->orderByDesc('effective_from')
+                    ->orderByDesc('academic_year_id')
                     ->orderByDesc('id'),
                 'recorder:id,name',
                 'finalizer:id,name',

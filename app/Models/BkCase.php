@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_source_id', 'service_field_id', 'status_id', 'follow_up_type_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'internal_note', 'resolution_summary', 'closed_at', 'created_by'])]
+#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'academic_year_id', 'classroom_id', 'case_source_id', 'service_field_id', 'status_id', 'follow_up_type_id', 'service_date', 'referrer', 'initial_info', 'initial_action', 'internal_note', 'resolution_summary', 'closed_at', 'created_by'])]
 class BkCase extends Model
 {
     use SoftDeletes;
@@ -24,6 +23,12 @@ class BkCase extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    /** @return BelongsTo<Classroom, $this> */
+    public function classroom(): BelongsTo
+    {
+        return $this->belongsTo(Classroom::class);
     }
 
     /** @return BelongsTo<TemporaryStudent, $this> */
@@ -107,10 +112,9 @@ class BkCase extends Model
         return $query->where(function (Builder $access) use ($user): void {
             if ($user->hasRole('guru_bk')) {
                 $access->whereHas('assignments', fn (Builder $assignments): Builder => $assignments
-                    ->where('user_id', $user->getKey())
-                    ->effectiveOn(now()))
+                    ->where('user_id', $user->getKey()))
                     ->orWhereIn('student_id', Student::query()
-                        ->forActiveTeacherAssignment($user, now())
+                        ->forActiveTeacherAssignment($user)
                         ->select('students.id'));
             }
 
@@ -127,30 +131,16 @@ class BkCase extends Model
         return $this->student?->nisn ?? $this->temporaryStudent?->nisn ?? '';
     }
 
-    public function hasActiveAssignmentFor(User $user): bool
+    public function isOwnedBy(User $user): bool
     {
         return $this->assignments()
             ->where('user_id', $user->getKey())
-            ->effectiveOn(now())
             ->exists();
     }
 
-    public function hasActiveOwnerFor(User $user, CarbonInterface|string|null $date = null): bool
+    public function ownerAssignment(): ?CaseAssignment
     {
         return $this->assignments()
-            ->where('assignment_type', CaseAssignment::TYPE_OWNER)
-            ->where('user_id', $user->getKey())
-            ->effectiveOn($date ?? now())
-            ->exists();
-    }
-
-    public function activeOwnerAssignment(CarbonInterface|string|null $date = null): ?CaseAssignment
-    {
-        return $this->assignments()
-            ->where('assignment_type', CaseAssignment::TYPE_OWNER)
-            ->effectiveOn($date ?? now())
-            ->latest('effective_from')
-            ->latest('id')
             ->first();
     }
 

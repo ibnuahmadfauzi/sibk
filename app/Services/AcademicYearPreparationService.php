@@ -194,7 +194,6 @@ class AcademicYearPreparationService
                     $membership = StudentClassMembership::query()
                         ->where('student_id', $student->getKey())
                         ->where('academic_year_id', $year->getKey())
-                        ->where('classroom_id', $classroom->getKey())
                         ->lockForUpdate()
                         ->first();
 
@@ -203,8 +202,6 @@ class AcademicYearPreparationService
                             'student_id' => $student->getKey(),
                             'classroom_id' => $classroom->getKey(),
                             'academic_year_id' => $year->getKey(),
-                            'effective_from' => $year->starts_on?->toDateString(),
-                            'effective_until' => null,
                             'is_active' => true,
                             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
                             'source_confirmed_at' => null,
@@ -221,6 +218,17 @@ class AcademicYearPreparationService
                                 'academic_year_id' => $year->getKey(),
                                 'master_source' => $membership->master_source,
                             ],
+                        );
+                    } elseif ($membership->classroom_id !== $classroom->getKey()) {
+                        $before = ['classroom_id' => $membership->classroom_id];
+                        $membership->update(['classroom_id' => $classroom->getKey(), 'is_active' => true]);
+                        $this->auditService->record(
+                            action: 'provisional_membership.updated',
+                            auditable: $membership,
+                            summary: 'Kelas murid persiapan diperbarui.',
+                            actor: $actor,
+                            before: $before,
+                            after: ['classroom_id' => $membership->classroom_id],
                         );
                     } else {
                         $membershipsUnchanged++;
@@ -454,17 +462,7 @@ class AcademicYearPreparationService
             $assignmentsQuery = TeacherAssignment::query()
                 ->with('teacher.roles')
                 ->where('classroom_id', $classroom->getKey())
-                ->where('academic_year_id', $academicYear->getKey())
-                ->when(
-                    $academicYear->starts_on !== null,
-                    fn ($query) => $query
-                        ->whereDate('effective_from', '<=', $academicYear->starts_on->toDateString())
-                        ->where(function ($period) use ($academicYear): void {
-                            $period->whereNull('effective_until')
-                                ->orWhereDate('effective_until', '>=', $academicYear->starts_on->toDateString());
-                        }),
-                    fn ($query) => $query->whereRaw('1 = 0'),
-                );
+                ->where('academic_year_id', $academicYear->getKey());
             if ($lockForUpdate) {
                 $assignmentsQuery->lockForUpdate();
             }

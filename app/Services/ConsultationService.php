@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\TemporaryStudent;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -27,9 +28,17 @@ class ConsultationService
             [$student, $temporaryStudent] = $this->resolveIdentity($data, $actor);
             $this->reference('service_field', (int) $data['service_field_id']);
 
+            $membership = $student === null ? null : StudentClassMembership::query()
+                ->active()
+                ->where('student_id', $student->getKey())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->first();
+
             $consultation = new Consultation([
                 'student_id' => $student?->getKey(),
                 'temporary_student_id' => $temporaryStudent?->getKey(),
+                'academic_year_id' => $membership?->academic_year_id,
+                'classroom_id' => $membership?->classroom_id,
                 'service_field_id' => $data['service_field_id'],
                 'session_date' => $data['session_date'],
                 'problem' => $data['problem'],
