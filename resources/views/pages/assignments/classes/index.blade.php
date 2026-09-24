@@ -152,7 +152,11 @@
                                                         class="sibk-class-chip__remove"
                                                         type="submit"
                                                         aria-label="Batalkan penugasan {{ $classroom->name }} dari {{ $row['teacher']->name }}"
-                                                    >×</button>
+                                                    >
+                                                        <svg aria-hidden="true" viewBox="0 0 24 24">
+                                                            <path d="M6 6l12 12M18 6 6 18" />
+                                                        </svg>
+                                                    </button>
                                                 </form>
                                             @endif
                                         </div>

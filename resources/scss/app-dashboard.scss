@@ -2653,8 +2653,8 @@ small, .small {
 }
 
 .sibk-icon-button.sibk-class-add {
-  height: 2rem;
-  width: 2rem;
+  height: 1.75rem;
+  width: 1.75rem;
 
   svg {
     height: 0.875rem;
@@ -2712,17 +2712,55 @@ small, .small {
 }
 
 .sibk-class-chip__remove {
+  align-items: center;
   background: transparent;
   border: 0;
   border-radius: 0.4rem;
-  color: var(--bs-danger);
+  color: var(--sibk-color-danger);
+  cursor: pointer;
+  display: inline-flex;
   height: 1.75rem;
+  justify-content: center;
   padding: 0;
   width: 1.75rem;
 
+  svg {
+    fill: none;
+    height: 0.875rem;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 2;
+    width: 0.875rem;
+  }
+
   &:hover,
   &:focus-visible {
-    background: var(--bs-danger-bg-subtle);
+    background: var(--sibk-color-danger-soft);
+    color: var(--sibk-color-danger-strong);
+  }
+}
+
+.sibk-class-add svg,
+.sibk-class-chip__remove svg {
+  transition: transform 0.16s ease-out;
+}
+
+.sibk-class-add:hover svg,
+.sibk-class-add:focus-visible svg,
+.sibk-class-chip__remove:hover svg,
+.sibk-class-chip__remove:focus-visible svg {
+  transform: scale(1.18);
+}
+
+.sibk-class-add:active svg,
+.sibk-class-chip__remove:active svg {
+  transform: scale(0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sibk-class-add svg,
+  .sibk-class-chip__remove svg {
+    transform: none !important;
   }
 }
 
