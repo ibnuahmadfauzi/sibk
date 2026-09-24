@@ -15,23 +15,20 @@ return new class extends Migration
         $caseSnapshots = $this->snapshots('cases', 'service_date');
         $consultationSnapshots = $this->snapshots('consultations', 'session_date');
 
-        Schema::table('cases', function (Blueprint $table): void {
-            $table->unsignedBigInteger('academic_year_id')->nullable()->index();
-            $table->unsignedBigInteger('classroom_id')->nullable()->index();
-        });
-        Schema::table('consultations', function (Blueprint $table): void {
-            $table->unsignedBigInteger('academic_year_id')->nullable()->index();
-            $table->unsignedBigInteger('classroom_id')->nullable()->index();
-        });
-        if (DB::getDriverName() !== 'sqlite') {
-            Schema::table('cases', function (Blueprint $table): void {
-                $table->foreign('academic_year_id')->references('id')->on('academic_years')->restrictOnDelete();
-                $table->foreign('classroom_id')->references('id')->on('classrooms')->restrictOnDelete();
-            });
-            Schema::table('consultations', function (Blueprint $table): void {
-                $table->foreign('academic_year_id')->references('id')->on('academic_years')->restrictOnDelete();
-                $table->foreign('classroom_id')->references('id')->on('classrooms')->restrictOnDelete();
-            });
+        foreach (['cases', 'consultations'] as $tableName) {
+            foreach (['academic_year_id' => 'academic_years', 'classroom_id' => 'classrooms'] as $column => $referencedTable) {
+                if (Schema::hasColumn($tableName, $column)) {
+                    continue;
+                }
+                Schema::table($tableName, function (Blueprint $table) use ($column): void {
+                    $table->unsignedBigInteger($column)->nullable()->index();
+                });
+                if (DB::getDriverName() !== 'sqlite') {
+                    Schema::table($tableName, function (Blueprint $table) use ($column, $referencedTable): void {
+                        $table->foreign($column)->references('id')->on($referencedTable)->restrictOnDelete();
+                    });
+                }
+            }
         }
 
         foreach ($caseSnapshots as $id => $snapshot) {
@@ -42,23 +39,31 @@ return new class extends Migration
         }
 
         Schema::table('teacher_assignments', function (Blueprint $table): void {
+            $table->unique(['classroom_id', 'academic_year_id'], 'teacher_assignment_class_year_unique');
+            $table->index(['user_id', 'academic_year_id'], 'teacher_assignment_user_year_index');
+        });
+        Schema::table('teacher_assignments', function (Blueprint $table): void {
             $table->dropIndex('teacher_assignment_period_index');
             $table->dropIndex('teacher_assignment_user_period_index');
             $table->dropColumn(['effective_from', 'effective_until', 'decision_number', 'notes', 'deleted_at']);
-            $table->unique(['classroom_id', 'academic_year_id'], 'teacher_assignment_class_year_unique');
-            $table->index(['user_id', 'academic_year_id'], 'teacher_assignment_user_year_index');
+        });
+        Schema::table('student_class_memberships', function (Blueprint $table): void {
+            $table->unique(['student_id', 'academic_year_id'], 'student_membership_student_year_unique');
+            $table->index(['classroom_id', 'academic_year_id'], 'student_membership_class_year_index');
         });
         Schema::table('student_class_memberships', function (Blueprint $table): void {
             $table->dropUnique('student_class_membership_period_unique');
             $table->dropIndex('membership_class_period_student_index');
             $table->dropColumn(['effective_from', 'effective_until']);
-            $table->unique(['student_id', 'academic_year_id'], 'student_membership_student_year_unique');
+        });
+        Schema::table('case_assignments', function (Blueprint $table): void {
+            $table->unique('case_id', 'case_assignment_case_unique');
+            $table->index('user_id', 'case_assignment_user_index');
         });
         Schema::table('case_assignments', function (Blueprint $table): void {
             $table->dropIndex('case_assignment_period_index');
             $table->dropIndex('case_assignment_user_period_index');
             $table->dropColumn(['assignment_type', 'effective_from', 'effective_until', 'deleted_at']);
-            $table->unique('case_id', 'case_assignment_case_unique');
         });
     }
 
