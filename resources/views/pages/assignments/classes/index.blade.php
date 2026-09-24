@@ -120,7 +120,7 @@
                             <td>
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     @foreach($row['classes'] as $classroom)
-                                        <div class="badge text-bg-light border d-inline-flex align-items-center gap-1">
+                                        <div class="sibk-class-chip">
                                             {{ $classroom->name }}
                                             @if($canManage)
                                                 <form
@@ -133,10 +133,9 @@
                                                     @method('DELETE')
                                                     <input name="user_id" type="hidden" value="{{ $row['teacher']->id }}">
                                                     <button
-                                                        class="btn btn-sm btn-outline-danger"
+                                                        class="sibk-class-chip__remove"
                                                         type="submit"
                                                         aria-label="Batalkan penugasan {{ $classroom->name }} dari {{ $row['teacher']->name }}"
-                                                        style="min-width: 44px; min-height: 44px;"
                                                     >×</button>
                                                 </form>
                                             @endif
@@ -146,31 +145,19 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                     @if($canManage)
-                                        <details>
-                                            <summary
-                                                class="btn btn-outline-primary d-inline-flex align-items-center justify-content-center"
-                                                aria-label="Tambah kelas untuk {{ $row['teacher']->name }}"
-                                                style="min-width: 44px; min-height: 44px;"
-                                            >+</summary>
-                                            <div class="border rounded p-2 mt-2">
-                                                @forelse($unassignedClasses as $availableClass)
-                                                    <form
-                                                        action="{{ route('assignments.classes.store') }}"
-                                                        method="POST"
-                                                    >
-                                                        @csrf
-                                                        <input name="user_id" type="hidden" value="{{ $row['teacher']->id }}">
-                                                        <input name="classroom_id" type="hidden" value="{{ $availableClass->id }}">
-                                                        <input name="only_if_unassigned" type="hidden" value="1">
-                                                        <button class="btn btn-link text-start" type="submit">
-                                                            {{ $availableClass->name }}
-                                                        </button>
-                                                    </form>
-                                                @empty
-                                                    <span class="text-muted">Tidak ada kelas yang belum ditugaskan.</span>
-                                                @endforelse
-                                            </div>
-                                        </details>
+                                        <button
+                                            class="btn btn-sm p-0 sibk-icon-button sibk-report-control"
+                                            type="button"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#classPickerModal"
+                                            data-teacher-id="{{ $row['teacher']->id }}"
+                                            data-teacher-name="{{ $row['teacher']->name }}"
+                                            aria-label="Tambah kelas untuk {{ $row['teacher']->name }}"
+                                        >
+                                            <svg aria-hidden="true" viewBox="0 0 24 24">
+                                                <path d="M12 5v14M5 12h14" />
+                                            </svg>
+                                        </button>
                                     @endif
                                 </div>
                             </td>
@@ -191,5 +178,61 @@
                 </tbody>
             </table>
         </div>
+
+        @if($canManage)
+            <div
+                class="modal fade"
+                id="classPickerModal"
+                tabindex="-1"
+                aria-labelledby="classPickerTitle"
+                aria-hidden="true"
+            >
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 class="modal-title fs-5" id="classPickerTitle">Tambah kelas</h2>
+                            <button
+                                class="btn-close"
+                                type="button"
+                                data-bs-dismiss="modal"
+                                aria-label="Tutup"
+                            ></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label" for="classPickerSearch">Cari kelas yang belum ditugaskan</label>
+                            <input
+                                class="form-control mb-3"
+                                id="classPickerSearch"
+                                type="search"
+                                autocomplete="off"
+                                placeholder="Ketik nama kelas"
+                            >
+                            <div class="sibk-class-picker-list">
+                                @forelse($unassignedClasses as $availableClass)
+                                    <form
+                                        action="{{ route('assignments.classes.store') }}"
+                                        method="POST"
+                                        data-class-picker-option="{{ mb_strtolower($availableClass->name) }}"
+                                    >
+                                        @csrf
+                                        <input name="user_id" type="hidden">
+                                        <input name="classroom_id" type="hidden" value="{{ $availableClass->id }}">
+                                        <input name="only_if_unassigned" type="hidden" value="1">
+                                        <button class="sibk-class-picker-option" type="submit">
+                                            {{ $availableClass->name }}
+                                        </button>
+                                    </form>
+                                @empty
+                                    <p class="text-muted mb-0">Semua kelas sudah ditugaskan.</p>
+                                @endforelse
+                                <p class="text-muted mb-0" data-class-picker-empty hidden>
+                                    Tidak ada kelas yang cocok.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 @endsection

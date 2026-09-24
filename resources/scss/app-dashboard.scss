@@ -2652,6 +2652,56 @@ small, .small {
   }
 }
 
+.sibk-class-chip {
+  align-items: center;
+  background: var(--sibk-color-primary-soft);
+  border-radius: 0.5rem;
+  color: var(--sibk-color-text-dark);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 500;
+  gap: 0.2rem;
+  padding-left: 0.45rem;
+  white-space: nowrap;
+}
+
+.sibk-class-chip__remove {
+  background: transparent;
+  border: 0;
+  border-radius: 0.4rem;
+  color: var(--bs-danger);
+  height: 1.75rem;
+  padding: 0;
+  width: 1.75rem;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--bs-danger-bg-subtle);
+  }
+}
+
+.sibk-class-picker-list {
+  max-height: min(45vh, 20rem);
+  overflow-y: auto;
+}
+
+.sibk-class-picker-option {
+  background: transparent;
+  border: 0;
+  border-radius: 0.5rem;
+  color: var(--sibk-color-text-dark);
+  display: block;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  width: 100%;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--sibk-color-primary-soft);
+    color: var(--sibk-color-primary-hover);
+  }
+}
+
 .sibk-report-preview-actions {
   align-items: center;
   display: flex;

@@ -87,8 +87,9 @@ class AssignmentManagementTest extends TestCase
             ->assertSee('X RPL 1')
             ->assertSee('X RPL 2')
             ->assertSee('aria-label="Tambah kelas untuk '.$teacher->name.'"', false)
+            ->assertSee('id="classPickerSearch"', false)
             ->assertSee('name="only_if_unassigned"', false)
-            ->assertDontSee('classAssignmentModal')
+            ->assertSee('data-class-picker-option="x rpl 2"', false)
             ->assertSee('Tahun ajaran ini sudah aktif.');
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
             ->assertOk()->assertSee($teacher->name);

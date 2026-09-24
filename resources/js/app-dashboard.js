@@ -93,6 +93,33 @@ document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     });
 });
 
+const classPicker = document.getElementById('classPickerModal');
+if (classPicker) {
+    const search = classPicker.querySelector('#classPickerSearch');
+    const options = [...classPicker.querySelectorAll('[data-class-picker-option]')];
+    const empty = classPicker.querySelector('[data-class-picker-empty]');
+
+    classPicker.addEventListener('show.bs.modal', (event) => {
+        const button = event.relatedTarget;
+        classPicker.querySelector('#classPickerTitle').textContent = `Tambah kelas untuk ${button.dataset.teacherName}`;
+        classPicker.querySelectorAll('[name="user_id"]').forEach((input) => {
+            input.value = button.dataset.teacherId;
+        });
+        search.value = '';
+        options.forEach((option) => { option.hidden = false; });
+        empty.hidden = true;
+    });
+    classPicker.addEventListener('shown.bs.modal', () => search.focus());
+
+    search.addEventListener('input', () => {
+        const query = search.value.trim().toLocaleLowerCase('id');
+        options.forEach((option) => {
+            option.hidden = !option.dataset.classPickerOption.includes(query);
+        });
+        empty.hidden = options.length === 0 || options.some((option) => !option.hidden);
+    });
+}
+
 // ── Magic Sidebar Indicator ──────────────────────────────────────────────────
 // Menciptakan indikator yang meluncur mulus di antara item menu aktif.
 // Efek "cutout": indikator berwarna halaman sehingga terlihat berlubang.
