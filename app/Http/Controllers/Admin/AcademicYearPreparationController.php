@@ -11,9 +11,24 @@ use App\Models\AcademicYear;
 use App\Models\User;
 use App\Services\AcademicYearPreparationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class AcademicYearPreparationController extends Controller
 {
+    public function destroy(
+        Request $request,
+        AcademicYear $academicYear,
+        AcademicYearPreparationService $service,
+    ): RedirectResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+        $service->deleteEmptyPreparationYear($academicYear, $actor);
+
+        return redirect()
+            ->route('data-master.index')
+            ->with('success', 'Draf tahun ajaran berhasil dihapus.');
+    }
+
     public function store(
         StoreProvisionalAcademicYearRequest $request,
         AcademicYearPreparationService $service,

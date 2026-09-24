@@ -14,6 +14,22 @@ use Illuminate\Support\Facades\Gate;
 
 class AcademicYearActivationController extends Controller
 {
+    public function restorePrevious(
+        Request $request,
+        AcademicYear $academicYear,
+        AcademicYearPreparationService $service,
+    ): RedirectResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+        $previous = $service->restorePreviousAcademicYear($academicYear, $actor);
+
+        return redirect()
+            ->route('assignments.classes.index', ['academic_year_id' => $previous->getKey()])
+            ->with('success_title', 'Tahun ajaran dikembalikan')
+            ->with('success', sprintf('%s kembali menjadi tahun ajaran aktif.', $previous->name));
+    }
+
     public function store(
         Request $request,
         AcademicYear $academicYear,

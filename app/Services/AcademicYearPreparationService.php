@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AcademicYear;
+use App\Models\Achievement;
+use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\TemporaryStudent;
 use App\Models\User;
@@ -75,6 +79,39 @@ class AcademicYearPreparationService
             );
 
             return $year;
+        });
+    }
+
+    public function deleteEmptyPreparationYear(AcademicYear $academicYear, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+
+        DB::transaction(function () use ($academicYear, $actor): void {
+            $year = AcademicYear::query()->lockForUpdate()->findOrFail($academicYear->getKey());
+            $hasRecords = $year->classrooms()->exists()
+                || $year->studentClassMemberships()->exists()
+                || $year->teacherAssignments()->exists()
+                || BkCase::query()->withTrashed()->where('academic_year_id', $year->getKey())->exists()
+                || Consultation::query()->withTrashed()->where('academic_year_id', $year->getKey())->exists();
+
+            if ($year->is_active
+                || $year->activated_at !== null
+                || $year->master_source !== AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL
+                || $hasRecords) {
+                throw ValidationException::withMessages([
+                    'academic_year' => 'Hanya tahun Persiapan yang benar-benar kosong dapat dihapus.',
+                ]);
+            }
+
+            $this->auditService->record(
+                action: 'academic_year.preparation_deleted',
+                auditable: $year,
+                summary: 'Draf tahun ajaran kosong dihapus.',
+                actor: $actor,
+                before: $this->academicYearSnapshot($year),
+                after: [],
+            );
+            $year->delete();
         });
     }
 
@@ -332,6 +369,102 @@ class AcademicYearPreparationService
             );
 
             return $year->refresh();
+        });
+    }
+
+    public function previousYearCandidate(AcademicYear $current): ?AcademicYear
+    {
+        if (! $current->is_active || $current->activated_at === null) {
+            return null;
+        }
+
+        $candidates = AcademicYear::query()
+            ->where('is_active', false)
+            ->whereNotNull('activated_at')
+            ->where('activated_at', '<', $current->activated_at)
+            ->orderByDesc('activated_at')
+            ->limit(2)
+            ->get();
+
+        $previous = $candidates->first();
+        if ($previous === null || ($candidates->count() > 1
+            && $candidates[1]->activated_at->equalTo($previous->activated_at))) {
+            return null;
+        }
+
+        return $previous;
+    }
+
+    public function restorePreviousAcademicYear(AcademicYear $academicYear, User $actor): AcademicYear
+    {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+        abort_unless($actor->is_active, 403);
+
+        return DB::transaction(function () use ($academicYear, $actor): AcademicYear {
+            $current = AcademicYear::query()->lockForUpdate()->findOrFail($academicYear->getKey());
+            if (! $current->is_active || AcademicYear::query()->active()->count() !== 1) {
+                throw ValidationException::withMessages(['academic_year' => 'Tahun ajaran aktif sudah berubah.']);
+            }
+
+            $candidate = $this->previousYearCandidate($current);
+            if ($candidate === null) {
+                throw ValidationException::withMessages(['academic_year' => 'Tahun ajaran sebelumnya tidak dapat dipastikan.']);
+            }
+            $previous = AcademicYear::query()->lockForUpdate()->findOrFail($candidate->getKey());
+            $assessment = $this->activationStructure($previous, lockForUpdate: true);
+            if ($assessment['blocking'] !== []) {
+                throw ValidationException::withMessages([
+                    'academic_year' => 'Tahun ajaran sebelumnya tidak lagi siap untuk digunakan.',
+                ]);
+            }
+
+            $activatedAt = $current->activated_at;
+            $hasActivity = BkCase::query()->withTrashed()
+                ->where('academic_year_id', $current->getKey())
+                ->orWhere('created_at', '>=', $activatedAt)
+                ->orWhere('updated_at', '>=', $activatedAt)
+                ->exists()
+                || Consultation::query()->withTrashed()
+                    ->where('academic_year_id', $current->getKey())
+                    ->orWhere('created_at', '>=', $activatedAt)
+                    ->orWhere('updated_at', '>=', $activatedAt)
+                    ->exists()
+                || Achievement::query()->withTrashed()
+                    ->where('created_at', '>=', $activatedAt)
+                    ->orWhere('updated_at', '>=', $activatedAt)
+                    ->exists()
+                || StudentDeparture::query()
+                    ->where('created_at', '>=', $activatedAt)
+                    ->orWhere('updated_at', '>=', $activatedAt)
+                    ->exists();
+            if ($hasActivity) {
+                throw ValidationException::withMessages([
+                    'academic_year' => 'Tahun ajaran tidak dapat dikembalikan karena sudah ada aktivitas operasional.',
+                ]);
+            }
+
+            $currentBefore = $this->academicYearSnapshot($current);
+            $previousBefore = $this->academicYearSnapshot($previous);
+            $current->update(['is_active' => false]);
+            $previous->update(['is_active' => true]);
+            $this->auditService->record(
+                action: 'academic_year.activation_reverted',
+                auditable: $current,
+                summary: 'Aktivasi tahun ajaran dikembalikan ke tahun sebelumnya.',
+                actor: $actor,
+                before: $currentBefore,
+                after: $this->academicYearSnapshot($current->refresh()),
+            );
+            $this->auditService->record(
+                action: 'academic_year.reactivated',
+                auditable: $previous,
+                summary: 'Tahun ajaran sebelumnya kembali digunakan.',
+                actor: $actor,
+                before: $previousBefore,
+                after: $this->academicYearSnapshot($previous->refresh()),
+            );
+
+            return $previous;
         });
     }
 

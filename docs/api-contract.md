@@ -211,6 +211,11 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Business Logic:** `AcademicYearPreparationService::activate()` menjadikan target satu-satunya tahun ajaran aktif, mengisi `activated_at` dan `activated_by`, serta menonaktifkan tahun aktif sebelumnya tanpa menghapus histori atau mengubah `master_source`. Tidak ada `starts_on`/`ends_on` dan tidak ada aktivasi otomatis berbasis kalender.
 - **Batas provider:** nilai tahun aktif dari Dapodik tidak pernah mengaktifkan atau mengganti tahun ajaran Ruang BK.
 
+### Kembalikan Tahun Ajaran Sebelumnya
+- **Endpoint:** `POST /assignments/academic-years/{academicYear}/restore-previous`.
+- **Authorization:** hanya Koordinator BK aktif; `{academicYear}` harus satu-satunya tahun aktif.
+- **Business Logic:** Pilih arsip dengan `activated_at` terbesar yang lebih lama dari tahun aktif; kandidat tidak ada, waktu ambigu, atau readiness pendahulu gagal menolak aksi. Kasus/konsultasi pada tahun baru, termasuk yang diarsipkan, dan aktivitas layanan/prestasi/proses keluar sejak aktivasi menolak rollback. Dalam satu transaksi, tahun sekarang menjadi arsip, pendahulu kembali aktif, dan kedua perubahan diaudit; `activated_at` historis tidak dihapus.
+
 
 ---
 
@@ -219,11 +224,13 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ### Persiapan Tahun Ajaran dan Roster
 - **Endpoint:**
   - `POST /data-master/academic-years` untuk membuat tahun ajaran.
+  - `DELETE /data-master/academic-years/{academicYear}` untuk menghapus draf Persiapan yang benar-benar kosong.
   - `POST /data-master/academic-years/{academicYear}/roster-imports` untuk mengunggah Excel dan membentuk pratinjau tanpa mengubah master.
   - `GET /data-master/academic-years/{academicYear}/roster-imports/{importRun}` untuk melihat hasil pratinjau.
   - `POST /data-master/academic-years/{academicYear}/roster-imports/{importRun}/apply` untuk menerapkan hasil setelah konfirmasi Admin IT.
 - **Authorization:** hanya Admin IT aktif melalui capability `manageDataMaster`. Modul ini tidak memberi Admin IT hak aktivasi operasional atau akses isi layanan BK.
 - **Request tahun ajaran:** `name` (contoh `2027/2028`). Tahun baru selalu dibuat `is_active=false`; tidak ada input tanggal mulai/selesai.
+- **Hapus draf:** Tahun yang pernah aktif atau memiliki rombel, membership, penugasan, kasus, konsultasi, atau relasi lain tidak dapat dihapus. Tidak ada cascade; audit menyimpan snapshot draf sebelum penghapusan.
 - **Request roster:** file `.xlsx` dengan data minimum NISN, nama, dan rombel. NISN menjadi kunci exact dan file mentah tidak disimpan.
 - **Pratinjau roster:** seluruh baris divalidasi sebelum preview diterima. Hasil diklasifikasikan sebagai cocok, baru, berubah, atau konflik. Konflik menahan penerapan sampai sumber diperbaiki atau keputusan yang sah tersedia.
 - **Business Logic:** `AcademicYearPreparationService` membentuk preview tanpa memutasi master. Setelah konfirmasi Admin IT, hasil divalidasi ulang dan diterapkan dalam satu transaksi atomik sambil mempertahankan ID internal serta provenance yang sudah ada.

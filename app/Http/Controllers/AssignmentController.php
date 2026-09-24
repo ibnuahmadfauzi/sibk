@@ -82,6 +82,9 @@ class AssignmentController extends Controller
             'selectedYear' => $selectedYear,
             'canManage' => $canManage,
             'activationReadiness' => $canManage ? $preparationService->activationReadiness($selectedYear) : null,
+            'previousYear' => $canManage && $selectedYear->is_active
+                ? $preparationService->previousYearCandidate($selectedYear)
+                : null,
         ]);
     }
 

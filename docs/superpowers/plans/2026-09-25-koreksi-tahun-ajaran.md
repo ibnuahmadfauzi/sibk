@@ -78,3 +78,7 @@ if ($year->is_active || $year->activated_at !== null || $year->classrooms()->exi
 ## Batas keputusan
 
 Tidak ada status `Dibatalkan`, penghapusan roster, atau rollback otomatis ke tahun yang tidak dapat dipastikan. Aktivitas operasional setelah aktivasi sengaja memblokir rollback; koreksi kasus tersebut memerlukan penanganan data dan keputusan Admin IT/Koordinator secara terpisah.
+
+## Checkpoint implementasi 25 September 2026
+
+Implementasi route, service, UI, audit, dan kontrak sudah dibuat pada worktree Penugasan Kelas yang sama. Lima test terarah untuk hapus draf, rollback, otorisasi, aktivitas, dan waktu pendahulu ambigu lulus. Pint terarah dan `git diff --check` lulus. Dua test lama yang merender halaman tertahan izin tulis `storage/framework/views` pada lingkungan agent; tidak ada perubahan aplikasi untuk mengatasi batas lingkungan tersebut. Build frontend dan suite penuh mengikuti kebijakan `AGENTS.md` untuk dijalankan pengguna.

@@ -45,6 +45,16 @@
                     <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
                     @if($activationReadiness['state'] === 'active')
                         <p class="mb-0">Tahun ajaran ini sudah aktif.</p>
+                        @if($previousYear !== null)
+                            <button
+                                class="btn btn-primary mt-3"
+                                type="button"
+                                data-bs-toggle="modal"
+                                data-bs-target="#restorePreviousYearModal"
+                            >
+                                Kembalikan tahun sebelumnya
+                            </button>
+                        @endif
                     @else
                         @if($activationReadiness['issues'] !== [])
                             <ul class="text-warning-emphasis mb-2">
@@ -74,6 +84,44 @@
                     @endif
                 </div>
             </section>
+        @endif
+
+        @if($previousYear !== null)
+            <div
+                class="modal fade"
+                id="restorePreviousYearModal"
+                tabindex="-1"
+                aria-labelledby="restorePreviousYearTitle"
+                aria-hidden="true"
+            >
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 class="modal-title fs-5" id="restorePreviousYearTitle">Kembalikan tahun ajaran?</h2>
+                            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-2">
+                                {{ $selectedYear->name }} akan berhenti aktif dan {{ $previousYear->name }} kembali aktif.
+                            </p>
+                            <p class="text-muted mb-0">
+                                Akses Guru BK mengikuti penugasan tahun sebelumnya. Riwayat layanan tetap tersimpan.
+                                Jika sudah ada aktivitas operasional sejak aktivasi, sistem akan menolak tindakan ini.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Batal</button>
+                            <form
+                                action="{{ route('assignments.academic-years.restore-previous', $selectedYear) }}"
+                                method="POST"
+                            >
+                                @csrf
+                                <button class="btn btn-primary" type="submit">Ya, kembalikan</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         @endif
 
         <div class="sibk-panel mb-4">

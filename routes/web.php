@@ -84,6 +84,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
             ->name('assignments.classes.destroy');
         Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
             ->name('assignments.academic-years.activate');
+        Route::post('/assignments/academic-years/{academicYear}/restore-previous', [AcademicYearActivationController::class, 'restorePrevious'])
+            ->name('assignments.academic-years.restore-previous');
         Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
         Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
         Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
@@ -97,6 +99,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
             ->name('data-master.index');
         Route::post('/data-master/academic-years', [AcademicYearPreparationController::class, 'store'])
             ->name('data-master.academic-years.store');
+        Route::delete('/data-master/academic-years/{academicYear}', [AcademicYearPreparationController::class, 'destroy'])
+            ->name('data-master.academic-years.destroy');
         Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
             ->name('data-master.academic-years.roster-imports.store');
         Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');

@@ -69,6 +69,7 @@ class DataMasterController extends Controller
                 : $rolloverQuery->summarize($rolloverTargetYear),
             'preparationYears' => AcademicYear::query()
                 ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                ->withExists(['classrooms', 'studentClassMemberships', 'teacherAssignments'])
                 ->withCount([
                     'classrooms as active_classroom_count' => fn ($query) => $query->where('is_active', true),
                     'studentClassMemberships as active_student_count' => fn ($query) => $query

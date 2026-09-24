@@ -6,11 +6,13 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
+use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\TemporaryStudent;
 use App\Models\User;
@@ -32,6 +34,165 @@ class AcademicYearRolloverTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
+    }
+
+    #[Test]
+    public function admin_can_delete_an_empty_preparation_year_but_not_one_with_classes(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $empty = $this->academicYear(
+            '2027/2028', '2027-07-01', '2028-06-30',
+            masterSource: AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        );
+        $filled = $this->academicYear(
+            '2028/2029', '2028-07-01', '2029-06-30',
+            masterSource: AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        );
+        $this->classroom($filled, 'X RPL 1');
+
+        $this->actingAs($this->userWithRole('koordinator_bk'))
+            ->delete(route('data-master.academic-years.destroy', $empty))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->delete(route('data-master.academic-years.destroy', $empty))
+            ->assertRedirect(route('data-master.index'));
+        $this->assertDatabaseMissing('academic_years', ['id' => $empty->id]);
+        $deletionAudit = AuditLog::query()
+            ->where('action', 'academic_year.preparation_deleted')
+            ->sole();
+        $this->assertSame($empty->id, $deletionAudit->auditable_id);
+        $this->assertSame($empty->name, $deletionAudit->before_values['name']);
+
+        $this->actingAs($admin)
+            ->delete(route('data-master.academic-years.destroy', $filled))
+            ->assertSessionHasErrors('academic_year');
+        $this->assertDatabaseHas('academic_years', ['id' => $filled->id]);
+
+        $active = $this->academicYear(
+            '2029/2030', '2029-07-01', '2030-06-30', true,
+            AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        );
+        $this->actingAs($admin)
+            ->delete(route('data-master.academic-years.destroy', $active))
+            ->assertSessionHasErrors('academic_year');
+    }
+
+    #[Test]
+    public function coordinator_can_restore_the_previous_year_before_services_are_recorded(): void
+    {
+        $this->travelTo('2027-07-01 09:00:00');
+        $previous = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
+        $previous->update(['activated_at' => now()->subYear()]);
+        $current = $this->academicYear('2027/2028', '2027-07-01', '2028-06-30');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid', 'is_active' => true]);
+        foreach ([$previous, $current] as $year) {
+            $classroom = $this->classroom($year, 'X RPL 1');
+            $this->membership($student, $classroom, $year);
+            $this->assignTeacher($teacher, $coordinator, $classroom, $year);
+        }
+        app(AcademicYearPreparationService::class)->activate($current, $coordinator);
+
+        $this->actingAs($this->userWithRole('admin_it'))
+            ->post(route('assignments.academic-years.restore-previous', $current))
+            ->assertForbidden();
+
+        $this->actingAs($coordinator)
+            ->post(route('assignments.academic-years.restore-previous', $current))
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $previous->id]));
+
+        $this->assertTrue($previous->refresh()->is_active);
+        $this->assertFalse($current->refresh()->is_active);
+        $this->assertNotNull($current->activated_at);
+        $this->assertSame(1, AcademicYear::query()->active()->count());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'academic_year.activation_reverted']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'academic_year.reactivated']);
+    }
+
+    #[Test]
+    public function operational_activity_after_activation_blocks_restoring_the_previous_year(): void
+    {
+        $this->travelTo('2027-07-01 09:00:00');
+        $previous = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
+        $previous->update(['activated_at' => now()->subYear()]);
+        $current = $this->academicYear('2027/2028', '2027-07-01', '2028-06-30');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid', 'is_active' => true]);
+        foreach ([$previous, $current] as $year) {
+            $classroom = $this->classroom($year, 'X RPL 1');
+            $this->membership($student, $classroom, $year);
+            $this->assignTeacher($teacher, $coordinator, $classroom, $year);
+        }
+        app(AcademicYearPreparationService::class)->activate($current, $coordinator);
+        $this->travel(1)->minutes();
+        StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_IN_PROGRESS,
+            'reported_at' => today(),
+        ]);
+
+        $this->actingAs($coordinator)
+            ->post(route('assignments.academic-years.restore-previous', $current))
+            ->assertSessionHasErrors('academic_year');
+        $this->assertTrue($current->refresh()->is_active);
+        $this->assertFalse($previous->refresh()->is_active);
+    }
+
+    #[Test]
+    public function soft_deleted_case_still_blocks_restoring_the_previous_year(): void
+    {
+        $this->travelTo('2027-07-01 09:00:00');
+        $previous = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
+        $previous->update(['activated_at' => now()->subYear()]);
+        $current = $this->academicYear('2027/2028', '2027-07-01', '2028-06-30');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid', 'is_active' => true]);
+        foreach ([$previous, $current] as $year) {
+            $classroom = $this->classroom($year, 'X RPL 1');
+            $this->membership($student, $classroom, $year);
+            $this->assignTeacher($teacher, $coordinator, $classroom, $year);
+        }
+        app(AcademicYearPreparationService::class)->activate($current, $coordinator);
+        $referenceId = ReferenceValue::query()->firstOrFail()->id;
+        BkCase::query()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $current->id,
+            'classroom_id' => $current->classrooms()->firstOrFail()->id,
+            'case_source_id' => $referenceId,
+            'service_field_id' => $referenceId,
+            'status_id' => $referenceId,
+            'service_date' => today(),
+            'referrer' => 'Guru',
+            'initial_info' => 'Catatan awal',
+            'initial_action' => 'Pendampingan',
+            'created_by' => $teacher->id,
+        ])->delete();
+
+        $this->actingAs($coordinator)
+            ->post(route('assignments.academic-years.restore-previous', $current))
+            ->assertSessionHasErrors('academic_year');
+        $this->assertTrue($current->refresh()->is_active);
+    }
+
+    #[Test]
+    public function ambiguous_previous_year_blocks_rollback(): void
+    {
+        $first = $this->academicYear('2025/2026', '2025-07-01', '2026-06-30');
+        $second = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30');
+        $current = $this->academicYear('2027/2028', '2027-07-01', '2028-06-30', true);
+        $first->update(['activated_at' => now()->subYear()]);
+        $second->update(['activated_at' => now()->subYear()]);
+        $current->update(['activated_at' => now()]);
+
+        $this->actingAs($this->userWithRole('koordinator_bk'))
+            ->post(route('assignments.academic-years.restore-previous', $current))
+            ->assertSessionHasErrors('academic_year');
+        $this->assertTrue($current->refresh()->is_active);
     }
 
     #[Test]
