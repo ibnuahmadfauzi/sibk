@@ -70,34 +70,34 @@
             <section class="sibk-panel mb-4" aria-labelledby="activation-readiness-title">
                 <div class="sibk-panel__body p-4">
                     <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
-                    @if($activationReadiness['issues'] !== [])
-                        <ul class="text-warning-emphasis mb-2">
-                            @foreach($activationReadiness['issues'] as $issue)
-                                <li>{{ $issue }}</li>
-                            @endforeach
-                        </ul>
-                    @endif
-                    @if($activationReadiness['warnings'] !== [])
-                        <ul class="text-info-emphasis mb-2">
-                            @foreach($activationReadiness['warnings'] as $warning)
-                                <li>{{ $warning }}</li>
-                            @endforeach
-                        </ul>
-                    @endif
-                    @if($activationReadiness['ready'])
-                        <form
-                            action="{{ route('assignments.academic-years.activate', $selectedYear) }}"
-                            method="POST"
-                        >
-                            @csrf
-                            <button class="btn btn-primary" type="submit">Aktifkan Tahun Ajaran</button>
-                        </form>
-                    @elseif($activationReadiness['state'] === 'scheduled')
-                        <p class="mb-0">
-                            Siap diaktifkan mulai {{ $selectedYear->starts_on?->locale('id')->translatedFormat('j F Y') }}.
-                        </p>
-                    @elseif($activationReadiness['state'] === 'ended')
-                        <p class="mb-0">Periode selesai.</p>
+                    @if($activationReadiness['state'] === 'active')
+                        <p class="mb-0">Tahun ajaran ini sudah aktif.</p>
+                    @else
+                        @if($activationReadiness['issues'] !== [])
+                            <ul class="text-warning-emphasis mb-2">
+                                @foreach($activationReadiness['issues'] as $issue)
+                                    <li>{{ $issue }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($activationReadiness['warnings'] !== [])
+                            <ul class="text-info-emphasis mb-2">
+                                @foreach($activationReadiness['warnings'] as $warning)
+                                    <li>{{ $warning }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        @if($activationReadiness['ready'])
+                            <form
+                                action="{{ route('assignments.academic-years.activate', $selectedYear) }}"
+                                method="POST"
+                            >
+                                @csrf
+                                <button class="btn btn-primary" type="submit">Aktifkan Tahun Ajaran</button>
+                            </form>
+                        @elseif($activationReadiness['state'] === 'not_ready')
+                            <button class="btn btn-primary" type="button" disabled>Aktifkan Tahun Ajaran</button>
+                        @endif
                     @endif
                 </div>
             </section>
@@ -131,15 +131,31 @@
                             @if($canManage)
                                 <td>
                                     <button
-                                        class="btn btn-sm btn-outline-primary"
+                                        class="btn btn-outline-primary d-inline-flex align-items-center justify-content-center"
                                         type="button"
+                                        style="min-width: 44px; min-height: 44px;"
+                                        aria-label="Atur Guru BK untuk {{ $classroom->name }}"
+                                        title="Atur Guru BK untuk {{ $classroom->name }}"
                                         data-bs-toggle="modal"
                                         data-bs-target="#classAssignmentModal"
                                         data-classroom-id="{{ $classroom->id }}"
                                         data-classroom-name="{{ $classroom->name }}"
                                         data-user-id="{{ $assignment?->user_id }}"
                                     >
-                                        Atur
+                                        <svg
+                                            aria-hidden="true"
+                                            fill="none"
+                                            height="20"
+                                            stroke="currentColor"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="1.8"
+                                            viewBox="0 0 24 24"
+                                            width="20"
+                                        >
+                                            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                                            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.87 1.87-.06-.06A1.7 1.7 0 0 0 16 18.4a1.7 1.7 0 0 0-1 .37 1.7 1.7 0 0 0-.6 1.34V20h-2.65v-.09A1.7 1.7 0 0 0 10.2 18.4a1.7 1.7 0 0 0-1.9.35l-.06.06-1.87-1.87.06-.06A1.7 1.7 0 0 0 6.8 15a1.7 1.7 0 0 0-1.6-1.1H5v-2.65h.2A1.7 1.7 0 0 0 6.8 9.6a1.7 1.7 0 0 0-.37-1.87l-.06-.06L8.24 5.8l.06.06A1.7 1.7 0 0 0 10.2 6.2a1.7 1.7 0 0 0 1.55-1.7V4h2.65v.5A1.7 1.7 0 0 0 16 6.2a1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 7.67l-.06.06A1.7 1.7 0 0 0 19.4 9.6a1.7 1.7 0 0 0 1.6 1.65h.2v2.65H21A1.7 1.7 0 0 0 19.4 15Z" />
+                                        </svg>
                                     </button>
                                 </td>
                             @endif

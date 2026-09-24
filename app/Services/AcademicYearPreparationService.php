@@ -285,13 +285,8 @@ class AcademicYearPreparationService
             if ($year->is_active) {
                 throw ValidationException::withMessages(['academic_year' => 'Tahun ajaran sudah aktif.']);
             }
-            if ($year->starts_on === null || $year->ends_on === null || $year->ends_on->lte($year->starts_on)) {
-                throw ValidationException::withMessages(['period' => 'Tanggal tahun ajaran harus lengkap dan berurutan.']);
-            }
-            if (now()->startOfDay()->lt($year->starts_on) || now()->startOfDay()->gt($year->ends_on)) {
-                throw ValidationException::withMessages([
-                    'period' => 'Tahun ajaran hanya dapat diaktifkan selama periode berlakunya.',
-                ]);
+            if ($year->activated_at !== null) {
+                throw ValidationException::withMessages(['academic_year' => 'Tahun ajaran arsip tidak dapat diaktifkan kembali.']);
             }
 
             $assessment = $this->activationStructure($year, lockForUpdate: true);
@@ -343,8 +338,7 @@ class AcademicYearPreparationService
     /**
      * @return array{
      *     ready: bool,
-     *     state: 'active'|'ended'|'not_ready'|'ready'|'scheduled',
-     *     available_from: ?string,
+     *     state: 'active'|'archived'|'not_ready'|'ready',
      *     issues: list<string>,
      *     warnings: list<string>,
      *     rollover: AcademicYearRolloverSummary,
@@ -361,13 +355,6 @@ class AcademicYearPreparationService
     {
         $blocking = [];
         $warnings = [];
-        $hasValidPeriod = $academicYear->starts_on !== null
-            && $academicYear->ends_on !== null
-            && $academicYear->ends_on->gt($academicYear->starts_on);
-        if (! $hasValidPeriod) {
-            $blocking['period'] = 'Tanggal tahun ajaran belum lengkap atau belum berurutan.';
-        }
-
         $assessment = $this->activationStructure($academicYear);
         $blocking += $assessment['blocking'];
         $issues = array_values($blocking);
@@ -401,21 +388,16 @@ class AcademicYearPreparationService
             $warnings[] = 'Identitas sementara masih menunggu rekonsiliasi.';
         }
 
-        $today = now()->startOfDay();
         $state = match (true) {
             $academicYear->is_active => 'active',
-            $hasValidPeriod && $academicYear->ends_on->lt($today) => 'ended',
+            $academicYear->activated_at !== null => 'archived',
             $issues !== [] => 'not_ready',
-            $hasValidPeriod && $academicYear->starts_on->gt($today) => 'scheduled',
             default => 'ready',
         };
 
         return [
             'ready' => $state === 'ready',
             'state' => $state,
-            'available_from' => $state === 'scheduled'
-                ? $academicYear->starts_on?->toDateString()
-                : null,
             'issues' => $issues,
             'warnings' => $warnings,
             'rollover' => $rollover,

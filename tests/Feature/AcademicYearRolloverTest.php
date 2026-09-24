@@ -100,7 +100,7 @@ class AcademicYearRolloverTest extends TestCase
     }
 
     #[Test]
-    public function complete_year_cannot_be_activated_before_its_start_date(): void
+    public function complete_preparation_year_can_be_activated_without_calendar_gate(): void
     {
         $this->travelTo('2027-06-30 09:00:00');
         $sourceYear = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
@@ -127,20 +127,12 @@ class AcademicYearRolloverTest extends TestCase
         $service = app(AcademicYearPreparationService::class);
         $readiness = $service->activationReadiness($targetYear);
 
-        $this->assertSame('scheduled', $readiness['state']);
-        $this->assertFalse($readiness['ready']);
-        $this->assertSame('2027-07-01', $readiness['available_from']);
+        $this->assertSame('ready', $readiness['state']);
+        $this->assertTrue($readiness['ready']);
         $this->assertSame([], $readiness['issues']);
-
-        try {
-            $service->activate($targetYear, $coordinator);
-            $this->fail('Tahun ajaran dapat diaktifkan sebelum tanggal mulai.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('period', $exception->errors());
-        }
-
-        $this->assertTrue($sourceYear->refresh()->is_active);
-        $this->assertFalse($targetYear->refresh()->is_active);
+        $service->activate($targetYear, $coordinator);
+        $this->assertFalse($sourceYear->refresh()->is_active);
+        $this->assertTrue($targetYear->refresh()->is_active);
     }
 
     #[Test]
@@ -296,7 +288,7 @@ class AcademicYearRolloverTest extends TestCase
     }
 
     #[Test]
-    public function coordinator_sees_scheduled_activation_state_without_an_activation_button(): void
+    public function coordinator_sees_activation_button_for_ready_preparation_year(): void
     {
         $this->travelTo('2027-06-30 09:00:00');
         $sourceYear = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
@@ -317,18 +309,18 @@ class AcademicYearRolloverTest extends TestCase
             ->get(route('assignments.classes.index', ['academic_year_id' => $targetYear->id]))
             ->assertOk()
             ->assertSee('X RPL 1')
-            ->assertDontSee('Aktifkan Tahun Ajaran');
+            ->assertSee('Aktifkan Tahun Ajaran');
 
         $this->actingAs($coordinator)
             ->from(route('assignments.classes.manage', ['academic_year_id' => $targetYear->id]))
             ->post(route('assignments.academic-years.activate', $targetYear))
-            ->assertSessionHasErrors('period');
-        $this->assertTrue($sourceYear->refresh()->is_active);
-        $this->assertFalse($targetYear->refresh()->is_active);
+            ->assertRedirect();
+        $this->assertFalse($sourceYear->refresh()->is_active);
+        $this->assertTrue($targetYear->refresh()->is_active);
     }
 
     #[Test]
-    public function ended_year_is_labeled_and_rejected_by_direct_activation_request(): void
+    public function calendar_end_does_not_block_preparation_year_activation(): void
     {
         $this->travelTo('2028-07-01 09:00:00');
         $sourceYear = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
@@ -349,14 +341,14 @@ class AcademicYearRolloverTest extends TestCase
             ->get(route('assignments.classes.index', ['academic_year_id' => $targetYear->id]))
             ->assertOk()
             ->assertSee('X RPL 1')
-            ->assertDontSee('Aktifkan Tahun Ajaran');
+            ->assertSee('Aktifkan Tahun Ajaran');
         $this->actingAs($coordinator)
             ->from(route('assignments.classes.manage', ['academic_year_id' => $targetYear->id]))
             ->post(route('assignments.academic-years.activate', $targetYear))
-            ->assertSessionHasErrors('period');
+            ->assertRedirect();
 
-        $this->assertTrue($sourceYear->refresh()->is_active);
-        $this->assertFalse($targetYear->refresh()->is_active);
+        $this->assertFalse($sourceYear->refresh()->is_active);
+        $this->assertTrue($targetYear->refresh()->is_active);
     }
 
     #[Test]

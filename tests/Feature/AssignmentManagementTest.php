@@ -82,7 +82,12 @@ class AssignmentManagementTest extends TestCase
         $this->assertDatabaseCount('teacher_assignments', 0);
 
         $this->actingAs($coordinator)->get(route('assignments.classes.index'))
-            ->assertOk()->assertSee('X RPL 1')->assertSee('X RPL 2');
+            ->assertOk()
+            ->assertSee('X RPL 1')
+            ->assertSee('X RPL 2')
+            ->assertSee('aria-label="Atur Guru BK untuk X RPL 1"', false)
+            ->assertSee('data-bs-target="#classAssignmentModal"', false)
+            ->assertSee('Tahun ajaran ini sudah aktif.');
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
             ->assertOk()->assertSee('X RPL 2');
     }
@@ -104,8 +109,37 @@ class AssignmentManagementTest extends TestCase
         ], $coordinator);
 
         $this->assertFalse(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
+            ->assertSee('Aktifkan Tahun Ajaran')
+            ->assertSee('action="'.route('assignments.academic-years.activate', $year).'"', false);
         $year->update(['is_active' => true]);
         $this->assertTrue(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
+    }
+
+    public function test_preparation_year_without_dates_can_be_activated_when_classes_are_ready(): void
+    {
+        $year = AcademicYear::query()->create(['name' => '2027/2028', 'is_active' => false]);
+        $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 1']);
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Baru', 'is_active' => true]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'is_active' => true,
+        ]);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        app(AssignmentService::class)->assignClass([
+            'classroom_id' => $classroom->id,
+            'user_id' => $teacher->id,
+        ], $coordinator);
+
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
+            ->assertOk()
+            ->assertSee('Aktifkan Tahun Ajaran');
+        $this->actingAs($coordinator)->post(route('assignments.academic-years.activate', $year))
+            ->assertRedirect();
+        $this->assertTrue($year->refresh()->is_active);
     }
 
     public function test_changing_class_teacher_keeps_case_owner_and_service_snapshot(): void

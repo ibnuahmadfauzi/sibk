@@ -1,5 +1,6 @@
 import 'bootstrap/js/dist/dropdown';
 import 'bootstrap/js/dist/offcanvas';
+import 'bootstrap/js/dist/modal';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
 
