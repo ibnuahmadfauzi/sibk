@@ -94,6 +94,8 @@ document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     });
 });
 
+const assignmentScrollKey = 'sibk.assignmentScrollY';
+
 const assignmentSuccessToast = document.getElementById('assignmentSuccessToast');
 if (assignmentSuccessToast) {
     new Toast(assignmentSuccessToast, { delay: 4500 }).show();
@@ -118,12 +120,21 @@ if (classUnassignModal) {
         if (!pendingForm) return;
 
         confirm.disabled = true;
+        sessionStorage.setItem(assignmentScrollKey, String(window.scrollY));
         pendingForm.requestSubmit();
     });
 }
 
 const classPicker = document.getElementById('classPickerModal');
 if (classPicker) {
+    window.addEventListener('load', () => {
+        const savedScrollY = sessionStorage.getItem(assignmentScrollKey);
+        if (savedScrollY === null) return;
+
+        sessionStorage.removeItem(assignmentScrollKey);
+        window.scrollTo(0, Number(savedScrollY));
+    }, { once: true });
+
     const search = classPicker.querySelector('#classPickerSearch');
     const options = [...classPicker.querySelectorAll('[data-class-picker-option]')];
     const empty = classPicker.querySelector('[data-class-picker-empty]');
@@ -132,6 +143,10 @@ if (classPicker) {
     const placeholder = classPicker.querySelector('[data-class-picker-placeholder]');
     const submit = classPicker.querySelector('[data-class-picker-submit]');
     const selected = new Map();
+
+    classPicker.querySelector('form').addEventListener('submit', () => {
+        sessionStorage.setItem(assignmentScrollKey, String(window.scrollY));
+    });
 
     const render = () => {
         selectedItems.replaceChildren();
