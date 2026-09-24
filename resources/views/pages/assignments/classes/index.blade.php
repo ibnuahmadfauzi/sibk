@@ -85,7 +85,7 @@
         @endif
 
         @if($activationReadiness !== null)
-            <section class="sibk-panel mb-4" aria-labelledby="activation-readiness-title">
+            <section class="sibk-panel sibk-activation-panel mb-4" aria-labelledby="activation-readiness-title">
                 <div class="sibk-panel__body p-4">
                     <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
                     @if($activationReadiness['state'] === 'active')

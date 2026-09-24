@@ -2670,6 +2670,50 @@ small, .small {
   z-index: 1090;
 }
 
+.sibk-activation-panel {
+  background: linear-gradient(160deg, #3f75bd 0%, #2f67aa 55%, #234f88 100%);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+
+  h2 {
+    color: #fff;
+  }
+
+  .text-warning-emphasis {
+    color: #fff !important;
+
+    li::marker {
+      color: #ffe08a;
+    }
+  }
+
+  .text-info-emphasis {
+    color: #fff !important;
+
+    li::marker {
+      color: #cde8ff;
+    }
+  }
+
+  .btn-primary {
+    background: #fff !important;
+    border-color: rgba(255, 255, 255, 0.8) !important;
+    color: #234f88 !important;
+    box-shadow: 0 4px 10px rgba(15, 47, 91, 0.25) !important;
+
+    &:hover,
+    &:focus {
+      background: #eaf3ff !important;
+      color: #173f71 !important;
+    }
+
+    &:disabled {
+      background: rgba(255, 255, 255, 0.75) !important;
+      color: #234f88 !important;
+    }
+  }
+}
+
 .sibk-assignment-toast {
   background: var(--sibk-color-success-soft);
   border: 1px solid var(--sibk-color-border-light);
