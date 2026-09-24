@@ -101,10 +101,18 @@
                         <input
                             class="form-control"
                             id="search_kelas"
+                            list="class-suggestions"
                             name="search_kelas"
                             type="search"
+                            autocomplete="off"
+                            placeholder="Ketik nama kelas"
                             value="{{ request('search_kelas') }}"
                         >
+                        <datalist id="class-suggestions">
+                            @foreach($classSuggestions as $className)
+                                <option value="{{ $className }}"></option>
+                            @endforeach
+                        </datalist>
                     </div>
                     <div class="col-12 col-md-3">
                         <label class="form-label" for="status">Status guru</label>

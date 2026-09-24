@@ -52,6 +52,9 @@ class AssignmentController extends Controller
             ->orderBy('name')->get();
         $classesByTeacher = $classes->filter(fn (Classroom $classroom) => $classroom->teacherAssignments->isNotEmpty())
             ->groupBy(fn (Classroom $classroom) => $classroom->teacherAssignments->first()->user_id);
+        $classSuggestions = $counselors->flatMap(
+            fn (User $counselor) => $classesByTeacher->get($counselor->getKey(), collect())->pluck('name')
+        )->unique()->sort(SORT_NATURAL)->values();
         $unassignedClasses = $classes->filter(fn (Classroom $classroom) => $classroom->teacherAssignments->isEmpty());
         $status = $request->string('status')->toString();
         $search = $request->string('search_kelas')->toString();
@@ -73,6 +76,7 @@ class AssignmentController extends Controller
 
         return view('pages.assignments.classes.index', [
             'rows' => $rows,
+            'classSuggestions' => $classSuggestions,
             'unassignedClasses' => $unassignedClasses,
             'academicYears' => $academicYears,
             'selectedYear' => $selectedYear,
