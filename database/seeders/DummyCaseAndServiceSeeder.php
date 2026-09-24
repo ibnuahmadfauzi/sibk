@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * Seeder untuk menyediakan 15 data dummy kasus dan 15 data dummy layanan konseling (BK).
+ * Seeder untuk menyediakan 17 kasus dan 15 konsultasi contoh lintas dua tahun ajaran.
  * Terbagi merata pada 4 bidang bimbingan: Pribadi, Belajar, Sosial, dan Karier.
  *
  * Jalankan dengan:
@@ -43,11 +43,17 @@ class DummyCaseAndServiceSeeder extends Seeder
                 StudentSeeder::class,
             ]);
 
-            $guruBk = User::query()->where('email', 'guru.bk@ruangbk.test')->firstOrFail();
-            $academicYear = AcademicYear::query()->active()->firstOrFail();
+            $teachers = [
+                'awal' => User::query()->where('email', 'guru.bk@ruangbk.test')->firstOrFail(),
+                'rina' => User::query()->where('email', 'guru.bk.rina@ruangbk.test')->firstOrFail(),
+                'budi' => User::query()->where('email', 'guru.bk.budi@ruangbk.test')->firstOrFail(),
+            ];
+            $academicYear = AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->firstOrFail();
+            $previousYear = AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR-PREVIOUS')->firstOrFail();
 
-            // 2. Pastikan Guru BK memiliki penugasan kelas agar murid berada dalam scope aktifnya
-            $this->ensureTeacherAssignments($guruBk, $academicYear);
+            // 2. Tiga Guru BK mengampu kelas yang berbeda pada kedua tahun demo.
+            $teachersByClassroom = $this->ensureTeacherAssignments($teachers, $academicYear);
+            $teachersByClassroom += $this->ensureTeacherAssignments($teachers, $previousYear);
 
             // 3. Cache ID Referensi
             $fields = ReferenceValue::query()->active()->forCategory('service_field')->pluck('id', 'code');
@@ -55,38 +61,67 @@ class DummyCaseAndServiceSeeder extends Seeder
             $caseStatuses = ReferenceValue::query()->active()->forCategory('case_status')->pluck('id', 'code');
             $followUpTypes = ReferenceValue::query()->active()->forCategory('follow_up_type')->pluck('id', 'code');
 
-            // 4. Buat 15 Kasus BK
-            $this->seedCases($guruBk, $fields, $sources, $caseStatuses, $followUpTypes);
+            // 4. Buat kasus termasuk dua contoh dari tahun sebelumnya.
+            $this->seedCases(
+                $academicYear,
+                $previousYear,
+                $teachersByClassroom,
+                $fields,
+                $sources,
+                $caseStatuses,
+                $followUpTypes,
+            );
 
             // 5. Buat 15 Layanan Konseling (Konsultasi)
-            $this->seedConsultations($guruBk, $fields);
+            $this->seedConsultations($academicYear, $teachersByClassroom, $fields);
         });
 
-        $this->command?->info('Berhasil membuat 15 data kasus dan 15 data layanan konseling BK.');
-    }
-
-    private function ensureTeacherAssignments(User $guruBk, AcademicYear $academicYear): void
-    {
-        $classrooms = Classroom::query()->active()->get();
-        foreach ($classrooms as $classroom) {
-            TeacherAssignment::query()->updateOrCreate(
-                [
-                    'user_id' => $guruBk->id,
-                    'classroom_id' => $classroom->id,
-                    'academic_year_id' => $academicYear->id,
-                ],
-                [
-                    'effective_from' => $academicYear->starts_on?->toDateString() ?? '2026-07-01',
-                    'effective_until' => null,
-                    'decision_number' => 'SK-BK-DEMO-2026',
-                    'notes' => 'Penugasan Guru BK pengampu demo',
-                    'assigned_by' => $guruBk->id,
-                ],
-            );
-        }
+        $this->command?->info('Berhasil membuat 17 kasus dan 15 konsultasi contoh untuk tiga Guru BK.');
     }
 
     /**
+     * @param  array<string, User>  $teachers
+     * @return array<int, User>
+     */
+    private function ensureTeacherAssignments(array $teachers, AcademicYear $academicYear): array
+    {
+        $owners = [
+            'X-RPL-1' => $teachers['awal'],
+            'XI-RPL-1' => $teachers['awal'],
+            'XII-RPL-1' => $teachers['rina'],
+            'X-TKJ-1' => $teachers['rina'],
+            'XI-TKJ-1' => $teachers['budi'],
+            'XII-TKJ-1' => $teachers['budi'],
+        ];
+        $teachersByClassroom = [];
+        $classrooms = Classroom::query()->where('academic_year_id', $academicYear->id)->get();
+        foreach ($classrooms as $classroom) {
+            $teacher = $owners[$classroom->name] ?? null;
+            if ($teacher === null) {
+                continue;
+            }
+
+            $assignment = TeacherAssignment::query()->withTrashed()->firstOrNew([
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $academicYear->id,
+            ]);
+            $assignment->forceFill([
+                'user_id' => $teacher->id,
+                'effective_from' => $academicYear->starts_on,
+                'effective_until' => $academicYear->ends_on,
+                'decision_number' => 'SK-BK-DEMO',
+                'notes' => 'Penugasan kelas contoh.',
+                'assigned_by' => $teachers['awal']->id,
+                'deleted_at' => null,
+            ])->save();
+            $teachersByClassroom[$classroom->id] = $teacher;
+        }
+
+        return $teachersByClassroom;
+    }
+
+    /**
+     * @param  array<int, User>  $teachersByClassroom
      * @param  Collection<string, int>  $fields
      * @param  Collection<string, int>  $sources
      * @param  Collection<string, int>  $caseStatuses
@@ -94,7 +129,9 @@ class DummyCaseAndServiceSeeder extends Seeder
      * @return array<int, BkCase>
      */
     private function seedCases(
-        User $guruBk,
+        AcademicYear $academicYear,
+        AcademicYear $previousYear,
+        array $teachersByClassroom,
         $fields,
         $sources,
         $caseStatuses,
@@ -369,10 +406,43 @@ class DummyCaseAndServiceSeeder extends Seeder
             ],
         ];
 
+        $definitions[] = [
+            'index' => 16,
+            'nisn' => '0091234506', // Fajar: X-RPL-1 tahun lalu, XI-RPL-1 kini.
+            'academic_year' => $previousYear,
+            'field' => 'belajar',
+            'source' => 'murid_datang_sendiri',
+            'status' => ServiceRecordStatus::COMPLETED,
+            'service_date' => $previousYear->starts_on->addMonths(3)->toDateString(),
+            'referrer' => null,
+            'initial_info' => 'Murid kesulitan menyesuaikan cara belajar saat awal masuk kelas X.',
+            'initial_action' => 'Guru BK membantu menyusun jadwal belajar dan memantau pengerjaan tugas selama satu bulan.',
+            'internal_note' => null,
+            'resolution_summary' => 'Murid menjalankan jadwal belajar secara konsisten dan menyelesaikan tugas yang tertunda.',
+            'closed_at' => $previousYear->starts_on->addMonths(4)->toDateString(),
+        ];
+        $definitions[] = [
+            'index' => 17,
+            'nisn' => '0091234516', // Putri: XI-TKJ-1 tahun lalu, XII-TKJ-1 kini.
+            'academic_year' => $previousYear,
+            'field' => 'karier',
+            'source' => 'murid_datang_sendiri',
+            'status' => ServiceRecordStatus::COMPLETED,
+            'service_date' => $previousYear->starts_on->addMonths(5)->toDateString(),
+            'referrer' => null,
+            'initial_info' => 'Murid ingin memilih tempat PKL yang sesuai minat jaringan komputer.',
+            'initial_action' => 'Guru BK meninjau minat murid dan membantu membandingkan pilihan tempat PKL.',
+            'internal_note' => null,
+            'resolution_summary' => 'Murid menetapkan pilihan tempat PKL dan menyiapkan berkas pendaftaran.',
+            'closed_at' => $previousYear->starts_on->addMonths(6)->toDateString(),
+        ];
+
         $seededCases = [];
 
         foreach ($definitions as $def) {
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
+            $caseYear = $def['academic_year'] ?? $academicYear;
+            $teacher = $this->teacherFor($student, $caseYear, $teachersByClassroom);
             $regNumber = sprintf('K-%s-%04d', substr($def['service_date'], 0, 4), $def['index']);
 
             /** @var BkCase $case */
@@ -392,22 +462,22 @@ class DummyCaseAndServiceSeeder extends Seeder
                     'internal_note' => $def['internal_note'],
                     'resolution_summary' => $def['resolution_summary'],
                     'closed_at' => $def['closed_at'],
-                    'created_by' => $guruBk->id,
+                    'created_by' => $teacher->id,
                 ],
             );
 
-            // Buat penugasan owner untuk Guru BK
+            // Pertahankan satu owner pada kasus demo saat seeder dijalankan ulang.
             CaseAssignment::query()->updateOrCreate(
                 [
                     'case_id' => $case->id,
-                    'user_id' => $guruBk->id,
                     'assignment_type' => CaseAssignment::TYPE_OWNER,
                 ],
                 [
+                    'user_id' => $teacher->id,
                     'effective_from' => $def['service_date'],
                     'effective_until' => null,
                     'reason' => 'Penanggung jawab utama kasus murid.',
-                    'assigned_by' => $guruBk->id,
+                    'assigned_by' => $teacher->id,
                 ],
             );
 
@@ -418,10 +488,12 @@ class DummyCaseAndServiceSeeder extends Seeder
     }
 
     /**
+     * @param  array<int, User>  $teachersByClassroom
      * @param  Collection<string, int>  $fields
      */
     private function seedConsultations(
-        User $guruBk,
+        AcademicYear $academicYear,
+        array $teachersByClassroom,
         $fields,
     ): void {
         $definitions = [
@@ -691,6 +763,7 @@ class DummyCaseAndServiceSeeder extends Seeder
 
         foreach ($definitions as $def) {
             $student = Student::query()->where('nisn', $def['nisn'])->firstOrFail();
+            $teacher = $this->teacherFor($student, $academicYear, $teachersByClassroom);
 
             /** @var Consultation $consultation */
             $consultation = Consultation::query()
@@ -706,8 +779,18 @@ class DummyCaseAndServiceSeeder extends Seeder
                 'problem' => $def['topic'],
                 'handling' => $def['general_summary'] ?? 'Pendampingan sesuai kebutuhan murid.',
                 'result' => $def['conclusion'],
-                'counselor_id' => $guruBk->id,
+                'counselor_id' => $teacher->id,
             ])->save();
         }
+    }
+
+    /** @param array<int, User> $teachersByClassroom */
+    private function teacherFor(Student $student, AcademicYear $year, array $teachersByClassroom): User
+    {
+        $membership = $student->classMemberships()
+            ->where('academic_year_id', $year->id)
+            ->firstOrFail();
+
+        return $teachersByClassroom[$membership->classroom_id];
     }
 }

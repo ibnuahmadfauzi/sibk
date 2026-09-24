@@ -23,6 +23,8 @@ class StudentSeeder extends Seeder
 
     private const PREFIX_YEAR = 'SEED-ACADEMIC-YEAR';
 
+    private const PREFIX_PREVIOUS_YEAR = 'SEED-ACADEMIC-YEAR-PREVIOUS';
+
     private const PREFIX_CLASS = 'SEED-CLASS-';
 
     private const PREFIX_MEMBERSHIP = 'SEED-MEMBERSHIP-';
@@ -66,6 +68,19 @@ class StudentSeeder extends Seeder
             ],
         );
 
+        $previousStart = $start->subYear();
+        $previousEnd = $start->subDay();
+        $previousYear = AcademicYear::query()->updateOrCreate(
+            ['dapodik_id' => self::PREFIX_PREVIOUS_YEAR],
+            [
+                'name' => sprintf('Demo %d/%d', $startYear - 1, $startYear),
+                'starts_on' => $previousStart,
+                'ends_on' => $previousEnd,
+                'is_active' => false,
+                'synced_at' => now(),
+            ],
+        );
+
         // ----------------------------------------------------------------
         // Enam kelas demo untuk tingkat X, XI, dan XII.
         // ----------------------------------------------------------------
@@ -76,6 +91,12 @@ class StudentSeeder extends Seeder
             'xii_tkj_1' => $this->classroom($year, 'XII-TKJ-1', 12, 'Teknik Komputer dan Jaringan'),
             'x_tkj_1' => $this->classroom($year, 'X-TKJ-1', 10, 'Teknik Komputer dan Jaringan'),
             'xi_tkj_1' => $this->classroom($year, 'XI-TKJ-1', 11, 'Teknik Komputer dan Jaringan'),
+        ];
+        $previousClasses = [
+            'xi_rpl_1' => $this->classroom($previousYear, 'X-RPL-1', 10, 'Rekayasa Perangkat Lunak', 'SEED-CLASS-PREVIOUS-'),
+            'xii_rpl_1' => $this->classroom($previousYear, 'XI-RPL-1', 11, 'Rekayasa Perangkat Lunak', 'SEED-CLASS-PREVIOUS-'),
+            'xi_tkj_1' => $this->classroom($previousYear, 'X-TKJ-1', 10, 'Teknik Komputer dan Jaringan', 'SEED-CLASS-PREVIOUS-'),
+            'xii_tkj_1' => $this->classroom($previousYear, 'XI-TKJ-1', 11, 'Teknik Komputer dan Jaringan', 'SEED-CLASS-PREVIOUS-'),
         ];
 
         // ----------------------------------------------------------------
@@ -155,6 +176,21 @@ class StudentSeeder extends Seeder
                 'is_active' => true,
                 'synced_at' => now(),
             ])->save();
+
+            if (isset($previousClasses[$classKey])) {
+                StudentClassMembership::query()->updateOrCreate(
+                    ['dapodik_id' => self::PREFIX_MEMBERSHIP.'PREVIOUS-'.$no],
+                    [
+                        'student_id' => $student->id,
+                        'classroom_id' => $previousClasses[$classKey]->id,
+                        'academic_year_id' => $previousYear->id,
+                        'effective_from' => $previousStart,
+                        'effective_until' => $previousEnd,
+                        'is_active' => true,
+                        'synced_at' => now(),
+                    ],
+                );
+            }
         }
     }
 
@@ -163,9 +199,10 @@ class StudentSeeder extends Seeder
         string $suffix,
         int $gradeLevel,
         string $major,
+        string $prefix = self::PREFIX_CLASS,
     ): Classroom {
         return Classroom::query()->updateOrCreate(
-            ['dapodik_id' => self::PREFIX_CLASS.$suffix],
+            ['dapodik_id' => $prefix.$suffix],
             [
                 'academic_year_id' => $year->id,
                 'name' => $suffix,

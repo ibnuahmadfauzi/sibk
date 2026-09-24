@@ -163,12 +163,14 @@ class FoundationDataTest extends TestCase
 
         $expectedAccounts = [
             'guru.bk@ruangbk.test' => 'guru_bk',
+            'guru.bk.rina@ruangbk.test' => 'guru_bk',
+            'guru.bk.budi@ruangbk.test' => 'guru_bk',
             'koordinator.bk@ruangbk.test' => 'koordinator_bk',
             'waka.kesiswaan@ruangbk.test' => 'waka_kesiswaan',
             'admin.it@ruangbk.test' => 'admin_it',
         ];
 
-        $this->assertSame(4, User::query()->whereIn('email', array_keys($expectedAccounts))->count());
+        $this->assertSame(6, User::query()->whereIn('email', array_keys($expectedAccounts))->count());
         foreach ($expectedAccounts as $email => $role) {
             $user = User::query()->where('email', $email)->with('roles')->firstOrFail();
             $this->assertTrue($user->is_active);
@@ -215,7 +217,7 @@ class FoundationDataTest extends TestCase
         $this->seed(StudentSeeder::class);
 
         $this->assertCount(35, $firstStudentIds);
-        $this->assertCount(35, $firstMembershipIds);
+        $this->assertCount(57, $firstMembershipIds);
         $this->assertSame(
             $firstStudentIds,
             Student::query()
@@ -232,8 +234,9 @@ class FoundationDataTest extends TestCase
                 ->pluck('id')
                 ->all(),
         );
-        $this->assertSame(6, Classroom::query()->where('dapodik_id', 'like', 'SEED-CLASS-%')->count());
+        $this->assertSame(10, Classroom::query()->where('dapodik_id', 'like', 'SEED-CLASS-%')->count());
         $this->assertSame(1, AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->count());
+        $this->assertSame(1, AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR-PREVIOUS')->count());
     }
 
     public function test_demo_year_does_not_replace_an_official_active_year(): void
