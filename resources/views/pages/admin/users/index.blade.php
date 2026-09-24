@@ -3,7 +3,9 @@
 @section('page-title', 'Kelola Akun - Ruang BK')
 
 @section('body')
-    @php($oldAccountRoles = old('roles', []))
+    @php
+        $oldAccountRoles = old('roles', []);
+    @endphp
     <div
         class="sibk-dashboard"
         data-page-id="ADMIN-USERS"
