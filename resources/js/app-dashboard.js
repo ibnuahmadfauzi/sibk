@@ -99,25 +99,69 @@ if (classPicker) {
     const search = classPicker.querySelector('#classPickerSearch');
     const options = [...classPicker.querySelectorAll('[data-class-picker-option]')];
     const empty = classPicker.querySelector('[data-class-picker-empty]');
+    const selectedItems = classPicker.querySelector('[data-class-picker-selected]');
+    const selectedInputs = classPicker.querySelector('[data-class-picker-inputs]');
+    const placeholder = classPicker.querySelector('[data-class-picker-placeholder]');
+    const submit = classPicker.querySelector('[data-class-picker-submit]');
+    const selected = new Map();
+
+    const render = () => {
+        selectedItems.replaceChildren();
+        selectedInputs.replaceChildren();
+
+        selected.forEach((name, id) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'sibk-class-picker-selected-chip';
+            chip.textContent = `${name} ×`;
+            chip.setAttribute('aria-label', `Batalkan pilihan ${name}`);
+            chip.addEventListener('click', () => {
+                selected.delete(id);
+                render();
+                search.focus();
+            });
+            selectedItems.append(chip);
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'classroom_ids[]';
+            input.value = id;
+            selectedInputs.append(input);
+        });
+
+        const query = search.value.trim().toLocaleLowerCase('id');
+        options.forEach((option) => {
+            option.hidden = selected.has(option.dataset.classId)
+                || !option.dataset.classPickerOption.includes(query);
+        });
+        empty.textContent = selected.size === options.length
+            ? 'Semua kelas tersedia sudah dipilih.'
+            : 'Tidak ada kelas yang cocok.';
+        empty.hidden = options.length === 0 || options.some((option) => !option.hidden);
+        placeholder.hidden = selected.size > 0;
+        submit.disabled = selected.size === 0;
+        submit.textContent = selected.size > 0 ? `Tambah ${selected.size} kelas` : 'Tambah kelas';
+    };
 
     classPicker.addEventListener('show.bs.modal', (event) => {
         const button = event.relatedTarget;
         classPicker.querySelector('#classPickerTitle').textContent = `Tambah kelas untuk ${button.dataset.teacherName}`;
-        classPicker.querySelectorAll('[name="user_id"]').forEach((input) => {
-            input.value = button.dataset.teacherId;
-        });
+        classPicker.querySelector('[name="user_id"]').value = button.dataset.teacherId;
+        selected.clear();
         search.value = '';
-        options.forEach((option) => { option.hidden = false; });
-        empty.hidden = true;
+        render();
     });
     classPicker.addEventListener('shown.bs.modal', () => search.focus());
-
-    search.addEventListener('input', () => {
-        const query = search.value.trim().toLocaleLowerCase('id');
-        options.forEach((option) => {
-            option.hidden = !option.dataset.classPickerOption.includes(query);
+    search.addEventListener('input', render);
+    search.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') event.preventDefault();
+    });
+    options.forEach((option) => {
+        option.addEventListener('click', () => {
+            selected.set(option.dataset.classId, option.dataset.className);
+            render();
+            search.focus();
         });
-        empty.hidden = options.length === 0 || options.some((option) => !option.hidden);
     });
 }
 

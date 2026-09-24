@@ -162,7 +162,7 @@
                                     @endif
                                     @if($canManage)
                                         <button
-                                            class="btn btn-sm p-0 sibk-icon-button sibk-report-control"
+                                            class="btn btn-sm p-0 sibk-icon-button sibk-report-control sibk-class-add"
                                             type="button"
                                             data-bs-toggle="modal"
                                             data-bs-target="#classPickerModal"
@@ -203,7 +203,7 @@
                 aria-labelledby="classPickerTitle"
                 aria-hidden="true"
             >
-                <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h2 class="modal-title fs-5" id="classPickerTitle">Tambah kelas</h2>
@@ -214,7 +214,22 @@
                                 aria-label="Tutup"
                             ></button>
                         </div>
-                        <div class="modal-body">
+                        <form
+                            class="modal-body"
+                            id="classPickerForm"
+                            action="{{ route('assignments.classes.batch') }}"
+                            method="POST"
+                        >
+                            @csrf
+                            <input name="user_id" type="hidden">
+                            <div data-class-picker-inputs></div>
+                            <div class="sibk-class-picker-selected mb-3" aria-live="polite">
+                                <span class="small fw-semibold d-block mb-2">Kelas dipilih</span>
+                                <div class="d-flex flex-wrap gap-2" data-class-picker-selected></div>
+                                <span class="small text-muted" data-class-picker-placeholder>
+                                    Belum ada kelas dipilih.
+                                </span>
+                            </div>
                             <label class="form-label" for="classPickerSearch">Cari kelas yang belum ditugaskan</label>
                             <input
                                 class="form-control mb-3"
@@ -225,19 +240,15 @@
                             >
                             <div class="sibk-class-picker-list">
                                 @forelse($unassignedClasses as $availableClass)
-                                    <form
-                                        action="{{ route('assignments.classes.store') }}"
-                                        method="POST"
+                                    <button
+                                        class="sibk-class-picker-option"
+                                        type="button"
                                         data-class-picker-option="{{ mb_strtolower($availableClass->name) }}"
+                                        data-class-id="{{ $availableClass->id }}"
+                                        data-class-name="{{ $availableClass->name }}"
                                     >
-                                        @csrf
-                                        <input name="user_id" type="hidden">
-                                        <input name="classroom_id" type="hidden" value="{{ $availableClass->id }}">
-                                        <input name="only_if_unassigned" type="hidden" value="1">
-                                        <button class="sibk-class-picker-option" type="submit">
-                                            {{ $availableClass->name }}
-                                        </button>
-                                    </form>
+                                        {{ $availableClass->name }}
+                                    </button>
                                 @empty
                                     <p class="text-muted mb-0">Semua kelas sudah ditugaskan.</p>
                                 @endforelse
@@ -245,6 +256,20 @@
                                     Tidak ada kelas yang cocok.
                                 </p>
                             </div>
+                        </form>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">
+                                Batal
+                            </button>
+                            <button
+                                class="btn btn-primary"
+                                type="submit"
+                                form="classPickerForm"
+                                data-class-picker-submit
+                                disabled
+                            >
+                                Tambah kelas
+                            </button>
                         </div>
                     </div>
                 </div>

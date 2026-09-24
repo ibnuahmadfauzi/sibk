@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClassAssignmentRequest;
+use App\Http\Requests\StoreClassAssignmentsRequest;
 use App\Http\Requests\UnassignClassRequest;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
@@ -104,6 +105,23 @@ class AssignmentController extends Controller
                 '%s kini diampu %s.',
                 $assignment->classroom->name,
                 $assignment->teacher->name,
+            ));
+    }
+
+    public function storeClassAssignments(
+        StoreClassAssignmentsRequest $request,
+        AssignmentService $assignmentService,
+    ): RedirectResponse {
+        $assignments = $assignmentService->assignClasses($request->validated(), $request->user());
+        $first = $assignments->first();
+
+        return redirect()
+            ->route('assignments.classes.index', ['academic_year_id' => $first->academic_year_id])
+            ->with('success_title', 'Kelas ditugaskan')
+            ->with('success', sprintf(
+                '%d kelas ditambahkan untuk %s.',
+                $assignments->count(),
+                $first->teacher->name,
             ));
     }
 

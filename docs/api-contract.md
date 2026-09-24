@@ -197,6 +197,12 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Request:** `user_id` pengampu yang terlihat saat konfirmasi. Server menolak bila penugasan kosong, pengampu berubah, atau tahun sudah menjadi arsip.
 - **Business Logic:** `AssignmentService::unassignClass()` mengunci kelas, tahun, dan assignment; mencatat audit `class_assignment.deleted` dengan `user_id` sebelum dan `null` sesudah, lalu menghapus state penugasan dalam transaksi. Scope murid tahun aktif langsung berkurang; owner kasus tetap.
 
+### Tambah Beberapa Kelas
+- **Endpoint:** `POST /assignments/classes/batch`.
+- **Authorization:** hanya Koordinator BK aktif.
+- **Request:** `user_id` dan `classroom_ids[]` (1–100 ID kelas berbeda). Modal menampung pilihan sementara; satu klik Tambah mengirim seluruh pilihan.
+- **Business Logic:** `AssignmentService::assignClasses()` memakai aturan penugasan kelas kosong yang sama untuk setiap kelas dalam satu transaksi. Semua kelas harus berasal dari tahun ajaran yang sama. Bila ada kelas yang sudah ditugaskan atau tidak sah, seluruh perubahan dan audit pada request itu dibatalkan.
+
 ### Aktivasi Operasional Tahun Ajaran
 - **Endpoint:** `POST /assignments/academic-years/{academicYear}/activate`.
 - **Authorization:** hanya Koordinator BK aktif.

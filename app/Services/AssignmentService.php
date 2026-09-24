@@ -8,6 +8,7 @@ use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -15,6 +16,39 @@ use Illuminate\Validation\ValidationException;
 class AssignmentService
 {
     public function __construct(private readonly AuditService $auditService) {}
+
+    /**
+     * @param  array{user_id: int, classroom_ids: list<int>}  $data
+     * @return Collection<int, TeacherAssignment>
+     */
+    public function assignClasses(array $data, User $actor): Collection
+    {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+        $classroomIds = $data['classroom_ids'];
+        sort($classroomIds);
+
+        return DB::transaction(function () use ($classroomIds, $data, $actor): Collection {
+            $assignments = collect();
+            $yearId = null;
+
+            foreach ($classroomIds as $classroomId) {
+                $assignment = $this->assignClass([
+                    'classroom_id' => $classroomId,
+                    'user_id' => $data['user_id'],
+                    'only_if_unassigned' => true,
+                ], $actor);
+                if ($yearId !== null && $assignment->academic_year_id !== $yearId) {
+                    throw ValidationException::withMessages([
+                        'classroom_ids' => 'Semua kelas harus berasal dari tahun ajaran yang sama.',
+                    ]);
+                }
+                $yearId = $assignment->academic_year_id;
+                $assignments->push($assignment);
+            }
+
+            return $assignments;
+        });
+    }
 
     /**
      * @param  array{user_id: int, classroom_id: int, only_if_unassigned?: bool}  $data

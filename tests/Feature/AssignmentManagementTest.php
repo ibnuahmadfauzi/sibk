@@ -90,11 +90,69 @@ class AssignmentManagementTest extends TestCase
             ->assertSee('X RPL 2')
             ->assertSee('aria-label="Tambah kelas untuk '.$teacher->name.'"', false)
             ->assertSee('id="classPickerSearch"', false)
-            ->assertSee('name="only_if_unassigned"', false)
+            ->assertSee('action="'.route('assignments.classes.batch').'"', false)
             ->assertSee('data-class-picker-option="x rpl 2"', false)
             ->assertSee('Tahun ajaran ini sudah aktif.');
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
             ->assertOk()->assertSee($teacher->name);
+    }
+
+    public function test_batch_assignment_saves_selected_classes_together(): void
+    {
+        [$year, $firstClass] = $this->masterContext();
+        $secondClass = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 2']);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $payload = [
+            'user_id' => $teacher->id,
+            'classroom_ids' => [$firstClass->id, $secondClass->id],
+        ];
+
+        $this->actingAs($waka)->post(route('assignments.classes.batch'), $payload)->assertForbidden();
+        $this->actingAs($coordinator)->post(route('assignments.classes.batch'), $payload)
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]))
+            ->assertSessionHas('success', "2 kelas ditambahkan untuk {$teacher->name}.");
+        $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $firstClass->id, 'user_id' => $teacher->id]);
+        $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $secondClass->id, 'user_id' => $teacher->id]);
+        $this->assertDatabaseCount('audit_logs', 2);
+    }
+
+    public function test_batch_assignment_rolls_back_when_a_selected_class_is_taken(): void
+    {
+        [$year, $firstClass] = $this->masterContext();
+        $secondClass = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 2']);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $firstTeacher = $this->userWithRole('guru_bk');
+        $secondTeacher = $this->userWithRole('guru_bk');
+        app(AssignmentService::class)->assignClass([
+            'classroom_id' => $secondClass->id,
+            'user_id' => $firstTeacher->id,
+        ], $coordinator);
+
+        $this->actingAs($coordinator)->post(route('assignments.classes.batch'), [
+            'user_id' => $secondTeacher->id,
+            'classroom_ids' => [$firstClass->id, $secondClass->id],
+        ])->assertSessionHasErrors('classroom_id');
+        $this->assertDatabaseMissing('teacher_assignments', ['classroom_id' => $firstClass->id]);
+        $this->assertDatabaseHas('teacher_assignments', [
+            'classroom_id' => $secondClass->id,
+            'user_id' => $firstTeacher->id,
+        ]);
+        $this->assertDatabaseCount('audit_logs', 1);
+
+        $otherYear = AcademicYear::query()->create(['name' => '2027/2028', 'is_active' => false]);
+        $otherClass = Classroom::query()->create([
+            'academic_year_id' => $otherYear->id,
+            'name' => 'XI RPL 1',
+        ]);
+        $this->actingAs($coordinator)->post(route('assignments.classes.batch'), [
+            'user_id' => $secondTeacher->id,
+            'classroom_ids' => [$firstClass->id, $otherClass->id],
+        ])->assertSessionHasErrors('classroom_ids');
+        $this->assertDatabaseMissing('teacher_assignments', ['classroom_id' => $firstClass->id]);
+        $this->assertDatabaseMissing('teacher_assignments', ['classroom_id' => $otherClass->id]);
+        $this->assertDatabaseCount('audit_logs', 1);
     }
 
     public function test_teacher_rows_count_active_students_and_filter_by_teacher_status(): void
