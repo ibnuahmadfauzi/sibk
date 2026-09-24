@@ -168,7 +168,7 @@
                                         </div>
                                     @endforeach
                                     @if($row['classes']->isEmpty())
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted small">Belum ada kelas</span>
                                     @endif
                                     @if($canManage)
                                         <button
