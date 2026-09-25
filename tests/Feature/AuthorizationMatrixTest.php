@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\Role;
 use App\Models\Student;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -131,7 +132,28 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Laporan')
             ->assertDontSee('Penugasan Kelas')
             ->assertDontSee('Pengalihan Kasus')
+            ->assertSee('PENGELOLAAN')
             ->assertSee('Data Master');
+    }
+
+    public function test_teacher_sidebar_hides_management_without_hiding_read_only_assignments(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $this->assertFalse($teacher->can('create', TeacherAssignment::class));
+        $this->assertFalse($teacher->can('manageDataMaster'));
+
+        $this->actingAs($teacher)->get('/dashboard')->assertOk()
+            ->assertDontSee('PENGELOLAAN')
+            ->assertDontSee('Penugasan Kelas');
+        $this->actingAs($teacher)->get(route('assignments.classes.index'))->assertOk();
+    }
+
+    public function test_coordinator_sidebar_shows_management(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $this->actingAs($coordinator)->get('/dashboard')->assertOk()
+            ->assertSee('PENGELOLAAN')
+            ->assertSee('Penugasan Kelas');
     }
 
     public function test_admin_cannot_open_student_service_profiles(): void

@@ -73,16 +73,16 @@
                 </a>
             @endcan
 
-            <p class="sibk-sidebar__section">PENGELOLAAN</p>
+            @if($sidebarUser?->can('create', App\Models\TeacherAssignment::class) || $sidebarUser?->can('manageDataMaster'))
+                <p class="sibk-sidebar__section">PENGELOLAAN</p>
+            @endif
 
-            @can('viewAny', App\Models\TeacherAssignment::class)
-            @unless($sidebarUser?->hasRole('admin_it'))
+            @can('create', App\Models\TeacherAssignment::class)
             <a class="sibk-nav-link {{ request()->routeIs('assignments.classes.*') ? 'is-active' : '' }}" href="{{ route('assignments.classes.index') }}"
                 aria-current="{{ request()->routeIs('assignments.classes.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>
                 <span>Penugasan Kelas</span>
             </a>
-            @endunless
             @endcan
 
             @can('manageDataMaster')
