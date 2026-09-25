@@ -24,6 +24,8 @@ const files = {
     assignmentManage: 'resources/views/pages/assignments/classes/manage.blade.php',
     caseAssignment: 'resources/views/pages/assignments/cases/index.blade.php',
     dataMaster: 'resources/views/pages/data-master/index.blade.php',
+    dataMasterPreparation: 'resources/views/pages/data-master/_academic-year-preparation.blade.php',
+    etatibConflicts: 'resources/views/pages/data-master/etatib-conflicts.blade.php',
     account: 'resources/views/pages/account/index.blade.php',
     accessDenied: 'resources/views/pages/system/access-denied.blade.php',
     sidebar: 'resources/views/components/sidebar.blade.php',
@@ -31,6 +33,8 @@ const files = {
     routes: 'routes/web.php',
     package: 'package.json',
     appDashboard: 'resources/js/app-dashboard.js',
+    apiSiswaPreview: 'resources/js/api-siswa-preview.js',
+    etatibIdentityMapping: 'resources/js/etatib-identity-mapping.js',
     serviceRecords: 'resources/js/service-records.js',
     formDraft: 'resources/js/form-draft.js',
 };
@@ -100,7 +104,7 @@ const pageIds = {
     consultationCreate: 'PG-105', studentsIndex: 'PG-201', studentsShow: 'PG-202',
     achievementCreate: 'PG-203', assignmentIndex: 'PG-401', assignmentManage: 'PG-402',
     caseAssignment: 'PG-403',
-    dataMaster: 'PG-501', accessDenied: 'PG-901',
+    dataMaster: 'PG-501', etatibConflicts: 'PG-501-ETATIB-CONFLICTS', accessDenied: 'PG-901',
 };
 for (const [key, pageId] of Object.entries(pageIds)) {
     assert(contents[key].includes(`data-page-id="${pageId}"`), `${pageId} belum dapat ditelusuri dari markup.`);
@@ -120,6 +124,18 @@ assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak ter
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');
 assert(contents.appDashboard.includes("from './service-records'"), 'app-dashboard belum mengimpor service-records.js.');
 assert(contents.appDashboard.includes("from './form-draft'"), 'app-dashboard belum mengimpor form-draft.js.');
+assert(contents.appDashboard.includes("from './api-siswa-preview'"), 'app-dashboard belum mengimpor pratinjau API Siswa.');
+assert(contents.appDashboard.includes("from './etatib-identity-mapping'"), 'app-dashboard belum mengimpor pencocokan identitas e-Tatib.');
+assert(contents.dataMasterPreparation.includes('data-api-siswa-preview-modal'), 'Modal pratinjau API Siswa belum tersedia.');
+assert(contents.dataMasterPreparation.includes("route('data-master.roster-imports.preview')"), 'Form API Siswa belum terhubung ke endpoint pratinjau.');
+assert(contents.apiSiswaPreview.includes('textContent'), 'Pratinjau API Siswa belum merender teks secara aman.');
+assert(!contents.apiSiswaPreview.includes('innerHTML'), 'Pratinjau API Siswa tidak boleh memasukkan payload sebagai HTML.');
+assert(contents.etatibConflicts.includes('Belum Cocok'), 'Tab konflik e-Tatib belum tersedia.');
+assert(contents.etatibConflicts.includes('Pencocokan Manual'), 'Tab mapping manual e-Tatib belum tersedia.');
+assert(contents.etatibConflicts.includes('data-etatib-map-form'), 'Modal pencocokan e-Tatib belum tersedia.');
+assert(contents.etatibConflicts.includes('@csrf'), 'Form pencocokan e-Tatib belum memiliki perlindungan CSRF.');
+assert(contents.etatibIdentityMapping.includes('escapeHtml'), 'Kandidat mapping e-Tatib belum dirender secara aman.');
+assert(contents.routes.includes('EtatibIdentityMappingController::class'), 'Route pencocokan e-Tatib belum terhubung ke controller.');
 assert(contents.serviceRecords.includes('Modal'), 'service-records belum memakai modal Bootstrap.');
 assert(contents.serviceRecords.includes('AbortController'), 'service-records belum membatalkan request modal.');
 assert(contents.serviceRecords.includes('Accept: \'application/json\''), 'service-records belum meminta response JSON.');

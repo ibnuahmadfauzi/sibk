@@ -7,6 +7,7 @@ namespace App\Integrations;
 use App\Integrations\Dapodik\DapodikDriver;
 use App\Integrations\Dapodik\UnavailableDapodikDriver;
 use App\Integrations\Etatib\EtatibDriver;
+use App\Integrations\Etatib\SchoolHttpEtatibDriver;
 use App\Integrations\Etatib\UnavailableEtatibDriver;
 use InvalidArgumentException;
 
@@ -38,8 +39,16 @@ final class IntegrationDriverRegistry
             return $this->etatibDriver;
         }
 
-        return match ($this->driverName('etatib')) {
+        $driver = $this->driverName('etatib');
+        if ($driver === 'school_http_v1'
+            && (bool) (($this->configuration ?? config('sibk.integrations', []))['etatib']['admission_approved'] ?? false)
+        ) {
+            return new SchoolHttpEtatibDriver;
+        }
+
+        return match ($driver) {
             'unavailable' => new UnavailableEtatibDriver,
+            'school_http_v1' => new UnavailableEtatibDriver,
         };
     }
 
@@ -48,7 +57,10 @@ final class IntegrationDriverRegistry
         $configuration = $this->configuration ?? config('sibk.integrations', []);
         $driver = $configuration[$provider]['driver'] ?? null;
 
-        if (! is_string($driver) || $driver !== 'unavailable') {
+        $allowed = $provider === 'etatib'
+            ? ['unavailable', 'school_http_v1']
+            : ['unavailable'];
+        if (! is_string($driver) || ! in_array($driver, $allowed, true)) {
             throw new InvalidArgumentException("Integration driver for {$provider} is not allowed.");
         }
 

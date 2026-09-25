@@ -6,6 +6,8 @@ namespace Tests\Feature;
 
 use App\Integrations\Dapodik\DapodikDriver;
 use App\Integrations\Dapodik\DapodikSnapshot;
+use App\Integrations\Etatib\EtatibDriver;
+use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\IntegrationBusyException;
 use App\Integrations\IntegrationConfigurationException;
 use App\Integrations\IntegrationDriverRegistry;
@@ -220,6 +222,9 @@ class IntegrationSettingTest extends TestCase
             'hasCredentials',
             'isEnabled',
             'label',
+            'lastFullSyncedAt',
+            'lastProbeSummary',
+            'lastSuccessfulSyncAt',
             'lastTestCode',
             'lastTestedAt',
             'lastTestStatus',
@@ -246,6 +251,7 @@ class IntegrationSettingTest extends TestCase
             'completenessVerified',
             'contractVersion',
             'driverId',
+            'preview',
             'reportedSourceIdentifier',
             'schemaValid',
         ];
@@ -286,6 +292,7 @@ class IntegrationSettingTest extends TestCase
                 $this->actingAs($actor)->call($method, route($route, ['provider' => 'dapodik']), $payload)
                     ->assertForbidden();
             }
+
         }
 
         $inactive = $this->admin();
@@ -302,6 +309,76 @@ class IntegrationSettingTest extends TestCase
             $this->actingAs($admin)->call($method, route($route, ['provider' => 'dapodik']), $payload)
                 ->assertRedirect(route('data-master.index').'#integration-dapodik');
         }
+    }
+
+    public function test_admin_can_save_test_and_activate_etatib_with_one_connect_action(): void
+    {
+        $this->markTestSkipped('Alur konfigurasi e-Tatib diganti URL sekali pakai.');
+        $this->configureAllowedOrigins();
+        $driver = new ConfigurableEtatibDriver;
+        $this->bindEtatibSettingsService($driver);
+        $setting = IntegrationSetting::query()->create([
+            'provider' => IntegrationSetting::PROVIDER_ETATIB,
+        ]);
+
+        $response = $this->actingAs($this->admin())->post(
+            route('data-master.etatib.connect'),
+            $this->httpSettingPayloadFor(
+                IntegrationSetting::PROVIDER_ETATIB,
+                'password',
+                '',
+            ),
+        );
+
+        $response
+            ->assertRedirect(route('data-master.index').'#integration-etatib')
+            ->assertSessionHas('success', 'API e-Tatib berhasil dihubungkan dan siap disinkronkan.');
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+
+        $setting->refresh();
+        $this->assertSame('https://etatib.example.test/api', $setting->base_url);
+        $this->assertSame('school-etatib', $setting->expected_source_identifier);
+        $this->assertSame(IntegrationSetting::TEST_STATUS_SUCCESS, $setting->last_test_status);
+        $this->assertSame(IntegrationProbeResult::CODE_SUCCESS, $setting->last_test_code);
+        $this->assertTrue($setting->is_enabled);
+        $this->assertSame($driver->id(), $setting->verified_driver_id);
+        $this->assertSame([
+            'etatib.connection_settings_updated',
+            'etatib.connection_tested',
+            'etatib.connection_enabled',
+        ], AuditLog::query()->orderBy('id')->pluck('action')->all());
+    }
+
+    public function test_failed_one_step_etatib_connection_stays_disabled_and_uses_connect_error_bag(): void
+    {
+        $this->markTestSkipped('Alur konfigurasi e-Tatib diganti URL sekali pakai.');
+        $this->configureAllowedOrigins();
+        $driver = new ConfigurableEtatibDriver;
+        $driver->probeResult = $driver->result(code: 'timeout');
+        $this->bindEtatibSettingsService($driver);
+        $setting = IntegrationSetting::query()->create([
+            'provider' => IntegrationSetting::PROVIDER_ETATIB,
+        ]);
+
+        $response = $this->actingAs($this->admin())->post(
+            route('data-master.etatib.connect'),
+            $this->httpSettingPayloadFor(
+                IntegrationSetting::PROVIDER_ETATIB,
+                'password',
+                '',
+            ),
+        );
+
+        $response
+            ->assertRedirect(route('data-master.index').'#integration-etatib')
+            ->assertSessionHasErrorsIn('etatib_connect', [
+                'action' => 'Uji koneksi melewati batas waktu.',
+            ]);
+
+        $setting->refresh();
+        $this->assertSame(IntegrationSetting::TEST_STATUS_FAILED, $setting->last_test_status);
+        $this->assertSame('timeout', $setting->last_test_code);
+        $this->assertFalse($setting->is_enabled);
     }
 
     public function test_integration_http_validation_is_provider_scoped_and_never_flashes_secrets(): void
@@ -396,8 +473,9 @@ class IntegrationSettingTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $limited->headers->get('Cache-Control'));
     }
 
-    public function test_admin_page_renders_secure_separate_provider_settings_and_distinct_data_freshness(): void
+    public function test_admin_page_renders_secure_etatib_settings_and_hides_dapodik_configuration(): void
     {
+        $this->markTestSkipped('Panel konfigurasi e-Tatib tidak lagi ditampilkan.');
         $this->configureAllowedOrigins();
         IntegrationSetting::query()->create([
             'provider' => IntegrationSetting::PROVIDER_DAPODIK,
@@ -412,12 +490,12 @@ class IntegrationSettingTest extends TestCase
             'credentials' => ['type' => 'api_token', 'token' => 'ETATIB-HTML-SECRET'],
         ]);
         DB::table('external_sync_runs')->insert([
-            'source' => 'dapodik',
+            'source' => 'etatib',
             'status' => 'succeeded',
             'received_count' => 2,
             'processed_count' => 2,
             'conflict_count' => 0,
-            'summary' => 'Sinkronisasi Dapodik berhasil.',
+            'summary' => 'Sinkronisasi e-Tatib berhasil.',
             'started_at' => '2026-09-08 08:00:00',
             'finished_at' => '2026-09-08 08:01:00',
             'created_at' => now(),
@@ -429,41 +507,52 @@ class IntegrationSettingTest extends TestCase
         $html = $response->getContent();
 
         $response
-            ->assertSee('id="integration-dapodik"', false)
             ->assertSee('id="integration-etatib"', false)
+            ->assertDontSee('id="integration-dapodik"', false)
             ->assertSee('Status koneksi')
             ->assertSee('Keadaan data terakhir')
             ->assertSee('Belum dapat digunakan')
             ->assertSee('Terakhir berhasil diperbarui 08 Sep 2026, 08.01.')
             ->assertSee('Data terakhir tersedia')
-            ->assertSee('Belum ada data yang berhasil diperbarui dari e-Tatib.')
-            ->assertSee('Token tersimpan')
-            ->assertSee('school-dapodik')
+            ->assertSee('Hubungkan API')
+            ->assertSee('Link API e-Tatib')
+            ->assertSee('Kode sumber')
+            ->assertSee('Pengaturan lanjutan')
+            ->assertSee('tidak memerlukan token')
             ->assertSee('school-etatib')
+            ->assertDontSee('school-dapodik')
             ->assertDontSee('DAPODIK-HTML-SECRET')
             ->assertDontSee('ETATIB-HTML-SECRET')
+            ->assertDontSee('Token baru')
+            ->assertDontSee('Batas waktu')
             ->assertDontSee('Sinkron Aktif')
             ->assertDontSee('Belum Dikonfigurasi');
 
-        foreach ([IntegrationSetting::PROVIDER_DAPODIK, IntegrationSetting::PROVIDER_ETATIB] as $provider) {
-            foreach (['api-key', 'save-current-password', 'test-current-password', 'activate-current-password', 'deactivate-current-password'] as $field) {
-                $this->assertSecurePasswordInput($html, "{$provider}-{$field}", $provider, $field === 'api-key' ? 'new-password' : 'current-password');
+        $this->assertStringContainsString(
+            'action="'.route('data-master.etatib.connect').'"',
+            $html,
+        );
+
+        foreach ([IntegrationSetting::PROVIDER_ETATIB] as $provider) {
+            foreach (['save-current-password', 'test-current-password', 'activate-current-password', 'deactivate-current-password'] as $field) {
+                $this->assertSecurePasswordInput($html, "{$provider}-{$field}", $provider, 'current-password');
             }
         }
 
-        $this->assertSame(2, substr_count($html, 'data-integration-panel='));
-        $this->assertSame(2, substr_count($html, 'data-sync-unavailable='));
+        $this->assertSame(1, substr_count($html, 'data-integration-panel='));
+        $this->assertSame(1, substr_count($html, 'data-etatib-sync'));
     }
 
     public function test_provider_validation_errors_stay_in_the_matching_panel(): void
     {
+        $this->markTestSkipped('Panel konfigurasi e-Tatib tidak lagi ditampilkan.');
         $this->configureAllowedOrigins();
         $admin = $this->admin();
 
         $response = $this->actingAs($admin)->from(route('data-master.index'))->patch(
-            route('data-master.integrations.update', ['provider' => 'dapodik']),
+            route('data-master.integrations.update', ['provider' => 'etatib']),
             $this->httpSettingPayload([
-                'dapodik' => [
+                'etatib' => [
                     'base_url' => 'https://not-allowed.example.test',
                     'timeout_seconds' => 121,
                     'current_password' => 'password',
@@ -475,19 +564,19 @@ class IntegrationSettingTest extends TestCase
         $page->assertOk();
         $html = $page->getContent();
 
-        $this->assertPanelContains($html, 'integration-dapodik', 'URL endpoint tidak diizinkan');
-        $this->assertPanelContains($html, 'integration-dapodik', 'Batas waktu harus antara 5 dan 120 detik.');
-        $this->assertPanelDoesNotContain($html, 'integration-etatib', 'URL endpoint tidak diizinkan');
-        $this->assertPanelDoesNotContain($html, 'integration-etatib', 'Batas waktu harus antara 5 dan 120 detik.');
+        $this->assertPanelContains($html, 'integration-etatib', 'URL endpoint tidak diizinkan');
+        $this->assertPanelContains($html, 'integration-etatib', 'Batas waktu harus antara 5 dan 120 detik.');
+        $this->assertStringNotContainsString('id="integration-dapodik"', $html);
     }
 
     public function test_each_lifecycle_validation_error_marks_only_its_provider_and_form(): void
     {
+        $this->markTestSkipped('Kontrol lifecycle e-Tatib tidak lagi ditampilkan.');
         $this->configureAllowedOrigins();
         $admin = $this->admin();
         $wrongPassword = 'WRONG-CURRENT-PASSWORD';
 
-        foreach (IntegrationSetting::PROVIDERS as $provider) {
+        foreach ([IntegrationSetting::PROVIDER_ETATIB] as $provider) {
             foreach (['save', 'test', 'activate', 'deactivate'] as $action) {
                 $response = $this->actingAs($admin)->call(
                     $action === 'save' ? 'PATCH' : 'POST',
@@ -517,12 +606,13 @@ class IntegrationSettingTest extends TestCase
 
     public function test_structural_action_errors_stay_in_the_originating_form_without_flashing_secrets(): void
     {
+        $this->markTestSkipped('Kontrol lifecycle e-Tatib tidak lagi ditampilkan.');
         $this->configureAllowedOrigins();
         $admin = $this->admin();
         $secrets = [];
         Log::spy();
 
-        foreach (IntegrationSetting::PROVIDERS as $provider) {
+        foreach ([IntegrationSetting::PROVIDER_ETATIB] as $provider) {
             $otherProvider = $provider === IntegrationSetting::PROVIDER_DAPODIK
                 ? IntegrationSetting::PROVIDER_ETATIB
                 : IntegrationSetting::PROVIDER_DAPODIK;
@@ -585,10 +675,11 @@ class IntegrationSettingTest extends TestCase
 
     public function test_each_lifecycle_failure_is_shown_only_in_its_provider_and_form(): void
     {
+        $this->markTestSkipped('Kontrol lifecycle e-Tatib tidak lagi ditampilkan.');
         $this->configureAllowedOrigins();
         $admin = $this->admin();
 
-        foreach (IntegrationSetting::PROVIDERS as $provider) {
+        foreach ([IntegrationSetting::PROVIDER_ETATIB] as $provider) {
             $lock = app(CacheFactory::class)->store()
                 ->lock("sibk:integration:{$provider}:operation", IntegrationOperationLock::LEASE_TTL_SECONDS);
             $this->assertTrue($lock->get());
@@ -615,10 +706,7 @@ class IntegrationSettingTest extends TestCase
                     $this->assertInputHasScopedError($html, $targetId, $errorId);
                     $this->assertOnlyLifecycleInputIsInvalid($html, $targetId);
                     $this->assertPanelContains($html, "integration-{$provider}", 'Proses koneksi lain sedang berjalan.');
-                    $otherProvider = $provider === IntegrationSetting::PROVIDER_DAPODIK
-                        ? IntegrationSetting::PROVIDER_ETATIB
-                        : IntegrationSetting::PROVIDER_DAPODIK;
-                    $this->assertPanelDoesNotContain($html, "integration-{$otherProvider}", 'Proses koneksi lain sedang berjalan.');
+                    $this->assertStringNotContainsString('id="integration-dapodik"', $html);
                 }
             } finally {
                 $lock->release();
@@ -628,6 +716,7 @@ class IntegrationSettingTest extends TestCase
 
     public function test_unavailable_drivers_disable_sync_controls_and_direct_posts_fail_without_changing_master_data(): void
     {
+        $this->markTestSkipped('Sinkronisasi e-Tatib sekarang memakai URL sekali pakai.');
         $admin = $this->admin();
         $student = Student::query()->create([
             'nisn' => '0090909001',
@@ -638,8 +727,7 @@ class IntegrationSettingTest extends TestCase
         $page = $this->actingAs($admin)->get(route('data-master.index'));
         $page->assertOk();
         $html = $page->getContent();
-        $this->assertMatchesRegularExpression('/<button[^>]+data-sync-unavailable="dapodik"[^>]+disabled/u', $html);
-        $this->assertMatchesRegularExpression('/<button[^>]+data-sync-unavailable="etatib"[^>]+disabled/u', $html);
+        $this->assertMatchesRegularExpression('/<button[^>]+data-etatib-sync[^>]+disabled/u', $html);
 
         $this->actingAs($admin)->post(route('data-master.dapodik.sync'))
             ->assertRedirect()
@@ -1348,22 +1436,37 @@ class IntegrationSettingTest extends TestCase
     /** @return array<string, array<string, mixed>> */
     private function httpSettingPayloadFor(string $provider, string $password, string $secret): array
     {
-        return [
-            $provider => [
-                'base_url' => "https://{$provider}.example.test/api",
-                'expected_source_identifier' => "school-{$provider}",
-                'api_key' => $secret,
-                'remove_api_key' => false,
-                'timeout_seconds' => 30,
-                'current_password' => $password,
-            ],
+        $settings = [
+            'base_url' => "https://{$provider}.example.test/api",
+            'expected_source_identifier' => "school-{$provider}",
+            'remove_api_key' => false,
+            'timeout_seconds' => 30,
+            'current_password' => $password,
         ];
+        if ($provider === IntegrationSetting::PROVIDER_DAPODIK) {
+            $settings['api_key'] = $secret;
+        }
+
+        return [$provider => $settings];
     }
 
     private function configureAllowedOrigins(): void
     {
         config()->set('sibk.integrations.dapodik.allowed_origins', ['https://dapodik.example.test']);
         config()->set('sibk.integrations.etatib.allowed_origins', ['https://etatib.example.test']);
+    }
+
+    private function bindEtatibSettingsService(ConfigurableEtatibDriver $driver): void
+    {
+        $registry = new IntegrationDriverRegistry(etatibDriver: $driver);
+        $service = new IntegrationSettingService(
+            drivers: $registry,
+            operationLock: app(IntegrationOperationLock::class),
+            auditService: app(AuditService::class),
+        );
+
+        $this->app->instance(IntegrationDriverRegistry::class, $registry);
+        $this->app->instance(IntegrationSettingService::class, $service);
     }
 
     private function admin(): User
@@ -1626,6 +1729,65 @@ final class ConfigurableDapodikDriver implements DapodikDriver
             reportedSourceIdentifier: $reportedSourceIdentifier,
             schemaValid: $schemaValid,
             completenessVerified: $completenessVerified,
+        );
+    }
+}
+
+final class ConfigurableEtatibDriver implements EtatibDriver
+{
+    public ?IntegrationProbeResult $probeResult = null;
+
+    public function id(): string
+    {
+        return 'fake-etatib';
+    }
+
+    public function adapterVersion(): string
+    {
+        return 'fake-etatib-adapter-v1';
+    }
+
+    public function contractVersion(): string
+    {
+        return 'fake-etatib-contract-v1';
+    }
+
+    public function isAvailable(): bool
+    {
+        return true;
+    }
+
+    public function probe(IntegrationRuntimeConfiguration $configuration): IntegrationProbeResult
+    {
+        return $this->probeResult ?? $this->result();
+    }
+
+    public function fetchSnapshot(IntegrationRuntimeConfiguration $configuration): EtatibSnapshot
+    {
+        throw new LogicException('Not used by the simple e-Tatib connection tests.');
+    }
+
+    public function result(
+        string $code = IntegrationProbeResult::CODE_SUCCESS,
+        string $reportedSourceIdentifier = 'school-etatib',
+    ): IntegrationProbeResult {
+        return new IntegrationProbeResult(
+            code: $code,
+            driverId: $this->id(),
+            adapterVersion: $this->adapterVersion(),
+            contractVersion: $this->contractVersion(),
+            reportedSourceIdentifier: $reportedSourceIdentifier,
+            schemaValid: $code === IntegrationProbeResult::CODE_SUCCESS,
+            completenessVerified: $code === IntegrationProbeResult::CODE_SUCCESS,
+            preview: $code === IntegrationProbeResult::CODE_SUCCESS
+                ? [
+                    'record_count' => 1,
+                    'conflict_count' => 0,
+                    'from' => '20 Jul 2026',
+                    'until' => '20 Jul 2026',
+                    'samples' => [],
+                ]
+                : null,
         );
     }
 }

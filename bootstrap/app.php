@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'current_password',
             'password',
             'password_confirmation',
+            'api_url',
             'dapodik.api_key',
             'dapodik.current_password',
             'etatib.api_key',

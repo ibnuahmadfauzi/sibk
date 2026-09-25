@@ -48,7 +48,38 @@
         @elseif($activeTab === 'kasus')
             <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Jenis Masalah</th><th>Sumber</th><th>Status</th><th>Guru BK</th><th></th></tr></thead><tbody>@forelse($cases as $case)<tr><td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $case->serviceField->label }}</td><td>{{ $case->source->label }}</td><td>{{ $case->status->label }}</td><td>{{ $case->assignments->sortByDesc('effective_from')->first()?->teacher?->name ?? '—' }}</td><td><a href="{{ route('cases.show', $case) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat permasalahan yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
         @elseif($activeTab === 'etatib')
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Waktu</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Status Sumber</th></tr></thead><tbody>@forelse($etatibRecords as $record)<tr><td>{{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }}</td><td>{{ $record->violation_type }}</td><td>{{ $record->category }}</td><td class="fw-bold text-danger">+{{ $record->points }}</td><td>{{ $record->source_status ?: '—' }}</td></tr>@empty<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data e-Tatib yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
+            <div class="table-responsive">
+                <table class="table sibk-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Pelanggaran</th>
+                            <th>Kategori</th>
+                            <th>Poin</th>
+                            <th>Total Resmi</th>
+                            <th>Kelas Saat Kejadian</th>
+                            <th>Pencatat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($etatibRecords as $record)
+                            <tr>
+                                <td>{{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }}</td>
+                                <td>{{ $record->violation_type }}</td>
+                                <td>{{ $record->category }}</td>
+                                <td class="fw-bold text-danger">+{{ $record->points }}</td>
+                                <td>{{ $record->source_total_points ?? '-' }}</td>
+                                <td>{{ $record->source_classroom_name ?: '-' }}</td>
+                                <td>{{ $record->recorded_by_name ?: '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Tidak ada data e-Tatib yang dapat ditampilkan.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         @elseif($activeTab === 'konsultasi' && $canViewConsultations)
             <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Permasalahan</th><th>Penanganan</th><th>Hasil</th><th></th></tr></thead><tbody>@forelse($consultations as $session)<tr><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $session->serviceField->label }}</td><td>{{ \Illuminate\Support\Str::limit($session->problem, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->handling, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->result, 100) }}</td><td><a href="{{ route('consultations.show', $session) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada konsultasi yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
         @else

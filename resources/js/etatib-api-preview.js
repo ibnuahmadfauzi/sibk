@@ -1,0 +1,170 @@
+const element = (tag, className = '', text = '') => {
+    const node = document.createElement(tag);
+    node.className = className;
+    node.textContent = text;
+
+    return node;
+};
+
+const cell = (row, text, className = '') => row.append(element('td', className, String(text)));
+
+const render = (container, preview) => {
+    container.replaceChildren();
+    const tone = preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
+    container.append(element(
+        'div',
+        `alert ${tone}`,
+        preview.conflicts > 0
+            ? `${preview.conflicts} data belum cocok dengan master murid dan akan masuk daftar pemeriksaan.`
+            : 'Seluruh data contoh cocok dengan master murid.',
+    ));
+
+    const summary = element('div', 'd-flex flex-wrap gap-4 mb-3');
+    summary.append(
+        element('span', 'fw-semibold', `${preview.rows} pelanggaran`),
+        element('span', 'fw-semibold', `${preview.students} murid`),
+        element('span', 'fw-semibold', `${preview.matched} cocok`),
+    );
+    container.append(summary, element('h3', 'fs-6 fw-bold mb-2', 'Contoh Data yang Terbaca'));
+
+    const note = element('p', 'text-muted small', 'Maksimal lima baris ditampilkan dengan NISN lengkap.');
+    const wrapper = element('div', 'table-responsive');
+    const table = element('table', 'table table-sm sibk-table mb-0');
+    const head = element('thead');
+    const headRow = element('tr');
+    ['NISN', 'Nama / Kelas', 'Pelanggaran', 'Waktu', 'Poin'].forEach((label) => {
+        headRow.append(element('th', '', label));
+    });
+    head.append(headRow);
+    const body = element('tbody');
+    preview.sample.forEach((item) => {
+        const row = element('tr');
+        cell(row, item.nisn);
+        cell(row, `${item.name} / ${item.classroom}`, 'fw-semibold');
+        cell(row, item.violation);
+        cell(row, item.occurred_at);
+        cell(row, item.points);
+        body.append(row);
+    });
+    table.append(head, body);
+    wrapper.append(table);
+    container.append(note, wrapper);
+};
+
+export const initEtatibApiPreview = async (root = document) => {
+    const form = root.querySelector('[data-etatib-api-form]');
+    const modalNode = root.querySelector('[data-etatib-preview-modal]');
+    if (!form || !modalNode) return;
+
+    const { default: Modal } = await import('bootstrap/js/dist/modal.js');
+    const modal = Modal.getOrCreateInstance(modalNode);
+    const body = modalNode.querySelector('[data-etatib-preview-body]');
+    const confirm = modalNode.querySelector('[data-etatib-confirm]');
+    const automaticConfirm = modalNode.querySelector('[data-etatib-confirm-automatic]');
+    const automaticPassword = modalNode.querySelector('[data-etatib-automatic-password]');
+    const previewButton = form.querySelector('[data-etatib-preview-button]');
+    const url = form.elements.namedItem('api_url');
+    let previewedUrl = '';
+    let controller;
+
+    form.addEventListener('submit', async (event) => {
+        if (form.dataset.confirmed === 'true') {
+            delete form.dataset.confirmed;
+            return;
+        }
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+
+        controller?.abort();
+        controller = new AbortController();
+        previewedUrl = '';
+        confirm.disabled = true;
+        automaticConfirm.disabled = true;
+        automaticPassword.disabled = true;
+        automaticPassword.required = false;
+        automaticPassword.value = '';
+        previewButton.disabled = true;
+        body.replaceChildren(element('p', 'text-muted mb-0', 'Menghubungi API e-Tatib...'));
+        modal.show();
+
+        try {
+            const response = await fetch(form.dataset.previewUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                },
+                body: new FormData(form),
+                signal: controller.signal,
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                const message = Object.values(payload.errors ?? {}).flat()[0]
+                    ?? payload.message
+                    ?? 'Pratinjau API e-Tatib gagal dimuat.';
+                body.replaceChildren(element('div', 'alert alert-danger mb-0', message));
+                return;
+            }
+            render(body, payload.data);
+            previewedUrl = url.value;
+            confirm.disabled = false;
+            automaticPassword.disabled = false;
+            automaticConfirm.disabled = false;
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Pratinjau tidak dapat dimuat.'));
+            }
+        } finally {
+            previewButton.disabled = false;
+        }
+    });
+
+    confirm.addEventListener('click', () => {
+        if (!previewedUrl || previewedUrl !== url.value) {
+            body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Link berubah. Jalankan pratinjau kembali.'));
+            confirm.disabled = true;
+            return;
+        }
+        form.dataset.confirmed = 'true';
+        form.action = form.dataset.manualSyncUrl;
+        automaticPassword.required = false;
+        automaticPassword.disabled = true;
+        confirm.disabled = true;
+        automaticConfirm.disabled = true;
+        modal.hide();
+        form.requestSubmit();
+    });
+
+    automaticConfirm.addEventListener('click', () => {
+        if (!previewedUrl || previewedUrl !== url.value) {
+            body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Link berubah. Jalankan pratinjau kembali.'));
+            confirm.disabled = true;
+            automaticConfirm.disabled = true;
+            return;
+        }
+
+        automaticPassword.disabled = false;
+        automaticPassword.required = true;
+        if (!form.reportValidity()) {
+            automaticPassword.focus();
+            return;
+        }
+
+        form.dataset.confirmed = 'true';
+        form.action = form.dataset.automaticSyncUrl;
+        confirm.disabled = true;
+        automaticConfirm.disabled = true;
+        modal.hide();
+        form.requestSubmit();
+    });
+
+    modalNode.addEventListener('hidden.bs.modal', () => {
+        controller?.abort();
+        if (form.dataset.confirmed !== 'true') {
+            automaticPassword.value = '';
+            automaticPassword.disabled = true;
+            automaticPassword.required = false;
+        }
+        previewButton.focus();
+    });
+};

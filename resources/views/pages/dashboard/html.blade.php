@@ -48,6 +48,16 @@
         @endif
     </header>
 
+        @foreach($dashboard['alerts'] ?? [] as $alert)
+            <div class="alert alert-{{ $alert['tone'] }} d-flex flex-wrap justify-content-between align-items-center gap-3" role="alert">
+                <div>
+                    <strong class="d-block">{{ $alert['title'] }}</strong>
+                    <span>{{ $alert['message'] }}</span>
+                </div>
+                <a class="btn btn-sm btn-outline-danger" href="{{ $alert['url'] }}">Buka Data Master</a>
+            </div>
+        @endforeach
+
         <section aria-label="Statistik utama">
             <div class="row g-3 sibk-stat-row">
                 @foreach ($dashboard['stats'] as $stat)

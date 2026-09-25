@@ -20,11 +20,13 @@ return [
         ],
         'etatib' => [
             'driver' => env('SIBK_ETATIB_DRIVER', 'unavailable'),
+            'admission_approved' => (bool) env('SIBK_ETATIB_ADMISSION_APPROVED', false),
             'allowed_origins' => array_values(array_filter(array_map(
                 'trim',
                 explode(',', (string) env('SIBK_ETATIB_ALLOWED_ORIGINS', '')),
             ), static fn (string $origin): bool => $origin !== '')),
             'allow_private_networks' => (bool) env('SIBK_ETATIB_ALLOW_PRIVATE_NETWORKS', false),
+            'schedule_enabled' => (bool) env('SIBK_ETATIB_SCHEDULE_ENABLED', true),
         ],
     ],
 ];

@@ -23,6 +23,7 @@ class AcademicYearPreparationService
 {
     public function __construct(
         private readonly ProvisionalRosterCsvParser $csvParser,
+        private readonly ProvisionalRosterPayloadParser $payloadParser,
         private readonly AuditService $auditService,
         private readonly AcademicYearRolloverQuery $rolloverQuery,
     ) {}
@@ -89,169 +90,19 @@ class AcademicYearPreparationService
             $currentYear = AcademicYear::query()->findOrFail($academicYear->getKey());
             $this->assertImportable($currentYear);
             $rows = $this->csvParser->parse($file);
+            if (collect($rows)->contains(
+                fn (array $row): bool => $row['academic_year_name'] !== $currentYear->name,
+            )) {
+                throw ValidationException::withMessages([
+                    'academic_year' => 'Tahun pelajaran pada CSV harus sama dengan tahun ajaran tujuan.',
+                ]);
+            }
 
             return DB::transaction(function () use ($academicYear, $rows, $actor): ProvisionalRosterImportResult {
                 $year = AcademicYear::query()->lockForUpdate()->findOrFail($academicYear->getKey());
                 $this->assertImportable($year);
 
-                /** @var array<string, Student|null> $studentsByNisn */
-                $studentsByNisn = [];
-                foreach ($rows as $row) {
-                    $candidates = Student::query()
-                        ->whereRaw('TRIM(nisn) = ?', [$row['nisn']])
-                        ->lockForUpdate()
-                        ->limit(3)
-                        ->get();
-                    $students = $candidates->filter(
-                        fn (Student $candidate): bool => $candidate->nisn === $row['nisn'],
-                    );
-
-                    if ($students->count() > 1 || $candidates->count() !== $students->count()) {
-                        throw ValidationException::withMessages([
-                            'nisn' => 'NISN memiliki lebih dari satu kandidat lokal dan harus diperiksa.',
-                        ]);
-                    }
-
-                    $student = $students->first();
-                    $studentsByNisn['nisn:'.$row['nisn']] = $student;
-                    if ($student !== null) {
-                        $this->assertMembershipMatchesRoster($student, $year, $row['classroom']);
-                    }
-                }
-
-                $studentsCreated = 0;
-                $studentsMatched = 0;
-                $classroomsCreated = 0;
-                $membershipsCreated = 0;
-                $membershipsUnchanged = 0;
-                /** @var array<string, Classroom> $classroomsByName */
-                $classroomsByName = [];
-
-                foreach ($rows as $row) {
-                    $classroomKey = mb_strtolower($row['classroom']);
-                    $classroom = $classroomsByName[$classroomKey] ?? null;
-
-                    if ($classroom === null) {
-                        $matchingClassrooms = Classroom::query()
-                            ->where('academic_year_id', $year->getKey())
-                            ->whereRaw('LOWER(name) = ?', [$classroomKey])
-                            ->lockForUpdate()
-                            ->limit(2)
-                            ->get();
-                        if ($matchingClassrooms->count() > 1) {
-                            throw ValidationException::withMessages([
-                                'rombel' => 'Nama rombel memiliki lebih dari satu kandidat lokal.',
-                            ]);
-                        }
-
-                        $classroom = $matchingClassrooms->first();
-                        if ($classroom === null) {
-                            $classroom = Classroom::query()->create([
-                                'academic_year_id' => $year->getKey(),
-                                'name' => $row['classroom'],
-                                'grade_level' => null,
-                                'major' => null,
-                                'is_active' => true,
-                                'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
-                                'source_confirmed_at' => null,
-                            ]);
-                            $classroomsCreated++;
-                            $this->auditService->record(
-                                action: 'provisional_classroom.created',
-                                auditable: $classroom,
-                                summary: 'Rombel persiapan dibuat.',
-                                actor: $actor,
-                                after: [
-                                    'academic_year_id' => $year->getKey(),
-                                    'master_source' => $classroom->master_source,
-                                ],
-                            );
-                        }
-                        $classroomsByName[$classroomKey] = $classroom;
-                    }
-
-                    $student = $studentsByNisn['nisn:'.$row['nisn']];
-                    if ($student === null) {
-                        $student = Student::query()->create([
-                            'nisn' => $row['nisn'],
-                            'name' => $row['name'],
-                            'is_active' => true,
-                            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
-                            'source_confirmed_at' => null,
-                        ]);
-                        $studentsCreated++;
-                        $this->auditService->record(
-                            action: 'provisional_student.created',
-                            auditable: $student,
-                            summary: 'Murid persiapan dibuat.',
-                            actor: $actor,
-                            after: ['master_source' => $student->master_source],
-                        );
-                    } else {
-                        $studentsMatched++;
-                    }
-
-                    $membership = StudentClassMembership::query()
-                        ->where('student_id', $student->getKey())
-                        ->where('academic_year_id', $year->getKey())
-                        ->where('classroom_id', $classroom->getKey())
-                        ->lockForUpdate()
-                        ->first();
-
-                    if ($membership === null) {
-                        $membership = StudentClassMembership::query()->create([
-                            'student_id' => $student->getKey(),
-                            'classroom_id' => $classroom->getKey(),
-                            'academic_year_id' => $year->getKey(),
-                            'effective_from' => $year->starts_on?->toDateString(),
-                            'effective_until' => null,
-                            'is_active' => true,
-                            'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
-                            'source_confirmed_at' => null,
-                        ]);
-                        $membershipsCreated++;
-                        $this->auditService->record(
-                            action: 'provisional_membership.created',
-                            auditable: $membership,
-                            summary: 'Keanggotaan rombel persiapan dibuat.',
-                            actor: $actor,
-                            after: [
-                                'student_id' => $student->getKey(),
-                                'classroom_id' => $classroom->getKey(),
-                                'academic_year_id' => $year->getKey(),
-                                'master_source' => $membership->master_source,
-                            ],
-                        );
-                    } else {
-                        $membershipsUnchanged++;
-                    }
-                }
-
-                $result = new ProvisionalRosterImportResult(
-                    rows: count($rows),
-                    studentsCreated: $studentsCreated,
-                    studentsMatched: $studentsMatched,
-                    classroomsCreated: $classroomsCreated,
-                    membershipsCreated: $membershipsCreated,
-                    membershipsUnchanged: $membershipsUnchanged,
-                );
-
-                $this->auditService->record(
-                    action: 'academic_year.roster_imported',
-                    auditable: $year,
-                    summary: 'Daftar persiapan murid diproses tanpa menyimpan berkas mentah.',
-                    actor: $actor,
-                    after: [
-                        'rows' => $result->rows,
-                        'students_created' => $result->studentsCreated,
-                        'students_matched' => $result->studentsMatched,
-                        'classrooms_created' => $result->classroomsCreated,
-                        'memberships_created' => $result->membershipsCreated,
-                        'memberships_unchanged' => $result->membershipsUnchanged,
-                    ],
-                );
-
-                return $result;
+                return $this->processRosterRows($rows, new Collection([$year])->keyBy('name'), $actor);
             });
         } catch (ValidationException $exception) {
             $this->recordRosterImportFailure(
@@ -266,6 +117,253 @@ class AcademicYearPreparationService
 
             throw $exception;
         }
+    }
+
+    public function importRosters(UploadedFile $file, User $actor): ProvisionalRosterImportResult
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+
+        try {
+            $rows = $this->csvParser->parse($file);
+
+            return $this->importRosterRows($rows, $actor, 'CSV');
+        } catch (ValidationException $exception) {
+            $this->recordGlobalRosterImportFailure($actor, $this->safeFailureCode($exception));
+
+            throw $exception;
+        } catch (Throwable $exception) {
+            $this->recordGlobalRosterImportFailure($actor, 'processing_failed');
+
+            throw $exception;
+        }
+    }
+
+    /** @param array<string, mixed> $payload */
+    public function importRosterPayload(array $payload, User $actor): ProvisionalRosterImportResult
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+
+        try {
+            $rows = $this->payloadParser->parse($payload);
+
+            return $this->importRosterRows($rows, $actor, 'API');
+        } catch (ValidationException $exception) {
+            $this->recordGlobalRosterImportFailure($actor, $this->safeFailureCode($exception));
+
+            throw $exception;
+        } catch (Throwable $exception) {
+            $this->recordGlobalRosterImportFailure($actor, 'processing_failed');
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param  list<array{nisn: string, name: string, classroom: string, academic_year_name: string}>  $rows
+     */
+    private function importRosterRows(array $rows, User $actor, string $sourceLabel): ProvisionalRosterImportResult
+    {
+        return DB::transaction(function () use ($rows, $actor, $sourceLabel): ProvisionalRosterImportResult {
+            $yearNames = collect($rows)->pluck('academic_year_name')->unique()->values();
+            $years = AcademicYear::query()
+                ->whereIn('name', $yearNames)
+                ->lockForUpdate()
+                ->get();
+
+            if ($years->count() !== $yearNames->count()) {
+                throw ValidationException::withMessages([
+                    'academic_year' => "Semua tahun pelajaran pada {$sourceLabel} harus sudah dibuat di Data Master.",
+                ]);
+            }
+
+            foreach ($years as $year) {
+                $this->assertImportable($year);
+            }
+
+            return $this->processRosterRows($rows, $years->keyBy('name'), $actor);
+        });
+    }
+
+    /**
+     * @param  list<array{nisn: string, name: string, classroom: string, academic_year_name: string}>  $rows
+     * @param  Collection<string, AcademicYear>  $yearsByName
+     */
+    private function processRosterRows(array $rows, Collection $yearsByName, User $actor): ProvisionalRosterImportResult
+    {
+        /** @var array<string, Student|null> $studentsByNisn */
+        $studentsByNisn = [];
+        foreach ($rows as $row) {
+            if (! array_key_exists($row['nisn'], $studentsByNisn)) {
+                $candidates = Student::query()
+                    ->whereRaw('TRIM(nisn) = ?', [$row['nisn']])
+                    ->lockForUpdate()
+                    ->limit(3)
+                    ->get();
+                $students = $candidates->filter(
+                    fn (Student $candidate): bool => $candidate->nisn === $row['nisn'],
+                );
+
+                if ($students->count() > 1 || $candidates->count() !== $students->count()) {
+                    throw ValidationException::withMessages([
+                        'nisn' => 'NISN memiliki lebih dari satu kandidat lokal dan harus diperiksa.',
+                    ]);
+                }
+
+                $studentsByNisn[$row['nisn']] = $students->first();
+            }
+
+            $student = $studentsByNisn[$row['nisn']];
+            $year = $yearsByName->get($row['academic_year_name']);
+            if (! $year instanceof AcademicYear) {
+                throw ValidationException::withMessages([
+                    'academic_year' => 'Tahun pelajaran pada CSV tidak ditemukan.',
+                ]);
+            }
+            if ($student !== null) {
+                $this->assertMembershipMatchesRoster($student, $year, $row['classroom']);
+            }
+        }
+
+        $studentsCreated = 0;
+        $studentsMatched = 0;
+        $classroomsCreated = 0;
+        $membershipsCreated = 0;
+        $membershipsUnchanged = 0;
+        /** @var array<string, Classroom> $classroomsByYearAndName */
+        $classroomsByYearAndName = [];
+
+        foreach ($rows as $row) {
+            /** @var AcademicYear $year */
+            $year = $yearsByName->get($row['academic_year_name']);
+            $classroomKey = $year->getKey().'|'.mb_strtolower($row['classroom']);
+            $classroom = $classroomsByYearAndName[$classroomKey] ?? null;
+
+            if ($classroom === null) {
+                $matchingClassrooms = Classroom::query()
+                    ->where('academic_year_id', $year->getKey())
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($row['classroom'])])
+                    ->lockForUpdate()
+                    ->limit(2)
+                    ->get();
+                if ($matchingClassrooms->count() > 1) {
+                    throw ValidationException::withMessages([
+                        'rombel' => 'Nama rombel memiliki lebih dari satu kandidat lokal.',
+                    ]);
+                }
+
+                $classroom = $matchingClassrooms->first();
+                if ($classroom === null) {
+                    $classroom = Classroom::query()->create([
+                        'academic_year_id' => $year->getKey(),
+                        'name' => $row['classroom'],
+                        'grade_level' => null,
+                        'major' => null,
+                        'is_active' => true,
+                        'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                        'source_confirmed_at' => null,
+                    ]);
+                    $classroomsCreated++;
+                    $this->auditService->record(
+                        action: 'provisional_classroom.created',
+                        auditable: $classroom,
+                        summary: 'Rombel persiapan dibuat.',
+                        actor: $actor,
+                        after: [
+                            'academic_year_id' => $year->getKey(),
+                            'master_source' => $classroom->master_source,
+                        ],
+                    );
+                }
+                $classroomsByYearAndName[$classroomKey] = $classroom;
+            }
+
+            $student = $studentsByNisn[$row['nisn']];
+            if ($student === null) {
+                $student = Student::query()->create([
+                    'nisn' => $row['nisn'],
+                    'name' => $row['name'],
+                    'is_active' => true,
+                    'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                    'source_confirmed_at' => null,
+                ]);
+                $studentsByNisn[$row['nisn']] = $student;
+                $studentsCreated++;
+                $this->auditService->record(
+                    action: 'provisional_student.created',
+                    auditable: $student,
+                    summary: 'Murid persiapan dibuat.',
+                    actor: $actor,
+                    after: ['master_source' => $student->master_source],
+                );
+            } else {
+                $studentsMatched++;
+            }
+
+            $membership = StudentClassMembership::query()
+                ->where('student_id', $student->getKey())
+                ->where('academic_year_id', $year->getKey())
+                ->where('classroom_id', $classroom->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if ($membership === null) {
+                $membership = StudentClassMembership::query()->create([
+                    'student_id' => $student->getKey(),
+                    'classroom_id' => $classroom->getKey(),
+                    'academic_year_id' => $year->getKey(),
+                    'effective_from' => $year->starts_on?->toDateString(),
+                    'effective_until' => null,
+                    'is_active' => true,
+                    'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                    'source_confirmed_at' => null,
+                ]);
+                $membershipsCreated++;
+                $this->auditService->record(
+                    action: 'provisional_membership.created',
+                    auditable: $membership,
+                    summary: 'Keanggotaan rombel persiapan dibuat.',
+                    actor: $actor,
+                    after: [
+                        'student_id' => $student->getKey(),
+                        'classroom_id' => $classroom->getKey(),
+                        'academic_year_id' => $year->getKey(),
+                        'master_source' => $membership->master_source,
+                    ],
+                );
+            } else {
+                $membershipsUnchanged++;
+            }
+        }
+
+        $result = new ProvisionalRosterImportResult(
+            rows: count($rows),
+            studentsCreated: $studentsCreated,
+            studentsMatched: $studentsMatched,
+            classroomsCreated: $classroomsCreated,
+            membershipsCreated: $membershipsCreated,
+            membershipsUnchanged: $membershipsUnchanged,
+            academicYears: $yearsByName->count(),
+        );
+
+        /** @var AcademicYear $auditYear */
+        $auditYear = $yearsByName->first();
+        $this->auditService->record(
+            action: 'academic_year.roster_imported',
+            auditable: $auditYear,
+            summary: 'Daftar persiapan murid diproses tanpa menyimpan berkas mentah.',
+            actor: $actor,
+            after: [
+                'rows' => $result->rows,
+                'academic_years' => $result->academicYears,
+                'students_created' => $result->studentsCreated,
+                'students_matched' => $result->studentsMatched,
+                'classrooms_created' => $result->classroomsCreated,
+                'memberships_created' => $result->membershipsCreated,
+                'memberships_unchanged' => $result->membershipsUnchanged,
+            ],
+        );
+
+        return $result;
     }
 
     public function activate(AcademicYear $academicYear, User $actor): AcademicYear
@@ -559,6 +657,7 @@ class AcademicYearPreparationService
     {
         return match (array_key_first($exception->errors())) {
             'file' => 'invalid_csv',
+            'data' => 'invalid_api_payload',
             'academic_year' => 'academic_year_not_importable',
             'nisn' => 'student_identity_conflict',
             'rombel' => 'classroom_membership_conflict',
@@ -575,6 +674,17 @@ class AcademicYearPreparationService
             action: 'academic_year.roster_import_failed',
             auditable: $academicYear,
             summary: 'Impor daftar persiapan ditolak tanpa mengubah data.',
+            actor: $actor,
+            after: ['failure_code' => $failureCode],
+        );
+    }
+
+    private function recordGlobalRosterImportFailure(User $actor, string $failureCode): void
+    {
+        $this->auditService->record(
+            action: 'academic_year.roster_import_failed',
+            auditable: $actor,
+            summary: 'Impor daftar persiapan lintas tahun ditolak tanpa mengubah data.',
             actor: $actor,
             after: ['failure_code' => $failureCode],
         );

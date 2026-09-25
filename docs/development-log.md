@@ -5,6 +5,71 @@ File ini hanya memuat ringkasan pekerjaan selesai, bukan laporan evidence panjan
 
 ## Sedang berjalan
 
+- 25 September 2026: pembaruan otomatis e-Tatib tersedia untuk Admin IT. Link
+  API disimpan terenkripsi setelah sinkronisasi berhasil atau selesai dengan
+  konflik valid dan konfirmasi kata sandi; nilai link tidak dikirim kembali ke
+  HTML, audit, log, atau session. Scheduler berjalan Senin-Jumat pukul 15.00
+  `Asia/Jakarta` dengan overlap guard dan satu eksekusi lintas server. Data
+  Master menyediakan Sinkronkan Sekarang, Ganti Link, dan Nonaktifkan; dashboard
+  Admin IT memperingatkan kegagalan otomatis. Verifikasi terarah lulus 90
+  test/523 assertion dengan 8 test dilewati, disertai Pint, checker frontend,
+  build, Blade cache, Composer strict, dan `git diff --check`.
+- 25 September 2026: Admin IT memperoleh halaman khusus untuk menyelesaikan
+  konflik identitas e-Tatib secara manual. Pencocokan otomatis tetap mewajibkan
+  NISN canonical dan nama ternormalisasi sama; keputusan manual disimpan untuk
+  pasangan NISN+nama sumber, dapat menunjuk murid dengan NISN berbeda, dan
+  bertahan pada sinkronisasi berikutnya. Ubah/batalkan ditolak saat pelanggaran
+  sudah tertaut ke kasus. Verifikasi terarah lulus 101 test/808 assertion,
+  Pint, checker frontend, build, Blade cache, dan `git diff --check`. Suite penuh
+  masih gagal pada 59 test lama area laporan/kasus/Waka yang tidak terkait dan
+  belum diselaraskan dengan penyederhanaan UI/route pada working tree.
+
+- 24 September 2026: integrasi e-Tatib dikoreksi mengikuti respons API nyata
+  berupa array JSON langsung. Data Master sekarang memakai link sekali pakai,
+  pratinjau tersamarkan, dan sinkronisasi manual tanpa `source_id`, token,
+  pengaturan `.env`, atau penyimpanan URL. NISN pendek ditambah nol di depan;
+  nama tidak menjadi fallback. Karena API tidak memberi ID pelanggaran, SIBK
+  membentuk fingerprint stabil dan menolak baris identik yang tidak dapat
+  dibedakan. NISN ditampilkan lengkap kepada Admin IT pada pratinjau dan daftar
+  konflik. Jadwal otomatis ditiadakan karena URL tidak disimpan. Verifikasi
+  jalur aktif lulus 30 test/128 assertion dan test tampilan Data Master
+  1 test/15 assertion; delapan test panel konfigurasi lama dipensiunkan.
+
+- 24 September 2026: Admin IT memperoleh daftar master murid read-only dari
+  Data Master untuk memeriksa NISN, nama, rombel, tahun ajaran, dan status
+  sumber hasil impor, termasuk tahun yang belum aktif. Daftar tidak membuka
+  profil atau isi layanan BK. Petunjuk UI menegaskan aktivasi dilakukan oleh
+  Koordinator BK setelah penugasan rombel lengkap. Matriks otorisasi lulus
+  11 test/180 assertion dan test persiapan tahun ajaran lulus 57 test/476
+  assertion; Pint terarah, checker frontend, build, dan diff-check lulus.
+- 24 September 2026: Data Master memakai URL API Siswa sekali pakai sebagai
+  jalur utama import murid, dengan CSV tetap tersedia sebagai fallback. Fetch
+  server-side hanya menerima URL publik, tidak mengikuti redirect, memakai
+  timeout 10 detik dan batas respons 2 MiB, serta menolak localhost dan alamat
+  private/reserved. URL, query token, dan payload mentah tidak disimpan;
+  `external_sync_runs` hanya mencatat status dan jumlah. Panel konfigurasi
+  Dapodik disembunyikan dari Data Master, panel e-Tatib tetap lengkap, dan
+  backend Dapodik lama dipertahankan untuk kompatibilitas. Verifikasi lulus:
+  import 57 test/476 assertion, integrasi 40 test/658 assertion, tampilan
+  terdampak 2 test/24 assertion, Pint terarah, dan `git diff --check`.
+- 24 September 2026: import API Siswa ditambah tahap Cek & Pratinjau tanpa
+  mutasi database. Modal menampilkan jumlah data, kesiapan tahun/rombel, dan
+  lima contoh NISN tersamarkan. Pesan koneksi membedakan DNS, koneksi ditolak,
+  timeout, SSL, redirect, HTTP gagal, dan JSON tidak valid. Import tetap
+  mengambil ulang URL setelah konfirmasi sehingga payload pratinjau tidak
+  disimpan di server.
+- 24 September 2026: import daftar murid Data Master diubah menjadi satu form
+  global dengan CSV `nisn,nama,rombel,tahun_pelajaran`. Satu berkas dapat
+  memproses beberapa tahun sementara secara atomik; NISN yang sama tetap memakai
+  identitas murid yang sama dan memperoleh histori membership per tahun. Route
+  lama tetap tersedia dan menolak tahun yang berbeda dari target. Tes import
+  lulus 43 test/318 assertion, tes tampilan terkait lulus 1 test/10 assertion,
+  serta checker frontend dan diff-check lulus.
+- 24 September 2026: endpoint import roster global juga menerima payload API
+  `{success,message,data:[{nisn,nama,rombel,tahun_pelajaran}]}`. Payload memakai
+  validasi dan transaksi yang sama dengan CSV, mengembalikan ringkasan JSON untuk
+  request JSON, dan tetap atomik bila ada tahun pelajaran yang belum dibuat.
+  `DelayedDapodikPreparationTest` lulus 47 test/337 assertion.
 - 24 September 2026: branch `fitur/dummy-lintas-tahun-guru-bk` menambah dua
   Guru BK demo, tahun ajaran sebelumnya, 22 riwayat kelas murid, dan dua kasus
   historis. Enam kelas aktif dibagi rata kepada tiga Guru BK; 17 kasus dan

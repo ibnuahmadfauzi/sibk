@@ -9,6 +9,8 @@ use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
 use App\Http\Controllers\Admin\DapodikReconciliationController;
 use App\Http\Controllers\Admin\DataMasterController;
+use App\Http\Controllers\Admin\EtatibAutomaticSyncController;
+use App\Http\Controllers\Admin\EtatibIdentityMappingController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\UserPasswordResetController;
@@ -94,8 +96,16 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/data-master', [DataMasterController::class, 'index'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.index');
+        Route::get('/data-master/students', [DataMasterController::class, 'students'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.students.index');
         Route::post('/data-master/academic-years', [AcademicYearPreparationController::class, 'store'])
             ->name('data-master.academic-years.store');
+        Route::post('/data-master/roster-imports', [AcademicYearPreparationController::class, 'storeGlobalRoster'])
+            ->name('data-master.roster-imports.store');
+        Route::post('/data-master/roster-imports/preview', [AcademicYearPreparationController::class, 'previewApiSiswa'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.roster-imports.preview');
         Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
             ->name('data-master.academic-years.roster-imports.store');
         Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');
@@ -108,7 +118,33 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/data-master/dapodik/previews/{syncRun}/apply', [DapodikReconciliationController::class, 'apply'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.dapodik.previews.apply');
-        Route::post('/data-master/etatib/sync', [DataMasterController::class, 'synchronizeEtatib'])->name('data-master.etatib.sync');
+        Route::post('/data-master/etatib/preview', [DataMasterController::class, 'previewEtatib'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.preview');
+        Route::post('/data-master/etatib/sync', [DataMasterController::class, 'synchronizeEtatib'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.sync');
+        Route::post('/data-master/etatib/automatic', [EtatibAutomaticSyncController::class, 'store'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.automatic.store');
+        Route::post('/data-master/etatib/automatic/sync', [EtatibAutomaticSyncController::class, 'synchronize'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.automatic.sync');
+        Route::delete('/data-master/etatib/automatic', [EtatibAutomaticSyncController::class, 'destroy'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.automatic.destroy');
+        Route::get('/data-master/etatib/conflicts', [EtatibIdentityMappingController::class, 'index'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.conflicts.index');
+        Route::get('/data-master/etatib/candidates', [EtatibIdentityMappingController::class, 'candidates'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.candidates');
+        Route::post('/data-master/etatib/conflicts/{issue}/mapping', [EtatibIdentityMappingController::class, 'store'])
+            ->name('data-master.etatib.mappings.store');
+        Route::patch('/data-master/etatib/mappings/{mapping}', [EtatibIdentityMappingController::class, 'update'])
+            ->name('data-master.etatib.mappings.update');
+        Route::delete('/data-master/etatib/mappings/{mapping}', [EtatibIdentityMappingController::class, 'destroy'])
+            ->name('data-master.etatib.mappings.destroy');
         Route::patch('/data-master/integrations/{provider}', [IntegrationSettingController::class, 'update'])
             ->whereIn('provider', IntegrationSetting::PROVIDERS)
             ->middleware('cache.headers:no_store')

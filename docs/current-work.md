@@ -2,6 +2,65 @@
 
 ## Status
 
+- Pembaruan otomatis e-Tatib ditambahkan pada 25 September 2026. Admin IT dapat
+  menyimpan link API terenkripsi setelah pratinjau, sinkronisasi ulang, dan
+  konfirmasi kata sandi akun. Scheduler menjalankan sinkronisasi Senin-Jumat
+  pukul 15.00 `Asia/Jakarta`; aksi manual tetap tersedia dan kegagalan otomatis
+  ditampilkan di Data Master serta dashboard Admin IT tanpa membuka URL. Link
+  dihapus saat fitur dinonaktifkan. Verifikasi terarah lulus 90 test/523
+  assertion dengan 8 test dilewati; Pint, checker frontend, build, Blade cache,
+  Composer strict, dan `git diff --check` lulus.
+- API e-Tatib dikoreksi pada 24 September 2026 mengikuti kontrak nyata berupa
+  array JSON langsung tanpa `source_id`, token, pagination, atau delta. Admin IT
+  menempel link sekali pakai, membuka pratinjau, lalu menyinkronkan secara
+  manual. Link dan payload mentah tidak disimpan serta tidak memerlukan variabel
+  `.env`. NISN 1-10 digit dinormalisasi dengan nol di depan dan dicocokkan exact;
+  nama berbeda tetap masuk konflik. Admin IT melihat NISN lengkap pada
+  pratinjau dan dapat mencocokkan konflik secara manual ke master murid melalui
+  halaman khusus tanpa mengubah data sumber atau master murid.
+- Pencocokan manual e-Tatib ditambahkan pada 25 September 2026. Keputusan
+  disimpan per pasangan NISN canonical dan nama sumber ternormalisasi, berlaku
+  untuk seluruh pelanggaran identitas yang sama, dan dipakai kembali saat
+  sinkronisasi berikutnya. Mapping dapat diubah atau dibatalkan selama record
+  terkait belum ditautkan ke kasus BK; seluruh mutasi memakai operation lock,
+  transaksi, otorisasi Admin IT, dan audit append-only.
+  Verifikasi terarah lulus 101 test/808 assertion. Suite penuh memiliki 59
+  kegagalan existing di test laporan/kasus/Waka yang masih mengacu service,
+  route, dan label sebelum penyederhanaan; tidak ada kegagalan pada test e-Tatib,
+  Data Master, atau matriks otorisasi terarah.
+- Karena sumber tidak menyediakan ID pelanggaran, SIBK membentuk ID stabil dari
+  NISN, waktu, pelanggaran, poin, dan pencatat. Baris identik ditolak karena tidak
+  dapat dibedakan. Respons dianggap snapshot penuh. Sinkronisasi sekali pakai
+  tidak menyimpan link; jadwal otomatis hanya menyimpan link terenkripsi setelah
+  persetujuan dan verifikasi ulang Admin IT.
+
+- Import daftar murid lintas tahun pelajaran telah diimplementasikan di working
+  tree `cobasidebar` pada 24 September 2026. Admin IT dapat menempel URL API
+  Siswa publik sekali pakai atau memakai CSV fallback dengan field
+  `nisn,nama,rombel,tahun_pelajaran`; satu request dapat memuat beberapa tahun
+  sementara yang sudah dibuat. URL, query token, dan payload mentah tidak
+  disimpan. Feature branch belum dibuat karena izin perubahan ref Git tidak
+  diberikan.
+- Fetch API Siswa memakai GET server-side, timeout 10 detik, batas respons 2 MiB,
+  tanpa redirect, serta menolak localhost dan IP private/reserved. Riwayat
+  `external_sync_runs` hanya menyimpan status dan jumlah. Halaman Data Master
+  menampilkan API Siswa sebagai jalur utama, CSV sebagai fallback, dan tetap
+  mempertahankan konfigurasi e-Tatib lengkap. Backend Dapodik lama tidak dicabut.
+- API Siswa memakai alur Cek & Pratinjau sebelum import. Modal menampilkan
+  jumlah baris, murid unik, kesiapan tahun/rombel, dan lima contoh dengan NISN
+  tersamarkan tanpa mutasi atau penyimpanan payload. Kegagalan DNS, koneksi,
+  timeout, SSL, redirect, HTTP, dan JSON dibedakan dengan pesan aman.
+- Admin IT dapat memeriksa hasil impor melalui daftar master murid read-only di
+  `GET /data-master/students`. Daftar hanya memuat identitas, rombel, tahun
+  ajaran, dan status sumber; profil serta isi layanan BK tetap ditolak. Aktivasi
+  tahun ajaran tetap menjadi kewenangan Koordinator BK setelah penugasan setiap
+  rombel lengkap dan tanggal mulai telah tiba. Verifikasi daftar master dan
+  matriks otorisasi lulus 11 test/180 assertion; test persiapan tahun ajaran
+  lulus 57 test/476 assertion.
+- Verifikasi API Siswa: `DelayedDapodikPreparationTest` lulus 57 test/476
+  assertion, `IntegrationSettingTest` lulus 40 test/658 assertion, dan dua test
+  tampilan Data Master terdampak lulus 2 test/24 assertion. Pint terarah dan
+  `git diff --check` lulus.
 - Pekerjaan aktif: data contoh lintas tahun pada branch
   `fitur/dummy-lintas-tahun-guru-bk`; checkpoint penyederhanaan berikutnya
   adalah penghapusan Pengalihan Permasalahan.
@@ -63,6 +122,10 @@
 
 ## Batas dan catatan deployment
 
+- Scheduler host production wajib memanggil `php artisan schedule:run` setiap
+  menit. Pada Laragon lokal gunakan `php artisan schedule:work` selama aplikasi
+  perlu menjalankan jadwal. Tidak ada catch-up ketika host mati pukul 15.00;
+  eksekusi berikutnya jatuh pada hari kerja berikutnya.
 - Pada 24 September 2026, branch `fitur/dummy-lintas-tahun-guru-bk` menambah data
   contoh lokal: tahun demo sebelumnya, 22 riwayat kelas X→XI dan XI→XII,
   dua Guru BK tambahan, pembagian enam kelas aktif (dua kelas per guru),
@@ -109,10 +172,11 @@ Penugasan Kelas masih berada pada tahap spec. Verifikasi perilaku kelak mencakup
 
 ## Langkah berikutnya
 
-1. Pengguna mereview hasil koreksi tabel laporan.
-2. Setelah disetujui, lanjutkan penghapusan Pengalihan Permasalahan.
-3. Sederhanakan Penugasan Kelas setelah pengalihan selesai.
-4. Jalankan test dan gate hanya bila pengguna memerintahkan.
+1. Review perubahan import daftar murid lintas tahun dan pindahkan ke feature
+   branch sebelum commit bila izin Git tersedia.
+2. Pengguna mereview hasil koreksi tabel laporan.
+3. Setelah disetujui, lanjutkan penghapusan Pengalihan Permasalahan.
+4. Sederhanakan Penugasan Kelas setelah pengalihan selesai.
 
 ## Acuan
 

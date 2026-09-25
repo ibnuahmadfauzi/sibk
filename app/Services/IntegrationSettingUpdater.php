@@ -108,6 +108,10 @@ final class IntegrationSettingUpdater
                     $setting->last_tested_at = null;
                     $setting->last_tested_by = null;
                     $setting->is_enabled = false;
+                    $setting->sync_watermark = null;
+                    $setting->last_full_synced_at = null;
+                    $setting->last_successful_sync_at = null;
+                    $setting->last_probe_summary = null;
                     $setting->updated_by = $actor->getKey();
                     $setting->save();
 
@@ -138,7 +142,10 @@ final class IntegrationSettingUpdater
         if (! is_string($apiKey) || mb_strlen($apiKey) > 1000) {
             throw new IntegrationConfigurationException('invalid_configuration');
         }
-        $replaceCredentials = $apiKey !== '';
+        if ($provider === IntegrationSetting::PROVIDER_ETATIB && $apiKey !== '') {
+            throw new IntegrationConfigurationException('invalid_configuration');
+        }
+        $replaceCredentials = $provider !== IntegrationSetting::PROVIDER_ETATIB && $apiKey !== '';
         $removeCredentials = filter_var(
             $data['remove_api_key'] ?? false,
             FILTER_VALIDATE_BOOL,
@@ -146,6 +153,9 @@ final class IntegrationSettingUpdater
         );
         if ($removeCredentials === null || ($replaceCredentials && $removeCredentials)) {
             throw new IntegrationConfigurationException('invalid_configuration');
+        }
+        if ($provider === IntegrationSetting::PROVIDER_ETATIB) {
+            $removeCredentials = true;
         }
         $timeout = filter_var($data['timeout_seconds'] ?? 30, FILTER_VALIDATE_INT);
         if (! is_int($timeout) || $timeout < 5 || $timeout > 120) {
