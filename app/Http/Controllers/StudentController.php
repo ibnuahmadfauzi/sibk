@@ -88,6 +88,9 @@ class StudentController extends Controller
             $etatibQuery->whereHas('cases', fn ($cases) => $cases->accessibleTo($user));
         }
         $etatibRecords = $etatibQuery->latest('occurred_at')->get();
+        $officialEtatibTotal = $etatibRecords
+            ->first(fn (ExternalTatibRecord $record): bool => $record->source_total_points !== null)
+            ?->source_total_points;
 
         $consultations = collect();
         if ($user->can('viewAny', Consultation::class)) {
@@ -126,7 +129,7 @@ class StudentController extends Controller
             'currentMembership' => $currentMembership,
             'stats' => [
                 'active_cases' => $cases->whereNull('closed_at')->count(),
-                'points' => $etatibRecords->sum('points'),
+                'points' => $officialEtatibTotal ?? $etatibRecords->sum('points'),
                 'achievements' => $achievements->count(),
             ],
             'recentActivities' => $this->recentActivities($cases, $consultations, $etatibRecords, $achievements),

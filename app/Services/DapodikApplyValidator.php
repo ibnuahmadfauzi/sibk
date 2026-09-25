@@ -71,7 +71,7 @@ final class DapodikApplyValidator
             $hashes[] = $item->item_hash;
 
             if ($item->match_status === DapodikSyncPreviewItem::MATCH_CONFLICT) {
-                $this->validationError('preview', 'Konflik pratinjau harus diselesaikan melalui snapshot yang sah.');
+                $this->validationError('preview', 'Konflik data masih ada. Periksa daftar dan buat pratinjau baru.');
             }
             if ($item->match_status === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
                 && ! in_array($item->decision, [
@@ -109,7 +109,7 @@ final class DapodikApplyValidator
         if (! is_string($run->snapshot_fingerprint)
             || ! hash_equals($run->snapshot_fingerprint, $fingerprint)
         ) {
-            $this->validationError('preview', 'Fingerprint snapshot Dapodik tidak konsisten.');
+            $this->validationError('preview', 'Pratinjau Dapodik sudah berubah. Buat pratinjau baru.');
         }
     }
 

@@ -12,7 +12,7 @@ final readonly class IntegrationRuntimeConfiguration
     private SensitiveParameterValue $credentials;
 
     /**
-     * @param  array{type: string, token: string}  $credentials
+     * @param  array{type: string, token: string}|array{}  $credentials
      */
     public function __construct(
         public string $provider,
@@ -24,12 +24,14 @@ final readonly class IntegrationRuntimeConfiguration
         public int $configurationVersion,
         public int $operationFenceVersion,
         public string $endpointPolicyDigest,
+        public ?string $syncWatermark = null,
+        public ?string $lastFullSyncedAt = null,
     ) {
         $this->credentials = new SensitiveParameterValue($credentials);
     }
 
     /**
-     * @return array{type: string, token: string}
+     * @return array{type: string, token: string}|array{}
      */
     public function credentials(): array
     {
@@ -61,6 +63,7 @@ final readonly class IntegrationRuntimeConfiguration
             'configurationVersion' => $this->configurationVersion,
             'operationFenceVersion' => $this->operationFenceVersion,
             'endpointPolicyDigest' => $this->endpointPolicyDigest,
+            'hasSyncWatermark' => $this->syncWatermark !== null,
         ];
     }
 }

@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Role;
+use App\Models\Student;
 use App\Models\User;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -105,7 +106,7 @@ class AuthorizationMatrixTest extends TestCase
             '/corrections', '/notifications', '/history',
             '/_preview/notifications', '/_preview/corrections',
             '/_preview/corrections/create', '/_preview/corrections/show',
-            '/_preview/history',
+            '/_preview/history', '/data-master/students',
         ] as $uri) {
             $this->actingAs($user)->get($uri)->assertNotFound();
         }
@@ -131,6 +132,21 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Penugasan Kelas')
             ->assertDontSee('Pengalihan Kasus')
             ->assertSee('Data Master');
+    }
+
+    public function test_admin_cannot_open_student_service_profiles(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Murid Persiapan',
+            'is_active' => true,
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('students.show', $student))
+            ->assertForbidden();
     }
 
     public function test_waka_multi_role_keeps_authority_from_the_non_waka_role(): void

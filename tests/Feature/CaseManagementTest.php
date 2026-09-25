@@ -91,11 +91,32 @@ class CaseManagementTest extends TestCase
             ...$this->casePayload(),
             'temporary_nisn' => '0099999999',
             'temporary_name' => 'Murid Belum Sinkron',
+            'temporary_classroom_id' => TeacherAssignment::query()->where('user_id', $teacher->id)->value('classroom_id'),
         ])->assertRedirect();
 
         $case = BkCase::query()->firstOrFail();
         $this->assertNull($case->student_id);
         $this->assertSame('Murid Belum Sinkron', $case->temporaryStudent?->input_name);
+        $this->assertNotNull($case->classroom_id);
+        $this->assertNotNull($case->academic_year_id);
+    }
+
+    public function test_temporary_case_cannot_use_another_teachers_classroom(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $this->scopedStudent($otherTeacher);
+        $classroomId = TeacherAssignment::query()->where('user_id', $otherTeacher->id)->value('classroom_id');
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload(),
+            'temporary_nisn' => '0099999999',
+            'temporary_name' => 'Murid Baru',
+            'temporary_classroom_id' => $classroomId,
+        ])->assertSessionHasErrors('temporary_classroom_id');
+
+        $this->assertSame(0, BkCase::query()->count());
+        $this->assertDatabaseCount('temporary_students', 0);
     }
 
     public function test_complete_requires_summary_and_uses_server_date(): void

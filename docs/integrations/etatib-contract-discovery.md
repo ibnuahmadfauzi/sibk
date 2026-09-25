@@ -1,5 +1,30 @@
 # Lembar Discovery Kontrak Integrasi e-Tatib
 
+> Status 24 September 2026: **draft teknis, belum disahkan**. Implementasi
+> `school_http_v1` tersedia di belakang `SIBK_ETATIB_ADMISSION_APPROVED=false`.
+> Driver efektif tetap `unavailable` sampai identitas pihak, exact origin,
+> fixture sintetis resmi, bukti jaringan, prosedur gangguan, dan tanda tangan
+> admission dilengkapi.
+
+## Profil kontrak draft
+
+- Method: `GET` HTTPS publik tanpa token dan tanpa redirect.
+- Full: `mode=full&cursor=...`; delta:
+  `mode=delta&updated_since=...&cursor=...`.
+- Envelope wajib: `success`, `source_id`, `contract_version`, `mode`,
+  `snapshot_id`, `generated_at`, `watermark`, `next_cursor`, `has_more`,
+  `total`, dan `data`.
+- Item wajib: `id_pelanggaran`, `siswa_nisn`, `siswa_nama`, `siswa_kelas`,
+  `pelanggaran`, `poin_pelanggaran`, `pencatat`, `kategori`,
+  `tanggal_pelanggaran`, `total_poin`, `updated_at`, dan `deleted_at`.
+- Timestamp ISO-8601 wajib memakai offset `+07:00`.
+- Pagination cursor stabil: 500 record/page, maksimal 20 page atau 10.000
+  record; maksimal 2 MiB/page dan 10 MiB/operasi.
+- `id_pelanggaran` stabil. Koreksi NISN memakai tombstone ID lama dan ID baru.
+- Full lengkap boleh menonaktifkan record hilang. Delta hanya menonaktifkan
+  record dengan `deleted_at`.
+- Nilai draft `contract_version`: `etatib-school-v1`.
+
 Dokumen ini mengumpulkan bukti resmi yang diperlukan sebelum driver production e-Tatib dapat diajukan ke admission gate. Kolom jawaban sengaja dibiarkan kosong dan harus diisi oleh pemilik kontrak/provider bersama Admin IT. Jangan menyimpan token, kata sandi, atau raw payload yang belum disanitasi di dokumen ini.
 
 ## Identitas dokumen

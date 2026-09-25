@@ -57,7 +57,7 @@ class IntegrationActionRequest extends FormRequest
 
     public function getRedirectUrl(): string
     {
-        return route('admin.api.index').'#integration-'.$this->provider();
+        return route('data-master.index', ['tab' => 'dapodik']).'#integration-'.$this->provider();
     }
 
     private function action(): string

@@ -53,10 +53,13 @@ Buka `http://127.0.0.1:8000`. Untuk mengubah frontend, jalankan `npm run dev`
 di terminal kedua. Di Windows, gunakan `npm.cmd` bila PowerShell memblokir
 `npm.ps1`.
 
-Seeder akun sintetis hanya untuk local/testing dan memerlukan
-`SIBK_SEED_ACCOUNT_PASSWORD` pada `.env`. Bila dibutuhkan, jalankan
-`php artisan db:seed` pada database lokal yang telah diperiksa. Jangan
-menjalankan `migrate:fresh` atau reset pada database bersama.
+Seeder uji API hanya untuk local/testing dan memerlukan
+`SIBK_SEED_ACCOUNT_PASSWORD` pada `.env`. `php artisan db:seed` membuat
+1 Admin IT (`admin.api@ruangbk.test`), 6 Guru BK, 1 Koordinator BK, dan
+1 Waka Kesiswaan. Murid, rombel, tahun ajaran, dan layanan tidak diisi;
+Admin IT membuat tahun ajaran dan memasukkan tautan API Siswa di Data Master.
+Jalankan pada database lokal yang telah diperiksa. Jangan menjalankan
+`migrate:fresh` atau reset pada database bersama.
 
 ## Alur kerja tim
 

@@ -257,7 +257,7 @@ final class DapodikApplyService
                     'entity_type' => $entityType,
                     'source_identifier' => 'local:'.$target->getKey(),
                     'issue_code' => 'unmatched_local_record',
-                    'summary' => 'Data lokal belum cocok dengan snapshot Dapodik dan tetap dipertahankan.',
+                    'summary' => 'Data sekolah belum cocok dengan Dapodik dan tetap disimpan.',
                 ]);
             }
         }

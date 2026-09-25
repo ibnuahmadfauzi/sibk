@@ -21,10 +21,9 @@
             <div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Murid dan Layanan</h2></div>
             <div class="sibk-panel__body p-4 row g-4">
                 @if($isEdit)
-                    @php($membership = $consultation->student?->classMemberships->first())
                     <div class="col-12">
                         <label class="form-label">Murid</label>
-                        <div class="form-control bg-light">{{ $consultation->identityName() }} &mdash; NISN {{ $consultation->identityNisn() }}{{ $consultation->student?->usesProvisionalData($membership) ? ' — Sementara' : '' }}</div>
+                        <div class="form-control bg-light">{{ $consultation->identityName() }} &mdash; NISN {{ $consultation->identityNisn() }}</div>
                     </div>
                 @else
                     @php($selectedStudent = $students->firstWhere('id', old('student_id', $preselectedStudentId)))
@@ -39,12 +38,21 @@
                         </datalist>
                     </div>
                     <div class="col-12 col-md-3">
-                        <label class="form-label" for="temporary_nisn">NISN Sementara</label>
+                        <label class="form-label" for="temporary_nisn">NISN Murid Baru</label>
                         <input class="form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" inputmode="numeric" maxlength="20">
                     </div>
                     <div class="col-12 col-md-3">
-                        <label class="form-label" for="temporary_name">Nama Sementara</label>
+                        <label class="form-label" for="temporary_name">Nama Murid Baru</label>
                         <input class="form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="temporary_classroom_id">Rombel Murid Baru</label>
+                        <select class="form-select" id="temporary_classroom_id" name="temporary_classroom_id">
+                            <option value="">Pilih rombel yang Anda ampu</option>
+                            @foreach($temporaryClassrooms as $classroom)
+                                <option value="{{ $classroom->id }}" @selected((string) old('temporary_classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 @endif
 

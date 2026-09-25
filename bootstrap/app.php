@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'current_password',
             'password',
             'password_confirmation',
+            'api_url',
             'dapodik.api_key',
             'dapodik.current_password',
             'etatib.api_key',
@@ -90,7 +91,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return redirect()
-                ->to(route('admin.api.index').'#integration-'.(string) $request->route('provider'))
+                ->to(route('data-master.index', ['tab' => 'dapodik']).'#integration-'.(string) $request->route('provider'))
                 ->withInput($oldInput)
                 ->withErrors($exception->errors(), $exception->errorBag)
                 ->header('Cache-Control', 'no-store');

@@ -310,7 +310,7 @@ final class DapodikMatchResolver
             $this->validationError('preview', 'Pratinjau Dapodik ini tidak lagi dapat digunakan.');
         }
         if ($run->preview_expires_at === null || $run->preview_expires_at->isPast()) {
-            $this->validationError('preview', 'Pratinjau Dapodik telah kedaluwarsa. Tarik snapshot baru.');
+            $this->validationError('preview', 'Pratinjau Dapodik telah kedaluwarsa. Ambil data terbaru.');
         }
         $latestGeneration = (int) ExternalSyncRun::query()
             ->where('source', IntegrationSetting::PROVIDER_DAPODIK)

@@ -30,7 +30,6 @@
                 <div class="sibk-panel h-100">
                     <div class="sibk-panel__header sibk-account-panel__header">
                         <h3 class="sibk-panel__title">Informasi Akun</h3>
-                        <p class="sibk-panel__subtitle">Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
                     </div>
 
                     <div class="sibk-panel__body p-4">
@@ -115,8 +114,7 @@
                 <div class="sibk-account-info-box">
                     <h4 class="sibk-account-info-box__title">Akun dan akses</h4>
                     <p class="sibk-account-info-box__text">
-                        Untuk keamanan akun dan pemutakhiran data yang tidak bisa Anda perbarui dari halaman ini,
-                        silakan menghubungi administrator sistem terkait.
+                        Hubungi Admin IT sekolah untuk mengubah data akun yang tidak dapat Anda ubah di sini.
                     </p>
                 </div>
             </div>

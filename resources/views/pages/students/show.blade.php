@@ -17,7 +17,7 @@
         </div>
 
         @if($isWakaSummary)<div class="alert alert-info">Profil ini dibatasi pada ringkasan dan permasalahan yang dikoordinasikan kepada Anda.</div>@endif
-        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4 d-flex align-items-center gap-3"><div class="sibk-student-avatar">{{ $initials }}</div><div><div class="d-flex flex-wrap align-items-center gap-2"><h2 class="fs-4 mb-1">{{ $student->name }}</h2>@if($student->usesProvisionalData($currentMembership))<span class="sibk-badge sibk-badge--warning">Sementara</span>@endif</div><div class="text-muted small">NISN {{ $student->nisn }} &bull; {{ $currentMembership?->classroom?->name ?? 'Tanpa kelas aktif' }} &bull; {{ $currentMembership?->academicYear?->name ?? 'Tahun ajaran tidak tersedia' }}</div></div></div></div>
+        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4 d-flex align-items-center gap-3"><div class="sibk-student-avatar">{{ $initials }}</div><div><h2 class="fs-4 mb-1">{{ $student->name }}</h2><div class="text-muted small">NISN {{ $student->nisn }} &bull; {{ $currentMembership?->classroom?->name ?? 'Tanpa kelas aktif' }} &bull; {{ $currentMembership?->academicYear?->name ?? 'Tahun ajaran tidak tersedia' }}</div></div></div></div>
 
         @include('pages.students._departure-process')
 
@@ -48,7 +48,38 @@
         @elseif($activeTab === 'kasus')
             <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Jenis Masalah</th><th>Sumber</th><th>Status</th><th>Guru BK</th><th></th></tr></thead><tbody>@forelse($cases as $case)<tr><td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $case->serviceField->label }}</td><td>{{ $case->source->label }}</td><td>{{ $case->status->label }}</td><td>{{ $case->assignments->first()?->teacher?->name ?? '—' }}</td><td><a href="{{ route('cases.show', $case) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat permasalahan yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
         @elseif($activeTab === 'etatib')
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Waktu</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Status Sumber</th></tr></thead><tbody>@forelse($etatibRecords as $record)<tr><td>{{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }}</td><td>{{ $record->violation_type }}</td><td>{{ $record->category }}</td><td class="fw-bold text-danger">+{{ $record->points }}</td><td>{{ $record->source_status ?: '—' }}</td></tr>@empty<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data e-Tatib yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
+            <div class="table-responsive">
+                <table class="table sibk-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Pelanggaran</th>
+                            <th>Kategori</th>
+                            <th>Poin</th>
+                            <th>Total Resmi</th>
+                            <th>Kelas Saat Kejadian</th>
+                            <th>Pencatat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($etatibRecords as $record)
+                            <tr>
+                                <td>{{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }}</td>
+                                <td>{{ $record->violation_type }}</td>
+                                <td>{{ $record->category }}</td>
+                                <td class="fw-bold text-danger">+{{ $record->points }}</td>
+                                <td>{{ $record->source_total_points ?? '-' }}</td>
+                                <td>{{ $record->source_classroom_name ?: '-' }}</td>
+                                <td>{{ $record->recorded_by_name ?: '-' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Tidak ada data e-Tatib yang dapat ditampilkan.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         @elseif($activeTab === 'konsultasi' && $canViewConsultations)
             <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Permasalahan</th><th>Penanganan</th><th>Hasil</th><th></th></tr></thead><tbody>@forelse($consultations as $session)<tr><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $session->serviceField->label }}</td><td>{{ \Illuminate\Support\Str::limit($session->problem, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->handling, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->result, 100) }}</td><td><a href="{{ route('consultations.show', $session) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada konsultasi yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
         @else

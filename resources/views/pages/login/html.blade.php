@@ -11,9 +11,9 @@
             </a>
 
             <div class="sibk-auth-brand__copy">
-                <h1 id="auth-brand-title">Pencatatan layanan BK yang terstruktur dan sesuai kewenangan.</h1>
+                <h1 id="auth-brand-title">Layanan BK dalam satu tempat.</h1>
                 <div class="sibk-auth-brand__accent" aria-hidden="true"></div>
-                <p>Kelola layanan bimbingan dan konseling dengan mudah, aman, dan terorganisir dalam satu sistem.</p>
+                <p>Catat dan pantau layanan sesuai peran Anda.</p>
             </div>
 
             <div class="sibk-auth-illustration" aria-hidden="true">

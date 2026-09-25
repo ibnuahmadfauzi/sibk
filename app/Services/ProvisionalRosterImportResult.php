@@ -13,5 +13,6 @@ final readonly class ProvisionalRosterImportResult
         public int $classroomsCreated,
         public int $membershipsCreated,
         public int $membershipsUnchanged,
+        public int $academicYears = 1,
     ) {}
 }

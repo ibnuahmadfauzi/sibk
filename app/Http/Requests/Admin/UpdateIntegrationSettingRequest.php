@@ -33,7 +33,9 @@ class UpdateIntegrationSettingRequest extends FormRequest
             $provider => ['required', 'array:base_url,expected_source_identifier,api_key,remove_api_key,timeout_seconds,current_password'],
             "{$provider}.base_url" => ['present', 'nullable', 'string', 'max:500', $this->allowedEndpointRule($provider)],
             "{$provider}.expected_source_identifier" => ['present', 'nullable', 'string', 'max:100'],
-            "{$provider}.api_key" => ['nullable', 'string', 'max:1000', "prohibited_if:{$provider}.remove_api_key,true"],
+            "{$provider}.api_key" => $provider === IntegrationSetting::PROVIDER_ETATIB
+                ? ['prohibited']
+                : ['nullable', 'string', 'max:1000', "prohibited_if:{$provider}.remove_api_key,true"],
             "{$provider}.remove_api_key" => ['required', 'boolean'],
             "{$provider}.timeout_seconds" => ['required', 'integer', 'between:5,120'],
             "{$provider}.current_password" => ['required', 'string', 'current_password'],
@@ -71,7 +73,7 @@ class UpdateIntegrationSettingRequest extends FormRequest
 
     public function getRedirectUrl(): string
     {
-        return route('admin.api.index').'#integration-'.$this->provider();
+        return route('data-master.index', ['tab' => 'dapodik']).'#integration-'.$this->provider();
     }
 
     private function allowedEndpointRule(string $provider): \Closure

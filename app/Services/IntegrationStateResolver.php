@@ -126,7 +126,7 @@ final class IntegrationStateResolver
             && $credentials['token'] !== '';
         $complete = is_string($setting->base_url) && $setting->base_url !== ''
             && is_string($setting->expected_source_identifier) && $setting->expected_source_identifier !== ''
-            && $hasCredentials;
+            && ($setting->provider === IntegrationSetting::PROVIDER_ETATIB || $hasCredentials);
         $endpointAllowed = false;
         $policyDigest = null;
         if (is_string($setting->base_url) && $setting->base_url !== '') {
@@ -184,6 +184,9 @@ final class IntegrationStateResolver
             canTest: $complete && $endpointAllowed && ($driver?->isAvailable() ?? false),
             canActivate: $state === IntegrationSettingState::STATE_READY,
             canDeactivate: (bool) $setting->is_enabled,
+            lastProbeSummary: is_array($setting->last_probe_summary) ? $setting->last_probe_summary : null,
+            lastFullSyncedAt: $setting->last_full_synced_at?->toImmutable(),
+            lastSuccessfulSyncAt: $setting->last_successful_sync_at?->toImmutable(),
         );
     }
 
@@ -201,13 +204,15 @@ final class IntegrationStateResolver
         } catch (DecryptException) {
             throw new IntegrationConfigurationException('credential_unreadable');
         }
-        if (! is_array($credentials)
+        $requiresCredentials = $setting->provider !== IntegrationSetting::PROVIDER_ETATIB;
+        if ($requiresCredentials && (! is_array($credentials)
             || ($credentials['type'] ?? null) !== 'api_token'
             || ! is_string($credentials['token'] ?? null)
-            || $credentials['token'] === ''
+            || $credentials['token'] === '')
         ) {
             throw new IntegrationConfigurationException('incomplete_configuration');
         }
+        $credentials = is_array($credentials) ? $credentials : [];
         try {
             $policy = $this->policy($setting->provider);
             $baseUrl = $policy->assertAllowedEndpoint($setting->base_url);
@@ -224,6 +229,8 @@ final class IntegrationStateResolver
             configurationVersion: $setting->configuration_version,
             operationFenceVersion: $fencingToken,
             endpointPolicyDigest: $policy->digest(),
+            syncWatermark: $setting->sync_watermark,
+            lastFullSyncedAt: $setting->last_full_synced_at?->toAtomString(),
         );
     }
 

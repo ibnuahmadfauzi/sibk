@@ -448,11 +448,11 @@ class DapodikSyncTest extends TestCase
         $this->assertNull($yearItem->refresh()->decision);
         $this->actingAs($admin)->get(route('data-master.dapodik.previews.show', $run))
             ->assertOk()
-            ->assertSee('Pratinjau Pencocokan Dapodik')
+            ->assertSee('Tinjau Data Dapodik')
             ->assertSee('Belum terverifikasi Dapodik');
-        $this->actingAs($admin)->get(route('data-master.index'))
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
-            ->assertSee('Pratinjau Dapodik menunggu penerapan')
+            ->assertSee('Tinjau data Dapodik sebelum diterapkan')
             ->assertSee(route('data-master.dapodik.previews.show', $run), false);
 
         $this->actingAs($admin)->patch(
@@ -938,7 +938,7 @@ class DapodikSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.dapodik.previews.show', $run))
             ->assertOk()
-            ->assertSee('Konflik turunan pada keanggotaan murid')
+            ->assertSee('Penempatan murid belum cocok')
             ->assertSee('type="submit" class="btn btn-primary" disabled', false);
         $this->assertValidationFailure(
             fn () => app(DapodikReconciliationService::class)
@@ -1628,7 +1628,7 @@ class DapodikSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.dapodik.previews.show', $run))
             ->assertOk()
-            ->assertSee('Snapshot penuh')
+            ->assertSee('Data lengkap')
             ->assertSee('Murid internal #'.$missingStudent->id)
             ->assertSee(substr($planned['target_fingerprint'], 0, 12));
 

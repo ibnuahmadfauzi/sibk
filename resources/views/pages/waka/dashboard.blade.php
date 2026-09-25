@@ -19,7 +19,7 @@
 
         <div class="alert sibk-read-only-notice" role="status">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
-                <div><strong>Tampilan hanya-baca</strong><p>Anda melihat ringkasan layanan BK sekolah dan dapat membuka detail tanpa mengubah data.</p></div>
+                <div><strong>Hanya untuk dilihat</strong><p>Lihat ringkasan dan detail layanan BK tanpa mengubah data.</p></div>
         </div>
     </header>
 

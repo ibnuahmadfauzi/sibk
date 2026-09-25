@@ -163,6 +163,10 @@ class CaseController extends Controller
 
         return view('pages.cases.create', [
             'students' => $students,
+            'temporaryClassrooms' => Classroom::query()->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->whereHas('teacherAssignments', fn ($assignments) => $assignments->where('user_id', $user->id))
+                ->orderBy('name')->get(),
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
             'etatibRecords' => $etatibRecords,

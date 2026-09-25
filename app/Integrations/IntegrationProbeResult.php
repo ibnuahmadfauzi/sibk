@@ -39,6 +39,8 @@ final readonly class IntegrationProbeResult
         public ?string $reportedSourceIdentifier,
         public bool $schemaValid,
         public bool $completenessVerified,
+        /** @var array<string, mixed>|null */
+        public ?array $preview = null,
     ) {
         if (! in_array($code, self::RESULT_CODES, true)) {
             throw new InvalidArgumentException('Integration probe result code is not allowed.');

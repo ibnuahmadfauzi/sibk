@@ -2693,6 +2693,13 @@ small, .small {
   }
 }
 
+.sibk-classroom-name,
+.sibk-classroom-switch {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
 .sibk-report-control {
   border-color: transparent;
   color: var(--sibk-color-primary);
@@ -2746,6 +2753,17 @@ small, .small {
   right: 1.25rem;
   width: min(24rem, calc(100vw - 2.5rem));
   z-index: 1090;
+}
+
+.sibk-data-master-api {
+  border-top: 1px solid var(--sibk-color-border-light);
+}
+
+@media (min-width: 1200px) {
+  .sibk-data-master-api {
+    border-left: 1px solid var(--sibk-color-border-light);
+    border-top: 0;
+  }
 }
 
 .sibk-activation-panel {
@@ -2825,6 +2843,15 @@ small, .small {
       stroke-linejoin: round;
       stroke-width: 2.5;
       width: 0.8rem;
+    }
+  }
+
+  &--warning {
+    background: var(--sibk-color-warning-soft);
+    border-left-color: var(--sibk-color-warning);
+
+    .sibk-assignment-toast__icon {
+      background: var(--sibk-color-warning);
     }
   }
 }

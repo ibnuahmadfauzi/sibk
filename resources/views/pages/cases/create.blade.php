@@ -18,7 +18,7 @@
         <div class="sibk-panel mb-4 border-0 shadow-sm">
             <div class="sibk-panel__body p-4">
                 <form action="{{ route('cases.create') }}" method="GET" id="etatib-filter-form">
-                    <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib untuk Identitas Sementara</label>
+                    <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib dengan NISN</label>
                     <div class="row g-3">
                         <div class="col-12 col-md-8">
                             <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN yang sama persis">
@@ -31,12 +31,21 @@
 
                 <div class="row g-3 mt-1">
                     <div class="col-12 col-md-4">
-                        <label for="temporary_nisn" class="form-label sibk-form-label">NISN Sementara</label>
+                        <label for="temporary_nisn" class="form-label sibk-form-label">NISN Murid Baru</label>
                         <input form="case-create-form" class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn', $temporaryNisnFilter) }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
                     </div>
                     <div class="col-12 col-md-4">
-                        <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
+                        <label for="temporary_name" class="form-label sibk-form-label">Nama Murid Baru</label>
                         <input form="case-create-form" class="form-control sibk-form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Nama sesuai informasi awal">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="temporary_classroom_id" class="form-label sibk-form-label">Rombel Murid Baru</label>
+                        <select form="case-create-form" class="form-select" id="temporary_classroom_id" name="temporary_classroom_id">
+                            <option value="">Pilih rombel yang Anda ampu</option>
+                            @foreach($temporaryClassrooms as $classroom)
+                                <option value="{{ $classroom->id }}" @selected((string) old('temporary_classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
             </div>
@@ -50,14 +59,14 @@
             <div class="visually-hidden" aria-hidden="true">
                 @foreach($students as $student)
                     @php $membership = $student->classMemberships->first(); @endphp
-                    <span>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->usesProvisionalData($membership) ? ' — Sementara' : '' }}</span>
+                    <span>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }})</span>
                 @endforeach
             </div>
 
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Permasalahan</h4>
-                    <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
+                    <p class="text-muted small mb-4">Pilih murid yang Anda tangani. Jika belum ada di daftar, isi NISN, nama, dan rombelnya.</p>
                     <div class="row g-4">
                         <div class="col-md-4">
                             <label for="sumber" class="form-label sibk-form-label">Sumber</label>
@@ -104,7 +113,7 @@
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
-                    <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber permasalahan adalah e-Tatib.</p>
+                    <p class="text-muted small mb-4">Pilih pelanggaran dengan NISN yang sama. Wajib untuk permasalahan dari e-Tatib.</p>
                     @if($etatibRecordsCapped)
                         <div class="alert alert-info py-2">Daftar data e-Tatib dibatasi pada {{ $etatibRecords->count() }} record terbaru. Gunakan pencarian NISN yang sama persis untuk mempersempit hasil.</div>
                     @endif
@@ -113,11 +122,16 @@
                             <input class="form-check-input" type="checkbox" name="etatib_record_ids[]" value="{{ $record->id }}" id="etatib-{{ $record->id }}" @checked(in_array($record->id, old('etatib_record_ids', [])))>
                             <label class="form-check-label w-100" for="etatib-{{ $record->id }}">
                                 <span class="fw-semibold">{{ $record->violation_type }}</span>
-                                <span class="text-muted small d-block">NISN {{ $record->nisn }} · {{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }} · {{ $record->points }} poin</span>
+                                <span class="text-muted small d-block">
+                                    NISN {{ $record->nisn }} · {{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }} · {{ $record->points }} poin
+                                </span>
+                                <span class="text-muted small d-block">
+                                    Total resmi {{ $record->source_total_points ?? '-' }} · Kelas {{ $record->source_classroom_name ?: '-' }} · Pencatat {{ $record->recorded_by_name ?: '-' }}
+                                </span>
                             </label>
                         </div>
                     @empty
-                        <p class="text-muted mb-0">Belum ada data e-Tatib aktif. Admin IT perlu menjalankan sinkronisasi setelah connector tersedia.</p>
+                        <p class="text-muted mb-0">Belum ada data e-Tatib. Hubungi Admin IT untuk memeriksa koneksi.</p>
                     @endforelse
                 </div>
             </div>
