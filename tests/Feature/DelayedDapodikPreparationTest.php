@@ -950,9 +950,9 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertJsonPath('data.academic_years.0.name', '2027/2028')
             ->assertJsonPath('data.academic_years.0.classrooms', 2)
             ->assertJsonPath('data.academic_years.0.ready', true)
-            ->assertJsonPath('data.sample.0.nisn', '0012****78')
-            ->assertJsonPath('data.sample.0.name', 'Murid Pratinjau Satu');
+            ->assertJsonMissingPath('data.sample');
         $this->assertStringNotContainsString('0012345678', $response->getContent());
+        $this->assertStringNotContainsString('Murid Pratinjau Satu', $response->getContent());
         $this->assertStringNotContainsString('PREVIEW-SECRET', $response->getContent());
         $this->assertDatabaseCount('students', 0);
         $this->assertDatabaseCount('classrooms', 0);

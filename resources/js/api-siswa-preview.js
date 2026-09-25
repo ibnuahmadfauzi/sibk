@@ -31,7 +31,7 @@ const renderPreview = (container, preview) => {
     container.append(summary);
 
     const yearTitle = createElement('h4', 'fs-6 fw-bold mb-2', 'Kesiapan Tahun Pelajaran');
-    const yearWrapper = createElement('div', 'table-responsive mb-4');
+    const yearWrapper = createElement('div', 'table-responsive');
     const yearTable = createElement('table', 'table table-sm sibk-table mb-0');
     const yearHead = createElement('thead');
     const yearHeadRow = createElement('tr');
@@ -59,32 +59,6 @@ const renderPreview = (container, preview) => {
     yearWrapper.append(yearTable);
     container.append(yearTitle, yearWrapper);
 
-    const sampleTitle = createElement('h4', 'fs-6 fw-bold mb-2', 'Contoh Data yang Terbaca');
-    const sampleNote = createElement(
-        'p',
-        'text-muted small',
-        'Maksimal lima baris ditampilkan. NISN disamarkan dan data API tidak disimpan.',
-    );
-    const sampleWrapper = createElement('div', 'table-responsive');
-    const sampleTable = createElement('table', 'table table-sm sibk-table mb-0');
-    const sampleHead = createElement('thead');
-    const sampleHeadRow = createElement('tr');
-    ['NISN', 'Nama', 'Rombel', 'Tahun Pelajaran'].forEach((label) => {
-        sampleHeadRow.append(createElement('th', '', label));
-    });
-    sampleHead.append(sampleHeadRow);
-    const sampleBody = createElement('tbody');
-    preview.sample.forEach((item) => {
-        const row = createElement('tr');
-        appendCell(row, item.nisn);
-        appendCell(row, item.name, 'fw-semibold');
-        appendCell(row, item.classroom);
-        appendCell(row, item.academic_year);
-        sampleBody.append(row);
-    });
-    sampleTable.append(sampleHead, sampleBody);
-    sampleWrapper.append(sampleTable);
-    container.append(sampleTitle, sampleNote, sampleWrapper);
 };
 
 const renderFailure = (container, message) => {

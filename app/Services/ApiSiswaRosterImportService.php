@@ -31,7 +31,6 @@ final class ApiSiswaRosterImportService
      *     rows: int,
      *     students: int,
      *     academic_years: list<array{name: string, rows: int, classrooms: int, ready: bool, status: string}>,
-     *     sample: list<array{nisn: string, name: string, classroom: string, academic_year: string}>,
      *     can_import: bool
      * }
      */
@@ -208,7 +207,6 @@ final class ApiSiswaRosterImportService
      *     rows: int,
      *     students: int,
      *     academic_years: list<array{name: string, rows: int, classrooms: int, ready: bool, status: string}>,
-     *     sample: list<array{nisn: string, name: string, classroom: string, academic_year: string}>,
      *     can_import: bool
      * }
      */
@@ -239,15 +237,6 @@ final class ApiSiswaRosterImportService
             'rows' => count($rows),
             'students' => collect($rows)->pluck('nisn')->unique()->count(),
             'academic_years' => $academicYears,
-            'sample' => array_map(
-                fn (array $row): array => [
-                    'nisn' => $this->maskNisn($row['nisn']),
-                    'name' => $row['name'],
-                    'classroom' => $row['classroom'],
-                    'academic_year' => $row['academic_year_name'],
-                ],
-                array_slice($rows, 0, 5),
-            ),
             'can_import' => $canImport,
         ];
     }
@@ -272,11 +261,6 @@ final class ApiSiswaRosterImportService
         }
 
         return [true, $year->is_active ? 'Siap menambah murid pada tahun aktif.' : 'Siap diimpor.'];
-    }
-
-    private function maskNisn(string $nisn): string
-    {
-        return substr($nisn, 0, 4).'****'.substr($nisn, -2);
     }
 
     private function connectionFailureMessage(ConnectionException $exception): string
