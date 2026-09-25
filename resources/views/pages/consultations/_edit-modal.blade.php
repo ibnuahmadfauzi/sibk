@@ -46,6 +46,15 @@
                         <label class="form-label" for="temporary_name">Nama Sementara</label>
                         <input class="form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150">
                     </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label" for="temporary_classroom_id">Rombel Murid Sementara</label>
+                        <select class="form-select" id="temporary_classroom_id" name="temporary_classroom_id">
+                            <option value="">Pilih rombel yang Anda ampu</option>
+                            @foreach($temporaryClassrooms as $classroom)
+                                <option value="{{ $classroom->id }}" @selected((string) old('temporary_classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 @endif
 
                 <div class="col-12 col-md-6">

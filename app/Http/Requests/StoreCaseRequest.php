@@ -53,6 +53,7 @@ class StoreCaseRequest extends FormRequest
             'student_id' => ['nullable', 'integer', 'required_without:temporary_nisn', 'prohibits:temporary_nisn,temporary_name', Rule::exists('students', 'id')],
             'temporary_nisn' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/', 'required_without:student_id', 'prohibits:student_id'],
             'temporary_name' => ['nullable', 'string', 'max:150', 'required_with:temporary_nisn'],
+            'temporary_classroom_id' => ['nullable', 'integer', 'prohibits:student_id', Rule::exists('classrooms', 'id')],
             'case_source_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'case_source')->where('is_active', true)],
             'service_field_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'service_field')->where('is_active', true)],
             'service_date' => ['required', 'date', 'before_or_equal:today'],

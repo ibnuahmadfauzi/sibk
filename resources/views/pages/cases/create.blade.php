@@ -38,6 +38,15 @@
                         <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
                         <input form="case-create-form" class="form-control sibk-form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Nama sesuai informasi awal">
                     </div>
+                    <div class="col-12 col-md-4">
+                        <label for="temporary_classroom_id" class="form-label sibk-form-label">Rombel Murid Sementara</label>
+                        <select form="case-create-form" class="form-select" id="temporary_classroom_id" name="temporary_classroom_id">
+                            <option value="">Pilih rombel yang Anda ampu</option>
+                            @foreach($temporaryClassrooms as $classroom)
+                                <option value="{{ $classroom->id }}" @selected((string) old('temporary_classroom_id') === (string) $classroom->id)>{{ $classroom->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -57,7 +66,7 @@
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Permasalahan</h4>
-                    <p class="text-muted small mb-4">Pilih murid yang Anda tangani. Jika belum terdaftar, isi NISN dan nama sementara.</p>
+                    <p class="text-muted small mb-4">Pilih murid yang Anda tangani. Jika belum terdaftar, isi NISN, nama, dan rombel sementara.</p>
                     <div class="row g-4">
                         <div class="col-md-4">
                             <label for="sumber" class="form-label sibk-form-label">Sumber</label>

@@ -8,6 +8,7 @@ use App\Http\Requests\ArchiveConsultationRequest;
 use App\Http\Requests\StoreConsultationRequest;
 use App\Http\Requests\UpdateConsultationRequest;
 use App\Models\Consultation;
+use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
@@ -177,6 +178,10 @@ class ConsultationController extends Controller
             'isEdit' => $consultation !== null,
             'modal' => false,
             'students' => $students,
+            'temporaryClassrooms' => Classroom::query()->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->whereHas('teacherAssignments', fn ($assignments) => $assignments->where('user_id', $user->id))
+                ->orderBy('name')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
             'preselectedStudentId' => $request->integer('student_id') ?: null,
         ];

@@ -141,6 +141,24 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function reactivating_a_classroom_adds_it_to_an_open_year_that_did_not_copy_it(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $catalog = ClassroomCatalog::query()->create(['name' => 'X RPL 1', 'is_active' => false]);
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $this->assertDatabaseCount('classrooms', 0);
+
+        app(ClassroomCatalogService::class)->update($catalog, 'X RPL 1', true, $admin);
+
+        $this->assertDatabaseHas('classrooms', [
+            'academic_year_id' => $year->id,
+            'classroom_catalog_id' => $catalog->id,
+            'name' => 'X RPL 1',
+            'is_active' => true,
+        ]);
+    }
+
+    #[Test]
     public function admin_prepares_an_inactive_provisional_academic_year_without_reference_input(): void
     {
         $service = app(AcademicYearPreparationService::class);
@@ -980,6 +998,8 @@ class DelayedDapodikPreparationTest extends TestCase
         ]);
         $this->assertDatabaseHas('classrooms', ['name' => 'X RPL 1']);
         $this->assertDatabaseHas('classrooms', ['name' => 'X RPL 2']);
+        $this->assertDatabaseHas('classroom_catalogs', ['name' => 'X RPL 1', 'is_active' => true]);
+        $this->assertDatabaseHas('classroom_catalogs', ['name' => 'X RPL 2', 'is_active' => true]);
         $this->assertDatabaseCount('student_class_memberships', 2);
         $this->assertDatabaseHas('audit_logs', ['action' => 'academic_year.roster_imported']);
 
@@ -992,6 +1012,34 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertStringNotContainsString('RAHASIA-URL', $serializedRun);
         $this->assertStringNotContainsString('0012345678', $serializedRun);
         $this->assertStringNotContainsString('Nama API', $serializedRun);
+    }
+
+    #[Test]
+    public function inactive_catalog_classroom_is_visible_as_conflict_and_blocks_import(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        ClassroomCatalog::query()->create(['name' => 'X RPL 1', 'is_active' => false]);
+        $payload = [
+            'success' => true,
+            'data' => [[
+                'nama' => 'Murid Baru', 'nisn' => '0012345678',
+                'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name,
+            ]],
+        ];
+        Http::fake(['https://8.8.8.8/inactive-classroom' => Http::response($payload)]);
+
+        $this->actingAs($admin)->postJson(route('data-master.roster-imports.preview'), [
+            'api_url' => 'https://8.8.8.8/inactive-classroom',
+        ])->assertOk()
+            ->assertJsonPath('data.conflict_count', 1)
+            ->assertJsonPath('data.entries.0.status', 'Rombel nonaktif')
+            ->assertJsonPath('data.can_import', false);
+        $this->assertValidationError(
+            fn () => app(AcademicYearPreparationService::class)->importRosterPayload($payload, $admin),
+            'rombel',
+        );
+        $this->assertDatabaseCount('students', 0);
     }
 
     #[Test]

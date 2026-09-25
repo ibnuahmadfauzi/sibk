@@ -81,6 +81,7 @@ class ConsultationManagementTest extends TestCase
             ...$this->payload(),
             'temporary_nisn' => '0098765432',
             'temporary_name' => 'Murid Belum Sinkron',
+            'temporary_classroom_id' => TeacherAssignment::query()->where('user_id', $teacher->id)->value('classroom_id'),
         ])->assertRedirect();
 
         $this->assertDatabaseHas('temporary_students', [
@@ -91,6 +92,32 @@ class ConsultationManagementTest extends TestCase
             'student_id' => null,
             'problem' => 'Kesulitan beradaptasi di kelas.',
         ]);
+        $this->assertNotNull(Consultation::query()->firstOrFail()->classroom_id);
+        $this->assertNotNull(Consultation::query()->firstOrFail()->academic_year_id);
+    }
+
+    public function test_temporary_consultation_cannot_use_another_teachers_classroom(): void
+    {
+        [$teacher] = $this->teacherAndScopedStudent();
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $year = AcademicYear::query()->firstOrFail();
+        $otherClassroom = Classroom::query()->create([
+            'academic_year_id' => $year->id, 'name' => 'X RPL 2', 'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $otherTeacher->id, 'classroom_id' => $otherClassroom->id,
+            'academic_year_id' => $year->id, 'assigned_by' => $otherTeacher->id,
+        ]);
+
+        $this->actingAs($teacher)->post(route('consultations.store'), [
+            ...$this->payload(),
+            'temporary_nisn' => '0099999999',
+            'temporary_name' => 'Murid Baru',
+            'temporary_classroom_id' => $otherClassroom->id,
+        ])->assertSessionHasErrors('temporary_classroom_id');
+
+        $this->assertDatabaseCount('consultations', 0);
+        $this->assertDatabaseCount('temporary_students', 0);
     }
 
     public function test_all_three_narratives_are_required_and_limited_to_ten_thousand_characters(): void

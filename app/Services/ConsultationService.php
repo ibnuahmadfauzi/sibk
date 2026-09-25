@@ -26,6 +26,9 @@ class ConsultationService
     {
         return DB::transaction(function () use ($data, $actor): Consultation {
             [$student, $temporaryStudent] = $this->resolveIdentity($data, $actor);
+            $temporaryClassroom = $temporaryStudent !== null
+                ? $this->studentIdentityService->assignedClassroom((int) ($data['temporary_classroom_id'] ?? 0), $actor)
+                : null;
             $this->reference('service_field', (int) $data['service_field_id']);
 
             $membership = $student === null ? null : StudentClassMembership::query()
@@ -37,8 +40,8 @@ class ConsultationService
             $consultation = new Consultation([
                 'student_id' => $student?->getKey(),
                 'temporary_student_id' => $temporaryStudent?->getKey(),
-                'academic_year_id' => $membership?->academic_year_id,
-                'classroom_id' => $membership?->classroom_id,
+                'academic_year_id' => $membership?->academic_year_id ?? $temporaryClassroom?->academic_year_id,
+                'classroom_id' => $membership?->classroom_id ?? $temporaryClassroom?->id,
                 'service_field_id' => $data['service_field_id'],
                 'session_date' => $data['session_date'],
                 'problem' => $data['problem'],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\ExternalSyncIssue;
+use App\Models\Classroom;
 use App\Models\IdentityReconciliation;
 use App\Models\ReferenceValue;
 use App\Models\Student;
@@ -16,6 +17,22 @@ use Illuminate\Validation\ValidationException;
 class StudentIdentityService
 {
     public function __construct(private readonly AuditService $auditService) {}
+
+    public function assignedClassroom(int $classroomId, User $teacher): Classroom
+    {
+        $classroom = Classroom::query()->active()
+            ->whereKey($classroomId)
+            ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+            ->whereHas('teacherAssignments', fn ($assignments) => $assignments->where('user_id', $teacher->id))
+            ->first();
+        if ($classroom === null) {
+            throw ValidationException::withMessages([
+                'temporary_classroom_id' => 'Pilih rombel aktif yang ditugaskan kepada Anda.',
+            ]);
+        }
+
+        return $classroom;
+    }
 
     public function createTemporary(string $nisn, string $inputName, User $creator): TemporaryStudent
     {

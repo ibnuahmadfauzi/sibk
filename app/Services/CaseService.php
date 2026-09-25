@@ -31,6 +31,7 @@ class CaseService
         return DB::transaction(function () use ($data, $actor): BkCase {
             $student = null;
             $temporaryStudent = null;
+            $temporaryClassroom = null;
 
             if (($data['student_id'] ?? null) !== null) {
                 $student = Student::query()->lockForUpdate()->find((int) $data['student_id']);
@@ -52,6 +53,9 @@ class CaseService
                     ->first();
 
                 if ($student === null) {
+                    $temporaryClassroom = $this->studentIdentityService->assignedClassroom(
+                        (int) ($data['temporary_classroom_id'] ?? 0), $actor,
+                    );
                     $temporaryStudent = $this->studentIdentityService->createTemporary(
                         (string) $data['temporary_nisn'],
                         (string) $data['temporary_name'],
@@ -96,8 +100,8 @@ class CaseService
             $case = BkCase::query()->create([
                 'student_id' => $student?->getKey(),
                 'temporary_student_id' => $temporaryStudent?->getKey(),
-                'academic_year_id' => $membership?->academic_year_id,
-                'classroom_id' => $membership?->classroom_id,
+                'academic_year_id' => $membership?->academic_year_id ?? $temporaryClassroom?->academic_year_id,
+                'classroom_id' => $membership?->classroom_id ?? $temporaryClassroom?->id,
                 'case_source_id' => $source->getKey(),
                 'service_field_id' => (int) $data['service_field_id'],
                 'status_id' => $status->getKey(),

@@ -331,6 +331,7 @@ class AcademicYearPreparationService
         $membershipsUnchanged = 0;
         /** @var array<string, Classroom> $classroomsByYearAndName */
         $classroomsByYearAndName = [];
+        $catalogsByName = [];
 
         foreach ($rows as $row) {
             /** @var AcademicYear $year */
@@ -339,6 +340,31 @@ class AcademicYearPreparationService
             $classroom = $classroomsByYearAndName[$classroomKey] ?? null;
 
             if ($classroom === null) {
+                $catalogKey = mb_strtolower($row['classroom']);
+                if (! array_key_exists($catalogKey, $catalogsByName)) {
+                    $catalog = ClassroomCatalog::query()
+                        ->whereRaw('LOWER(name) = ?', [$catalogKey])
+                        ->lockForUpdate()
+                        ->first();
+                    if ($catalog?->is_active === false) {
+                        throw ValidationException::withMessages([
+                            'rombel' => "Rombel {$row['classroom']} nonaktif di Data Kelas. Aktifkan kembali sebelum impor.",
+                        ]);
+                    }
+                    if ($catalog === null) {
+                        $catalog = ClassroomCatalog::query()->create([
+                            'name' => $row['classroom'],
+                            'is_active' => true,
+                        ]);
+                        $this->auditService->record(
+                            action: 'classroom_catalog.created', auditable: $catalog,
+                            summary: 'Rombel baru dari daftar murid ditambahkan ke Data Kelas.', actor: $actor,
+                            after: ['name' => $catalog->name, 'is_active' => true],
+                        );
+                    }
+                    $catalogsByName[$catalogKey] = $catalog;
+                }
+                $catalog = $catalogsByName[$catalogKey];
                 $matchingClassrooms = Classroom::query()
                     ->where('academic_year_id', $year->getKey())
                     ->whereRaw('LOWER(name) = ?', [mb_strtolower($row['classroom'])])
@@ -355,6 +381,7 @@ class AcademicYearPreparationService
                 if ($classroom === null) {
                     $classroom = Classroom::query()->create([
                         'academic_year_id' => $year->getKey(),
+                        'classroom_catalog_id' => $catalog->id,
                         'name' => $row['classroom'],
                         'grade_level' => null,
                         'major' => null,
@@ -373,6 +400,8 @@ class AcademicYearPreparationService
                             'master_source' => $classroom->master_source,
                         ],
                     );
+                } elseif ($classroom->classroom_catalog_id === null) {
+                    $classroom->update(['classroom_catalog_id' => $catalog->id]);
                 }
                 $classroomsByYearAndName[$classroomKey] = $classroom;
             }

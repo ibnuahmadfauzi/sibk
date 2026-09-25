@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AcademicYear;
+use App\Models\ClassroomCatalog;
 use App\Models\ExternalSyncRun;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
@@ -259,6 +260,8 @@ final class ApiSiswaRosterImportService
         $membershipsByStudentAndYear = $memberships->groupBy(
             fn (StudentClassMembership $membership): string => $membership->student_id.'|'.$membership->academic_year_id,
         );
+        $inactiveClassrooms = ClassroomCatalog::query()->where('is_active', false)
+            ->pluck('name')->map(fn (string $name): string => mb_strtolower($name))->flip();
 
         $entries = [];
         $conflictCount = 0;
@@ -279,14 +282,16 @@ final class ApiSiswaRosterImportService
                         || $membership->classroom->academic_year_id !== $year->id
                         || mb_strtolower($membership->classroom->name) !== mb_strtolower($row['classroom']),
                 );
+            $inactiveClassroom = $inactiveClassrooms->has(mb_strtolower($row['classroom']));
             $status = match (true) {
                 $identityConflict => 'NISN perlu diperiksa',
                 $classroomConflict => 'Rombel berbeda',
+                $inactiveClassroom => 'Rombel nonaktif',
                 ! $ready => 'Tahun belum siap',
                 $studentMemberships->isNotEmpty() => 'Sudah ada',
                 default => 'Siap diimpor',
             };
-            if ($identityConflict || $classroomConflict) {
+            if ($identityConflict || $classroomConflict || $inactiveClassroom) {
                 $conflictCount++;
                 $entries[] = [
                     'nisn' => $row['nisn'],

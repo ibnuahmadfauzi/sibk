@@ -65,7 +65,8 @@ final class ClassroomCatalogService
                 throw ValidationException::withMessages(['name' => 'Nama rombel sudah digunakan.']);
             }
             $before = $catalog->only(['name', 'is_active']);
-            $openYearIds = $this->openYears()->pluck('id');
+            $openYears = $this->openYears();
+            $openYearIds = $openYears->pluck('id');
             $classrooms = Classroom::query()->where('classroom_catalog_id', $catalog->id)
                 ->whereIn('academic_year_id', $openYearIds)->lockForUpdate()->get();
             foreach ($classrooms as $classroom) {
@@ -84,6 +85,25 @@ final class ClassroomCatalogService
             $catalog->update(['name' => $name, 'is_active' => $active]);
             foreach ($classrooms as $classroom) {
                 $classroom->update(['name' => $name, 'is_active' => $active]);
+            }
+            if ($active) {
+                foreach ($openYears as $year) {
+                    if ($classrooms->contains('academic_year_id', $year->id)) {
+                        continue;
+                    }
+                    $existing = Classroom::query()->where('academic_year_id', $year->id)
+                        ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first();
+                    if ($existing !== null) {
+                        throw ValidationException::withMessages(['name' => 'Nama rombel sudah ada pada tahun ajaran berjalan.']);
+                    }
+                    Classroom::query()->create([
+                        'academic_year_id' => $year->id,
+                        'classroom_catalog_id' => $catalog->id,
+                        'name' => $name,
+                        'is_active' => true,
+                        'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                    ]);
+                }
             }
             $this->auditService->record(
                 action: 'classroom_catalog.updated', auditable: $catalog,
