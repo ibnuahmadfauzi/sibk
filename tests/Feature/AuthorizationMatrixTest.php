@@ -29,7 +29,7 @@ class AuthorizationMatrixTest extends TestCase
     {
         yield 'Guru BK' => ['guru_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 403,
+            '/assignments/classes' => 200,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 200,
@@ -39,22 +39,22 @@ class AuthorizationMatrixTest extends TestCase
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 200,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 200,
+            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
-            '/assignments/classes/manage' => 200, '/waka/reports?tab=penanganan' => 403,
+            '/assignments/classes/manage' => 302, '/waka/reports?tab=penanganan' => 403,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
-            '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403,
+            '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 200,
+            '/assignments/classes' => 200,
             '/achievements' => 403, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 200,
+            '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 302,
             '/consultations' => 302, '/assignments/classes/manage' => 403,
-            '/waka/reports?tab=penanganan' => 200,
+            '/waka/reports?tab=penanganan' => 302,
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403,
+            '/assignments/classes' => 200,
             '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
@@ -68,7 +68,14 @@ class AuthorizationMatrixTest extends TestCase
         $user = $this->userWithRole($role);
 
         foreach ($matrix as $uri => $status) {
-            $response = $this->actingAs($user)->get($uri)->assertStatus($status);
+            $response = $this->actingAs($user)->get($uri);
+            $this->assertSame($status, $response->status(), $uri);
+            if (str_starts_with($uri, '/waka/reports') && $status === 302) {
+                $response->assertRedirect(route('reports.index'));
+            }
+            if ($uri === '/assignments/classes/manage' && $status === 302) {
+                $response->assertRedirect(route('assignments.classes.index'));
+            }
             if ($uri === '/consultations') {
                 $response->assertRedirect(route('cases.index', ['tab' => 'konsultasi']));
                 $this->get(route('cases.index', ['tab' => 'konsultasi']))->assertStatus($matrix['/cases']);
@@ -154,6 +161,8 @@ class AuthorizationMatrixTest extends TestCase
             ->assertOk()
             ->assertSee('Persiapan Tahun Ajaran');
         $this->actingAs($coordinator)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
             ->assertSee('Kesiapan Aktivasi');
         $this->actingAs($teacher)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))

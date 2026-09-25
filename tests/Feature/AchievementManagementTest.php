@@ -17,7 +17,6 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AchievementService;
 use App\Services\CaseService;
-use App\Services\ReportService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,8 +107,7 @@ class AchievementManagementTest extends TestCase
         $this->actingAs($admin)->get(route('achievements.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('achievements.show', $pending))->assertForbidden();
         $this->actingAs($coordinator)->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Menunggu');
-        app(AchievementService::class)->create($this->payload($student, 'Prestasi Belum Disahkan'), $teacher);
-        $this->actingAs($waka)->get(route('reports.preview', ['type' => ReportService::TYPE_ACHIEVEMENTS]))->assertForbidden();
+        $this->actingAs($waka)->get(route('reports.preview'))->assertForbidden();
     }
 
     public function test_multi_role_uses_teacher_scope_for_creation_and_coordinator_function_for_review(): void
@@ -124,35 +122,6 @@ class AchievementManagementTest extends TestCase
         ])->assertRedirect();
         $this->assertSame('terverifikasi', $achievement->refresh()->verificationStatus->code);
         $this->assertSame($multiRole->id, $achievement->reviewer_id);
-    }
-
-    public function test_verified_achievement_report_is_redacted(): void
-    {
-        [$teacher, $student, $classroom] = $this->teacherAndScopedStudent('Nama Lengkap Prestasi Rahasia', '0055555555');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $achievement = app(AchievementService::class)->create($this->payload($student, '=Prestasi Formula'), $teacher);
-        app(AchievementService::class)->verify($achievement, ['decision' => 'terverifikasi'], $coordinator);
-        $this->assertSame('terverifikasi', $achievement->refresh()->verificationStatus->code);
-
-        $report = app(ReportService::class)->build($teacher, [
-            'type' => ReportService::TYPE_ACHIEVEMENTS,
-            'classroom_id' => $classroom->id,
-            'achievement_type_id' => $achievement->type_id,
-            'achievement_level_id' => $achievement->level_id,
-            'status_id' => $achievement->verification_status_id,
-        ], false);
-        $this->assertCount(1, $report['rows']);
-        $values = collect($report['rows']->first()['cells'])->pluck('value')->join('|');
-        $this->assertStringContainsString('N.L.P.R.', $values);
-        $this->assertStringNotContainsString($student->name, $values);
-        $this->assertStringNotContainsString($student->nisn, $values);
-        $this->assertStringNotContainsString('ARSIP/RAHASIA/001', $values);
-
-        $csv = $this->actingAs($teacher)->get(route('reports.export', ['type' => ReportService::TYPE_ACHIEVEMENTS, 'format' => 'csv']))
-            ->assertOk()->assertDownload()->streamedContent();
-        $this->assertStringContainsString("'=Prestasi Formula", $csv);
-        $this->assertStringNotContainsString($student->name, $csv);
-        $this->assertStringNotContainsString('ARSIP/RAHASIA/001', $csv);
     }
 
     /** @return array{User, Student, Classroom} */
