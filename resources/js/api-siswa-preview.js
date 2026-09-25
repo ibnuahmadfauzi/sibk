@@ -17,8 +17,10 @@ const renderPreview = (container, preview) => {
         'div',
         `alert ${preview.can_import ? 'alert-success' : 'alert-warning'}`,
         preview.can_import
-            ? 'Tahun ajaran siap. Konflik rombel diperiksa saat impor.'
-            : 'Data terbaca, tetapi ada tahun pelajaran yang belum siap diimpor.',
+            ? 'Data siap diimpor. Periksa daftar murid sebelum melanjutkan.'
+            : preview.conflict_count
+                ? `${preview.conflict_count} data perlu diperiksa. Impor belum dapat dilanjutkan.`
+                : 'Ada tahun pelajaran yang belum siap diimpor.',
     );
     container.append(status);
 
@@ -27,6 +29,7 @@ const renderPreview = (container, preview) => {
         createElement('span', 'fw-semibold', `${preview.rows} baris`),
         createElement('span', 'fw-semibold', `${preview.students} murid unik`),
         createElement('span', 'fw-semibold', `${preview.academic_years.length} tahun pelajaran`),
+        createElement('span', 'fw-semibold', `${preview.conflict_count} konflik`),
     );
     container.append(summary);
 
@@ -58,6 +61,77 @@ const renderPreview = (container, preview) => {
     yearTable.append(yearHead, yearBody);
     yearWrapper.append(yearTable);
     container.append(yearTitle, yearWrapper);
+
+    const listTitle = createElement('h4', 'fs-6 fw-bold mt-4 mb-2', 'Daftar Murid dari API');
+    const controls = createElement('div', 'd-flex flex-wrap align-items-center gap-2 mb-2');
+    const search = createElement('input', 'form-control flex-grow-1');
+    search.type = 'search';
+    search.placeholder = 'Cari NISN, nama, atau rombel';
+    search.setAttribute('aria-label', 'Cari murid dalam pratinjau');
+    const conflictOnly = createElement('input', 'form-check-input mt-0');
+    conflictOnly.type = 'checkbox';
+    conflictOnly.id = 'api-siswa-conflict-only';
+    const conflictLabel = createElement('label', 'form-check-label', 'Hanya yang perlu diperiksa');
+    conflictLabel.htmlFor = conflictOnly.id;
+    controls.append(search, conflictOnly, conflictLabel);
+
+    const listWrapper = createElement('div', 'table-responsive');
+    const listTable = createElement('table', 'table table-sm sibk-table mb-0');
+    const caption = createElement('caption', 'visually-hidden', 'Daftar seluruh murid dari API Siswa');
+    const listHead = createElement('thead');
+    const headingRow = createElement('tr');
+    ['NISN', 'Nama', 'Tahun Pelajaran', 'Rombel API', 'Rombel SIBK', 'Hasil'].forEach((label) => {
+        headingRow.append(createElement('th', '', label));
+    });
+    listHead.append(headingRow);
+    const listBody = createElement('tbody');
+    listTable.append(caption, listHead, listBody);
+    listWrapper.append(listTable);
+
+    const navigation = createElement('div', 'd-flex flex-wrap align-items-center justify-content-between gap-2 mt-2');
+    const count = createElement('span', 'text-muted small');
+    const buttons = createElement('div', 'd-flex gap-2');
+    const previous = createElement('button', 'btn btn-sm btn-outline-primary', 'Sebelumnya');
+    const next = createElement('button', 'btn btn-sm btn-outline-primary', 'Berikutnya');
+    previous.type = next.type = 'button';
+    buttons.append(previous, next);
+    navigation.append(count, buttons);
+
+    let page = 0;
+    const pageSize = 50;
+    const renderRows = () => {
+        const term = search.value.trim().toLocaleLowerCase('id');
+        const entries = preview.entries.filter((entry) => {
+            if (conflictOnly.checked && !['NISN perlu diperiksa', 'Rombel berbeda'].includes(entry.status)) return false;
+            return [entry.nisn, entry.name, entry.academic_year, entry.classroom, entry.current_classroom]
+                .some((value) => value?.toLocaleLowerCase('id').includes(term));
+        });
+        const pages = Math.max(1, Math.ceil(entries.length / pageSize));
+        page = Math.min(page, pages - 1);
+        listBody.replaceChildren();
+        entries.slice(page * pageSize, (page + 1) * pageSize).forEach((entry) => {
+            const row = createElement('tr', ['NISN perlu diperiksa', 'Rombel berbeda'].includes(entry.status) ? 'table-warning' : '');
+            [entry.nisn, entry.name, entry.academic_year, entry.classroom, entry.current_classroom ?? '—', entry.status]
+                .forEach((value) => appendCell(row, value));
+            listBody.append(row);
+        });
+        if (!entries.length) {
+            const empty = createElement('tr');
+            const cell = createElement('td', 'text-center text-muted py-3', 'Tidak ada murid yang cocok.');
+            cell.colSpan = 6;
+            empty.append(cell);
+            listBody.append(empty);
+        }
+        count.textContent = `${entries.length} data · halaman ${page + 1} dari ${pages}`;
+        previous.disabled = page === 0;
+        next.disabled = page >= pages - 1;
+    };
+    search.addEventListener('input', () => { page = 0; renderRows(); });
+    conflictOnly.addEventListener('change', () => { page = 0; renderRows(); });
+    previous.addEventListener('click', () => { page--; renderRows(); });
+    next.addEventListener('click', () => { page++; renderRows(); });
+    renderRows();
+    container.append(listTitle, controls, listWrapper, navigation);
 
 };
 

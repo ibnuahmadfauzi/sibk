@@ -6,6 +6,8 @@ namespace App\Services;
 
 use App\Models\AcademicYear;
 use App\Models\ExternalSyncRun;
+use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Gate;
@@ -31,6 +33,8 @@ final class ApiSiswaRosterImportService
      *     rows: int,
      *     students: int,
      *     academic_years: list<array{name: string, rows: int, classrooms: int, ready: bool, status: string}>,
+     *     entries: list<array<string, string|null>>,
+     *     conflict_count: int,
      *     can_import: bool
      * }
      */
@@ -207,6 +211,8 @@ final class ApiSiswaRosterImportService
      *     rows: int,
      *     students: int,
      *     academic_years: list<array{name: string, rows: int, classrooms: int, ready: bool, status: string}>,
+     *     entries: list<array<string, string|null>>,
+     *     conflict_count: int,
      *     can_import: bool
      * }
      */
@@ -233,11 +239,73 @@ final class ApiSiswaRosterImportService
             ];
         }
 
+        $students = collect();
+        foreach (array_chunk(array_values(array_unique(array_column($rows, 'nisn'))), 500) as $nisns) {
+            $placeholders = implode(',', array_fill(0, count($nisns), '?'));
+            $students = $students->concat(Student::query()
+                ->whereRaw("TRIM(nisn) IN ($placeholders)", $nisns)
+                ->get(['id', 'nisn']));
+        }
+        $studentsByNisn = $students->groupBy(fn (Student $student): string => trim($student->nisn));
+
+        $memberships = collect();
+        foreach ($students->pluck('id')->chunk(500) as $studentIds) {
+            $memberships = $memberships->concat(StudentClassMembership::query()
+                ->with('classroom:id,academic_year_id,name')
+                ->whereIn('student_id', $studentIds)
+                ->whereIn('academic_year_id', $years->pluck('id'))
+                ->get(['id', 'student_id', 'academic_year_id', 'classroom_id']));
+        }
+        $membershipsByStudentAndYear = $memberships->groupBy(
+            fn (StudentClassMembership $membership): string => $membership->student_id.'|'.$membership->academic_year_id,
+        );
+
+        $entries = [];
+        $conflictCount = 0;
+        foreach ($rows as $row) {
+            $year = $years->get($row['academic_year_name']);
+            [$ready] = $this->yearReadiness($year);
+            $candidates = $studentsByNisn->get($row['nisn'], collect());
+            $student = $candidates->first();
+            $studentMemberships = $student && $year
+                ? $membershipsByStudentAndYear->get($student->id.'|'.$year->id, collect())
+                : collect();
+            $currentClassroom = $studentMemberships->first()?->classroom?->name;
+            $identityConflict = $candidates->count() > 1
+                || ($student !== null && $student->nisn !== $row['nisn']);
+            $classroomConflict = $studentMemberships->count() > 1
+                || $studentMemberships->contains(
+                    fn (StudentClassMembership $membership): bool => $membership->classroom === null
+                        || $membership->classroom->academic_year_id !== $year->id
+                        || mb_strtolower($membership->classroom->name) !== mb_strtolower($row['classroom']),
+                );
+            $status = match (true) {
+                $identityConflict => 'NISN perlu diperiksa',
+                $classroomConflict => 'Rombel berbeda',
+                ! $ready => 'Tahun belum siap',
+                $studentMemberships->isNotEmpty() => 'Sudah ada',
+                default => 'Siap diimpor',
+            };
+            if ($identityConflict || $classroomConflict) {
+                $conflictCount++;
+            }
+            $entries[] = [
+                'nisn' => $row['nisn'],
+                'name' => $row['name'],
+                'academic_year' => $row['academic_year_name'],
+                'classroom' => $row['classroom'],
+                'current_classroom' => $currentClassroom,
+                'status' => $status,
+            ];
+        }
+
         return [
             'rows' => count($rows),
             'students' => collect($rows)->pluck('nisn')->unique()->count(),
             'academic_years' => $academicYears,
-            'can_import' => $canImport,
+            'entries' => $entries,
+            'conflict_count' => $conflictCount,
+            'can_import' => $canImport && $conflictCount === 0,
         ];
     }
 

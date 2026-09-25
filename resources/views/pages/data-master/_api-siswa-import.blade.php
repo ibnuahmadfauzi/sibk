@@ -65,7 +65,7 @@
     aria-hidden="true"
     data-api-siswa-preview-modal
 >
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title fs-5" id="api-siswa-preview-title">Pratinjau API Siswa</h2>

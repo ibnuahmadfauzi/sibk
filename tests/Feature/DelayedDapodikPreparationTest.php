@@ -950,15 +950,70 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertJsonPath('data.academic_years.0.name', '2027/2028')
             ->assertJsonPath('data.academic_years.0.classrooms', 2)
             ->assertJsonPath('data.academic_years.0.ready', true)
+            ->assertJsonPath('data.conflict_count', 0)
+            ->assertJsonPath('data.entries.0.nisn', '0012345678')
+            ->assertJsonPath('data.entries.0.name', 'Murid Pratinjau Satu')
+            ->assertJsonPath('data.entries.0.status', 'Siap diimpor')
             ->assertJsonMissingPath('data.sample');
-        $this->assertStringNotContainsString('0012345678', $response->getContent());
-        $this->assertStringNotContainsString('Murid Pratinjau Satu', $response->getContent());
         $this->assertStringNotContainsString('PREVIEW-SECRET', $response->getContent());
         $this->assertDatabaseCount('students', 0);
         $this->assertDatabaseCount('classrooms', 0);
         $this->assertDatabaseCount('student_class_memberships', 0);
         $this->assertDatabaseCount('external_sync_runs', 0);
         $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+    }
+
+    #[Test]
+    public function preview_lists_all_fifteen_classroom_conflicts_and_blocks_import(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'X RPL 1',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $rows = [];
+        for ($number = 1; $number <= 15; $number++) {
+            $nisn = sprintf('%010d', $number);
+            $student = Student::query()->create(['nisn' => $nisn, 'name' => "Murid {$number}"]);
+            StudentClassMembership::query()->create([
+                'student_id' => $student->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id,
+            ]);
+            $rows[] = [
+                'nama' => "Murid {$number}",
+                'nisn' => $nisn,
+                'rombel' => 'X RPL 2',
+                'tahun_pelajaran' => $year->name,
+            ];
+        }
+        $rows[] = [
+            'nama' => 'Murid Baru',
+            'nisn' => '0000000016',
+            'rombel' => 'X RPL 2',
+            'tahun_pelajaran' => $year->name,
+        ];
+        Http::fake(['https://8.8.8.8/conflicting-roster' => Http::response(['success' => true, 'data' => $rows])]);
+
+        $response = $this->actingAs($admin)->postJson(
+            route('data-master.roster-imports.preview'),
+            ['api_url' => 'https://8.8.8.8/conflicting-roster'],
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.conflict_count', 15)
+            ->assertJsonPath('data.can_import', false)
+            ->assertJsonPath('data.entries.14.nisn', '0000000015')
+            ->assertJsonPath('data.entries.14.classroom', 'X RPL 2')
+            ->assertJsonPath('data.entries.14.current_classroom', 'X RPL 1')
+            ->assertJsonPath('data.entries.14.status', 'Rombel berbeda')
+            ->assertJsonPath('data.entries.15.status', 'Siap diimpor');
+        $this->assertCount(16, $response->json('data.entries'));
+        $this->assertDatabaseCount('students', 15);
+        $this->assertDatabaseCount('student_class_memberships', 15);
+        $this->assertDatabaseCount('external_sync_runs', 0);
     }
 
     #[Test]
