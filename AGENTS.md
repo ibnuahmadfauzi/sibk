@@ -34,7 +34,7 @@ Jangan membaca PRD/SRS/API/plan/spec penuh secara default. Gunakan targeted sear
 
 Plan/spec `docs/superpowers/` adalah dokumen pekerjaan/snapshot historis, bukan requirement canonical. Jangan menyelaraskan plan/spec lama setelah selesai.
 
-Git adalah histori implementasi. Jangan membuat atau memelihara `current-work`, `development-log`, authorization matrix, frontend map, atau requirements index terpisah.
+Git adalah histori implementasi. Jangan membuat dokumen status kerja, log pengembangan, matriks otorisasi, peta frontend, atau indeks requirement terpisah.
 
 ## Implementation
 
