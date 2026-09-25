@@ -43,11 +43,9 @@ class AcademicYearPreparationService
 
         $normalized = [
             'name' => trim((string) ($data['name'] ?? '')),
-            'preparation_reference' => trim((string) ($data['preparation_reference'] ?? '')),
         ];
         $validated = Validator::make($normalized, [
             'name' => ['required', 'string', 'max:20', 'regex:/^\d{4}\/\d{4}$/D'],
-            'preparation_reference' => ['required', 'string', 'max:500'],
         ])->validate();
 
         [$firstYear, $lastYear] = array_map('intval', explode('/', $validated['name']));
@@ -75,7 +73,7 @@ class AcademicYearPreparationService
             $this->auditService->record(
                 action: 'academic_year.prepared',
                 auditable: $year,
-                summary: 'Tahun ajaran persiapan dibuat berdasarkan dokumen resmi sekolah.',
+                summary: 'Tahun ajaran persiapan dibuat oleh Admin IT.',
                 actor: $actor,
                 after: $this->academicYearSnapshot($year),
             );

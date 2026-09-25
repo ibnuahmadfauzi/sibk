@@ -6,7 +6,7 @@
     };
 @endphp
 
-<section class="sibk-panel mb-4" aria-labelledby="academic-year-preparation-title">
+<div aria-labelledby="academic-year-preparation-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
             <h2 class="sibk-panel__title mb-1" id="academic-year-preparation-title">Persiapan Tahun Ajaran</h2>
@@ -38,9 +38,6 @@
                             <div class="small mb-3">
                                 <span class="me-3">{{ $year->active_classroom_count }} rombel</span>
                                 <span>{{ $year->active_student_count }} keanggotaan murid</span>
-                                @if($year->preparation_reference)
-                                    <span class="text-muted d-block mt-1">Dasar: {{ $year->preparation_reference }}</span>
-                                @endif
                             </div>
                             @if(! $year->is_active && $year->activated_at === null)
                                 <button
@@ -84,7 +81,7 @@
 
             <div class="col-12 order-2">
                 @if($preparationYears->isNotEmpty())
-                    <details class="border rounded-3 p-3" @if($errors->has('name') || $errors->has('preparation_reference')) open @endif>
+                    <details class="border rounded-3 p-3" @if($errors->has('name')) open @endif>
                         <summary class="fw-semibold text-primary py-3">Buat tahun ajaran lain</summary>
                         <div class="mt-3">
                 @else
@@ -92,7 +89,7 @@
                 @endif
                 <form action="{{ route('data-master.academic-years.store') }}" method="POST" class="row g-3" data-autosave-form="academic-year-preparation">
                     @csrf
-                    <div class="col-12 col-sm-6">
+                    <div class="col-12 col-md-6">
                         <label for="provisional_year_name" class="form-label sibk-form-label">Tahun Ajaran</label>
                         <input
                             class="form-control sibk-form-control @error('name') is-invalid @enderror"
@@ -103,18 +100,6 @@
                             required
                         >
                         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <label for="provisional_year_reference" class="form-label sibk-form-label">Dasar Resmi Sekolah</label>
-                        <input
-                            class="form-control sibk-form-control @error('preparation_reference') is-invalid @enderror"
-                            id="provisional_year_reference"
-                            name="preparation_reference"
-                            value="{{ old('preparation_reference') }}"
-                            placeholder="Nomor SK atau kalender pendidikan"
-                            required
-                        >
-                        @error('preparation_reference')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12 d-flex align-items-center gap-2">
                         <span class="small text-muted me-auto" data-draft-status aria-live="polite"></span>
@@ -129,4 +114,4 @@
             </div>
         </div>
     </div>
-</section>
+</div>

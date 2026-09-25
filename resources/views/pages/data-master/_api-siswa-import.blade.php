@@ -1,4 +1,4 @@
-<section class="sibk-panel mb-4" aria-labelledby="api-siswa-import-title">
+<div aria-labelledby="api-siswa-import-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
             <h2 class="sibk-panel__title mb-1" id="api-siswa-import-title">Impor Data Murid dari API Siswa</h2>
@@ -88,7 +88,7 @@
         </div>
         @endif
     </div>
-</section>
+</div>
 
 <div
     class="modal fade"

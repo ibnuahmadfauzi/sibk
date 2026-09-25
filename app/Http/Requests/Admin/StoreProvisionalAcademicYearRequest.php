@@ -18,7 +18,6 @@ class StoreProvisionalAcademicYearRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:20', 'regex:/^\d{4}\/\d{4}$/D'],
-            'preparation_reference' => ['required', 'string', 'max:500'],
         ];
     }
 
@@ -28,8 +27,6 @@ class StoreProvisionalAcademicYearRequest extends FormRequest
         return [
             'name.required' => 'Nama tahun ajaran wajib diisi.',
             'name.regex' => 'Nama tahun ajaran harus memakai format 2027/2028.',
-            'preparation_reference.required' => 'Dasar resmi sekolah wajib diisi.',
-            'preparation_reference.max' => 'Dasar resmi sekolah maksimal 500 karakter.',
         ];
     }
 }

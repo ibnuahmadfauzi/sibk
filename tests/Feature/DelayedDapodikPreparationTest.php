@@ -53,16 +53,13 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
-    public function admin_prepares_an_inactive_provisional_academic_year_from_an_official_reference(): void
+    public function admin_prepares_an_inactive_provisional_academic_year_without_reference_input(): void
     {
         $service = app(AcademicYearPreparationService::class);
         $this->assertTrue(method_exists($service, 'prepareAcademicYear'));
         $admin = $this->userWithRole('admin_it');
 
-        $year = $service->prepareAcademicYear([
-            'name' => '2027/2028',
-            'preparation_reference' => 'Kalender Pendidikan 2027/2028',
-        ], $admin);
+        $year = $service->prepareAcademicYear(['name' => '2027/2028'], $admin);
 
         $this->assertFalse($year->is_active);
         $this->assertSame('2027-07-01', $year->starts_on->toDateString());
@@ -70,7 +67,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertSame(AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL, $year->master_source);
         $this->assertNull($year->source_confirmed_at);
         $this->assertSame($admin->id, $year->prepared_by);
-        $this->assertSame('Kalender Pendidikan 2027/2028', $year->preparation_reference);
+        $this->assertNull($year->preparation_reference);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'academic_year.prepared',
             'auditable_id' => $year->id,
@@ -79,7 +76,7 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
-    public function preparation_requires_an_active_admin_unique_name_and_official_reference(): void
+    public function preparation_requires_an_active_admin_and_unique_name(): void
     {
         $service = app(AcademicYearPreparationService::class);
         $admin = $this->userWithRole('admin_it');
@@ -87,7 +84,6 @@ class DelayedDapodikPreparationTest extends TestCase
         $coordinator = $this->userWithRole('koordinator_bk');
         $payload = [
             'name' => '2027/2028',
-            'preparation_reference' => 'SK Kepala Sekolah 001/2027',
         ];
 
         foreach ([$inactiveAdmin, $coordinator] as $unauthorized) {
@@ -109,11 +105,8 @@ class DelayedDapodikPreparationTest extends TestCase
             fn () => $service->prepareAcademicYear([...$payload, 'name' => '2028/2030'], $admin),
             'name',
         );
-        $this->assertValidationError(
-            fn () => $service->prepareAcademicYear([...$payload, 'name' => '2028/2029', 'preparation_reference' => ''], $admin),
-            'preparation_reference',
-        );
-        $this->assertDatabaseCount('academic_years', 1);
+        $this->assertNull($service->prepareAcademicYear(['name' => '2028/2029'], $admin)->preparation_reference);
+        $this->assertDatabaseCount('academic_years', 2);
     }
 
     #[Test]
@@ -1649,7 +1642,6 @@ class DelayedDapodikPreparationTest extends TestCase
         $waka = $this->userWithRole('waka_kesiswaan');
         $payload = [
             'name' => '2027/2028',
-            'preparation_reference' => 'SK Kepala Sekolah 001/2027',
         ];
 
         $this->post(route('data-master.academic-years.store'), $payload)->assertRedirect(route('login'));
@@ -1667,9 +1659,8 @@ class DelayedDapodikPreparationTest extends TestCase
             ->post(route('data-master.academic-years.store'), [
                 ...$payload,
                 'name' => 'tahun baru',
-                'preparation_reference' => '',
             ])
-            ->assertSessionHasErrors(['name', 'preparation_reference']);
+            ->assertSessionHasErrors(['name']);
 
         $this->actingAs($admin)
             ->post(route('data-master.academic-years.store'), $payload)

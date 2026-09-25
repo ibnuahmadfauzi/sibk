@@ -14,6 +14,9 @@ initApiSiswaPreview();
 initEtatibApiPreview();
 initEtatibIdentityMapping();
 
+const dataMasterToast = document.getElementById('dataMasterToast');
+if (dataMasterToast) new Toast(dataMasterToast, { delay: 4500 }).show();
+
 document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });

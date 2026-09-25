@@ -628,7 +628,7 @@ class AcademicYearRolloverTest extends TestCase
         $this->actingAs($this->userWithRole('admin_it'))
             ->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Perlu Konfirmasi')
+            ->assertSee('Murid tanpa Penempatan Tahun Target')
             ->assertSee('Lihat daftar 1 murid')
             ->assertSee('0012345678')
             ->assertSee('Murid Perlu Konfirmasi')

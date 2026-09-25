@@ -2827,6 +2827,15 @@ small, .small {
       width: 0.8rem;
     }
   }
+
+  &--warning {
+    background: var(--sibk-color-warning-soft);
+    border-left-color: var(--sibk-color-warning);
+
+    .sibk-assignment-toast__icon {
+      background: var(--sibk-color-warning);
+    }
+  }
 }
 
 .sibk-class-chip {
