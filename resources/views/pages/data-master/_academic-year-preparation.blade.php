@@ -11,7 +11,7 @@
         <div>
             <h2 class="sibk-panel__title mb-1" id="academic-year-preparation-title">Persiapan Tahun Ajaran</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                {{ $preparationYears->isEmpty() ? 'Buat tahun ajaran sebelum mengimpor murid.' : 'Tinjau tahun ajaran yang sudah dibuat.' }}
+                {{ $preparationYears->isEmpty() ? 'Buat tahun ajaran. Rombel aktif dari Data Kelas disiapkan otomatis.' : 'Tinjau tahun ajaran yang sudah dibuat.' }}
             </p>
         </div>
     </div>
@@ -69,7 +69,7 @@
                                 </div>
                             @endif
                             @if($year->is_active)
-                                <p class="small text-success mb-0">Tahun ajaran aktif. Impor murid sementara sudah ditutup.</p>
+                                <p class="small text-success mb-0">Tahun ajaran aktif. Murid susulan tetap dapat diimpor.</p>
                             @else
                                 <p class="small text-muted mb-0">Koordinator BK mengaktifkannya setelah setiap rombel memiliki Guru BK.</p>
                             @endif

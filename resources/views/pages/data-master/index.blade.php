@@ -39,6 +39,7 @@
                 <h1 class="mb-1">Data Master</h1>
                 <p class="mb-0">Siapkan tahun ajaran, impor murid, dan tinjau data dari sumber sekolah.</p>
             </div>
+            <a class="btn btn-outline-primary" href="{{ route('data-master.classrooms.index') }}">Kelola Data Kelas</a>
         </div>
 
         <section class="sibk-panel mb-4" aria-labelledby="data-master-review-title">

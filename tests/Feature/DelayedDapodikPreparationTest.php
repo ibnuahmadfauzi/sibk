@@ -9,6 +9,7 @@ use App\Models\Achievement;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\ClassroomCatalog;
 use App\Models\Consultation;
 use App\Models\ExternalSyncRun;
 use App\Models\ReferenceValue;
@@ -22,6 +23,7 @@ use App\Services\AcademicYearPreparationService;
 use App\Services\AchievementService;
 use App\Services\ApiSiswaRosterImportService;
 use App\Services\CaseService;
+use App\Services\ClassroomCatalogService;
 use App\Services\ConsultationService;
 use App\Services\ProvisionalRosterCsvParser;
 use App\Services\ProvisionalRosterPayloadParser;
@@ -50,6 +52,92 @@ class DelayedDapodikPreparationTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
+    }
+
+    #[Test]
+    public function admin_catalog_prepares_empty_classrooms_and_coordinator_can_activate_them(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $catalog = app(ClassroomCatalogService::class)->add('X RPL 1', $admin);
+        app(ClassroomCatalogService::class)->add('XI RPL 1', $admin);
+
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $this->assertDatabaseHas('classrooms', [
+            'academic_year_id' => $year->id,
+            'classroom_catalog_id' => $catalog->id,
+            'name' => 'X RPL 1',
+        ]);
+        $classes = Classroom::query()->where('academic_year_id', $year->id)->orderBy('name')->get();
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid XI', 'is_active' => true]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classes[1]->id,
+            'academic_year_id' => $year->id,
+            'is_active' => true,
+        ]);
+        foreach ($classes as $classroom) {
+            TeacherAssignment::query()->create([
+                'user_id' => $teacher->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id,
+                'assigned_by' => $coordinator->id,
+            ]);
+        }
+
+        $this->assertTrue(app(AcademicYearPreparationService::class)->activationReadiness($year)['ready']);
+        app(AcademicYearPreparationService::class)->activate($year, $coordinator);
+        $this->assertTrue($year->refresh()->is_active);
+        $this->assertSame(0, $classes[0]->studentClassMemberships()->count());
+
+        app(AcademicYearPreparationService::class)->importRosterPayload([
+            'success' => true,
+            'data' => [[
+                'nisn' => '0098765432', 'nama' => 'Murid X',
+                'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name,
+            ]],
+        ], $admin);
+        $this->assertDatabaseCount('classrooms', 2);
+        $this->assertDatabaseHas('student_class_memberships', [
+            'classroom_id' => $classes[0]->id, 'academic_year_id' => $year->id,
+        ]);
+        $this->assertValidationError(
+            fn () => app(ClassroomCatalogService::class)->update($catalog, $catalog->name, false, $admin),
+            'is_active',
+        );
+    }
+
+    #[Test]
+    public function data_kelas_is_admin_only_and_renaming_keeps_archived_year_names(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $teacher = $this->userWithRole('guru_bk');
+        $this->actingAs($teacher)->getJson(route('data-master.classrooms.index'))->assertForbidden();
+        $this->actingAs($teacher)->postJson(route('data-master.classrooms.store'), ['name' => 'X RPL 1'])->assertForbidden();
+        $this->actingAs($admin)->post(route('data-master.classrooms.store'), ['name' => 'X RPL 1'])
+            ->assertRedirect(route('data-master.classrooms.index'));
+        $catalog = ClassroomCatalog::query()->sole();
+        $this->actingAs($teacher)->patchJson(route('data-master.classrooms.update', $catalog), [
+            'name' => 'X RPL Baru', 'is_active' => 1,
+        ])->assertForbidden();
+        $oldYear = AcademicYear::query()->create([
+            'name' => '2026/2027', 'is_active' => false, 'activated_at' => now()->subYear(),
+        ]);
+        Classroom::query()->create([
+            'academic_year_id' => $oldYear->id,
+            'classroom_catalog_id' => $catalog->id,
+            'name' => 'X RPL 1',
+        ]);
+        $current = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+
+        $this->actingAs($admin)->patch(route('data-master.classrooms.update', $catalog), [
+            'name' => 'X Rekayasa Perangkat Lunak 1', 'is_active' => 1,
+        ])->assertRedirect(route('data-master.classrooms.index'));
+        $this->assertDatabaseHas('classrooms', ['academic_year_id' => $oldYear->id, 'name' => 'X RPL 1']);
+        $this->assertDatabaseHas('classrooms', [
+            'academic_year_id' => $current->id, 'name' => 'X Rekayasa Perangkat Lunak 1',
+        ]);
     }
 
     #[Test]

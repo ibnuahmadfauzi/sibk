@@ -224,6 +224,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ## 6. Modul Data Master & Rekonsiliasi (`MD`)
 
 ### Persiapan Tahun Ajaran dan Impor API Siswa
+- **Data Kelas:** `GET /data-master/classes` menampilkan daftar rombel sekolah; `POST /data-master/classes` menambah rombel, `PATCH /data-master/classes/{catalog}` mengubah nama atau status. Hanya Admin IT aktif dapat mengakses. Daftar aktif disalin sebagai `classrooms` saat tahun ajaran baru dibuat. Penambahan rombel juga tersedia pada tahun aktif/Persiapan; perubahan nama atau status pada rombel yang terhubung tidak mengubah tahun yang sudah selesai. Penonaktifan ditolak jika rombel pada tahun berjalan masih memiliki murid atau penugasan.
 - **Endpoint:**
   - `POST /data-master/academic-years` untuk membuat tahun ajaran persiapan.
   - `DELETE /data-master/academic-years/{academicYear}` untuk membatalkan tahun Persiapan yang belum pernah aktif; service memeriksa data terverifikasi dan riwayat layanan sebelum menghapus roster tahun tersebut secara atomik.

@@ -9,6 +9,7 @@ use App\Models\Achievement;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\ClassroomCatalog;
 use App\Models\Consultation;
 use App\Models\DapodikSyncPreviewItem;
 use App\Models\EtatibIdentityMapping;
@@ -69,6 +70,16 @@ class AcademicYearPreparationService
                 'source_confirmed_at' => null,
                 'prepared_by' => $actor->getKey(),
             ]);
+
+            foreach (ClassroomCatalog::query()->where('is_active', true)->orderBy('name')->get() as $catalog) {
+                Classroom::query()->create([
+                    'academic_year_id' => $year->id,
+                    'classroom_catalog_id' => $catalog->id,
+                    'name' => $catalog->name,
+                    'is_active' => true,
+                    'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                ]);
+            }
 
             $this->auditService->record(
                 action: 'academic_year.prepared',
@@ -732,7 +743,7 @@ class AcademicYearPreparationService
                 'student_count' => $studentCount,
                 'assignment_count' => $assignments->count(),
                 'teacher_name' => $assignmentReady ? $assignment->teacher->name : null,
-                'ready' => $studentCount > 0 && $assignmentReady,
+                'ready' => $assignmentReady,
             ];
         });
 
@@ -740,8 +751,8 @@ class AcademicYearPreparationService
         if ($classrooms->isEmpty()) {
             $blocking['classrooms'] = 'Belum ada rombel aktif pada tahun ajaran ini.';
         }
-        if ($readinessRows->contains(fn (array $row): bool => $row['student_count'] === 0)) {
-            $blocking['students'] = 'Setiap rombel aktif harus memiliki minimal satu murid aktif.';
+        if ($activeMemberships->isEmpty()) {
+            $blocking['students'] = 'Minimal satu murid harus tersedia pada tahun ajaran ini.';
         }
         if ($activeMemberships->groupBy('student_id')->contains(
             fn (Collection $memberships): bool => $memberships->count() > 1,

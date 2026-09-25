@@ -7,6 +7,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
+use App\Http\Controllers\Admin\ClassroomCatalogController;
 use App\Http\Controllers\Admin\ApiManagementController;
 use App\Http\Controllers\Admin\DapodikReconciliationController;
 use App\Http\Controllers\Admin\DataMasterController;
@@ -101,6 +102,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/data-master', [DataMasterController::class, 'index'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.index');
+        Route::get('/data-master/classes', [ClassroomCatalogController::class, 'index'])->name('data-master.classrooms.index');
+        Route::post('/data-master/classes', [ClassroomCatalogController::class, 'store'])->name('data-master.classrooms.store');
+        Route::patch('/data-master/classes/{catalog}', [ClassroomCatalogController::class, 'update'])->name('data-master.classrooms.update');
         Route::get('/data-master/students', [DataMasterController::class, 'students'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.students.index');
