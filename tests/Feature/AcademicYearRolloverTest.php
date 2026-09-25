@@ -382,7 +382,7 @@ class AcademicYearRolloverTest extends TestCase
     }
 
     #[Test]
-    public function activation_is_blocked_when_an_active_classroom_has_no_active_students(): void
+    public function activation_allows_an_empty_classroom_with_an_assigned_teacher(): void
     {
         $this->travelTo('2027-07-01 09:00:00');
         $sourceYear = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
@@ -404,31 +404,19 @@ class AcademicYearRolloverTest extends TestCase
         $service = app(AcademicYearPreparationService::class);
         $readiness = $service->activationReadiness($targetYear);
 
-        $this->assertSame('not_ready', $readiness['state']);
-        $this->assertFalse($readiness['ready']);
-        $this->assertContains(
-            'Setiap rombel aktif harus memiliki minimal satu murid aktif.',
-            $readiness['issues'],
-        );
-        $this->assertNotContains(
-            'Setiap rombel harus memiliki tepat satu Guru BK aktif sejak awal tahun ajaran.',
-            $readiness['issues'],
-        );
+        $this->assertSame('ready', $readiness['state']);
+        $this->assertTrue($readiness['ready']);
+        $this->assertSame([], $readiness['issues']);
         $emptyClassroomReadiness = $readiness['classrooms']->first(
             fn (array $row): bool => $row['classroom']->is($emptyClassroom),
         );
         $this->assertNotNull($emptyClassroomReadiness);
-        $this->assertFalse($emptyClassroomReadiness['ready']);
+        $this->assertSame(0, $emptyClassroomReadiness['student_count']);
+        $this->assertTrue($emptyClassroomReadiness['ready']);
 
-        try {
-            $service->activate($targetYear, $coordinator);
-            $this->fail('Tahun ajaran dengan rombel kosong dapat diaktifkan.');
-        } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('students', $exception->errors());
-        }
-
-        $this->assertTrue($sourceYear->refresh()->is_active);
-        $this->assertFalse($targetYear->refresh()->is_active);
+        $service->activate($targetYear, $coordinator);
+        $this->assertFalse($sourceYear->refresh()->is_active);
+        $this->assertTrue($targetYear->refresh()->is_active);
     }
 
     #[Test]

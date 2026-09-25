@@ -1996,7 +1996,7 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertRedirect(route('data-master.index'));
         $this->actingAs($admin)
             ->get(route('data-master.index'))
-            ->assertSee('Lihat Data Murid');
+            ->assertDontSee('Lihat Data Murid');
 
         $this->app['auth']->guard()->logout();
         $this->post(route('data-master.roster-imports.preview'), [
