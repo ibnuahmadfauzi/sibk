@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SyncEtatibApiRequest;
 use App\Integrations\IntegrationConfigurationException;
 use App\Models\AcademicYear;
-use App\Models\Classroom;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
@@ -31,7 +30,6 @@ class DataMasterController extends Controller
     ): Response {
         $this->authorizeAdmin($request);
 
-        $activeYear = AcademicYear::query()->active()->orderByDesc('starts_on')->first();
         $rolloverTargetYear = AcademicYear::query()
             ->orderByDesc('starts_on')
             ->orderByDesc('id')
@@ -43,47 +41,17 @@ class DataMasterController extends Controller
                 default => 'dapodik',
             },
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
-            'lastApiSiswaRun' => ExternalSyncRun::query()
-                ->where('source', 'api_siswa')
-                ->latest('started_at')
-                ->first(),
-            'lastSuccessfulApiSiswaRun' => ExternalSyncRun::query()
-                ->where('source', 'api_siswa')
-                ->whereIn('status', [ExternalSyncRun::STATUS_SUCCEEDED, ExternalSyncRun::STATUS_WARNING])
-                ->where('processed_count', '>', 0)
-                ->latest('finished_at')
-                ->first(),
-            'lastDapodikRun' => ExternalSyncRun::query()->where('source', 'dapodik')->latest('started_at')->first(),
-            'lastSuccessfulDapodikRun' => ExternalSyncRun::query()
-                ->where('source', 'dapodik')
-                ->whereIn('status', [ExternalSyncRun::STATUS_SUCCEEDED, ExternalSyncRun::STATUS_WARNING])
-                ->where('processed_count', '>', 0)
-                ->latest('finished_at')
-                ->first(),
             'latestDapodikPreview' => ExternalSyncRun::query()
                 ->where('source', 'dapodik')
                 ->where('status', ExternalSyncRun::STATUS_PREVIEW_READY)
                 ->latest('preview_generation')
                 ->first(),
-            'lastEtatibRun' => ExternalSyncRun::query()->where('source', 'etatib')->latest('started_at')->first(),
-            'lastSuccessfulEtatibRun' => ExternalSyncRun::query()
-                ->where('source', 'etatib')
-                ->whereIn('status', [ExternalSyncRun::STATUS_SUCCEEDED, ExternalSyncRun::STATUS_WARNING])
-                ->where('processed_count', '>', 0)
-                ->latest('finished_at')
-                ->first(),
-            'syncRuns' => ExternalSyncRun::query()->with('trigger')->latest('started_at')->limit(10)->get(),
             'unresolvedIssueCount' => ExternalSyncIssue::query()
                 ->where('entity_type', 'etatib_record')
                 ->whereIn('issue_code', ['student_not_found', 'student_name_mismatch'])
                 ->whereNull('resolved_at')
                 ->count(),
             'studentCount' => Student::query()->active()->count(),
-            'classroomCount' => Classroom::query()
-                ->active()
-                ->when($activeYear, fn ($query) => $query->where('academic_year_id', $activeYear->getKey()))
-                ->count(),
-            'activeYear' => $activeYear,
             'rolloverSummary' => $rolloverTargetYear === null
                 ? null
                 : $rolloverQuery->summarize($rolloverTargetYear),

@@ -186,6 +186,8 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('name="api_url"', false)
             ->assertDontSee('Periksa hasil impor')
             ->assertDontSee('Kelola Konflik e-Tatib')
+            ->assertDontSee('Status dan riwayat sinkronisasi')
+            ->assertDontSee('Belum ada riwayat sinkronisasi')
             ->assertDontSee('data-etatib-api-form', false);
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
@@ -204,6 +206,7 @@ class FrontendPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('Sinkronisasi API e-Tatib')
             ->assertSee('Kelola Konflik e-Tatib')
+            ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertSee('data-etatib-api-form', false)
             ->assertSee('data-etatib-preview-modal', false)
             ->assertDontSee('data-integration-panel="dapodik"', false)
