@@ -57,7 +57,7 @@
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Permasalahan</h4>
-                    <p class="text-muted small mb-4">Pilih murid dalam scope Anda atau gunakan identitas sementara bila master belum tersedia.</p>
+                    <p class="text-muted small mb-4">Pilih murid yang Anda tangani. Jika belum terdaftar, isi NISN dan nama sementara.</p>
                     <div class="row g-4">
                         <div class="col-md-4">
                             <label for="sumber" class="form-label sibk-form-label">Sumber</label>
@@ -104,7 +104,7 @@
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Data e-Tatib Terkait</h4>
-                    <p class="text-muted small mb-4">Pilih record resmi dengan NISN yang sama. Wajib bila sumber permasalahan adalah e-Tatib.</p>
+                    <p class="text-muted small mb-4">Pilih pelanggaran dengan NISN yang sama. Wajib untuk permasalahan dari e-Tatib.</p>
                     @if($etatibRecordsCapped)
                         <div class="alert alert-info py-2">Daftar data e-Tatib dibatasi pada {{ $etatibRecords->count() }} record terbaru. Gunakan pencarian NISN yang sama persis untuk mempersempit hasil.</div>
                     @endif
@@ -122,7 +122,7 @@
                             </label>
                         </div>
                     @empty
-                        <p class="text-muted mb-0">Belum ada data e-Tatib aktif. Admin IT perlu menjalankan sinkronisasi setelah connector tersedia.</p>
+                        <p class="text-muted mb-0">Belum ada data e-Tatib. Hubungi Admin IT untuk memeriksa koneksi.</p>
                     @endforelse
                 </div>
             </div>

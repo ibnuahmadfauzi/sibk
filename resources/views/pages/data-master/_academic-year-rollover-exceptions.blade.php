@@ -2,9 +2,9 @@
     <section class="sibk-panel mb-4" aria-labelledby="academic-year-rollover-title">
         <div class="sibk-panel__header p-4 border-0 pb-0">
             <div>
-                <h2 class="sibk-panel__title mb-1" id="academic-year-rollover-title">Murid tanpa Penempatan Tahun Target</h2>
+                <h2 class="sibk-panel__title mb-1" id="academic-year-rollover-title">Murid Belum Punya Rombel di Tahun Baru</h2>
                 <p class="sibk-panel__subtitle text-muted small mb-0">
-                    Murid aktif dari {{ $rolloverSummary->sourceYearName }} yang belum memiliki penempatan aktif pada tahun target.
+                    Murid dari {{ $rolloverSummary->sourceYearName }} belum memiliki rombel di tahun ajaran baru.
                 </p>
             </div>
             <span class="sibk-badge sibk-badge--{{ $rolloverSummary->needsConfirmationCount() > 0 ? 'warning' : 'success' }}">
@@ -13,11 +13,10 @@
         </div>
         <div class="sibk-panel__body p-4">
             <p class="text-muted small mb-3">
-                Cocokkan dengan daftar resmi sekolah. Jika murid masih bersekolah, lengkapi rombelnya di sumber data lalu impor ulang.
-                Daftar ini diperbarui otomatis setelah penempatan terimpor; tidak ada tombol konfirmasi per murid.
-                Status lulus, pindah, atau keluar perlu dipastikan oleh sekolah, bukan ditentukan dari daftar ini.
+                Cocokkan dengan data sekolah. Jika masih bersekolah, lengkapi rombel lalu impor ulang.
+                Daftar diperbarui setelah impor; status lulus atau pindah mengikuti data sekolah.
             </p>
-            <a class="btn btn-outline-primary btn-sm" href="#api-siswa-import-title">Impor daftar yang diperbarui</a>
+            <a class="btn btn-outline-primary btn-sm" href="#api-siswa-import-title">Impor Ulang Data Murid</a>
             <details>
                 <summary class="fw-semibold text-primary py-3">Lihat daftar {{ $rolloverSummary->needsConfirmationCount() }} murid</summary>
             <div class="table-responsive mt-3">

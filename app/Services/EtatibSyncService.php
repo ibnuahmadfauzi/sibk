@@ -146,7 +146,7 @@ class EtatibSyncService
                         if ($existing !== null) {
                             $keptIds[] = $existing->getKey();
                         }
-                        $this->issue($run, $item, 'duplicate_source_identifier', 'Identitas record e-Tatib muncul lebih dari sekali pada payload.');
+                        $this->issue($run, $item, 'duplicate_source_identifier', 'Identitas data e-Tatib muncul lebih dari sekali.');
 
                         continue;
                     }

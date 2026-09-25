@@ -40,7 +40,7 @@ class CaseService
                     ->whereKey($student->getKey())
                     ->exists()) {
                     throw ValidationException::withMessages([
-                        'student_id' => 'Murid tidak berada dalam scope aktif Anda.',
+                        'student_id' => 'Murid ini tidak dapat Anda tangani pada tanggal layanan.',
                     ]);
                 }
             } else {

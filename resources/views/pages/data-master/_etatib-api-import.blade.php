@@ -1,9 +1,9 @@
 <section class="sibk-panel mb-4" aria-labelledby="etatib-api-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
-            <h2 class="sibk-panel__title mb-1" id="etatib-api-title">Sinkronisasi API e-Tatib</h2>
+            <h2 class="sibk-panel__title mb-1" id="etatib-api-title">Sinkronkan Data e-Tatib</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                Tempel link yang menampilkan daftar pelanggaran, lalu periksa datanya sebelum sinkronisasi.
+                Masukkan tautan API, tinjau pelanggaran, lalu sinkronkan.
             </p>
         </div>
     </div>
@@ -52,7 +52,7 @@
         >
             @csrf
             <div class="col-12 col-md">
-                <label class="form-label small" for="etatib_api_url">Link API e-Tatib</label>
+                <label class="form-label small" for="etatib_api_url">Tautan API e-Tatib</label>
                 <input
                     class="form-control"
                     type="url"
@@ -64,7 +64,7 @@
                     required
                 >
                 <div class="form-text">
-                    Link tidak ditampilkan kembali. Pilih sinkronisasi sekali atau simpan terenkripsi untuk jadwal otomatis.
+                    Tautan tidak ditampilkan lagi; jadwal otomatis menyimpannya terenkripsi.
                 </div>
             </div>
             <div class="col-12 col-md-auto">
@@ -73,7 +73,7 @@
                     class="btn btn-primary w-100"
                     data-etatib-preview-button
                 >
-                    {{ $etatibAutomaticSetting['enabled'] ? 'Ganti Link' : 'Cek & Pratinjau' }}
+                    Tinjau Data
                 </button>
             </div>
         </form>

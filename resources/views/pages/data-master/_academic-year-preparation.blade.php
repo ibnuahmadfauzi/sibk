@@ -11,7 +11,7 @@
         <div>
             <h2 class="sibk-panel__title mb-1" id="academic-year-preparation-title">Persiapan Tahun Ajaran</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                {{ $preparationYears->isEmpty() ? 'Buat tahun ajaran untuk mulai mengimpor murid.' : 'Periksa tahun ajaran yang disiapkan sebelum mengimpor murid.' }}
+                {{ $preparationYears->isEmpty() ? 'Buat tahun ajaran sebelum mengimpor murid.' : 'Tinjau tahun ajaran yang sudah dibuat.' }}
             </p>
         </div>
     </div>
@@ -20,7 +20,7 @@
         <div class="row g-4">
             @if($preparationYears->isNotEmpty())
             <div class="col-12 order-1">
-                <h3 class="fs-6 fw-bold mb-3">Tahun Ajaran yang Disiapkan</h3>
+                <h3 class="fs-6 fw-bold mb-3">Tahun Ajaran Persiapan</h3>
 
                 <div class="d-flex flex-column gap-3">
                     @foreach($preparationYears as $year)
@@ -37,7 +37,7 @@
                             </div>
                             <div class="small mb-3">
                                 <span class="me-3">{{ $year->active_classroom_count }} rombel</span>
-                                <span>{{ $year->active_student_count }} keanggotaan murid</span>
+                                <span>{{ $year->active_student_count }} murid ditempatkan</span>
                             </div>
                             @if(! $year->is_active && $year->activated_at === null)
                                 <button
@@ -69,9 +69,9 @@
                                 </div>
                             @endif
                             @if($year->is_active)
-                                <p class="small text-success mb-0">Tahun ajaran ini sudah aktif. Daftar sementara tidak dapat diimpor lagi.</p>
+                                <p class="small text-success mb-0">Tahun ajaran aktif. Impor murid sementara sudah ditutup.</p>
                             @else
-                                <p class="small text-muted mb-0">Koordinator BK mengaktifkan tahun ajaran setelah setiap rombel memiliki Guru BK.</p>
+                                <p class="small text-muted mb-0">Koordinator BK mengaktifkannya setelah setiap rombel memiliki Guru BK.</p>
                             @endif
                         </div>
                     @endforeach
@@ -85,7 +85,7 @@
                         <summary class="fw-semibold text-primary py-3">Buat tahun ajaran lain</summary>
                         <div class="mt-3">
                 @else
-                    <h3 class="fs-6 fw-bold mb-3">Buat Tahun Ajaran Sementara</h3>
+                    <h3 class="fs-6 fw-bold mb-3">Buat Tahun Ajaran</h3>
                 @endif
                 <form action="{{ route('data-master.academic-years.store') }}" method="POST" class="row g-3" data-autosave-form="academic-year-preparation">
                     @csrf

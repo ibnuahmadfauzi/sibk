@@ -28,7 +28,7 @@
                     &larr; Data Master
                 </a>
                 <h1>Konflik e-Tatib</h1>
-                <p>Cocokkan identitas sumber e-Tatib ke master murid dari API Siswa.</p>
+                <p>Cocokkan data e-Tatib dengan daftar murid sekolah.</p>
             </div>
         </div>
 
@@ -56,7 +56,7 @@
                 <div class="sibk-panel__header p-4 pb-2">
                     <h2 class="fs-6 fw-bold mb-1" id="unmatched-etatib-title">Identitas Belum Cocok</h2>
                     <p class="text-muted small mb-0">
-                        Pencocokan otomatis hanya dilakukan saat NISN canonical dan nama sama.
+                        Pencocokan otomatis dilakukan jika NISN dan nama sama.
                     </p>
                 </div>
                 <div class="table-responsive">
@@ -209,7 +209,7 @@
                     <div class="modal-header">
                         <div>
                             <h2 class="modal-title fs-5" id="etatib-mapping-title">Cocokkan Identitas e-Tatib</h2>
-                            <p class="text-muted small mb-0">Pilih satu murid dari master API Siswa.</p>
+                            <p class="text-muted small mb-0">Pilih murid yang sesuai dari daftar sekolah.</p>
                         </div>
                         <button
                             type="button"

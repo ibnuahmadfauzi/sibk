@@ -13,17 +13,16 @@
 
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
-                <h1 class="mb-1">Pratinjau Pencocokan Dapodik</h1>
-                <p class="mb-0">Periksa hasil sebelum diterapkan. Data operasional belum berubah.</p>
+                <h1 class="mb-1">Tinjau Data Dapodik</h1>
+                <p class="mb-0">Periksa hasil pencocokan sebelum memperbarui data sekolah.</p>
             </div>
             <a class="btn btn-outline-primary" href="{{ route('data-master.index') }}">Kembali</a>
         </div>
 
         <div class="alert alert-info" role="status">
-            <strong>{{ $syncRun->is_full_snapshot ? 'Snapshot penuh' : 'Snapshot parsial' }}.</strong>
-            Generasi {{ $syncRun->preview_generation }} · {{ $syncRun->received_count }} item ·
-            berakhir {{ $syncRun->preview_expires_at?->locale('id')->translatedFormat('d M Y, H.i') }}.
-            Data persiapan ditandai <strong>Belum terverifikasi Dapodik</strong> sampai penerapan berhasil.
+            <strong>{{ $syncRun->is_full_snapshot ? 'Data lengkap' : 'Data sebagian' }}.</strong>
+            {{ $syncRun->received_count }} data · Berlaku sampai {{ $syncRun->preview_expires_at?->locale('id')->translatedFormat('d M Y, H.i') }}.
+            Data persiapan tetap <strong>Belum terverifikasi Dapodik</strong> sampai diterapkan.
         </div>
 
         @if($syncRun->is_full_snapshot)
@@ -31,20 +30,20 @@
                 <div class="sibk-panel__body p-4">
                     <h2 class="fs-6 fw-bold mb-2" id="deactivation-plan-title">Rencana Penonaktifan</h2>
                     <p class="text-muted small mb-3">
-                        Snapshot penuh akan menonaktifkan hanya data terverifikasi Dapodik yang tercantum berikut ini.
+                        Penerapan data lengkap akan menonaktifkan data Dapodik berikut.
                     </p>
                     @forelse($syncRun->deactivation_plan as $planned)
                         @php
                             $plannedEntity = match($planned['entity_type']) {
                                 'classroom' => 'Rombel',
                                 'student' => 'Murid',
-                                default => 'Keanggotaan',
+                                default => 'Penempatan murid',
                             };
                         @endphp
                         <div class="border rounded-3 p-3 mb-2">
                             <strong>{{ $plannedEntity }} internal #{{ $planned['target_id'] }}</strong>
                             <span class="text-muted small d-block">
-                                Fingerprint: {{ substr($planned['target_fingerprint'], 0, 12) }}
+                                Kode pemeriksaan: {{ substr($planned['target_fingerprint'], 0, 12) }}
                             </span>
                         </div>
                     @empty
@@ -54,7 +53,7 @@
             </section>
         @else
             <div class="alert alert-secondary" role="status">
-                Snapshot parsial tidak akan menonaktifkan data yang tidak tercantum.
+                Data sebagian tidak akan menonaktifkan data lain.
             </div>
         @endif
 
@@ -84,7 +83,7 @@
                                     'academic_year' => 'Tahun ajaran',
                                     'classroom' => 'Rombel',
                                     'student' => 'Murid',
-                                    default => 'Keanggotaan',
+                                    default => 'Penempatan murid',
                                 };
                             @endphp
                             <tr>
@@ -115,9 +114,9 @@
                                             </div>
                                         </form>
                                     @elseif($item->match_status === 'conflict')
-                                        <span class="text-danger small">Konflik tidak dapat dipaksa melalui halaman ini.</span>
+                                        <span class="text-danger small">Data ini belum bisa diterapkan. Periksa sumbernya.</span>
                                     @elseif($hasDerivedConflict)
-                                        <span class="text-danger small">Konflik turunan pada keanggotaan murid. Periksa pemetaan tahun ajaran dan rombel; hasil belum dapat diterapkan.</span>
+                                        <span class="text-danger small">Penempatan murid belum cocok. Periksa tahun ajaran dan rombel.</span>
                                     @else
                                         <span class="text-muted small">Tidak memerlukan keputusan manual.</span>
                                     @endif
@@ -133,7 +132,7 @@
             @csrf
             <input type="hidden" name="decision_revision" value="{{ $syncRun->decision_revision }}">
             <button type="submit" class="btn btn-primary" @disabled($syncRun->conflict_count > 0)>
-                Terapkan Hasil Pencocokan
+                Terapkan Data Dapodik
             </button>
         </form>
     </div>

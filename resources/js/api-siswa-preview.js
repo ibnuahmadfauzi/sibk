@@ -63,7 +63,7 @@ const renderPreview = (container, preview) => {
     const sampleNote = createElement(
         'p',
         'text-muted small',
-        'Maksimal lima baris ditampilkan. NISN disamarkan dan payload tidak disimpan.',
+        'Maksimal lima baris ditampilkan. NISN disamarkan dan data API tidak disimpan.',
     );
     const sampleWrapper = createElement('div', 'table-responsive');
     const sampleTable = createElement('table', 'table table-sm sibk-table mb-0');

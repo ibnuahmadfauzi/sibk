@@ -515,7 +515,7 @@ class IntegrationSettingTest extends TestCase
             ->assertSee('id="integration-etatib"', false)
             ->assertDontSee('id="integration-dapodik"', false)
             ->assertSee('Status koneksi')
-            ->assertSee('Keadaan data terakhir')
+            ->assertSee('Pembaruan Data Terakhir')
             ->assertSee('Belum dapat digunakan')
             ->assertSee('Terakhir berhasil diperbarui 08 Sep 2026, 08.01.')
             ->assertSee('Data terakhir tersedia')

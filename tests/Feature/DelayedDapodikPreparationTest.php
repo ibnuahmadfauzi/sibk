@@ -1389,7 +1389,7 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertSee('API Siswa')
             ->assertSee('name="api_url"', false)
             ->assertSee('data-api-siswa-preview-modal', false)
-            ->assertSee('Cek &amp; Pratinjau', false)
+            ->assertSee('Tinjau Data')
             ->assertSee(route('data-master.roster-imports.preview'), false)
             ->assertSee('name="file"', false)
             ->assertDontSee('data-etatib-api-form', false)

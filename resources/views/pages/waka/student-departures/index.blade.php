@@ -7,7 +7,7 @@
     <div class="sibk-page-header mb-4">
         <div class="sibk-page-header__copy">
             <h1>Proses Keluar Murid</h1>
-            <p>Daftar operasional read-only untuk pemantauan Waka Kesiswaan.</p>
+            <p>Pantau proses keluar murid tanpa mengubah datanya.</p>
         </div>
     </div>
 

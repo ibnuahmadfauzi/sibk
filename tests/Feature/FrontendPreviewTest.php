@@ -59,7 +59,7 @@ class FrontendPreviewTest extends TestCase
 
         $this->get('/dashboard')
             ->assertOk()
-            ->assertSee('Tampilan hanya-baca')
+            ->assertSee('Hanya untuk dilihat')
             ->assertSee('Penanganan Terbaru')
             ->assertDontSee('Cari profil murid');
     }
@@ -141,14 +141,14 @@ class FrontendPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('Persiapan Tahun Ajaran')
             ->assertSee('Buat tahun ajaran lain')
-            ->assertSee('Koordinator BK mengaktifkan tahun ajaran')
+            ->assertSee('Koordinator BK mengaktifkannya')
             ->assertDontSee('Periksa hasil impor')
             ->assertSee('name="name"', false)
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSeeInOrder([
                 'Persiapan Tahun Ajaran',
                 'Buat tahun ajaran lain',
-                'Impor Data Murid dari API Siswa',
+                'Impor Murid dari API Siswa',
             ])
             ->assertSee('Impor CSV (cadangan)')
             ->assertDontSee('Langkah 1 dari 3');
@@ -182,12 +182,13 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Tahun Ajaran &amp; Murid', false)
             ->assertSee('e-Tatib')
             ->assertSee('Persiapan Tahun Ajaran')
-            ->assertSee('Buat Tahun Ajaran Sementara')
+            ->assertSee('Buat Tahun Ajaran')
             ->assertDontSee('name="preparation_reference"', false)
             ->assertSee('name="api_url"', false)
             ->assertDontSee('Periksa hasil impor')
             ->assertDontSee('Kelola Konflik e-Tatib')
-            ->assertSee('Data yang Perlu Diperiksa')
+            ->assertSee('Yang Perlu Ditinjau')
+            ->assertSee('Belum ada data yang perlu ditinjau.')
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertDontSee('Belum ada riwayat sinkronisasi')
             ->assertDontSee('data-etatib-api-form', false);
@@ -197,27 +198,27 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Persiapan Tahun Ajaran')
             ->assertSee('col-12 col-xl-5 sibk-data-master-year', false)
             ->assertSee('col-12 col-xl-7 sibk-data-master-api', false)
-            ->assertSee('Impor Data Murid dari API Siswa')
+            ->assertSee('Impor Murid dari API Siswa')
             ->assertSee('name="api_url"', false)
-            ->assertSee('Cek &amp; Pratinjau', false)
+            ->assertSee('Tinjau Data')
             ->assertSee('data-api-siswa-preview-modal', false)
             ->assertSee('Pratinjau API Siswa')
             ->assertSee('Impor CSV')
-            ->assertSeeInOrder(['Persiapan Tahun Ajaran', 'Impor Data Murid dari API Siswa', 'Impor CSV (cadangan)'])
+            ->assertSeeInOrder(['Persiapan Tahun Ajaran', 'Impor Murid dari API Siswa', 'Impor CSV (cadangan)'])
             ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertDontSee('data-etatib-api-form', false);
 
         $this->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
-            ->assertSee('Sinkronisasi API e-Tatib')
-            ->assertSee('Data yang Perlu Diperiksa')
+            ->assertSee('Sinkronkan Data e-Tatib')
+            ->assertSee('Yang Perlu Ditinjau')
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertSee('data-etatib-api-form', false)
             ->assertSee('data-etatib-preview-modal', false)
             ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertSeeInOrder([
-                'Link API e-Tatib',
-                'Cek &amp; Pratinjau',
+                'Tautan API e-Tatib',
+                'Tinjau Data',
                 'Pratinjau API e-Tatib',
                 'Sinkronkan Data',
             ], false)
@@ -288,7 +289,7 @@ class FrontendPreviewTest extends TestCase
     {
         return [
             'guru' => ['guru_bk', 'Murid dalam cakupan'],
-            'coordinator' => ['koordinator_bk', 'Rekap tata kelola'],
+            'coordinator' => ['koordinator_bk', 'Guru BK aktif'],
             'waka' => ['waka_kesiswaan', 'Dashboard Waka Kesiswaan'],
         ];
     }

@@ -9,7 +9,11 @@
                 <div class="toast sibk-assignment-toast {{ session('warning') ? 'sibk-assignment-toast--warning' : '' }}" id="dataMasterToast" role="status">
                     <div class="toast-body d-flex align-items-start gap-2">
                         <span class="sibk-assignment-toast__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+                            @if(session('warning'))
+                                <svg viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01" /></svg>
+                            @else
+                                <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+                            @endif
                         </span>
                         <div class="flex-grow-1">
                             <strong class="d-block">{{ session('warning') ? 'Perlu perhatian' : 'Perubahan berhasil' }}</strong>
@@ -32,25 +36,28 @@
         <!-- Header -->
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
-                <h1 class="mb-1">Data Master dan Sinkronisasi</h1>
-                <p class="mb-0">Siapkan tahun ajaran dan periksa data murid dari sumber sekolah.</p>
+                <h1 class="mb-1">Data Master</h1>
+                <p class="mb-0">Siapkan tahun ajaran, impor murid, dan tinjau data dari sumber sekolah.</p>
             </div>
         </div>
 
         <section class="sibk-panel mb-4" aria-labelledby="data-master-review-title">
             <div class="sibk-panel__body p-4">
-                <h2 class="fs-6 fw-bold text-dark mb-2" id="data-master-review-title">Data yang Perlu Diperiksa</h2>
+                <h2 class="fs-6 fw-bold text-dark mb-2" id="data-master-review-title">Yang Perlu Ditinjau</h2>
                 <div class="d-flex flex-wrap align-items-center gap-3 small">
-                    <span><strong>{{ $rolloverSummary?->needsConfirmationCount() ?? 0 }}</strong> murid tanpa penempatan tahun target</span>
-                    <span><strong>{{ $unresolvedIssueCount }}</strong> konflik e-Tatib</span>
-                    @if($latestDapodikPreview)
-                        <a href="{{ route('data-master.dapodik.previews.show', $latestDapodikPreview) }}">Pratinjau Dapodik menunggu penerapan</a>
-                    @endif
                     @if($rolloverSummary?->needsConfirmationCount() > 0)
-                        <a href="{{ route('data-master.index', ['tab' => 'dapodik']) }}#academic-year-rollover-title">Lihat murid</a>
+                        <a href="{{ route('data-master.index', ['tab' => 'dapodik']) }}#academic-year-rollover-title">
+                            {{ $rolloverSummary->needsConfirmationCount() }} murid belum punya rombel di tahun baru
+                        </a>
                     @endif
                     @if($unresolvedIssueCount > 0)
-                        <a href="{{ route('data-master.etatib.conflicts.index') }}">Periksa konflik</a>
+                        <a href="{{ route('data-master.etatib.conflicts.index') }}">{{ $unresolvedIssueCount }} data e-Tatib belum cocok</a>
+                    @endif
+                    @if($latestDapodikPreview)
+                        <a href="{{ route('data-master.dapodik.previews.show', $latestDapodikPreview) }}">Tinjau data Dapodik sebelum diterapkan</a>
+                    @endif
+                    @if(! $latestDapodikPreview && $unresolvedIssueCount === 0 && ($rolloverSummary?->needsConfirmationCount() ?? 0) === 0)
+                        <span class="text-muted">Belum ada data yang perlu ditinjau.</span>
                     @endif
                 </div>
             </div>
@@ -85,9 +92,9 @@
                         <details @if($errors->has('file')) open @endif>
                             <summary class="fw-semibold text-primary py-2">Impor CSV (cadangan)</summary>
                             <p class="text-muted small mt-3">
-                                Gunakan jika API Siswa belum tersedia. CSV UTF-8 maksimal 2 MiB dan 5.000 baris,
+                                Gunakan jika API Siswa belum tersedia. Siapkan CSV UTF-8 maksimal 2 MiB dan 5.000 baris,
                                 dengan header <code>nisn,nama,rombel,tahun_pelajaran</code>.
-                                Semua tahun pelajaran harus sudah dibuat dan belum aktif.
+                                Buat tahun ajarannya terlebih dahulu dan pastikan belum aktif.
                             </p>
                             <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end mb-3">
                                 @csrf
@@ -103,10 +110,10 @@
                         @if($studentCount > 0)
                             <div class="border-top pt-3 mt-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
                                 <div>
-                                    <h3 class="fs-6 fw-bold mb-1">Periksa hasil impor</h3>
-                                    <p class="mb-0 small text-muted">Pastikan murid dan rombel yang masuk sudah sesuai.</p>
+                                    <h3 class="fs-6 fw-bold mb-1">Periksa murid yang sudah diimpor</h3>
+                                    <p class="mb-0 small text-muted">Cocokkan nama dan rombel dengan data sekolah.</p>
                                 </div>
-                                <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
+                                <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Lihat Data Murid</a>
                             </div>
                         @endif
                     </div>

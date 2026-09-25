@@ -57,7 +57,7 @@ final class DapodikDeactivationPlanner
             $this->auditService->record(
                 action: "dapodik.{$planned['entity_type']}_deactivated",
                 auditable: $target,
-                summary: 'Data terverifikasi Dapodik dinonaktifkan sesuai rencana snapshot penuh.',
+                summary: 'Data terverifikasi Dapodik dinonaktifkan sesuai rencana data lengkap.',
                 actor: $actor,
                 before: $before,
                 after: $this->auditTarget($target),

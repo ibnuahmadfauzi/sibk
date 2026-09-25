@@ -43,13 +43,13 @@ final class DapodikPreviewBuilder
         foreach ($superseded as $previousRun) {
             $previousRun->update([
                 'status' => ExternalSyncRun::STATUS_SUPERSEDED,
-                'summary' => 'Pratinjau digantikan oleh snapshot Dapodik yang lebih baru.',
+                'summary' => 'Pratinjau lama diganti oleh data Dapodik terbaru.',
                 'superseded_at' => now(),
             ]);
             $this->auditService->record(
                 action: 'dapodik.preview_superseded',
                 auditable: $previousRun,
-                summary: 'Keputusan pratinjau lama dibatalkan karena snapshot baru tersedia.',
+                summary: 'Keputusan lama dibatalkan karena data Dapodik terbaru tersedia.',
                 actor: $actor,
                 after: ['preview_generation' => $previousRun->preview_generation],
             );

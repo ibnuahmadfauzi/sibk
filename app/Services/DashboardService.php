@@ -90,16 +90,16 @@ class DashboardService
         }
 
         $scopeText = match ($mode) {
-            'coordinator' => sprintf('Rekap tata kelola %d Guru BK aktif', User::query()->active()->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))->count()),
+            'coordinator' => sprintf('%d Guru BK aktif', User::query()->active()->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))->count()),
             'teacher' => $this->teacherScope($user, $year),
-            default => 'Tampilan koordinasi hanya-baca dari seluruh permasalahan aktif sekolah',
+            default => 'Ringkasan permasalahan aktif sekolah',
         };
         $activeCases = (clone $cases)->whereNull('closed_at')->count();
         $stats = [
             ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan permasalahan aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
             ['label' => $mode === 'waka' ? 'Seluruh permasalahan aktif' : 'Permasalahan aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
             ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => 'Perlu ditindaklanjuti', 'tone' => 'success', 'kind' => 'schedule'],
-            ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Mirror read-only dalam kewenangan', 'tone' => 'info', 'kind' => 'etatib'],
+            ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Sesuai akses Anda', 'tone' => 'info', 'kind' => 'etatib'],
         ];
 
         return [
@@ -265,7 +265,7 @@ class DashboardService
             ->when($year, fn (Builder $assignments, AcademicYear $selected): Builder => $assignments->where('academic_year_id', $selected->getKey()))
             ->with('classroom')->get()->pluck('classroom.name')->filter()->join(', ');
 
-        return $classes === '' ? 'Penugasan permasalahan khusus aktif' : 'Kelas '.$classes.' dan penugasan permasalahan khusus';
+        return $classes === '' ? 'Permasalahan khusus yang ditugaskan' : 'Kelas '.$classes.' dan permasalahan khusus yang ditugaskan';
     }
 
     /** @param Collection<int, BkCase> $cases @return list<array<string, mixed>> */
