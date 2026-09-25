@@ -951,10 +951,10 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertJsonPath('data.academic_years.0.classrooms', 2)
             ->assertJsonPath('data.academic_years.0.ready', true)
             ->assertJsonPath('data.conflict_count', 0)
-            ->assertJsonPath('data.entries.0.nisn', '0012345678')
-            ->assertJsonPath('data.entries.0.name', 'Murid Pratinjau Satu')
-            ->assertJsonPath('data.entries.0.status', 'Siap diimpor')
+            ->assertJsonPath('data.entries', [])
             ->assertJsonMissingPath('data.sample');
+        $this->assertStringNotContainsString('0012345678', $response->getContent());
+        $this->assertStringNotContainsString('Murid Pratinjau Satu', $response->getContent());
         $this->assertStringNotContainsString('PREVIEW-SECRET', $response->getContent());
         $this->assertDatabaseCount('students', 0);
         $this->assertDatabaseCount('classrooms', 0);
@@ -1008,12 +1008,43 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertJsonPath('data.entries.14.nisn', '0000000015')
             ->assertJsonPath('data.entries.14.classroom', 'X RPL 2')
             ->assertJsonPath('data.entries.14.current_classroom', 'X RPL 1')
-            ->assertJsonPath('data.entries.14.status', 'Rombel berbeda')
-            ->assertJsonPath('data.entries.15.status', 'Siap diimpor');
-        $this->assertCount(16, $response->json('data.entries'));
+            ->assertJsonPath('data.entries.14.status', 'Rombel berbeda');
+        $this->assertCount(15, $response->json('data.entries'));
+        $this->assertStringNotContainsString('Murid Baru', $response->getContent());
+        $this->assertStringNotContainsString('0000000016', $response->getContent());
         $this->assertDatabaseCount('students', 15);
         $this->assertDatabaseCount('student_class_memberships', 15);
         $this->assertDatabaseCount('external_sync_runs', 0);
+    }
+
+    #[Test]
+    public function preview_shows_identity_conflict_but_omits_other_students(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        Student::query()->create(['nisn' => '0012345678 ', 'name' => 'NISN Lokal Perlu Koreksi']);
+        Http::fake(['https://8.8.8.8/identity-conflict' => Http::response([
+            'success' => true,
+            'data' => [
+                ['nama' => 'Murid Konflik', 'nisn' => '0012345678', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+                ['nama' => 'Murid Aman', 'nisn' => '0098765432', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+            ],
+        ])]);
+
+        $response = $this->actingAs($admin)->postJson(
+            route('data-master.roster-imports.preview'),
+            ['api_url' => 'https://8.8.8.8/identity-conflict'],
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.rows', 2)
+            ->assertJsonPath('data.conflict_count', 1)
+            ->assertJsonPath('data.can_import', false)
+            ->assertJsonPath('data.entries.0.nisn', '0012345678')
+            ->assertJsonPath('data.entries.0.status', 'NISN perlu diperiksa');
+        $this->assertCount(1, $response->json('data.entries'));
+        $this->assertStringNotContainsString('Murid Aman', $response->getContent());
+        $this->assertStringNotContainsString('0098765432', $response->getContent());
     }
 
     #[Test]

@@ -288,15 +288,15 @@ final class ApiSiswaRosterImportService
             };
             if ($identityConflict || $classroomConflict) {
                 $conflictCount++;
+                $entries[] = [
+                    'nisn' => $row['nisn'],
+                    'name' => $row['name'],
+                    'academic_year' => $row['academic_year_name'],
+                    'classroom' => $row['classroom'],
+                    'current_classroom' => $currentClassroom,
+                    'status' => $status,
+                ];
             }
-            $entries[] = [
-                'nisn' => $row['nisn'],
-                'name' => $row['name'],
-                'academic_year' => $row['academic_year_name'],
-                'classroom' => $row['classroom'],
-                'current_classroom' => $currentClassroom,
-                'status' => $status,
-            ];
         }
 
         return [
