@@ -17,6 +17,17 @@ initEtatibIdentityMapping();
 const dataMasterToast = document.getElementById('dataMasterToast');
 if (dataMasterToast) new Toast(dataMasterToast, { delay: 4500 }).show();
 
+const renameClassroomModal = document.getElementById('renameClassroomModal');
+if (renameClassroomModal) {
+    renameClassroomModal.addEventListener('show.bs.modal', (event) => {
+        const button = event.relatedTarget;
+        const form = renameClassroomModal.querySelector('[data-classroom-rename-form]');
+        form.action = button.dataset.classroomUpdateUrl;
+        form.querySelector('[name="name"]').value = button.dataset.classroomName;
+        form.querySelector('[name="is_active"]').value = button.dataset.classroomActive;
+    });
+}
+
 document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });

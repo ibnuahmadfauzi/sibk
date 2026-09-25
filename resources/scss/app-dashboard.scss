@@ -2693,6 +2693,13 @@ small, .small {
   }
 }
 
+.sibk-classroom-name,
+.sibk-classroom-switch {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
+}
+
 .sibk-report-control {
   border-color: transparent;
   color: var(--sibk-color-primary);

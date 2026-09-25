@@ -39,7 +39,10 @@
                 <h1 class="mb-1">Data Master</h1>
                 <p class="mb-0">Siapkan tahun ajaran, impor murid, dan tinjau data dari sumber sekolah.</p>
             </div>
-            <a class="btn btn-outline-primary" href="{{ route('data-master.classrooms.index') }}">Kelola Data Kelas</a>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <a class="btn btn-link" href="{{ route('data-master.students.index') }}">Cari Murid</a>
+                <a class="btn btn-outline-primary" href="{{ route('data-master.classrooms.index') }}">Data Kelas</a>
+            </div>
         </div>
 
         <section class="sibk-panel mb-4" aria-labelledby="data-master-review-title">
@@ -108,15 +111,6 @@
                                 </div>
                             </form>
                         </details>
-                        @if($studentCount > 0)
-                            <div class="border-top pt-3 mt-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-                                <div>
-                                    <h3 class="fs-6 fw-bold mb-1">Periksa murid yang sudah diimpor</h3>
-                                    <p class="mb-0 small text-muted">Cocokkan nama dan rombel dengan data sekolah.</p>
-                                </div>
-                                <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Lihat Data Murid</a>
-                            </div>
-                        @endif
                     </div>
                 </div>
                 @include('pages.data-master._academic-year-rollover-exceptions')

@@ -11,7 +11,6 @@ use App\Models\AcademicYear;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
-use App\Models\Student;
 use App\Models\User;
 use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
@@ -51,7 +50,6 @@ class DataMasterController extends Controller
                 ->whereIn('issue_code', ['student_not_found', 'student_name_mismatch'])
                 ->whereNull('resolved_at')
                 ->count(),
-            'studentCount' => Student::query()->active()->count(),
             'rolloverSummary' => $rolloverTargetYear === null
                 ? null
                 : $rolloverQuery->summarize($rolloverTargetYear),
