@@ -1,75 +1,80 @@
-# SIBK / Ruang BK
+﻿# SIBK / Ruang BK
 
-Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
+Aplikasi layanan Bimbingan dan Konseling SMK Negeri 1 Surabaya.
 
-## Mulai dan lanjutkan pekerjaan
+## Workflow
 
-1. Baca `docs/current-work.md` untuk checkpoint, branch, gate, dan task berikutnya.
-2. Periksa `git status` dan `git log -1 --oneline`; pertahankan perubahan milik pengguna.
-3. Baca hanya bagian plan aktif yang dibutuhkan. Selesaikan verifikasi task sebelum lanjut.
-4. Perbarui handoff setelah task; catat ringkasan checkpoint selesai di `docs/development-log.md`.
+- Awali dengan `git status --short --branch` dan `git log -5 --oneline`.
+- Pertahankan perubahan milik pengguna.
+- Ikuti urutan context: `AGENTS.md` -> active plan -> targeted canonical
+  requirement -> source code.
+- Tentukan pekerjaan dari instruksi pengguna, branch/worktree, dan active plan.
+- Baca hanya source, test, requirement, dan kontrak yang diperlukan oleh task
+  aktif; jangan membaca historical docs kecuali memang diperlukan.
+- Gunakan Git commit sebagai checkpoint dan histori.
+- `cobasidebar` adalah baseline pengembangan; `main` versi stabil produksi.
+- Kerjakan di feature branch/worktree, PR ke `cobasidebar`; jangan force push atau menghapus branch yang belum di-merge.
 
-`cobasidebar` adalah baseline pengembangan; `main` versi stabil untuk produksi.
-Kerjakan di feature branch/worktree, gunakan PR ke `cobasidebar`, tanpa force push.
-Gunakan Bahasa Indonesia sederhana untuk dokumentasi dan pesan commit.
+## Documentation
 
-Setelah PR berhasil di-merge, verifikasi status `MERGED` dan pastikan branch
-checkpoint/fitur tidak berisi commit baru atau PR terbuka yang belum digabung.
-Hapus branch sumber dari GitHub agar tidak menumpuk; jangan hapus `cobasidebar`
-atau `main`. Jangan menghapus branch yang belum di-merge. Branch lokal/worktree
-tidak otomatis ikut dihapus, terutama bila masih digunakan untuk checkpoint berikutnya.
+Canonical:
+- PRD: keputusan/scope produk.
+- SRS: system behavior, business rule, authorization, invariant, acceptance criteria, requirement ID.
+- `docs/api-contract.md`: interface teknis, endpoint, request/response, controller/service contract.
 
-## Source of truth
+Satu fakta hanya memiliki satu pemilik canonical:
+- product decision → PRD;
+- system behavior/business rule → SRS;
+- technical interface → API Contract;
+- perubahan implementasi internal → tidak perlu update canonical.
 
-- `docs/requirements/SRS_Aplikasi_BK_v1.1.md`: spesifikasi perilaku aktif.
-- `docs/requirements/PRD_Aplikasi_BK_v1.1.md`: kebutuhan produk aktif.
-- `docs/requirements-index.md`: cari area/ID relevan sebelum membuka requirement.
-- `docs/api-contract.md`: kontrak controller/service.
-- `CONTEXT.md`: istilah ringkas; bukan pengganti PRD/SRS.
-- Arsip v1.0 dan plan selesai: [repository privat terpisah](https://github.com/Aflahul/sibk-docs-archive).
-  Dokumen arsip tidak diubah dan tidak menjadi baseline perilaku aktif.
+API Contract mereferensikan requirement ID SRS dan tidak mengulang business rule.
+PRD tidak mengulang detail behavior atau interface teknis.
 
-Frontend memakai Penpot `22 — UI High-Fidelity Final` dan
-`22.5 — Style Guide`. Page `21 — Wireframe Low-Fidelity Final` bukan referensi
-implementasi. Jangan mendesain ulang UI yang disetujui; pakai komponen existing.
+Jangan membaca PRD/SRS/API/plan penuh secara default. Gunakan targeted search
+berdasarkan requirement ID, heading, route, endpoint, service, model, atau
+istilah terkait.
 
-## Status dan scope disetujui
+Active plan hanya menjelaskan langkah implementasi dan mereferensikan canonical;
+jangan menyalin ulang business rule panjang ke plan.
 
-- Frontend tersedia; backend aktif dikembangkan.
-- Plan integrasi Fase A Task 0–12 dan Portal Waka sudah selesai serta diarsipkan.
-  Tidak wajib membaca ulang plan selesai pada setiap sesi.
-- Enam checkpoint penyederhanaan disetujui 14 September 2026; spec dan plan aktif
-  ditunjuk oleh `docs/current-work.md`.
-- Data persiapan sementara, verifikasi Dapodik, dan aktivasi operasional tetap
-  dipisahkan; fallback keterlambatan Dapodik 2–3 bulan berlaku pada baseline v1.1.
-- Adapter production Dapodik/e-Tatib tetap di luar scope sampai kontrak resmi
-  tersedia dan lolos `docs/integrations/provider-contract-admission.md`.
-- Perluasan scope, arsitektur material, tindakan eksternal/destruktif di luar
-  persetujuan yang sudah ada memerlukan persetujuan baru.
+Jangan membuat spec/design document baru. Keputusan permanen masuk ke pemilik
+canonical; histori perubahan cukup disimpan oleh Git.
 
-## Aturan implementasi
+Jangan membuat dokumen status kerja, log pengembangan, peta frontend, matriks
+otorisasi, atau indeks requirement terpisah. Hindari dokumentasi ganda dan
+jangan membuat dokumen pengganti untuk artefak yang dihapus.
 
-- Pertahankan arsitektur repository; jangan menambah fitur di luar PRD/SRS.
-- Minimum PHP 8.3 atau lebih baru; kode mengikuti fitur PHP 8.3 dan
-  `declare(strict_types=1);`.
-- Thin Controller, Form Request, Service/Action layer, Query Scopes; pisahkan UI,
-  akses data, logika bisnis, dan integrasi.
-- Otorisasi/capability AUTH-01–AUTH-07 wajib di server/policy.
-- Gunakan Bahasa Indonesia pada UI dan istilah `murid`, kecuali kutipan sumber resmi.
-- Tulis PHP, Blade, HTML, dan JavaScript secara rapi dan terstruktur; pecah
-  ekspresi panjang agar mudah dipindai.
-- Jangan menulis tag Blade/HTML panjang dalam satu baris. Letakkan atribut pada
-  baris terpisah dan pisahkan tag anak yang berbeda ke barisnya sendiri.
-- Jangan menyimpan credential, payload mentah, `.env`, cache, atau build ke Git.
+## Implementation
+
+- Pertahankan arsitektur repository; jangan menambah fitur di luar requirement.
+- PHP >= 8.3 dan `declare(strict_types=1);`.
+- Gunakan Thin Controller, Form Request, Service/Action, dan Query Scope sesuai pola repository.
+- Pisahkan UI, akses data, business logic, dan integrasi.
+- `AUTH-01`–`AUTH-07` ditegakkan di server/policy.
+- Gunakan Bahasa Indonesia pada UI dan istilah `murid`.
+- Reuse komponen UI existing; jangan redesign tanpa kebutuhan.
 - Migration forward-only; jangan reset database shared/production.
+- Jangan commit credential, `.env`, cache, raw payload, atau build.
 
-## Verifikasi dan efisiensi context
+## Verification
 
-Gate umum: `composer test`, `php vendor/bin/pint --test`,
-`npm run check:frontend`, `npm run build`, `composer validate --strict`,
-dan `git diff --check`. Tambahan hanya bila relevan dengan perubahan.
+Gunakan bukti terkecil yang cukup: targeted test, targeted lint/syntax check, dan `git diff --check`.
+Test authorization wajib bila perubahan menyentuh role, capability, policy, authorization, atau query scope.
+Jangan menjalankan full test/build setelah setiap perubahan.
 
-Test otorisasi umum tetap wajib; screenshot/workbook penelitian tidak diwajibkan.
-Jangan buka PRD/SRS penuh pada setiap task; gunakan indeks lalu section/ID relevan.
-Pekerjaan visual murni cukup Hi-Fi, Style Guide, dan existing code.
-Jangan menggandakan isi requirement atau log panjang di rules/workflows.
+## Terminal
+
+Agent boleh menjalankan command cepat, targeted, dan ber-output kecil: status/log/diff, `git grep`, targeted test/lint, dan diagnostik singkat.
+
+Tanpa perintah eksplisit user, jangan jalankan:
+- install/update dependency;
+- dev server;
+- `composer test` atau full test suite;
+- `npm run build` atau full frontend checks;
+- migration yang mengubah database;
+- command interaktif, long-running, verbose, download, atau install.
+
+Plan yang menyebut test/build/full verification bukan izin otomatis menjalankannya.
+
+Jika helper non-esensial gagal karena permission/shell/path/environment, maksimal satu retry. Bila tetap gagal, hentikan dan gunakan fallback sederhana. Jangan menghabiskan token memperbaiki helper/ledger yang tidak memengaruhi fitur.

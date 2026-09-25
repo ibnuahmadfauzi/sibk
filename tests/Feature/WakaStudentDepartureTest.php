@@ -148,7 +148,6 @@ final class WakaStudentDepartureTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
             'is_active' => true,
         ]);
 

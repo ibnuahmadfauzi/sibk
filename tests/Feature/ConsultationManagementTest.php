@@ -191,7 +191,7 @@ class ConsultationManagementTest extends TestCase
         $this->actingAs($owner)->get(route('consultations.show', $consultation))
             ->assertOk()
             ->assertSee('Detail Konsultasi')
-            ->assertSee('Permasalahan')
+            ->assertSee('Latar Belakang Masalah')
             ->assertSee('Penanganan')
             ->assertSee('Hasil')
             ->assertSee('Arsipkan konsultasi ini?');
@@ -273,7 +273,8 @@ class ConsultationManagementTest extends TestCase
             $this->delete(route('consultations.destroy', $consultation))->assertForbidden();
         }
 
-        TeacherAssignment::query()->where('user_id', $owner->id)->update(['effective_until' => '2026-09-17']);
+        $replacement = $this->userWithRole('guru_bk');
+        TeacherAssignment::query()->where('user_id', $owner->id)->update(['user_id' => $replacement->id]);
         $this->actingAs($owner)->get(route('consultations.show', $consultation))->assertForbidden();
         $this->get(route('consultations.edit', $consultation))->assertForbidden();
         $this->patch(route('consultations.update', $consultation), $payload)->assertForbidden();
@@ -315,7 +316,6 @@ class ConsultationManagementTest extends TestCase
             'student_id' => $alpha->id,
             'classroom_id' => $alphaClass->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
         ]);
         $beta = Student::query()->create(['nisn' => '0012345680', 'name' => 'Murid Beta', 'is_active' => true]);
@@ -323,7 +323,6 @@ class ConsultationManagementTest extends TestCase
             'student_id' => $beta->id,
             'classroom_id' => $alphaClass->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
         ]);
         $pribadi = ReferenceValue::query()->where('category', 'service_field')->where('code', 'pribadi')->firstOrFail();
@@ -360,33 +359,24 @@ class ConsultationManagementTest extends TestCase
             ->assertSee('<tr data-modal-url="'.route('consultations.show', [$listedZeta, 'modal' => 1]).'">', false);
     }
 
-    public function test_shared_list_uses_historical_class_for_reconciled_temporary_student(): void
+    public function test_shared_list_keeps_class_snapshot_after_membership_change(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $coordinator = $this->userWithRole('koordinator_bk');
         $year = AcademicYear::query()->firstOrFail();
-        $current = $student->classMemberships()->firstOrFail();
-        $current->update(['effective_from' => '2026-07-11']);
+        $consultation = $this->createConsultation($teacher, $student);
         $historicalClass = Classroom::query()->create([
             'academic_year_id' => $year->id,
             'name' => 'X RPL Historis',
             'is_active' => true,
         ]);
-        StudentClassMembership::query()->create([
-            'student_id' => $student->id,
-            'classroom_id' => $historicalClass->id,
-            'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
-            'effective_until' => '2026-07-10',
-            'is_active' => true,
-        ]);
-        $temporary = $this->reconciledTemporary($teacher, $student);
-        $this->consultationForTemporary($teacher, $temporary, '2026-07-10');
+        $student->classMemberships()->firstOrFail()->update(['classroom_id' => $historicalClass->id]);
 
         $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertSee('X RPL Historis')
-            ->assertDontSee('X RPL 1');
+            ->assertSee('X RPL 1')
+            ->assertDontSee('X RPL Historis');
+        $this->assertSame($consultation->classroom_id, $consultation->fresh()->classroom_id);
     }
 
     /** @return array{User, Student} */
@@ -396,8 +386,8 @@ class ConsultationManagementTest extends TestCase
         $year = AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 1', 'is_active' => true]);
         $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Scope', 'is_active' => true]);
-        StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'is_active' => true]);
-        TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-15', 'decision_number' => 'SK-SCOPE', 'assigned_by' => $teacher->id]);
+        StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'is_active' => true]);
+        TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'assigned_by' => $teacher->id]);
 
         return [$teacher, $student];
     }
@@ -416,6 +406,8 @@ class ConsultationManagementTest extends TestCase
     {
         $consultation = new Consultation([
             'student_id' => $student->id,
+            'academic_year_id' => $student->classMemberships()->firstOrFail()->academic_year_id,
+            'classroom_id' => $student->classMemberships()->firstOrFail()->classroom_id,
             'service_field_id' => $serviceField->id,
             'session_date' => $date,
             'problem' => 'Permasalahan '.$student->name,

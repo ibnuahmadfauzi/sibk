@@ -536,14 +536,12 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $historicalClassroom->id,
             'academic_year_id' => $historicalYear->id,
-            'effective_from' => '2025-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $membership = StudentClassMembership::query()->create([
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
@@ -616,7 +614,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $historicalClassroom->id,
             'academic_year_id' => $historicalYear->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
@@ -689,7 +686,6 @@ class DapodikSyncTest extends TestCase
                 'student_id' => $student->id,
                 'classroom_id' => $classroom->id,
                 'academic_year_id' => $year->id,
-                'effective_from' => '2026-07-15',
                 'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
             ]);
         }
@@ -778,7 +774,7 @@ class DapodikSyncTest extends TestCase
             'candidate_id' => $fixture['classrooms']['A']->id,
             'decision_revision' => 0,
         ], $admin);
-        $fixture['memberships']['A']->update(['effective_until' => '2026-12-31']);
+        $fixture['memberships']['A']->update(['is_active' => false]);
         $run->refresh();
 
         $this->assertValidationFailure(
@@ -849,7 +845,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $snapshot = new DapodikSnapshot(
@@ -875,7 +870,6 @@ class DapodikSyncTest extends TestCase
                 'student_source_id' => 'student-1',
                 'classroom_source_id' => 'class-1',
                 'academic_year_source_id' => 'year-2026',
-                'effective_from' => '2026-07-15',
             ]],
             evidence: new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'partial', 1, 4, 512),
         );
@@ -910,14 +904,13 @@ class DapodikSyncTest extends TestCase
         $admin = $this->userWithRole('admin_it');
         $fixture = $this->selectableMembershipGraphs([]);
         Schema::table('student_class_memberships', function (Blueprint $table): void {
-            $table->dropUnique('student_class_membership_period_unique');
+            $table->dropUnique('student_membership_student_year_unique');
         });
         foreach ([1, 2] as $number) {
             StudentClassMembership::query()->create([
                 'student_id' => $fixture['student']->id,
                 'classroom_id' => $fixture['classrooms']['A']->id,
                 'academic_year_id' => $fixture['years']['A']->id,
-                'effective_from' => '2026-07-15',
                 'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
             ]);
         }
@@ -1077,7 +1070,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
@@ -1085,8 +1077,6 @@ class DapodikSyncTest extends TestCase
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
-            'decision_number' => 'SK-PENUGASAN-001',
             'assigned_by' => $coordinator->id,
         ]);
         $case = BkCase::query()->create([
@@ -1386,7 +1376,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
 
@@ -1500,7 +1489,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $oldStudent->id,
             'classroom_id' => $oldClassroom->id,
             'academic_year_id' => $oldYear->id,
-            'effective_from' => '2025-07-01',
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
             'source_confirmed_at' => now()->subYear(),
@@ -1532,7 +1520,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $provisionalStudent->id,
             'classroom_id' => $provisionalClassroom->id,
             'academic_year_id' => $provisionalYear->id,
-            'effective_from' => '2028-07-01',
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
@@ -2070,8 +2057,6 @@ class DapodikSyncTest extends TestCase
                 'student_source_id' => 'student-1',
                 'classroom_source_id' => 'class-1',
                 'academic_year_source_id' => 'year-2026',
-                'effective_from' => '2026-07-15',
-                'effective_until' => null,
                 'is_active' => true,
             ]],
         );
@@ -2172,7 +2157,6 @@ class DapodikSyncTest extends TestCase
                     'student_id' => $student->id,
                     'classroom_id' => $classrooms[$label]->id,
                     'academic_year_id' => $years[$label]->id,
-                    'effective_from' => '2026-07-15',
                     'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
                 ]);
             }

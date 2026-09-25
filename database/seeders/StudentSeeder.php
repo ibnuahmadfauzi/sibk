@@ -57,16 +57,18 @@ class StudentSeeder extends Seeder
         // ----------------------------------------------------------------
         // Tahun Ajaran
         // ----------------------------------------------------------------
-        $year = AcademicYear::query()->updateOrCreate(
-            ['dapodik_id' => self::PREFIX_YEAR],
-            [
-                'name' => sprintf('Demo %d/%d', $startYear, $startYear + 1),
-                'starts_on' => $start,
-                'ends_on' => $end,
-                'is_active' => ! $hasOfficialActiveYear,
-                'synced_at' => now(),
-            ],
-        );
+        $year = AcademicYear::query()->firstOrNew(['dapodik_id' => self::PREFIX_YEAR]);
+        $wasActivatedByOldSeeder = $year->exists && $year->is_active && $year->activated_at === null;
+        $year->fill([
+            'name' => sprintf('Demo %d/%d', $startYear, $startYear + 1),
+            'starts_on' => $start,
+            'ends_on' => $end,
+            'synced_at' => now(),
+        ]);
+        if (! $year->exists || $wasActivatedByOldSeeder || $hasOfficialActiveYear) {
+            $year->is_active = false;
+        }
+        $year->save();
 
         $previousStart = $start->subYear();
         $previousEnd = $start->subDay();
@@ -171,8 +173,6 @@ class StudentSeeder extends Seeder
                 'student_id' => $student->id,
                 'classroom_id' => $classes[$classKey]->id,
                 'academic_year_id' => $year->id,
-                'effective_from' => $start,
-                'effective_until' => null,
                 'is_active' => true,
                 'synced_at' => now(),
             ])->save();
@@ -184,8 +184,6 @@ class StudentSeeder extends Seeder
                         'student_id' => $student->id,
                         'classroom_id' => $previousClasses[$classKey]->id,
                         'academic_year_id' => $previousYear->id,
-                        'effective_from' => $previousStart,
-                        'effective_until' => $previousEnd,
                         'is_active' => true,
                         'synced_at' => now(),
                     ],

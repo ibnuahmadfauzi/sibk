@@ -9,6 +9,7 @@ use App\Models\CaseAssignment;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Support\ServiceRecordStatus;
 use Carbon\CarbonImmutable;
@@ -35,7 +36,7 @@ class CaseService
                 $student = Student::query()->lockForUpdate()->find((int) $data['student_id']);
                 if ($student === null || ! Student::query()
                     ->availableForService((string) $data['service_date'])
-                    ->forActiveTeacherAssignment($actor, now())
+                    ->forActiveTeacherAssignment($actor)
                     ->whereKey($student->getKey())
                     ->exists()) {
                     throw ValidationException::withMessages([
@@ -45,7 +46,7 @@ class CaseService
             } else {
                 $student = Student::query()
                     ->availableForService((string) $data['service_date'])
-                    ->forActiveTeacherAssignment($actor, now())
+                    ->forActiveTeacherAssignment($actor)
                     ->where('nisn', trim((string) $data['temporary_nisn']))
                     ->lockForUpdate()
                     ->first();
@@ -86,9 +87,17 @@ class CaseService
                 ]);
             }
 
+            $membership = $student === null ? null : StudentClassMembership::query()
+                ->active()
+                ->where('student_id', $student->getKey())
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->first();
+
             $case = BkCase::query()->create([
                 'student_id' => $student?->getKey(),
                 'temporary_student_id' => $temporaryStudent?->getKey(),
+                'academic_year_id' => $membership?->academic_year_id,
+                'classroom_id' => $membership?->classroom_id,
                 'case_source_id' => $source->getKey(),
                 'service_field_id' => (int) $data['service_field_id'],
                 'status_id' => $status->getKey(),
@@ -110,8 +119,6 @@ class CaseService
             CaseAssignment::query()->create([
                 'case_id' => $case->getKey(),
                 'user_id' => $actor->getKey(),
-                'assignment_type' => CaseAssignment::TYPE_OWNER,
-                'effective_from' => $case->service_date->toDateString(),
                 'reason' => 'Penanggung jawab awal saat kasus dibuat.',
                 'assigned_by' => $actor->getKey(),
             ]);
@@ -137,7 +144,7 @@ class CaseService
     {
         return DB::transaction(function () use ($case, $data, $actor): BkCase {
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
-            if (! $case->hasActiveOwnerFor($actor)) {
+            if (! $case->isOwnedBy($actor)) {
                 throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
             }
 
@@ -176,7 +183,7 @@ class CaseService
     ): BkCase {
         return DB::transaction(function () use ($case, $typeId, $expectedUpdatedAt, $actor): BkCase {
             $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
-            if (! $case->hasActiveOwnerFor($actor)) {
+            if (! $case->isOwnedBy($actor)) {
                 throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
             }
             if (ServiceRecordStatus::isTerminal($case->status?->code)) {
@@ -210,7 +217,7 @@ class CaseService
         DB::transaction(function () use ($case, $actor): void {
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
 
-            if (! $case->hasActiveOwnerFor($actor)) {
+            if (! $case->isOwnedBy($actor)) {
                 throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
             }
 

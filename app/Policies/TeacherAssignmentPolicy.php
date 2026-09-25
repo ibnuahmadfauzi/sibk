@@ -11,12 +11,12 @@ class TeacherAssignmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('koordinator_bk');
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it']);
     }
 
     public function view(User $user, TeacherAssignment $assignment): bool
     {
-        return $user->hasRole('koordinator_bk');
+        return $user->hasRole('koordinator_bk') || $assignment->user_id === $user->getKey();
     }
 
     public function create(User $user): bool

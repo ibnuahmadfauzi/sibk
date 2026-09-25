@@ -90,7 +90,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return redirect()
-                ->to(route('data-master.index').'#integration-'.(string) $request->route('provider'))
+                ->to(route('admin.api.index').'#integration-'.(string) $request->route('provider'))
                 ->withInput($oldInput)
                 ->withErrors($exception->errors(), $exception->errorBag)
                 ->header('Cache-Control', 'no-store');

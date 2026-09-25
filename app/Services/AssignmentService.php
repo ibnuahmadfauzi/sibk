@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AcademicYear;
-use App\Models\BkCase;
-use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Support\ServiceRecordStatus;
-use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class AssignmentService
@@ -20,82 +18,91 @@ class AssignmentService
     public function __construct(private readonly AuditService $auditService) {}
 
     /**
-     * @param  array{user_id: int, classroom_id: int, academic_year_id: int, decision_number: string, effective_date: string, effective_until?: string|null, notes?: string|null}  $data
+     * @param  array{user_id: int, classroom_ids: list<int>}  $data
+     * @return Collection<int, TeacherAssignment>
+     */
+    public function assignClasses(array $data, User $actor): Collection
+    {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+        $classroomIds = $data['classroom_ids'];
+        sort($classroomIds);
+
+        return DB::transaction(function () use ($classroomIds, $data, $actor): Collection {
+            $assignments = collect();
+            $yearId = null;
+
+            foreach ($classroomIds as $classroomId) {
+                $assignment = $this->assignClass([
+                    'classroom_id' => $classroomId,
+                    'user_id' => $data['user_id'],
+                    'only_if_unassigned' => true,
+                ], $actor);
+                if ($yearId !== null && $assignment->academic_year_id !== $yearId) {
+                    throw ValidationException::withMessages([
+                        'classroom_ids' => 'Semua kelas harus berasal dari tahun ajaran yang sama.',
+                    ]);
+                }
+                $yearId = $assignment->academic_year_id;
+                $assignments->push($assignment);
+            }
+
+            return $assignments;
+        });
+    }
+
+    /**
+     * @param  array{user_id: int, classroom_id: int, only_if_unassigned?: bool}  $data
      */
     public function assignClass(array $data, User $actor): TeacherAssignment
     {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+
         return DB::transaction(function () use ($data, $actor): TeacherAssignment {
-            $teacher = User::query()->with('roles')->lockForUpdate()->findOrFail($data['user_id']);
             $classroom = Classroom::query()->lockForUpdate()->findOrFail($data['classroom_id']);
-            $academicYear = AcademicYear::query()->lockForUpdate()->findOrFail($data['academic_year_id']);
-            $start = CarbonImmutable::parse($data['effective_date'])->startOfDay();
-            $end = isset($data['effective_until']) && $data['effective_until'] !== null
-                ? CarbonImmutable::parse($data['effective_until'])->startOfDay()
-                : null;
+            $academicYear = AcademicYear::query()->lockForUpdate()->findOrFail($classroom->academic_year_id);
+            $teacher = User::query()->with('roles')->lockForUpdate()->findOrFail($data['user_id']);
 
-            $this->validateAssignment($teacher, $classroom, $academicYear, $start, $end);
-
-            $assignments = TeacherAssignment::query()
-                ->where('classroom_id', $classroom->getKey())
-                ->where('academic_year_id', $academicYear->getKey())
-                ->orderBy('effective_from')
-                ->lockForUpdate()
-                ->get();
-            $current = $assignments->first(fn (TeacherAssignment $assignment): bool => $assignment->effective_from->lte($start)
-                && ($assignment->effective_until === null || $assignment->effective_until->gte($start))
-            );
-
-            if ($current !== null) {
-                if ($current->effective_from->equalTo($start)) {
-                    throw ValidationException::withMessages([
-                        'effective_date' => 'Sudah ada penugasan yang dimulai pada tanggal tersebut.',
-                    ]);
-                }
-
-                $before = $this->snapshot($current);
-                $current->update(['effective_until' => $start->subDay()->toDateString()]);
-                $this->auditService->record(
-                    action: 'class_assignment.closed',
-                    auditable: $current,
-                    summary: sprintf('Periode penugasan kelas %s ditutup.', $classroom->name),
-                    actor: $actor,
-                    before: $before,
-                    after: $this->snapshot($current->refresh()),
-                );
+            $isArchived = $academicYear->is_active === false && $academicYear->activated_at !== null;
+            if ($classroom->is_active === false || $isArchived) {
+                throw ValidationException::withMessages(['classroom_id' => 'Kelas tidak tersedia untuk penugasan.']);
             }
 
-            $overlap = TeacherAssignment::query()
-                ->where('classroom_id', $classroom->getKey())
-                ->where('academic_year_id', $academicYear->getKey())
-                ->whereDate('effective_from', '<=', $end?->toDateString() ?? '9999-12-31')
-                ->where(function ($period) use ($start): void {
-                    $period->whereNull('effective_until')
-                        ->orWhereDate('effective_until', '>=', $start->toDateString());
-                })
-                ->exists();
+            if ($teacher->is_active === false || $teacher->hasRole('guru_bk') === false) {
+                throw ValidationException::withMessages(['user_id' => 'Penanggung jawab harus Guru BK aktif.']);
+            }
 
-            if ($overlap) {
+            $assignment = TeacherAssignment::query()
+                ->where('classroom_id', $classroom->getKey())
+                ->where('academic_year_id', $classroom->academic_year_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (($data['only_if_unassigned'] ?? false) && $assignment !== null) {
                 throw ValidationException::withMessages([
-                    'effective_date' => 'Periode penugasan bertumpang tindih dengan penugasan lain.',
+                    'classroom_id' => 'Kelas sudah ditugaskan. Muat ulang daftar sebelum memilih kelas lain.',
                 ]);
             }
 
-            $assignment = TeacherAssignment::query()->create([
+            if ($assignment?->user_id === $teacher->getKey()) {
+                return $assignment->load(['teacher', 'classroom', 'academicYear']);
+            }
+
+            $before = $assignment === null ? [] : $this->snapshot($assignment);
+            $assignment ??= new TeacherAssignment;
+            $assignment->fill([
                 'user_id' => $teacher->getKey(),
                 'classroom_id' => $classroom->getKey(),
-                'academic_year_id' => $academicYear->getKey(),
-                'effective_from' => $start->toDateString(),
-                'effective_until' => $end?->toDateString(),
-                'decision_number' => $data['decision_number'],
-                'notes' => $data['notes'] ?? null,
+                'academic_year_id' => $classroom->academic_year_id,
                 'assigned_by' => $actor->getKey(),
             ]);
+            $assignment->save();
 
             $this->auditService->record(
-                action: 'class_assignment.created',
+                action: $before === [] ? 'class_assignment.created' : 'class_assignment.updated',
                 auditable: $assignment,
-                summary: sprintf('Guru BK ditugaskan untuk kelas %s.', $classroom->name),
+                summary: sprintf('Guru BK kelas %s diperbarui.', $classroom->name),
                 actor: $actor,
+                before: $before,
                 after: $this->snapshot($assignment),
             );
 
@@ -103,136 +110,39 @@ class AssignmentService
         });
     }
 
-    /** @param array{assignment_type: string, to_user_id: int, reason: string, effective_date: string} $data */
-    public function assignCase(BkCase $case, array $data, User $actor): CaseAssignment
+    public function unassignClass(Classroom $classroom, int $expectedUserId, User $actor): void
     {
-        return DB::transaction(function () use ($case, $data, $actor): CaseAssignment {
-            $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
-            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
-                throw ValidationException::withMessages(['case' => 'Kasus terminal tidak dapat dialihkan.']);
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+
+        DB::transaction(function () use ($classroom, $expectedUserId, $actor): void {
+            $classroom = Classroom::query()->lockForUpdate()->findOrFail($classroom->getKey());
+            $year = AcademicYear::query()->lockForUpdate()->findOrFail($classroom->academic_year_id);
+            if (! $classroom->is_active || (! $year->is_active && $year->activated_at !== null)) {
+                throw ValidationException::withMessages(['classroom_id' => 'Kelas tidak tersedia untuk penugasan.']);
             }
 
-            $teacher = User::query()->with('roles')->lockForUpdate()->findOrFail($data['to_user_id']);
-            if (! $teacher->is_active || ! $teacher->hasRole('guru_bk')) {
-                throw ValidationException::withMessages([
-                    'to_user_id' => 'Penerima harus merupakan Guru BK aktif.',
-                ]);
-            }
-
-            $effectiveDate = CarbonImmutable::parse($data['effective_date'])->startOfDay();
-            if ($effectiveDate->lt($case->service_date)) {
-                throw ValidationException::withMessages([
-                    'effective_date' => 'Tanggal berlaku tidak boleh sebelum tanggal layanan.',
-                ]);
-            }
-
-            $type = $data['assignment_type'];
-            if ($type !== 'transfer') {
-                throw ValidationException::withMessages([
-                    'assignment_type' => 'Kasus hanya dapat dipindahkan melalui pengalihan penanggung jawab.',
-                ]);
-            }
-
-            $assignments = CaseAssignment::query()
-                ->where('case_id', $case->getKey())
-                ->orderBy('effective_from')
+            $assignment = TeacherAssignment::query()
+                ->where('classroom_id', $classroom->getKey())
+                ->where('academic_year_id', $year->getKey())
                 ->lockForUpdate()
-                ->get();
-            $activeOwners = $assignments->filter(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
-                && $assignment->effective_from->lte($effectiveDate)
-                && ($assignment->effective_until === null || $assignment->effective_until->gte($effectiveDate))
-            );
-            if ($activeOwners->count() !== 1) {
+                ->first();
+            if ($assignment === null || $assignment->user_id !== $expectedUserId) {
                 throw ValidationException::withMessages([
-                    'effective_date' => 'Kasus harus memiliki tepat satu penanggung jawab aktif pada tanggal pengalihan.',
+                    'classroom_id' => 'Penugasan berubah. Muat ulang daftar sebelum membatalkan.',
                 ]);
             }
 
-            $current = $activeOwners->first();
-
-            if ($current->user_id === $teacher->getKey()) {
-                throw ValidationException::withMessages(['to_user_id' => 'Penerima sudah menjadi pemilik kasus.']);
-            }
-
-            if ($current->effective_from->equalTo($effectiveDate)) {
-                throw ValidationException::withMessages(['effective_date' => 'Tanggal berlaku harus setelah awal penugasan pemilik saat ini.']);
-            }
-
-            $futureOwnerExists = $assignments->contains(fn (CaseAssignment $assignment): bool => $assignment->assignment_type === CaseAssignment::TYPE_OWNER
-                && $assignment->effective_from->gt($effectiveDate)
-            );
-            if ($futureOwnerExists) {
-                throw ValidationException::withMessages(['effective_date' => 'Sudah ada pengalihan pemilik yang dijadwalkan setelah tanggal tersebut.']);
-            }
-
-            $before = $this->caseAssignmentSnapshot($current);
-            $current->update(['effective_until' => $effectiveDate->subDay()->toDateString()]);
+            $before = $this->snapshot($assignment);
             $this->auditService->record(
-                action: 'case_assignment.closed',
-                auditable: $current,
-                summary: sprintf('Penugasan pemilik kasus untuk %s ditutup.', $case->identityName()),
+                action: 'class_assignment.deleted',
+                auditable: $assignment,
+                summary: sprintf('Penugasan Guru BK kelas %s dibatalkan.', $classroom->name),
                 actor: $actor,
                 before: $before,
-                after: $this->caseAssignmentSnapshot($current->refresh()),
+                after: [...$before, 'user_id' => null],
             );
-
-            $assignment = CaseAssignment::query()->create([
-                'case_id' => $case->getKey(),
-                'user_id' => $teacher->getKey(),
-                'assignment_type' => CaseAssignment::TYPE_OWNER,
-                'effective_from' => $effectiveDate->toDateString(),
-                'reason' => $data['reason'],
-                'assigned_by' => $actor->getKey(),
-            ]);
-
-            $this->auditService->record(
-                action: 'case.transferred',
-                auditable: $case,
-                summary: sprintf('Kasus untuk %s dialihkan kepada Guru BK lain.', $case->identityName()),
-                actor: $actor,
-                after: $this->caseAssignmentSnapshot($assignment),
-            );
-
-            return $assignment->load('teacher');
+            $assignment->delete();
         });
-    }
-
-    private function validateAssignment(
-        User $teacher,
-        Classroom $classroom,
-        AcademicYear $academicYear,
-        CarbonImmutable $start,
-        ?CarbonImmutable $end,
-    ): void {
-        if (! $teacher->is_active || ! $teacher->hasRole('guru_bk')) {
-            throw ValidationException::withMessages([
-                'user_id' => 'Penanggung jawab harus merupakan Guru BK aktif.',
-            ]);
-        }
-
-        if ($classroom->academic_year_id !== $academicYear->getKey()) {
-            throw ValidationException::withMessages([
-                'classroom_id' => 'Kelas tidak termasuk dalam tahun ajaran yang dipilih.',
-            ]);
-        }
-
-        if ($end !== null && $end->lt($start)) {
-            throw ValidationException::withMessages([
-                'effective_until' => 'Tanggal akhir tidak boleh sebelum tanggal mulai.',
-            ]);
-        }
-
-        if ($academicYear->starts_on !== null && $start->lt($academicYear->starts_on)) {
-            throw ValidationException::withMessages([
-                'effective_date' => 'Tanggal mulai berada di luar tahun ajaran.',
-            ]);
-        }
-
-        if ($academicYear->ends_on !== null && ($start->gt($academicYear->ends_on) || $end?->gt($academicYear->ends_on))) {
-            throw ValidationException::withMessages([
-                'effective_until' => 'Periode penugasan berada di luar tahun ajaran.',
-            ]);
-        }
     }
 
     /** @return array<string, mixed> */
@@ -242,24 +152,6 @@ class AssignmentService
             'user_id' => $assignment->user_id,
             'classroom_id' => $assignment->classroom_id,
             'academic_year_id' => $assignment->academic_year_id,
-            'effective_from' => $assignment->effective_from?->toDateString(),
-            'effective_until' => $assignment->effective_until?->toDateString(),
-            'decision_number' => $assignment->decision_number,
-            'notes' => $assignment->notes,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private function caseAssignmentSnapshot(CaseAssignment $assignment): array
-    {
-        return [
-            'case_id' => $assignment->case_id,
-            'user_id' => $assignment->user_id,
-            'assignment_type' => $assignment->assignment_type,
-            'effective_from' => $assignment->effective_from?->toDateString(),
-            'effective_until' => $assignment->effective_until?->toDateString(),
-            'reason' => $assignment->reason,
-            'assigned_by' => $assignment->assigned_by,
         ];
     }
 }

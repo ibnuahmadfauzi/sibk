@@ -21,8 +21,6 @@ const files = {
     achievementIndex: 'resources/views/pages/achievements/index.blade.php',
     achievementShow: 'resources/views/pages/achievements/show.blade.php',
     assignmentIndex: 'resources/views/pages/assignments/classes/index.blade.php',
-    assignmentManage: 'resources/views/pages/assignments/classes/manage.blade.php',
-    caseAssignment: 'resources/views/pages/assignments/cases/index.blade.php',
     dataMaster: 'resources/views/pages/data-master/index.blade.php',
     account: 'resources/views/pages/account/index.blade.php',
     accessDenied: 'resources/views/pages/system/access-denied.blade.php',
@@ -98,14 +96,13 @@ assert(contents.routes.includes('ReportController::class'), 'Laporan belum memak
 const pageIds = {
     casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103',
     consultationCreate: 'PG-105', studentsIndex: 'PG-201', studentsShow: 'PG-202',
-    achievementCreate: 'PG-203', assignmentIndex: 'PG-401', assignmentManage: 'PG-402',
-    caseAssignment: 'PG-403',
+    achievementCreate: 'PG-203', assignmentIndex: 'PG-401',
     dataMaster: 'PG-501', accessDenied: 'PG-901',
 };
 for (const [key, pageId] of Object.entries(pageIds)) {
     assert(contents[key].includes(`data-page-id="${pageId}"`), `${pageId} belum dapat ditelusuri dari markup.`);
 }
-for (const key of ['casesCreate', 'consultationCreate', 'achievementCreate', 'assignmentManage', 'caseAssignment', 'dataMaster', 'account', 'topbar']) {
+for (const key of ['casesCreate', 'consultationCreate', 'achievementCreate', 'assignmentIndex', 'dataMaster', 'account', 'topbar']) {
     if (contents[key].includes('method="POST"')) assert(contents[key].includes('@csrf'), `${files[key]} memiliki form POST tanpa @csrf.`);
 }
 assert(contents.routes.includes('AccountController::class'), 'Halaman akun masih berupa fixture route.');

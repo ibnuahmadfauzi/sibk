@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'student_id',
     'temporary_student_id',
+    'academic_year_id',
+    'classroom_id',
     'service_field_id',
     'session_date',
     'problem',
@@ -28,6 +30,12 @@ class Consultation extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    /** @return BelongsTo<Classroom, $this> */
+    public function classroom(): BelongsTo
+    {
+        return $this->belongsTo(Classroom::class);
     }
 
     /** @return BelongsTo<TemporaryStudent, $this> */

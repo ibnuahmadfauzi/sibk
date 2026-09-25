@@ -4,22 +4,13 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['case_id', 'user_id', 'assignment_type', 'effective_from', 'effective_until', 'reason', 'assigned_by'])]
+#[Fillable(['case_id', 'user_id', 'reason', 'assigned_by'])]
 class CaseAssignment extends Model
 {
-    use SoftDeletes;
-
-    public const TYPE_OWNER = 'owner';
-
-    public const TYPE_ADDITIONAL = 'additional';
-
     /** @return BelongsTo<BkCase, $this> */
     public function case(): BelongsTo
     {
@@ -36,24 +27,5 @@ class CaseAssignment extends Model
     public function assigner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by');
-    }
-
-    /** @param Builder<CaseAssignment> $query */
-    public function scopeEffectiveOn(Builder $query, CarbonInterface|string $date): Builder
-    {
-        return $query
-            ->whereDate('effective_from', '<=', $date)
-            ->where(fn (Builder $period): Builder => $period
-                ->whereNull('effective_until')
-                ->orWhereDate('effective_until', '>=', $date));
-    }
-
-    /** @return array<string, string> */
-    protected function casts(): array
-    {
-        return [
-            'effective_from' => 'date',
-            'effective_until' => 'date',
-        ];
     }
 }

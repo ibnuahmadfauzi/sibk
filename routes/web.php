@@ -7,11 +7,11 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
+use App\Http\Controllers\Admin\ApiManagementController;
 use App\Http\Controllers\Admin\DapodikReconciliationController;
 use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
 use App\Http\Controllers\Admin\UserManagementController;
-use App\Http\Controllers\Admin\UserPasswordResetController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
@@ -42,15 +42,17 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
 
         Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+        Route::get('/admin/api', [ApiManagementController::class, 'index'])
+            ->middleware('cache.headers:no_store')
+            ->name('admin.api.index');
         Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
         Route::patch('/admin/users/{user}', [UserManagementController::class, 'update'])->name('admin.users.update');
-        Route::post('/admin/users/{user}/reset-password', UserPasswordResetController::class)->name('admin.users.reset-password');
+        Route::post('/admin/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.users.reset-password');
 
         Route::get('/cases', [CaseController::class, 'index'])->name('cases.index');
         Route::get('/cases/create', [CaseController::class, 'create'])->name('cases.create');
         Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
-        Route::post('/cases/{case}/assign', [AssignmentController::class, 'assignCase'])->name('cases.assign');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
 
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
@@ -79,10 +81,14 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/assignments/classes', [AssignmentController::class, 'index'])->name('assignments.classes.index');
         Route::get('/assignments/classes/manage', [AssignmentController::class, 'manage'])->name('assignments.classes.manage');
         Route::post('/assignments/classes', [AssignmentController::class, 'storeClassAssignment'])->name('assignments.classes.store');
+        Route::post('/assignments/classes/batch', [AssignmentController::class, 'storeClassAssignments'])
+            ->name('assignments.classes.batch');
+        Route::delete('/assignments/classes/{classroom}', [AssignmentController::class, 'destroyClassAssignment'])
+            ->name('assignments.classes.destroy');
         Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
             ->name('assignments.academic-years.activate');
-        Route::get('/assignments/cases', [AssignmentController::class, 'caseIndex'])->name('assignments.cases.index');
-
+        Route::post('/assignments/academic-years/{academicYear}/restore-previous', [AcademicYearActivationController::class, 'restorePrevious'])
+            ->name('assignments.academic-years.restore-previous');
         Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
         Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
         Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
@@ -96,6 +102,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
             ->name('data-master.index');
         Route::post('/data-master/academic-years', [AcademicYearPreparationController::class, 'store'])
             ->name('data-master.academic-years.store');
+        Route::delete('/data-master/academic-years/{academicYear}', [AcademicYearPreparationController::class, 'destroy'])
+            ->name('data-master.academic-years.destroy');
         Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
             ->name('data-master.academic-years.roster-imports.store');
         Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');
@@ -136,6 +144,5 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/_preview/students', LegacyPreviewController::class)->defaults('destination', 'students.index')->name('fixtures.students.index');
         Route::get('/_preview/students/show', LegacyPreviewController::class)->defaults('destination', 'students.legacy')->name('fixtures.students.show');
         Route::get('/_preview/consultations/show', LegacyPreviewController::class)->defaults('destination', 'consultations.index')->name('fixtures.consultations.show');
-        Route::get('/_preview/assignments/cases', LegacyPreviewController::class)->defaults('destination', 'assignments.cases.index')->name('fixtures.assignments.cases.index');
     });
 });

@@ -54,23 +54,14 @@ class ConsultationController extends Controller
             $consultation = Consultation::query()
                 ->accessibleTo($user)
                 ->whereKey($consultation->getKey())
-                ->select(['id', 'student_id', 'temporary_student_id', 'service_field_id', 'session_date', 'problem', 'handling', 'result', 'counselor_id'])
+                ->select(['id', 'student_id', 'temporary_student_id', 'academic_year_id', 'classroom_id', 'service_field_id', 'session_date', 'problem', 'handling', 'result', 'counselor_id'])
                 ->with([
                     'student:id,name',
-                    'student.classMemberships' => fn ($memberships) => $memberships
-                        ->select(['id', 'student_id', 'classroom_id', 'effective_from', 'effective_until'])
-                        ->with('classroom:id,name')
-                        ->orderByDesc('effective_from')
-                        ->orderByDesc('id'),
                     'temporaryStudent:id,input_name,reconciled_student_id',
                     'temporaryStudent.reconciledStudent:id,name',
-                    'temporaryStudent.reconciledStudent.classMemberships' => fn ($memberships) => $memberships
-                        ->select(['id', 'student_id', 'classroom_id', 'effective_from', 'effective_until'])
-                        ->with('classroom:id,name')
-                        ->orderByDesc('effective_from')
-                        ->orderByDesc('id'),
                     'serviceField:id,label',
                     'counselor:id,name',
+                    'classroom:id,name',
                 ])
                 ->firstOrFail();
             abort_unless($user->can('view', $consultation), 403);
@@ -78,8 +69,7 @@ class ConsultationController extends Controller
         } else {
             abort_unless($user->can('view', $consultation), 403);
             $consultation->load([
-                'student.classMemberships.classroom.academicYear',
-                'temporaryStudent.reconciledStudent.classMemberships.classroom.academicYear',
+                'classroom',
                 'serviceField',
                 'counselor',
             ]);
@@ -105,7 +95,6 @@ class ConsultationController extends Controller
         $consultation->load([
             'student.classMemberships' => fn ($memberships) => $memberships
                 ->active()
-                ->effectiveOn(now()->toDateString())
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom'),
             'temporaryStudent',
@@ -178,7 +167,6 @@ class ConsultationController extends Controller
             ->professionallyAccessibleTo($user)
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
-                ->effectiveOn(now()->toDateString())
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom')])
             ->orderBy('name')

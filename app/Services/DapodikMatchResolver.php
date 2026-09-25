@@ -203,9 +203,7 @@ final class DapodikMatchResolver
             ->get();
         $byIdentity = StudentClassMembership::query()
             ->where('student_id', $studentId)
-            ->where('classroom_id', $classroomId)
             ->where('academic_year_id', $yearId)
-            ->whereDate('effective_from', $fields['effective_from'])
             ->lockForUpdate()
             ->get();
         if ($bySource->count() > 1 || $byIdentity->count() > 1) {
@@ -216,9 +214,7 @@ final class DapodikMatchResolver
         $identityCandidate = $byIdentity->first();
         if ($sourceCandidate !== null
             && ($sourceCandidate->student_id !== $studentId
-                || $sourceCandidate->classroom_id !== $classroomId
-                || $sourceCandidate->academic_year_id !== $yearId
-                || $this->dateValue($sourceCandidate->effective_from) !== $fields['effective_from'])
+                || $sourceCandidate->academic_year_id !== $yearId)
         ) {
             return $this->derivedMembershipConflict();
         }
@@ -482,9 +478,7 @@ final class DapodikMatchResolver
             ? new Collection
             : StudentClassMembership::query()
                 ->where('student_id', $studentId)
-                ->where('classroom_id', $classroomId)
                 ->where('academic_year_id', $yearId)
-                ->whereDate('effective_from', $fields['effective_from'])
                 ->get();
 
         return $this->classifyIdentityCandidate(
@@ -563,8 +557,9 @@ final class DapodikMatchResolver
             DapodikSyncPreviewItem::ENTITY_STUDENT => $candidate->getAttribute('nisn') === $fields['nisn']
                 && $candidate->getAttribute('name') === $fields['name']
                 && (bool) $candidate->getAttribute('is_active') === $fields['is_active'],
-            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => $this->dateValue($candidate->getAttribute('effective_from')) === $fields['effective_from']
-                && $this->dateValue($candidate->getAttribute('effective_until')) === $fields['effective_until']
+            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => $candidate->student?->dapodik_id === $fields['student_source_id']
+                && $candidate->classroom?->dapodik_id === $fields['classroom_source_id']
+                && $candidate->academicYear?->dapodik_id === $fields['academic_year_source_id']
                 && (bool) $candidate->getAttribute('is_active') === $fields['is_active'],
             default => false,
         };
@@ -598,7 +593,7 @@ final class DapodikMatchResolver
             DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR => ['id', 'dapodik_id', 'name', 'starts_on', 'ends_on', 'is_active', 'master_source', 'source_confirmed_at'],
             DapodikSyncPreviewItem::ENTITY_CLASSROOM => ['id', 'dapodik_id', 'academic_year_id', 'name', 'grade_level', 'major', 'is_active', 'master_source', 'source_confirmed_at'],
             DapodikSyncPreviewItem::ENTITY_STUDENT => ['id', 'dapodik_id', 'nisn', 'name', 'is_active', 'master_source', 'source_confirmed_at'],
-            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => ['id', 'dapodik_id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until', 'is_active', 'master_source', 'source_confirmed_at'],
+            DapodikSyncPreviewItem::ENTITY_MEMBERSHIP => ['id', 'dapodik_id', 'student_id', 'classroom_id', 'academic_year_id', 'is_active', 'master_source', 'source_confirmed_at'],
             default => throw new \LogicException('Jenis item pratinjau tidak dikenal.'),
         };
 

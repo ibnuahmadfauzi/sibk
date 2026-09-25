@@ -51,20 +51,18 @@ class CaseController extends Controller
         $query->when($isWakaOnly, fn ($cases) => $cases
             ->select([
                 'cases.id', 'cases.student_id', 'cases.temporary_student_id',
-                'cases.service_date', 'cases.status_id', 'cases.service_field_id',
+                'cases.service_date', 'cases.classroom_id', 'cases.status_id', 'cases.service_field_id',
                 'cases.follow_up_type_id',
             ])
             ->with([
                 'student:id,name',
-                'student.classMemberships' => fn ($memberships) => $memberships
-                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
-                    ->with('classroom:id,name'),
+                'classroom:id,name',
                 'temporaryStudent:id,input_name',
                 'serviceField:id,label',
                 'status:id,label,code',
                 'followUpType:id,label',
             ]), fn ($cases) => $cases->with([
-                'student.classMemberships.classroom',
+                'classroom',
                 'temporaryStudent',
                 'source',
                 'serviceField',
@@ -77,10 +75,7 @@ class CaseController extends Controller
             $filter->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
                 ->orWhereHas('temporaryStudent', fn ($students) => $students->where('input_name', 'like', '%'.$search.'%'));
         }));
-        $query->when($request->integer('classroom_id'), fn ($cases, int $classroomId) => $cases->whereHas(
-            'student.classMemberships',
-            fn ($memberships) => $memberships->where('classroom_id', $classroomId),
-        ));
+        $query->when($request->integer('classroom_id'), fn ($cases, int $classroomId) => $cases->where('classroom_id', $classroomId));
         $query->when($request->integer('case_source_id'), fn ($cases, int $id) => $cases->where('case_source_id', $id));
         $query->when($request->integer('status_id'), fn ($cases, int $id) => $cases->where('status_id', $id));
         $query->when($request->string('month')->toString(), function ($cases, string $month): void {
@@ -96,18 +91,8 @@ class CaseController extends Controller
         }
         $sortExpression = match ($sort) {
             'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT input_name FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id)))'),
-            'kelas' => Classroom::query()
-                ->selectRaw('LOWER(classrooms.name)')
-                ->join('student_class_memberships', 'student_class_memberships.classroom_id', '=', 'classrooms.id')
-                ->whereColumn('student_class_memberships.student_id', 'cases.student_id')
-                ->whereColumn('student_class_memberships.effective_from', '<=', 'cases.service_date')
-                ->where(function ($memberships): void {
-                    $memberships->whereNull('student_class_memberships.effective_until')
-                        ->orWhereColumn('student_class_memberships.effective_until', '>=', 'cases.service_date');
-                })
-                ->orderByDesc('student_class_memberships.effective_from')
-                ->orderByDesc('student_class_memberships.id')
-                ->limit(1),
+            'kelas' => Classroom::query()->selectRaw('LOWER(classrooms.name)')
+                ->whereColumn('classrooms.id', 'cases.classroom_id')->limit(1),
             'sumber' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'cases.case_source_id'),
             'bidang' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'cases.service_field_id'),
             'status' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'cases.status_id'),
@@ -139,7 +124,7 @@ class CaseController extends Controller
 
         $accessibleStudents = Student::query()
             ->availableForService()
-            ->forActiveTeacherAssignment($user, now());
+            ->forActiveTeacherAssignment($user);
         $preselectedStudentId = $request->integer('student_id') ?: null;
         abort_if(
             $preselectedStudentId !== null
@@ -153,7 +138,6 @@ class CaseController extends Controller
         $students = (clone $accessibleStudents)
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
-                ->effectiveOn(now()->toDateString())
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom')])
             ->orderBy('name')
@@ -222,7 +206,7 @@ class CaseController extends Controller
         }
 
         $case->load([
-            'student.classMemberships.classroom',
+            'classroom',
             'temporaryStudent',
             'source',
             'serviceField',
@@ -240,7 +224,6 @@ class CaseController extends Controller
             'canViewInternal' => $user->can('viewInternal', $case),
             'canUpdateCase' => $user->can('update', $case),
             'canArchiveCase' => $user->can('archive', $case),
-            'canAssignCase' => $user->can('assign', $case),
         ]);
     }
 
@@ -319,21 +302,16 @@ class CaseController extends Controller
             ->select([
                 'consultations.id', 'consultations.student_id', 'consultations.temporary_student_id',
                 'consultations.service_field_id', 'consultations.session_date', 'consultations.counselor_id',
+                'consultations.classroom_id',
             ])
             ->with([
                 'student:id,name',
-                'student.classMemberships' => fn ($memberships) => $memberships
-                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
-                    ->with('classroom:id,name'),
+                'classroom:id,name',
                 'temporaryStudent:id,input_name,reconciled_student_id',
                 'temporaryStudent.reconciledStudent:id,name',
-                'temporaryStudent.reconciledStudent.classMemberships' => fn ($memberships) => $memberships
-                    ->select(['id', 'student_id', 'classroom_id', 'academic_year_id', 'effective_from', 'effective_until'])
-                    ->with('classroom:id,name'),
                 'serviceField:id,label',
             ]), fn ($consultations) => $consultations->with([
-                'student.classMemberships.classroom',
-                'temporaryStudent.reconciledStudent.classMemberships.classroom',
+                'classroom',
                 'serviceField',
             ]));
         $search = $request->string('search')->trim()->toString();
@@ -351,18 +329,8 @@ class CaseController extends Controller
         }
         $sortExpression = match ($sort) {
             'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = consultations.student_id), (SELECT COALESCE((SELECT name FROM students WHERE students.id = temporary_students.reconciled_student_id), input_name) FROM temporary_students WHERE temporary_students.id = consultations.temporary_student_id)))'),
-            'kelas' => Classroom::query()
-                ->selectRaw('LOWER(classrooms.name)')
-                ->join('student_class_memberships', 'student_class_memberships.classroom_id', '=', 'classrooms.id')
-                ->whereRaw('student_class_memberships.student_id = COALESCE(consultations.student_id, (SELECT reconciled_student_id FROM temporary_students WHERE temporary_students.id = consultations.temporary_student_id))')
-                ->whereColumn('student_class_memberships.effective_from', '<=', 'consultations.session_date')
-                ->where(function ($memberships): void {
-                    $memberships->whereNull('student_class_memberships.effective_until')
-                        ->orWhereColumn('student_class_memberships.effective_until', '>=', 'consultations.session_date');
-                })
-                ->orderByDesc('student_class_memberships.effective_from')
-                ->orderByDesc('student_class_memberships.id')
-                ->limit(1),
+            'kelas' => Classroom::query()->selectRaw('LOWER(classrooms.name)')
+                ->whereColumn('classrooms.id', 'consultations.classroom_id')->limit(1),
             'jenis_layanan' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'consultations.service_field_id'),
             default => 'consultations.session_date',
         };

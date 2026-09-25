@@ -159,10 +159,11 @@ final class WakaDashboardTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $this->year->id,
-            'effective_from' => '2026-07-01',
             'is_active' => true,
         ]);
         $case = BkCase::query()->create([
+            'academic_year_id' => $this->year->id,
+            'classroom_id' => $classroom->id,
             'registration_number' => $number,
             'student_id' => $student->id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
@@ -178,8 +179,6 @@ final class WakaDashboardTest extends TestCase
         CaseAssignment::query()->create([
             'case_id' => $case->id,
             'user_id' => $owner->id,
-            'assignment_type' => CaseAssignment::TYPE_OWNER,
-            'effective_from' => '2026-07-01',
             'reason' => 'Penanggung jawab kasus.',
             'assigned_by' => $owner->id,
         ]);

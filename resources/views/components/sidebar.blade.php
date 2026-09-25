@@ -76,19 +76,13 @@
             <p class="sibk-sidebar__section">PENGELOLAAN</p>
 
             @can('viewAny', App\Models\TeacherAssignment::class)
+            @unless($sidebarUser?->hasRole('admin_it'))
             <a class="sibk-nav-link {{ request()->routeIs('assignments.classes.*') ? 'is-active' : '' }}" href="{{ route('assignments.classes.index') }}"
                 aria-current="{{ request()->routeIs('assignments.classes.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>
                 <span>Penugasan Kelas</span>
             </a>
-            @endcan
-
-            @can('manageCaseAssignments')
-            <a class="sibk-nav-link {{ request()->routeIs('assignments.cases.*') ? 'is-active' : '' }}" href="{{ route('assignments.cases.index') }}"
-                aria-current="{{ request()->routeIs('assignments.cases.*') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-                <span>Pengalihan Permasalahan</span>
-            </a>
+            @endunless
             @endcan
 
             @can('manageDataMaster')
@@ -101,6 +95,19 @@
                     aria-current="{{ request()->routeIs('data-master.*') ? 'page' : 'false' }}">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
                     <span>Data Master</span>
+                </a>
+                <a
+                    class="sibk-nav-link {{ request()->routeIs('admin.api.*') ? 'is-active' : '' }}"
+                    href="{{ route('admin.api.index') }}"
+                    aria-current="{{ request()->routeIs('admin.api.*') ? 'page' : 'false' }}"
+                >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                        <circle cx="6" cy="12" r="2" />
+                        <circle cx="18" cy="6" r="2" />
+                        <circle cx="18" cy="18" r="2" />
+                        <path d="m8 11 8-4M8 13l8 4" />
+                    </svg>
+                    <span>Kelola API</span>
                 </a>
             @endcan
 

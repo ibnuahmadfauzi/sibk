@@ -11,6 +11,7 @@ use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Support\ServiceRecordStatus;
@@ -86,6 +87,8 @@ final class ReportPreviewSeeder extends Seeder
             $case->forceFill([
                 'student_id' => $students['0091234501']->getKey(),
                 'temporary_student_id' => null,
+                'academic_year_id' => $year->getKey(),
+                'classroom_id' => $classroom->getKey(),
                 'case_source_id' => $source,
                 'service_field_id' => $fields->get('pribadi'),
                 'status_id' => $status,
@@ -102,18 +105,13 @@ final class ReportPreviewSeeder extends Seeder
             ])->save();
 
             $owner = CaseAssignment::query()
-                ->withTrashed()
                 ->firstOrNew([
                     'case_id' => $case->getKey(),
-                    'user_id' => $teacher->getKey(),
-                    'assignment_type' => CaseAssignment::TYPE_OWNER,
                 ]);
             $owner->forceFill([
-                'effective_from' => $firstDate,
-                'effective_until' => null,
+                'user_id' => $teacher->getKey(),
                 'reason' => 'Penanggung jawab kasus contoh laporan.',
                 'assigned_by' => $teacher->getKey(),
-                'deleted_at' => null,
             ])->save();
 
             $this->consultation(
@@ -145,19 +143,13 @@ final class ReportPreviewSeeder extends Seeder
         AcademicYear $year,
     ): void {
         $assignment = TeacherAssignment::query()
-            ->withTrashed()
             ->firstOrNew([
-                'user_id' => $teacher->getKey(),
                 'classroom_id' => $classroom->getKey(),
                 'academic_year_id' => $year->getKey(),
             ]);
         $assignment->forceFill([
-            'effective_from' => $year->starts_on,
-            'effective_until' => null,
-            'decision_number' => 'SK-BK-DEMO-LAPORAN',
-            'notes' => 'Penugasan untuk pratinjau laporan lokal.',
+            'user_id' => $teacher->getKey(),
             'assigned_by' => $teacher->getKey(),
-            'deleted_at' => null,
         ])->save();
     }
 
@@ -170,6 +162,10 @@ final class ReportPreviewSeeder extends Seeder
         string $handling,
         string $result,
     ): void {
+        $membership = StudentClassMembership::query()
+            ->where('student_id', $studentId)
+            ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+            ->first();
         $consultation = Consultation::query()
             ->withTrashed()
             ->where('student_id', $studentId)
@@ -179,6 +175,8 @@ final class ReportPreviewSeeder extends Seeder
         $consultation->forceFill([
             'student_id' => $studentId,
             'temporary_student_id' => null,
+            'academic_year_id' => $membership?->academic_year_id,
+            'classroom_id' => $membership?->classroom_id,
             'service_field_id' => $serviceFieldId,
             'session_date' => $date,
             'problem' => $problem,

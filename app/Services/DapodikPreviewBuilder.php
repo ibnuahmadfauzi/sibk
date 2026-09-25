@@ -223,8 +223,6 @@ final class DapodikPreviewBuilder
             'student_source_id' => $fields['student_source_id'],
             'classroom_source_id' => $fields['classroom_source_id'],
             'academic_year_source_id' => $fields['academic_year_source_id'],
-            'effective_from' => $fields['effective_from'],
-            'effective_until' => $fields['effective_until'] ?? null,
             'is_active' => $fields['is_active'] ?? true,
         ];
     }

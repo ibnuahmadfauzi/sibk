@@ -57,7 +57,7 @@ class IntegrationActionRequest extends FormRequest
 
     public function getRedirectUrl(): string
     {
-        return route('data-master.index').'#integration-'.$this->provider();
+        return route('admin.api.index').'#integration-'.$this->provider();
     }
 
     private function action(): string

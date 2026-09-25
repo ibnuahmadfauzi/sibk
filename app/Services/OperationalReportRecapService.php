@@ -9,7 +9,6 @@ use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\Consultation;
-use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Policies\ReportPolicy;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,7 +44,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             $events->firstItem() ?? 1,
         );
 
-        if (! $this->policy->viewDocument($actor)) {
+        if ($this->policy->viewDocument($actor) === false) {
             $rows = $rows->map(static fn (array $row): array => Arr::only($row, [
                 'number',
                 'day_label',
@@ -127,34 +126,11 @@ final class OperationalReportRecapService implements OperationalReportRecap
     ): QueryBuilder {
         $caseEvents = BkCase::query()
             ->accessibleTo($actor)
-            ->when(
-                $year?->starts_on,
-                fn (Builder $query, $date): Builder => $query->whereDate(
-                    'cases.service_date',
-                    '>=',
-                    $date,
-                ),
-            )
-            ->when(
-                $year?->ends_on,
-                fn (Builder $query, $date): Builder => $query->whereDate(
-                    'cases.service_date',
-                    '<=',
-                    $date,
-                ),
-            )
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('cases.academic_year_id', $selected->getKey()))
             ->when(
                 $filters['classroom_id'],
-                fn (Builder $query, int $classroomId): Builder => $this->whereHistoricClass(
-                    $query,
-                    'cases.service_date',
-                    $classroomId,
-                    $year,
-                    [
-                        'student.classMemberships',
-                        'temporaryStudent.reconciledStudent.classMemberships',
-                    ],
-                ),
+                fn (Builder $query, int $classroomId): Builder => $query->where('cases.classroom_id', $classroomId),
             )
             ->selectRaw("'case' AS record_type")
             ->selectRaw('cases.id AS record_id')
@@ -163,34 +139,11 @@ final class OperationalReportRecapService implements OperationalReportRecap
 
         $consultationEvents = Consultation::query()
             ->accessibleTo($actor)
-            ->when(
-                $year?->starts_on,
-                fn (Builder $query, $date): Builder => $query->whereDate(
-                    'consultations.session_date',
-                    '>=',
-                    $date,
-                ),
-            )
-            ->when(
-                $year?->ends_on,
-                fn (Builder $query, $date): Builder => $query->whereDate(
-                    'consultations.session_date',
-                    '<=',
-                    $date,
-                ),
-            )
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('consultations.academic_year_id', $selected->getKey()))
             ->when(
                 $filters['classroom_id'],
-                fn (Builder $query, int $classroomId): Builder => $this->whereHistoricClass(
-                    $query,
-                    'consultations.session_date',
-                    $classroomId,
-                    $year,
-                    [
-                        'student.classMemberships',
-                        'temporaryStudent.reconciledStudent.classMemberships',
-                    ],
-                ),
+                fn (Builder $query, int $classroomId): Builder => $query->where('consultations.classroom_id', $classroomId),
             )
             ->selectRaw("'consultation' AS record_type")
             ->selectRaw('consultations.id AS record_id')
@@ -315,8 +268,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return BkCase::query()
             ->accessibleTo($actor)
             ->with([
-                'student.classMemberships.classroom',
-                'temporaryStudent.reconciledStudent.classMemberships.classroom',
+                'classroom',
                 'source',
                 'serviceField',
                 'status',
@@ -331,8 +283,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return Consultation::query()
             ->accessibleTo($actor)
             ->with([
-                'student.classMemberships.classroom',
-                'temporaryStudent.reconciledStudent.classMemberships.classroom',
+                'classroom',
                 'serviceField',
                 'counselor',
             ]);
@@ -377,14 +328,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 )
                 : 'Selesai',
             'counselor' => $isCase
-                ? ($record->assignments
-                    ->where('assignment_type', 'owner')
-                    ->sortByDesc(fn ($assignment): string => sprintf(
-                        '%s-%010d',
-                        $assignment->effective_from->format('Y-m-d'),
-                        $assignment->id,
-                    ))
-                    ->first()?->teacher?->name ?? '—')
+                ? ($record->assignments->first()?->teacher?->name ?? '—')
                 : ($record->counselor?->name ?? '—'),
             'archive_url' => route(
                 $isCase ? 'cases.destroy' : 'consultations.destroy',
@@ -398,25 +342,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         BkCase|Consultation $record,
         ?AcademicYear $year,
     ): string {
-        $student = $record->student ?? $record->temporaryStudent?->reconciledStudent;
-        if ($student === null) {
-            return 'Identitas sementara';
-        }
-
-        $date = $record instanceof BkCase ? $record->service_date : $record->session_date;
-        $membership = $student->classMemberships
-            ->filter(fn (StudentClassMembership $item): bool => (
-                $year === null || $item->academic_year_id === $year->getKey()
-            ) && $item->effective_from->lte($date)
-                && ($item->effective_until === null || $item->effective_until->gte($date)))
-            ->sortByDesc(fn (StudentClassMembership $item): string => sprintf(
-                '%s-%010d',
-                $item->effective_from->format('Y-m-d'),
-                $item->id,
-            ))
-            ->first();
-
-        return $membership?->classroom?->name ?? 'Belum tersedia';
+        return $record->classroom?->name ?? ($record->temporary_student_id ? 'Identitas sementara' : 'Belum tersedia');
     }
 
     /**
@@ -486,54 +412,11 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 ),
             )
             ->when(
-                ! $actor->hasRole('waka_kesiswaan'),
+                $actor->hasRole('waka_kesiswaan') === false,
                 fn (Builder $query): Builder => $query->whereHas(
                     'studentClassMemberships.student',
                     fn (Builder $students): Builder => $students->accessibleTo($actor),
                 ),
             );
-    }
-
-    /** @param list<string> $membershipPaths */
-    private function whereHistoricClass(
-        Builder $query,
-        string $dateColumn,
-        int $classroomId,
-        ?AcademicYear $year,
-        array $membershipPaths,
-    ): Builder {
-        return $query->where(function (Builder $identities) use (
-            $dateColumn,
-            $classroomId,
-            $year,
-            $membershipPaths,
-        ): void {
-            foreach ($membershipPaths as $index => $path) {
-                $method = $index === 0 ? 'whereHas' : 'orWhereHas';
-                $identities->{$method}(
-                    $path,
-                    function (Builder $memberships) use (
-                        $dateColumn,
-                        $classroomId,
-                        $year,
-                    ): void {
-                        $memberships
-                            ->where('classroom_id', $classroomId)
-                            ->when(
-                                $year,
-                                fn (Builder $scope, AcademicYear $selected): Builder => $scope
-                                    ->where('academic_year_id', $selected->getKey()),
-                            )
-                            ->whereRaw('DATE(effective_from) <= DATE('.$dateColumn.')')
-                            ->where(function (Builder $period) use ($dateColumn): void {
-                                $period->whereNull('effective_until')
-                                    ->orWhereRaw(
-                                        'DATE(effective_until) >= DATE('.$dateColumn.')',
-                                    );
-                            });
-                    },
-                );
-            }
-        });
     }
 }

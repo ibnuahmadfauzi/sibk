@@ -103,7 +103,7 @@ class IntegrationSettingController extends Controller
     private function redirect(string $provider): RedirectResponse
     {
         return redirect()
-            ->to(route('data-master.index').'#integration-'.$provider)
+            ->to(route('admin.api.index').'#integration-'.$provider)
             ->header('Cache-Control', 'no-store');
     }
 

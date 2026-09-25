@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\AssignCaseRequest;
 use App\Http\Requests\StoreClassAssignmentRequest;
+use App\Http\Requests\StoreClassAssignmentsRequest;
+use App\Http\Requests\UnassignClassRequest;
 use App\Models\AcademicYear;
-use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\TeacherAssignment;
 use App\Models\User;
@@ -16,91 +16,93 @@ use App\Services\AssignmentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class AssignmentController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, AcademicYearPreparationService $preparationService): View
     {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('viewAny', TeacherAssignment::class), 403);
 
-        $query = TeacherAssignment::query()->with(['teacher', 'classroom', 'academicYear']);
-
-        if (! $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan', 'admin_it'])) {
-            $query->where('user_id', $user->getKey());
+        $academicYears = AcademicYear::query()->orderByDesc('id')->get();
+        $activeYear = $academicYears->firstWhere('is_active', true);
+        $preparationYears = $academicYears->filter(
+            fn (AcademicYear $year) => ! $year->is_active && $year->activated_at === null
+        );
+        $canChooseYear = $user->can('create', TeacherAssignment::class);
+        $requestedYear = $academicYears->firstWhere('id', $request->integer('academic_year_id'));
+        $selectedYear = $activeYear;
+        if ($canChooseYear && $requestedYear !== null
+            && ($requestedYear->is_active || $requestedYear->activated_at === null)) {
+            $selectedYear = $requestedYear;
         }
+        $canManage = $canChooseYear && $selectedYear !== null;
+        $classes = Classroom::query()
+            ->active()
+            ->with('teacherAssignments')
+            ->withCount(['studentClassMemberships as student_count' => fn ($memberships) => $memberships
+                ->active()
+                ->where('academic_year_id', $selectedYear?->getKey())
+                ->whereHas('student', fn ($students) => $students->active())])
+            ->when($selectedYear !== null,
+                fn ($query) => $query->where('academic_year_id', $selectedYear->getKey()),
+                fn ($query) => $query->whereRaw('1 = 0'))
+            ->orderBy('name')
+            ->get();
 
-        $query
-            ->when($request->integer('academic_year_id'), fn ($builder, int $yearId) => $builder->where('academic_year_id', $yearId))
-            ->when($request->string('search_kelas')->toString(), fn ($builder, string $search) => $builder->whereHas(
-                'classroom',
-                fn ($classrooms) => $classrooms->where('name', 'like', '%'.$search.'%'),
-            ));
+        $counselors = User::query()->active()
+            ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
+            ->when(! $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan', 'admin_it']),
+                fn ($query) => $query->whereKey($user->getKey()))
+            ->orderBy('name')->get();
+        $classesByTeacher = $classes->filter(fn (Classroom $classroom) => $classroom->teacherAssignments->isNotEmpty())
+            ->groupBy(fn (Classroom $classroom) => $classroom->teacherAssignments->first()->user_id);
+        $classSuggestions = $counselors->flatMap(
+            fn (User $counselor) => $classesByTeacher->get($counselor->getKey(), collect())->pluck('name')
+        )->unique()->sort(SORT_NATURAL)->values();
+        $unassignedClasses = $classes->filter(fn (Classroom $classroom) => $classroom->teacherAssignments->isEmpty());
+        $status = $request->string('status')->toString();
+        $search = $request->string('search_kelas')->toString();
+        $rows = $counselors->map(function (User $counselor) use ($classesByTeacher): array {
+            $assignedClasses = $classesByTeacher->get($counselor->getKey(), collect());
 
-        if ($request->string('status')->toString() === 'aktif') {
-            $query->activeOn(now());
-        } elseif ($request->string('status')->toString() === 'terjadwal') {
-            $query->scheduledOn(now());
-        } elseif (in_array($request->string('status')->toString(), ['berakhir', 'nonaktif'], true)) {
-            $query->endedOn(now());
-        }
+            return [
+                'teacher' => $counselor,
+                'classes' => $assignedClasses,
+                'student_count' => $assignedClasses->sum('student_count'),
+            ];
+        })->filter(fn (array $row) => match ($status) {
+            'assigned' => $row['classes']->isNotEmpty(),
+            'unassigned' => $row['classes']->isEmpty(),
+            default => true,
+        })->filter(fn (array $row) => $search === '' || $row['classes']->contains(
+            fn (Classroom $classroom) => str_contains(mb_strtolower($classroom->name), mb_strtolower($search))
+        ));
 
         return view('pages.assignments.classes.index', [
-            'assignments' => $query->orderByDesc('effective_from')->get(),
-            'academicYears' => AcademicYear::query()->orderByDesc('starts_on')->orderByDesc('name')->get(),
-            'canManage' => $user->can('create', TeacherAssignment::class),
+            'rows' => $rows,
+            'classSuggestions' => $classSuggestions,
+            'unassignedClasses' => $unassignedClasses,
+            'activeYear' => $activeYear,
+            'preparationYears' => $preparationYears,
+            'canChooseYear' => $canChooseYear,
+            'selectedYear' => $selectedYear,
+            'canManage' => $canManage,
+            'activationReadiness' => $canManage ? $preparationService->activationReadiness($selectedYear) : null,
+            'previousYear' => $canManage && $selectedYear->is_active
+                ? $preparationService->previousYearCandidate($selectedYear)
+                : null,
         ]);
     }
 
-    public function manage(
-        Request $request,
-        AcademicYearPreparationService $preparationService,
-    ): View {
+    public function manage(Request $request): RedirectResponse
+    {
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('create', TeacherAssignment::class), 403);
 
-        $academicYears = AcademicYear::query()->orderByDesc('starts_on')->orderByDesc('name')->get();
-        $selectedYear = AcademicYear::query()->find($request->integer('academic_year_id'))
-            ?? AcademicYear::query()->active()->orderByDesc('starts_on')->first()
-            ?? $academicYears->first();
-        $classes = Classroom::query()
-            ->with('academicYear')
-            ->active()
-            ->when($selectedYear !== null, fn ($query) => $query->where('academic_year_id', $selectedYear->getKey()))
-            ->orderBy('name')
-            ->get();
-        $selectedClass = $classes->firstWhere('id', $request->integer('classroom_id'))
-            ?? $classes->firstWhere('academic_year_id', $selectedYear?->getKey())
-            ?? $classes->first();
-        $counselors = User::query()
-            ->active()
-            ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
-            ->orderBy('name')
-            ->get();
-        $currentAssignment = null;
-        if ($selectedClass !== null) {
-            $assignmentQuery = TeacherAssignment::query()
-                ->with(['teacher', 'academicYear', 'classroom'])
-                ->where('classroom_id', $selectedClass->getKey());
-            $currentAssignment = (clone $assignmentQuery)->activeOn(now())->latest('effective_from')->first()
-                ?? (clone $assignmentQuery)->scheduledOn(now())->oldest('effective_from')->first();
-        }
-        $activationReadiness = $selectedYear !== null
-            ? $preparationService->activationReadiness($selectedYear)
-            : ['ready' => false, 'issues' => ['Tahun ajaran belum tersedia.'], 'classrooms' => collect()];
-
-        return view('pages.assignments.classes.manage', compact(
-            'academicYears',
-            'selectedYear',
-            'classes',
-            'selectedClass',
-            'counselors',
-            'currentAssignment',
-            'activationReadiness',
-        ));
+        return redirect()->route('assignments.classes.index', $request->only('academic_year_id', 'classroom_id'));
     }
 
     public function storeClassAssignment(
@@ -109,43 +111,45 @@ class AssignmentController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $assignmentService->assignClass($request->validated(), $actor);
+        $assignment = $assignmentService->assignClass($request->validated(), $actor);
 
         return redirect()
-            ->route('assignments.classes.index', ['academic_year_id' => $request->integer('academic_year_id')])
-            ->with('success', 'Penugasan kelas berhasil disimpan.');
+            ->route('assignments.classes.index', ['academic_year_id' => $assignment->academic_year_id])
+            ->with('success_title', 'Kelas ditugaskan')
+            ->with('success', sprintf(
+                '%s kini diampu %s.',
+                $assignment->classroom->name,
+                $assignment->teacher->name,
+            ));
     }
 
-    public function caseIndex(Request $request): View
-    {
-        /** @var User $user */
-        $user = $request->user();
-        Gate::forUser($user)->authorize('manageCaseAssignments');
-
-        $cases = BkCase::query()
-            ->whereNull('closed_at')
-            ->with(['student.classMemberships.classroom', 'temporaryStudent', 'status', 'assignments.teacher'])
-            ->latest('service_date')
-            ->get();
-        $selectedCase = $cases->firstWhere('id', $request->integer('case_id')) ?? $cases->first();
-        $counselors = User::query()
-            ->active()
-            ->whereHas('roles', fn ($roles) => $roles->where('slug', 'guru_bk')->where('is_active', true))
-            ->orderBy('name')
-            ->get();
-
-        return view('pages.assignments.cases.index', compact('cases', 'selectedCase', 'counselors'));
-    }
-
-    public function assignCase(
-        AssignCaseRequest $request,
-        BkCase $case,
+    public function storeClassAssignments(
+        StoreClassAssignmentsRequest $request,
         AssignmentService $assignmentService,
     ): RedirectResponse {
-        /** @var User $actor */
-        $actor = $request->user();
-        $assignmentService->assignCase($case, $request->validated(), $actor);
+        $assignments = $assignmentService->assignClasses($request->validated(), $request->user());
+        $first = $assignments->first();
 
-        return redirect()->route('cases.show', $case)->with('success', 'Penugasan kasus berhasil diperbarui.');
+        return redirect()
+            ->route('assignments.classes.index', ['academic_year_id' => $first->academic_year_id])
+            ->with('success_title', 'Kelas ditugaskan')
+            ->with('success', sprintf(
+                '%d kelas ditambahkan untuk %s.',
+                $assignments->count(),
+                $first->teacher->name,
+            ));
+    }
+
+    public function destroyClassAssignment(
+        UnassignClassRequest $request,
+        Classroom $classroom,
+        AssignmentService $assignmentService,
+    ): RedirectResponse {
+        $assignmentService->unassignClass($classroom, $request->integer('user_id'), $request->user());
+
+        return redirect()
+            ->route('assignments.classes.index', ['academic_year_id' => $classroom->academic_year_id])
+            ->with('success_title', 'Penugasan dibatalkan')
+            ->with('success', sprintf('%s kembali tersedia untuk ditugaskan.', $classroom->name));
     }
 }

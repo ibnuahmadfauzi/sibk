@@ -77,8 +77,6 @@ final class DapodikDeactivationPlanner
             'classroom_id',
             'grade_level',
             'major',
-            'effective_from',
-            'effective_until',
             'is_active',
             'master_source',
             'source_confirmed_at',

@@ -6,8 +6,6 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\BkCase;
-use App\Models\CaseAssignment;
-use App\Models\StudentClassMembership;
 use App\Models\User;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -71,19 +69,11 @@ final class WakaMonitoringService
     /** @return array<string, mixed> */
     public function toSafeRow(BkCase $case): array
     {
-        $membership = $case->student?->classMemberships->first(
-            static fn (StudentClassMembership $item): bool => $item->effective_from?->lte($case->service_date)
-                && ($item->effectiveEnd() === null || $item->effectiveEnd()->gte($case->service_date)),
-        );
-        $ownerAssignment = $case->assignments->first(
-            static fn (CaseAssignment $assignment): bool => $assignment->effective_from?->lte(today())
-                && ($assignment->effective_until === null || $assignment->effective_until->gte(today())),
-        ) ?? $case->assignments->first();
-        $owner = $ownerAssignment?->teacher;
+        $owner = $case->assignments->first()?->teacher;
 
         return [
             'nama_murid' => $case->identityName(),
-            'kelas' => $membership?->classroom?->name ?? '-',
+            'kelas' => $case->classroom?->name ?? '-',
             'bidang' => $case->serviceField?->label ?? '-',
             'status' => $case->status?->label ?? '-',
             'status_code' => $case->status?->code ?? '',

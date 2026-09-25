@@ -53,17 +53,18 @@ class DashboardService
             $cases->accessibleTo($user);
             $students = Student::query()->availableForService($end)->professionallyAccessibleTo($user)
                 ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
-                    ->where(function (Builder $scope) use ($user, $selected, $start, $end): void {
+                    ->where(function (Builder $scope) use ($user, $selected): void {
                         $scope->whereHas('classMemberships', fn (Builder $memberships): Builder => $memberships
                             ->where('academic_year_id', $selected->getKey()))
                             ->orWhereHas('cases.assignments', fn (Builder $assignments): Builder => $assignments
-                                ->where('user_id', $user->getKey())->effectiveOn(now())
+                                ->where('user_id', $user->getKey())
                                 ->whereHas('case', fn (Builder $case): Builder => $case
-                                    ->whereBetween('service_date', [$start, $end])));
+                                    ->where('academic_year_id', $selected->getKey())));
                     }));
         } else {
             // Waka melihat SELURUH kasus aktif sekolah — bukan hanya yang terkoordinasi
-            $cases->whereBetween('service_date', [$start, $end]);
+            $cases->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->getKey()));
             $students = Student::query()->availableForService($end)->whereIn('id', (clone $cases)
                 ->whereNotNull('student_id')->select('student_id'));
         }
@@ -177,18 +178,16 @@ class DashboardService
     {
         $assignments = TeacherAssignment::query()
             ->where('user_id', $user->getKey())
-            ->effectiveOn(now())
+            ->inActiveYear()
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('academic_year_id', $selected->getKey()));
         $cases = BkCase::query()
             ->withinStudentServicePeriod()
             ->whereNull('closed_at')
             ->whereHas('assignments', fn (Builder $query): Builder => $query
-                ->where('user_id', $user->getKey())
-                ->where('assignment_type', 'owner')
-                ->effectiveOn(now()))
+                ->where('user_id', $user->getKey()))
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
-                ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on]));
+                ->where('academic_year_id', $selected->getKey()));
         $followUpCases = (clone $cases)->whereHas('status', fn (Builder $status): Builder => $status
             ->where('code', ServiceRecordStatus::NEEDS_FOLLOW_UP));
 
@@ -205,11 +204,11 @@ class DashboardService
         $unassignedClasses = Classroom::query()->active()
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('academic_year_id', $selected->getKey()))
-            ->whereDoesntHave('teacherAssignments', fn (Builder $query): Builder => $query->effectiveOn(now()));
+            ->whereDoesntHave('teacherAssignments');
         $openFollowUps = BkCase::query()->whereHas('status', fn (Builder $status): Builder => $status
             ->where('code', ServiceRecordStatus::NEEDS_FOLLOW_UP))
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
-                ->whereBetween('service_date', [$selected->starts_on, $selected->ends_on]));
+                ->where('academic_year_id', $selected->getKey()));
 
         return [
             ['label' => 'Guru BK aktif', 'value' => (string) User::query()->active()->whereHas('roles', fn (Builder $roles): Builder => $roles->where('slug', 'guru_bk')->where('is_active', true))->count(), 'meta' => 'Siap menerima penugasan'],
@@ -246,7 +245,7 @@ class DashboardService
 
     private function teacherScope(User $user, ?AcademicYear $year): string
     {
-        $classes = $user->teacherAssignments()->effectiveOn(now())
+        $classes = $user->teacherAssignments()->inActiveYear()
             ->when($year, fn (Builder $assignments, AcademicYear $selected): Builder => $assignments->where('academic_year_id', $selected->getKey()))
             ->with('classroom')->get()->pluck('classroom.name')->filter()->join(', ');
 
@@ -257,15 +256,13 @@ class DashboardService
     private function followUpItems(Collection $cases): array
     {
         return $cases->map(function (BkCase $case): array {
-            $membership = $case->student?->classMemberships->sortByDesc('effective_from')->first();
-
             return [
                 'date' => $case->service_date->format('d'),
                 'month' => $case->service_date->locale('id')->translatedFormat('M'),
                 'year' => $case->service_date->format('Y'),
                 'code' => 'Layanan permasalahan',
                 'title' => $case->followUpType?->label ?? 'Tindak Lanjut',
-                'context_label' => sprintf('%s (%s)', $case->identityName(), $membership?->classroom?->name ?? 'tanpa kelas aktif'),
+                'context_label' => sprintf('%s (%s)', $case->identityName(), $case->classroom?->name ?? 'tanpa kelas'),
                 'status' => $case->status->label,
                 'status_tone' => 'warning',
                 'url' => route('cases.show', $case),

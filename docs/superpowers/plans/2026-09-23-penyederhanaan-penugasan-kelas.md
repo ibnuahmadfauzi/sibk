@@ -215,34 +215,38 @@ git add database/migrations/2026_09_23_000100_drop_decision_number_from_teacher_
 git commit -m "refactor: hapus nomor sk penugasan"
 ```
 
-### Task 4: Selaraskan requirement dan handoff
+### Task 4: Selaraskan dokumentasi canonical
 
 **Files:**
-- Modify: `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
-- Modify: `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
-- Modify: `docs/api-contract.md`
-- Modify: `docs/frontend-map.md`
-- Modify: `docs/testing/authorization-matrix.md`
-- Modify: `docs/current-work.md`
-- Modify: `docs/development-log.md`
+- Modify only if owned facts change:
+  - `docs/requirements/PRD_Aplikasi_BK_v1.1.md`
+  - `docs/requirements/SRS_Aplikasi_BK_v1.1.md`
+  - `docs/api-contract.md`
 
-**Interfaces:**
-- Documents: satu halaman, modal dua field, lifecycle server, readiness existing, dan schema tanpa Nomor SK.
+**Ownership:**
+- PRD hanya untuk keputusan produk.
+- SRS untuk perilaku sistem, business rule, authorization, invariant, dan acceptance criteria.
+- API Contract hanya untuk interface teknis dan mereferensikan requirement ID SRS bila relevan.
+- Jangan membuat atau memperbarui frontend map, authorization matrix, current work, atau development log.
 
-- [ ] **Step 1: Amendemen kontrak aktif**
+- [ ] **Step 1: Perbarui keputusan produk bila berubah**
 
-Perbarui ASN-01/ASN-03, PRD penugasan, API request, dan frontend map agar tidak lagi menyebut form terpisah, input tanggal, atau dasar keputusan.
+Hapus penyebutan Nomor SK/dasar keputusan dari PRD hanya bila perubahan tersebut merupakan keputusan produk.
 
-- [ ] **Step 2: Perbarui matriks otorisasi**
+- [ ] **Step 2: Perbarui perilaku sistem**
 
-Pertahankan hanya Koordinator untuk GET/POST penugasan serta aktivasi. Redirect manage lama harus mengikuti otorisasi halaman utama.
+Selaraskan requirement `ASN-*` yang benar-benar berubah, termasuk lifecycle penugasan dan field yang ditentukan server.
 
-- [ ] **Step 3: Perbarui handoff dan commit**
+- [ ] **Step 3: Perbarui interface teknis**
+
+Selaraskan request/endpoint penugasan pada API Contract dan referensikan requirement `ASN-*` tanpa mengulang business rule lengkap.
+
+- [ ] **Step 4: Verifikasi dan commit**
 
 ```powershell
-rg -n "Nomor SK|dasar keputusan|Tanggal Mulai|assignments/classes/manage" docs/requirements docs/api-contract.md docs/frontend-map.md docs/testing/authorization-matrix.md
+rg -n "Nomor SK|dasar keputusan|Tanggal Mulai|assignments/classes/manage" docs/requirements docs/api-contract.md
 git diff --check
-git add docs/requirements/PRD_Aplikasi_BK_v1.1.md docs/requirements/SRS_Aplikasi_BK_v1.1.md docs/api-contract.md docs/frontend-map.md docs/testing/authorization-matrix.md docs/current-work.md docs/development-log.md
+git add docs/requirements/PRD_Aplikasi_BK_v1.1.md docs/requirements/SRS_Aplikasi_BK_v1.1.md docs/api-contract.md
 git commit -m "docs: selaraskan penugasan kelas sederhana"
 ```
 

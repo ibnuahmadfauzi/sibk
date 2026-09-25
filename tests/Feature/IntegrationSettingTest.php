@@ -268,6 +268,8 @@ class IntegrationSettingTest extends TestCase
             ['POST', 'data-master.integrations.deactivate'],
         ];
 
+        $this->get(route('admin.api.index'))->assertRedirect(route('login'));
+
         foreach ($routes as [$method, $route]) {
             $uri = route($route, ['provider' => 'dapodik']);
             $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
@@ -280,6 +282,7 @@ class IntegrationSettingTest extends TestCase
                 ['slug' => $role],
                 ['name' => $role, 'is_active' => true],
             ));
+            $this->actingAs($actor)->get(route('admin.api.index'))->assertForbidden();
 
             foreach ($routes as [$method, $route]) {
                 $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
@@ -290,6 +293,8 @@ class IntegrationSettingTest extends TestCase
 
         $inactive = $this->admin();
         $inactive->update(['is_active' => false, 'deactivated_at' => now()]);
+        $this->actingAs($inactive)->get(route('admin.api.index'))
+            ->assertRedirect(route('login'));
         foreach ($routes as [$method, $route]) {
             $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
             $this->actingAs($inactive)->call($method, route($route, ['provider' => 'dapodik']), $payload)
@@ -300,7 +305,7 @@ class IntegrationSettingTest extends TestCase
         foreach ($routes as [$method, $route]) {
             $payload = $method === 'PATCH' ? $this->httpSettingPayload() : $this->httpActionPayload();
             $this->actingAs($admin)->call($method, route($route, ['provider' => 'dapodik']), $payload)
-                ->assertRedirect(route('data-master.index').'#integration-dapodik');
+                ->assertRedirect(route('admin.api.index').'#integration-dapodik');
         }
     }
 
@@ -327,7 +332,7 @@ class IntegrationSettingTest extends TestCase
             ],
         );
 
-        $response->assertRedirect(route('data-master.index').'#integration-dapodik');
+        $response->assertRedirect(route('admin.api.index').'#integration-dapodik');
         $response->assertSessionHasErrorsIn('dapodik_save', [
             'dapodik.base_url',
             'dapodik.api_key',
@@ -351,7 +356,7 @@ class IntegrationSettingTest extends TestCase
         $this->actingAs($admin)->patch(
             route('data-master.integrations.update', ['provider' => 'dapodik']),
             $this->httpSettingPayload(['dapodik' => ['current_password' => 'wrong-password']]),
-        )->assertRedirect(route('data-master.index').'#integration-dapodik')
+        )->assertRedirect(route('admin.api.index').'#integration-dapodik')
             ->assertSessionHasErrorsIn('dapodik_save', 'dapodik.current_password');
 
         $this->post(route('data-master.integrations.test', ['provider' => 'forged']), $this->httpActionPayload())
@@ -379,7 +384,7 @@ class IntegrationSettingTest extends TestCase
                 route('data-master.integrations.test', ['provider' => 'dapodik']),
                 $this->httpActionPayload(),
             );
-            $response->assertRedirect(route('data-master.index').'#integration-dapodik');
+            $response->assertRedirect(route('admin.api.index').'#integration-dapodik');
             $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
             if ($attempt === 1) {
                 $response->assertSessionHasErrorsIn('dapodik_test', [
@@ -424,7 +429,7 @@ class IntegrationSettingTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $response = $this->actingAs($this->admin())->get(route('data-master.index'));
+        $response = $this->actingAs($this->admin())->get(route('admin.api.index'));
         $response->assertOk();
         $html = $response->getContent();
 
@@ -435,7 +440,6 @@ class IntegrationSettingTest extends TestCase
             ->assertSee('Keadaan data terakhir')
             ->assertSee('Belum dapat digunakan')
             ->assertSee('Terakhir berhasil diperbarui 08 Sep 2026, 08.01.')
-            ->assertSee('Data terakhir tersedia')
             ->assertSee('Belum ada data yang berhasil diperbarui dari e-Tatib.')
             ->assertSee('Token tersimpan')
             ->assertSee('school-dapodik')
@@ -452,7 +456,8 @@ class IntegrationSettingTest extends TestCase
         }
 
         $this->assertSame(2, substr_count($html, 'data-integration-panel='));
-        $this->assertSame(2, substr_count($html, 'data-sync-unavailable='));
+        $this->actingAs($this->admin())->get(route('data-master.index'))
+            ->assertDontSee('data-integration-panel=', false);
     }
 
     public function test_provider_validation_errors_stay_in_the_matching_panel(): void
@@ -460,7 +465,7 @@ class IntegrationSettingTest extends TestCase
         $this->configureAllowedOrigins();
         $admin = $this->admin();
 
-        $response = $this->actingAs($admin)->from(route('data-master.index'))->patch(
+        $response = $this->actingAs($admin)->from(route('admin.api.index'))->patch(
             route('data-master.integrations.update', ['provider' => 'dapodik']),
             $this->httpSettingPayload([
                 'dapodik' => [
@@ -470,6 +475,7 @@ class IntegrationSettingTest extends TestCase
                 ],
             ]),
         );
+        $response->assertRedirect(route('admin.api.index').'#integration-dapodik');
 
         $page = $this->followRedirects($response);
         $page->assertOk();
@@ -497,9 +503,10 @@ class IntegrationSettingTest extends TestCase
                         : [$provider => ['current_password' => $wrongPassword]],
                 );
 
-                $response->assertRedirect(route('data-master.index')."#integration-{$provider}");
+                $response->assertRedirect(route('admin.api.index')."#integration-{$provider}");
                 $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
                 $page = $this->followRedirects($response);
+                $page->assertOk();
                 $html = $page->getContent();
                 $this->assertStringContainsString('Kata sandi saat ini tidak sesuai.', $html);
                 $this->assertStringNotContainsString($wrongPassword, $html);
@@ -549,7 +556,7 @@ class IntegrationSettingTest extends TestCase
                         $payload,
                     );
 
-                    $response->assertRedirect(route('data-master.index')."#integration-{$provider}");
+                    $response->assertRedirect(route('admin.api.index')."#integration-{$provider}");
                     $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
                     $this->assertStringNotContainsString($secret, serialize(session()->all()));
                     $this->assertFalse(session()->has("_old_input.{$provider}"));
@@ -604,7 +611,7 @@ class IntegrationSettingTest extends TestCase
                             : [$provider => ['current_password' => 'password']],
                     );
 
-                    $response->assertRedirect(route('data-master.index')."#integration-{$provider}");
+                    $response->assertRedirect(route('admin.api.index')."#integration-{$provider}");
                     $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
                     $html = $this->followRedirects($response)->getContent();
                     $this->assertStringNotContainsString($secret, $html);

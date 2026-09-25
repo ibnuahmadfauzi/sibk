@@ -73,12 +73,12 @@ class FrontendPreviewTest extends TestCase
             ->assertSeeInOrder([
                 'Dashboard',
                 'PEMANTAUAN WAKA',
-                'Murid dengan Kasus',
+                'Murid dengan Permasalahan',
                 'Laporan',
                 'UTILITAS',
             ])
             ->assertSee('href="'.route('waka.monitoring.students').'"', false)
-            ->assertSee('href="'.route('waka.reports').'"', false)
+            ->assertSee('href="'.route('reports.index').'"', false)
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
             ->assertDontSee('Penugasan Kelas')
@@ -96,19 +96,22 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Layanan BK')
             ->assertSee('Penugasan Kelas')
             ->assertSee('PEMANTAUAN WAKA')
-            ->assertSee('Murid dengan Kasus')
-            ->assertSee('href="'.route('waka.reports').'"', false);
+            ->assertSee('Murid dengan Permasalahan')
+            ->assertSee('href="'.route('reports.index').'"', false);
     }
 
-    public function test_waka_reports_use_accessible_tabs_and_decorative_empty_state(): void
+    public function test_waka_reports_use_the_shared_read_only_page(): void
     {
         $this->authenticateAs('waka_kesiswaan');
 
         $this->get(route('waka.reports', ['tab' => 'laporan-akhir']))
+            ->assertRedirect(route('reports.index'));
+
+        $this->get(route('reports.index'))
             ->assertOk()
-            ->assertSee('class="nav sibk-waka-tabs"', false)
-            ->assertSee('aria-current="page"', false)
-            ->assertSee('class="sibk-empty-state__icon" aria-hidden="true"', false)
+            ->assertSee('Catatan Layanan')
+            ->assertSee('sibk-operational-report-table', false)
+            ->assertDontSee('Cetak / Unduh Rekap')
             ->assertDontSee('onclick=', false);
     }
 
@@ -118,11 +121,9 @@ class FrontendPreviewTest extends TestCase
 
         $this->get(route('reports.index', ['tab' => 'layanan']))
             ->assertOk()
-            ->assertSee('class="nav sibk-report-tabs"', false)
-            ->assertSee('aria-current="page"', false)
             ->assertSee('sibk-operational-report-table', false)
             ->assertSee('sibk-operational-report-cards', false)
-            ->assertSee('data-print-area', false)
+            ->assertSee('Cetak / Unduh Rekap')
             ->assertDontSee('onclick=', false);
     }
 
@@ -148,18 +149,22 @@ class FrontendPreviewTest extends TestCase
         $admin->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
 
         $this->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+        $this->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
             ->assertSee('Kesiapan Aktivasi')
-            ->assertSee('Sementara')
-            ->assertDontSee('Aktifkan Tahun Ajaran');
+            ->assertSee('Persiapan')
+            ->assertSee('disabled>Aktifkan Tahun Ajaran', false);
     }
 
     public function test_pg_501_integration_settings_follow_existing_panels_and_plain_language_workflow(): void
     {
         $this->authenticateAs('admin_it');
 
-        $this->get(route('data-master.index'))
+        $this->get(route('admin.api.index'))
             ->assertOk()
+            ->assertSee('Kelola API')
+            ->assertDontSee('Penugasan Kelas')
             ->assertSee('Pengaturan Koneksi Sumber Data')
             ->assertSee('class="col-12 col-xl-6"', false)
             ->assertSee('data-integration-panel="dapodik"', false)
@@ -173,7 +178,6 @@ class FrontendPreviewTest extends TestCase
                 'Keadaan data terakhir',
             ])
             ->assertSee('Adapter belum tersedia')
-            ->assertSee('Sinkronisasi baru dapat digunakan setelah adapter resmi tersedia dan koneksi berhasil diaktifkan.')
             ->assertDontSee('modal')
             ->assertDontSee('data-bs-toggle="collapse"', false);
     }

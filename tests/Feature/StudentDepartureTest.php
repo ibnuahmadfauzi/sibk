@@ -443,8 +443,7 @@ final class StudentDepartureTest extends TestCase
         ]);
 
         $yearId = $student->classMemberships()->value('academic_year_id');
-        $report = app(OperationalReportRecapService::class)->build($teacher, [
-            'tab' => OperationalReportRecapService::TAB_SERVICES,
+        $report = app(OperationalReportRecapService::class)->paginateForUi($teacher, [
             'academic_year_id' => $yearId,
         ]);
 
@@ -514,15 +513,12 @@ final class StudentDepartureTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
             'is_active' => true,
         ]);
         TeacherAssignment::query()->create([
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
-            'decision_number' => 'SK-DEPARTURE',
             'assigned_by' => $teacher->id,
         ]);
 

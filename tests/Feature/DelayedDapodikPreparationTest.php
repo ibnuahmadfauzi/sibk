@@ -55,12 +55,12 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $year = $service->prepareAcademicYear([
             'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
             'preparation_reference' => 'Kalender Pendidikan 2027/2028',
         ], $admin);
 
         $this->assertFalse($year->is_active);
+        $this->assertSame('2027-07-01', $year->starts_on->toDateString());
+        $this->assertSame('2028-06-30', $year->ends_on->toDateString());
         $this->assertSame(AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL, $year->master_source);
         $this->assertNull($year->source_confirmed_at);
         $this->assertSame($admin->id, $year->prepared_by);
@@ -73,7 +73,7 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
-    public function preparation_requires_an_active_admin_unique_name_unique_period_and_official_reference(): void
+    public function preparation_requires_an_active_admin_unique_name_and_official_reference(): void
     {
         $service = app(AcademicYearPreparationService::class);
         $admin = $this->userWithRole('admin_it');
@@ -81,8 +81,6 @@ class DelayedDapodikPreparationTest extends TestCase
         $coordinator = $this->userWithRole('koordinator_bk');
         $payload = [
             'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
             'preparation_reference' => 'SK Kepala Sekolah 001/2027',
         ];
 
@@ -98,15 +96,15 @@ class DelayedDapodikPreparationTest extends TestCase
         $service->prepareAcademicYear($payload, $admin);
 
         $this->assertValidationError(
-            fn () => $service->prepareAcademicYear([...$payload, 'starts_on' => '2028-07-01', 'ends_on' => '2029-06-30'], $admin),
+            fn () => $service->prepareAcademicYear($payload, $admin),
             'name',
         );
         $this->assertValidationError(
-            fn () => $service->prepareAcademicYear([...$payload, 'name' => 'Tahun Duplikat'], $admin),
-            'period',
+            fn () => $service->prepareAcademicYear([...$payload, 'name' => '2028/2030'], $admin),
+            'name',
         );
         $this->assertValidationError(
-            fn () => $service->prepareAcademicYear([...$payload, 'name' => '2028/2029', 'starts_on' => '2028-07-01', 'ends_on' => '2029-06-30', 'preparation_reference' => ''], $admin),
+            fn () => $service->prepareAcademicYear([...$payload, 'name' => '2028/2029', 'preparation_reference' => ''], $admin),
             'preparation_reference',
         );
         $this->assertDatabaseCount('academic_years', 1);
@@ -627,7 +625,6 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $dapodikStudent->id,
             'classroom_id' => $confirmedClassroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
             'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
             'source_confirmed_at' => $confirmedAt,
         ]);
@@ -711,7 +708,6 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $existingClass->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
         ]);
         $conflictingFile = $this->csv(implode("\n", [
             'nisn,nama,rombel',
@@ -884,7 +880,6 @@ class DelayedDapodikPreparationTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $otherYearClassroom->id,
             'academic_year_id' => $targetYear->id,
-            'effective_from' => $targetYear->starts_on,
         ]);
         $auditCountBefore = AuditLog::query()->count();
 
@@ -1017,28 +1012,20 @@ class DelayedDapodikPreparationTest extends TestCase
             'user_id' => $teacher->id,
             'classroom_id' => $classes[0]->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-GURU-1',
             'assigned_by' => $coordinator->id,
         ]);
 
-        $this->assertFalse(Student::query()->forActiveTeacherAssignment($teacher, '2027-07-01')->whereKey($student)->exists());
+        $this->assertFalse(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
         $this->assertValidationError(fn () => $service->activate($year, $coordinator), 'assignments');
         $this->assertTrue($oldYear->refresh()->is_active);
         $this->assertFalse($year->refresh()->is_active);
 
-        foreach ([$teacher, $otherTeacher] as $assignedTeacher) {
-            TeacherAssignment::query()->create([
-                'user_id' => $assignedTeacher->id,
-                'classroom_id' => $classes[1]->id,
-                'academic_year_id' => $year->id,
-                'effective_from' => $year->starts_on,
-                'decision_number' => 'SK-GANDA-'.$assignedTeacher->id,
-                'assigned_by' => $coordinator->id,
-            ]);
-        }
-        $this->assertValidationError(fn () => $service->activate($year, $coordinator), 'assignments');
-        TeacherAssignment::query()->where('classroom_id', $classes[1]->id)->where('user_id', $otherTeacher->id)->delete();
+        TeacherAssignment::query()->create([
+            'user_id' => $otherTeacher->id,
+            'classroom_id' => $classes[1]->id,
+            'academic_year_id' => $year->id,
+            'assigned_by' => $coordinator->id,
+        ]);
 
         try {
             $service->activate($year, $admin);
@@ -1055,7 +1042,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertSame(AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL, $activated->master_source);
         $this->assertFalse($oldYear->refresh()->is_active);
         $this->assertSame(AcademicYear::MASTER_SOURCE_DAPODIK, $oldYear->master_source);
-        $this->assertTrue(Student::query()->forActiveTeacherAssignment($teacher, '2027-07-01')->whereKey($student)->exists());
+        $this->assertTrue(Student::query()->forActiveTeacherAssignment($teacher)->whereKey($student)->exists());
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'academic_year.activated',
             'auditable_id' => $year->id,
@@ -1075,8 +1062,6 @@ class DelayedDapodikPreparationTest extends TestCase
         $waka = $this->userWithRole('waka_kesiswaan');
         $payload = [
             'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
             'preparation_reference' => 'SK Kepala Sekolah 001/2027',
         ];
 
@@ -1095,10 +1080,9 @@ class DelayedDapodikPreparationTest extends TestCase
             ->post(route('data-master.academic-years.store'), [
                 ...$payload,
                 'name' => 'tahun baru',
-                'starts_on' => 'tidak-valid',
                 'preparation_reference' => '',
             ])
-            ->assertSessionHasErrors(['name', 'starts_on', 'preparation_reference']);
+            ->assertSessionHasErrors(['name', 'preparation_reference']);
 
         $this->actingAs($admin)
             ->post(route('data-master.academic-years.store'), $payload)
@@ -1132,10 +1116,11 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $classroom = Classroom::query()->where('academic_year_id', $year->id)->firstOrFail();
         $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
             ->assertSee('Kesiapan Aktivasi')
-            ->assertDontSee('Aktifkan Tahun Ajaran');
+            ->assertSee('Aktifkan Tahun Ajaran')
+            ->assertSee('type="button" disabled', false);
         $otherYear = AcademicYear::query()->create([
             'name' => '2028/2029',
             'starts_on' => '2028-07-01',
@@ -1148,21 +1133,18 @@ class DelayedDapodikPreparationTest extends TestCase
                 'user_id' => $teacher->id,
                 'classroom_id' => $classroom->id,
                 'academic_year_id' => $otherYear->id,
-                'decision_number' => 'SK-SILANG',
                 'effective_date' => '2028-07-01',
             ])
-            ->assertSessionHasErrors('classroom_id');
+            ->assertSessionHasErrors('academic_year_id');
 
         TeacherAssignment::query()->create([
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-AKTIVASI',
             'assigned_by' => $coordinator->id,
         ]);
         $this->actingAs($coordinator)
-            ->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
             ->assertSee('Aktifkan Tahun Ajaran');
         $this->app['auth']->guard()->logout();
@@ -1225,16 +1207,12 @@ class DelayedDapodikPreparationTest extends TestCase
             'user_id' => $assignedTeacher->id,
             'classroom_id' => $classes[0]->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-GURU-UTAMA',
             'assigned_by' => $coordinator->id,
         ]);
         TeacherAssignment::query()->create([
             'user_id' => $otherTeacher->id,
             'classroom_id' => $classes[1]->id,
             'academic_year_id' => $year->id,
-            'effective_from' => $year->starts_on,
-            'decision_number' => 'SK-GURU-LAIN',
             'assigned_by' => $coordinator->id,
         ]);
 
@@ -1365,8 +1343,6 @@ class DelayedDapodikPreparationTest extends TestCase
     {
         return $service->prepareAcademicYear([
             'name' => '2027/2028',
-            'starts_on' => '2027-07-01',
-            'ends_on' => '2028-06-30',
             'preparation_reference' => 'Kalender Pendidikan 2027/2028',
         ], $admin);
     }

@@ -16,13 +16,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([RoleSeeder::class, ReferenceSeeder::class]);
-
         if (app()->environment(['local', 'testing'])) {
-            $this->call([
-                AccountSeeder::class,
-                StudentSeeder::class,
-            ]);
+            $this->call(DummyCaseAndServiceSeeder::class);
+
+            return;
         }
+
+        $this->call([RoleSeeder::class, ReferenceSeeder::class]);
     }
 }

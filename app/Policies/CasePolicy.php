@@ -7,7 +7,6 @@ namespace App\Policies;
 use App\Models\BkCase;
 use App\Models\Student;
 use App\Models\User;
-use App\Support\ServiceRecordStatus;
 
 class CasePolicy
 {
@@ -26,23 +25,23 @@ class CasePolicy
             return true;
         }
 
-        if (! $user->hasRole('guru_bk')) {
+        if ($user->hasRole('guru_bk') === false) {
             return false;
         }
 
-        if ($case->hasActiveAssignmentFor($user)) {
+        if ($case->isOwnedBy($user)) {
             return true;
         }
 
         return $case->student_id !== null && Student::query()
-            ->forActiveTeacherAssignment($user, now())
+            ->forActiveTeacherAssignment($user)
             ->whereKey($case->student_id)
             ->exists();
     }
 
     public function viewInternal(User $user, BkCase $case): bool
     {
-        return $user->hasRole('guru_bk') && $case->hasActiveOwnerFor($user);
+        return $user->hasRole('guru_bk') && $case->isOwnedBy($user);
     }
 
     public function create(User $user): bool
@@ -53,17 +52,11 @@ class CasePolicy
     public function update(User $user, BkCase $case): bool
     {
         return $user->hasRole('guru_bk')
-            && $case->hasActiveOwnerFor($user);
+            && $case->isOwnedBy($user);
     }
 
     public function archive(User $user, BkCase $case): bool
     {
         return $this->update($user, $case);
-    }
-
-    public function assign(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && $user->hasRole('koordinator_bk');
     }
 }

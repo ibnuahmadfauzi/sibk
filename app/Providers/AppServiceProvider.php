@@ -70,7 +70,6 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('viewReports', fn (User $user): bool => app(ReportPolicy::class)->viewAny($user));
         Gate::define('manageDataMaster', fn (User $user): bool => $user->is_active && $user->hasRole('admin_it'));
-        Gate::define('manageCaseAssignments', fn (User $user): bool => $user->is_active && $user->hasRole('koordinator_bk'));
         Gate::define('viewWakaMonitoring', fn (User $user): bool => app(WakaMonitoringPolicy::class)->viewMonitoring($user));
     }
 }

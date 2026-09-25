@@ -45,30 +45,6 @@
                         >
                         @error('preparation_reference')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-12 col-sm-6">
-                        <label for="provisional_year_start" class="form-label sibk-form-label">Tanggal Mulai</label>
-                        <input
-                            type="date"
-                            class="form-control sibk-form-control @error('starts_on') is-invalid @enderror"
-                            id="provisional_year_start"
-                            name="starts_on"
-                            value="{{ old('starts_on') }}"
-                            required
-                        >
-                        @error('starts_on')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <label for="provisional_year_end" class="form-label sibk-form-label">Tanggal Selesai</label>
-                        <input
-                            type="date"
-                            class="form-control sibk-form-control @error('ends_on') is-invalid @enderror"
-                            id="provisional_year_end"
-                            name="ends_on"
-                            value="{{ old('ends_on') }}"
-                            required
-                        >
-                        @error('ends_on')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
                     <div class="col-12 d-flex align-items-center gap-2">
                         <span class="small text-muted me-auto" data-draft-status aria-live="polite"></span>
                         <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
@@ -93,11 +69,6 @@
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <div>
                                     <strong>{{ $year->name }}</strong>
-                                    <span class="text-muted small d-block">
-                                        {{ $year->starts_on?->locale('id')->translatedFormat('d M Y') ?? 'Tanggal belum lengkap' }}
-                                        s.d.
-                                        {{ $year->ends_on?->locale('id')->translatedFormat('d M Y') ?? 'tanggal belum lengkap' }}
-                                    </span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     <span class="sibk-badge sibk-badge--{{ $sourceTone }}">{{ $sourceLabel }}</span>
@@ -113,6 +84,52 @@
                                     <span class="text-muted d-block mt-1">Dasar: {{ $year->preparation_reference }}</span>
                                 @endif
                             </div>
+                            @if(! $year->is_active
+                                && $year->activated_at === null
+                                && ! $year->classrooms_exists
+                                && ! $year->student_class_memberships_exists
+                                && ! $year->teacher_assignments_exists)
+                                <button
+                                    class="btn btn-outline-danger btn-sm mb-3"
+                                    type="button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#delete-year-{{ $year->id }}"
+                                >
+                                    Hapus draf kosong
+                                </button>
+                                <div
+                                    class="modal fade"
+                                    id="delete-year-{{ $year->id }}"
+                                    tabindex="-1"
+                                    aria-labelledby="delete-year-title-{{ $year->id }}"
+                                    aria-hidden="true"
+                                >
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h2 class="modal-title fs-5" id="delete-year-title-{{ $year->id }}">
+                                                    Hapus draf {{ $year->name }}?
+                                                </h2>
+                                                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Tahun Persiapan kosong ini akan dihapus. Tindakan ini tidak dapat dibatalkan.
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Kembali</button>
+                                                <form
+                                                    action="{{ route('data-master.academic-years.destroy', $year) }}"
+                                                    method="POST"
+                                                >
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button class="btn btn-danger" type="submit">Hapus draf</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                             @if(! $year->is_active)
                                 <form
                                     action="{{ route('data-master.academic-years.roster-imports.store', $year) }}"
