@@ -105,9 +105,6 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/data-master/classes', [ClassroomCatalogController::class, 'index'])->name('data-master.classrooms.index');
         Route::post('/data-master/classes', [ClassroomCatalogController::class, 'store'])->name('data-master.classrooms.store');
         Route::patch('/data-master/classes/{catalog}', [ClassroomCatalogController::class, 'update'])->name('data-master.classrooms.update');
-        Route::get('/data-master/students', [DataMasterController::class, 'students'])
-            ->middleware('cache.headers:no_store')
-            ->name('data-master.students.index');
         Route::post('/data-master/academic-years', [AcademicYearPreparationController::class, 'store'])
             ->name('data-master.academic-years.store');
         Route::delete('/data-master/academic-years/{academicYear}', [AcademicYearPreparationController::class, 'destroy'])

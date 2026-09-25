@@ -18,7 +18,7 @@
         <div class="sibk-panel mb-4 border-0 shadow-sm">
             <div class="sibk-panel__body p-4">
                 <form action="{{ route('cases.create') }}" method="GET" id="etatib-filter-form">
-                    <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib untuk Identitas Sementara</label>
+                    <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib dengan NISN</label>
                     <div class="row g-3">
                         <div class="col-12 col-md-8">
                             <input class="form-control sibk-form-control" id="etatib_temporary_nisn_filter" name="temporary_nisn" value="{{ $temporaryNisnFilter }}" maxlength="20" inputmode="numeric" pattern="[0-9]{1,20}" placeholder="Masukkan NISN yang sama persis">
@@ -31,15 +31,15 @@
 
                 <div class="row g-3 mt-1">
                     <div class="col-12 col-md-4">
-                        <label for="temporary_nisn" class="form-label sibk-form-label">NISN Sementara</label>
+                        <label for="temporary_nisn" class="form-label sibk-form-label">NISN Murid Baru</label>
                         <input form="case-create-form" class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn', $temporaryNisnFilter) }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
                     </div>
                     <div class="col-12 col-md-4">
-                        <label for="temporary_name" class="form-label sibk-form-label">Nama Sementara</label>
+                        <label for="temporary_name" class="form-label sibk-form-label">Nama Murid Baru</label>
                         <input form="case-create-form" class="form-control sibk-form-control" id="temporary_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Nama sesuai informasi awal">
                     </div>
                     <div class="col-12 col-md-4">
-                        <label for="temporary_classroom_id" class="form-label sibk-form-label">Rombel Murid Sementara</label>
+                        <label for="temporary_classroom_id" class="form-label sibk-form-label">Rombel Murid Baru</label>
                         <select form="case-create-form" class="form-select" id="temporary_classroom_id" name="temporary_classroom_id">
                             <option value="">Pilih rombel yang Anda ampu</option>
                             @foreach($temporaryClassrooms as $classroom)
@@ -59,14 +59,14 @@
             <div class="visually-hidden" aria-hidden="true">
                 @foreach($students as $student)
                     @php $membership = $student->classMemberships->first(); @endphp
-                    <span>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }}){{ $student->usesProvisionalData($membership) ? ' — Sementara' : '' }}</span>
+                    <span>{{ $student->name }} — {{ $student->nisn }} ({{ $membership?->classroom?->name ?? 'Tanpa kelas aktif' }})</span>
                 @endforeach
             </div>
 
             <div class="sibk-panel mb-4 border-0 shadow-sm">
                 <div class="sibk-panel__body p-4 p-md-5">
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Murid dan Sumber Permasalahan</h4>
-                    <p class="text-muted small mb-4">Pilih murid yang Anda tangani. Jika belum terdaftar, isi NISN, nama, dan rombel sementara.</p>
+                    <p class="text-muted small mb-4">Pilih murid yang Anda tangani. Jika belum ada di daftar, isi NISN, nama, dan rombelnya.</p>
                     <div class="row g-4">
                         <div class="col-md-4">
                             <label for="sumber" class="form-label sibk-form-label">Sumber</label>

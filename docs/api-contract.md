@@ -231,7 +231,6 @@ model, relasi, atau data koordinasi pada kontrak aktif.
   - `POST /data-master/roster-imports/preview` untuk memeriksa koneksi dan menampilkan ringkasan API Siswa tanpa mutasi.
   - `POST /data-master/roster-imports` untuk mengimpor daftar minimum lintas tahun.
   - `POST /data-master/academic-years/{academicYear}/roster-imports` tetap tersedia untuk impor satu tahun dan menolak tahun pelajaran yang tidak sesuai target.
-  - `GET /data-master/students` untuk memeriksa identitas, rombel, tahun ajaran, dan status sumber data hasil impor.
 - **Authorization:** hanya Admin IT aktif melalui capability `manageDataMaster`. Modul ini tidak memberi Admin IT hak aktivasi operasional atau akses isi layanan BK.
 - **Daftar master murid:** hanya memuat NISN, nama, rombel, tahun ajaran, status aktif tahun, dan status sumber. Halaman tidak menautkan profil murid dan tidak mengambil kasus, konsultasi, prestasi, pelanggaran, atau isi layanan BK.
 - **Request tahun ajaran:** hanya nama tahun ajaran, tanpa input dasar resmi sekolah atau tanggal periode. Tahun baru selalu dibuat dengan `is_active=false`.

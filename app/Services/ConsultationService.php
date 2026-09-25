@@ -153,13 +153,13 @@ class ConsultationService
                     ->whereKey($student?->getKey())
                     ->exists()) {
                     throw ValidationException::withMessages([
-                        'temporary_student_id' => 'Identitas sementara tidak berada dalam kewenangan profesional Anda.',
+                        'temporary_student_id' => 'Murid tidak berada dalam kewenangan Anda.',
                     ]);
                 }
                 $this->assertStudentAvailable($student->getKey(), (string) $data['session_date']);
             } elseif ($temporary->created_by !== $actor->getKey()) {
                 throw ValidationException::withMessages([
-                    'temporary_student_id' => 'Identitas sementara tidak berada dalam kewenangan profesional Anda.',
+                    'temporary_student_id' => 'Murid tidak berada dalam kewenangan Anda.',
                 ]);
             }
 

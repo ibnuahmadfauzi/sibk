@@ -17,7 +17,7 @@
                     $membership = $student->classMemberships->first();
                     $activeCases = $student->cases->whereNull('closed_at');
                 @endphp
-                <tr><td class="fw-semibold">{{ $student->nisn }}</td><td class="fw-semibold">{{ $student->name }} @if($student->usesProvisionalData($membership))<span class="sibk-badge sibk-badge--warning ms-1">Sementara</span>@endif</td><td>{{ $membership?->classroom?->name ?? '—' }}</td><td><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td><td><a href="{{ route('students.show', $student) }}" class="fw-bold text-decoration-none">Buka</a></td></tr>
+                <tr><td class="fw-semibold">{{ $student->nisn }}</td><td class="fw-semibold">{{ $student->name }}</td><td>{{ $membership?->classroom?->name ?? '—' }}</td><td><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td><td><a href="{{ route('students.show', $student) }}" class="fw-bold text-decoration-none">Buka</a></td></tr>
             @empty<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data murid yang sesuai.</td></tr>@endforelse
         </tbody></table></div>@if($students->hasPages())<div class="mt-3"><div class="text-muted small mb-2">Menampilkan {{ $students->count() }} dari {{ $students->total() }} murid</div>{{ $students->links() }}</div>@endif
     </div>

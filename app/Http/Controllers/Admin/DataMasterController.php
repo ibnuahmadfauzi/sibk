@@ -94,45 +94,6 @@ class DataMasterController extends Controller
         );
     }
 
-    public function students(Request $request): Response
-    {
-        $this->authorizeAdmin($request);
-
-        $academicYearId = $request->integer('academic_year_id') ?: null;
-        $search = $request->string('search')->trim()->toString();
-
-        $students = Student::query()
-            ->when($search !== '', fn ($query) => $query->where(function ($filter) use ($search): void {
-                $filter->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('nisn', 'like', '%'.$search.'%');
-            }))
-            ->when($academicYearId !== null, fn ($query) => $query->whereHas(
-                'classMemberships',
-                fn ($memberships) => $memberships
-                    ->active()
-                    ->where('academic_year_id', $academicYearId),
-            ))
-            ->with(['classMemberships' => fn ($memberships) => $memberships
-                ->active()
-                ->when($academicYearId !== null, fn ($query) => $query
-                    ->where('academic_year_id', $academicYearId))
-                ->with(['classroom', 'academicYear'])
-                ->latestYearFirst()])
-            ->orderBy('name')
-            ->orderBy('id')
-            ->paginate(20)
-            ->withQueryString();
-
-        return response()->view('pages.data-master.students', [
-            'students' => $students,
-            'academicYears' => AcademicYear::query()
-                ->orderByDesc('starts_on')
-                ->orderByDesc('id')
-                ->get(),
-            'selectedAcademicYearId' => $academicYearId,
-        ])->header('Cache-Control', 'no-store');
-    }
-
     public function previewEtatib(
         SyncEtatibApiRequest $request,
         SimpleEtatibApiService $service,

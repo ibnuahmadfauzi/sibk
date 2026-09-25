@@ -35,6 +35,7 @@ class AcademicYearPreparationService
         private readonly ProvisionalRosterPayloadParser $payloadParser,
         private readonly AuditService $auditService,
         private readonly AcademicYearRolloverQuery $rolloverQuery,
+        private readonly StudentIdentityService $studentIdentityService,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -459,6 +460,10 @@ class AcademicYearPreparationService
             } else {
                 $membershipsUnchanged++;
             }
+        }
+
+        foreach (array_chunk(array_values(array_unique(array_column($rows, 'nisn'))), 500) as $nisns) {
+            $this->studentIdentityService->reconcilePending($actor, $nisns);
         }
 
         $result = new ProvisionalRosterImportResult(

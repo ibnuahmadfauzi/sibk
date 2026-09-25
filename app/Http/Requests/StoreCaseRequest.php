@@ -70,13 +70,13 @@ class StoreCaseRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'student_id.required_without' => 'Pilih murid atau isi identitas sementara.',
+            'student_id.required_without' => 'Pilih murid atau isi data murid baru.',
             'student_id.prohibits' => 'Pilih hanya satu jenis identitas murid.',
             'student_id.exists' => 'Murid yang dipilih tidak tersedia.',
-            'temporary_nisn.required_without' => 'NISN sementara wajib diisi bila murid belum tersedia.',
+            'temporary_nisn.required_without' => 'Isi NISN jika murid belum ada di daftar.',
             'temporary_nisn.regex' => 'NISN hanya boleh berisi angka.',
-            'temporary_nisn.prohibits' => 'Identitas sementara tidak boleh diisi bersama murid master.',
-            'temporary_name.required_with' => 'Nama sementara wajib diisi bersama NISN.',
+            'temporary_nisn.prohibits' => 'Pilih murid di daftar atau isi data murid baru.',
+            'temporary_name.required_with' => 'Isi nama murid bersama NISN.',
             'case_source_id.required' => 'Sumber kasus wajib dipilih.',
             'case_source_id.exists' => 'Sumber kasus tidak tersedia.',
             'service_field_id.required' => 'Bidang layanan wajib dipilih.',

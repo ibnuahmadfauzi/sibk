@@ -1827,7 +1827,7 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
-    public function temporary_identity_distinguishes_unverified_provisional_data_from_a_missing_nisn(): void
+    public function temporary_identity_links_to_a_matching_school_roster_without_waiting_for_dapodik(): void
     {
         $teacher = $this->userWithRole('guru_bk');
         $service = app(StudentIdentityService::class);
@@ -1842,18 +1842,31 @@ class DelayedDapodikPreparationTest extends TestCase
             'name' => 'Nama Persiapan',
             'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
-        $unverified = $service->reconcile($temporary, $teacher);
-        $this->assertStringContainsString('belum terverifikasi Dapodik', $unverified->result);
-        $this->assertNull($temporary->refresh()->reconciled_student_id);
-
-        $student->update([
-            'dapodik_id' => 'student-official',
-            'master_source' => Student::MASTER_SOURCE_DAPODIK,
-            'source_confirmed_at' => now(),
-        ]);
-        $verified = $service->reconcile($temporary, $teacher);
-        $this->assertStringContainsString('berhasil ditautkan', $verified->result);
+        $linked = $service->reconcile($temporary, $teacher);
+        $this->assertStringContainsString('berhasil ditautkan', $linked->result);
         $this->assertSame($student->id, $temporary->refresh()->reconciled_student_id);
+    }
+
+    #[Test]
+    public function importing_api_roster_links_existing_bk_identity_by_exact_nisn(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $teacher = $this->userWithRole('guru_bk');
+        $temporary = app(StudentIdentityService::class)->createTemporary('0012345678', 'Nama Saat Layanan', $teacher);
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+
+        app(AcademicYearPreparationService::class)->importRosterPayload([
+            'success' => true,
+            'data' => [[
+                'nisn' => '0012345678', 'nama' => 'Nama dari Sekolah',
+                'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name,
+            ]],
+        ], $admin);
+
+        $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
+        $this->assertSame($student->id, $temporary->refresh()->reconciled_student_id);
+        $this->assertSame('Nama Saat Layanan', $temporary->input_name);
+        $this->assertSame('Nama dari Sekolah', $student->name);
     }
 
     #[Test]
@@ -2148,10 +2161,10 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($assignedTeacher)->get(route('students.index', ['search' => 'Murid Terverifikasi Utama']))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
-            ->assertSee('>Sementara</span>', false);
+            ->assertDontSee('>Sementara</span>', false);
         $this->actingAs($assignedTeacher)->get(route('students.show', $student))
             ->assertOk()
-            ->assertSee('>Sementara</span>', false);
+            ->assertDontSee('>Sementara</span>', false);
         $this->actingAs($assignedTeacher)->get(route('cases.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')

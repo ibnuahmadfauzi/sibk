@@ -42,7 +42,7 @@ class StudentIdentityService
         return DB::transaction(function () use ($nisn, $inputName, $creator): TemporaryStudent {
             if (Student::query()->where('nisn', $nisn)->lockForUpdate()->exists()) {
                 throw ValidationException::withMessages([
-                    'temporary_nisn' => 'NISN sudah tersedia pada data master. Pilih murid resmi.',
+                    'temporary_nisn' => 'NISN sudah ada di daftar. Pilih murid tersebut.',
                 ]);
             }
 
@@ -95,12 +95,14 @@ class StudentIdentityService
         });
     }
 
-    public function reconcilePending(?User $actor = null): int
+    /** @param list<string>|null $nisns */
+    public function reconcilePending(?User $actor = null, ?array $nisns = null): int
     {
         $count = 0;
 
         TemporaryStudent::query()
             ->whereNull('reconciled_student_id')
+            ->when($nisns !== null, fn ($identities) => $identities->whereIn('nisn', $nisns))
             ->orderBy('id')
             ->each(function (TemporaryStudent $temporary) use ($actor, &$count): void {
                 $this->reconcile($temporary, $actor);
@@ -139,14 +141,15 @@ class StudentIdentityService
                 $result = 'Rekonsiliasi ditahan karena NISN bertentangan dengan identitas sumber.';
                 $conflict = $unresolvedIssues->pluck('issue_code')->unique()->values()->all();
                 $temporary->update(['reconciliation_status_id' => $status->getKey()]);
-            } elseif ($student !== null
-                && $student->master_source === Student::MASTER_SOURCE_DAPODIK
-                && $student->dapodik_id !== null
-                && $student->source_confirmed_at !== null
-            ) {
+            } elseif ($student !== null && (
+                $student->master_source === Student::MASTER_SOURCE_SCHOOL_PROVISIONAL
+                || ($student->master_source === Student::MASTER_SOURCE_DAPODIK
+                    && $student->dapodik_id !== null
+                    && $student->source_confirmed_at !== null)
+            )) {
                 $reconciledStudent = $student;
                 $status = $this->status('terekonsiliasi');
-                $result = 'Identitas sementara berhasil ditautkan ke data master Dapodik.';
+                $result = 'Catatan BK berhasil ditautkan ke murid dengan NISN yang sama.';
                 $conflict = null;
                 foreach ($unresolvedIssues as $unresolvedIssue) {
                     $unresolvedIssue->update([
