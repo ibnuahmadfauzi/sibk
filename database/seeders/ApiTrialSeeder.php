@@ -33,7 +33,8 @@ final class ApiTrialSeeder extends Seeder
             ['Larissa Putri', 'larissa.bk@ruangbk.test', 'guru_bk'],
             ['Fajar Nugraha', 'fajar.bk@ruangbk.test', 'guru_bk'],
             ['Ratih Kurniasih', 'ratih.koordinator@ruangbk.test', 'koordinator_bk'],
-            ['Admin Uji API', 'admin.api@ruangbk.test', 'admin_it'],
+            ['Maya Puspitasari', 'maya.waka@ruangbk.test', 'waka_kesiswaan'],
+            ['Alya Purnamasari', 'admin.api@ruangbk.test', 'admin_it'],
         ];
 
         DB::transaction(function () use ($accounts, $password): void {

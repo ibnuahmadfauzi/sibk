@@ -13,10 +13,8 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\AuditService;
-use Database\Seeders\AccountSeeder;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
-use Database\Seeders\StudentSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -156,29 +154,6 @@ class FoundationDataTest extends TestCase
         $this->assertSame(1, AuditLog::query()->count());
     }
 
-    public function test_role_accounts_seeder_is_idempotent_and_assigns_one_expected_role(): void
-    {
-        $this->seed([RoleSeeder::class, AccountSeeder::class]);
-        $this->seed([RoleSeeder::class, AccountSeeder::class]);
-
-        $expectedAccounts = [
-            'guru.bk@ruangbk.test' => 'guru_bk',
-            'guru.bk.rina@ruangbk.test' => 'guru_bk',
-            'guru.bk.budi@ruangbk.test' => 'guru_bk',
-            'koordinator.bk@ruangbk.test' => 'koordinator_bk',
-            'waka.kesiswaan@ruangbk.test' => 'waka_kesiswaan',
-            'admin.it@ruangbk.test' => 'admin_it',
-        ];
-
-        $this->assertSame(6, User::query()->whereIn('email', array_keys($expectedAccounts))->count());
-        foreach ($expectedAccounts as $email => $role) {
-            $user = User::query()->where('email', $email)->with('roles')->firstOrFail();
-            $this->assertTrue($user->is_active);
-            $this->assertSame([$role], $user->roles->pluck('slug')->all());
-            $this->assertTrue(password_verify('RuangBK123!', $user->password));
-        }
-    }
-
     public function test_master_cache_keeps_one_class_membership_per_year(): void
     {
         $year = AcademicYear::query()->create(['name' => '2026/2027', 'is_active' => true]);
@@ -195,61 +170,6 @@ class FoundationDataTest extends TestCase
         ]);
 
         $this->assertSame(1, $student->classMemberships()->where('academic_year_id', $year->id)->count());
-    }
-
-    public function test_demo_student_seeder_is_idempotent(): void
-    {
-        $this->seed(StudentSeeder::class);
-        $firstStudentIds = Student::query()
-            ->where('dapodik_id', 'like', 'SEED-STUDENT-%')
-            ->orderBy('dapodik_id')
-            ->pluck('id')
-            ->all();
-        $firstMembershipIds = StudentClassMembership::query()
-            ->where('dapodik_id', 'like', 'SEED-MEMBERSHIP-%')
-            ->orderBy('dapodik_id')
-            ->pluck('id')
-            ->all();
-
-        $this->seed(StudentSeeder::class);
-
-        $this->assertCount(35, $firstStudentIds);
-        $this->assertCount(57, $firstMembershipIds);
-        $this->assertSame(
-            $firstStudentIds,
-            Student::query()
-                ->where('dapodik_id', 'like', 'SEED-STUDENT-%')
-                ->orderBy('dapodik_id')
-                ->pluck('id')
-                ->all(),
-        );
-        $this->assertSame(
-            $firstMembershipIds,
-            StudentClassMembership::query()
-                ->where('dapodik_id', 'like', 'SEED-MEMBERSHIP-%')
-                ->orderBy('dapodik_id')
-                ->pluck('id')
-                ->all(),
-        );
-        $this->assertSame(10, Classroom::query()->where('dapodik_id', 'like', 'SEED-CLASS-%')->count());
-        $this->assertSame(1, AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->count());
-        $this->assertSame(1, AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR-PREVIOUS')->count());
-    }
-
-    public function test_demo_year_does_not_replace_an_official_active_year(): void
-    {
-        $official = AcademicYear::query()->create([
-            'dapodik_id' => 'OFFICIAL-2026',
-            'name' => '2026/2027',
-            'is_active' => true,
-        ]);
-
-        $this->seed(StudentSeeder::class);
-
-        $this->assertTrue($official->fresh()?->is_active);
-        $this->assertFalse(
-            AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->firstOrFail()->is_active,
-        );
     }
 
     public function test_historical_case_and_etatib_migration_preserves_the_original_timestamp_contract(): void

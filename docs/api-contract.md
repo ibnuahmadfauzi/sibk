@@ -425,6 +425,6 @@ terlihat pada dashboard serta halaman operasional terkait.
 ### Keamanan, retensi, dan konfigurasi
 - Resource kasus memakai scoped route binding; tindak lanjut memakai record anak `case_follow_ups` tanpa route jadwal/hasil tersendiri, dan koordinasi Waka tidak memiliki route domain.
 - Disk private tidak dilayani melalui route aplikasi sampai `DEP-06`; tidak ada endpoint upload, unduh, atau hapus dokumen.
-- `DatabaseSeeder` membuat akun sintetis hanya pada environment `local` atau `testing`, dengan password eksplisit dari `SIBK_SEED_ACCOUNT_PASSWORD`.
+- `DatabaseSeeder` pada environment `local` atau `testing` membuat 9 akun uji (1 Admin IT, 6 Guru BK, 1 Koordinator BK, 1 Waka Kesiswaan), role, dan referensi; tidak membuat murid, rombel, tahun ajaran, atau layanan. Password berasal dari `SIBK_SEED_ACCOUNT_PASSWORD`.
 - Data operasional memakai soft delete dan audit tetap append-only. Tidak tersedia job, command, route, atau kebijakan penghapusan otomatis sebelum prosedur retensi disahkan.
 - Indeks hardening mendukung scope tahun/kelas, e-Tatib, kasus, konsultasi, tindak lanjut, prestasi, dan log sinkronisasi tanpa mengubah histori domain.
