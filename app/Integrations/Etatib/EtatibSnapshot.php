@@ -15,5 +15,7 @@ final readonly class EtatibSnapshot
         public bool $isFullSnapshot,
         public array $records,
         public ?IntegrationSnapshotEvidence $evidence = null,
+        public ?string $watermark = null,
+        public ?string $snapshotId = null,
     ) {}
 }

@@ -48,6 +48,17 @@ class StudentClassMembership extends Model
         return $query->active()->whereHas('academicYear', fn (Builder $years): Builder => $years->where('is_active', true));
     }
 
+    /** @param Builder<StudentClassMembership> $query */
+    public function scopeLatestYearFirst(Builder $query): Builder
+    {
+        return $query->orderByDesc(
+            AcademicYear::query()
+                ->select('starts_on')
+                ->whereColumn('academic_years.id', 'student_class_memberships.academic_year_id')
+                ->limit(1),
+        )->orderByDesc('student_class_memberships.id');
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {

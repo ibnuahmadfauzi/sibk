@@ -2,11 +2,17 @@ import 'bootstrap/js/dist/dropdown';
 import Toast from 'bootstrap/js/dist/toast';
 import 'bootstrap/js/dist/offcanvas';
 import Modal from 'bootstrap/js/dist/modal';
+import { initApiSiswaPreview } from './api-siswa-preview';
+import { initEtatibApiPreview } from './etatib-api-preview';
+import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
 
 initFormDrafts();
 initServiceRecords();
+initApiSiswaPreview();
+initEtatibApiPreview();
+initEtatibIdentityMapping();
 
 document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());

@@ -24,6 +24,27 @@
             </div>
         </div>
 
+        <nav class="nav nav-tabs mb-4" aria-label="Bagian Data Master">
+            @foreach([
+                'tahun-ajaran' => 'Tahun Ajaran & Murid',
+                'dapodik' => 'Dapodik',
+                'etatib' => 'e-Tatib',
+            ] as $tab => $label)
+                <a
+                    class="nav-link {{ $activeTab === $tab ? 'active' : '' }}"
+                    href="{{ route('data-master.index', ['tab' => $tab]) }}"
+                    @if($activeTab === $tab) aria-current="page" @endif
+                >{{ $label }}</a>
+            @endforeach
+        </nav>
+
+        @if($activeTab === 'tahun-ajaran')
+            <section id="data-master-tahun-ajaran" aria-label="Tahun Ajaran dan Murid">
+                @include('pages.data-master._academic-year-preparation')
+                @include('pages.data-master._academic-year-rollover-exceptions')
+            </section>
+        @elseif($activeTab === 'dapodik')
+            <section id="data-master-dapodik" aria-label="Dapodik">
         @if($latestDapodikPreview)
             <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
                 <div>
@@ -35,14 +56,24 @@
                 </a>
             </div>
         @endif
-
-        @include('pages.data-master._academic-year-preparation')
-        @include('pages.data-master._academic-year-rollover-exceptions')
+                @include('pages.data-master._integration-setting')
+                <form action="{{ route('data-master.dapodik.sync') }}" method="POST" class="mb-4">
+                    @csrf
+                    <button class="btn btn-primary" type="submit" @disabled($integrationStates['dapodik']->state !== 'active')>
+                        Perbarui Data Dapodik
+                    </button>
+                </form>
+            </section>
+        @else
+            <section id="data-master-etatib" aria-label="e-Tatib">
+                @include('pages.data-master._etatib-api-import')
+            </section>
+        @endif
 
         <!-- Sync 3 Cards -->
         <div class="row g-4 mb-4">
-            <!-- Card 1: Dapodik -->
-            <div class="col-12 col-md-4">
+            <!-- Card 1: API Siswa -->
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="sibk-stat-card border-0 h-100">
                     <div class="sibk-stat-card__inner">
                         <div class="sibk-stat-card__icon-col">
@@ -56,21 +87,18 @@
                             </div>
                         </div>
                         <div class="sibk-stat-card__content-col">
-                            <span class="sibk-stat-card__label">Dapodik</span>
+                            <span class="sibk-stat-card__label">API Siswa</span>
                             @php
-                                $dapodikStatus = match($lastDapodikRun?->status) {
+                                $apiSiswaStatus = match($lastApiSiswaRun?->status) {
                                     'succeeded' => 'Data terakhir tersedia',
-                                    'warning' => 'Data perlu diperiksa',
-                                    'preview_ready' => 'Pratinjau siap diperiksa',
-                                    'superseded' => 'Pratinjau telah diganti',
-                                    'failed' => 'Pembaruan terakhir gagal',
-                                    'running' => 'Pembaruan sedang berjalan',
+                                    'failed' => 'Impor terakhir gagal',
+                                    'running' => 'Impor sedang berjalan',
                                     default => 'Belum ada data',
                                 };
                             @endphp
-                            <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $dapodikStatus }}</span>
+                            <span class="sibk-stat-card__value fs-6 text-dark mt-1">{{ $apiSiswaStatus }}</span>
                             <span class="sibk-stat-meta text-muted small">
-                                {{ $lastSuccessfulDapodikRun?->finished_at ? 'Data terakhir: '.$lastSuccessfulDapodikRun->finished_at->locale('id')->translatedFormat('d M Y, H.i') : 'Belum ada data hasil sinkronisasi' }}
+                                {{ $lastSuccessfulApiSiswaRun?->finished_at ? 'Impor terakhir: '.$lastSuccessfulApiSiswaRun->finished_at->locale('id')->translatedFormat('d M Y, H.i') : 'Belum ada impor API Siswa' }}
                             </span>
                         </div>
                     </div>
@@ -78,7 +106,7 @@
             </div>
 
             <!-- Card 2: e-Tatib -->
-            <div class="col-12 col-sm-6 col-lg-3">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="sibk-stat-card border-0 h-100">
                     <div class="sibk-stat-card__inner">
                         <div class="sibk-stat-card__icon-col">
@@ -109,7 +137,7 @@
             </div>
 
             <!-- Card 3: Data Murid -->
-            <div class="col-12 col-sm-6 col-lg-3">
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="sibk-stat-card border-0 h-100">
                     <div class="sibk-stat-card__inner">
                         <div class="sibk-stat-card__icon-col">
@@ -131,8 +159,8 @@
                 </div>
             </div>
 
-            <!-- Card 3: e-Tatib -->
-            <div class="col-12 col-md-4">
+            <!-- Card 4: Kelas -->
+            <div class="col-12 col-sm-6 col-xl-3">
                 <div class="sibk-stat-card border-0 h-100">
                     <div class="sibk-stat-card__inner">
                         <div class="sibk-stat-card__icon-col">
@@ -154,39 +182,6 @@
             </div>
         </div>
 
-        <!-- Sync Button Row -->
-        <div class="d-flex flex-wrap justify-content-end gap-2 mb-2">
-            <form action="{{ route('data-master.etatib.sync') }}" method="POST">
-                @csrf
-                <button
-                    type="submit"
-                    class="btn btn-outline-primary"
-                    data-sync-unavailable="etatib"
-                    disabled
-                    aria-describedby="sync-unavailable-message"
-                >Sinkronkan e-Tatib</button>
-            </form>
-            <form action="{{ route('data-master.dapodik.sync') }}" method="POST">
-                @csrf
-                <button
-                    type="submit"
-                    class="btn btn-primary d-inline-flex align-items-center gap-2"
-                    id="btn-sync-all"
-                    data-sync-unavailable="dapodik"
-                    disabled
-                    aria-describedby="sync-unavailable-message"
-                >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sync-icon-spin">
-                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                    </svg>
-                    Perbarui Data
-                </button>
-            </form>
-        </div>
-        <p class="text-muted small text-end mb-4" id="sync-unavailable-message">
-            Sinkronisasi baru dapat digunakan setelah adapter resmi tersedia dan koneksi berhasil diaktifkan.
-        </p>
-
         <!-- Status Sinkronisasi Box -->
         <div class="sibk-panel mb-4 border-0">
             <div class="sibk-panel__body p-4">
@@ -199,7 +194,15 @@
                     <div class="d-flex flex-column gap-3">
                         <div>
                             <h2 class="fs-6 fw-bold text-dark mb-1">Data yang Perlu Diperiksa</h2>
-                            <p class="text-muted small mb-0">{{ $unresolvedIssueCount }} data belum cocok dan perlu ditinjau pada sumber resmi.</p>
+                            <p class="text-muted small mb-0">{{ $unresolvedIssueCount }} data belum cocok dan perlu ditinjau.</p>
+                        </div>
+                        <div>
+                            <a
+                                class="btn btn-outline-primary btn-sm"
+                                href="{{ route('data-master.etatib.conflicts.index') }}"
+                            >
+                                Kelola Konflik e-Tatib
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -234,8 +237,24 @@
                             @endphp
                             <tr>
                                 <td class="fw-semibold">{{ $run->started_at->locale('id')->translatedFormat('d M H:i') }}</td>
-                                <td>{{ $run->source === 'dapodik' ? 'Dapodik' : ($run->source === 'etatib' ? 'e-Tatib' : $run->source) }}</td>
-                                <td>{{ $run->source === 'dapodik' ? 'Murid dan kelas' : ($run->source === 'etatib' ? 'Pelanggaran murid' : 'Data eksternal') }}</td>
+                                <td>
+                                    {{ match($run->source) {
+                                        'api_siswa' => 'API Siswa',
+                                        'dapodik' => 'Dapodik',
+                                        'etatib' => 'e-Tatib',
+                                        default => $run->source,
+                                    } }}
+                                    @if($run->source === 'etatib')
+                                        <span class="d-block text-muted small">
+                                            {{ $run->triggered_by === null ? 'Otomatis' : 'Manual' }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>{{ match($run->source) {
+                                    'api_siswa', 'dapodik' => 'Murid dan kelas',
+                                    'etatib' => 'Pelanggaran murid',
+                                    default => 'Data eksternal',
+                                } }}</td>
                                 <td><span class="sibk-badge sibk-badge--{{ $statusTone }}">{{ $statusLabel }}</span></td>
                                 <td class="text-muted">{{ $run->summary }}</td>
                             </tr>
@@ -251,11 +270,11 @@
 
         <!-- Action Button below Table -->
         <div class="d-flex justify-content-end mb-4">
-            <a href="{{ route('students.index') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2">
+            <a href="{{ route('data-master.students.index') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
                 </svg>
-                Lihat Data
+                Lihat Data Murid
             </a>
         </div>
     </div>

@@ -135,6 +135,16 @@ class DashboardService
     private function technical(User $user, ?AcademicYear $year): array
     {
         $syncRuns = ExternalSyncRun::query()->latest('started_at')->limit(6)->get();
+        $etatibSetting = IntegrationSetting::query()
+            ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+            ->first();
+        $lastAutomaticEtatibRun = ExternalSyncRun::query()
+            ->where('source', 'etatib')
+            ->whereNull('triggered_by')
+            ->latest('started_at')
+            ->first();
+        $automaticSyncFailed = (bool) $etatibSetting?->automatic_sync_enabled
+            && $lastAutomaticEtatibRun?->status === ExternalSyncRun::STATUS_FAILED;
 
         return [
             'role_key' => 'admin',
@@ -143,6 +153,12 @@ class DashboardService
             'scope' => 'Akun, sinkronisasi, konflik sumber, dan kesiapan integrasi',
             'read_only' => false,
             'description' => 'Ringkasan teknis tanpa membuka isi layanan BK.',
+            'alerts' => $automaticSyncFailed ? [[
+                'tone' => 'danger',
+                'title' => 'Pembaruan otomatis e-Tatib gagal',
+                'message' => $lastAutomaticEtatibRun?->summary ?? 'Periksa status sinkronisasi pada Data Master.',
+                'url' => route('data-master.index'),
+            ]] : [],
             'stats' => [
                 ['label' => 'Akun aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran aktif', 'tone' => 'primary', 'kind' => 'students'],
                 ['label' => 'Akun nonaktif', 'value' => (string) User::query()->where('is_active', false)->count(), 'meta' => 'Tidak dapat masuk', 'tone' => 'warning', 'kind' => 'cases'],

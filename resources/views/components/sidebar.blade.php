@@ -96,19 +96,6 @@
                     <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
                     <span>Data Master</span>
                 </a>
-                <a
-                    class="sibk-nav-link {{ request()->routeIs('admin.api.*') ? 'is-active' : '' }}"
-                    href="{{ route('admin.api.index') }}"
-                    aria-current="{{ request()->routeIs('admin.api.*') ? 'page' : 'false' }}"
-                >
-                    <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <circle cx="6" cy="12" r="2" />
-                        <circle cx="18" cy="6" r="2" />
-                        <circle cx="18" cy="18" r="2" />
-                        <path d="m8 11 8-4M8 13l8 4" />
-                    </svg>
-                    <span>Kelola API</span>
-                </a>
             @endcan
 
             @can('viewWakaMonitoring')

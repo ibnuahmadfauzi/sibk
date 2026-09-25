@@ -8,6 +8,8 @@ use App\Integrations\Dapodik\ConfiguredDapodikConnector;
 use App\Integrations\Dapodik\DapodikConnector;
 use App\Integrations\Etatib\ConfiguredEtatibConnector;
 use App\Integrations\Etatib\EtatibConnector;
+use App\Integrations\Etatib\EtatibSnapshotValidator;
+use App\Integrations\Etatib\SchoolHttpEtatibDriver;
 use App\Integrations\IntegrationConfigurationProvider;
 use App\Models\Achievement;
 use App\Models\BkCase;
@@ -43,6 +45,21 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(IntegrationConfigurationProvider::class, IntegrationSettingService::class);
         $this->app->bind(DapodikConnector::class, ConfiguredDapodikConnector::class);
         $this->app->bind(EtatibConnector::class, ConfiguredEtatibConnector::class);
+        $this->app->bind(EtatibSnapshotValidator::class, static fn (): EtatibSnapshotValidator => new EtatibSnapshotValidator(
+            admittedContractMarker: SchoolHttpEtatibDriver::CONTRACT_VERSION,
+            admittedCompletenessMarkers: ['full' => true, 'delta' => false],
+            maximumPages: 20,
+            maximumRecords: 10000,
+            maximumBytes: 10485760,
+            immutableFields: ['source_id', 'nisn'],
+            mutableFields: [
+                'occurred_at', 'violation_type', 'category', 'points', 'source_status',
+                'source_synced_at', 'source_nisn', 'source_student_name',
+                'source_classroom_name', 'recorded_by_name', 'source_total_points',
+                'source_deleted_at',
+            ],
+            revisionStrategy: 'source_synced_at_timestamp',
+        ));
     }
 
     /**

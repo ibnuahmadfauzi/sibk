@@ -103,7 +103,7 @@ class IntegrationSettingController extends Controller
     private function redirect(string $provider): RedirectResponse
     {
         return redirect()
-            ->to(route('admin.api.index').'#integration-'.$provider)
+            ->to(route('data-master.index', ['tab' => 'dapodik']).'#integration-'.$provider)
             ->header('Cache-Control', 'no-store');
     }
 

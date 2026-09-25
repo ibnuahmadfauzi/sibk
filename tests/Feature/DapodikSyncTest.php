@@ -450,7 +450,7 @@ class DapodikSyncTest extends TestCase
             ->assertOk()
             ->assertSee('Pratinjau Pencocokan Dapodik')
             ->assertSee('Belum terverifikasi Dapodik');
-        $this->actingAs($admin)->get(route('data-master.index'))
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
             ->assertSee('Pratinjau Dapodik menunggu penerapan')
             ->assertSee(route('data-master.dapodik.previews.show', $run), false);

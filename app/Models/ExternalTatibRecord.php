@@ -10,7 +10,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['source_identifier', 'nisn', 'student_id', 'occurred_at', 'violation_type', 'category', 'points', 'source_status', 'is_active', 'source_synced_at', 'synced_at'])]
+#[Fillable([
+    'source_identifier',
+    'nisn',
+    'source_nisn',
+    'student_id',
+    'source_student_name',
+    'source_classroom_name',
+    'occurred_at',
+    'violation_type',
+    'category',
+    'recorded_by_name',
+    'points',
+    'source_total_points',
+    'source_status',
+    'is_active',
+    'source_synced_at',
+    'source_deleted_at',
+    'synced_at',
+])]
 class ExternalTatibRecord extends Model
 {
     /** @return BelongsTo<Student, $this> */
@@ -40,8 +58,10 @@ class ExternalTatibRecord extends Model
         return [
             'occurred_at' => 'datetime',
             'points' => 'integer',
+            'source_total_points' => 'integer',
             'is_active' => 'boolean',
             'source_synced_at' => 'datetime',
+            'source_deleted_at' => 'datetime',
             'synced_at' => 'datetime',
         ];
     }

@@ -141,9 +141,11 @@ class FrontendPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('Persiapan Tahun Ajaran')
             ->assertSee('Buat Tahun Ajaran Sementara')
+            ->assertSee('Aktivasi dilakukan oleh Koordinator BK dari Penugasan Kelas')
+            ->assertSee('href="'.route('data-master.students.index').'"', false)
             ->assertSee('name="name"', false)
             ->assertSee('enctype="multipart/form-data"', false)
-            ->assertSee('nisn,nama,rombel');
+            ->assertSee('nisn,nama,rombel,tahun_pelajaran');
 
         $admin->roles()->detach();
         $admin->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
@@ -157,28 +159,43 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('disabled>Aktifkan Tahun Ajaran', false);
     }
 
-    public function test_pg_501_integration_settings_follow_existing_panels_and_plain_language_workflow(): void
+    public function test_data_master_shows_api_workflows_in_three_tabs(): void
     {
         $this->authenticateAs('admin_it');
 
-        $this->get(route('admin.api.index'))
+        $this->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Kelola API')
-            ->assertDontSee('Penugasan Kelas')
-            ->assertSee('Pengaturan Koneksi Sumber Data')
-            ->assertSee('class="col-12 col-xl-6"', false)
+            ->assertSee('aria-label="Bagian Data Master"', false)
+            ->assertSee('Tahun Ajaran &amp; Murid', false)
+            ->assertSee('Dapodik')
+            ->assertSee('e-Tatib')
+            ->assertSee('Impor dari API Siswa')
+            ->assertSee('name="api_url"', false)
+            ->assertSee('Cek &amp; Pratinjau', false)
+            ->assertSee('data-api-siswa-preview-modal', false)
+            ->assertSee('Pratinjau API Siswa')
+            ->assertSee('Impor CSV')
+            ->assertDontSee('data-etatib-api-form', false);
+
+        $this->get(route('data-master.index', ['tab' => 'dapodik']))
+            ->assertOk()
             ->assertSee('data-integration-panel="dapodik"', false)
-            ->assertSee('data-integration-panel="etatib"', false)
+            ->assertDontSee('data-etatib-api-form', false);
+
+        $this->get(route('data-master.index', ['tab' => 'etatib']))
+            ->assertOk()
+            ->assertSee('Sinkronisasi API e-Tatib')
+            ->assertSee('data-etatib-api-form', false)
+            ->assertSee('data-etatib-preview-modal', false)
+            ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertSeeInOrder([
-                'Ringkasan koneksi',
-                'Konfigurasi',
-                'Simpan Pengaturan',
-                'Uji Koneksi',
-                'Aktifkan',
-                'Keadaan data terakhir',
-            ])
-            ->assertSee('Adapter belum tersedia')
-            ->assertDontSee('modal')
+                'Link API e-Tatib',
+                'Cek &amp; Pratinjau',
+                'Pratinjau API e-Tatib',
+                'Sinkronkan Data',
+            ], false)
+            ->assertDontSee('Kode sumber')
+            ->assertDontSee('SIBK_ETATIB')
             ->assertDontSee('data-bs-toggle="collapse"', false);
     }
 

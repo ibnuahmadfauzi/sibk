@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\Consultation;
+use App\Models\ExternalSyncRun;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -19,17 +20,22 @@ use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AcademicYearPreparationService;
 use App\Services\AchievementService;
+use App\Services\ApiSiswaRosterImportService;
 use App\Services\CaseService;
 use App\Services\ConsultationService;
 use App\Services\ProvisionalRosterCsvParser;
+use App\Services\ProvisionalRosterPayloadParser;
 use App\Services\StudentIdentityService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -485,16 +491,17 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->assertTrue(method_exists($parser, 'parse'));
         $rows = [];
         for ($number = 1; $number <= 5000; $number++) {
-            $rows[] = sprintf('%010d,Nama Murid %d,X RPL 1', $number, $number);
+            $rows[] = sprintf('%010d,Nama Murid %d,X RPL 1,2027/2028', $number, $number);
         }
 
-        $parsed = $parser->parse($this->csv("\xEF\xBB\xBFnisn,nama,rombel\n".implode("\n", $rows)));
+        $parsed = $parser->parse($this->csv("\xEF\xBB\xBFnisn,nama,rombel,tahun_pelajaran\n".implode("\n", $rows)));
 
         $this->assertCount(5000, $parsed);
         $this->assertSame([
             'nisn' => '0000000001',
             'name' => 'Nama Murid 1',
             'classroom' => 'X RPL 1',
+            'academic_year_name' => '2027/2028',
         ], $parsed[0]);
     }
 
@@ -503,10 +510,10 @@ class DelayedDapodikPreparationTest extends TestCase
     {
         $parsed = app(ProvisionalRosterCsvParser::class)->parse(
             $this->csv(
-                "nisn,nama,rombel\n"
-                ."0012345678,Nama Murid A,X RPL 1\n"
+                "nisn,nama,rombel,tahun_pelajaran\n"
+                ."0012345678,Nama Murid A,X RPL 1,2027/2028\n"
                 ."\n"
-                ."0098765432,Nama Murid B,X RPL 2\n"
+                ."0098765432,Nama Murid B,X RPL 2,2027/2028\n"
                 ."\n"
             ),
         );
@@ -516,11 +523,39 @@ class DelayedDapodikPreparationTest extends TestCase
                 'nisn' => '0012345678',
                 'name' => 'Nama Murid A',
                 'classroom' => 'X RPL 1',
+                'academic_year_name' => '2027/2028',
             ],
             [
                 'nisn' => '0098765432',
                 'name' => 'Nama Murid B',
                 'classroom' => 'X RPL 2',
+                'academic_year_name' => '2027/2028',
+            ],
+        ], $parsed);
+    }
+
+    #[Test]
+    public function roster_api_payload_parser_accepts_provider_response_shape(): void
+    {
+        $parsed = app(ProvisionalRosterPayloadParser::class)->parse([
+            'success' => true,
+            'message' => 'Data siswa ditemukan',
+            'data' => [
+                [
+                    'nama' => 'ARDIANSYAH DWI PRASETYO',
+                    'nisn' => '0045123492',
+                    'rombel' => '12 PH 1',
+                    'tahun_pelajaran' => '2026/2027',
+                ],
+            ],
+        ]);
+
+        $this->assertSame([
+            [
+                'nisn' => '0045123492',
+                'name' => 'ARDIANSYAH DWI PRASETYO',
+                'classroom' => '12 PH 1',
+                'academic_year_name' => '2026/2027',
             ],
         ], $parsed);
     }
@@ -542,55 +577,61 @@ class DelayedDapodikPreparationTest extends TestCase
     {
         yield 'extension selain csv' => [[
             'name' => 'roster.txt',
-            'content' => "nisn,nama,rombel\n0012345678,Nama,X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama,X RPL 1,2027/2028",
         ]];
         yield 'header tidak exact' => [[
             'content' => "nama,nisn,rombel\nNama,0012345678,X RPL 1",
         ]];
         yield 'tanpa baris data' => [[
-            'content' => 'nisn,nama,rombel',
+            'content' => 'nisn,nama,rombel,tahun_pelajaran',
         ]];
         yield 'nisn bukan sepuluh digit' => [[
-            'content' => "nisn,nama,rombel\n1234,Nama,X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n1234,Nama,X RPL 1,2027/2028",
         ]];
         yield 'nisn ganda' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama A,X RPL 1\n0012345678,Nama B,X RPL 2",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama A,X RPL 1,2027/2028\n0012345678,Nama B,X RPL 2,2027/2028",
         ]];
         yield 'kolom kurang' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama",
         ]];
         yield 'kolom ekstra' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama,X RPL 1,Ekstra",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama,X RPL 1,2027/2028,Ekstra",
         ]];
         yield 'quote tidak sah di field tanpa enclosure' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama \"tidak sah\",X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama \"tidak sah\",X RPL 1,2027/2028",
         ]];
         yield 'formula pada nama' => [[
-            'content' => "nisn,nama,rombel\n0012345678,=HYPERLINK(\"https://invalid.test\"),X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,=HYPERLINK(\"https://invalid.test\"),X RPL 1,2027/2028",
         ]];
         yield 'formula pada rombel' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama,+SUM(1)",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama,+SUM(1),2027/2028",
+        ]];
+        yield 'tahun pelajaran kosong' => [[
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama,X RPL 1,",
+        ]];
+        yield 'formula pada tahun pelajaran' => [[
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama,X RPL 1,=2027/2028",
         ]];
         yield 'control character' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama\tMurid,X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama\tMurid,X RPL 1,2027/2028",
         ]];
         yield 'control character di tepi field' => [[
-            'content' => "nisn,nama,rombel\n0012345678,\tNama Murid,X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,\tNama Murid,X RPL 1,2027/2028",
         ]];
         yield 'utf8 tidak valid' => [[
-            'content' => "nisn,nama,rombel\n0012345678,Nama\xFF,X RPL 1",
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama\xFF,X RPL 1,2027/2028",
         ]];
         yield 'bom utf16' => [[
             'content' => "\xFF\xFEn\x00i\x00s\x00n\x00",
         ]];
         yield 'lebih dari lima ribu baris' => [[
-            'content' => "nisn,nama,rombel\n".implode("\n", array_map(
-                static fn (int $number): string => sprintf('%010d,Nama %d,X RPL 1', $number, $number),
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n".implode("\n", array_map(
+                static fn (int $number): string => sprintf('%010d,Nama %d,X RPL 1,2027/2028', $number, $number),
                 range(1, 5001),
             )),
         ]];
         yield 'lebih dari dua mebibyte' => [[
-            'content' => "nisn,nama,rombel\n0012345678,".str_repeat('A', (2 * 1024 * 1024) + 1).',X RPL 1',
+            'content' => "nisn,nama,rombel,tahun_pelajaran\n0012345678,".str_repeat('A', (2 * 1024 * 1024) + 1).',X RPL 1,2027/2028',
         ]];
     }
 
@@ -630,10 +671,10 @@ class DelayedDapodikPreparationTest extends TestCase
         ]);
         $case = $this->caseFor($dapodikStudent, $admin);
         $csv = $this->csv(implode("\n", [
-            'nisn,nama,rombel',
-            '0012345678,Nama CSV Tidak Boleh Menimpa,X RPL 1',
-            '0098765432,Nama CSV Lama Tidak Menimpa,X RPL 1',
-            '0000000003,Murid Baru,X RPL 2',
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0012345678,Nama CSV Tidak Boleh Menimpa,X RPL 1,2027/2028',
+            '0098765432,Nama CSV Lama Tidak Menimpa,X RPL 1,2027/2028',
+            '0000000003,Murid Baru,X RPL 2,2027/2028',
         ]));
 
         $first = $service->importRoster($year, $csv, $admin);
@@ -692,6 +733,532 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function global_roster_import_moves_the_same_student_across_multiple_existing_years(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $firstYear = AcademicYear::query()->create([
+            'name' => '2026/2027',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            'prepared_by' => $admin->id,
+            'preparation_reference' => 'Kalender Pendidikan 2026/2027',
+        ]);
+        $secondYear = $this->prepareYear($service, $admin);
+        $file = $this->csv(implode("\n", [
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0012345678,Nama Murid,XI PH 1,2026/2027',
+            '0012345678,Nama Murid,XII PH 1,2027/2028',
+        ]));
+
+        $result = $service->importRosters($file, $admin);
+
+        $student = Student::query()->where('nisn', '0012345678')->sole();
+        $memberships = StudentClassMembership::query()
+            ->with('classroom')
+            ->where('student_id', $student->id)
+            ->orderBy('academic_year_id')
+            ->get();
+        $this->assertSame(2, $result->rows);
+        $this->assertSame(2, $result->academicYears);
+        $this->assertSame(1, $result->studentsCreated);
+        $this->assertCount(2, $memberships);
+        $this->assertSame([$firstYear->id, $secondYear->id], $memberships->pluck('academic_year_id')->all());
+        $this->assertSame(['XI PH 1', 'XII PH 1'], $memberships->pluck('classroom.name')->all());
+    }
+
+    #[Test]
+    public function api_roster_payload_imports_students_with_the_existing_preparation_rules(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $firstYear = AcademicYear::query()->create([
+            'name' => '2026/2027',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+            'prepared_by' => $admin->id,
+            'preparation_reference' => 'Kalender Pendidikan 2026/2027',
+        ]);
+        $secondYear = $this->prepareYear($service, $admin);
+
+        $result = $service->importRosterPayload([
+            'success' => true,
+            'message' => 'Data siswa ditemukan',
+            'data' => [
+                [
+                    'nama' => 'ARDIANSYAH DWI PRASETYO',
+                    'nisn' => '0045123492',
+                    'rombel' => '12 PH 1',
+                    'tahun_pelajaran' => '2026/2027',
+                ],
+                [
+                    'nama' => 'ARDIANSYAH DWI PRASETYO',
+                    'nisn' => '0045123492',
+                    'rombel' => '13 PH 1',
+                    'tahun_pelajaran' => '2027/2028',
+                ],
+            ],
+        ], $admin);
+
+        $student = Student::query()->where('nisn', '0045123492')->sole();
+        $memberships = StudentClassMembership::query()
+            ->with('classroom')
+            ->where('student_id', $student->id)
+            ->orderBy('academic_year_id')
+            ->get();
+        $this->assertSame(2, $result->rows);
+        $this->assertSame(2, $result->academicYears);
+        $this->assertSame(1, $result->studentsCreated);
+        $this->assertSame([$firstYear->id, $secondYear->id], $memberships->pluck('academic_year_id')->all());
+        $this->assertSame(['12 PH 1', '13 PH 1'], $memberships->pluck('classroom.name')->all());
+    }
+
+    #[Test]
+    public function global_roster_route_accepts_api_payload_and_returns_json_summary(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear($service, $admin);
+
+        $this->actingAs($admin)
+            ->postJson(route('data-master.roster-imports.store'), [
+                'success' => true,
+                'message' => 'Data siswa ditemukan',
+                'data' => [
+                    [
+                        'nama' => 'NAMA MURID',
+                        'nisn' => '0012345678',
+                        'rombel' => 'X RPL 1',
+                        'tahun_pelajaran' => '2027/2028',
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.rows', 1)
+            ->assertJsonPath('data.academic_years', 1)
+            ->assertJsonPath('data.students_created', 1);
+
+        $this->assertDatabaseHas('students', ['nisn' => '0012345678']);
+        $this->assertDatabaseHas('classrooms', ['name' => 'X RPL 1']);
+        $this->assertDatabaseCount('student_class_memberships', 1);
+    }
+
+    #[Test]
+    public function admin_imports_roster_from_a_one_time_api_siswa_url_with_a_safe_run_summary(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear($service, $admin);
+        $existingStudent = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Nama Lokal Dipertahankan',
+            'is_active' => true,
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $url = 'https://8.8.8.8/api/siswa?token=RAHASIA-URL';
+
+        Http::fake([
+            $url => Http::response([
+                'success' => true,
+                'message' => 'Data siswa ditemukan',
+                'data' => [
+                    [
+                        'nama' => 'Nama API Tidak Menimpa',
+                        'nisn' => '0012345678',
+                        'rombel' => 'X RPL 1',
+                        'tahun_pelajaran' => '2027/2028',
+                    ],
+                    [
+                        'nama' => 'Murid Baru',
+                        'nisn' => '0098765432',
+                        'rombel' => 'X RPL 2',
+                        'tahun_pelajaran' => '2027/2028',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.roster-imports.store'), ['api_url' => $url])
+            ->assertRedirect(route('data-master.index'))
+            ->assertSessionHas('success');
+
+        Http::assertSent(fn ($request): bool => $request->method() === 'GET'
+            && $request->url() === $url);
+        $this->assertSame('Nama Lokal Dipertahankan', $existingStudent->refresh()->name);
+        $this->assertDatabaseHas('students', [
+            'nisn' => '0098765432',
+            'name' => 'Murid Baru',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $this->assertDatabaseHas('classrooms', ['name' => 'X RPL 1']);
+        $this->assertDatabaseHas('classrooms', ['name' => 'X RPL 2']);
+        $this->assertDatabaseCount('student_class_memberships', 2);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'academic_year.roster_imported']);
+
+        $run = ExternalSyncRun::query()->where('source', 'api_siswa')->sole();
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertSame(2, $run->received_count);
+        $this->assertSame(2, $run->processed_count);
+        $serializedRun = serialize($run->getAttributes());
+        $this->assertStringNotContainsString($url, $serializedRun);
+        $this->assertStringNotContainsString('RAHASIA-URL', $serializedRun);
+        $this->assertStringNotContainsString('0012345678', $serializedRun);
+        $this->assertStringNotContainsString('Nama API', $serializedRun);
+    }
+
+    #[Test]
+    public function admin_previews_api_siswa_without_mutating_or_storing_the_payload(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear($service, $admin);
+        $url = 'https://8.8.8.8/api/siswa?token=PREVIEW-SECRET';
+
+        Http::fake([
+            $url => Http::response([
+                'success' => true,
+                'message' => 'Data siswa ditemukan',
+                'data' => [
+                    [
+                        'nama' => 'Murid Pratinjau Satu',
+                        'nisn' => '0012345678',
+                        'rombel' => 'X RPL 1',
+                        'tahun_pelajaran' => '2027/2028',
+                    ],
+                    [
+                        'nama' => 'Murid Pratinjau Dua',
+                        'nisn' => '0098765432',
+                        'rombel' => 'X RPL 2',
+                        'tahun_pelajaran' => '2027/2028',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $response = $this->actingAs($admin)->postJson(
+            route('data-master.roster-imports.preview'),
+            ['api_url' => $url],
+        );
+
+        $response
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.rows', 2)
+            ->assertJsonPath('data.students', 2)
+            ->assertJsonPath('data.can_import', true)
+            ->assertJsonPath('data.academic_years.0.name', '2027/2028')
+            ->assertJsonPath('data.academic_years.0.classrooms', 2)
+            ->assertJsonPath('data.academic_years.0.ready', true)
+            ->assertJsonPath('data.sample.0.nisn', '0012****78')
+            ->assertJsonPath('data.sample.0.name', 'Murid Pratinjau Satu');
+        $this->assertStringNotContainsString('0012345678', $response->getContent());
+        $this->assertStringNotContainsString('PREVIEW-SECRET', $response->getContent());
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertDatabaseCount('external_sync_runs', 0);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+    }
+
+    #[Test]
+    public function api_siswa_preview_marks_unknown_year_as_not_ready_without_rejecting_the_preview(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Http::fake([
+            'https://8.8.8.8/unknown-preview-year' => Http::response([
+                'success' => true,
+                'data' => [[
+                    'nama' => 'Murid Tahun Belum Ada',
+                    'nisn' => '0012345678',
+                    'rombel' => 'X RPL 1',
+                    'tahun_pelajaran' => '2030/2031',
+                ]],
+            ]),
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('data-master.roster-imports.preview'), [
+                'api_url' => 'https://8.8.8.8/unknown-preview-year',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.can_import', false)
+            ->assertJsonPath('data.academic_years.0.ready', false)
+            ->assertJsonPath(
+                'data.academic_years.0.status',
+                'Tahun pelajaran belum dibuat di Data Master.',
+            );
+
+        $this->assertDatabaseCount('external_sync_runs', 0);
+    }
+
+    #[Test]
+    public function api_siswa_preview_reports_a_safe_dns_diagnostic(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->resetHttpFactory();
+        Http::fake(Http::failedConnection('cURL error 6: Could not resolve host'));
+
+        $this->actingAs($admin)
+            ->postJson(route('data-master.roster-imports.preview'), [
+                'api_url' => 'https://8.8.8.8/dns',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'errors.api_url.0',
+                'Nama host API Siswa tidak dapat ditemukan oleh DNS server SIBK.',
+            );
+
+        $this->assertDatabaseCount('external_sync_runs', 0);
+    }
+
+    #[Test]
+    public function api_siswa_connection_diagnostic_classifies_ssl_failures_safely(): void
+    {
+        $method = new \ReflectionMethod(
+            app(ApiSiswaRosterImportService::class),
+            'connectionFailureMessage',
+        );
+
+        $this->assertSame(
+            'Koneksi HTTPS API Siswa gagal diverifikasi. Periksa sertifikat SSL server API.',
+            $method->invoke(
+                app(ApiSiswaRosterImportService::class),
+                new ConnectionException('cURL error 60: SSL certificate problem'),
+            ),
+        );
+    }
+
+    #[Test]
+    public function api_siswa_preview_rejects_redirects_with_a_safe_diagnostic(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->resetHttpFactory();
+        Http::fake(Http::response('', 302, [
+            'Location' => 'https://8.8.4.4/final',
+        ]));
+
+        $this->actingAs($admin)
+            ->postJson(route('data-master.roster-imports.preview'), [
+                'api_url' => 'https://8.8.8.8/redirect',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'errors.api_url.0',
+                'API Siswa mengalihkan permintaan (HTTP 302). Gunakan link tujuan akhir secara langsung.',
+            );
+
+        $this->assertDatabaseCount('external_sync_runs', 0);
+    }
+
+    #[Test]
+    public function api_siswa_import_rejects_local_and_private_urls_without_sending_a_request(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Http::fake();
+
+        foreach (['http://localhost/siswa', 'http://127.0.0.1/siswa', 'http://192.168.1.10/siswa'] as $url) {
+            $this->actingAs($admin)
+                ->from(route('data-master.index'))
+                ->post(route('data-master.roster-imports.store'), ['api_url' => $url])
+                ->assertRedirect(route('data-master.index'))
+                ->assertSessionHasErrors('api_url');
+        }
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertSame(3, ExternalSyncRun::query()
+            ->where('source', 'api_siswa')
+            ->where('status', ExternalSyncRun::STATUS_FAILED)
+            ->count());
+    }
+
+    #[Test]
+    public function api_siswa_import_requires_a_valid_http_or_https_url(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+
+        foreach (['', 'bukan-url', 'ftp://8.8.8.8/siswa'] as $url) {
+            $this->actingAs($admin)
+                ->from(route('data-master.index'))
+                ->post(route('data-master.roster-imports.store'), ['api_url' => $url])
+                ->assertRedirect(route('data-master.index'))
+                ->assertSessionHasErrors('api_url');
+        }
+
+        $this->assertDatabaseCount('external_sync_runs', 0);
+    }
+
+    #[Test]
+    public function api_siswa_import_rejects_fetch_and_payload_failures_without_roster_mutation(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear($service, $admin);
+
+        Http::fake([
+            'https://8.8.8.8/status' => Http::response('gagal', 503),
+            'https://8.8.8.8/not-json' => Http::response('<html>bukan json</html>'),
+            'https://8.8.8.8/too-large' => Http::response(str_repeat('A', (2 * 1024 * 1024) + 1)),
+            'https://8.8.8.8/failed' => Http::response(['success' => false, 'data' => []]),
+            'https://8.8.8.8/empty' => Http::response(['success' => true, 'data' => []]),
+            'https://8.8.8.8/masked' => Http::response([
+                'success' => true,
+                'data' => [[
+                    'nama' => 'Murid Masking',
+                    'nisn' => '0045xxxx92',
+                    'rombel' => 'X RPL 1',
+                    'tahun_pelajaran' => '2027/2028',
+                ]],
+            ]),
+            'https://8.8.8.8/unknown-year' => Http::response([
+                'success' => true,
+                'data' => [[
+                    'nama' => 'Murid Tahun Belum Ada',
+                    'nisn' => '0012345678',
+                    'rombel' => 'X RPL 1',
+                    'tahun_pelajaran' => '2030/2031',
+                ]],
+            ]),
+            'https://8.8.8.8/timeout' => Http::failedConnection('timeout'),
+        ]);
+
+        foreach ([
+            ['status', 'api_url'],
+            ['not-json', 'api_url'],
+            ['too-large', 'api_url'],
+            ['failed', 'data'],
+            ['empty', 'data'],
+            ['masked', 'data'],
+            ['unknown-year', 'academic_year'],
+            ['timeout', 'api_url'],
+        ] as [$path, $errorKey]) {
+            $this->actingAs($admin)
+                ->from(route('data-master.index'))
+                ->post(route('data-master.roster-imports.store'), [
+                    'api_url' => 'https://8.8.8.8/'.$path,
+                ])
+                ->assertRedirect(route('data-master.index'))
+                ->assertSessionHasErrors($errorKey);
+        }
+
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertSame(8, ExternalSyncRun::query()
+            ->where('source', 'api_siswa')
+            ->where('status', ExternalSyncRun::STATUS_FAILED)
+            ->count());
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+    }
+
+    #[Test]
+    public function api_siswa_url_is_not_flushed_back_to_the_session_after_validation_failure(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $secretUrl = 'https://8.8.8.8/api/siswa?token=TOKEN-TIDAK-BOLEH-DISIMPAN';
+
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.roster-imports.store'), [
+                'api_url' => $secretUrl,
+                'file' => $this->validCsv(),
+            ])
+            ->assertSessionHasErrors(['api_url', 'file']);
+
+        $this->assertNull(session()->getOldInput('api_url'));
+        $this->assertStringNotContainsString('TOKEN-TIDAK-BOLEH-DISIMPAN', serialize(session()->all()));
+        $this->assertDatabaseCount('external_sync_runs', 0);
+    }
+
+    #[Test]
+    public function global_roster_import_rejects_an_unknown_year_atomically(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear($service, $admin);
+        $file = $this->csv(implode("\n", [
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0012345678,Murid Valid,X RPL 1,2027/2028',
+            '0098765432,Murid Tahun Tidak Ada,X RPL 2,2030/2031',
+        ]));
+
+        $this->assertValidationError(
+            fn () => $service->importRosters($file, $admin),
+            'academic_year',
+        );
+
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+    }
+
+    #[Test]
+    public function api_roster_payload_rejects_an_unknown_year_atomically(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear($service, $admin);
+
+        $this->assertValidationError(
+            fn () => $service->importRosterPayload([
+                'success' => true,
+                'message' => 'Data siswa ditemukan',
+                'data' => [
+                    [
+                        'nama' => 'Murid Valid',
+                        'nisn' => '0012345678',
+                        'rombel' => 'X RPL 1',
+                        'tahun_pelajaran' => '2027/2028',
+                    ],
+                    [
+                        'nama' => 'Murid Tahun Tidak Ada',
+                        'nisn' => '0098765432',
+                        'rombel' => 'X RPL 2',
+                        'tahun_pelajaran' => '2030/2031',
+                    ],
+                ],
+            ], $admin),
+            'academic_year',
+        );
+
+        $this->assertDatabaseCount('students', 0);
+        $this->assertDatabaseCount('classrooms', 0);
+        $this->assertDatabaseCount('student_class_memberships', 0);
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'academic_year.roster_imported']);
+    }
+
+    #[Test]
+    public function legacy_roster_route_rejects_a_different_year_in_the_csv(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear($service, $admin);
+
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.academic-years.roster-imports.store', $year), [
+                'file' => $this->csv(
+                    "nisn,nama,rombel,tahun_pelajaran\n"
+                    .'0012345678,Nama Murid,X RPL 1,2028/2029',
+                ),
+            ])
+            ->assertSessionHasErrors('academic_year');
+
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    #[Test]
     public function roster_import_is_atomic_rejects_class_conflicts_and_requires_an_inactive_year_and_active_admin(): void
     {
         $service = app(AcademicYearPreparationService::class);
@@ -710,9 +1277,9 @@ class DelayedDapodikPreparationTest extends TestCase
             'academic_year_id' => $year->id,
         ]);
         $conflictingFile = $this->csv(implode("\n", [
-            'nisn,nama,rombel',
-            '0000000002,Murid Baru,X RPL 2',
-            '0012345678,Murid Existing,X RPL 3',
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0000000002,Murid Baru,X RPL 2,2027/2028',
+            '0012345678,Murid Existing,X RPL 3,2027/2028',
         ]));
 
         $this->assertValidationError(
@@ -802,7 +1369,7 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
-    public function data_master_only_offers_roster_import_for_provisional_years(): void
+    public function data_master_offers_one_global_roster_import_and_lists_preparation_years(): void
     {
         $service = app(AcademicYearPreparationService::class);
         $admin = $this->userWithRole('admin_it');
@@ -824,9 +1391,24 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $this->actingAs($admin)->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee(route('data-master.academic-years.roster-imports.store', $provisional), false)
+            ->assertSee(route('data-master.roster-imports.store'), false)
+            ->assertSee('API Siswa')
+            ->assertSee('name="api_url"', false)
+            ->assertSee('data-api-siswa-preview-modal', false)
+            ->assertSee('Cek &amp; Pratinjau', false)
+            ->assertSee(route('data-master.roster-imports.preview'), false)
+            ->assertSee('name="file"', false)
+            ->assertDontSee('data-etatib-api-form', false)
+            ->assertDontSee('data-integration-panel="dapodik"', false)
+            ->assertSee($provisional->name)
             ->assertDontSee(route('data-master.academic-years.roster-imports.store', $dapodik), false)
             ->assertDontSee(route('data-master.academic-years.roster-imports.store', $legacy), false);
+
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'etatib']))
+            ->assertOk()
+            ->assertSee('data-etatib-api-form', false)
+            ->assertSee(route('data-master.etatib.preview'), false)
+            ->assertSee('Pratinjau API e-Tatib');
     }
 
     #[Test]
@@ -836,8 +1418,8 @@ class DelayedDapodikPreparationTest extends TestCase
         $admin = $this->userWithRole('admin_it');
         $year = $this->prepareYear($service, $admin);
         $unsafeCsv = $this->csv(implode("\n", [
-            'nisn,nama,rombel',
-            '0012345678,=NAMA_RAHASIA,X RPL RAHASIA',
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0012345678,=NAMA_RAHASIA,X RPL RAHASIA,2027/2028',
         ]));
 
         $this->assertValidationError(
@@ -885,9 +1467,9 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $this->assertValidationError(
             fn () => $service->importRoster($targetYear, $this->csv(implode("\n", [
-                'nisn,nama,rombel',
-                '0000000002,Murid Baru Tidak Boleh Tersimpan,X RPL 2',
-                '0012345678,Murid Pasangan Silang,X RPL 1',
+                'nisn,nama,rombel,tahun_pelajaran',
+                '0000000002,Murid Baru Tidak Boleh Tersimpan,X RPL 2,2027/2028',
+                '0012345678,Murid Pasangan Silang,X RPL 1,2027/2028',
             ])), $admin),
             'rombel',
         );
@@ -1001,9 +1583,9 @@ class DelayedDapodikPreparationTest extends TestCase
         ]);
         $year = $this->prepareYear($service, $admin);
         $service->importRoster($year, $this->csv(implode("\n", [
-            'nisn,nama,rombel',
-            '0012345678,Murid Satu,X RPL 1',
-            '0098765432,Murid Dua,X RPL 2',
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0012345678,Murid Satu,X RPL 1,2027/2028',
+            '0098765432,Murid Dua,X RPL 2,2027/2028',
         ])), $admin);
         $classes = Classroom::query()->where('academic_year_id', $year->id)->orderBy('name')->get();
         $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
@@ -1088,6 +1670,47 @@ class DelayedDapodikPreparationTest extends TestCase
             ->post(route('data-master.academic-years.store'), $payload)
             ->assertRedirect(route('data-master.index'));
         $year = AcademicYear::query()->where('name', '2027/2028')->firstOrFail();
+
+        $this->app['auth']->guard()->logout();
+        $this->post(route('data-master.roster-imports.store'), [
+            'file' => $this->validCsv(),
+        ])->assertRedirect(route('login'));
+        foreach ([$teacher, $coordinator, $waka] as $unauthorized) {
+            $this->actingAs($unauthorized)
+                ->post(route('data-master.roster-imports.store'), ['file' => $this->validCsv()])
+                ->assertForbidden();
+        }
+        $this->actingAs($inactiveAdmin)
+            ->post(route('data-master.roster-imports.store'), ['file' => $this->validCsv()])
+            ->assertRedirect(route('login'));
+        $this->actingAs($admin)
+            ->from(route('data-master.index'))
+            ->post(route('data-master.roster-imports.store'), [])
+            ->assertSessionHasErrors('file');
+        $this->actingAs($admin)
+            ->post(route('data-master.roster-imports.store'), ['file' => $this->validCsv()])
+            ->assertRedirect(route('data-master.index'));
+
+        $this->app['auth']->guard()->logout();
+        $this->post(route('data-master.roster-imports.preview'), [
+            'api_url' => 'https://8.8.8.8/siswa',
+        ])->assertRedirect(route('login'));
+        foreach ([$teacher, $coordinator, $waka] as $unauthorized) {
+            $this->actingAs($unauthorized)
+                ->postJson(route('data-master.roster-imports.preview'), [
+                    'api_url' => 'https://8.8.8.8/siswa',
+                ])
+                ->assertForbidden();
+        }
+        $this->actingAs($inactiveAdmin)
+            ->post(route('data-master.roster-imports.preview'), [
+                'api_url' => 'https://8.8.8.8/siswa',
+            ])
+            ->assertRedirect(route('login'));
+        $this->actingAs($admin)
+            ->postJson(route('data-master.roster-imports.preview'), [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('api_url');
 
         $this->app['auth']->guard()->logout();
         $this->post(route('data-master.academic-years.roster-imports.store', $year), [
@@ -1187,9 +1810,9 @@ class DelayedDapodikPreparationTest extends TestCase
             'source_confirmed_at' => now()->subYear(),
         ]);
         $preparation->importRoster($year, $this->csv(implode("\n", [
-            'nisn,nama,rombel',
-            '0012345678,Nama CSV Tidak Menimpa,X RPL 1',
-            '0098765432,Murid Kelas Lain,X RPL 2',
+            'nisn,nama,rombel,tahun_pelajaran',
+            '0012345678,Nama CSV Tidak Menimpa,X RPL 1,2027/2028',
+            '0098765432,Murid Kelas Lain,X RPL 2,2027/2028',
         ])), $admin);
         $classes = Classroom::query()->where('academic_year_id', $year->id)->orderBy('name')->get();
         $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
@@ -1357,7 +1980,14 @@ class DelayedDapodikPreparationTest extends TestCase
 
     private function validCsv(): UploadedFile
     {
-        return $this->csv("nisn,nama,rombel\n0012345678,Nama Murid,X RPL 1");
+        return $this->csv("nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama Murid,X RPL 1,2027/2028");
+    }
+
+    private function resetHttpFactory(): void
+    {
+        $factory = new HttpFactory($this->app['events']);
+        $this->app->instance(HttpFactory::class, $factory);
+        Http::clearResolvedInstance(HttpFactory::class);
     }
 
     private function csv(string $content, string $name = 'roster.csv'): UploadedFile
