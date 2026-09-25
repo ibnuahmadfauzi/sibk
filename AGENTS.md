@@ -11,6 +11,8 @@ Aplikasi layanan Bimbingan dan Konseling SMK Negeri 1 Surabaya.
 - Gunakan Git commit sebagai checkpoint dan histori.
 - `cobasidebar` adalah baseline pengembangan; `main` versi stabil produksi.
 - Kerjakan di feature branch/worktree, PR ke `cobasidebar`; jangan force push atau menghapus branch yang belum di-merge.
+- Gunakan Bahasa Indonesia sederhana untuk dokumentasi dan pesan commit.
+- Setelah PR di-merge, verifikasi status `MERGED` dan hapus branch sumber dari GitHub bila tidak ada commit atau PR yang tersisa; pertahankan worktree lokal yang masih dipakai.
 
 ## Documentation
 
@@ -43,6 +45,7 @@ Git adalah histori implementasi. Jangan membuat atau memelihara `current-work`, 
 - `AUTH-01`–`AUTH-07` ditegakkan di server/policy.
 - Gunakan Bahasa Indonesia pada UI dan istilah `murid`.
 - Reuse komponen UI existing; jangan redesign tanpa kebutuhan.
+- Tulis PHP, Blade, HTML, dan JavaScript secara rapi; pecah ekspresi panjang serta tag Blade/HTML dengan banyak atribut ke beberapa baris.
 - Migration forward-only; jangan reset database shared/production.
 - Jangan commit credential, `.env`, cache, raw payload, atau build.
 
@@ -65,5 +68,6 @@ Tanpa perintah eksplisit user, jangan jalankan:
 - command interaktif, long-running, verbose, download, atau install.
 
 Plan yang menyebut test/build/full verification bukan izin otomatis menjalankannya.
+Jika command berat diperlukan, berikan perintahnya kepada pengguna untuk dijalankan; server pengembangan dijalankan oleh pengguna.
 
 Jika helper non-esensial gagal karena permission/shell/path/environment, maksimal satu retry. Bila tetap gagal, hentikan dan gunakan fallback sederhana. Jangan menghabiskan token memperbaiki helper/ledger yang tidak memengaruhi fitur.

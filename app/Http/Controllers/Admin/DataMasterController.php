@@ -15,7 +15,6 @@ use App\Models\User;
 use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
 use App\Services\EtatibSyncService;
-use App\Services\IntegrationSettingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,7 +24,6 @@ class DataMasterController extends Controller
 {
     public function index(
         Request $request,
-        IntegrationSettingService $integrationSettings,
         AcademicYearRolloverQuery $rolloverQuery,
     ): Response {
         $this->authorizeAdmin($request);
@@ -79,7 +77,6 @@ class DataMasterController extends Controller
                 ->orderByDesc('starts_on')
                 ->orderByDesc('name')
                 ->get(),
-            'integrationStates' => $integrationSettings->allStates(),
         ])->header('Cache-Control', 'no-store');
     }
 

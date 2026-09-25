@@ -215,48 +215,66 @@ if (accountPage) {
 
     const rolePicker = (root) => {
         const selected = new Map();
+        let locked = false;
         const options = [...root.querySelectorAll('[data-account-role-option]')];
         const selectedItems = root.querySelector('[data-account-selected]');
         const inputs = root.querySelector('[data-account-inputs]');
         const placeholder = root.querySelector('[data-account-placeholder]');
         const submit = root.closest('form').querySelector('[data-account-submit]');
+        const lockedMessage = root.querySelector('[data-account-role-locked]');
+        const invalidMessage = root.querySelector('[data-account-role-invalid]');
 
         const render = () => {
             selectedItems.replaceChildren();
             inputs.replaceChildren();
+            const slugs = [...selected.keys()].sort();
+            const valid = slugs.length === 1
+                || (slugs.length === 2 && slugs[0] === 'guru_bk' && slugs[1] === 'koordinator_bk');
+            const exclusive = selected.has('admin_it') || selected.has('waka_kesiswaan');
             selected.forEach((name, slug) => {
-                const chip = document.createElement('button');
-                chip.type = 'button';
+                const chip = document.createElement(locked ? 'span' : 'button');
+                if (!locked) chip.type = 'button';
                 chip.className = 'sibk-class-picker-selected-chip';
-                chip.textContent = `${name} ×`;
-                chip.setAttribute('aria-label', `Batalkan pilihan ${name}`);
-                chip.addEventListener('click', () => {
-                    selected.delete(slug);
-                    render();
-                });
+                chip.textContent = locked ? name : `${name} ×`;
+                if (!locked) {
+                    chip.setAttribute('aria-label', `Batalkan pilihan ${name}`);
+                    chip.addEventListener('click', () => {
+                        selected.delete(slug);
+                        render();
+                    });
+                }
                 selectedItems.append(chip);
 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'roles[]';
-                input.value = slug;
-                inputs.append(input);
+                if (!locked) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'roles[]';
+                    input.value = slug;
+                    inputs.append(input);
+                }
             });
             options.forEach((option) => {
-                option.hidden = selected.has(option.dataset.roleSlug);
+                const slug = option.dataset.roleSlug;
+                option.hidden = locked || selected.has(slug);
+                option.disabled = exclusive
+                    || (selected.size > 0 && ['admin_it', 'waka_kesiswaan'].includes(slug));
             });
             placeholder.hidden = selected.size > 0;
-            submit.disabled = selected.size === 0;
+            if (lockedMessage) lockedMessage.classList.toggle('d-none', !locked);
+            if (invalidMessage) invalidMessage.classList.toggle('d-none', valid || selected.size === 0);
+            submit.disabled = !locked && !valid;
         };
 
         options.forEach((option) => {
             option.addEventListener('click', () => {
+                if (option.disabled || locked) return;
                 selected.set(option.dataset.roleSlug, option.dataset.roleName);
                 render();
             });
         });
 
-        return (slugs) => {
+        return (slugs, readOnly = false) => {
+            locked = readOnly;
             selected.clear();
             slugs.filter(Boolean).forEach((slug) => {
                 const option = options.find((item) => item.dataset.roleSlug === slug);
@@ -284,8 +302,10 @@ if (accountPage) {
         if (!keepInput) {
             accountForm.querySelector('[name="name"]').value = edit ? button.dataset.accountName : '';
             accountForm.querySelector('[name="email"]').value = edit ? button.dataset.accountEmail : '';
-            accountForm.querySelector('#accountActive').checked = edit ? button.dataset.accountActive === '1' : true;
-            setAccountRoles(edit ? button.dataset.accountRoles.split(',') : []);
+            setAccountRoles(
+                edit ? button.dataset.accountRoles.split(',') : [],
+                edit && button.dataset.accountId === accountPage.dataset.currentUserId,
+            );
         }
     };
 
@@ -302,7 +322,7 @@ if (accountPage) {
         setQuickRoles(button.dataset.accountRoles.split(','));
     });
     accountRolesModal.addEventListener('shown.bs.modal', () => {
-        accountRolesModal.querySelector('[data-account-role-option]:not([hidden])')?.focus();
+        accountRolesModal.querySelector('[data-account-role-option]:not([hidden]):not(:disabled)')?.focus();
     });
 
     accountPage.querySelectorAll('[data-account-detail-toggle]').forEach((button) => {
@@ -334,7 +354,7 @@ if (accountPage) {
                     .find((item) => item.dataset.accountId === target)
                 : null;
             setupAccount(button, true);
-            setAccountRoles(oldRoles);
+            setAccountRoles(oldRoles, button?.dataset.accountId === accountPage.dataset.currentUserId);
             Modal.getOrCreateInstance(accountModal).show();
         }
     }

@@ -39,6 +39,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Negosiasi respons:** request browser biasa menerima halaman Blade dan redirect dengan flash message; request dengan `Accept: application/json` tetap menerima JSON untuk integrasi/test.
 - **Request buat:** `name`, `email`, `roles[]` (slug role), dan `is_active` (opsional); password tidak diterima dari form.
 - **Request ubah:** Field yang berubah dari `name`, `email`, `roles[]`, dan `is_active`; password memakai alur reset tersendiri.
+- **Kombinasi peran:** `admin_it` dan `waka_kesiswaan` masing-masing tunggal; `guru_bk` dan `koordinator_bk` boleh digabung. Kombinasi lain ditolak dengan 422. Perubahan `roles[]` untuk akun sendiri ditolak; perubahan identitas tanpa field tersebut tetap tersedia.
 - **Reset password:** `POST /admin/users/{user}/reset-password` hanya untuk Admin IT aktif terhadap target lain.
 - **Response buat/reset:** browser menerima redirect ke daftar akun. Hasil sandi sementara disimpan sebagai flash terenkripsi untuk satu GET berikutnya, tampil hanya pada detail baris akun terkait, dan respons GET memakai `Cache-Control: no-store, private`. Refresh berikutnya tidak membawa nilainya dan tidak mengulang POST. JSON tetap mengembalikan password sementara sekali tanpa hash atau token sesi.
 - **Business Logic:** `AccountService` menyimpan akun dan role dalam transaksi; `TemporaryPasswordService` menerbitkan password sementara 24 jam, memutus sesi target, menetapkan `must_change_password`, dan menulis audit tanpa nilai password.
@@ -181,7 +182,8 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Authorization daftar:** Guru BK melihat penugasannya; Koordinator, Waka, dan Admin IT memperoleh ringkasan sesuai fungsi masing-masing.
 - **Authorization form:** hanya Koordinator BK.
 - **Daftar:** satu baris per Guru BK aktif, termasuk yang belum mempunyai kelas. Kolom kelas memuat kelas aktif pada tahun terpilih; jumlah murid hanya menghitung membership aktif milik murid aktif pada tahun tersebut. Guru BK hanya menerima barisnya sendiri.
-- **Filter daftar:** `academic_year_id`, `search_kelas` (nama kelas ampuan), dan `status` (`all`, `assigned`, atau `unassigned` berdasarkan status guru). Kelas kosong tetap tersedia dalam pilihan tambah bagi Koordinator meskipun daftar difilter.
+- **Konteks tahun:** tanpa parameter, daftar memakai tahun aktif; bila belum ada, tampilkan keadaan kosong dan jangan otomatis memakai tahun Persiapan. Koordinator memilih tahun aktif atau Persiapan secara eksplisit di panel Kesiapan Aktivasi melalui `academic_year_id`; pilihan itu juga menentukan tahun pada tabel. Peran lain selalu melihat tahun aktif. Tahun arsip tidak masuk pilihan.
+- **Filter daftar:** `search_kelas` (nama kelas ampuan) dan `status` (`all`, `assigned`, atau `unassigned` berdasarkan status guru). Saat Koordinator menyiapkan tahun Persiapan, form filter mempertahankan `academic_year_id` terpilih. Kelas kosong tetap tersedia dalam pilihan tambah meskipun daftar difilter.
 
 ### Atur Penugasan Kelas
 - **Endpoint:** `POST /assignments/classes`
@@ -239,7 +241,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Scope layanan:** Guru BK memperoleh scope dari tahun ajaran aktif dan penugasan. Histori layanan, kelas lama, dan kasus aktif tidak dibuat ulang ketika roster tahun baru diterapkan.
 
 ### Konfigurasi Koneksi Dapodik dan e-Tatib
-- **Halaman:** `GET /data-master`, area PG-501 khusus Admin IT aktif melalui capability `manageDataMaster`.
+- **Halaman:** `GET /admin/api`, menu Kelola API khusus Admin IT aktif melalui capability `manageDataMaster`. Panel konfigurasi tidak ditampilkan lagi di Data Master.
 - **Endpoint:**
   - `PATCH /data-master/integrations/{provider}` untuk menyimpan konfigurasi.
   - `POST /data-master/integrations/{provider}/test` untuk menguji tanpa mengimpor data.

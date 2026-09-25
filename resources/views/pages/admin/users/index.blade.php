@@ -9,6 +9,7 @@
     <div
         class="sibk-dashboard"
         data-page-id="ADMIN-USERS"
+        data-current-user-id="{{ auth()->id() }}"
         data-account-old-action="{{ old('_account_action', '') }}"
         data-account-old-target="{{ old('_account_target', '') }}"
         data-account-old-roles="{{ implode(',', is_array($oldAccountRoles) ? $oldAccountRoles : []) }}"
@@ -98,27 +99,57 @@
                             <tr>
                                 <td>
                                     <strong>{{ $managedUser->name }}</strong>
-                                    <span class="d-block small text-muted">
-                                        {{ $managedUser->is_active ? 'Aktif' : 'Nonaktif' }}
-                                    </span>
+                                    @if(auth()->user()->is($managedUser))
+                                        <span class="d-block small text-muted">Aktif · Akun Anda</span>
+                                    @else
+                                        <form
+                                            action="{{ route('admin.users.update', $managedUser) }}"
+                                            method="POST"
+                                        >
+                                            @csrf
+                                            @method('PATCH')
+                                            <input
+                                                type="hidden"
+                                                name="is_active"
+                                                value="{{ $managedUser->is_active ? '0' : '1' }}"
+                                            >
+                                            <button
+                                                class="sibk-account-switch"
+                                                type="submit"
+                                                role="switch"
+                                                aria-checked="{{ $managedUser->is_active ? 'true' : 'false' }}"
+                                                aria-label="Status akun {{ $managedUser->name }}"
+                                                title="{{ $managedUser->is_active ? 'Nonaktifkan' : 'Aktifkan' }} akun"
+                                            >
+                                                <span class="sibk-account-switch__track" aria-hidden="true">
+                                                    <span class="sibk-account-switch__thumb"></span>
+                                                </span>
+                                                {{ $managedUser->is_active ? 'Aktif' : 'Nonaktif' }}
+                                            </button>
+                                        </form>
+                                    @endif
                                 </td>
                                 <td>
                                     <div class="d-flex flex-wrap align-items-center gap-1">
                                         @forelse($managedUser->roles as $role)
-                                            <button
-                                                class="sibk-account-role-chip"
-                                                type="button"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#accountRolesModal"
-                                                data-account-role-edit
-                                                data-account-id="{{ $managedUser->id }}"
-                                                data-account-name="{{ $managedUser->name }}"
-                                                data-account-url="{{ route('admin.users.update', $managedUser) }}"
-                                                data-account-roles="{{ $managedUser->roles->pluck('slug')->implode(',') }}"
-                                                aria-label="Ubah peran {{ $managedUser->name }}"
-                                            >
-                                                {{ $role->name }}
-                                            </button>
+                                            @if(auth()->user()->is($managedUser))
+                                                <span class="sibk-account-role-chip">{{ $role->name }}</span>
+                                            @else
+                                                <button
+                                                    class="sibk-account-role-chip"
+                                                    type="button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#accountRolesModal"
+                                                    data-account-role-edit
+                                                    data-account-id="{{ $managedUser->id }}"
+                                                    data-account-name="{{ $managedUser->name }}"
+                                                    data-account-url="{{ route('admin.users.update', $managedUser) }}"
+                                                    data-account-roles="{{ $managedUser->roles->pluck('slug')->implode(',') }}"
+                                                    aria-label="Ubah peran {{ $managedUser->name }}"
+                                                >
+                                                    {{ $role->name }}
+                                                </button>
+                                            @endif
                                         @empty
                                             <span class="small text-muted">Belum ada peran</span>
                                         @endforelse
@@ -133,6 +164,8 @@
                                             data-account-url="{{ route('admin.users.update', $managedUser) }}"
                                             data-account-roles="{{ $managedUser->roles->pluck('slug')->implode(',') }}"
                                             aria-label="Tambah peran untuk {{ $managedUser->name }}"
+                                            @disabled(auth()->user()->is($managedUser)
+                                                || $managedUser->hasAnyRole(['admin_it', 'waka_kesiswaan']))
                                         >
                                             <svg aria-hidden="true" viewBox="0 0 24 24">
                                                 <path d="M12 5v14M5 12h14" />
@@ -180,7 +213,6 @@
                                             data-account-id="{{ $managedUser->id }}"
                                             data-account-name="{{ $managedUser->name }}"
                                             data-account-email="{{ $managedUser->email }}"
-                                            data-account-active="{{ $managedUser->is_active ? '1' : '0' }}"
                                             data-account-url="{{ route('admin.users.update', $managedUser) }}"
                                             data-account-roles="{{ $managedUser->roles->pluck('slug')->implode(',') }}"
                                             aria-label="Edit akun {{ $managedUser->name }}"
@@ -294,6 +326,12 @@
                             </div>
                             <div data-account-role-picker>
                                 <span class="form-label d-block">Peran</span>
+                                <p class="small text-muted d-none" data-account-role-locked>
+                                    Peran akun Anda tidak dapat diubah.
+                                </p>
+                                <p class="small text-danger d-none" data-account-role-invalid>
+                                    Kombinasi peran saat ini tidak sesuai. Lepas peran yang tidak diperlukan.
+                                </p>
                                 <div class="sibk-class-picker-selected mb-3" aria-live="polite">
                                     <span class="small fw-semibold d-block mb-2">Peran dipilih</span>
                                     <div class="d-flex flex-wrap gap-1" data-account-selected></div>
@@ -313,19 +351,6 @@
                                     @endforeach
                                 </div>
                                 <div data-account-inputs></div>
-                            </div>
-                            <div class="form-check form-switch mt-3">
-                                <input type="hidden" name="is_active" value="0">
-                                <input
-                                    class="form-check-input"
-                                    id="accountActive"
-                                    name="is_active"
-                                    type="checkbox"
-                                    role="switch"
-                                    value="1"
-                                    @checked(old('is_active', '1') == '1')
-                                >
-                                <label class="form-check-label" for="accountActive">Akun aktif</label>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -356,6 +381,9 @@
                         <input type="hidden" name="_account_action" value="roles">
                         <input type="hidden" name="_account_target" value="">
                         <div class="modal-body" data-account-role-picker>
+                            <p class="small text-danger d-none" data-account-role-invalid>
+                                Kombinasi peran saat ini tidak sesuai. Lepas peran yang tidak diperlukan.
+                            </p>
                             <div class="sibk-class-picker-selected mb-3" aria-live="polite">
                                 <span class="small fw-semibold d-block mb-2">Peran dipilih</span>
                                 <div class="d-flex flex-wrap gap-1" data-account-selected></div>

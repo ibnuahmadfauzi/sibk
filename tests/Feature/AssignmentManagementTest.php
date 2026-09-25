@@ -97,6 +97,59 @@ class AssignmentManagementTest extends TestCase
             ->assertOk()->assertSee($teacher->name);
     }
 
+    public function test_preparation_year_requires_an_explicit_coordinator_choice(): void
+    {
+        [$activeYear] = $this->masterContext();
+        $preparationYear = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'is_active' => false,
+        ]);
+        Classroom::query()->create([
+            'academic_year_id' => $preparationYear->id,
+            'name' => 'XI RPL 1',
+        ]);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+
+        $this->actingAs($coordinator)->get(route('assignments.classes.index'))
+            ->assertOk()
+            ->assertViewHas('selectedYear', fn ($year) => $year->is($activeYear))
+            ->assertSee('Daftar Penugasan '.$activeYear->name)
+            ->assertSee('Tahun penugasan')
+            ->assertDontSee('id="academic_year_id"', false);
+
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', [
+            'academic_year_id' => $preparationYear->id,
+        ]))->assertOk()
+            ->assertViewHas('selectedYear', fn ($year) => $year->is($preparationYear))
+            ->assertSee('Daftar Penugasan '.$preparationYear->name)
+            ->assertSee('type="hidden" name="academic_year_id" value="'.$preparationYear->id.'"', false)
+            ->assertSee('XI RPL 1');
+
+        $this->actingAs($teacher)->get(route('assignments.classes.index', [
+            'academic_year_id' => $preparationYear->id,
+        ]))->assertOk()
+            ->assertViewHas('selectedYear', fn ($year) => $year->is($activeYear))
+            ->assertDontSee('Tahun penugasan');
+    }
+
+    public function test_no_active_year_does_not_select_preparation_automatically(): void
+    {
+        [$preparationYear] = $this->masterContext(false);
+        $coordinator = $this->userWithRole('koordinator_bk');
+
+        $this->actingAs($coordinator)->get(route('assignments.classes.index'))
+            ->assertOk()
+            ->assertViewHas('selectedYear', null)
+            ->assertSee('Belum ada tahun ajaran aktif untuk menampilkan penugasan.');
+
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', [
+            'academic_year_id' => $preparationYear->id,
+        ]))->assertOk()
+            ->assertViewHas('selectedYear', fn ($year) => $year->is($preparationYear))
+            ->assertSee('Daftar Penugasan '.$preparationYear->name);
+    }
+
     public function test_batch_assignment_saves_selected_classes_together(): void
     {
         [$year, $firstClass] = $this->masterContext();

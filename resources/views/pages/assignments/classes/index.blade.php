@@ -4,10 +4,10 @@
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-401">
-        <div class="sibk-page-header mb-4">
+        <div class="sibk-page-header">
             <div class="sibk-page-header__copy">
                 <h1>Penugasan Kelas</h1>
-                <p>Guru BK dan kelas yang diampu pada tahun ajaran yang dipilih.</p>
+                <br>
             </div>
         </div>
 
@@ -39,11 +39,47 @@
             <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
         @endif
 
-        @if($activationReadiness !== null)
+        @if($canChooseYear)
             <section class="sibk-panel sibk-activation-panel mb-4" aria-labelledby="activation-readiness-title">
                 <div class="sibk-panel__body p-4">
                     <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
-                    @if($activationReadiness['state'] === 'active')
+                    @if($activeYear !== null || $preparationYears->isNotEmpty())
+                        <form
+                            class="d-flex flex-wrap align-items-end gap-2 mb-3"
+                            action="{{ route('assignments.classes.index') }}"
+                            method="GET"
+                        >
+                            <div>
+                                <label class="form-label text-white" for="preparation_year_id">Tahun penugasan</label>
+                                <select
+                                    class="form-select"
+                                    id="preparation_year_id"
+                                    name="academic_year_id"
+                                >
+                                    @if($activeYear !== null)
+                                        <option value="{{ $activeYear->id }}" @selected($selectedYear?->is($activeYear))>
+                                            {{ $activeYear->name }} (Aktif)
+                                        </option>
+                                    @endif
+                                    @foreach($preparationYears as $year)
+                                        <option value="{{ $year->id }}" @selected($selectedYear?->is($year))>
+                                            {{ $year->name }} (Persiapan)
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" type="submit">Tampilkan</button>
+                        </form>
+                    @endif
+                    @if($selectedYear === null)
+                        <p class="mb-0">
+                            @if($preparationYears->isNotEmpty())
+                                Belum ada tahun ajaran aktif. Pilih tahun Persiapan untuk menyiapkan penugasan.
+                            @else
+                                Belum ada tahun ajaran aktif atau Persiapan. Admin IT perlu membuat tahun ajaran.
+                            @endif
+                        </p>
+                    @elseif($activationReadiness['state'] === 'active')
                         <p class="mb-0">Tahun ajaran ini sudah aktif.</p>
                         @if($previousYear !== null)
                             <button
@@ -124,6 +160,7 @@
             </div>
         @endif
 
+        @if($selectedYear !== null)
         <div class="sibk-panel mb-4">
             <div class="sibk-panel__body p-4">
                 <form
@@ -131,20 +168,10 @@
                     action="{{ route('assignments.classes.index') }}"
                     method="GET"
                 >
-                    <div class="col-12 col-md-3">
-                        <label class="form-label" for="academic_year_id">Tahun ajaran</label>
-                        <select class="form-select" id="academic_year_id" name="academic_year_id">
-                            @foreach($academicYears as $year)
-                                <option
-                                    value="{{ $year->id }}"
-                                    @selected($selectedYear?->id === $year->id)
-                                >
-                                    {{ $year->name }}{{ $year->is_active ? ' (Aktif)' : ($year->activated_at ? ' (Arsip)' : ' (Persiapan)') }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
+                    @if($canChooseYear && ! $selectedYear->is_active)
+                        <input type="hidden" name="academic_year_id" value="{{ $selectedYear->id }}">
+                    @endif
+                    <div class="col-12 col-md-5">
                         <label class="form-label" for="search_kelas">Cari kelas</label>
                         <input
                             class="form-control"
@@ -162,7 +189,7 @@
                             @endforeach
                         </datalist>
                     </div>
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-md-4">
                         <label class="form-label" for="status">Status guru</label>
                         <select class="form-select" id="status" name="status">
                             <option value="all">Semua</option>
@@ -170,13 +197,19 @@
                             <option value="unassigned" @selected(request('status') === 'unassigned')>Belum ditugaskan</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-2">
+                    <div class="col-12 col-md-3">
                         <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
                     </div>
                 </form>
             </div>
         </div>
 
+        <h2 class="fs-5 mb-3">
+            Daftar Penugasan {{ $selectedYear->name }}
+            <span class="small fw-normal">
+                ({{ $selectedYear->is_active ? 'Aktif' : 'Persiapan' }})
+            </span>
+        </h2>
         <div class="table-responsive">
             <table class="table sibk-table mb-0">
                 <thead>
@@ -379,6 +412,13 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        @endif
+        @else
+            <div class="sibk-panel">
+                <div class="sibk-panel__body p-4">
+                    Belum ada tahun ajaran aktif untuk menampilkan penugasan.
                 </div>
             </div>
         @endif

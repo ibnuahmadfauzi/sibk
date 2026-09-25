@@ -180,6 +180,41 @@ class AccountManagementTest extends TestCase
         $this->assertTrue($target->fresh()->hasRole('koordinator_bk'));
     }
 
+    public function test_exclusive_roles_cannot_be_combined_and_own_roles_cannot_be_changed(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $target = $this->userWithRoles(['guru_bk']);
+
+        foreach (['admin_it', 'waka_kesiswaan'] as $exclusive) {
+            $this->actingAs($admin)->postJson(route('admin.users.store'), [
+                'name' => 'Peran Ganda',
+                'email' => $exclusive.'@example.test',
+                'roles' => [$exclusive, 'guru_bk'],
+            ])->assertUnprocessable()->assertJsonValidationErrors('roles');
+
+            $this->actingAs($admin)->patchJson(route('admin.users.update', $target), [
+                'roles' => [$exclusive, 'koordinator_bk'],
+            ])->assertUnprocessable()->assertJsonValidationErrors('roles');
+        }
+
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $admin), [
+            'roles' => ['guru_bk'],
+        ])->assertUnprocessable()->assertJsonValidationErrors('roles');
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $admin), [
+            'is_active' => false,
+        ])->assertUnprocessable()->assertJsonValidationErrors('is_active');
+        $this->actingAs($admin)->patch(route('admin.users.update', $admin), [
+            'is_active' => '0',
+        ])->assertSessionHasErrors('is_active');
+        $this->assertTrue($admin->fresh()->hasRole('admin_it'));
+        $this->assertTrue($target->fresh()->hasRole('guru_bk'));
+
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $admin), [
+            'name' => 'Admin Baru',
+        ])->assertOk();
+        $this->assertSame('Admin Baru', $admin->fresh()->name);
+    }
+
     public function test_admin_it_receives_web_interface_and_browser_forms_redirect_back(): void
     {
         $admin = $this->userWithRoles(['admin_it']);
@@ -193,6 +228,8 @@ class AccountManagementTest extends TestCase
             ->assertSee('Tambah akun')
             ->assertSee('Reset sandi')
             ->assertSee('accountRolesModal')
+            ->assertSee('role="switch"', false)
+            ->assertSee('Status akun '.$target->name)
             ->assertHeader('content-type', 'text/html; charset=UTF-8');
 
         $this->actingAs($admin)->patch(route('admin.users.update', $target), [

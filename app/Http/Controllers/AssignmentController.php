@@ -26,12 +26,18 @@ class AssignmentController extends Controller
         abort_unless($user->can('viewAny', TeacherAssignment::class), 403);
 
         $academicYears = AcademicYear::query()->orderByDesc('id')->get();
-        $selectedYear = $academicYears->firstWhere('id', $request->integer('academic_year_id'))
-            ?? $academicYears->firstWhere('is_active', true)
-            ?? $academicYears->first();
-        $canManage = $user->can('create', TeacherAssignment::class)
-            && $selectedYear !== null
-            && ($selectedYear->is_active || $selectedYear->activated_at === null);
+        $activeYear = $academicYears->firstWhere('is_active', true);
+        $preparationYears = $academicYears->filter(
+            fn (AcademicYear $year) => ! $year->is_active && $year->activated_at === null
+        );
+        $canChooseYear = $user->can('create', TeacherAssignment::class);
+        $requestedYear = $academicYears->firstWhere('id', $request->integer('academic_year_id'));
+        $selectedYear = $activeYear;
+        if ($canChooseYear && $requestedYear !== null
+            && ($requestedYear->is_active || $requestedYear->activated_at === null)) {
+            $selectedYear = $requestedYear;
+        }
+        $canManage = $canChooseYear && $selectedYear !== null;
         $classes = Classroom::query()
             ->active()
             ->with('teacherAssignments')
@@ -78,7 +84,9 @@ class AssignmentController extends Controller
             'rows' => $rows,
             'classSuggestions' => $classSuggestions,
             'unassignedClasses' => $unassignedClasses,
-            'academicYears' => $academicYears,
+            'activeYear' => $activeYear,
+            'preparationYears' => $preparationYears,
+            'canChooseYear' => $canChooseYear,
             'selectedYear' => $selectedYear,
             'canManage' => $canManage,
             'activationReadiness' => $canManage ? $preparationService->activationReadiness($selectedYear) : null,

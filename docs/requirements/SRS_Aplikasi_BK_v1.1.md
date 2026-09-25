@@ -50,7 +50,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | Kesalahan master    | Koordinasi di luar aplikasi.                           | Koordinasi di luar aplikasi.                          | Tidak.                                              | Proses melalui sumber resmi.   |
 | Laporan/cetak       | Sesuai scope sendiri.                                 | Gabungan seluruh Guru BK aktif.                       | Ringkasan penanganan seluruh kasus dari field aman. | Tidak otomatis.                |
 | Akun/infrastruktur  | Lihat akun sendiri.                                   | Pantau operasional.                                   | Tidak mengelola.                                    | Kelola akun dan infrastruktur. |
-| Konfigurasi koneksi | Tidak.                                                | Tidak.                                                | Tidak.                                              | Kelola melalui PG-501 tanpa membuka isi layanan BK. |
+| Konfigurasi koneksi | Tidak.                                                | Tidak.                                                | Tidak.                                              | Kelola melalui menu Kelola API tanpa membuka isi layanan BK. |
 | Prestasi            | Baca murid dalam scope profesional.                    | Tidak mengelola; akses baca tidak otomatis di luar scope yang sah. | Buat, baca, ubah, dan impor Excel.                  | Tidak mengelola isi prestasi. |
 
 - Koordinator BK menjadi penanggung jawab operasional Aplikasi BK.
@@ -63,7 +63,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 
 - Rolling atau perubahan pembagian dicatat Koordinator berdasarkan keputusan resmi; sistem tidak melakukan perubahan otomatis.
 
-- Admin IT aktif mengelola koneksi Dapodik/e-Tatib melalui PG-501. Credential tidak pernah ditampilkan kembali dan setiap aksi konfigurasi memerlukan verifikasi kata sandi saat ini.
+- Admin IT aktif mengelola koneksi Dapodik/e-Tatib melalui menu Kelola API. Credential tidak pernah ditampilkan kembali dan setiap aksi konfigurasi memerlukan verifikasi kata sandi saat ini.
 
 # Kebutuhan fungsional
 
@@ -81,6 +81,8 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | GOV-01  | Sistem harus mendukung Koordinator BK sebagai penanggung jawab operasional.                               | P0       | Menu operasional penugasan dan rekap tersedia bagi Koordinator tanpa membuka hak edit catatan profesional atau pengelolaan prestasi. |
 
 ## Akun, data master, identitas sementara, dan penugasan
+
+Peran Admin IT dan Waka Kesiswaan bersifat tunggal. Guru BK dan Koordinator BK dapat berdiri sendiri atau digabung. Admin IT tidak dapat mengubah peran akunnya sendiri; perubahan peran akun lain divalidasi di server pada pembuatan dan pembaruan.
 
 | **ID** | **Kebutuhan**                                                                                                         | **Pri.** | **Kriteria penerimaan**                                                                        |
 |--------|-----------------------------------------------------------------------------------------------------------------------|----------|------------------------------------------------------------------------------------------------|

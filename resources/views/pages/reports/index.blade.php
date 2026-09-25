@@ -17,7 +17,7 @@
     <header class="sibk-page-header mb-4">
         <div class="sibk-page-header__copy">
             <h1>Laporan Layanan BK</h1>
-            <p>Daftar catatan permasalahan dan konsultasi sesuai kewenangan Anda.</p>
+            <br>
         </div>
         @if($report['can_view_document'])
             <div class="sibk-page-header__actions no-print">

@@ -94,6 +94,7 @@ class DummyCaseAndServiceSeeder extends Seeder
             'XII-TKJ-1' => $teachers['budi'],
         ];
         $teachersByClassroom = [];
+        $coordinator = User::query()->where('email', 'koordinator.bk@ruangbk.test')->firstOrFail();
         $classrooms = Classroom::query()->where('academic_year_id', $academicYear->id)->get();
         foreach ($classrooms as $classroom) {
             $teacher = $owners[$classroom->name] ?? null;
@@ -101,15 +102,14 @@ class DummyCaseAndServiceSeeder extends Seeder
                 continue;
             }
 
-            $assignment = TeacherAssignment::query()->firstOrNew([
+            $assignment = TeacherAssignment::query()->firstOrCreate([
                 'classroom_id' => $classroom->id,
                 'academic_year_id' => $academicYear->id,
-            ]);
-            $assignment->forceFill([
+            ], [
                 'user_id' => $teacher->id,
-                'assigned_by' => $teachers['awal']->id,
-            ])->save();
-            $teachersByClassroom[$classroom->id] = $teacher;
+                'assigned_by' => $coordinator->id,
+            ]);
+            $teachersByClassroom[$classroom->id] = $assignment->teacher;
         }
 
         return $teachersByClassroom;
@@ -442,7 +442,7 @@ class DummyCaseAndServiceSeeder extends Seeder
             $regNumber = sprintf('K-%s-%04d', substr($def['service_date'], 0, 4), $def['index']);
 
             /** @var BkCase $case */
-            $case = BkCase::query()->updateOrCreate(
+            $case = BkCase::query()->firstOrCreate(
                 ['registration_number' => $regNumber],
                 [
                     'student_id' => $student->id,
@@ -464,8 +464,8 @@ class DummyCaseAndServiceSeeder extends Seeder
                 ],
             );
 
-            // Pertahankan satu owner pada kasus demo saat seeder dijalankan ulang.
-            CaseAssignment::query()->updateOrCreate(
+            // Owner kasus demo tetap sejak kasus pertama kali dibuat.
+            CaseAssignment::query()->firstOrCreate(
                 [
                     'case_id' => $case->id,
                 ],
@@ -765,9 +765,12 @@ class DummyCaseAndServiceSeeder extends Seeder
             $consultation = Consultation::query()
                 ->where('student_id', $student->id)
                 ->whereDate('session_date', $def['session_date'])
-                ->first() ?? new Consultation;
+                ->first();
+            if ($consultation !== null) {
+                continue;
+            }
 
-            $consultation->forceFill([
+            (new Consultation)->forceFill([
                 'student_id' => $student->id,
                 'temporary_student_id' => null,
                 'academic_year_id' => $academicYear->id,

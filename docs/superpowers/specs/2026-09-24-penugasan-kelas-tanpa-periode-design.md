@@ -1,7 +1,7 @@
 # Penugasan Kelas Tanpa Periode
 
-**Tanggal:** 24 September 2026  
-**Status:** Menunggu review pengguna  
+**Tanggal:** 24 September 2026
+**Status:** Menunggu review pengguna
 **Scope:** Penugasan Guru BK, state membership murid, owner kasus, dan snapshot kasus/konsultasi yang diperlukan oleh scope akses serta laporan.
 
 ## Keputusan dan sumber kebenaran

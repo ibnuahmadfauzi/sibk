@@ -206,8 +206,6 @@
             </div>
         </div>
 
-        @include('pages.data-master._integration-setting')
-
         <!-- Sync Log Table Card -->
         <div class="sibk-panel border-0 mb-4">
             <div class="table-responsive">

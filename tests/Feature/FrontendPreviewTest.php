@@ -158,8 +158,10 @@ class FrontendPreviewTest extends TestCase
     {
         $this->authenticateAs('admin_it');
 
-        $this->get(route('data-master.index'))
+        $this->get(route('admin.api.index'))
             ->assertOk()
+            ->assertSee('Kelola API')
+            ->assertDontSee('Penugasan Kelas')
             ->assertSee('Pengaturan Koneksi Sumber Data')
             ->assertSee('class="col-12 col-xl-6"', false)
             ->assertSee('data-integration-panel="dapodik"', false)
@@ -173,7 +175,6 @@ class FrontendPreviewTest extends TestCase
                 'Keadaan data terakhir',
             ])
             ->assertSee('Adapter belum tersedia')
-            ->assertSee('Sinkronisasi baru dapat digunakan setelah adapter resmi tersedia dan koneksi berhasil diaktifkan.')
             ->assertDontSee('modal')
             ->assertDontSee('data-bs-toggle="collapse"', false);
     }
