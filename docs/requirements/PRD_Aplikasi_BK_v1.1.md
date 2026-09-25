@@ -28,7 +28,7 @@ Koordinator BK menjadi penanggung jawab operasional penggunaan aplikasi. Guru BK
 
 Aplikasi BK tidak menggantikan e-Tatib atau Dapodik. Pelanggaran dan poin resmi tetap dikelola di e-Tatib, sedangkan identitas murid, kelas, dan tahun ajaran tetap mengacu pada Dapodik/data resmi sekolah. Ruang BK hanya menarik data sumber tanpa write-back. Data e-Tatib yang diperlukan disimpan sebagai mirror read-only agar Guru BK dapat melihat konteks pelanggaran dan penanda data baru tanpa menjadikan poin sebagai pemicu otomatis kasus.
 
-Admin IT menyiapkan URL, identitas sumber yang diharapkan, dan credential Dapodik/e-Tatib melalui PG-501 dengan alur Simpan → Uji → Aktifkan. Browser hanya mengirim konfigurasi dan trigger; backend melakukan komunikasi server-to-server, pemetaan, validasi, dan penyimpanan. Fondasi konfigurasi dapat tersedia sebelum kontrak provider disahkan, tetapi driver production dan sinkronisasi nyata tetap diblokir sampai admission kontrak selesai.
+Admin IT mengambil daftar murid melalui URL API Siswa sekali pakai pada tab Dapodik dan menyinkronkan data pelanggaran melalui tab e-Tatib pada Data Master. Browser hanya mengirim URL dan trigger; backend melakukan pengambilan, validasi, serta penyimpanan. Koneksi Dapodik langsung menunggu adapter dan kontrak provider yang disahkan.
 
 Ketika data tahun ajaran baru belum tersedia di SIBK, Admin IT dapat menyiapkan tahun ajaran tanpa mengisi tanggal periode dan mengimpor daftar minimum seluruh murid aktif dari URL API Siswa sekali pakai atau CSV fallback berdasarkan dasar resmi sekolah. Koordinator BK melengkapi penugasan dan dapat mengaktifkan tahun ajaran setelah roster dan penugasan lengkap; setelah aktif, Guru BK dapat langsung melayani murid dalam scope penugasannya. Murid tahun sebelumnya yang belum memiliki penempatan pada tahun target ditampilkan sebagai **Perlu Konfirmasi** tanpa menebak status akademik dan tanpa menghalangi aktivasi murid lain. Data persiapan sementara selalu diberi penanda sampai diverifikasi dari sumber resmi.
 
@@ -121,7 +121,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Proses keluar murid            | Satu proses per murid, pencatatan awal oleh Guru BK, keputusan akhir Koordinator, dan akses baca Waka. | Inti        |
 | Kasus dan tindak lanjut        | Pembuatan kasus dengan Latar Belakang Masalah dan Penanganan, nol atau lebih tindak lanjut unik per jenis, serta penyelesaian dengan Hasil / Ringkasan. | Inti        |
 | Konteks e-Tatib                | Sinkronisasi mirror read-only, Cek Poin Pelanggaran berdasarkan NISN, penautan pelanggaran, dan penanda data baru tanpa write-back atau pemicu kasus otomatis. | Inti        |
-| Konfigurasi integrasi          | PG-501 untuk URL, identitas sumber, credential, status Simpan/Uji/Aktifkan, dan ketersediaan adapter.  | Inti        |
+| Integrasi sumber data          | PG-501 memuat impor URL API Siswa/CSV dan sinkronisasi e-Tatib; koneksi Dapodik langsung hanya tersedia setelah adapter dan kontrak disahkan. | Inti        |
 | Konsultasi minimum             | Record mandiri terhubung murid berisi tanggal, jenis layanan, Latar Belakang Masalah, dan Penanganan; Hasil / Ringkasan dapat ditambahkan kemudian. | Inti        |
 | Data dan histori murid         | Profil, e-Tatib, kasus, layanan, konsultasi, tindak lanjut, serta histori lintas kelas dan Guru BK.    | Inti        |
 | Dashboard dan laporan          | Pemantauan, rekap per scope Guru BK, rekap gabungan Koordinator, dan laporan Waka yang diizinkan.      | Inti        |
@@ -132,7 +132,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 
 Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanjut, laporan, dan pengendalian akses inti stabil.
 
-Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia. Uji, aktivasi, dan sinkronisasi production tetap gagal tertutup sampai dokumentasi serta adapter resmi lolos admission kontrak.
+Konfigurasi koneksi langsung dapat disimpan sebelum kontrak provider tersedia, tetapi uji, aktivasi, dan sinkronisasinya tetap gagal tertutup sampai dokumentasi serta adapter resmi lolos admission kontrak. Impor URL API Siswa sekali pakai mengikuti validasi tersendiri.
 
 ## P1 – Setelah MVP tervalidasi
 
@@ -171,7 +171,7 @@ Konfigurasi koneksi pada PG-501 dapat disimpan sebelum kontrak provider tersedia
 | Pergantian tahun ajaran | Sistem tidak menaikkan kelas atau menetapkan status akademik otomatis. Impor daftar target membuat histori penempatan baru berdasarkan NISN exact; murid lama tanpa penempatan target hanya ditandai **Perlu Konfirmasi** secara read-only dan tidak memblokir aktivasi keseluruhan. |
 | Pratinjau pencocokan | Tarik Dapodik hanya menyiapkan hasil cocok, baru, berubah, dan konflik. Cache operasional berubah setelah konfirmasi Admin IT; pencocokan otomatis murid hanya melalui NISN exact. |
 | Konflik identitas sementara | NISN exact tetap menjadi kunci. Nama berbeda tidak membuat murid baru; konflik kandidat NISN/identitas sumber ditahan untuk Admin IT dan tidak mengubah relasi sampai data resmi memastikan target. |
-| Alur koneksi        | Admin IT mengelola konfigurasi sekolah melalui PG-501 dengan urutan Simpan, Uji, lalu Aktifkan. Konfigurasi Dapodik/e-Tatib tidak dibuat ulang setiap tahun ajaran; hanya diubah bila endpoint, credential, kontrak, atau kebijakan koneksi berubah. |
+| Alur koneksi        | Tab Dapodik menerima URL API Siswa sekali pakai atau CSV; tab e-Tatib menangani pratinjau dan sinkronisasi. Panel koneksi Dapodik langsung baru ditampilkan setelah adapter tersedia. |
 | Pemrosesan integrasi | Browser hanya mengirim konfigurasi dan trigger; fetch, mapping, validasi snapshot, dan penyimpanan dilakukan backend secara server-to-server. |
 | Credential sumber  | API e-Tatib publik tidak memakai token. Admin IT memakai URL sekali pakai yang tidak disimpan; koneksi hanya membaca data dan tidak melakukan write-back. |
 | Identitas sumber   | Probe dan setiap sinkronisasi harus membuktikan identitas sekolah/sumber yang dilaporkan cocok dengan nilai yang diharapkan.                   |

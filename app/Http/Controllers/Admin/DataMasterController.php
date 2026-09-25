@@ -16,7 +16,6 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
-use App\Services\IntegrationSettingService;
 use App\Services\SimpleEtatibApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +28,6 @@ class DataMasterController extends Controller
     public function index(
         Request $request,
         AcademicYearRolloverQuery $rolloverQuery,
-        IntegrationSettingService $integrationSettings,
     ): Response {
         $this->authorizeAdmin($request);
 
@@ -45,7 +43,6 @@ class DataMasterController extends Controller
                 'etatib' => 'etatib',
                 default => 'tahun-ajaran',
             },
-            'integrationStates' => ['dapodik' => $integrationSettings->allStates()['dapodik']],
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
             'lastApiSiswaRun' => ExternalSyncRun::query()
                 ->where('source', 'api_siswa')

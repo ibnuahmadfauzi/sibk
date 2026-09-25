@@ -50,7 +50,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | Kesalahan master    | Koordinasi di luar aplikasi.                           | Koordinasi di luar aplikasi.                          | Tidak.                                              | Proses melalui sumber resmi.   |
 | Laporan/cetak       | Sesuai scope sendiri.                                 | Gabungan seluruh Guru BK aktif.                       | Ringkasan penanganan seluruh kasus dari field aman. | Tidak otomatis.                |
 | Akun/infrastruktur  | Lihat akun sendiri.                                   | Pantau operasional.                                   | Tidak mengelola.                                    | Kelola akun dan infrastruktur. |
-| Konfigurasi koneksi | Tidak.                                                | Tidak.                                                | Tidak.                                              | Kelola melalui tab Dapodik dan e-Tatib di Data Master tanpa membuka isi layanan BK. |
+| Konfigurasi koneksi | Tidak.                                                | Tidak.                                                | Tidak.                                              | Gunakan tab Dapodik untuk impor URL API Siswa dan tab e-Tatib untuk sinkronisasi, tanpa membuka isi layanan BK. |
 | Prestasi            | Baca murid dalam scope profesional.                    | Tidak mengelola; akses baca tidak otomatis di luar scope yang sah. | Buat, baca, ubah, dan impor Excel.                  | Tidak mengelola isi prestasi. |
 
 - Koordinator BK menjadi penanggung jawab operasional Aplikasi BK.
@@ -63,7 +63,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 
 - Rolling atau perubahan pembagian dicatat Koordinator berdasarkan keputusan resmi; sistem tidak melakukan perubahan otomatis.
 
-- Admin IT aktif mengelola koneksi Dapodik dan e-Tatib melalui tab terkait di Data Master. Credential tidak pernah ditampilkan kembali dan setiap aksi konfigurasi memerlukan verifikasi kata sandi saat ini.
+- Admin IT aktif mengimpor URL API Siswa melalui tab Dapodik dan mengelola sinkronisasi e-Tatib melalui tab e-Tatib di Data Master. Panel koneksi Dapodik langsung tidak ditampilkan selama adapter belum tersedia; credential tersimpan tidak pernah ditampilkan kembali.
 
 # Kebutuhan fungsional
 

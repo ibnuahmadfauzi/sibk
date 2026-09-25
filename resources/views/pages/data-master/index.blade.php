@@ -45,24 +45,18 @@
             </section>
         @elseif($activeTab === 'dapodik')
             <section id="data-master-dapodik" aria-label="Dapodik">
-        @if($latestDapodikPreview)
-            <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
-                <div>
-                    <strong>Pratinjau Dapodik menunggu penerapan.</strong>
-                    Periksa hasil pencocokan sebelum data resmi diterapkan.
-                </div>
-                <a class="btn btn-sm btn-outline-primary" href="{{ route('data-master.dapodik.previews.show', $latestDapodikPreview) }}">
-                    Buka Pratinjau
-                </a>
-            </div>
-        @endif
-                @include('pages.data-master._integration-setting')
-                <form action="{{ route('data-master.dapodik.sync') }}" method="POST" class="mb-4">
-                    @csrf
-                    <button class="btn btn-primary" type="submit" @disabled($integrationStates['dapodik']->state !== 'active')>
-                        Perbarui Data Dapodik
-                    </button>
-                </form>
+                @include('pages.data-master._api-siswa-import')
+                @if($latestDapodikPreview)
+                    <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
+                        <div>
+                            <strong>Pratinjau Dapodik menunggu penerapan.</strong>
+                            Periksa hasil pencocokan sebelum data resmi diterapkan.
+                        </div>
+                        <a class="btn btn-sm btn-outline-primary" href="{{ route('data-master.dapodik.previews.show', $latestDapodikPreview) }}">
+                            Buka Pratinjau
+                        </a>
+                    </div>
+                @endif
             </section>
         @else
             <section id="data-master-etatib" aria-label="e-Tatib">

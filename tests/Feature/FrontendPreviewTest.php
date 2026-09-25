@@ -144,6 +144,10 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Aktivasi dilakukan oleh Koordinator BK dari Penugasan Kelas')
             ->assertSee('href="'.route('data-master.students.index').'"', false)
             ->assertSee('name="name"', false)
+            ->assertDontSee('enctype="multipart/form-data"', false);
+
+        $this->get(route('data-master.index', ['tab' => 'dapodik']))
+            ->assertOk()
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSee('nisn,nama,rombel,tahun_pelajaran');
 
@@ -169,17 +173,19 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Tahun Ajaran &amp; Murid', false)
             ->assertSee('Dapodik')
             ->assertSee('e-Tatib')
-            ->assertSee('Impor dari API Siswa')
+            ->assertSee('Persiapan Tahun Ajaran')
+            ->assertDontSee('name="api_url"', false)
+            ->assertDontSee('data-etatib-api-form', false);
+
+        $this->get(route('data-master.index', ['tab' => 'dapodik']))
+            ->assertOk()
+            ->assertSee('Impor Data Murid dari API Siswa')
             ->assertSee('name="api_url"', false)
             ->assertSee('Cek &amp; Pratinjau', false)
             ->assertSee('data-api-siswa-preview-modal', false)
             ->assertSee('Pratinjau API Siswa')
             ->assertSee('Impor CSV')
-            ->assertDontSee('data-etatib-api-form', false);
-
-        $this->get(route('data-master.index', ['tab' => 'dapodik']))
-            ->assertOk()
-            ->assertSee('data-integration-panel="dapodik"', false)
+            ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertDontSee('data-etatib-api-form', false);
 
         $this->get(route('data-master.index', ['tab' => 'etatib']))

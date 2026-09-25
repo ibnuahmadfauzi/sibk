@@ -241,7 +241,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Scope layanan:** Guru BK belum memperoleh akses dari penugasan tahun yang belum aktif. Setelah aktivasi Koordinator, scope mengikuti tahun aktif dan penugasan tanpa membedakan `school_provisional` atau `dapodik`; data sementara tetap diberi penanda.
 
 ### Konfigurasi Koneksi Dapodik dan e-Tatib
-- **Halaman:** `GET /data-master?tab=dapodik` untuk konfigurasi Dapodik dan `GET /data-master?tab=etatib` untuk e-Tatib, khusus Admin IT aktif melalui capability `manageDataMaster`. URL lama `GET /admin/api` mengalihkan ke tab Dapodik.
+- **Halaman:** `GET /data-master?tab=dapodik` menampilkan impor URL API Siswa dan CSV; `GET /data-master?tab=etatib` menampilkan sinkronisasi e-Tatib. Keduanya khusus Admin IT aktif melalui capability `manageDataMaster`. Panel koneksi Dapodik langsung tidak ditampilkan selama adapternya `unavailable`; URL lama `GET /admin/api` mengalihkan ke tab Dapodik.
 - **Endpoint:**
   - `POST /data-master/etatib/preview` untuk pratinjau URL API e-Tatib sekali pakai.
   - `POST /data-master/etatib/sync` untuk mengambil ulang URL dan menyinkronkan snapshot e-Tatib.

@@ -22,7 +22,7 @@ const files = {
     achievementShow: 'resources/views/pages/achievements/show.blade.php',
     assignmentIndex: 'resources/views/pages/assignments/classes/index.blade.php',
     dataMaster: 'resources/views/pages/data-master/index.blade.php',
-    dataMasterPreparation: 'resources/views/pages/data-master/_academic-year-preparation.blade.php',
+    dataMasterApiSiswa: 'resources/views/pages/data-master/_api-siswa-import.blade.php',
     etatibConflicts: 'resources/views/pages/data-master/etatib-conflicts.blade.php',
     account: 'resources/views/pages/account/index.blade.php',
     accessDenied: 'resources/views/pages/system/access-denied.blade.php',
@@ -123,8 +123,8 @@ assert(contents.appDashboard.includes("from './service-records'"), 'app-dashboar
 assert(contents.appDashboard.includes("from './form-draft'"), 'app-dashboard belum mengimpor form-draft.js.');
 assert(contents.appDashboard.includes("from './api-siswa-preview'"), 'app-dashboard belum mengimpor pratinjau API Siswa.');
 assert(contents.appDashboard.includes("from './etatib-identity-mapping'"), 'app-dashboard belum mengimpor pencocokan identitas e-Tatib.');
-assert(contents.dataMasterPreparation.includes('data-api-siswa-preview-modal'), 'Modal pratinjau API Siswa belum tersedia.');
-assert(contents.dataMasterPreparation.includes("route('data-master.roster-imports.preview')"), 'Form API Siswa belum terhubung ke endpoint pratinjau.');
+assert(contents.dataMasterApiSiswa.includes('data-api-siswa-preview-modal'), 'Modal pratinjau API Siswa belum tersedia.');
+assert(contents.dataMasterApiSiswa.includes("route('data-master.roster-imports.preview')"), 'Form API Siswa belum terhubung ke endpoint pratinjau.');
 assert(contents.apiSiswaPreview.includes('textContent'), 'Pratinjau API Siswa belum merender teks secara aman.');
 assert(!contents.apiSiswaPreview.includes('innerHTML'), 'Pratinjau API Siswa tidak boleh memasukkan payload sebagai HTML.');
 assert(contents.etatibConflicts.includes('Belum Cocok'), 'Tab konflik e-Tatib belum tersedia.');

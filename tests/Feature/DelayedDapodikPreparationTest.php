@@ -1389,7 +1389,7 @@ class DelayedDapodikPreparationTest extends TestCase
             'master_source' => AcademicYear::MASTER_SOURCE_LEGACY_UNCLASSIFIED,
         ]);
 
-        $this->actingAs($admin)->get(route('data-master.index'))
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
             ->assertSee(route('data-master.roster-imports.store'), false)
             ->assertSee('API Siswa')
@@ -1400,9 +1400,14 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertSee('name="file"', false)
             ->assertDontSee('data-etatib-api-form', false)
             ->assertDontSee('data-integration-panel="dapodik"', false)
-            ->assertSee($provisional->name)
+            ->assertDontSee($provisional->name)
             ->assertDontSee(route('data-master.academic-years.roster-imports.store', $dapodik), false)
             ->assertDontSee(route('data-master.academic-years.roster-imports.store', $legacy), false);
+
+        $this->actingAs($admin)->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee($provisional->name)
+            ->assertDontSee('name="api_url"', false);
 
         $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
