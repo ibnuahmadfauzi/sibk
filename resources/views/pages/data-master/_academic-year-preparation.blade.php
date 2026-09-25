@@ -9,9 +9,10 @@
 <section class="sibk-panel mb-4" aria-labelledby="academic-year-preparation-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
+            <span class="sibk-badge sibk-badge--info mb-2">Langkah 1 dari 3</span>
             <h2 class="sibk-panel__title mb-1" id="academic-year-preparation-title">Persiapan Tahun Ajaran</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                Buat tahun ajaran, lalu impor daftar murid melalui tab Dapodik.
+                Buat tahun ajaran sementara sebagai tujuan impor daftar murid.
             </p>
         </div>
     </div>

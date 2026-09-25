@@ -39,9 +39,8 @@ class DataMasterController extends Controller
 
         return response()->view('pages.data-master.index', [
             'activeTab' => match ($request->query('tab')) {
-                'dapodik' => 'dapodik',
                 'etatib' => 'etatib',
-                default => 'tahun-ajaran',
+                default => 'dapodik',
             },
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
             'lastApiSiswaRun' => ExternalSyncRun::query()

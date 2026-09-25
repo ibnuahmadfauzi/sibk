@@ -57,7 +57,8 @@ class AcademicYearPreparationController extends Controller
 
         return redirect()
             ->route('data-master.index')
-            ->with('success', 'Tahun ajaran sementara berhasil dibuat. Selanjutnya impor daftar murid.');
+            ->with('success', 'Tahun ajaran sementara berhasil dibuat. Selanjutnya impor daftar murid.')
+            ->with('year_prepared', true);
     }
 
     public function storeRoster(
@@ -79,7 +80,8 @@ class AcademicYearPreparationController extends Controller
                     $result->studentsCreated,
                     $result->studentsMatched,
                 ),
-            );
+            )
+            ->with('roster_imported', true);
     }
 
     public function storeGlobalRoster(
@@ -121,6 +123,7 @@ class AcademicYearPreparationController extends Controller
 
         return redirect()
             ->route('data-master.index')
-            ->with('success', $message);
+            ->with('success', $message)
+            ->with('roster_imported', true);
     }
 }

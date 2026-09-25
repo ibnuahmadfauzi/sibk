@@ -1391,6 +1391,7 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
+            ->assertSee($provisional->name)
             ->assertSee(route('data-master.roster-imports.store'), false)
             ->assertSee('API Siswa')
             ->assertSee('name="api_url"', false)
@@ -1400,14 +1401,13 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertSee('name="file"', false)
             ->assertDontSee('data-etatib-api-form', false)
             ->assertDontSee('data-integration-panel="dapodik"', false)
-            ->assertDontSee($provisional->name)
             ->assertDontSee(route('data-master.academic-years.roster-imports.store', $dapodik), false)
             ->assertDontSee(route('data-master.academic-years.roster-imports.store', $legacy), false);
 
         $this->actingAs($admin)->get(route('data-master.index'))
             ->assertOk()
             ->assertSee($provisional->name)
-            ->assertDontSee('name="api_url"', false);
+            ->assertSee('name="api_url"', false);
 
         $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
@@ -1673,7 +1673,8 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('data-master.academic-years.store'), $payload)
-            ->assertRedirect(route('data-master.index'));
+            ->assertRedirect(route('data-master.index'))
+            ->assertSessionHas('year_prepared', true);
         $year = AcademicYear::query()->where('name', '2027/2028')->firstOrFail();
 
         $this->app['auth']->guard()->logout();
@@ -1694,7 +1695,8 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertSessionHasErrors('file');
         $this->actingAs($admin)
             ->post(route('data-master.roster-imports.store'), ['file' => $this->validCsv()])
-            ->assertRedirect(route('data-master.index'));
+            ->assertRedirect(route('data-master.index'))
+            ->assertSessionHas('roster_imported', true);
 
         $this->app['auth']->guard()->logout();
         $this->post(route('data-master.roster-imports.preview'), [

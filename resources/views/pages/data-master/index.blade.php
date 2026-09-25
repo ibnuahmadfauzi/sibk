@@ -5,7 +5,14 @@
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-501">
         @if(session('success'))
-            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+            <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
+                <span>{{ session('success') }}</span>
+                @if(session('year_prepared'))
+                    <a class="btn btn-sm btn-outline-primary" href="#api-siswa-import-title">Lanjut impor murid</a>
+                @elseif(session('roster_imported'))
+                    <a class="btn btn-sm btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
+                @endif
+            </div>
         @endif
         @if(session('warning'))
             <div class="alert alert-warning" role="alert">{{ session('warning') }}</div>
@@ -20,13 +27,12 @@
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
                 <h1 class="mb-1">Data Master dan Sinkronisasi</h1>
-                <p class="mb-0">Pantau pembaruan data murid, kelas, dan data e-Tatib.</p>
+                <p class="mb-0">Siapkan tahun ajaran, impor murid, dan pantau sinkronisasi data.</p>
             </div>
         </div>
 
         <nav class="nav nav-tabs mb-4" aria-label="Bagian Data Master">
             @foreach([
-                'tahun-ajaran' => 'Tahun Ajaran & Murid',
                 'dapodik' => 'Dapodik',
                 'etatib' => 'e-Tatib',
             ] as $tab => $label)
@@ -38,14 +44,12 @@
             @endforeach
         </nav>
 
-        @if($activeTab === 'tahun-ajaran')
-            <section id="data-master-tahun-ajaran" aria-label="Tahun Ajaran dan Murid">
-                @include('pages.data-master._academic-year-preparation')
-                @include('pages.data-master._academic-year-rollover-exceptions')
-            </section>
-        @elseif($activeTab === 'dapodik')
+        @if($activeTab === 'dapodik')
             <section id="data-master-dapodik" aria-label="Dapodik">
+                <p class="text-muted mb-4">Alur Admin IT: siapkan tahun ajaran, impor daftar murid, lalu periksa hasilnya. Koordinator BK melanjutkan penugasan kelas dan aktivasi.</p>
+                @include('pages.data-master._academic-year-preparation')
                 @include('pages.data-master._api-siswa-import')
+                @include('pages.data-master._academic-year-rollover-exceptions')
                 @if($latestDapodikPreview)
                     <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
                         <div>

@@ -1,16 +1,17 @@
 <section class="sibk-panel mb-4" aria-labelledby="api-siswa-import-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
+            <span class="sibk-badge sibk-badge--info mb-2">Langkah 2 dari 3</span>
             <h2 class="sibk-panel__title mb-1" id="api-siswa-import-title">Impor Data Murid dari API Siswa</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                Buat tahun ajaran di tab Tahun Ajaran &amp; Murid sebelum mengimpor daftar murid.
+                Periksa pratinjau sebelum menyimpan. Anda bisa membatalkan tanpa mengimpor data.
             </p>
         </div>
     </div>
     <div class="sibk-panel__body p-4">
         @if($preparationYears->where('is_active', false)->isEmpty())
             <div class="alert alert-info">
-                Belum ada tahun ajaran persiapan. <a href="{{ route('data-master.index', ['tab' => 'tahun-ajaran']) }}">Buat tahun ajaran</a> terlebih dahulu.
+                Belum ada tahun ajaran persiapan. <a href="#academic-year-preparation-title">Buat tahun ajaran</a> terlebih dahulu.
             </div>
         @endif
         <h3 class="fs-6 fw-bold mb-3">Impor dari API Siswa</h3>
@@ -48,6 +49,7 @@
                     type="submit"
                     class="btn btn-primary w-100"
                     data-api-siswa-preview-button
+                    @disabled($preparationYears->where('is_active', false)->isEmpty())
                 >
                     Cek &amp; Pratinjau
                 </button>
@@ -88,6 +90,14 @@
                 </button>
             </div>
         </form>
+
+        <div class="border-top pt-3 mt-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <span class="sibk-badge sibk-badge--info mb-2">Langkah 3 dari 3</span>
+                <p class="mb-0 small text-muted">Setelah impor, periksa daftar murid dan rombel yang masuk.</p>
+            </div>
+            <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
+        </div>
     </div>
 </section>
 

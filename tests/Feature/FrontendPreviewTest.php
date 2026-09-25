@@ -144,7 +144,15 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Aktivasi dilakukan oleh Koordinator BK dari Penugasan Kelas')
             ->assertSee('href="'.route('data-master.students.index').'"', false)
             ->assertSee('name="name"', false)
-            ->assertDontSee('enctype="multipart/form-data"', false);
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSeeInOrder([
+                'Langkah 1 dari 3',
+                'Persiapan Tahun Ajaran',
+                'Langkah 2 dari 3',
+                'Impor Data Murid dari API Siswa',
+                'Langkah 3 dari 3',
+                'Periksa Data Murid',
+            ]);
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
@@ -163,22 +171,24 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('disabled>Aktifkan Tahun Ajaran', false);
     }
 
-    public function test_data_master_shows_api_workflows_in_three_tabs(): void
+    public function test_data_master_shows_preparation_and_import_in_one_dapodik_tab(): void
     {
         $this->authenticateAs('admin_it');
 
         $this->get(route('data-master.index'))
             ->assertOk()
             ->assertSee('aria-label="Bagian Data Master"', false)
-            ->assertSee('Tahun Ajaran &amp; Murid', false)
-            ->assertSee('Dapodik')
+            ->assertSee('href="'.route('data-master.index', ['tab' => 'dapodik']).'"', false)
+            ->assertSee('href="'.route('data-master.index', ['tab' => 'etatib']).'"', false)
+            ->assertDontSee('Tahun Ajaran &amp; Murid', false)
             ->assertSee('e-Tatib')
             ->assertSee('Persiapan Tahun Ajaran')
-            ->assertDontSee('name="api_url"', false)
+            ->assertSee('name="api_url"', false)
             ->assertDontSee('data-etatib-api-form', false);
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
+            ->assertSee('Persiapan Tahun Ajaran')
             ->assertSee('Impor Data Murid dari API Siswa')
             ->assertSee('name="api_url"', false)
             ->assertSee('Cek &amp; Pratinjau', false)
@@ -203,6 +213,15 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Kode sumber')
             ->assertDontSee('SIBK_ETATIB')
             ->assertDontSee('data-bs-toggle="collapse"', false);
+
+        $this->withSession(['success' => 'Tahun ajaran dibuat.', 'year_prepared' => true])
+            ->get(route('data-master.index'))
+            ->assertSee('href="#api-siswa-import-title"', false)
+            ->assertSee('Lanjut impor murid');
+
+        $this->withSession(['success' => 'Murid diimpor.', 'year_prepared' => false, 'roster_imported' => true])
+            ->get(route('data-master.index'))
+            ->assertSee('Periksa Data Murid');
     }
 
     public function test_small_danger_badge_uses_a_contrast_safe_token(): void
