@@ -21,12 +21,12 @@
         <form
             action="{{ route('data-master.roster-imports.store') }}"
             method="POST"
-            class="row g-2 align-items-end mb-4"
+            class="d-grid gap-3"
             data-api-siswa-import-form
             data-preview-url="{{ route('data-master.roster-imports.preview') }}"
         >
             @csrf
-            <div class="col-12 col-md">
+            <div>
                 <label class="form-label small" for="api_siswa_url">Link API Siswa</label>
                 <input
                     class="form-control"
@@ -42,10 +42,10 @@
                     Link dipakai satu kali untuk mengambil data dan tidak disimpan oleh SIBK.
                 </div>
             </div>
-            <div class="col-12 col-md-auto">
+            <div class="d-flex justify-content-end">
                 <button
                     type="submit"
-                    class="btn btn-primary w-100"
+                    class="btn btn-primary"
                     data-api-siswa-preview-button
                     @disabled($preparationYears->where('is_active', false)->isEmpty())
                 >
@@ -54,39 +54,6 @@
             </div>
         </form>
 
-        <details class="border-top pt-3" @if($errors->has('file')) open @endif>
-            <summary class="fw-semibold text-primary py-3">Impor CSV (cadangan)</summary>
-            <p class="text-muted small mt-3">
-                CSV UTF-8 maksimal 2 MiB dan 5.000 baris, dengan header
-                <code>nisn,nama,rombel,tahun_pelajaran</code>.
-                Semua tahun pelajaran harus sudah dibuat dan belum aktif.
-            </p>
-            <form
-                action="{{ route('data-master.roster-imports.store') }}"
-                method="POST"
-                enctype="multipart/form-data"
-                class="row g-2 align-items-end mb-3"
-            >
-                @csrf
-                <div class="col-12 col-md">
-                    <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
-                    <input class="form-control" type="file" accept=".csv,text/csv" id="roster_file" name="file" required>
-                </div>
-                <div class="col-12 col-md-auto">
-                    <button type="submit" class="btn btn-outline-primary w-100" @disabled($preparationYears->where('is_active', false)->isEmpty())>Impor CSV</button>
-                </div>
-            </form>
-        </details>
-
-        @if($studentCount > 0)
-        <div class="border-top pt-3 mt-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-                <h3 class="fs-6 fw-bold mb-1">Periksa hasil impor</h3>
-                <p class="mb-0 small text-muted">Pastikan murid dan rombel yang masuk sudah sesuai.</p>
-            </div>
-            <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
-        </div>
-        @endif
     </div>
 </div>
 

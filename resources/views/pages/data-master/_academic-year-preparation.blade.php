@@ -89,7 +89,7 @@
                 @endif
                 <form action="{{ route('data-master.academic-years.store') }}" method="POST" class="row g-3" data-autosave-form="academic-year-preparation">
                     @csrf
-                    <div class="col-12 col-md-6">
+                    <div class="col-12">
                         <label for="provisional_year_name" class="form-label sibk-form-label">Tahun Ajaran</label>
                         <input
                             class="form-control sibk-form-control @error('name') is-invalid @enderror"

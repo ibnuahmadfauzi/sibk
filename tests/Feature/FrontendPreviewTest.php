@@ -195,12 +195,15 @@ class FrontendPreviewTest extends TestCase
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
             ->assertSee('Persiapan Tahun Ajaran')
+            ->assertSee('col-12 col-xl-5 sibk-data-master-year', false)
+            ->assertSee('col-12 col-xl-7 sibk-data-master-api', false)
             ->assertSee('Impor Data Murid dari API Siswa')
             ->assertSee('name="api_url"', false)
             ->assertSee('Cek &amp; Pratinjau', false)
             ->assertSee('data-api-siswa-preview-modal', false)
             ->assertSee('Pratinjau API Siswa')
             ->assertSee('Impor CSV')
+            ->assertSeeInOrder(['Persiapan Tahun Ajaran', 'Impor Data Murid dari API Siswa', 'Impor CSV (cadangan)'])
             ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertDontSee('data-etatib-api-form', false);
 

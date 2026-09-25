@@ -72,9 +72,44 @@
         @if($activeTab === 'dapodik')
             <section id="data-master-dapodik" aria-label="Dapodik">
                 <div class="sibk-panel mb-4">
-                    @include('pages.data-master._academic-year-preparation')
+                    <div class="row g-0">
+                        <div class="col-12 col-xl-5 sibk-data-master-year">
+                            @include('pages.data-master._academic-year-preparation')
+                        </div>
+                        <div class="col-12 col-xl-7 sibk-data-master-api">
+                            @include('pages.data-master._api-siswa-import')
+                        </div>
+                    </div>
                     <div class="border-top mx-4"></div>
-                    @include('pages.data-master._api-siswa-import')
+                    <div class="sibk-panel__body p-4">
+                        <details @if($errors->has('file')) open @endif>
+                            <summary class="fw-semibold text-primary py-2">Impor CSV (cadangan)</summary>
+                            <p class="text-muted small mt-3">
+                                Gunakan jika API Siswa belum tersedia. CSV UTF-8 maksimal 2 MiB dan 5.000 baris,
+                                dengan header <code>nisn,nama,rombel,tahun_pelajaran</code>.
+                                Semua tahun pelajaran harus sudah dibuat dan belum aktif.
+                            </p>
+                            <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end mb-3">
+                                @csrf
+                                <div class="col-12 col-md">
+                                    <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
+                                    <input class="form-control" type="file" accept=".csv,text/csv" id="roster_file" name="file" required>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <button type="submit" class="btn btn-outline-primary w-100" @disabled($preparationYears->where('is_active', false)->isEmpty())>Impor CSV</button>
+                                </div>
+                            </form>
+                        </details>
+                        @if($studentCount > 0)
+                            <div class="border-top pt-3 mt-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div>
+                                    <h3 class="fs-6 fw-bold mb-1">Periksa hasil impor</h3>
+                                    <p class="mb-0 small text-muted">Pastikan murid dan rombel yang masuk sudah sesuai.</p>
+                                </div>
+                                <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
+                            </div>
+                        @endif
+                    </div>
                 </div>
                 @include('pages.data-master._academic-year-rollover-exceptions')
             </section>

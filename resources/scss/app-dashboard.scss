@@ -2748,6 +2748,17 @@ small, .small {
   z-index: 1090;
 }
 
+.sibk-data-master-api {
+  border-top: 1px solid var(--sibk-color-border-light);
+}
+
+@media (min-width: 1200px) {
+  .sibk-data-master-api {
+    border-left: 1px solid var(--sibk-color-border-light);
+    border-top: 0;
+  }
+}
+
 .sibk-activation-panel {
   background: linear-gradient(160deg, #3f75bd 0%, #2f67aa 55%, #234f88 100%);
   border-color: rgba(255, 255, 255, 0.25);
