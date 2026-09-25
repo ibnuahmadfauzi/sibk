@@ -17,7 +17,7 @@ const renderPreview = (container, preview) => {
         'div',
         `alert ${preview.can_import ? 'alert-success' : 'alert-warning'}`,
         preview.can_import
-            ? 'Data valid dan siap diimpor.'
+            ? 'Tahun ajaran siap. Konflik rombel diperiksa saat impor.'
             : 'Data terbaca, tetapi ada tahun pelajaran yang belum siap diimpor.',
     );
     container.append(status);

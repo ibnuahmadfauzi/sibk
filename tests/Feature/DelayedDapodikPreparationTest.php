@@ -1252,7 +1252,7 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
-    public function roster_import_is_atomic_rejects_class_conflicts_and_requires_an_inactive_year_and_active_admin(): void
+    public function roster_import_is_atomic_rejects_class_conflicts_and_requires_an_active_admin(): void
     {
         $service = app(AcademicYearPreparationService::class);
         $admin = $this->userWithRole('admin_it');
@@ -1295,10 +1295,82 @@ class DelayedDapodikPreparationTest extends TestCase
         }
 
         $year->update(['is_active' => true]);
-        $this->assertValidationError(
-            fn () => $service->importRoster($year->refresh(), $this->validCsv(), $admin),
-            'academic_year',
-        );
+        $result = $service->importRoster($year->refresh(), $this->validCsv(), $admin);
+        $this->assertSame(1, $result->membershipsUnchanged);
+        $this->assertDatabaseCount('student_class_memberships', 1);
+    }
+
+    #[Test]
+    public function active_year_import_adds_late_students_and_reuses_repeaters_without_changing_history(): void
+    {
+        $service = app(AcademicYearPreparationService::class);
+        $admin = $this->userWithRole('admin_it');
+        $previousYear = AcademicYear::query()->create([
+            'name' => '2026/2027',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => false,
+            'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $currentYear = $this->prepareYear($service, $admin);
+        $currentYear->update(['is_active' => true, 'activated_at' => now()]);
+        $repeater = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Tinggal Kelas']);
+        $previousClass = Classroom::query()->create([
+            'academic_year_id' => $previousYear->id,
+            'name' => 'XI PH 1',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        $previousMembership = StudentClassMembership::query()->create([
+            'student_id' => $repeater->id,
+            'classroom_id' => $previousClass->id,
+            'academic_year_id' => $previousYear->id,
+        ]);
+        $payload = [
+            'success' => true,
+            'data' => [
+                ['nama' => 'Nama dari API', 'nisn' => '0012345678', 'rombel' => 'XI PH 2', 'tahun_pelajaran' => '2027/2028'],
+                ['nama' => 'Murid Baru', 'nisn' => '0098765432', 'rombel' => 'X PH 1', 'tahun_pelajaran' => '2027/2028'],
+            ],
+        ];
+
+        Http::fake(['https://8.8.8.8/late-roster' => Http::response($payload)]);
+        $preview = app(ApiSiswaRosterImportService::class)->preview('https://8.8.8.8/late-roster', $admin);
+        $this->assertTrue($preview['can_import']);
+        $this->assertSame('Siap menambah murid pada tahun aktif.', $preview['academic_years'][0]['status']);
+        $html = $this->actingAs($admin)->get(route('data-master.index'))->assertOk()->getContent();
+        $this->assertStringContainsString('data-api-siswa-preview-button', $html);
+        $this->assertDoesNotMatchRegularExpression('/data-api-siswa-preview-button\s+disabled/', $html);
+
+        $result = $service->importRosterPayload($payload, $admin);
+
+        $this->assertSame(1, $result->studentsCreated);
+        $this->assertSame(2, $result->membershipsCreated);
+        $this->assertSame('Murid Tinggal Kelas', $repeater->refresh()->name);
+        $this->assertSame($previousClass->id, $previousMembership->refresh()->classroom_id);
+        $this->assertDatabaseHas('student_class_memberships', [
+            'student_id' => $repeater->id,
+            'academic_year_id' => $currentYear->id,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('students', ['nisn' => '0098765432', 'name' => 'Murid Baru']);
+
+        $repeated = $service->importRosterPayload($payload, $admin);
+        $this->assertSame(2, $repeated->membershipsUnchanged);
+        $this->assertDatabaseCount('students', 2);
+        $this->assertDatabaseCount('student_class_memberships', 3);
+
+        $payload['data'][0]['rombel'] = 'XI PH 3';
+        $payload['data'][1] = ['nama' => 'Murid Lain', 'nisn' => '0000000003', 'rombel' => 'X PH 1', 'tahun_pelajaran' => '2027/2028'];
+        $this->assertValidationError(fn () => $service->importRosterPayload($payload, $admin), 'rombel');
+        $this->assertDatabaseMissing('students', ['nisn' => '0000000003']);
+        $this->assertDatabaseCount('student_class_memberships', 3);
+
+        $currentYear->update(['is_active' => false]);
+        $this->resetHttpFactory();
+        Http::fake(['https://8.8.8.8/late-roster' => Http::response($payload)]);
+        $this->assertFalse(app(ApiSiswaRosterImportService::class)
+            ->preview('https://8.8.8.8/late-roster', $admin)['can_import']);
+        $this->assertValidationError(fn () => $service->importRosterPayload($payload, $admin), 'academic_year');
     }
 
     #[Test]
@@ -1689,7 +1761,7 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertRedirect(route('data-master.index'));
         $this->actingAs($admin)
             ->get(route('data-master.index'))
-            ->assertSee('Periksa Data Murid');
+            ->assertSee('Lihat Data Murid');
 
         $this->app['auth']->guard()->logout();
         $this->post(route('data-master.roster-imports.preview'), [
@@ -1788,7 +1860,9 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($admin)
             ->from(route('data-master.index'))
             ->post(route('data-master.academic-years.roster-imports.store', $year), ['file' => $this->validCsv()])
-            ->assertSessionHasErrors('academic_year');
+            ->assertRedirect(route('data-master.index'))
+            ->assertSessionHas('success');
+        $this->assertDatabaseCount('student_class_memberships', 1);
     }
 
     #[Test]

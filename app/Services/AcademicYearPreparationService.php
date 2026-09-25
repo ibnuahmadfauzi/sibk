@@ -764,12 +764,12 @@ class AcademicYearPreparationService
     {
         if ($academicYear->master_source !== AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL) {
             throw ValidationException::withMessages([
-                'academic_year' => 'Daftar persiapan hanya dapat diimpor ke tahun ajaran sementara.',
+                'academic_year' => 'Daftar murid hanya dapat diimpor ke tahun ajaran sementara.',
             ]);
         }
-        if ($academicYear->is_active) {
+        if (! $academicYear->is_active && $academicYear->activated_at !== null) {
             throw ValidationException::withMessages([
-                'academic_year' => 'Daftar persiapan hanya dapat diimpor sebelum tahun ajaran diaktifkan.',
+                'academic_year' => 'Tahun ajaran yang sudah selesai tidak dapat menerima impor murid.',
             ]);
         }
         if ($academicYear->starts_on === null || $academicYear->ends_on === null) {
@@ -802,7 +802,10 @@ class AcademicYearPreparationService
             || ($memberships->count() === 1
                 && mb_strtolower($memberships->first()->classroom->name) !== mb_strtolower($classroomName))) {
             throw ValidationException::withMessages([
-                'rombel' => 'Rombel murid pada tahun ajaran ini berbeda dengan daftar persiapan.',
+                'rombel' => sprintf(
+                    'Rombel murid dengan NISN %s berbeda pada tahun ini. Periksa daftar sekolah.',
+                    substr($student->nisn, 0, 4).'****'.substr($student->nisn, -2),
+                ),
             ]);
         }
     }

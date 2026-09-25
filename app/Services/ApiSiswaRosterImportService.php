@@ -263,15 +263,15 @@ final class ApiSiswaRosterImportService
             return [false, 'Tahun pelajaran bukan tahun sementara.'];
         }
 
-        if ($year->is_active) {
-            return [false, 'Tahun pelajaran sudah aktif.'];
+        if (! $year->is_active && $year->activated_at !== null) {
+            return [false, 'Tahun pelajaran sudah selesai.'];
         }
 
         if ($year->starts_on === null || $year->ends_on === null) {
             return [false, 'Periode tahun pelajaran belum lengkap.'];
         }
 
-        return [true, 'Siap diimpor.'];
+        return [true, $year->is_active ? 'Siap menambah murid pada tahun aktif.' : 'Siap diimpor.'];
     }
 
     private function maskNisn(string $nisn): string

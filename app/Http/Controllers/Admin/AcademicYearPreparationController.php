@@ -103,6 +103,9 @@ class AcademicYearPreparationController extends Controller
             $result->studentsCreated,
             $result->studentsMatched,
         );
+        if ($result->classroomsCreated > 0) {
+            $message .= ' Rombel baru perlu penugasan Guru BK.';
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
