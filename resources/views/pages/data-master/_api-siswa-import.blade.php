@@ -1,10 +1,9 @@
 <section class="sibk-panel mb-4" aria-labelledby="api-siswa-import-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
-            <span class="sibk-badge sibk-badge--info mb-2">Langkah 2 dari 3</span>
             <h2 class="sibk-panel__title mb-1" id="api-siswa-import-title">Impor Data Murid dari API Siswa</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                Periksa pratinjau sebelum menyimpan. Anda bisa membatalkan tanpa mengimpor data.
+                Masukkan link, periksa pratinjau, lalu pilih Impor Data jika sudah sesuai.
             </p>
         </div>
     </div>
@@ -14,7 +13,6 @@
                 Belum ada tahun ajaran persiapan. <a href="#academic-year-preparation-title">Buat tahun ajaran</a> terlebih dahulu.
             </div>
         @endif
-        <h3 class="fs-6 fw-bold mb-3">Impor dari API Siswa</h3>
         @error('academic_year')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
         @error('api_url')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
         @error('data')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
@@ -56,48 +54,39 @@
             </div>
         </form>
 
-        <h4 class="fs-6 fw-bold mb-1">Impor CSV</h4>
-        <p class="text-muted small">
-            Gunakan sebagai cadangan. CSV UTF-8 maksimal 2 MiB dan 5.000 baris, dengan header
-            <code>nisn,nama,rombel,tahun_pelajaran</code>.
-            Semua tahun pelajaran harus sudah dibuat dan belum aktif.
-        </p>
-        <form
-            action="{{ route('data-master.roster-imports.store') }}"
-            method="POST"
-            enctype="multipart/form-data"
-            class="row g-2 align-items-end mb-3"
-        >
-            @csrf
-            <div class="col-12 col-md">
-                <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
-                <input
-                    class="form-control"
-                    type="file"
-                    accept=".csv,text/csv"
-                    id="roster_file"
-                    name="file"
-                    required
-                >
-            </div>
-            <div class="col-12 col-md-auto">
-                <button
-                    type="submit"
-                    class="btn btn-outline-primary w-100"
-                    @disabled($preparationYears->where('is_active', false)->isEmpty())
-                >
-                    Impor CSV
-                </button>
-            </div>
-        </form>
+        <details class="border-top pt-3" @if($errors->has('file')) open @endif>
+            <summary class="fw-semibold text-primary py-3">Impor CSV (cadangan)</summary>
+            <p class="text-muted small mt-3">
+                CSV UTF-8 maksimal 2 MiB dan 5.000 baris, dengan header
+                <code>nisn,nama,rombel,tahun_pelajaran</code>.
+                Semua tahun pelajaran harus sudah dibuat dan belum aktif.
+            </p>
+            <form
+                action="{{ route('data-master.roster-imports.store') }}"
+                method="POST"
+                enctype="multipart/form-data"
+                class="row g-2 align-items-end mb-3"
+            >
+                @csrf
+                <div class="col-12 col-md">
+                    <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
+                    <input class="form-control" type="file" accept=".csv,text/csv" id="roster_file" name="file" required>
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button type="submit" class="btn btn-outline-primary w-100" @disabled($preparationYears->where('is_active', false)->isEmpty())>Impor CSV</button>
+                </div>
+            </form>
+        </details>
 
+        @if($studentCount > 0)
         <div class="border-top pt-3 mt-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
-                <span class="sibk-badge sibk-badge--info mb-2">Langkah 3 dari 3</span>
-                <p class="mb-0 small text-muted">Setelah impor, periksa daftar murid dan rombel yang masuk.</p>
+                <h3 class="fs-6 fw-bold mb-1">Periksa hasil impor</h3>
+                <p class="mb-0 small text-muted">Pastikan murid dan rombel yang masuk sudah sesuai.</p>
             </div>
             <a class="btn btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
         </div>
+        @endif
     </div>
 </section>
 

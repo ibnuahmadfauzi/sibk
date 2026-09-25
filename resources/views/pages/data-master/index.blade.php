@@ -9,8 +9,6 @@
                 <span>{{ session('success') }}</span>
                 @if(session('year_prepared'))
                     <a class="btn btn-sm btn-outline-primary" href="#api-siswa-import-title">Lanjut impor murid</a>
-                @elseif(session('roster_imported'))
-                    <a class="btn btn-sm btn-outline-primary" href="{{ route('data-master.students.index') }}">Periksa Data Murid</a>
                 @endif
             </div>
         @endif
@@ -46,7 +44,6 @@
 
         @if($activeTab === 'dapodik')
             <section id="data-master-dapodik" aria-label="Dapodik">
-                <p class="text-muted mb-4">Alur Admin IT: siapkan tahun ajaran, impor daftar murid, lalu periksa hasilnya. Koordinator BK melanjutkan penugasan kelas dan aktivasi.</p>
                 @include('pages.data-master._academic-year-preparation')
                 @include('pages.data-master._api-siswa-import')
                 @include('pages.data-master._academic-year-rollover-exceptions')
@@ -68,7 +65,23 @@
             </section>
         @endif
 
-        <!-- Sync 3 Cards -->
+        @if($activeTab === 'etatib')
+        <div class="sibk-panel mb-4 border-0">
+            <div class="sibk-panel__body p-4">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div>
+                        <h2 class="fs-6 fw-bold text-dark mb-1">Data yang Perlu Diperiksa</h2>
+                        <p class="text-muted small mb-0">{{ $unresolvedIssueCount }} data e-Tatib belum cocok.</p>
+                    </div>
+                    <a class="btn btn-outline-primary btn-sm" href="{{ route('data-master.etatib.conflicts.index') }}">Kelola Konflik e-Tatib</a>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <details class="sibk-panel mb-4">
+            <summary class="p-4 fw-semibold text-primary">Status dan riwayat sinkronisasi</summary>
+            <div class="px-4 pb-4">
         <div class="row g-4 mb-4">
             <!-- Card 1: API Siswa -->
             <div class="col-12 col-sm-6 col-xl-3">
@@ -180,34 +193,6 @@
             </div>
         </div>
 
-        <!-- Status Sinkronisasi Box -->
-        <div class="sibk-panel mb-4 border-0">
-            <div class="sibk-panel__body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="text-primary mt-1">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                        </svg>
-                    </div>
-                    <div class="d-flex flex-column gap-3">
-                        <div>
-                            <h2 class="fs-6 fw-bold text-dark mb-1">Data yang Perlu Diperiksa</h2>
-                            <p class="text-muted small mb-0">{{ $unresolvedIssueCount }} data belum cocok dan perlu ditinjau.</p>
-                        </div>
-                        <div>
-                            <a
-                                class="btn btn-outline-primary btn-sm"
-                                href="{{ route('data-master.etatib.conflicts.index') }}"
-                            >
-                                Kelola Konflik e-Tatib
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sync Log Table Card -->
         <div class="sibk-panel border-0 mb-4">
             <div class="table-responsive">
                 <table class="table sibk-table mb-0">
@@ -266,14 +251,7 @@
             </div>
         </div>
 
-        <!-- Action Button below Table -->
-        <div class="d-flex justify-content-end mb-4">
-            <a href="{{ route('data-master.students.index') }}" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
-                </svg>
-                Lihat Data Murid
-            </a>
-        </div>
+            </div>
+        </details>
     </div>
 @endsection

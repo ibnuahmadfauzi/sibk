@@ -140,19 +140,18 @@ class FrontendPreviewTest extends TestCase
         $this->get(route('data-master.index'))
             ->assertOk()
             ->assertSee('Persiapan Tahun Ajaran')
-            ->assertSee('Buat Tahun Ajaran Sementara')
-            ->assertSee('Aktivasi dilakukan oleh Koordinator BK dari Penugasan Kelas')
-            ->assertSee('href="'.route('data-master.students.index').'"', false)
+            ->assertSee('Buat tahun ajaran lain')
+            ->assertSee('Koordinator BK mengaktifkan tahun ajaran')
+            ->assertDontSee('Periksa hasil impor')
             ->assertSee('name="name"', false)
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSeeInOrder([
-                'Langkah 1 dari 3',
                 'Persiapan Tahun Ajaran',
-                'Langkah 2 dari 3',
+                'Buat tahun ajaran lain',
                 'Impor Data Murid dari API Siswa',
-                'Langkah 3 dari 3',
-                'Periksa Data Murid',
-            ]);
+            ])
+            ->assertSee('Impor CSV (cadangan)')
+            ->assertDontSee('Langkah 1 dari 3');
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
@@ -183,7 +182,10 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Tahun Ajaran &amp; Murid', false)
             ->assertSee('e-Tatib')
             ->assertSee('Persiapan Tahun Ajaran')
+            ->assertSee('Buat Tahun Ajaran Sementara')
             ->assertSee('name="api_url"', false)
+            ->assertDontSee('Periksa hasil impor')
+            ->assertDontSee('Kelola Konflik e-Tatib')
             ->assertDontSee('data-etatib-api-form', false);
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
@@ -201,6 +203,7 @@ class FrontendPreviewTest extends TestCase
         $this->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
             ->assertSee('Sinkronisasi API e-Tatib')
+            ->assertSee('Kelola Konflik e-Tatib')
             ->assertSee('data-etatib-api-form', false)
             ->assertSee('data-etatib-preview-modal', false)
             ->assertDontSee('data-integration-panel="dapodik"', false)
@@ -219,9 +222,6 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('href="#api-siswa-import-title"', false)
             ->assertSee('Lanjut impor murid');
 
-        $this->withSession(['success' => 'Murid diimpor.', 'year_prepared' => false, 'roster_imported' => true])
-            ->get(route('data-master.index'))
-            ->assertSee('Periksa Data Murid');
     }
 
     public function test_small_danger_badge_uses_a_contrast_safe_token(): void

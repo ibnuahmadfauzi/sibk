@@ -1695,8 +1695,10 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertSessionHasErrors('file');
         $this->actingAs($admin)
             ->post(route('data-master.roster-imports.store'), ['file' => $this->validCsv()])
-            ->assertRedirect(route('data-master.index'))
-            ->assertSessionHas('roster_imported', true);
+            ->assertRedirect(route('data-master.index'));
+        $this->actingAs($admin)
+            ->get(route('data-master.index'))
+            ->assertSee('Periksa Data Murid');
 
         $this->app['auth']->guard()->logout();
         $this->post(route('data-master.roster-imports.preview'), [

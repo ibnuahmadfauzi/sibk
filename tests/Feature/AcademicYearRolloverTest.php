@@ -629,6 +629,7 @@ class AcademicYearRolloverTest extends TestCase
             ->get(route('data-master.index'))
             ->assertOk()
             ->assertSee('Perlu Konfirmasi')
+            ->assertSee('Lihat daftar 1 murid')
             ->assertSee('0012345678')
             ->assertSee('Murid Perlu Konfirmasi')
             ->assertSee('XII RPL 1')

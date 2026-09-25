@@ -80,8 +80,7 @@ class AcademicYearPreparationController extends Controller
                     $result->studentsCreated,
                     $result->studentsMatched,
                 ),
-            )
-            ->with('roster_imported', true);
+            );
     }
 
     public function storeGlobalRoster(
@@ -123,7 +122,6 @@ class AcademicYearPreparationController extends Controller
 
         return redirect()
             ->route('data-master.index')
-            ->with('success', $message)
-            ->with('roster_imported', true);
+            ->with('success', $message);
     }
 }

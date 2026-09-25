@@ -12,10 +12,14 @@
             </span>
         </div>
         <div class="sibk-panel__body p-4">
-            <p class="text-muted small">
+            <p class="text-muted small mb-3">
                 Daftar ini hanya penanda pemeriksaan. Sistem tidak menentukan naik kelas, tinggal kelas, lulus, pindah, atau keluar.
             </p>
-            <div class="table-responsive">
+            @if($rolloverSummary->needsConfirmationCount() > 0)
+            <details>
+                <summary class="fw-semibold text-primary py-3">Lihat daftar {{ $rolloverSummary->needsConfirmationCount() }} murid</summary>
+            @endif
+            <div class="table-responsive mt-3">
                 <table class="table sibk-table mb-0">
                     <thead>
                         <tr>
@@ -41,6 +45,9 @@
                     </tbody>
                 </table>
             </div>
+            @if($rolloverSummary->needsConfirmationCount() > 0)
+            </details>
+            @endif
         </div>
     </section>
 @endif
