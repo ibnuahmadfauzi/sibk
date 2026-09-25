@@ -226,6 +226,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ### Persiapan Tahun Ajaran dan Impor API Siswa
 - **Endpoint:**
   - `POST /data-master/academic-years` untuk membuat tahun ajaran persiapan.
+  - `DELETE /data-master/academic-years/{academicYear}` untuk membatalkan tahun Persiapan yang belum pernah aktif; service memeriksa data terverifikasi dan riwayat layanan sebelum menghapus roster tahun tersebut secara atomik.
   - `POST /data-master/roster-imports/preview` untuk memeriksa koneksi dan menampilkan ringkasan API Siswa tanpa mutasi.
   - `POST /data-master/roster-imports` untuk mengimpor daftar minimum lintas tahun.
   - `POST /data-master/academic-years/{academicYear}/roster-imports` tetap tersedia untuk impor satu tahun dan menolak tahun pelajaran yang tidak sesuai target.

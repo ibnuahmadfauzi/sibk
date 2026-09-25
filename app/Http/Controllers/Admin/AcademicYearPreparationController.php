@@ -25,11 +25,11 @@ class AcademicYearPreparationController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $service->deleteEmptyPreparationYear($academicYear, $actor);
+        $service->cancelPreparationYear($academicYear, $actor);
 
         return redirect()
             ->route('data-master.index')
-            ->with('success', 'Draf tahun ajaran berhasil dihapus.');
+            ->with('success', 'Persiapan tahun ajaran berhasil dibatalkan.');
     }
 
     public function previewApiSiswa(

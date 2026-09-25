@@ -127,7 +127,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Dashboard dan laporan          | Pemantauan, rekap per scope Guru BK, rekap gabungan Koordinator, dan laporan Waka yang diizinkan.      | Inti        |
 | Akses Waka                     | Portal khusus berisi Dashboard, Murid dengan Kasus, dan Laporan; seluruh detail kasus dan konsultasi memakai proyeksi hanya-baca yang diaudit. | Inti        |
 | Audit                          | Jejak perubahan append-only tanpa halaman pembaca umum; satu simpan resmi mencatat hanya field yang berubah. | Inti        |
-| Retensi                        | Data tidak dihapus sebelum tersimpan minimum tiga tahun; penghapusan otomatis belum diaktifkan.        | Inti        |
+| Retensi                        | Data operasional tidak dihapus sebelum tersimpan minimum tiga tahun; draf Persiapan yang belum aktif dapat dibatalkan sesuai pemeriksaan relasi. Penghapusan otomatis belum diaktifkan. | Inti        |
 | Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel; Guru BK membaca sesuai scope sebagai konteks layanan. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
 
 Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanjut, laporan, dan pengendalian akses inti stabil.
@@ -167,6 +167,7 @@ Konfigurasi koneksi langsung dapat disimpan sebelum kontrak provider tersedia, t
 | e-Tatib             | Sumber resmi pelanggaran dan poin. Aplikasi BK membaca melalui API dan tidak melakukan write-back pada MVP.                                     |
 | Dapodik             | Sumber resmi identitas murid, kelas, keanggotaan kelas, dan tahun ajaran.                                                                       |
 | Data persiapan sementara | Admin IT menyiapkan tahun ajaran, rombel, dan daftar minimum `nisn,nama,rombel,tahun_pelajaran` dari URL API Siswa sekali pakai atau CSV fallback. Satu impor dapat memuat beberapa tahun sementara yang sudah dibuat. Data diberi penanda sampai diverifikasi dari sumber resmi. |
+| Pembatalan persiapan | Admin IT dapat membatalkan tahun Persiapan yang belum pernah aktif beserta roster dan penugasannya, selama belum ada layanan atau data terverifikasi. Data murid yang dipakai tahun lain tetap disimpan. |
 | Aktivasi operasional | Koordinator BK mengaktifkan tahun ajaran setelah data dan penugasan lengkap. Guru BK memperoleh scope murid berdasarkan tahun ajaran aktif dan penugasan, terlepas dari asal data. Provider tidak dapat mengubah status aktif. |
 | Pergantian tahun ajaran | Sistem tidak menaikkan kelas atau menetapkan status akademik otomatis. Impor daftar target membuat histori penempatan baru berdasarkan NISN exact; murid lama tanpa penempatan target hanya ditandai **Perlu Konfirmasi** secara read-only dan tidak memblokir aktivasi keseluruhan. |
 | Pratinjau pencocokan | Tarik Dapodik hanya menyiapkan hasil cocok, baru, berubah, dan konflik. Cache operasional berubah setelah konfirmasi Admin IT; pencocokan otomatis murid hanya melalui NISN exact. |

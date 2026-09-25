@@ -16,6 +16,7 @@
         </div>
     </div>
     <div class="sibk-panel__body p-4">
+        @error('academic_year')<div class="alert alert-danger" role="alert">{{ $message }}</div>@enderror
         <div class="row g-4">
             <div class="col-12 col-xl-5">
                 <h3 class="fs-6 fw-bold mb-3">Buat Tahun Ajaran Sementara</h3>
@@ -78,18 +79,14 @@
                                     <span class="text-muted d-block mt-1">Dasar: {{ $year->preparation_reference }}</span>
                                 @endif
                             </div>
-                            @if(! $year->is_active
-                                && $year->activated_at === null
-                                && ! $year->classrooms_exists
-                                && ! $year->student_class_memberships_exists
-                                && ! $year->teacher_assignments_exists)
+                            @if(! $year->is_active && $year->activated_at === null)
                                 <button
                                     class="btn btn-outline-danger btn-sm mb-3"
                                     type="button"
                                     data-bs-toggle="modal"
                                     data-bs-target="#delete-year-{{ $year->id }}"
                                 >
-                                    Hapus draf kosong
+                                    Batalkan persiapan
                                 </button>
                                 <div
                                     class="modal fade"
@@ -102,12 +99,12 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h2 class="modal-title fs-5" id="delete-year-title-{{ $year->id }}">
-                                                    Hapus draf {{ $year->name }}?
+                                                    Batalkan persiapan {{ $year->name }}?
                                                 </h2>
                                                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                                             </div>
                                             <div class="modal-body">
-                                                Tahun Persiapan kosong ini akan dihapus. Tindakan ini tidak dapat dibatalkan.
+                                                {{ $year->active_classroom_count }} rombel dan {{ $year->active_student_count }} penempatan murid pada tahun ini akan dihapus, termasuk penugasan Guru BK. Murid yang digunakan tahun lain tetap disimpan. Tindakan ini tidak dapat dibatalkan.
                                             </div>
                                             <div class="modal-footer">
                                                 <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Kembali</button>
@@ -117,7 +114,7 @@
                                                 >
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="btn btn-danger" type="submit">Hapus draf</button>
+                                                    <button class="btn btn-danger" type="submit">Ya, batalkan persiapan</button>
                                                 </form>
                                             </div>
                                         </div>

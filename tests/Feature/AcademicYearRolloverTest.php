@@ -79,6 +79,91 @@ class AcademicYearRolloverTest extends TestCase
     }
 
     #[Test]
+    public function admin_can_cancel_an_unactivated_year_and_its_provisional_roster_without_deleting_shared_students(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        $previous = $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
+        $previousClassroom = $this->classroom($previous, 'X RPL 1');
+        $shared = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Murid Lama',
+            'is_active' => true,
+            'master_source' => Student::MASTER_SOURCE_DAPODIK,
+        ]);
+        $previousMembership = $this->membership($shared, $previousClassroom, $previous);
+        $target = app(AcademicYearPreparationService::class)->prepareAcademicYear([
+            'name' => '2027/2028',
+            'preparation_reference' => 'Kalender sekolah',
+        ], $admin);
+        app(AcademicYearPreparationService::class)->importRosterPayload([
+            'success' => true,
+            'message' => 'OK',
+            'data' => [
+                ['nisn' => '0012345678', 'nama' => 'Murid Lama', 'rombel' => 'XI RPL 1', 'tahun_pelajaran' => '2027/2028'],
+                ['nisn' => '0098765432', 'nama' => 'Murid Baru', 'rombel' => 'XI RPL 1', 'tahun_pelajaran' => '2027/2028'],
+            ],
+        ], $admin);
+        $targetClassroom = Classroom::query()->where('academic_year_id', $target->id)->sole();
+        $assignment = $this->assignTeacher($teacher, $coordinator, $targetClassroom, $target);
+        $newStudent = Student::query()->where('nisn', '0098765432')->sole();
+
+        $this->actingAs($admin)->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee('Batalkan persiapan');
+        $this->actingAs($admin)
+            ->delete(route('data-master.academic-years.destroy', $target))
+            ->assertRedirect(route('data-master.index'));
+
+        $this->assertDatabaseMissing('academic_years', ['id' => $target->id]);
+        $this->assertDatabaseMissing('classrooms', ['id' => $targetClassroom->id]);
+        $this->assertDatabaseMissing('teacher_assignments', ['id' => $assignment->id]);
+        $this->assertDatabaseMissing('students', ['id' => $newStudent->id]);
+        $this->assertDatabaseHas('students', ['id' => $shared->id]);
+        $this->assertDatabaseHas('student_class_memberships', ['id' => $previousMembership->id]);
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'academic_year.preparation_deleted',
+            'auditable_id' => $target->id,
+        ]);
+    }
+
+    #[Test]
+    public function cancellation_rejects_a_preparation_year_with_archived_service_history(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $teacher = $this->userWithRole('guru_bk');
+        $year = $this->academicYear(
+            '2027/2028', '2027-07-01', '2028-06-30',
+            masterSource: AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        );
+        $classroom = $this->classroom($year, 'X RPL 1');
+        $classroom->update(['master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL]);
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid', 'is_active' => true]);
+        $membership = $this->membership($student, $classroom, $year);
+        $membership->update(['master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL]);
+        $referenceId = ReferenceValue::query()->firstOrFail()->id;
+        BkCase::query()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'classroom_id' => $classroom->id,
+            'case_source_id' => $referenceId,
+            'service_field_id' => $referenceId,
+            'status_id' => $referenceId,
+            'service_date' => today(),
+            'initial_info' => 'Catatan awal',
+            'initial_action' => 'Pendampingan',
+            'created_by' => $teacher->id,
+        ])->delete();
+
+        $this->actingAs($admin)
+            ->delete(route('data-master.academic-years.destroy', $year))
+            ->assertSessionHasErrors('academic_year');
+        $this->assertDatabaseHas('academic_years', ['id' => $year->id]);
+        $this->assertDatabaseHas('student_class_memberships', ['id' => $membership->id]);
+    }
+
+    #[Test]
     public function coordinator_can_restore_the_previous_year_before_services_are_recorded(): void
     {
         $this->travelTo('2027-07-01 09:00:00');

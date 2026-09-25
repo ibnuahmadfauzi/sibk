@@ -6,9 +6,13 @@ namespace App\Services;
 
 use App\Models\AcademicYear;
 use App\Models\Achievement;
+use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\Consultation;
+use App\Models\DapodikSyncPreviewItem;
+use App\Models\EtatibIdentityMapping;
+use App\Models\ExternalSyncIssue;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\StudentDeparture;
@@ -80,36 +84,89 @@ class AcademicYearPreparationService
         });
     }
 
-    public function deleteEmptyPreparationYear(AcademicYear $academicYear, User $actor): void
+    public function cancelPreparationYear(AcademicYear $academicYear, User $actor): void
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
         DB::transaction(function () use ($academicYear, $actor): void {
             $year = AcademicYear::query()->lockForUpdate()->findOrFail($academicYear->getKey());
-            $hasRecords = $year->classrooms()->exists()
-                || $year->studentClassMemberships()->exists()
-                || $year->teacherAssignments()->exists()
-                || BkCase::query()->withTrashed()->where('academic_year_id', $year->getKey())->exists()
-                || Consultation::query()->withTrashed()->where('academic_year_id', $year->getKey())->exists();
-
             if ($year->is_active
                 || $year->activated_at !== null
-                || $year->master_source !== AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL
-                || $hasRecords) {
+                || $year->master_source !== AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL) {
                 throw ValidationException::withMessages([
-                    'academic_year' => 'Hanya tahun Persiapan yang benar-benar kosong dapat dihapus.',
+                    'academic_year' => 'Hanya tahun Persiapan yang belum pernah aktif dapat dibatalkan.',
                 ]);
             }
+
+            $classroomIds = $year->classrooms()->pluck('id');
+            $hasServices = BkCase::query()->withTrashed()
+                ->where(fn ($query) => $query->where('academic_year_id', $year->getKey())
+                    ->orWhereIn('classroom_id', $classroomIds))->exists()
+                || Consultation::query()->withTrashed()
+                    ->where(fn ($query) => $query->where('academic_year_id', $year->getKey())
+                        ->orWhereIn('classroom_id', $classroomIds))->exists();
+            $hasOfficialData = $year->classrooms()
+                ->where(fn ($query) => $query->where('master_source', '!=', Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                    ->orWhereNull('master_source'))->exists()
+                || $year->studentClassMemberships()
+                    ->where(fn ($query) => $query->where('master_source', '!=', StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                        ->orWhereNull('master_source'))->exists();
+            if ($hasServices || $hasOfficialData) {
+                throw ValidationException::withMessages([
+                    'academic_year' => 'Persiapan tidak dapat dibatalkan karena sudah memiliki layanan atau data terverifikasi.',
+                ]);
+            }
+
+            $studentIds = $year->studentClassMemberships()->distinct()->pluck('student_id');
+            $classroomsDeleted = $classroomIds->count();
+            $membershipsDeleted = $year->studentClassMemberships()->count();
+            $assignmentsDeleted = $year->teacherAssignments()->count();
+
+            $year->teacherAssignments()->delete();
+            $year->studentClassMemberships()->delete();
+            $year->classrooms()->delete();
+            $year->delete();
+
+            $orphanStudentIds = Student::query()
+                ->whereIn('id', $studentIds)
+                ->where('master_source', Student::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                ->whereNull('dapodik_id')
+                ->whereNull('source_confirmed_at')
+                ->whereIn('id', AuditLog::query()
+                    ->where('action', 'provisional_student.created')
+                    ->where('auditable_type', (new Student)->getMorphClass())
+                    ->select('auditable_id'))
+                ->whereDoesntHave('classMemberships')
+                ->whereDoesntHave('temporaryIdentities')
+                ->whereDoesntHave('cases', fn ($query) => $query->withTrashed())
+                ->whereDoesntHave('consultations', fn ($query) => $query->withTrashed())
+                ->whereDoesntHave('achievements')
+                ->whereDoesntHave('etatibRecords')
+                ->whereDoesntHave('departure')
+                ->whereNotIn('id', EtatibIdentityMapping::query()->select('student_id'))
+                ->whereNotIn('id', ExternalSyncIssue::query()->whereNotNull('resolved_student_id')->select('resolved_student_id'))
+                ->whereNotIn('id', DapodikSyncPreviewItem::query()
+                    ->where('entity_type', DapodikSyncPreviewItem::ENTITY_STUDENT)
+                    ->whereNotNull('candidate_id')->select('candidate_id'))
+                ->whereNotIn('id', DapodikSyncPreviewItem::query()
+                    ->where('entity_type', DapodikSyncPreviewItem::ENTITY_STUDENT)
+                    ->whereNotNull('decision_candidate_id')->select('decision_candidate_id'))
+                ->pluck('id');
+            Student::query()->whereIn('id', $orphanStudentIds)->delete();
 
             $this->auditService->record(
                 action: 'academic_year.preparation_deleted',
                 auditable: $year,
-                summary: 'Draf tahun ajaran kosong dihapus.',
+                summary: 'Persiapan tahun ajaran dibatalkan.',
                 actor: $actor,
                 before: $this->academicYearSnapshot($year),
-                after: [],
+                after: [
+                    'classrooms_deleted' => $classroomsDeleted,
+                    'memberships_deleted' => $membershipsDeleted,
+                    'assignments_deleted' => $assignmentsDeleted,
+                    'students_deleted' => $orphanStudentIds->count(),
+                ],
             );
-            $year->delete();
         });
     }
 
