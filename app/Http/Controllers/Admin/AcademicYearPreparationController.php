@@ -91,7 +91,9 @@ class AcademicYearPreparationController extends Controller
         /** @var User $actor */
         $actor = $request->user();
         $result = match (true) {
-            $request->hasApiUrl() => $apiSiswaService->import($request->apiUrl(), $actor),
+            $request->hasApiUrl() => $apiSiswaService->import(
+                $request->apiUrl(), $actor, $request->selectedRows(), $request->previewHash(),
+            ),
             $request->hasRosterPayload() => $service->importRosterPayload($request->rosterPayload(), $actor),
             default => $service->importRosters($request->rosterFile(), $actor),
         };

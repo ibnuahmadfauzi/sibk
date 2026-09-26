@@ -1138,6 +1138,97 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function admin_can_choose_one_duplicate_api_row_after_preview(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $url = 'https://8.8.8.8/choose-duplicate';
+        $payload = [
+            'success' => true,
+            'data' => [
+                ['nama' => 'Murid Pertama', 'nisn' => '0012345678', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+                ['nama' => 'Murid Dipilih', 'nisn' => '0012345678', 'rombel' => 'X RPL 2', 'tahun_pelajaran' => $year->name],
+                ['nama' => 'Murid Aman', 'nisn' => '0098765432', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+            ],
+        ];
+        Http::fake([$url => fn () => Http::response($payload)]);
+
+        $preview = $this->actingAs($admin)->postJson(route('data-master.roster-imports.preview'), [
+            'api_url' => $url,
+        ])->assertOk()
+            ->assertJsonPath('data.duplicate_group_count', 1)
+            ->assertJsonPath('data.can_import_after_selection', true)
+            ->assertJsonPath('data.entries.1.row_index', 1)
+            ->json('data');
+
+        $this->post(route('data-master.roster-imports.store'), [
+            'api_url' => $url,
+            'preview_hash' => str_repeat('0', 64),
+            'selected_rows' => [1],
+        ])->assertSessionHasErrors('api_url');
+        $this->post(route('data-master.roster-imports.store'), [
+            'api_url' => $url,
+            'preview_hash' => $preview['preview_hash'],
+        ])->assertSessionHasErrors('api_url');
+        $this->post(route('data-master.roster-imports.store'), [
+            'api_url' => $url,
+            'preview_hash' => $preview['preview_hash'],
+            'selected_rows' => [2],
+        ])->assertSessionHasErrors('api_url');
+        $this->assertDatabaseCount('students', 0);
+
+        $this->post(route('data-master.roster-imports.store'), [
+            'api_url' => $url,
+            'preview_hash' => $preview['preview_hash'],
+            'selected_rows' => [1],
+        ])->assertSessionHas('success');
+        $this->assertDatabaseHas('students', ['nisn' => '0012345678', 'name' => 'Murid Dipilih']);
+        $this->assertDatabaseHas('students', ['nisn' => '0098765432', 'name' => 'Murid Aman']);
+        $this->assertDatabaseMissing('students', ['name' => 'Murid Pertama']);
+        $this->assertDatabaseCount('student_class_memberships', 2);
+    }
+
+    #[Test]
+    public function duplicate_choice_can_use_the_row_matching_an_existing_classroom(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Nama Lokal']);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'X RPL 2',
+            'master_source' => Classroom::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+        ]);
+        $url = 'https://8.8.8.8/choose-matching-classroom';
+        $payload = ['success' => true, 'data' => [
+            ['nama' => 'Baris Bentrok', 'nisn' => '0012345678', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+            ['nama' => 'Baris Cocok', 'nisn' => '0012345678', 'rombel' => 'X RPL 2', 'tahun_pelajaran' => $year->name],
+        ]];
+        Http::fake([$url => fn () => Http::response($payload)]);
+
+        $preview = $this->actingAs($admin)->postJson(route('data-master.roster-imports.preview'), [
+            'api_url' => $url,
+        ])->assertOk()
+            ->assertJsonPath('data.entries.0.blocking', true)
+            ->assertJsonPath('data.entries.1.blocking', false)
+            ->assertJsonPath('data.can_import_after_selection', true)
+            ->json('data');
+
+        $this->post(route('data-master.roster-imports.store'), [
+            'api_url' => $url,
+            'preview_hash' => $preview['preview_hash'],
+            'selected_rows' => [1],
+        ])->assertSessionHas('success');
+        $this->assertSame('Nama Lokal', $student->refresh()->name);
+        $this->assertDatabaseCount('student_class_memberships', 1);
+    }
+
+    #[Test]
     public function preview_lists_all_fifteen_classroom_conflicts_and_blocks_import(): void
     {
         $admin = $this->userWithRole('admin_it');
