@@ -36,6 +36,8 @@ class StudentController extends Controller
                     ->with('classroom.academicYear'),
                 'cases' => fn ($cases) => $cases
                     ->accessibleTo($user),
+                'consultations' => fn ($consultations) => $consultations
+                    ->accessibleTo($user),
             ]);
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($students) => $students->where(function ($filter) use ($search): void {
