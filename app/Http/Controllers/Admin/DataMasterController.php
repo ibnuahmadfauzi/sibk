@@ -59,8 +59,17 @@ class DataMasterController extends Controller
             'importableYearExists' => AcademicYear::query()
                 ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
                 ->where(fn ($years) => $years->where('is_active', true)->orWhereNull('activated_at'))
+                ->when($activeAcademicYear !== null, fn ($years) => $years->where(fn ($visible) => $visible
+                    ->where('is_active', true)
+                    ->orWhere('name', '>', $activeAcademicYear->name)))
                 ->exists(),
             'academicYears' => AcademicYear::query()
+                ->when($activeAcademicYear !== null, fn ($years) => $years->where(fn ($visible) => $visible
+                    ->where('is_active', true)
+                    ->orWhere(fn ($preparing) => $preparing
+                        ->whereNull('activated_at')
+                        ->where('name', '>', $activeAcademicYear->name))))
+                ->when($activeAcademicYear === null, fn ($years) => $years->whereNull('activated_at'))
                 ->withCount([
                     'classrooms as active_classroom_count' => fn ($query) => $query->where('is_active', true),
                     'studentClassMemberships as active_student_count' => fn ($query) => $query

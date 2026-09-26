@@ -2789,6 +2789,29 @@ small, .small {
   border-top-left-radius: 0;
 }
 
+.sibk-etatib-conflict {
+  border: 1px solid var(--sibk-color-border);
+
+  &:hover,
+  &:has([data-identity-choice]:checked) {
+    box-shadow: inset 0 0 0 2px var(--bs-primary);
+  }
+}
+
+.sibk-etatib-choice {
+  cursor: pointer;
+
+  &:has(input:checked) {
+    border-color: var(--bs-primary) !important;
+    background: var(--bs-primary-bg-subtle);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+}
+
 @media (min-width: 1200px) {
   .sibk-data-master-api {
     border-left: 1px solid var(--sibk-color-border-light);

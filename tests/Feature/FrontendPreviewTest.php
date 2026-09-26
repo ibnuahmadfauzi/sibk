@@ -150,7 +150,7 @@ class FrontendPreviewTest extends TestCase
                 'Buat tahun ajaran lain',
                 'Impor Murid dari API Siswa',
             ])
-            ->assertSee('Impor CSV (cadangan)')
+            ->assertSee('Impor CSV jika API belum tersedia')
             ->assertDontSee('Langkah 1 dari 3');
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
@@ -204,7 +204,7 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('data-api-siswa-preview-modal', false)
             ->assertSee('Pratinjau API Siswa')
             ->assertSee('Impor CSV')
-            ->assertSeeInOrder(['Persiapan Tahun Ajaran', 'Impor Murid dari API Siswa', 'Impor CSV (cadangan)'])
+            ->assertSeeInOrder(['Persiapan Tahun Ajaran', 'Impor Murid dari API Siswa', 'Impor CSV jika API belum tersedia'])
             ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertDontSee('data-etatib-api-form', false);
 
@@ -219,7 +219,7 @@ class FrontendPreviewTest extends TestCase
             ->assertSeeInOrder([
                 'Tautan API e-Tatib',
                 'Tinjau Data',
-                'Pratinjau API e-Tatib',
+                'Pratinjau e-Tatib',
                 'Sinkronkan Data',
             ], false)
             ->assertDontSee('Kode sumber')

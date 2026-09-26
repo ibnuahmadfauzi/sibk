@@ -88,27 +88,6 @@
                             @include('pages.data-master._api-siswa-import')
                         </div>
                     </div>
-                    <div class="border-top mx-4"></div>
-                    <div class="sibk-panel__body p-4">
-                        <details @if($errors->has('file')) open @endif>
-                            <summary class="fw-semibold text-primary py-2">Impor CSV (cadangan)</summary>
-                            <p class="text-muted small mt-3">
-                                Gunakan jika API Siswa belum tersedia. Siapkan CSV UTF-8 maksimal 2 MiB dan 5.000 baris,
-                                    dengan header <code>nisn,nama,rombel,tahun_pelajaran</code>.
-                                Buat tahun ajarannya terlebih dahulu. Impor tambahan juga bisa dilakukan setelah tahun aktif.
-                            </p>
-                            <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="row g-2 align-items-end mb-3">
-                                @csrf
-                                <div class="col-12 col-md">
-                                    <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
-                                    <input class="form-control" type="file" accept=".csv,text/csv" id="roster_file" name="file" required>
-                                </div>
-                                <div class="col-12 col-md-auto">
-                                    <button type="submit" class="btn btn-outline-primary w-100" @disabled(! $importableYearExists)>Impor CSV</button>
-                                </div>
-                            </form>
-                        </details>
-                    </div>
                 </div>
                 @include('pages.data-master._academic-year-rollover-exceptions')
             </section>

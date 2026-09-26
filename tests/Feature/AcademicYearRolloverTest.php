@@ -29,6 +29,26 @@ use Tests\TestCase;
 class AcademicYearRolloverTest extends TestCase
 {
     #[Test]
+    public function data_master_only_shows_active_and_upcoming_academic_years(): void
+    {
+        $this->academicYear('2024/2025', '2024-07-01', '2025-06-30');
+        $this->academicYear('2025/2026', '2025-07-01', '2026-06-30');
+        $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
+        $this->academicYear('2027/2028', '2027-07-01', '2028-06-30');
+
+        $this->actingAs($this->userWithRole('admin_it'))
+            ->get(route('data-master.index'))
+            ->assertOk()
+            ->assertSee('2026/2027')
+            ->assertSee('2027/2028')
+            ->assertSee('Aktif')
+            ->assertSee('Belum Aktif')
+            ->assertDontSee('2024/2025')
+            ->assertDontSee('2025/2026')
+            ->assertDontSee('Dibuat Admin IT');
+    }
+
+    #[Test]
     public function database_rejects_a_second_active_academic_year(): void
     {
         $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);

@@ -1,17 +1,9 @@
-@php
-    $sourcePresentation = static fn (string $source): array => match ($source) {
-        \App\Models\AcademicYear::MASTER_SOURCE_DAPODIK => ['Terverifikasi Sumber Resmi', 'success'],
-        \App\Models\AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL => ['Dibuat Admin IT', 'info'],
-        default => ['Data Lama', 'neutral'],
-    };
-@endphp
-
 <div aria-labelledby="academic-year-preparation-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
             <h2 class="sibk-panel__title mb-1" id="academic-year-preparation-title">Persiapan Tahun Ajaran</h2>
             <p class="sibk-panel__subtitle text-muted small mb-0">
-                {{ $academicYears->isEmpty() ? 'Buat tahun ajaran. Rombel aktif dari Data Kelas disiapkan otomatis.' : 'Tinjau tahun ajaran yang tersimpan.' }}
+                {{ $academicYears->isEmpty() ? 'Buat tahun ajaran. Rombel aktif dari Data Kelas disiapkan otomatis.' : 'Tinjau tahun ajaran aktif dan yang sedang disiapkan.' }}
             </p>
         </div>
     </div>
@@ -20,19 +12,16 @@
         <div class="row g-4">
             @if($academicYears->isNotEmpty())
             <div class="col-12 order-1">
-                <h3 class="fs-6 fw-bold mb-3">Tahun Ajaran di Data Master</h3>
+                <h3 class="fs-6 fw-bold mb-3">Tahun Ajaran</h3>
 
                 <div class="d-flex flex-column gap-3">
                     @foreach($academicYears as $year)
-                        @php([$sourceLabel, $sourceTone] = $sourcePresentation($year->master_source))
-                        @php($isPreviousYear = $activeAcademicYear !== null && strcmp($year->name, $activeAcademicYear->name) < 0)
                         <div class="border rounded-3 p-3">
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <strong>{{ $year->name }}</strong>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <span class="sibk-badge sibk-badge--{{ $sourceTone }}">{{ $sourceLabel }}</span>
                                     <span class="sibk-badge sibk-badge--{{ $year->is_active ? 'success' : 'info' }}">
-                                        {{ $year->is_active ? 'Aktif' : ($isPreviousYear || $year->activated_at !== null ? 'Tahun Sebelumnya' : 'Menunggu Aktivasi') }}
+                                        {{ $year->is_active ? 'Aktif' : 'Belum Aktif' }}
                                     </span>
                                 </div>
                             </div>
@@ -40,7 +29,7 @@
                                 <span class="me-3">{{ $year->active_classroom_count }} rombel</span>
                                 <span>{{ $year->active_student_count }} murid ditempatkan</span>
                             </div>
-                            @if(! $year->is_active && ! $isPreviousYear && $year->activated_at === null && $year->master_source === \App\Models\AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                            @if(! $year->is_active && $year->activated_at === null && $year->master_source === \App\Models\AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
                                 <button
                                     class="btn btn-outline-danger btn-sm mb-3"
                                     type="button"
@@ -71,8 +60,6 @@
                             @endif
                             @if($year->is_active)
                                 <p class="small text-success mb-0">Tahun ajaran aktif. Murid susulan tetap dapat diimpor.</p>
-                            @elseif($isPreviousYear || $year->activated_at !== null)
-                                <p class="small text-muted mb-0">Riwayat tahun ajaran. Tidak perlu diaktifkan kembali.</p>
                             @else
                                 <p class="small text-muted mb-0">Koordinator BK mengaktifkannya setelah setiap rombel memiliki Guru BK.</p>
                             @endif

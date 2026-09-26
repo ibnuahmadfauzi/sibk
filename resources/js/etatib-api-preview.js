@@ -6,110 +6,116 @@ const element = (tag, className = '', text = '') => {
     return node;
 };
 
-const choiceLabel = (student) => `${student.name} · NISN ${student.nisn} · Kelas ${student.classroom}${student.academic_year ? ` (${student.academic_year})` : ''}`;
+const choiceLabel = (student) => `NISN ${student.nisn} · Kelas ${student.classroom}${student.academic_year ? ` (${student.academic_year})` : ''}`;
 
-const render = (container, preview, dapodikUrl, candidatesUrl) => {
+const render = (container, preview, dapodikUrl) => {
     container.replaceChildren();
-    const tone = preview.missing > 0 || preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
-    container.append(element(
-        'div',
-        `alert ${tone}`,
-        preview.missing > 0
-            ? `${preview.missing} pelanggaran aktif sebelumnya tidak ada dalam respons API. Sinkronisasi ditahan; periksa sumber data.`
-            : preview.conflicts > 0
-            ? `${preview.conflicts} pelanggaran memiliki identitas yang perlu diperiksa.`
-            : 'Tidak ada indikasi konflik identitas.',
-    ));
-
-    if (preview.active_year) {
-        container.append(element('p', 'text-muted small mb-3',
-            `Tahun ajaran aktif: ${preview.active_year}. Identitas e-Tatib dicocokkan ke seluruh master murid.`));
+    container.append(element('p', 'fw-semibold mb-3', `${preview.rows} pelanggaran diterima dari e-Tatib.`));
+    const identityCount = preview.identity_conflicts.length;
+    if (preview.missing > 0) {
+        container.append(element('div', 'alert alert-warning',
+            `${preview.missing} pelanggaran lama tidak dikirim API. Sinkronisasi ditahan sampai data sumber lengkap.`));
+    } else if (identityCount > 0) {
+        container.append(element('div', 'alert alert-warning',
+            `${identityCount} identitas belum cocok, terkait ${preview.conflicts} pelanggaran. Pilih murid yang benar jika sudah yakin.`));
+    } else {
+        container.append(element('div', 'alert alert-success', 'Semua identitas cocok.'));
     }
+
     if (preview.missing_students > 0) {
-        const link = element('a', 'd-inline-block mb-3 fw-semibold', 'Periksa data murid di tab Dapodik');
+        const link = element('a', 'd-inline-block mb-3 fw-semibold', 'Periksa murid yang belum ada di Data Master');
         link.href = dapodikUrl;
         container.append(link);
     }
 
-    const summary = element('div', 'd-flex flex-wrap gap-4 mb-3');
-    summary.append(
-        element('span', 'fw-semibold', `${preview.rows} pelanggaran diterima`),
-        element('span', 'fw-semibold', `${preview.students} murid`),
-        element('span', 'fw-semibold', `${preview.matched} pelanggaran cocok`),
-        element('span', 'fw-semibold', `${preview.conflicts} pelanggaran perlu diperiksa`),
-    );
-    container.append(summary);
     if (preview.conflicts > 0) {
-        container.append(element('p', 'mb-3',
-            `${preview.missing_students} identitas memiliki NISN yang belum ada di master. ${preview.name_mismatches} identitas memiliki NISN sama tetapi nama berbeda.`));
+        const bulk = element('details', 'mb-3');
+        bulk.append(element('summary', 'text-primary fw-semibold', 'Isi pilihan beberapa murid sekaligus'));
+        const bulkButtons = element('div', 'd-flex flex-wrap gap-2 mt-2');
+        const bulkStatus = element('p', 'small text-muted mt-2 mb-0');
+        [['nisn', 'Pilih berdasarkan NISN'], ['name', 'Pilih berdasarkan nama']].forEach(([basis, textLabel]) => {
+            const button = element('button', 'btn btn-outline-primary btn-sm', textLabel);
+            button.type = 'button';
+            button.addEventListener('click', () => {
+                let selected = 0;
+                container.querySelectorAll('[data-etatib-conflict]').forEach((card) => {
+                    const choices = card.querySelectorAll(`[data-identity-choice][data-choice-basis="${basis}"]`);
+                    if (choices.length !== 1) return;
+                    choices[0].checked = true;
+                    selected++;
+                });
+                bulkStatus.textContent = `${selected} kartu diisi berdasarkan ${basis === 'nisn' ? 'NISN' : 'nama'}. Periksa pilihan pada setiap kartu sebelum sinkronisasi.`;
+            });
+            bulkButtons.append(button);
+        });
+        bulk.append(bulkButtons, bulkStatus);
+        container.append(bulk);
         [
-            ['name_mismatch', preview.name_mismatches, 'Nama berbeda'],
+            ['name_mismatch', preview.name_mismatches, 'nama berbeda'],
             ['nisn_not_found', preview.missing_students, 'NISN belum ada di master'],
         ].forEach(([kind, count, label]) => {
             if (!count) return;
             const details = element('details', 'mb-3');
             details.append(element('summary', 'fw-semibold', `Lihat ${count} identitas: ${label}`));
-            const list = element('ul', 'list-group mt-2');
-            preview.identity_conflicts.filter((item) => item.kind === kind).forEach((item) => {
-                const row = element('li', 'list-group-item');
+            const list = element('div', 'd-grid gap-3 mt-2');
+            preview.identity_conflicts.filter((item) => item.kind === kind).forEach((item, index) => {
+                const row = element('article', 'sibk-etatib-conflict rounded-3 p-3');
+                row.dataset.etatibConflict = '';
                 row.append(
-                    element('strong', 'd-block', `e-Tatib: ${item.name} · NISN ${item.nisn} · Kelas ${item.classroom}`),
-                    element('span', 'd-block', item.master
-                        ? `Master dengan NISN sama: ${choiceLabel(item.master)}`
-                        : 'Master dengan NISN sama: tidak ditemukan'),
+                    element('span', 'text-muted small d-block', 'e-Tatib'),
+                    element('strong', 'd-block', item.name),
+                    element('span', 'd-block small', `NISN ${item.nisn} · Kelas ${item.classroom}`),
                 );
-                const select = element('select', 'form-select form-select-sm mt-2');
-                select.dataset.identityChoice = '';
-                select.dataset.nisn = item.nisn;
-                select.dataset.name = item.name;
-                select.setAttribute('aria-label', `Pilih murid master untuk ${item.name}, NISN ${item.nisn}`);
-                select.append(new Option('Biarkan belum tertaut', ''));
-                if (item.master) select.append(new Option(`Pilih NISN sama: ${choiceLabel(item.master)}`, item.master.id));
-                item.suggestions.forEach((candidate) => select.append(new Option(`Kemungkinan dari nama: ${choiceLabel(candidate)}`, candidate.id)));
-                row.append(select);
 
-                const search = element('div', 'input-group input-group-sm mt-2');
-                const query = element('input', 'form-control');
-                query.type = 'search';
-                query.placeholder = 'Cari nama, NISN, atau kelas di master';
-                query.setAttribute('aria-label', `Cari murid master untuk ${item.name}`);
-                const button = element('button', 'btn btn-outline-primary', 'Cari');
-                button.type = 'button';
-                const result = element('div', 'form-text');
-                button.addEventListener('click', async () => {
-                    if (query.value.trim().length < 2) {
-                        result.textContent = 'Ketik minimal 2 karakter.';
-                        return;
-                    }
-                    button.disabled = true;
-                    result.textContent = 'Mencari murid...';
-                    try {
-                        const response = await fetch(`${candidatesUrl}?search=${encodeURIComponent(query.value.trim())}`, {
-                            headers: { Accept: 'application/json' },
-                        });
-                        if (!response.ok) throw new Error('search failed');
-                        const payload = await response.json();
-                        payload.data.forEach((candidate) => {
-                            if (![...select.options].some((option) => option.value === String(candidate.id))) {
-                                select.append(new Option(choiceLabel(candidate), candidate.id));
-                            }
-                        });
-                        result.textContent = `${payload.data.length} murid ditemukan. Pilih murid yang benar di daftar.`;
-                    } catch {
-                        result.textContent = 'Pencarian gagal. Coba lagi.';
-                    } finally {
-                        button.disabled = false;
-                    }
-                });
-                search.append(query, button);
-                row.append(search, result);
+                const groupName = `identity-${kind}-${index}`;
+                const option = (student, labelText, basis) => {
+                    const label = element('label', 'sibk-etatib-choice d-flex gap-2 align-items-start border rounded-3 p-2 mt-2');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = groupName;
+                    radio.value = student.id;
+                    radio.className = 'form-check-input mt-1';
+                    radio.dataset.identityChoice = '';
+                    radio.dataset.choiceBasis = basis;
+                    radio.dataset.nisn = item.nisn;
+                    radio.dataset.name = item.name;
+                    const copy = element('span', 'd-block');
+                    copy.append(
+                        element('span', 'd-block small text-muted', labelText),
+                        element('strong', 'd-block', student.name),
+                        element('span', 'd-block small', choiceLabel(student)),
+                    );
+                    label.append(radio, copy);
+                    return label;
+                };
+
+                const columns = element('div', 'row g-3 mt-1');
+                const byNisn = element('div', 'col-12 col-lg-6');
+                byNisn.append(item.master
+                    ? option(item.master, 'NISN cocok', 'nisn')
+                    : element('p', 'text-muted small mt-2 mb-0', 'NISN tidak ditemukan di master.'));
+                const byName = element('div', 'col-12 col-lg-6');
+                const nameOptions = element('div');
+                item.suggestions.forEach((candidate) => nameOptions.append(option(candidate, 'Nama cocok', 'name')));
+                if (!item.suggestions.length) nameOptions.append(element('p', 'text-muted small mt-2 mb-0', 'Nama tidak ditemukan di master.'));
+                byName.append(nameOptions);
+                columns.append(byNisn, byName);
+                row.append(columns);
+
+                const unlinked = element('label', 'd-flex gap-2 align-items-center small mt-3');
+                const unlinkedRadio = document.createElement('input');
+                unlinkedRadio.type = 'radio';
+                unlinkedRadio.name = groupName;
+                unlinkedRadio.value = '';
+                unlinkedRadio.checked = true;
+                unlinkedRadio.className = 'form-check-input m-0';
+                unlinked.append(unlinkedRadio, element('span', '', 'Lewati dulu, belum tertaut'));
+                row.append(unlinked);
                 list.append(row);
             });
             details.append(list);
             container.append(details);
         });
-        container.append(element('p', 'text-muted small mb-0',
-            'Pilih murid master yang sudah dipastikan. Yang dibiarkan belum tertaut tetap masuk daftar Yang Perlu Ditinjau.'));
     }
 };
 
@@ -123,6 +129,7 @@ export const initEtatibApiPreview = async (root = document) => {
     const body = modalNode.querySelector('[data-etatib-preview-body]');
     const confirm = modalNode.querySelector('[data-etatib-confirm]');
     const automaticConfirm = modalNode.querySelector('[data-etatib-confirm-automatic]');
+    const automaticFields = modalNode.querySelector('[data-etatib-automatic-fields]');
     const automaticPassword = modalNode.querySelector('[data-etatib-automatic-password]');
     const previewButton = form.querySelector('[data-etatib-preview-button]');
     const url = form.elements.namedItem('api_url');
@@ -130,9 +137,8 @@ export const initEtatibApiPreview = async (root = document) => {
     let controller;
     const decisions = () => {
         form.querySelectorAll('[data-preview-decision]').forEach((input) => input.remove());
-        body.querySelectorAll('[data-identity-choice]').forEach((select, index) => {
-            if (!select.value) return;
-            [['nisn', select.dataset.nisn], ['name', select.dataset.name], ['student_id', select.value]].forEach(([field, value]) => {
+        body.querySelectorAll('[data-identity-choice]:checked').forEach((choice, index) => {
+            [['nisn', choice.dataset.nisn], ['name', choice.dataset.name], ['student_id', choice.value]].forEach(([field, value]) => {
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = `identity_decisions[${index}][${field}]`;
@@ -160,6 +166,8 @@ export const initEtatibApiPreview = async (root = document) => {
         automaticPassword.disabled = true;
         automaticPassword.required = false;
         automaticPassword.value = '';
+        automaticFields.hidden = true;
+        automaticConfirm.textContent = 'Aktifkan Otomatis';
         previewButton.disabled = true;
         body.replaceChildren(element('p', 'text-muted mb-0', 'Menghubungi API e-Tatib...'));
         modal.show();
@@ -182,10 +190,9 @@ export const initEtatibApiPreview = async (root = document) => {
                 body.replaceChildren(element('div', 'alert alert-danger mb-0', message));
                 return;
             }
-            render(body, payload.data, form.dataset.dapodikUrl, form.dataset.candidatesUrl);
+            render(body, payload.data, form.dataset.dapodikUrl);
             previewedUrl = url.value;
             confirm.disabled = payload.data.missing > 0;
-            automaticPassword.disabled = payload.data.missing > 0;
             automaticConfirm.disabled = payload.data.missing > 0;
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -221,8 +228,14 @@ export const initEtatibApiPreview = async (root = document) => {
             return;
         }
 
-        automaticPassword.disabled = false;
-        automaticPassword.required = true;
+        if (automaticFields.hidden) {
+            automaticFields.hidden = false;
+            automaticPassword.disabled = false;
+            automaticPassword.required = true;
+            automaticConfirm.textContent = 'Simpan & Aktifkan Otomatis';
+            automaticPassword.focus();
+            return;
+        }
         if (!form.reportValidity()) {
             automaticPassword.focus();
             return;
@@ -240,6 +253,8 @@ export const initEtatibApiPreview = async (root = document) => {
     modalNode.addEventListener('hidden.bs.modal', () => {
         controller?.abort();
         if (form.dataset.confirmed !== 'true') {
+            automaticFields.hidden = true;
+            automaticConfirm.textContent = 'Aktifkan Otomatis';
             automaticPassword.value = '';
             automaticPassword.disabled = true;
             automaticPassword.required = false;

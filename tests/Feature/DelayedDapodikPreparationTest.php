@@ -1829,7 +1829,7 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertOk()
             ->assertSee('data-etatib-api-form', false)
             ->assertSee(route('data-master.etatib.preview'), false)
-            ->assertSee('Pratinjau API e-Tatib');
+            ->assertSee('Pratinjau e-Tatib');
     }
 
     #[Test]
