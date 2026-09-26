@@ -8,7 +8,7 @@
         </div>
     </div>
     <div class="sibk-panel__body p-4">
-        @if($preparationYears->isEmpty())
+        @if(! $importableYearExists)
             <div class="alert alert-info">
                 <a href="#academic-year-preparation-title">Buat tahun ajaran</a> agar impor dapat dimulai.
             </div>
@@ -47,7 +47,7 @@
                     type="submit"
                     class="btn btn-primary"
                     data-api-siswa-preview-button
-                    @disabled($preparationYears->isEmpty())
+                    @disabled(! $importableYearExists)
                 >
                     Tinjau Data
                 </button>

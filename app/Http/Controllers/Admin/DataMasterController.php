@@ -33,6 +33,7 @@ class DataMasterController extends Controller
             ->orderByDesc('starts_on')
             ->orderByDesc('id')
             ->first();
+        $activeAcademicYear = AcademicYear::query()->active()->first();
 
         return response()->view('pages.data-master.index', [
             'activeTab' => match ($request->query('tab')) {
@@ -53,8 +54,13 @@ class DataMasterController extends Controller
             'rolloverSummary' => $rolloverTargetYear === null
                 ? null
                 : $rolloverQuery->summarize($rolloverTargetYear),
-            'preparationYears' => AcademicYear::query()
+            'rolloverTargetYear' => $rolloverTargetYear,
+            'activeAcademicYear' => $activeAcademicYear,
+            'importableYearExists' => AcademicYear::query()
                 ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                ->where(fn ($years) => $years->where('is_active', true)->orWhereNull('activated_at'))
+                ->exists(),
+            'academicYears' => AcademicYear::query()
                 ->withCount([
                     'classrooms as active_classroom_count' => fn ($query) => $query->where('is_active', true),
                     'studentClassMemberships as active_student_count' => fn ($query) => $query

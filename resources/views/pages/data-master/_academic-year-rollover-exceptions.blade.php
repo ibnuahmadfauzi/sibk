@@ -2,9 +2,9 @@
     <section class="sibk-panel mb-4" aria-labelledby="academic-year-rollover-title">
         <div class="sibk-panel__header p-4 border-0 pb-0">
             <div>
-                <h2 class="sibk-panel__title mb-1" id="academic-year-rollover-title">Murid Belum Punya Rombel di Tahun Baru</h2>
+                <h2 class="sibk-panel__title mb-1" id="academic-year-rollover-title">Murid Tahun Sebelumnya Belum Tercantum</h2>
                 <p class="sibk-panel__subtitle text-muted small mb-0">
-                    Murid dari {{ $rolloverSummary->sourceYearName }} belum memiliki rombel di tahun ajaran baru.
+                    Murid dari {{ $rolloverSummary->sourceYearName }} belum tercantum di {{ $rolloverTargetYear->name }}.
                 </p>
             </div>
             <span class="sibk-badge sibk-badge--{{ $rolloverSummary->needsConfirmationCount() > 0 ? 'warning' : 'success' }}">
@@ -13,10 +13,9 @@
         </div>
         <div class="sibk-panel__body p-4">
             <p class="text-muted small mb-3">
-                Cocokkan dengan data sekolah. Jika masih bersekolah, lengkapi rombel lalu impor ulang.
-                Daftar diperbarui setelah impor; status lulus atau pindah mengikuti data sekolah.
+                Periksa statusnya pada data sekolah. Jika masih bersekolah, pastikan murid dan rombelnya ada pada API Siswa tahun ini, lalu impor lagi. Jika sudah lulus atau pindah, tidak perlu menempatkannya di rombel baru.
             </p>
-            <a class="btn btn-outline-primary btn-sm" href="#api-siswa-import-title">Impor Ulang Data Murid</a>
+            <a class="btn btn-outline-primary btn-sm" href="#api-siswa-import-title">Periksa API Siswa</a>
             <details>
                 <summary class="fw-semibold text-primary py-3">Lihat daftar {{ $rolloverSummary->needsConfirmationCount() }} murid</summary>
             <div class="table-responsive mt-3">
