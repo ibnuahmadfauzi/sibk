@@ -64,7 +64,7 @@
             </div>
         </section>
 
-        <nav class="nav nav-tabs mb-4" aria-label="Bagian Data Master">
+        <nav class="nav nav-tabs sibk-data-master-tabs" aria-label="Bagian Data Master">
             @foreach([
                 'dapodik' => 'Dapodik',
                 'etatib' => 'e-Tatib',
