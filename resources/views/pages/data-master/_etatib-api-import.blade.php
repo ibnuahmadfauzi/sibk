@@ -1,4 +1,4 @@
-<section class="sibk-panel mb-4" aria-labelledby="etatib-api-title">
+<section class="sibk-panel sibk-data-master-tab-panel mb-4" aria-labelledby="etatib-api-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
             <h2 class="sibk-panel__title mb-1" id="etatib-api-title">Sinkronkan Data e-Tatib</h2>
