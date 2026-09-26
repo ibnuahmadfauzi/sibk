@@ -12,14 +12,18 @@ const render = (container, preview, dapodikUrl) => {
     container.replaceChildren();
     container.append(element('p', 'fw-semibold mb-3', `${preview.rows} pelanggaran diterima dari e-Tatib.`));
     const identityCount = preview.identity_conflicts.length;
+    if (preview.undated > 0) {
+        container.append(element('div', 'alert alert-warning',
+            `${preview.undated} pelanggaran akan disimpan tanpa tanggal karena tanggal dari API berubah saat dibaca.`));
+    }
     if (preview.missing > 0) {
         container.append(element('div', 'alert alert-warning',
             `${preview.missing} pelanggaran lama tidak dikirim API. Sinkronisasi ditahan sampai data sumber lengkap.`));
     } else if (identityCount > 0) {
         container.append(element('div', 'alert alert-warning',
             `${identityCount} identitas belum cocok, terkait ${preview.conflicts} pelanggaran. Pilih murid yang benar jika sudah yakin.`));
-    } else {
-        container.append(element('div', 'alert alert-success', 'Semua identitas cocok.'));
+    } else if (preview.undated === 0) {
+        container.append(element('div', 'alert alert-success', 'Identitas pada data yang siap disinkronkan cocok.'));
     }
 
     if (preview.missing_students > 0) {
@@ -29,27 +33,6 @@ const render = (container, preview, dapodikUrl) => {
     }
 
     if (preview.conflicts > 0) {
-        const bulk = element('details', 'mb-3');
-        bulk.append(element('summary', 'text-primary fw-semibold', 'Isi pilihan beberapa murid sekaligus'));
-        const bulkButtons = element('div', 'd-flex flex-wrap gap-2 mt-2');
-        const bulkStatus = element('p', 'small text-muted mt-2 mb-0');
-        [['nisn', 'Pilih berdasarkan NISN'], ['name', 'Pilih berdasarkan nama']].forEach(([basis, textLabel]) => {
-            const button = element('button', 'btn btn-outline-primary btn-sm', textLabel);
-            button.type = 'button';
-            button.addEventListener('click', () => {
-                let selected = 0;
-                container.querySelectorAll('[data-etatib-conflict]').forEach((card) => {
-                    const choices = card.querySelectorAll(`[data-identity-choice][data-choice-basis="${basis}"]`);
-                    if (choices.length !== 1) return;
-                    choices[0].checked = true;
-                    selected++;
-                });
-                bulkStatus.textContent = `${selected} kartu diisi berdasarkan ${basis === 'nisn' ? 'NISN' : 'nama'}. Periksa pilihan pada setiap kartu sebelum sinkronisasi.`;
-            });
-            bulkButtons.append(button);
-        });
-        bulk.append(bulkButtons, bulkStatus);
-        container.append(bulk);
         [
             ['name_mismatch', preview.name_mismatches, 'nama berbeda'],
             ['nisn_not_found', preview.missing_students, 'NISN belum ada di master'],
@@ -58,6 +41,26 @@ const render = (container, preview, dapodikUrl) => {
             const details = element('details', 'mb-3');
             details.append(element('summary', 'fw-semibold', `Lihat ${count} identitas: ${label}`));
             const list = element('div', 'd-grid gap-3 mt-2');
+            const bulkButtons = element('div', 'd-flex flex-wrap gap-2 mt-2');
+            const bulkStatus = element('p', 'small text-muted mt-2 mb-0');
+            (kind === 'name_mismatch'
+                ? [['nisn', 'Pilih berdasarkan NISN'], ['name', 'Pilih berdasarkan nama']]
+                : [['name', 'Pilih berdasarkan nama']]
+            ).forEach(([basis, textLabel]) => {
+                const button = element('button', 'btn btn-outline-primary btn-sm', textLabel);
+                button.type = 'button';
+                button.addEventListener('click', () => {
+                    let selected = 0;
+                    list.querySelectorAll('[data-etatib-conflict]').forEach((card) => {
+                        const choices = card.querySelectorAll(`[data-identity-choice][data-choice-basis="${basis}"]`);
+                        if (choices.length !== 1) return;
+                        choices[0].checked = true;
+                        selected++;
+                    });
+                    bulkStatus.textContent = `${selected} kartu diisi berdasarkan ${basis === 'nisn' ? 'NISN' : 'nama'}. Periksa pilihan pada setiap kartu sebelum sinkronisasi.`;
+                });
+                bulkButtons.append(button);
+            });
             preview.identity_conflicts.filter((item) => item.kind === kind).forEach((item, index) => {
                 const row = element('article', 'sibk-etatib-conflict rounded-3 p-3');
                 row.dataset.etatibConflict = '';
@@ -113,7 +116,7 @@ const render = (container, preview, dapodikUrl) => {
                 row.append(unlinked);
                 list.append(row);
             });
-            details.append(list);
+            details.append(bulkButtons, bulkStatus, list);
             container.append(details);
         });
     }

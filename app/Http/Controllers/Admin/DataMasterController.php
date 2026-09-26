@@ -50,7 +50,8 @@ class DataMasterController extends Controller
                 ->where('entity_type', 'etatib_record')
                 ->whereIn('issue_code', ['student_not_found', 'student_name_mismatch'])
                 ->whereNull('resolved_at')
-                ->count(),
+                ->distinct()
+                ->count('source_identifier'),
             'rolloverSummary' => $rolloverTargetYear === null
                 ? null
                 : $rolloverQuery->summarize($rolloverTargetYear),
@@ -122,7 +123,7 @@ class DataMasterController extends Controller
             'actor_id' => $actor->getKey(),
             'url_hash' => hash('sha256', $request->apiUrl()),
             'fingerprint' => $preview['fingerprint'],
-            'at' => time(),
+            'at' => now()->getTimestamp(),
         ]);
         unset($preview['fingerprint']);
 

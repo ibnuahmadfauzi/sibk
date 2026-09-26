@@ -5,7 +5,7 @@
 @section('body')
     <div class="sibk-dashboard">
         @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+            <x-notification-toast>{{ session('success') }}</x-notification-toast>
         @endif
 
         @include('pages.consultations._detail-modal')

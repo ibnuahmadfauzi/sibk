@@ -238,6 +238,28 @@ class EtatibSyncTest extends TestCase
         ]);
     }
 
+    public function test_repeated_unmatched_identity_keeps_one_record_and_one_open_issue(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->fakeConnector(new EtatibSnapshot(false, [[
+            'source_id' => 'tatib-belum-cocok',
+            'nisn' => '0012345678',
+            'source_student_name' => 'Murid Belum Ada',
+            'occurred_at' => '2026-08-19 08:00:00',
+            'violation_type' => 'Terlambat',
+            'category' => 'ringan',
+            'points' => 10,
+        ]]));
+
+        app(EtatibSyncService::class)->synchronize($admin);
+        $second = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_WARNING, $second->status);
+        $this->assertSame(1, $second->conflict_count);
+        $this->assertDatabaseCount('external_tatib_records', 1);
+        $this->assertDatabaseCount('external_sync_issues', 1);
+    }
+
     public function test_delta_tombstone_deactivates_record_without_deleting_history(): void
     {
         $admin = $this->userWithRole('admin_it');

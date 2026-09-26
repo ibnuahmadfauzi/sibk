@@ -12,20 +12,7 @@
         </div>
 
         @if(session('success'))
-            <div class="sibk-assignment-toast-region" aria-live="polite" aria-atomic="true">
-                <div class="toast sibk-assignment-toast" id="dataMasterToast" role="status">
-                    <div class="toast-body d-flex align-items-start gap-2">
-                        <span class="sibk-assignment-toast__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
-                        </span>
-                        <div class="flex-grow-1">
-                            <strong class="d-block">Perubahan berhasil</strong>
-                            <span>{{ session('success') }}</span>
-                        </div>
-                        <button class="btn-close" type="button" data-bs-dismiss="toast" aria-label="Tutup pemberitahuan"></button>
-                    </div>
-                </div>
-            </div>
+            <x-notification-toast>{{ session('success') }}</x-notification-toast>
         @endif
         @if($errors->any())
             <div class="alert alert-danger" role="alert">

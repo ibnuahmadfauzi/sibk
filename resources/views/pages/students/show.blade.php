@@ -64,7 +64,7 @@
                     <tbody>
                         @forelse($etatibRecords as $record)
                             <tr>
-                                <td>{{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }}</td>
+                                <td>{{ $record->occurred_at?->locale('id')->translatedFormat('d M Y H:i') ?? 'Tanggal belum tersedia' }}</td>
                                 <td>{{ $record->violation_type }}</td>
                                 <td>{{ $record->category }}</td>
                                 <td class="fw-bold text-danger">+{{ $record->points }}</td>

@@ -12,7 +12,7 @@
         </div>
 
         @if(session('success'))
-            <div class="alert alert-success" role="status">{{ session('success') }}</div>
+            <x-notification-toast>{{ session('success') }}</x-notification-toast>
         @endif
 
         @include('pages.data-master._integration-setting')

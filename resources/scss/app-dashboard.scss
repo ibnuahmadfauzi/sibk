@@ -2747,7 +2747,7 @@ small, .small {
   }
 }
 
-.sibk-assignment-toast-region {
+.sibk-notification-toast-region {
   bottom: 1.25rem;
   position: fixed;
   right: 1.25rem;
@@ -2863,7 +2863,7 @@ small, .small {
   }
 }
 
-.sibk-assignment-toast {
+.sibk-notification-toast {
   background: var(--sibk-color-success-soft);
   border: 1px solid var(--sibk-color-border-light);
   border-left: 3px solid var(--sibk-color-success);
@@ -2903,8 +2903,17 @@ small, .small {
     background: var(--sibk-color-warning-soft);
     border-left-color: var(--sibk-color-warning);
 
-    .sibk-assignment-toast__icon {
+    .sibk-notification-toast__icon {
       background: var(--sibk-color-warning);
+    }
+  }
+
+  &--error {
+    background: var(--sibk-color-danger-soft);
+    border-left-color: var(--sibk-color-danger);
+
+    .sibk-notification-toast__icon {
+      background: var(--sibk-color-danger);
     }
   }
 }

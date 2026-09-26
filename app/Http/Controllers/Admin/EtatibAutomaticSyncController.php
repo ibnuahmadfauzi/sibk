@@ -33,7 +33,7 @@ final class EtatibAutomaticSyncController extends Controller
         return back()->with(
             $run->status === ExternalSyncRun::STATUS_WARNING ? 'warning' : 'success',
             $run->status === ExternalSyncRun::STATUS_WARNING
-                ? 'Data berhasil disinkronkan dan pembaruan otomatis diaktifkan, tetapi ada konflik yang perlu diperiksa.'
+                ? 'Data berhasil disinkronkan dan pembaruan otomatis diaktifkan. '.$run->summary
                 : 'Data berhasil disinkronkan dan pembaruan otomatis e-Tatib telah aktif.',
         );
     }

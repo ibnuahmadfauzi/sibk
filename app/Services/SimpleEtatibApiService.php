@@ -18,6 +18,7 @@ use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -44,7 +45,8 @@ final class SimpleEtatibApiService
     public function preview(string $url, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
-        $records = $this->records($url);
+        $read = $this->verifiedRecords($url);
+        $records = $read['records'];
         $students = Student::query()
             ->whereIn('nisn', collect($records)->pluck('nisn')->unique())
             ->with(['classMemberships' => fn ($memberships) => $memberships
@@ -104,7 +106,7 @@ final class SimpleEtatibApiService
         $nameCandidates = collect();
         foreach ($conflictNames->chunk(400) as $names) {
             $nameCandidates = $nameCandidates->concat(Student::query()
-                ->whereIn(\Illuminate\Support\Facades\DB::raw('UPPER(TRIM(name))'), $names->all())
+                ->whereIn(DB::raw('UPPER(TRIM(name))'), $names->all())
                 ->with(['classMemberships' => fn ($memberships) => $memberships
                     ->with('classroom', 'academicYear')
                     ->latestYearFirst()])
@@ -126,7 +128,8 @@ final class SimpleEtatibApiService
         }, $identityConflicts);
 
         return [
-            'rows' => count($records),
+            'rows' => $read['received'],
+            'undated' => $read['undated'],
             'students' => collect($records)->pluck('nisn')->unique()->count(),
             'matched' => $matched,
             'conflicts' => count($records) - $matched,
@@ -215,17 +218,20 @@ final class SimpleEtatibApiService
     private function snapshotForSync(string $url, ?array $preview = null, ?User $actor = null): EtatibSnapshot
     {
         try {
-            $records = $this->records($url);
+            $read = $this->verifiedRecords($url);
+            $records = $read['records'];
             if ($actor !== null && (
                 ! is_array($preview)
                 || ($preview['actor_id'] ?? null) !== $actor->getKey()
                 || ($preview['url_hash'] ?? null) !== hash('sha256', $url)
                 || ! is_int($preview['at'] ?? null)
-                || $preview['at'] < time() - 600
+                || $preview['at'] < now()->getTimestamp() - (int) config('session.lifetime') * 60
                 || ! is_string($preview['fingerprint'] ?? null)
-                || ! hash_equals($preview['fingerprint'], $this->fingerprint($records))
             )) {
-                throw new EtatibUnavailableException('Data API e-Tatib berubah atau pratinjau kedaluwarsa. Tinjau data kembali sebelum sinkronisasi.');
+                throw new EtatibUnavailableException('Sesi tinjauan e-Tatib berakhir. Tinjau data kembali sebelum sinkronisasi.');
+            }
+            if ($actor !== null && ! hash_equals($preview['fingerprint'], $this->fingerprint($records))) {
+                throw new EtatibUnavailableException('Data API e-Tatib berubah setelah ditinjau. Tinjau data terbaru sebelum sinkronisasi.');
             }
 
             $missing = $this->missingActiveCount($records);
@@ -236,7 +242,11 @@ final class SimpleEtatibApiService
                 ));
             }
 
-            return new EtatibSnapshot(isFullSnapshot: true, records: $records);
+            return new EtatibSnapshot(
+                isFullSnapshot: true,
+                records: $records,
+                undatedCount: $read['undated'],
+            );
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
 
@@ -266,6 +276,142 @@ final class SimpleEtatibApiService
         usort($stable, static fn (array $left, array $right): int => strcmp($left['source_id'], $right['source_id']));
 
         return hash('sha256', json_encode($stable, JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array{records: list<array<string, int|string|null>>, received: int, undated: int} */
+    private function verifiedRecords(string $url): array
+    {
+        $first = $this->records($url);
+        if (! collect($first)->contains(fn (array $record): bool => $this->hasRecentDate($record))) {
+            return ['records' => $this->retainUndatedIds($first), 'received' => count($first), 'undated' => 0];
+        }
+
+        usleep(1_100_000);
+        $second = $this->records($url);
+        if ($this->fingerprint($first) === $this->fingerprint($second)) {
+            return ['records' => $this->retainUndatedIds($second), 'received' => count($second), 'undated' => 0];
+        }
+
+        $firstById = array_column($first, null, 'source_id');
+        $secondById = array_column($second, null, 'source_id');
+        $removed = array_diff_key($firstById, $secondById);
+        $added = array_diff_key($secondById, $firstById);
+        if (count($first) !== count($second) || $removed === [] || count($removed) !== count($added)) {
+            $this->fail('Data API e-Tatib berubah saat diperiksa. Tinjau data kembali.');
+        }
+
+        $firstCounts = array_count_values(array_map($this->withoutDateFingerprint(...), $first));
+        $secondCounts = array_count_values(array_map($this->withoutDateFingerprint(...), $second));
+        $removedBySignature = [];
+        $addedBySignature = [];
+        foreach ($removed as $record) {
+            $signature = $this->withoutDateFingerprint($record);
+            if (($firstCounts[$signature] ?? 0) !== 1 || ($secondCounts[$signature] ?? 0) !== 1 || ! $this->hasRecentDate($record)) {
+                $this->fail('Tanggal pelanggaran yang berubah tidak dapat dibedakan dengan aman. Sinkronisasi ditahan.');
+            }
+            $removedBySignature[$signature] = $record;
+        }
+        foreach ($added as $record) {
+            $signature = $this->withoutDateFingerprint($record);
+            if (($firstCounts[$signature] ?? 0) !== 1 || ($secondCounts[$signature] ?? 0) !== 1 || ! $this->hasRecentDate($record)) {
+                $this->fail('Tanggal pelanggaran yang berubah tidak dapat dibedakan dengan aman. Sinkronisasi ditahan.');
+            }
+            $addedBySignature[$signature] = $record;
+        }
+        ksort($removedBySignature);
+        ksort($addedBySignature);
+        if (array_keys($removedBySignature) !== array_keys($addedBySignature)) {
+            $this->fail('Data API e-Tatib berubah selain tanggal pelanggaran. Tinjau data kembali.');
+        }
+
+        $stableFirst = array_values(array_filter($first, static fn (array $record): bool => isset($secondById[$record['source_id']])));
+        $stableSecond = array_values(array_filter($second, static fn (array $record): bool => isset($firstById[$record['source_id']])));
+        if ($this->fingerprint($stableFirst) !== $this->fingerprint($stableSecond)) {
+            $this->fail('Data API e-Tatib berubah selain tanggal pelanggaran. Tinjau data kembali.');
+        }
+
+        $firstIdentityCounts = array_count_values(array_map($this->undatedSourceId(...), $first));
+        $secondIdentityCounts = array_count_values(array_map($this->undatedSourceId(...), $second));
+        foreach ($addedBySignature as $signature => $newRecord) {
+            $oldRecord = $removedBySignature[$signature];
+            $sourceId = $this->undatedSourceId($newRecord);
+            if ($sourceId !== $this->undatedSourceId($oldRecord)
+                || $firstIdentityCounts[$sourceId] !== 1
+                || $secondIdentityCounts[$sourceId] !== 1
+            ) {
+                $this->fail('Beberapa pelanggaran tanpa tanggal tidak dapat dibedakan. Sinkronisasi ditahan.');
+            }
+            $oldRecord['source_id'] = $sourceId;
+            $oldRecord['occurred_at'] = null;
+            $newRecord['source_id'] = $sourceId;
+            $newRecord['occurred_at'] = null;
+            $stableFirst[] = $oldRecord;
+            $stableSecond[] = $newRecord;
+        }
+        if ($this->fingerprint($stableFirst) !== $this->fingerprint($stableSecond)) {
+            $this->fail('Data API e-Tatib berubah saat diperiksa. Tinjau data kembali.');
+        }
+
+        return [
+            'records' => $this->retainUndatedIds($stableSecond),
+            'received' => count($second),
+            'undated' => count($added),
+        ];
+    }
+
+    /** @param array<string, int|string|null> $record */
+    private function undatedSourceId(array $record): string
+    {
+        return 'simple-undated-'.hash('sha256', json_encode([
+            $record['nisn'],
+            $this->normalizeText($record['violation_type']),
+            $record['points'],
+            $this->normalizeText($record['recorded_by_name']),
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /** @param list<array<string, int|string|null>> $records @return list<array<string, int|string|null>> */
+    private function retainUndatedIds(array $records): array
+    {
+        $known = ExternalTatibRecord::query()
+            ->whereNull('occurred_at')
+            ->where('source_identifier', 'like', 'simple-undated-%')
+            ->pluck('source_identifier')
+            ->flip();
+        if ($known->isEmpty()) {
+            return $records;
+        }
+
+        $counts = array_count_values(array_map($this->undatedSourceId(...), $records));
+        foreach ($records as &$record) {
+            $sourceId = $this->undatedSourceId($record);
+            if (! $known->has($sourceId)) {
+                continue;
+            }
+            if ($counts[$sourceId] !== 1) {
+                $this->fail('Beberapa pelanggaran tanpa tanggal tidak dapat dibedakan. Sinkronisasi ditahan.');
+            }
+            $record['source_id'] = $sourceId;
+        }
+        unset($record);
+
+        return $records;
+    }
+
+    /** @param array<string, int|string|null> $record */
+    private function hasRecentDate(array $record): bool
+    {
+        $timestamp = CarbonImmutable::parse($record['occurred_at'], 'Asia/Jakarta')->getTimestamp();
+
+        return abs($timestamp - CarbonImmutable::now('Asia/Jakarta')->getTimestamp()) <= 300;
+    }
+
+    /** @param array<string, int|string|null> $record */
+    private function withoutDateFingerprint(array $record): string
+    {
+        unset($record['source_id'], $record['occurred_at'], $record['source_synced_at']);
+
+        return hash('sha256', json_encode($record, JSON_THROW_ON_ERROR));
     }
 
     /** @return list<array<string, int|string|null>> */

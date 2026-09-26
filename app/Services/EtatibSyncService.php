@@ -236,13 +236,26 @@ class EtatibSyncService
 
                 $this->reconcileUnlinkedRecords($actor);
 
-                $conflicts = $run->issues()->whereNull('resolved_at')->count();
+                $conflicts = ExternalSyncIssue::query()
+                    ->where('entity_type', 'etatib_record')
+                    ->whereNull('resolved_at')
+                    ->whereIn('source_identifier', array_column($snapshot->records, 'source_id'))
+                    ->distinct()
+                    ->count('source_identifier');
                 $this->finalizeRun(
                     $run,
-                    $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
-                    $conflicts > 0
-                        ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
-                        : 'Sinkronisasi e-Tatib berhasil.',
+                    $conflicts > 0 || $snapshot->undatedCount > 0
+                        ? ExternalSyncRun::STATUS_WARNING
+                        : ExternalSyncRun::STATUS_SUCCEEDED,
+                    $snapshot->undatedCount > 0
+                        ? sprintf(
+                            'Sinkronisasi e-Tatib selesai. %d pelanggaran disimpan tanpa tanggal karena tanggal dari API berubah.%s',
+                            $snapshot->undatedCount,
+                            $conflicts > 0 ? sprintf(' %d identitas perlu diperiksa.', $conflicts) : '',
+                        )
+                        : ($conflicts > 0
+                            ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
+                            : 'Sinkronisasi e-Tatib berhasil.'),
                     $actor,
                     $processed,
                     $conflicts,
@@ -431,12 +444,14 @@ class EtatibSyncService
     /** @param array<string, mixed> $item */
     private function issue(ExternalSyncRun $run, array $item, string $code, string $summary): ExternalSyncIssue
     {
-        return ExternalSyncIssue::query()->create([
-            'external_sync_run_id' => $run->getKey(),
+        return ExternalSyncIssue::query()->firstOrCreate([
             'entity_type' => 'etatib_record',
             'source_identifier' => $item['source_id'],
-            'nisn' => $item['nisn'],
             'issue_code' => $code,
+            'resolved_at' => null,
+        ], [
+            'external_sync_run_id' => $run->getKey(),
+            'nisn' => $item['nisn'],
             'summary' => $summary,
             'input_name' => $item['source_student_name'] ?? null,
         ]);
@@ -510,7 +525,7 @@ class EtatibSyncService
     private function recordClassroomWarning(ExternalSyncRun $run, array $item, Student $student): void
     {
         $sourceClassroom = $item['source_classroom_name'] ?? null;
-        if (! is_string($sourceClassroom) || $sourceClassroom === '') {
+        if (! is_string($sourceClassroom) || $sourceClassroom === '' || $item['occurred_at'] === null) {
             return;
         }
 
