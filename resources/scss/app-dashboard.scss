@@ -2328,16 +2328,17 @@ small, .small {
   tbody tr {
     transition: background-color 0.18s ease-in-out;
 
-    &:hover {
-      background-color: var(--sibk-color-page) !important;
-      box-shadow: none;
-    }
-
+    &:hover,
     &.sibk-table__row--clickable:hover {
       background-color: var(--sibk-color-page) !important;
       box-shadow: none;
 
-      td {
+      > td,
+      > th,
+      td,
+      th {
+        background-color: var(--sibk-color-page) !important;
+        --bs-table-bg: var(--sibk-color-page) !important;
         color: var(--sibk-color-text-dark);
       }
     }
@@ -2352,6 +2353,7 @@ small, .small {
     border-bottom: 1px dashed var(--sibk-color-border-light);
     word-break: normal;
     overflow-wrap: break-word;
+    transition: background-color 0.18s ease-in-out, color 0.18s ease-in-out;
   }
 
   tbody tr:last-child td {
