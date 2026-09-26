@@ -58,10 +58,9 @@ class DashboardTest extends TestCase
         $teacherDashboard = $service->forUser($teacherA, $this->year);
         $this->assertSame('1', $this->stat($teacherDashboard, 'Murid dalam cakupan'));
         $this->assertSame('1', $this->stat($teacherDashboard, 'Permasalahan aktif'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Kelas ampuan'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Permasalahan khusus aktif'));
+        $this->assertSame('Kelas Ampuan', $teacherDashboard['context_panel']['title']);
+        $this->assertSame('1 murid', $this->contextValue($teacherDashboard, 'X RPL 1'));
         $this->assertSame('1', $this->stat($teacherDashboard, 'Permasalahan Tindak Lanjut'));
-        $this->assertSame('1', $this->contextValue($teacherDashboard, 'Permasalahan Tindak Lanjut'));
         $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['title']);
         $this->assertSame('Layanan permasalahan', $teacherDashboard['tindak_lanjut'][0]['code']);
         $this->assertSame('Tindak Lanjut', $teacherDashboard['tindak_lanjut'][0]['status']);
@@ -124,7 +123,8 @@ class DashboardTest extends TestCase
 
         $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('Cakupan layanan Anda')
+            ->assertSee('Kelas Ampuan')
+            ->assertSee('Belum ada kelas ampuan')
             ->assertDontSee('Aktivitas terbaru')
             ->assertDontSee('NARASI-AUDIT-RAHASIA');
     }
@@ -168,6 +168,79 @@ class DashboardTest extends TestCase
 
         $this->assertSame(['case', 'consultation', 'report'], array_column($actions, 'icon'));
         $this->assertSame(['primary', 'primary', 'primary'], array_column($actions, 'tone'));
+    }
+
+    public function test_teacher_dashboard_displays_only_assigned_classes_in_context_panel(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Ampuan');
+        $otherTeacher = $this->userWithRole('guru_bk', 'Guru Lain');
+
+        $classA = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'X RPL 1',
+            'grade_level' => 10,
+            'major' => 'Rekayasa Perangkat Lunak',
+            'is_active' => true,
+        ]);
+        $classB = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'XI RPL 2',
+            'grade_level' => 11,
+            'major' => 'Rekayasa Perangkat Lunak',
+            'is_active' => true,
+        ]);
+        $classOther = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'XII TKJ 1',
+            'grade_level' => 12,
+            'major' => 'Teknik Komputer dan Jaringan',
+            'is_active' => true,
+        ]);
+
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classA->id,
+            'academic_year_id' => $this->year->id,
+            'assigned_by' => $teacher->id,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classB->id,
+            'academic_year_id' => $this->year->id,
+            'assigned_by' => $teacher->id,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $otherTeacher->id,
+            'classroom_id' => $classOther->id,
+            'academic_year_id' => $this->year->id,
+            'assigned_by' => $otherTeacher->id,
+        ]);
+
+        $student1 = Student::query()->create(['nisn' => '0011223344', 'name' => 'Murid Satu', 'is_active' => true]);
+        $student2 = Student::query()->create(['nisn' => '0011223355', 'name' => 'Murid Dua', 'is_active' => true]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student1->id,
+            'classroom_id' => $classA->id,
+            'academic_year_id' => $this->year->id,
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student2->id,
+            'classroom_id' => $classA->id,
+            'academic_year_id' => $this->year->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($teacher)->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSee('Kelas Ampuan')
+            ->assertSee('X RPL 1')
+            ->assertSee('2 murid')
+            ->assertSee('XI RPL 2')
+            ->assertSee('0 murid')
+            ->assertDontSee('XII TKJ 1')
+            ->assertDontSee('Cakupan layanan Anda')
+            ->assertDontSee('Permasalahan khusus aktif');
     }
 
     /** @return array{Student, BkCase} */

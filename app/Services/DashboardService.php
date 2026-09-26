@@ -119,12 +119,20 @@ class DashboardService
                 : $this->followUpItems($followUpCases->limit(6)->get()),
             'context_panel' => [
                 'title' => match ($mode) {
-                    'teacher' => 'Cakupan layanan Anda',
+                    'teacher' => 'Kelas Ampuan',
                     'coordinator' => 'Kesiapan penugasan BK',
                 },
                 'items' => match ($mode) {
-                    'teacher' => $this->teacherCoverageItems($user, $year),
+                    'teacher' => $this->teacherAssignedClasses($user, $year),
                     'coordinator' => $this->coordinatorCoverageItems($year),
+                },
+                'empty_title' => match ($mode) {
+                    'teacher' => 'Belum ada kelas ampuan',
+                    default => 'Tidak ada data',
+                },
+                'empty_description' => match ($mode) {
+                    'teacher' => 'Anda belum memiliki penugasan kelas pada tahun ajaran ini.',
+                    default => 'Tidak ada informasi untuk ditampilkan.',
                 },
             ],
             'quick_actions' => $this->quickActions($mode),
@@ -189,29 +197,49 @@ class DashboardService
         ];
     }
 
-    /** @return list<array{label: string, value: string, meta: string}> */
-    private function teacherCoverageItems(User $user, ?AcademicYear $year): array
+    /** @return list<array{label: string, value: string, meta: string, url: string}> */
+    private function teacherAssignedClasses(User $user, ?AcademicYear $year): array
     {
         $assignments = TeacherAssignment::query()
             ->where('user_id', $user->getKey())
-            ->inActiveYear()
-            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
-                ->where('academic_year_id', $selected->getKey()));
-        $cases = BkCase::query()
-            ->withinStudentServicePeriod()
-            ->whereNull('closed_at')
-            ->whereHas('assignments', fn (Builder $query): Builder => $query
-                ->where('user_id', $user->getKey()))
-            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
-                ->where('academic_year_id', $selected->getKey()));
-        $followUpCases = (clone $cases)->whereHas('status', fn (Builder $status): Builder => $status
-            ->where('code', ServiceRecordStatus::NEEDS_FOLLOW_UP));
+            ->when($year,
+                fn (Builder $query, AcademicYear $selected): Builder => $query->where('academic_year_id', $selected->getKey()),
+                fn (Builder $query): Builder => $query->inActiveYear()
+            )
+            ->with(['classroom' => fn ($query) => $query
+                ->withCount(['studentClassMemberships as student_count' => fn (Builder $memberships): Builder => $memberships
+                    ->active()
+                    ->when($year,
+                        fn (Builder $m, AcademicYear $selected): Builder => $m->where('academic_year_id', $selected->getKey()),
+                        fn (Builder $m): Builder => $m->inActiveYear()
+                    )
+                    ->whereHas('student', fn (Builder $students): Builder => $students->active())
+                ])
+            ])
+            ->get();
 
-        return [
-            ['label' => 'Kelas ampuan', 'value' => (string) $assignments->distinct()->count('classroom_id'), 'meta' => 'Penugasan efektif saat ini'],
-            ['label' => 'Permasalahan khusus aktif', 'value' => (string) $cases->count(), 'meta' => 'Sebagai penanggung jawab'],
-            ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCases->count(), 'meta' => 'Perlu ditindaklanjuti'],
-        ];
+        $classrooms = $assignments
+            ->pluck('classroom')
+            ->filter()
+            ->unique('id')
+            ->sortBy('name', SORT_NATURAL);
+
+        return $classrooms->map(function (Classroom $classroom): array {
+            $metaParts = [];
+            if ($classroom->grade_level) {
+                $metaParts[] = 'Tingkat '.$classroom->grade_level;
+            }
+            if ($classroom->major) {
+                $metaParts[] = $classroom->major;
+            }
+
+            return [
+                'label' => $classroom->name,
+                'value' => sprintf('%d murid', $classroom->student_count ?? 0),
+                'meta' => ! empty($metaParts) ? implode(' • ', $metaParts) : 'Kelas aktif',
+                'url' => route('students.index', ['classroom_id' => $classroom->getKey()]),
+            ];
+        })->values()->all();
     }
 
     /** @return list<array{label: string, value: string, meta: string}> */
