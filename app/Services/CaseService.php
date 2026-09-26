@@ -148,6 +148,7 @@ class CaseService
     {
         return DB::transaction(function () use ($case, $data, $actor): BkCase {
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
+            $this->assertActiveYear($case);
             if (! $case->isOwnedBy($actor)) {
                 throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
             }
@@ -187,6 +188,7 @@ class CaseService
     ): BkCase {
         return DB::transaction(function () use ($case, $typeId, $expectedUpdatedAt, $actor): BkCase {
             $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
+            $this->assertActiveYear($case);
             if (! $case->isOwnedBy($actor)) {
                 throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
             }
@@ -220,6 +222,7 @@ class CaseService
     {
         DB::transaction(function () use ($case, $actor): void {
             $case = BkCase::query()->lockForUpdate()->findOrFail($case->getKey());
+            $this->assertActiveYear($case);
 
             if (! $case->isOwnedBy($actor)) {
                 throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
@@ -234,6 +237,13 @@ class CaseService
             );
             $case->delete();
         });
+    }
+
+    private function assertActiveYear(BkCase $case): void
+    {
+        if ($case->academicYear?->is_active !== true) {
+            throw ValidationException::withMessages(['case' => 'Kasus tahun ajaran sebelumnya hanya dapat dilihat.']);
+        }
     }
 
     private function reference(string $category, int $id): ReferenceValue

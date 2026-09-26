@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
+use App\Models\EtatibIdentityMapping;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
@@ -35,7 +37,7 @@ class SimpleEtatibApiTest extends TestCase
         );
     }
 
-    public function test_preview_reads_bare_array_shows_full_nisn_and_does_not_mutate_data(): void
+    public function test_preview_shows_counts_and_only_conflicting_identities_without_mutation(): void
     {
         Student::query()->create([
             'nisn' => '0093200788',
@@ -54,7 +56,15 @@ class SimpleEtatibApiTest extends TestCase
             ->assertJsonPath('data.students', 2)
             ->assertJsonPath('data.matched', 1)
             ->assertJsonPath('data.conflicts', 1)
-            ->assertJsonPath('data.sample.0.nisn', '0093200788');
+            ->assertJsonPath('data.missing_students', 1)
+            ->assertJsonPath('data.name_mismatches', 0)
+            ->assertJsonPath('data.missing', 0)
+            ->assertJsonPath('data.identity_conflicts.0.nisn', '0081784737')
+            ->assertJsonPath('data.identity_conflicts.0.classroom', '11 TKJ 1')
+            ->assertJsonMissingPath('data.fingerprint')
+            ->assertJsonMissingPath('data.sample');
+        $this->assertStringNotContainsString('0093200788', $response->getContent());
+        $this->assertStringNotContainsString('FERRYSCHA PUTRI', $response->getContent());
         $this->assertDatabaseCount('external_tatib_records', 0);
         $this->assertDatabaseCount('external_sync_runs', 0);
     }
@@ -65,9 +75,14 @@ class SimpleEtatibApiTest extends TestCase
             'nisn' => '0093200788',
             'name' => 'FERRYSCHA PUTRI',
         ]);
-        Http::fake([self::URL => Http::response([$this->payload()[0]])]);
+        Http::fake([self::URL => Http::sequence()
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
 
         $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+        $this
             ->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
             ->assertRedirect()
             ->assertSessionHas('success', 'Sinkronisasi e-Tatib berhasil.');
@@ -87,6 +102,136 @@ class SimpleEtatibApiTest extends TestCase
             'received_count' => 1,
             'processed_count' => 1,
         ]);
+    }
+
+    public function test_preview_flags_same_nisn_with_different_name_and_shows_source_class(): void
+    {
+        Student::query()->create([
+            'nisn' => '0093200788',
+            'name' => 'Nama di Master',
+        ]);
+        Http::fake([self::URL => Http::response([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertJsonPath('data.conflicts', 1)
+            ->assertJsonPath('data.missing_students', 0)
+            ->assertJsonPath('data.name_mismatches', 1)
+            ->assertJsonPath('data.identity_conflicts.0.classroom', '12 PH 2')
+            ->assertJsonPath('data.identity_conflicts.0.reason', 'Nama pada master: Nama di Master · Kelas master: -');
+    }
+
+    public function test_admin_can_choose_master_student_in_preview_and_sync_without_another_mapping_step(): void
+    {
+        $sameNisn = Student::query()->create(['nisn' => '0093200788', 'name' => 'NAMA LAIN']);
+        $suggestion = Student::query()->create(['nisn' => '0012345678', 'name' => 'FERRYSCHA PUTRI']);
+        Http::fake([self::URL => Http::sequence()
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertJsonPath('data.identity_conflicts.0.master.id', $sameNisn->id)
+            ->assertJsonPath('data.identity_conflicts.0.master.nisn', '0093200788')
+            ->assertJsonPath('data.identity_conflicts.0.suggestions.0.id', $suggestion->id)
+            ->assertJsonPath('data.identity_conflicts.0.suggestions.0.nisn', '0012345678');
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
+
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL,
+            'identity_decisions' => [[
+                'nisn' => '0093200788',
+                'name' => 'FERRYSCHA PUTRI',
+                'student_id' => $suggestion->id,
+            ]],
+        ])->assertSessionHas('success');
+
+        $this->assertSame($suggestion->id, ExternalTatibRecord::query()->sole()->student_id);
+        $this->assertSame($suggestion->id, EtatibIdentityMapping::query()->sole()->student_id);
+    }
+
+    public function test_forged_preview_identity_choice_rejects_sync_without_mapping(): void
+    {
+        $student = Student::query()->create(['nisn' => '0093200788', 'name' => 'NAMA LAIN']);
+        Http::fake([self::URL => Http::sequence()
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL,
+            'identity_decisions' => [[
+                'nisn' => '0093200788',
+                'name' => 'NAMA YANG TIDAK ADA',
+                'student_id' => $student->id,
+            ]],
+        ])->assertSessionHasErrors('etatib_sync');
+
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
+        $this->assertDatabaseCount('external_tatib_records', 0);
+    }
+
+    public function test_preview_shows_active_year_without_calendar_gate(): void
+    {
+        AcademicYear::query()->create([
+            'name' => '2024/2025',
+            'is_active' => true,
+        ]);
+        Http::fake([self::URL => Http::response($this->payload())]);
+
+        $response = $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+
+        $response->assertJsonPath('data.active_year', '2024/2025')
+            ->assertJsonMissingPath('data.roster_warning');
+    }
+
+    public function test_sync_rejects_changed_api_response_after_preview(): void
+    {
+        $changed = $this->payload();
+        $changed[0]['poin_pelanggaran'] = 15;
+        Http::fake([
+            self::URL => Http::sequence()
+                ->push($this->payload())
+                ->push($changed),
+        ]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+            ->assertRedirect()
+            ->assertSessionHasErrors('etatib_sync');
+
+        $this->assertDatabaseCount('external_tatib_records', 0);
+        $this->assertDatabaseHas('external_sync_runs', ['status' => ExternalSyncRun::STATUS_FAILED]);
+    }
+
+    public function test_missing_previous_record_blocks_sync_and_preserves_local_data(): void
+    {
+        Http::fake([self::URL => Http::sequence()
+            ->push($this->payload())
+            ->push($this->payload())
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+            ->assertSessionHas('warning');
+
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertJsonPath('data.missing', 1);
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+            ->assertSessionHasErrors('etatib_sync');
+
+        $this->assertSame(2, ExternalTatibRecord::query()->active()->count());
     }
 
     public function test_masked_nisn_and_identical_rows_are_rejected_before_sync(): void

@@ -28,6 +28,7 @@ class ConsultationPolicy
     public function update(User $user, Consultation $consultation): bool
     {
         return $user->hasRole('guru_bk')
+            && $consultation->academicYear?->is_active === true
             && $consultation->counselor_id === $user->getKey()
             && $consultation->isProfessionallyAccessibleTo($user);
     }

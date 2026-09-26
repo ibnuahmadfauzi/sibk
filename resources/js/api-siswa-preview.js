@@ -10,7 +10,7 @@ const appendCell = (row, text, className = '') => {
     row.append(createElement('td', className, text));
 };
 
-const renderPreview = (container, preview) => {
+const renderPreview = (container, preview, onSelectionChange) => {
     container.replaceChildren();
 
     const status = createElement(
@@ -19,7 +19,9 @@ const renderPreview = (container, preview) => {
         preview.can_import
             ? 'Tidak ada konflik. Data siap diimpor.'
             : preview.conflict_count
-                ? `${preview.conflict_count} data perlu diperiksa. Impor belum dapat dilanjutkan.`
+                ? preview.duplicate_group_count
+                    ? 'Pilih satu baris untuk setiap NISN ganda. Konflik lain tetap harus diperbaiki.'
+                    : `${preview.conflict_count} data perlu diperiksa. Impor belum dapat dilanjutkan.`
                 : 'Ada tahun pelajaran yang belum siap diimpor.',
     );
     container.append(status);
@@ -61,7 +63,10 @@ const renderPreview = (container, preview) => {
     yearTable.append(yearHead, yearBody);
     yearWrapper.append(yearTable);
     container.append(yearTitle, yearWrapper);
-    if (!preview.conflict_count) return;
+    if (!preview.conflict_count) {
+        onSelectionChange([], preview.can_import);
+        return;
+    }
 
     const listTitle = createElement('h4', 'fs-6 fw-bold mt-4 mb-2', 'Data yang Perlu Diperiksa');
     const controls = createElement('div', 'd-flex flex-wrap align-items-center gap-2 mb-2');
@@ -76,7 +81,7 @@ const renderPreview = (container, preview) => {
     const caption = createElement('caption', 'visually-hidden', 'Daftar murid yang konflik');
     const listHead = createElement('thead');
     const headingRow = createElement('tr');
-    ['NISN', 'Nama', 'Tahun Pelajaran', 'Rombel API', 'Rombel SIBK', 'Hasil'].forEach((label) => {
+    [...(preview.duplicate_group_count ? ['Pilih'] : []), 'NISN', 'Nama', 'Tahun Pelajaran', 'Rombel API', 'Rombel SIBK', 'Hasil'].forEach((label) => {
         headingRow.append(createElement('th', '', label));
     });
     listHead.append(headingRow);
@@ -95,6 +100,7 @@ const renderPreview = (container, preview) => {
 
     let page = 0;
     const pageSize = 50;
+    const selected = new Map();
     const renderRows = () => {
         const term = search.value.trim().toLocaleLowerCase('id');
         const entries = preview.entries.filter((entry) =>
@@ -105,6 +111,30 @@ const renderPreview = (container, preview) => {
         listBody.replaceChildren();
         entries.slice(page * pageSize, (page + 1) * pageSize).forEach((entry) => {
             const row = createElement('tr', 'table-warning');
+            if (preview.duplicate_group_count) {
+                const cell = createElement('td');
+                if (entry.duplicate) {
+                    const group = `${entry.academic_year}|${entry.nisn}`;
+                    const choice = createElement('input', 'form-check-input');
+                    choice.type = 'radio';
+                    choice.name = `duplicate-${group}`;
+                    choice.checked = selected.get(group)?.row_index === entry.row_index;
+                    choice.setAttribute('aria-label', `Gunakan ${entry.name}, NISN ${entry.nisn}, ${entry.classroom}`);
+                    choice.addEventListener('change', () => {
+                        selected.set(group, entry);
+                        const ready = preview.can_import_after_selection
+                            && selected.size === preview.duplicate_group_count
+                            && [...selected.values()].every((item) => !item.blocking);
+                        status.className = `alert ${ready ? 'alert-success' : 'alert-warning'}`;
+                        status.textContent = ready
+                            ? 'Pilihan lengkap. Data siap diimpor.'
+                            : 'Pilih satu baris untuk setiap NISN ganda. Konflik lain tetap harus diperbaiki.';
+                        onSelectionChange([...selected.values()].map((item) => item.row_index), ready);
+                    });
+                    cell.append(choice);
+                }
+                row.append(cell);
+            }
             [entry.nisn, entry.name, entry.academic_year, entry.classroom, entry.current_classroom ?? '—', entry.status]
                 .forEach((value) => appendCell(row, value));
             listBody.append(row);
@@ -112,7 +142,7 @@ const renderPreview = (container, preview) => {
         if (!entries.length) {
             const empty = createElement('tr');
             const cell = createElement('td', 'text-center text-muted py-3', 'Tidak ada konflik yang cocok.');
-            cell.colSpan = 6;
+            cell.colSpan = preview.duplicate_group_count ? 7 : 6;
             empty.append(cell);
             listBody.append(empty);
         }
@@ -125,6 +155,7 @@ const renderPreview = (container, preview) => {
     next.addEventListener('click', () => { page++; renderRows(); });
     renderRows();
     container.append(listTitle, controls, listWrapper, navigation);
+    onSelectionChange([], false);
 
 };
 
@@ -145,6 +176,8 @@ export const initApiSiswaPreview = async (root = document) => {
     const urlInput = form.elements.namedItem('api_url');
     let requestController;
     let previewedUrl = '';
+    let selectedRows = [];
+    let previewHash = '';
 
     form.addEventListener('submit', async (event) => {
         if (form.dataset.importConfirmed === 'true') {
@@ -158,6 +191,7 @@ export const initApiSiswaPreview = async (root = document) => {
         requestController?.abort();
         requestController = new AbortController();
         previewedUrl = '';
+        form.querySelectorAll('[data-api-siswa-selection]').forEach((input) => input.remove());
         confirmButton.disabled = true;
         previewButton.disabled = true;
         body.replaceChildren(createElement('p', 'text-muted mb-0', 'Menghubungi API Siswa...'));
@@ -182,9 +216,12 @@ export const initApiSiswaPreview = async (root = document) => {
                 return;
             }
 
-            renderPreview(body, payload.data);
+            renderPreview(body, payload.data, (rows, ready) => {
+                selectedRows = rows;
+                confirmButton.disabled = !ready;
+            });
             previewedUrl = urlInput.value;
-            confirmButton.disabled = !payload.data.can_import;
+            previewHash = payload.data.preview_hash;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 renderFailure(body, 'Pratinjau tidak dapat dimuat. Periksa koneksi lalu coba lagi.');
@@ -202,6 +239,20 @@ export const initApiSiswaPreview = async (root = document) => {
         }
 
         form.dataset.importConfirmed = 'true';
+        const hashInput = createElement('input');
+        hashInput.type = 'hidden';
+        hashInput.name = 'preview_hash';
+        hashInput.value = previewHash;
+        hashInput.dataset.apiSiswaSelection = '';
+        form.append(hashInput);
+        selectedRows.forEach((index) => {
+            const input = createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_rows[]';
+            input.value = String(index);
+            input.dataset.apiSiswaSelection = '';
+            form.append(input);
+        });
         confirmButton.disabled = true;
         modal.hide();
         form.requestSubmit();

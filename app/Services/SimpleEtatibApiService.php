@@ -7,8 +7,10 @@ namespace App\Services;
 use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\Etatib\EtatibUnavailableException;
 use App\Integrations\IntegrationOperationContext;
+use App\Models\AcademicYear;
 use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncRun;
+use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
 use App\Models\Student;
 use App\Models\User;
@@ -38,13 +40,16 @@ final class SimpleEtatibApiService
         private readonly ?Closure $resolver = null,
     ) {}
 
-    /** @return array{rows: int, students: int, matched: int, conflicts: int, sample: list<array<string, int|string>>} */
+    /** @return array<string, mixed> */
     public function preview(string $url, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
         $records = $this->records($url);
         $students = Student::query()
             ->whereIn('nisn', collect($records)->pluck('nisn')->unique())
+            ->with(['classMemberships' => fn ($memberships) => $memberships
+                ->with('classroom', 'academicYear')
+                ->latestYearFirst()])
             ->get()
             ->keyBy('nisn');
         $manualMappings = EtatibIdentityMapping::query()
@@ -62,24 +67,80 @@ final class SimpleEtatibApiService
             return $student instanceof Student
                 && $this->normalizeText($student->name) === $this->normalizeText($record['source_student_name']);
         })->count();
+        $identityConflicts = collect($records)
+            ->filter(function (array $record) use ($students, $manualMappings): bool {
+                $mappingKey = $record['nisn'].'|'.hash('sha256', $this->normalizeText($record['source_student_name']));
+                if ($manualMappings->has($mappingKey)) {
+                    return false;
+                }
+
+                $student = $students->get($record['nisn']);
+
+                return ! $student instanceof Student
+                    || $this->normalizeText($student->name) !== $this->normalizeText($record['source_student_name']);
+            })
+            ->groupBy(fn (array $record): string => $record['nisn'].'|'.$this->normalizeText($record['source_student_name']))
+            ->map(function ($group) use ($students): array {
+                $record = $group->first();
+                $student = $students->get($record['nisn']);
+
+                return [
+                    'nisn' => $record['nisn'],
+                    'name' => $record['source_student_name'],
+                    'classroom' => $group->pluck('source_classroom_name')->unique()->implode(', '),
+                    'kind' => $student instanceof Student ? 'name_mismatch' : 'nisn_not_found',
+                    'reason' => $student instanceof Student
+                        ? 'Nama pada master: '.$student->name.' · Kelas master: '.($student->classMemberships->first()?->classroom?->name ?? '-')
+                        : 'NISN ini belum ada pada master murid.',
+                ];
+            })
+            ->values()
+            ->all();
+        $conflictNames = collect($identityConflicts)
+            ->pluck('name')
+            ->map(fn (string $name): string => $this->normalizeText($name))
+            ->unique()
+            ->values();
+        $nameCandidates = collect();
+        foreach ($conflictNames->chunk(400) as $names) {
+            $nameCandidates = $nameCandidates->concat(Student::query()
+                ->whereIn(\Illuminate\Support\Facades\DB::raw('UPPER(TRIM(name))'), $names->all())
+                ->with(['classMemberships' => fn ($memberships) => $memberships
+                    ->with('classroom', 'academicYear')
+                    ->latestYearFirst()])
+                ->get());
+        }
+        $nameCandidates = $nameCandidates->groupBy(fn (Student $student): string => $this->normalizeText($student->name));
+        $identityConflicts = array_map(function (array $conflict) use ($students, $nameCandidates): array {
+            $sameNisn = $students->get($conflict['nisn']);
+            $conflict['master'] = $sameNisn instanceof Student ? $this->studentChoice($sameNisn) : null;
+            $conflict['suggestions'] = $nameCandidates
+                ->get($this->normalizeText($conflict['name']), collect())
+                ->reject(fn (Student $student): bool => $student->nisn === $conflict['nisn'])
+                ->take(3)
+                ->map(fn (Student $student): array => $this->studentChoice($student))
+                ->values()
+                ->all();
+
+            return $conflict;
+        }, $identityConflicts);
 
         return [
             'rows' => count($records),
             'students' => collect($records)->pluck('nisn')->unique()->count(),
             'matched' => $matched,
             'conflicts' => count($records) - $matched,
-            'sample' => array_map(fn (array $record): array => [
-                'nisn' => $record['nisn'],
-                'name' => $record['source_student_name'],
-                'classroom' => $record['source_classroom_name'],
-                'violation' => $record['violation_type'],
-                'occurred_at' => CarbonImmutable::parse($record['occurred_at'])->format('d M Y H:i'),
-                'points' => $record['points'],
-            ], array_slice($records, 0, 5)),
+            'missing' => $this->missingActiveCount($records),
+            'missing_students' => collect($identityConflicts)->where('kind', 'nisn_not_found')->count(),
+            'name_mismatches' => collect($identityConflicts)->where('kind', 'name_mismatch')->count(),
+            'active_year' => AcademicYear::query()->active()->value('name'),
+            'identity_conflicts' => $identityConflicts,
+            'fingerprint' => $this->fingerprint($records),
         ];
     }
 
-    public function synchronize(string $url, User $actor): ExternalSyncRun
+    /** @param array<string, mixed>|null $preview */
+    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = []): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
@@ -88,8 +149,9 @@ final class SimpleEtatibApiService
         ]);
 
         return $this->syncService->synchronizeUsing(
-            fn (IntegrationOperationContext $context): EtatibSnapshot => $this->snapshotForSync($url),
+            fn (IntegrationOperationContext $context): EtatibSnapshot => $this->snapshotForSync($url, $preview, $actor),
             $actor,
+            $decisions,
         );
     }
 
@@ -135,10 +197,46 @@ final class SimpleEtatibApiService
         );
     }
 
-    private function snapshotForSync(string $url): EtatibSnapshot
+    /** @return array{id: int, nisn: string, name: string, classroom: string, academic_year: string|null} */
+    private function studentChoice(Student $student): array
+    {
+        $membership = $student->classMemberships->first();
+
+        return [
+            'id' => (int) $student->getKey(),
+            'nisn' => $student->nisn,
+            'name' => $student->name,
+            'classroom' => $membership?->classroom?->name ?? '-',
+            'academic_year' => $membership?->academicYear?->name,
+        ];
+    }
+
+    /** @param array<string, mixed>|null $preview */
+    private function snapshotForSync(string $url, ?array $preview = null, ?User $actor = null): EtatibSnapshot
     {
         try {
-            return new EtatibSnapshot(isFullSnapshot: true, records: $this->records($url));
+            $records = $this->records($url);
+            if ($actor !== null && (
+                ! is_array($preview)
+                || ($preview['actor_id'] ?? null) !== $actor->getKey()
+                || ($preview['url_hash'] ?? null) !== hash('sha256', $url)
+                || ! is_int($preview['at'] ?? null)
+                || $preview['at'] < time() - 600
+                || ! is_string($preview['fingerprint'] ?? null)
+                || ! hash_equals($preview['fingerprint'], $this->fingerprint($records))
+            )) {
+                throw new EtatibUnavailableException('Data API e-Tatib berubah atau pratinjau kedaluwarsa. Tinjau data kembali sebelum sinkronisasi.');
+            }
+
+            $missing = $this->missingActiveCount($records);
+            if ($missing > 0) {
+                throw new EtatibUnavailableException(sprintf(
+                    '%d pelanggaran aktif sebelumnya tidak ada dalam respons API e-Tatib. Sinkronisasi ditahan; periksa kelengkapan data di sumber.',
+                    $missing,
+                ));
+            }
+
+            return new EtatibSnapshot(isFullSnapshot: true, records: $records);
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
 
@@ -146,6 +244,28 @@ final class SimpleEtatibApiService
                 is_string($message) ? $message : 'Sinkronisasi e-Tatib gagal. Data lama tetap dipertahankan.',
             );
         }
+    }
+
+    /** @param list<array<string, int|string|null>> $records */
+    private function missingActiveCount(array $records): int
+    {
+        return ExternalTatibRecord::query()
+            ->active()
+            ->whereNotIn('source_identifier', array_column($records, 'source_id'))
+            ->count();
+    }
+
+    /** @param list<array<string, int|string|null>> $records */
+    private function fingerprint(array $records): string
+    {
+        $stable = array_map(static function (array $record): array {
+            unset($record['source_synced_at']);
+
+            return $record;
+        }, $records);
+        usort($stable, static fn (array $left, array $right): int => strcmp($left['source_id'], $right['source_id']));
+
+        return hash('sha256', json_encode($stable, JSON_THROW_ON_ERROR));
     }
 
     /** @return list<array<string, int|string|null>> */

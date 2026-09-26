@@ -178,6 +178,11 @@ class ConsultationService
 
     private function assertOwnedAndAccessible(Consultation $consultation, User $actor, string $action): void
     {
+        if ($consultation->academicYear?->is_active !== true) {
+            throw ValidationException::withMessages([
+                'consultation' => 'Konsultasi tahun ajaran sebelumnya hanya dapat dilihat.',
+            ]);
+        }
         if ($consultation->counselor_id !== $actor->getKey() || ! $consultation->isProfessionallyAccessibleTo($actor)) {
             throw ValidationException::withMessages([
                 'consultation' => "Konsultasi hanya dapat {$action} oleh pencatat yang masih memiliki kewenangan.",

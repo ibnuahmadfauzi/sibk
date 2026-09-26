@@ -406,6 +406,35 @@ class ConsultationManagementTest extends TestCase
         $this->assertSame($consultation->classroom_id, $consultation->fresh()->classroom_id);
     }
 
+    public function test_previous_year_consultation_is_read_only(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($teacher, $student);
+        AcademicYear::query()->whereKey($consultation->academic_year_id)->update(['is_active' => false]);
+        $nextYear = AcademicYear::query()->create(['name' => '2027/2028', 'is_active' => true]);
+        $nextClassroom = Classroom::query()->create([
+            'academic_year_id' => $nextYear->id, 'name' => 'XI RPL 1', 'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id, 'classroom_id' => $nextClassroom->id,
+            'academic_year_id' => $nextYear->id, 'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id, 'classroom_id' => $nextClassroom->id,
+            'academic_year_id' => $nextYear->id, 'assigned_by' => $teacher->id,
+        ]);
+
+        $this->actingAs($teacher)->get(route('consultations.show', $consultation))->assertOk();
+        $this->assertFalse($teacher->can('update', $consultation->fresh()));
+        $this->actingAs($teacher)->patch(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'student_id' => $student->id,
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ])->assertForbidden();
+        $this->actingAs($teacher)->delete(route('consultations.destroy', $consultation))->assertForbidden();
+        $this->assertDatabaseHas('consultations', ['id' => $consultation->id, 'deleted_at' => null]);
+    }
+
     /** @return array{User, Student} */
     private function teacherAndScopedStudent(): array
     {
@@ -481,6 +510,7 @@ class ConsultationManagementTest extends TestCase
     {
         $consultation = new Consultation([
             ...$this->payload(),
+            'academic_year_id' => AcademicYear::query()->active()->value('id'),
             'temporary_student_id' => $temporary->id,
             'session_date' => $date,
             'counselor_id' => $teacher->id,

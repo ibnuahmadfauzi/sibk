@@ -33,6 +33,7 @@ class DataMasterController extends Controller
             ->orderByDesc('starts_on')
             ->orderByDesc('id')
             ->first();
+        $activeAcademicYear = AcademicYear::query()->active()->first();
 
         return response()->view('pages.data-master.index', [
             'activeTab' => match ($request->query('tab')) {
@@ -53,8 +54,22 @@ class DataMasterController extends Controller
             'rolloverSummary' => $rolloverTargetYear === null
                 ? null
                 : $rolloverQuery->summarize($rolloverTargetYear),
-            'preparationYears' => AcademicYear::query()
+            'rolloverTargetYear' => $rolloverTargetYear,
+            'activeAcademicYear' => $activeAcademicYear,
+            'importableYearExists' => AcademicYear::query()
                 ->where('master_source', AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL)
+                ->where(fn ($years) => $years->where('is_active', true)->orWhereNull('activated_at'))
+                ->when($activeAcademicYear !== null, fn ($years) => $years->where(fn ($visible) => $visible
+                    ->where('is_active', true)
+                    ->orWhere('name', '>', $activeAcademicYear->name)))
+                ->exists(),
+            'academicYears' => AcademicYear::query()
+                ->when($activeAcademicYear !== null, fn ($years) => $years->where(fn ($visible) => $visible
+                    ->where('is_active', true)
+                    ->orWhere(fn ($preparing) => $preparing
+                        ->whereNull('activated_at')
+                        ->where('name', '>', $activeAcademicYear->name))))
+                ->when($activeAcademicYear === null, fn ($years) => $years->whereNull('activated_at'))
                 ->withCount([
                     'classrooms as active_classroom_count' => fn ($query) => $query->where('is_active', true),
                     'studentClassMemberships as active_student_count' => fn ($query) => $query
@@ -101,10 +116,20 @@ class DataMasterController extends Controller
         /** @var User $actor */
         $actor = $request->user();
 
+        $request->session()->forget('etatib_api_preview');
+        $preview = $service->preview($request->apiUrl(), $actor);
+        $request->session()->put('etatib_api_preview', [
+            'actor_id' => $actor->getKey(),
+            'url_hash' => hash('sha256', $request->apiUrl()),
+            'fingerprint' => $preview['fingerprint'],
+            'at' => time(),
+        ]);
+        unset($preview['fingerprint']);
+
         return response()
             ->json([
                 'success' => true,
-                'data' => $service->preview($request->apiUrl(), $actor),
+                'data' => $preview,
             ])
             ->header('Cache-Control', 'no-store, private');
     }
@@ -115,7 +140,7 @@ class DataMasterController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->synchronize($request->apiUrl(), $actor);
+        $run = $service->synchronize($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions());
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['etatib_sync' => $run->summary ?? 'Sinkronisasi e-Tatib gagal.']);

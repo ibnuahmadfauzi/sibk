@@ -395,6 +395,17 @@ class CaseManagementTest extends TestCase
         ]);
     }
 
+    public function test_previous_year_case_is_read_only(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        AcademicYear::query()->whereKey($case->academic_year_id)->update(['is_active' => false]);
+
+        $this->assertFalse($teacher->can('update', $case->fresh()));
+        $this->actingAs($teacher)->delete(route('cases.destroy', $case))->assertForbidden();
+        $this->assertDatabaseHas('cases', ['id' => $case->id, 'deleted_at' => null]);
+    }
+
     private function completeCase(User $teacher, BkCase $case): void
     {
         $case->update([

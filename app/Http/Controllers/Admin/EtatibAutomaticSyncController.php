@@ -22,7 +22,7 @@ final class EtatibAutomaticSyncController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->activate($request->apiUrl(), $actor);
+        $run = $service->activate($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions());
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors([

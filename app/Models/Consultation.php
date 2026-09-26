@@ -38,6 +38,12 @@ class Consultation extends Model
         return $this->belongsTo(Classroom::class);
     }
 
+    /** @return BelongsTo<AcademicYear, $this> */
+    public function academicYear(): BelongsTo
+    {
+        return $this->belongsTo(AcademicYear::class);
+    }
+
     /** @return BelongsTo<TemporaryStudent, $this> */
     public function temporaryStudent(): BelongsTo
     {

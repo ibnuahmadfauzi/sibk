@@ -6,6 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 class ImportProvisionalRosterRequest extends FormRequest
 {
@@ -31,6 +32,9 @@ class ImportProvisionalRosterRequest extends FormRequest
                 'max:2048',
                 'url:http,https',
             ],
+            'preview_hash' => ['required_with:selected_rows', Rule::prohibitedIf(! $this->filled('api_url')), 'string', 'size:64', 'regex:/^[a-f0-9]{64}$/'],
+            'selected_rows' => [Rule::prohibitedIf(! $this->filled('api_url')), 'array', 'max:5000'],
+            'selected_rows.*' => ['required', 'integer', 'min:0', 'max:4999'],
             'file' => [
                 'required_without_all:api_url,data',
                 'prohibits:api_url,data',
@@ -87,6 +91,17 @@ class ImportProvisionalRosterRequest extends FormRequest
     public function apiUrl(): string
     {
         return (string) $this->validated('api_url');
+    }
+
+    /** @return list<int> */
+    public function selectedRows(): array
+    {
+        return array_map('intval', array_values($this->validated('selected_rows', [])));
+    }
+
+    public function previewHash(): ?string
+    {
+        return $this->validated('preview_hash');
     }
 
     /** @return array<string, mixed> */

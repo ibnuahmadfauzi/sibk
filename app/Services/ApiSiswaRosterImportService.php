@@ -34,9 +34,12 @@ final class ApiSiswaRosterImportService
      *     rows: int,
      *     students: int,
      *     academic_years: list<array{name: string, rows: int, classrooms: int, ready: bool, status: string}>,
-     *     entries: list<array<string, string|null>>,
+     *     entries: list<array<string, string|int|bool|null>>,
      *     conflict_count: int,
-     *     can_import: bool
+     *     can_import: bool,
+     *     can_import_after_selection: bool,
+     *     duplicate_group_count: int,
+     *     preview_hash: string
      * }
      */
     public function preview(string $url, User $actor): array
@@ -46,7 +49,7 @@ final class ApiSiswaRosterImportService
         try {
             $this->assertPublicUrl($url);
             $payload = $this->fetchPayload($url);
-            $rows = $this->payloadParser->parse($payload);
+            $rows = $this->payloadParser->parse($payload, forPreview: true);
 
             return $this->buildPreview($rows);
         } catch (ValidationException $exception) {
@@ -62,7 +65,8 @@ final class ApiSiswaRosterImportService
         }
     }
 
-    public function import(string $url, User $actor): ProvisionalRosterImportResult
+    /** @param list<int> $selectedRows */
+    public function import(string $url, User $actor, array $selectedRows = [], ?string $previewHash = null): ProvisionalRosterImportResult
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
@@ -86,6 +90,13 @@ final class ApiSiswaRosterImportService
             $receivedCount = is_array($payload['data'] ?? null)
                 ? count($payload['data'])
                 : 0;
+            if ($previewHash !== null || $selectedRows !== []) {
+                $rows = $this->payloadParser->parse($payload, forPreview: true);
+                if ($previewHash === null || ! hash_equals($this->previewHash($rows), $previewHash)) {
+                    $this->fail('Data API berubah sejak pratinjau. Tinjau data kembali sebelum mengimpor.');
+                }
+                $payload['data'] = $this->selectedPayloadRows($rows, $selectedRows);
+            }
             $result = $this->preparationService->importRosterPayload($payload, $actor);
 
             $run->update([
@@ -212,13 +223,20 @@ final class ApiSiswaRosterImportService
      *     rows: int,
      *     students: int,
      *     academic_years: list<array{name: string, rows: int, classrooms: int, ready: bool, status: string}>,
-     *     entries: list<array<string, string|null>>,
+     *     entries: list<array<string, string|int|bool|null>>,
      *     conflict_count: int,
-     *     can_import: bool
+     *     can_import: bool,
+     *     can_import_after_selection: bool,
+     *     duplicate_group_count: int,
+     *     preview_hash: string
      * }
      */
     private function buildPreview(array $rows): array
     {
+        $nisnCounts = array_count_values(array_map(
+            fn (array $row): string => $row['academic_year_name'].'|'.$row['nisn'],
+            $rows,
+        ));
         $rowsByYear = collect($rows)->groupBy('academic_year_name');
         $years = AcademicYear::query()
             ->whereIn('name', $rowsByYear->keys())
@@ -265,7 +283,9 @@ final class ApiSiswaRosterImportService
 
         $entries = [];
         $conflictCount = 0;
-        foreach ($rows as $row) {
+        $blockingConflictCount = 0;
+        $duplicateGroups = [];
+        foreach ($rows as $index => $row) {
             $year = $years->get($row['academic_year_name']);
             [$ready] = $this->yearReadiness($year);
             $candidates = $studentsByNisn->get($row['nisn'], collect());
@@ -283,6 +303,10 @@ final class ApiSiswaRosterImportService
                         || mb_strtolower($membership->classroom->name) !== mb_strtolower($row['classroom']),
                 );
             $inactiveClassroom = $inactiveClassrooms->has(mb_strtolower($row['classroom']));
+            $duplicateNisn = $nisnCounts[$row['academic_year_name'].'|'.$row['nisn']] > 1;
+            if ($duplicateNisn) {
+                $duplicateGroups[$row['academic_year_name'].'|'.$row['nisn']] = true;
+            }
             $status = match (true) {
                 $identityConflict => 'NISN perlu diperiksa',
                 $classroomConflict => 'Rombel berbeda',
@@ -291,9 +315,20 @@ final class ApiSiswaRosterImportService
                 $studentMemberships->isNotEmpty() => 'Sudah ada',
                 default => 'Siap diimpor',
             };
-            if ($identityConflict || $classroomConflict || $inactiveClassroom) {
+            if ($duplicateNisn) {
+                $status = 'NISN ganda pada respons API'.(
+                    $identityConflict || $classroomConflict || $inactiveClassroom ? '; '.$status : ''
+                );
+            }
+            if ($duplicateNisn || $identityConflict || $classroomConflict || $inactiveClassroom) {
                 $conflictCount++;
+                if (! $duplicateNisn && ($identityConflict || $classroomConflict || $inactiveClassroom)) {
+                    $blockingConflictCount++;
+                }
                 $entries[] = [
+                    'row_index' => $index,
+                    'duplicate' => $duplicateNisn,
+                    'blocking' => $identityConflict || $classroomConflict || $inactiveClassroom,
                     'nisn' => $row['nisn'],
                     'name' => $row['name'],
                     'academic_year' => $row['academic_year_name'],
@@ -311,7 +346,63 @@ final class ApiSiswaRosterImportService
             'entries' => $entries,
             'conflict_count' => $conflictCount,
             'can_import' => $canImport && $conflictCount === 0,
+            'can_import_after_selection' => $canImport && $blockingConflictCount === 0,
+            'duplicate_group_count' => count($duplicateGroups),
+            'preview_hash' => $this->previewHash($rows),
         ];
+    }
+
+    /** @param list<array{nisn: string, name: string, classroom: string, academic_year_name: string}> $rows */
+    private function previewHash(array $rows): string
+    {
+        return hash('sha256', json_encode($rows, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param list<array{nisn: string, name: string, classroom: string, academic_year_name: string}> $rows
+     * @param list<int> $selectedRows
+     * @return list<array{nisn: string, nama: string, rombel: string, tahun_pelajaran: string}>
+     */
+    private function selectedPayloadRows(array $rows, array $selectedRows): array
+    {
+        $groups = [];
+        foreach ($rows as $index => $row) {
+            $groups[$row['academic_year_name'].'|'.$row['nisn']][] = $index;
+        }
+
+        $selected = array_fill_keys($selectedRows, true);
+        if (count($selected) !== count($selectedRows)) {
+            $this->fail('Pilihan NISN ganda tidak valid. Tinjau data kembali.');
+        }
+        $validSelections = 0;
+        foreach ($groups as $indices) {
+            $chosen = array_filter($indices, fn (int $index): bool => isset($selected[$index]));
+            if (count($indices) > 1 && count($chosen) !== 1) {
+                $this->fail('Pilih satu data untuk setiap NISN ganda sebelum mengimpor.');
+            }
+            if (count($indices) === 1 && $chosen !== []) {
+                $this->fail('Pilihan NISN ganda tidak valid. Tinjau data kembali.');
+            }
+            $validSelections += count($chosen);
+        }
+        if ($validSelections !== count($selectedRows)) {
+            $this->fail('Pilihan NISN ganda tidak valid. Tinjau data kembali.');
+        }
+
+        $result = [];
+        foreach ($rows as $index => $row) {
+            if (count($groups[$row['academic_year_name'].'|'.$row['nisn']]) > 1 && ! isset($selected[$index])) {
+                continue;
+            }
+            $result[] = [
+                'nisn' => $row['nisn'],
+                'nama' => $row['name'],
+                'rombel' => $row['classroom'],
+                'tahun_pelajaran' => $row['academic_year_name'],
+            ];
+        }
+
+        return $result;
     }
 
     /** @return array{bool, string} */

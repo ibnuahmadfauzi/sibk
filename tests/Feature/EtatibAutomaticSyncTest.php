@@ -47,8 +47,13 @@ final class EtatibAutomaticSyncTest extends TestCase
             'nisn' => '0093200788',
             'name' => 'FERRYSCHA PUTRI',
         ]);
-        Http::fake([self::URL => Http::response($this->payload())]);
+        Http::fake([self::URL => Http::sequence()
+            ->push($this->payload())
+            ->push($this->payload())]);
 
+        $this->actingAs($admin)
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
         $response = $this->actingAs($admin)->post(route('data-master.etatib.automatic.store'), [
             'api_url' => self::URL,
             'current_password' => 'password',
@@ -84,7 +89,7 @@ final class EtatibAutomaticSyncTest extends TestCase
             ->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
             ->assertSee('Aktif: Senin-Jumat, 15.00 WIB')
-            ->assertSee('Ganti Link')
+            ->assertSee('Tinjau Data')
             ->assertDontSee(self::URL);
     }
 
@@ -156,6 +161,34 @@ final class EtatibAutomaticSyncTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_scheduled_sync_keeps_active_records_when_api_omits_one(): void
+    {
+        $this->automaticSetting();
+        ExternalTatibRecord::query()->create([
+            'source_identifier' => 'existing-record',
+            'nisn' => '0093200788',
+            'source_nisn' => '93200788',
+            'source_student_name' => 'FERRYSCHA PUTRI',
+            'source_classroom_name' => '12 PH 2',
+            'occurred_at' => now()->subDay(),
+            'violation_type' => 'Data lama',
+            'category' => 'ringan',
+            'points' => 5,
+            'source_status' => 'active',
+            'is_active' => true,
+            'synced_at' => now()->subDay(),
+        ]);
+        Http::fake([self::URL => Http::response($this->payload())]);
+
+        $this->artisan('sibk:sync-etatib')->assertFailed();
+
+        $this->assertDatabaseHas('external_tatib_records', [
+            'source_identifier' => 'existing-record',
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseCount('external_tatib_records', 1);
+    }
+
     public function test_admin_can_sync_now_and_replace_the_stored_url_after_revalidation(): void
     {
         $admin = $this->admin();
@@ -166,7 +199,9 @@ final class EtatibAutomaticSyncTest extends TestCase
         $this->automaticSetting($admin);
         Http::fake([
             self::URL => Http::response($this->payload()),
-            self::REPLACEMENT_URL => Http::response($this->payload()),
+            self::REPLACEMENT_URL => Http::sequence()
+                ->push($this->payload())
+                ->push($this->payload()),
         ]);
 
         $this->actingAs($admin)
@@ -181,6 +216,9 @@ final class EtatibAutomaticSyncTest extends TestCase
         ]);
 
         $this->actingAs($admin)
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::REPLACEMENT_URL])
+            ->assertOk();
+        $this
             ->post(route('data-master.etatib.automatic.store'), [
                 'api_url' => self::REPLACEMENT_URL,
                 'current_password' => 'password',
@@ -194,7 +232,7 @@ final class EtatibAutomaticSyncTest extends TestCase
             self::REPLACEMENT_URL,
             AuditLog::query()->get()->toJson(),
         );
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
     }
 
     public function test_automatic_failure_keeps_old_data_and_is_visible_on_admin_dashboard(): void

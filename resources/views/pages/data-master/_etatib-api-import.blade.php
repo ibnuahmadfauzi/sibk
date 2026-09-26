@@ -1,4 +1,4 @@
-<section class="sibk-panel mb-4" aria-labelledby="etatib-api-title">
+<section class="sibk-panel sibk-data-master-tab-panel mb-4" aria-labelledby="etatib-api-title">
     <div class="sibk-panel__header p-4 border-0 pb-0">
         <div>
             <h2 class="sibk-panel__title mb-1" id="etatib-api-title">Sinkronkan Data e-Tatib</h2>
@@ -44,37 +44,40 @@
             id="etatib-api-form"
             action="{{ route('data-master.etatib.sync') }}"
             method="POST"
-            class="row g-2 align-items-end"
+            class="d-grid gap-2"
             data-etatib-api-form
             data-preview-url="{{ route('data-master.etatib.preview') }}"
+            data-dapodik-url="{{ route('data-master.index', ['tab' => 'dapodik']) }}"
             data-manual-sync-url="{{ route('data-master.etatib.sync') }}"
             data-automatic-sync-url="{{ route('data-master.etatib.automatic.store') }}"
         >
             @csrf
-            <div class="col-12 col-md">
-                <label class="form-label small" for="etatib_api_url">Tautan API e-Tatib</label>
-                <input
-                    class="form-control"
-                    type="url"
-                    id="etatib_api_url"
-                    name="api_url"
-                    maxlength="2048"
-                    placeholder="https://api-sekolah.example/pelanggaran"
-                    autocomplete="off"
-                    required
-                >
-                <div class="form-text">
-                    Tautan tidak ditampilkan lagi; jadwal otomatis menyimpannya terenkripsi.
+            <label class="form-label small mb-0" for="etatib_api_url">Tautan API e-Tatib</label>
+            <div class="row g-2 align-items-stretch">
+                <div class="col-12 col-md">
+                    <input
+                        class="form-control"
+                        type="url"
+                        id="etatib_api_url"
+                        name="api_url"
+                        maxlength="2048"
+                        placeholder="https://api-sekolah.example/pelanggaran"
+                        autocomplete="off"
+                        required
+                    >
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button
+                        type="submit"
+                        class="btn btn-primary w-100 h-100"
+                        data-etatib-preview-button
+                    >
+                        Tinjau Data
+                    </button>
                 </div>
             </div>
-            <div class="col-12 col-md-auto">
-                <button
-                    type="submit"
-                    class="btn btn-primary w-100"
-                    data-etatib-preview-button
-                >
-                    Tinjau Data
-                </button>
+            <div class="form-text mt-0">
+                Tautan tidak ditampilkan lagi; jadwal otomatis menyimpannya terenkripsi.
             </div>
         </form>
     </div>
@@ -91,7 +94,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="etatib-api-preview-title">Pratinjau API e-Tatib</h2>
+                <h2 class="modal-title fs-5" id="etatib-api-preview-title">Pratinjau e-Tatib</h2>
                 <button
                     type="button"
                     class="btn-close"
@@ -103,9 +106,9 @@
                 <p class="text-muted mb-0">Masukkan link API e-Tatib untuk melihat pratinjau.</p>
             </div>
             <div class="modal-footer">
-                <div class="w-100">
+                <div class="w-100" data-etatib-automatic-fields hidden>
                     <label class="form-label small" for="etatib_automatic_current_password">
-                        Kata sandi saat ini untuk menyimpan jadwal otomatis
+                        Kata sandi saat ini
                     </label>
                     <input
                         class="form-control"
@@ -120,10 +123,10 @@
                 </div>
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
                 <button type="button" class="btn btn-outline-primary" data-etatib-confirm disabled>
-                    Sinkronkan Data Sekali
+                    Sinkronkan Data
                 </button>
                 <button type="button" class="btn btn-primary" data-etatib-confirm-automatic disabled>
-                    Simpan &amp; Aktifkan Otomatis
+                    Aktifkan Otomatis
                 </button>
             </div>
         </div>

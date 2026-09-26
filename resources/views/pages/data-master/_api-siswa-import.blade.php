@@ -8,7 +8,7 @@
         </div>
     </div>
     <div class="sibk-panel__body p-4">
-        @if($preparationYears->isEmpty())
+        @if(! $importableYearExists)
             <div class="alert alert-info">
                 <a href="#academic-year-preparation-title">Buat tahun ajaran</a> agar impor dapat dimulai.
             </div>
@@ -47,12 +47,30 @@
                     type="submit"
                     class="btn btn-primary"
                     data-api-siswa-preview-button
-                    @disabled($preparationYears->isEmpty())
+                    @disabled(! $importableYearExists)
                 >
                     Tinjau Data
                 </button>
             </div>
         </form>
+
+        <details class="border-top mt-4 pt-3" @if($errors->has('file')) open @endif>
+            <summary class="fw-semibold text-primary py-2">Impor CSV jika API belum tersedia</summary>
+            <p class="text-muted small mt-2 mb-3">
+                Cadangan saat API Siswa belum tersedia. CSV UTF-8 maksimal 2 MiB dan 5.000 baris,
+                dengan header <code>nisn,nama,rombel,tahun_pelajaran</code>.
+            </p>
+            <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="d-grid gap-3">
+                @csrf
+                <div>
+                    <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
+                    <input class="form-control" type="file" accept=".csv,text/csv" id="roster_file" name="file" required>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-outline-primary" @disabled(! $importableYearExists)>Impor CSV</button>
+                </div>
+            </form>
+        </details>
 
     </div>
 </div>
