@@ -52,6 +52,7 @@ class CasePolicy
     public function update(User $user, BkCase $case): bool
     {
         return $user->hasRole('guru_bk')
+            && $case->academicYear?->is_active === true
             && $case->isOwnedBy($user);
     }
 

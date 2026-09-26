@@ -28,6 +28,15 @@ use Tests\TestCase;
 
 class AcademicYearRolloverTest extends TestCase
 {
+    #[Test]
+    public function database_rejects_a_second_active_academic_year(): void
+    {
+        $this->academicYear('2026/2027', '2026-07-01', '2027-06-30', true);
+
+        $this->expectException(QueryException::class);
+        $this->academicYear('2027/2028', '2027-07-01', '2028-06-30', true);
+    }
+
     use RefreshDatabase;
 
     protected function setUp(): void
