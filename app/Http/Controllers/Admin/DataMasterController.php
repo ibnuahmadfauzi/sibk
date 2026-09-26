@@ -101,10 +101,20 @@ class DataMasterController extends Controller
         /** @var User $actor */
         $actor = $request->user();
 
+        $request->session()->forget('etatib_api_preview');
+        $preview = $service->preview($request->apiUrl(), $actor);
+        $request->session()->put('etatib_api_preview', [
+            'actor_id' => $actor->getKey(),
+            'url_hash' => hash('sha256', $request->apiUrl()),
+            'fingerprint' => $preview['fingerprint'],
+            'at' => time(),
+        ]);
+        unset($preview['fingerprint']);
+
         return response()
             ->json([
                 'success' => true,
-                'data' => $service->preview($request->apiUrl(), $actor),
+                'data' => $preview,
             ])
             ->header('Cache-Control', 'no-store, private');
     }
@@ -115,7 +125,7 @@ class DataMasterController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->synchronize($request->apiUrl(), $actor);
+        $run = $service->synchronize($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'));
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['etatib_sync' => $run->summary ?? 'Sinkronisasi e-Tatib gagal.']);

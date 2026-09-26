@@ -173,6 +173,7 @@ Konfigurasi koneksi langsung dapat disimpan sebelum kontrak provider tersedia, t
 | Pratinjau pencocokan | Tarik Dapodik hanya menyiapkan hasil cocok, baru, berubah, dan konflik. Cache operasional berubah setelah konfirmasi Admin IT; pencocokan otomatis murid hanya melalui NISN exact. |
 | Konflik identitas sementara | NISN exact tetap menjadi kunci. Nama berbeda tidak membuat murid baru; konflik kandidat NISN/identitas sumber ditahan untuk Admin IT dan tidak mengubah relasi sampai data resmi memastikan target. |
 | Alur koneksi        | Tab Dapodik menerima URL API Siswa sekali pakai atau CSV; tab e-Tatib menangani pratinjau dan sinkronisasi. Panel koneksi Dapodik langsung baru ditampilkan setelah adapter tersedia. |
+| Pemeriksaan e-Tatib | Pratinjau menampilkan jumlah data; identitas dan kelas hanya ditampilkan bila perlu dicocokkan. Sinkronisasi ditahan bila respons berubah setelah pratinjau atau data aktif sebelumnya hilang dari respons. |
 | Pemrosesan integrasi | Browser hanya mengirim konfigurasi dan trigger; fetch, mapping, validasi snapshot, dan penyimpanan dilakukan backend secara server-to-server. |
 | Credential sumber  | API e-Tatib publik tidak memakai token. Admin IT memakai URL sekali pakai yang tidak disimpan; koneksi hanya membaca data dan tidak melakukan write-back. |
 | Identitas sumber   | Probe dan setiap sinkronisasi harus membuktikan identitas sekolah/sumber yang dilaporkan cocok dengan nilai yang diharapkan.                   |

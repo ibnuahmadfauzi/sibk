@@ -21,10 +21,11 @@ final class EtatibAutomaticSyncService
         private readonly AuditService $auditService,
     ) {}
 
-    public function activate(string $url, User $actor): ExternalSyncRun
+    /** @param array<string, mixed>|null $preview */
+    public function activate(string $url, User $actor, ?array $preview = null): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
-        $run = $this->apiService->synchronize($url, $actor);
+        $run = $this->apiService->synchronize($url, $actor, $preview);
 
         if (! in_array($run->status, [ExternalSyncRun::STATUS_SUCCEEDED, ExternalSyncRun::STATUS_WARNING], true)) {
             return $run;

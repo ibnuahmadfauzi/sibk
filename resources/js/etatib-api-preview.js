@@ -8,11 +8,13 @@ const element = (tag, className = '', text = '') => {
 
 const render = (container, preview) => {
     container.replaceChildren();
-    const tone = preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
+    const tone = preview.missing > 0 || preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
     container.append(element(
         'div',
         `alert ${tone}`,
-        preview.conflicts > 0
+        preview.missing > 0
+            ? `${preview.missing} pelanggaran aktif sebelumnya tidak ada dalam respons API. Sinkronisasi ditahan; periksa sumber data.`
+            : preview.conflicts > 0
             ? `${preview.conflicts} pelanggaran perlu pemeriksaan identitas setelah sinkronisasi.`
             : 'Tidak ada indikasi konflik identitas.',
     ));
@@ -26,6 +28,21 @@ const render = (container, preview) => {
     );
     container.append(summary);
     if (preview.conflicts > 0) {
+        const details = element('details', 'mb-3');
+        details.append(element('summary', 'fw-semibold',
+            `Lihat ${preview.identity_conflicts.length} identitas yang perlu diperiksa`));
+        const list = element('ul', 'list-group mt-2');
+        preview.identity_conflicts.forEach((item) => {
+            const row = element('li', 'list-group-item');
+            row.append(
+                element('strong', 'd-block', `${item.name} · NISN ${item.nisn}`),
+                element('span', 'd-block', `Kelas e-Tatib: ${item.classroom}`),
+                element('span', 'text-muted small', item.reason),
+            );
+            list.append(row);
+        });
+        details.append(list);
+        container.append(details);
         container.append(element('p', 'text-muted small mb-0',
             'Setelah sinkronisasi, buka Yang Perlu Ditinjau untuk mencocokkan identitas yang belum sesuai.'));
     }
@@ -87,9 +104,9 @@ export const initEtatibApiPreview = async (root = document) => {
             }
             render(body, payload.data);
             previewedUrl = url.value;
-            confirm.disabled = false;
-            automaticPassword.disabled = false;
-            automaticConfirm.disabled = false;
+            confirm.disabled = payload.data.missing > 0;
+            automaticPassword.disabled = payload.data.missing > 0;
+            automaticConfirm.disabled = payload.data.missing > 0;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Pratinjau tidak dapat dimuat.'));
