@@ -2773,7 +2773,7 @@ small, .small {
     border: 1px solid var(--sibk-color-border-light);
     border-bottom: 0;
     border-radius: var(--sibk-radius-md) var(--sibk-radius-md) 0 0;
-    box-shadow: var(--sibk-shadow-raised-sm);
+    box-shadow: none;
 
     &.active {
       color: var(--sibk-color-text);
@@ -2783,6 +2783,10 @@ small, .small {
       box-shadow: none;
     }
   }
+}
+
+.sibk-data-master-dapodik-panel {
+  border-top-left-radius: 0;
 }
 
 @media (min-width: 1200px) {

@@ -6,8 +6,6 @@ const element = (tag, className = '', text = '') => {
     return node;
 };
 
-const cell = (row, text, className = '') => row.append(element('td', className, String(text)));
-
 const render = (container, preview) => {
     container.replaceChildren();
     const tone = preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
@@ -15,40 +13,22 @@ const render = (container, preview) => {
         'div',
         `alert ${tone}`,
         preview.conflicts > 0
-            ? `${preview.conflicts} data belum cocok dengan master murid dan akan masuk daftar pemeriksaan.`
-            : 'Seluruh data contoh cocok dengan master murid.',
+            ? `${preview.conflicts} pelanggaran perlu pemeriksaan identitas setelah sinkronisasi.`
+            : 'Tidak ada indikasi konflik identitas.',
     ));
 
     const summary = element('div', 'd-flex flex-wrap gap-4 mb-3');
     summary.append(
-        element('span', 'fw-semibold', `${preview.rows} pelanggaran`),
+        element('span', 'fw-semibold', `${preview.rows} pelanggaran diterima`),
         element('span', 'fw-semibold', `${preview.students} murid`),
-        element('span', 'fw-semibold', `${preview.matched} cocok`),
+        element('span', 'fw-semibold', `${preview.matched} pelanggaran cocok`),
+        element('span', 'fw-semibold', `${preview.conflicts} pelanggaran perlu diperiksa`),
     );
-    container.append(summary, element('h3', 'fs-6 fw-bold mb-2', 'Contoh Data yang Terbaca'));
-
-    const note = element('p', 'text-muted small', 'Maksimal lima baris ditampilkan dengan NISN lengkap.');
-    const wrapper = element('div', 'table-responsive');
-    const table = element('table', 'table table-sm sibk-table mb-0');
-    const head = element('thead');
-    const headRow = element('tr');
-    ['NISN', 'Nama / Kelas', 'Pelanggaran', 'Waktu', 'Poin'].forEach((label) => {
-        headRow.append(element('th', '', label));
-    });
-    head.append(headRow);
-    const body = element('tbody');
-    preview.sample.forEach((item) => {
-        const row = element('tr');
-        cell(row, item.nisn);
-        cell(row, `${item.name} / ${item.classroom}`, 'fw-semibold');
-        cell(row, item.violation);
-        cell(row, item.occurred_at);
-        cell(row, item.points);
-        body.append(row);
-    });
-    table.append(head, body);
-    wrapper.append(table);
-    container.append(note, wrapper);
+    container.append(summary);
+    if (preview.conflicts > 0) {
+        container.append(element('p', 'text-muted small mb-0',
+            'Setelah sinkronisasi, buka Yang Perlu Ditinjau untuk mencocokkan identitas yang belum sesuai.'));
+    }
 };
 
 export const initEtatibApiPreview = async (root = document) => {

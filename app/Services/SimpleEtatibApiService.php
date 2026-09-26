@@ -38,7 +38,7 @@ final class SimpleEtatibApiService
         private readonly ?Closure $resolver = null,
     ) {}
 
-    /** @return array{rows: int, students: int, matched: int, conflicts: int, sample: list<array<string, int|string>>} */
+    /** @return array{rows: int, students: int, matched: int, conflicts: int} */
     public function preview(string $url, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
@@ -68,14 +68,6 @@ final class SimpleEtatibApiService
             'students' => collect($records)->pluck('nisn')->unique()->count(),
             'matched' => $matched,
             'conflicts' => count($records) - $matched,
-            'sample' => array_map(fn (array $record): array => [
-                'nisn' => $record['nisn'],
-                'name' => $record['source_student_name'],
-                'classroom' => $record['source_classroom_name'],
-                'violation' => $record['violation_type'],
-                'occurred_at' => CarbonImmutable::parse($record['occurred_at'])->format('d M Y H:i'),
-                'points' => $record['points'],
-            ], array_slice($records, 0, 5)),
         ];
     }
 

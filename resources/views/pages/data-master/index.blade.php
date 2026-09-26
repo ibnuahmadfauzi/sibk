@@ -79,7 +79,7 @@
 
         @if($activeTab === 'dapodik')
             <section id="data-master-dapodik" aria-label="Dapodik">
-                <div class="sibk-panel mb-4">
+                <div class="sibk-panel sibk-data-master-dapodik-panel mb-4">
                     <div class="row g-0">
                         <div class="col-12 col-xl-5 sibk-data-master-year">
                             @include('pages.data-master._academic-year-preparation')

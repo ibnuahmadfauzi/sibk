@@ -35,7 +35,7 @@ class SimpleEtatibApiTest extends TestCase
         );
     }
 
-    public function test_preview_reads_bare_array_shows_full_nisn_and_does_not_mutate_data(): void
+    public function test_preview_shows_counts_without_student_details_or_mutation(): void
     {
         Student::query()->create([
             'nisn' => '0093200788',
@@ -54,7 +54,9 @@ class SimpleEtatibApiTest extends TestCase
             ->assertJsonPath('data.students', 2)
             ->assertJsonPath('data.matched', 1)
             ->assertJsonPath('data.conflicts', 1)
-            ->assertJsonPath('data.sample.0.nisn', '0093200788');
+            ->assertJsonMissingPath('data.sample');
+        $this->assertStringNotContainsString('0093200788', $response->getContent());
+        $this->assertStringNotContainsString('FERRYSCHA PUTRI', $response->getContent());
         $this->assertDatabaseCount('external_tatib_records', 0);
         $this->assertDatabaseCount('external_sync_runs', 0);
     }
