@@ -40,7 +40,7 @@ final class SimpleEtatibApiService
         private readonly ?Closure $resolver = null,
     ) {}
 
-    /** @return array{rows: int, students: int, matched: int, conflicts: int, missing: int, missing_students: int, name_mismatches: int, roster_warning: string|null, identity_conflicts: list<array{nisn: string, name: string, classroom: string, reason: string, kind: string}>, fingerprint: string} */
+    /** @return array{rows: int, students: int, matched: int, conflicts: int, missing: int, missing_students: int, name_mismatches: int, active_year: string|null, identity_conflicts: list<array{nisn: string, name: string, classroom: string, reason: string, kind: string}>, fingerprint: string} */
     public function preview(string $url, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
@@ -105,7 +105,7 @@ final class SimpleEtatibApiService
             'missing' => $this->missingActiveCount($records),
             'missing_students' => collect($identityConflicts)->where('kind', 'nisn_not_found')->count(),
             'name_mismatches' => collect($identityConflicts)->where('kind', 'name_mismatch')->count(),
-            'roster_warning' => $this->rosterWarning($records),
+            'active_year' => AcademicYear::query()->active()->value('name'),
             'identity_conflicts' => $identityConflicts,
             'fingerprint' => $this->fingerprint($records),
         ];
@@ -210,27 +210,6 @@ final class SimpleEtatibApiService
             ->active()
             ->whereNotIn('source_identifier', array_column($records, 'source_id'))
             ->count();
-    }
-
-    /** @param list<array<string, int|string|null>> $records */
-    private function rosterWarning(array $records): ?string
-    {
-        $year = AcademicYear::query()->active()->first();
-        $latestDate = collect($records)->max('occurred_at');
-        if ($year?->starts_on === null || $year->ends_on === null || ! is_string($latestDate)) {
-            return null;
-        }
-
-        $date = substr($latestDate, 0, 10);
-        if ($date >= $year->starts_on->toDateString() && $date <= $year->ends_on->toDateString()) {
-            return null;
-        }
-
-        return sprintf(
-            'Tahun ajaran aktif %s tidak mencakup pelanggaran terbaru (%s). Perbarui data murid untuk periode yang sesuai sebelum mencocokkan identitas.',
-            $year->name,
-            CarbonImmutable::parse($date)->format('d-m-Y'),
-        );
     }
 
     /** @param list<array<string, int|string|null>> $records */

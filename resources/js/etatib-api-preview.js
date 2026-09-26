@@ -19,12 +19,14 @@ const render = (container, preview, dapodikUrl) => {
             : 'Tidak ada indikasi konflik identitas.',
     ));
 
-    if (preview.roster_warning) {
-        const warning = element('div', 'alert alert-warning', preview.roster_warning);
-        const link = element('a', 'd-block mt-2 fw-semibold', 'Buka tab Dapodik untuk memperbarui data murid');
+    if (preview.active_year) {
+        container.append(element('p', 'text-muted small mb-3',
+            `Tahun ajaran aktif: ${preview.active_year}. Identitas e-Tatib dicocokkan ke seluruh master murid.`));
+    }
+    if (preview.missing_students > 0) {
+        const link = element('a', 'd-inline-block mb-3 fw-semibold', 'Periksa data murid di tab Dapodik');
         link.href = dapodikUrl;
-        warning.append(link);
-        container.append(warning);
+        container.append(link);
     }
 
     const summary = element('div', 'd-flex flex-wrap gap-4 mb-3');

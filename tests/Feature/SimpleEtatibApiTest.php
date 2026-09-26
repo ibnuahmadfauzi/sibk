@@ -121,12 +121,10 @@ class SimpleEtatibApiTest extends TestCase
             ->assertJsonPath('data.identity_conflicts.0.reason', 'Nama pada master: Nama di Master · Kelas master: -');
     }
 
-    public function test_preview_warns_when_active_year_does_not_cover_latest_violation(): void
+    public function test_preview_shows_active_year_without_calendar_gate(): void
     {
         AcademicYear::query()->create([
             'name' => '2024/2025',
-            'starts_on' => '2024-07-01',
-            'ends_on' => '2025-06-30',
             'is_active' => true,
         ]);
         Http::fake([self::URL => Http::response($this->payload())]);
@@ -135,8 +133,8 @@ class SimpleEtatibApiTest extends TestCase
             ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
             ->assertOk();
 
-        $this->assertStringContainsString('2024/2025', $response->json('data.roster_warning'));
-        $this->assertStringContainsString('2026', $response->json('data.roster_warning'));
+        $response->assertJsonPath('data.active_year', '2024/2025')
+            ->assertJsonMissingPath('data.roster_warning');
     }
 
     public function test_sync_rejects_changed_api_response_after_preview(): void
