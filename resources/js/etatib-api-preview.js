@@ -6,7 +6,9 @@ const element = (tag, className = '', text = '') => {
     return node;
 };
 
-const render = (container, preview, dapodikUrl) => {
+const choiceLabel = (student) => `${student.name} · NISN ${student.nisn} · Kelas ${student.classroom}${student.academic_year ? ` (${student.academic_year})` : ''}`;
+
+const render = (container, preview, dapodikUrl, candidatesUrl) => {
     container.replaceChildren();
     const tone = preview.missing > 0 || preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
     container.append(element(
@@ -51,17 +53,63 @@ const render = (container, preview, dapodikUrl) => {
             preview.identity_conflicts.filter((item) => item.kind === kind).forEach((item) => {
                 const row = element('li', 'list-group-item');
                 row.append(
-                    element('strong', 'd-block', `${item.name} · NISN ${item.nisn}`),
-                    element('span', 'd-block', `Kelas e-Tatib: ${item.classroom}`),
-                    element('span', 'text-muted small', item.reason),
+                    element('strong', 'd-block', `e-Tatib: ${item.name} · NISN ${item.nisn} · Kelas ${item.classroom}`),
+                    element('span', 'd-block', item.master
+                        ? `Master dengan NISN sama: ${choiceLabel(item.master)}`
+                        : 'Master dengan NISN sama: tidak ditemukan'),
                 );
+                const select = element('select', 'form-select form-select-sm mt-2');
+                select.dataset.identityChoice = '';
+                select.dataset.nisn = item.nisn;
+                select.dataset.name = item.name;
+                select.setAttribute('aria-label', `Pilih murid master untuk ${item.name}, NISN ${item.nisn}`);
+                select.append(new Option('Biarkan belum tertaut', ''));
+                if (item.master) select.append(new Option(`Pilih NISN sama: ${choiceLabel(item.master)}`, item.master.id));
+                item.suggestions.forEach((candidate) => select.append(new Option(`Kemungkinan dari nama: ${choiceLabel(candidate)}`, candidate.id)));
+                row.append(select);
+
+                const search = element('div', 'input-group input-group-sm mt-2');
+                const query = element('input', 'form-control');
+                query.type = 'search';
+                query.placeholder = 'Cari nama, NISN, atau kelas di master';
+                query.setAttribute('aria-label', `Cari murid master untuk ${item.name}`);
+                const button = element('button', 'btn btn-outline-primary', 'Cari');
+                button.type = 'button';
+                const result = element('div', 'form-text');
+                button.addEventListener('click', async () => {
+                    if (query.value.trim().length < 2) {
+                        result.textContent = 'Ketik minimal 2 karakter.';
+                        return;
+                    }
+                    button.disabled = true;
+                    result.textContent = 'Mencari murid...';
+                    try {
+                        const response = await fetch(`${candidatesUrl}?search=${encodeURIComponent(query.value.trim())}`, {
+                            headers: { Accept: 'application/json' },
+                        });
+                        if (!response.ok) throw new Error('search failed');
+                        const payload = await response.json();
+                        payload.data.forEach((candidate) => {
+                            if (![...select.options].some((option) => option.value === String(candidate.id))) {
+                                select.append(new Option(choiceLabel(candidate), candidate.id));
+                            }
+                        });
+                        result.textContent = `${payload.data.length} murid ditemukan. Pilih murid yang benar di daftar.`;
+                    } catch {
+                        result.textContent = 'Pencarian gagal. Coba lagi.';
+                    } finally {
+                        button.disabled = false;
+                    }
+                });
+                search.append(query, button);
+                row.append(search, result);
                 list.append(row);
             });
             details.append(list);
             container.append(details);
         });
         container.append(element('p', 'text-muted small mb-0',
-            'Setelah sinkronisasi, buka Yang Perlu Ditinjau untuk mencocokkan identitas yang belum sesuai.'));
+            'Pilih murid master yang sudah dipastikan. Yang dibiarkan belum tertaut tetap masuk daftar Yang Perlu Ditinjau.'));
     }
 };
 
@@ -80,6 +128,20 @@ export const initEtatibApiPreview = async (root = document) => {
     const url = form.elements.namedItem('api_url');
     let previewedUrl = '';
     let controller;
+    const decisions = () => {
+        form.querySelectorAll('[data-preview-decision]').forEach((input) => input.remove());
+        body.querySelectorAll('[data-identity-choice]').forEach((select, index) => {
+            if (!select.value) return;
+            [['nisn', select.dataset.nisn], ['name', select.dataset.name], ['student_id', select.value]].forEach(([field, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = `identity_decisions[${index}][${field}]`;
+                input.value = value;
+                input.dataset.previewDecision = '';
+                form.append(input);
+            });
+        });
+    };
 
     form.addEventListener('submit', async (event) => {
         if (form.dataset.confirmed === 'true') {
@@ -90,6 +152,7 @@ export const initEtatibApiPreview = async (root = document) => {
         if (!form.reportValidity()) return;
 
         controller?.abort();
+        form.querySelectorAll('[data-preview-decision]').forEach((input) => input.remove());
         controller = new AbortController();
         previewedUrl = '';
         confirm.disabled = true;
@@ -119,7 +182,7 @@ export const initEtatibApiPreview = async (root = document) => {
                 body.replaceChildren(element('div', 'alert alert-danger mb-0', message));
                 return;
             }
-            render(body, payload.data, form.dataset.dapodikUrl);
+            render(body, payload.data, form.dataset.dapodikUrl, form.dataset.candidatesUrl);
             previewedUrl = url.value;
             confirm.disabled = payload.data.missing > 0;
             automaticPassword.disabled = payload.data.missing > 0;
@@ -140,6 +203,7 @@ export const initEtatibApiPreview = async (root = document) => {
             return;
         }
         form.dataset.confirmed = 'true';
+        decisions();
         form.action = form.dataset.manualSyncUrl;
         automaticPassword.required = false;
         automaticPassword.disabled = true;
@@ -165,6 +229,7 @@ export const initEtatibApiPreview = async (root = document) => {
         }
 
         form.dataset.confirmed = 'true';
+        decisions();
         form.action = form.dataset.automaticSyncUrl;
         confirm.disabled = true;
         automaticConfirm.disabled = true;

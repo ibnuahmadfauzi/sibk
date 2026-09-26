@@ -50,6 +50,7 @@
             data-dapodik-url="{{ route('data-master.index', ['tab' => 'dapodik']) }}"
             data-manual-sync-url="{{ route('data-master.etatib.sync') }}"
             data-automatic-sync-url="{{ route('data-master.etatib.automatic.store') }}"
+            data-candidates-url="{{ route('data-master.etatib.candidates') }}"
         >
             @csrf
             <div class="col-12 col-md">

@@ -29,6 +29,7 @@ class EtatibSyncService
         private readonly AuditService $auditService,
         private readonly IntegrationOperationLock $operationLock,
         private readonly EtatibIdentityNormalizer $identityNormalizer,
+        private readonly array $previewDecisions = [],
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
@@ -48,7 +49,7 @@ class EtatibSyncService
     }
 
     /** @param Closure(IntegrationOperationContext): EtatibSnapshot $snapshotLoader */
-    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null): ExternalSyncRun
+    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null, array $decisions = []): ExternalSyncRun
     {
         $connector = new class($snapshotLoader) implements EtatibConnector
         {
@@ -68,6 +69,7 @@ class EtatibSyncService
             $this->auditService,
             $this->operationLock,
             $this->identityNormalizer,
+            $decisions,
         ))
             ->synchronize($actor);
     }
@@ -124,6 +126,7 @@ class EtatibSyncService
             ]));
 
             $this->mutate($context, function () use ($snapshot, $run, $actor): void {
+                $this->applyPreviewDecisions($snapshot, $actor);
                 $syncedAt = now();
                 $processed = 0;
                 $keptIds = [];
@@ -275,6 +278,71 @@ class EtatibSyncService
         }
 
         return $run->refresh();
+    }
+
+    private function applyPreviewDecisions(EtatibSnapshot $snapshot, ?User $actor): void
+    {
+        if ($this->previewDecisions === []) {
+            return;
+        }
+        if ($actor === null) {
+            throw new EtatibUnavailableException('Pilihan identitas memerlukan Admin IT.');
+        }
+
+        $sourceIdentities = collect($snapshot->records)
+            ->keyBy(fn (array $item): string => $this->identityNormalizer->key($item['nisn'], $item['source_student_name']));
+        $seen = [];
+        foreach ($this->previewDecisions as $decision) {
+            $nisn = $decision['nisn'];
+            $name = $decision['name'];
+            $key = $this->identityNormalizer->key($nisn, $name);
+            $source = $sourceIdentities->get($key);
+            if (isset($seen[$key]) || $source === null) {
+                throw new EtatibUnavailableException('Pilihan identitas tidak sesuai dengan pratinjau. Tinjau data kembali.');
+            }
+            $seen[$key] = true;
+            $student = Student::query()->find($decision['student_id']);
+            if ($student === null) {
+                throw new EtatibUnavailableException('Murid pilihan tidak tersedia. Tinjau data kembali.');
+            }
+            $sameNisn = Student::query()->where('nisn', $nisn)->first();
+            if ($sameNisn !== null && $this->identityNormalizer->name($sameNisn->name) === $this->identityNormalizer->name($name)) {
+                throw new EtatibUnavailableException('Identitas tersebut sudah cocok otomatis. Tinjau data kembali.');
+            }
+            $mapping = EtatibIdentityMapping::query()
+                ->where('source_nisn', $nisn)
+                ->where('source_name_hash', $this->identityNormalizer->nameHash($name))
+                ->lockForUpdate()
+                ->first();
+            if ($mapping?->is_active) {
+                throw new EtatibUnavailableException('Identitas tersebut sudah dipetakan. Tinjau data kembali.');
+            }
+            $values = [
+                'source_name' => $source['source_student_name'],
+                'student_id' => $student->getKey(),
+                'is_active' => true,
+                'mapped_by' => $actor->getKey(),
+                'mapped_at' => now(),
+                'revoked_by' => null,
+                'revoked_at' => null,
+            ];
+            if ($mapping === null) {
+                $mapping = EtatibIdentityMapping::query()->create([
+                    'source_nisn' => $nisn,
+                    'source_name_hash' => $this->identityNormalizer->nameHash($name),
+                    ...$values,
+                ]);
+            } else {
+                $mapping->update($values);
+            }
+            $this->auditService->record(
+                action: 'etatib.identity_mapped',
+                auditable: $mapping,
+                summary: 'Identitas e-Tatib dipilih saat pratinjau sinkronisasi.',
+                actor: $actor,
+                after: ['student_id' => $student->getKey()],
+            );
+        }
     }
 
     private function settleFailure(

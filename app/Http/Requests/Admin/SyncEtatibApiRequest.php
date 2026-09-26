@@ -20,6 +20,10 @@ final class SyncEtatibApiRequest extends FormRequest
     {
         return [
             'api_url' => ['required', 'string', 'max:2048', 'url:http,https'],
+            'identity_decisions' => ['sometimes', 'array', 'max:10000'],
+            'identity_decisions.*.nisn' => ['required', 'string', 'regex:/^\\d{10}$/'],
+            'identity_decisions.*.name' => ['required', 'string', 'max:255'],
+            'identity_decisions.*.student_id' => ['required', 'integer', 'exists:students,id'],
         ];
     }
 
@@ -36,5 +40,11 @@ final class SyncEtatibApiRequest extends FormRequest
     public function apiUrl(): string
     {
         return (string) $this->validated('api_url');
+    }
+
+    /** @return list<array{nisn: string, name: string, student_id: int}> */
+    public function identityDecisions(): array
+    {
+        return array_values($this->validated('identity_decisions', []));
     }
 }

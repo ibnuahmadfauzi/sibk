@@ -40,7 +40,7 @@ final class SimpleEtatibApiService
         private readonly ?Closure $resolver = null,
     ) {}
 
-    /** @return array{rows: int, students: int, matched: int, conflicts: int, missing: int, missing_students: int, name_mismatches: int, active_year: string|null, identity_conflicts: list<array{nisn: string, name: string, classroom: string, reason: string, kind: string}>, fingerprint: string} */
+    /** @return array<string, mixed> */
     public function preview(string $url, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
@@ -48,7 +48,7 @@ final class SimpleEtatibApiService
         $students = Student::query()
             ->whereIn('nisn', collect($records)->pluck('nisn')->unique())
             ->with(['classMemberships' => fn ($memberships) => $memberships
-                ->with('classroom')
+                ->with('classroom', 'academicYear')
                 ->latestYearFirst()])
             ->get()
             ->keyBy('nisn');
@@ -96,6 +96,34 @@ final class SimpleEtatibApiService
             })
             ->values()
             ->all();
+        $conflictNames = collect($identityConflicts)
+            ->pluck('name')
+            ->map(fn (string $name): string => $this->normalizeText($name))
+            ->unique()
+            ->values();
+        $nameCandidates = collect();
+        foreach ($conflictNames->chunk(400) as $names) {
+            $nameCandidates = $nameCandidates->concat(Student::query()
+                ->whereIn(\Illuminate\Support\Facades\DB::raw('UPPER(TRIM(name))'), $names->all())
+                ->with(['classMemberships' => fn ($memberships) => $memberships
+                    ->with('classroom', 'academicYear')
+                    ->latestYearFirst()])
+                ->get());
+        }
+        $nameCandidates = $nameCandidates->groupBy(fn (Student $student): string => $this->normalizeText($student->name));
+        $identityConflicts = array_map(function (array $conflict) use ($students, $nameCandidates): array {
+            $sameNisn = $students->get($conflict['nisn']);
+            $conflict['master'] = $sameNisn instanceof Student ? $this->studentChoice($sameNisn) : null;
+            $conflict['suggestions'] = $nameCandidates
+                ->get($this->normalizeText($conflict['name']), collect())
+                ->reject(fn (Student $student): bool => $student->nisn === $conflict['nisn'])
+                ->take(3)
+                ->map(fn (Student $student): array => $this->studentChoice($student))
+                ->values()
+                ->all();
+
+            return $conflict;
+        }, $identityConflicts);
 
         return [
             'rows' => count($records),
@@ -112,7 +140,7 @@ final class SimpleEtatibApiService
     }
 
     /** @param array<string, mixed>|null $preview */
-    public function synchronize(string $url, User $actor, ?array $preview = null): ExternalSyncRun
+    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = []): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
@@ -123,6 +151,7 @@ final class SimpleEtatibApiService
         return $this->syncService->synchronizeUsing(
             fn (IntegrationOperationContext $context): EtatibSnapshot => $this->snapshotForSync($url, $preview, $actor),
             $actor,
+            $decisions,
         );
     }
 
@@ -166,6 +195,20 @@ final class SimpleEtatibApiService
             },
             $actor,
         );
+    }
+
+    /** @return array{id: int, nisn: string, name: string, classroom: string, academic_year: string|null} */
+    private function studentChoice(Student $student): array
+    {
+        $membership = $student->classMemberships->first();
+
+        return [
+            'id' => (int) $student->getKey(),
+            'nisn' => $student->nisn,
+            'name' => $student->name,
+            'classroom' => $membership?->classroom?->name ?? '-',
+            'academic_year' => $membership?->academicYear?->name,
+        ];
     }
 
     /** @param array<string, mixed>|null $preview */

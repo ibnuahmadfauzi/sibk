@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
+use App\Models\EtatibIdentityMapping;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
@@ -119,6 +120,59 @@ class SimpleEtatibApiTest extends TestCase
             ->assertJsonPath('data.name_mismatches', 1)
             ->assertJsonPath('data.identity_conflicts.0.classroom', '12 PH 2')
             ->assertJsonPath('data.identity_conflicts.0.reason', 'Nama pada master: Nama di Master · Kelas master: -');
+    }
+
+    public function test_admin_can_choose_master_student_in_preview_and_sync_without_another_mapping_step(): void
+    {
+        $sameNisn = Student::query()->create(['nisn' => '0093200788', 'name' => 'NAMA LAIN']);
+        $suggestion = Student::query()->create(['nisn' => '0012345678', 'name' => 'FERRYSCHA PUTRI']);
+        Http::fake([self::URL => Http::sequence()
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertJsonPath('data.identity_conflicts.0.master.id', $sameNisn->id)
+            ->assertJsonPath('data.identity_conflicts.0.master.nisn', '0093200788')
+            ->assertJsonPath('data.identity_conflicts.0.suggestions.0.id', $suggestion->id)
+            ->assertJsonPath('data.identity_conflicts.0.suggestions.0.nisn', '0012345678');
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
+
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL,
+            'identity_decisions' => [[
+                'nisn' => '0093200788',
+                'name' => 'FERRYSCHA PUTRI',
+                'student_id' => $suggestion->id,
+            ]],
+        ])->assertSessionHas('success');
+
+        $this->assertSame($suggestion->id, ExternalTatibRecord::query()->sole()->student_id);
+        $this->assertSame($suggestion->id, EtatibIdentityMapping::query()->sole()->student_id);
+    }
+
+    public function test_forged_preview_identity_choice_rejects_sync_without_mapping(): void
+    {
+        $student = Student::query()->create(['nisn' => '0093200788', 'name' => 'NAMA LAIN']);
+        Http::fake([self::URL => Http::sequence()
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL,
+            'identity_decisions' => [[
+                'nisn' => '0093200788',
+                'name' => 'NAMA YANG TIDAK ADA',
+                'student_id' => $student->id,
+            ]],
+        ])->assertSessionHasErrors('etatib_sync');
+
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
+        $this->assertDatabaseCount('external_tatib_records', 0);
     }
 
     public function test_preview_shows_active_year_without_calendar_gate(): void
