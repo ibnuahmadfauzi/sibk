@@ -9,17 +9,10 @@
     <div class="sibk-dashboard" data-page-id="PG-202">
         <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">
             <div class="sibk-page-header__copy"><a href="{{ route('students.index') }}" class="text-decoration-none small">&larr; Daftar Murid</a><h1>Profil Murid</h1><p>Riwayat layanan dan informasi terkait murid.</p></div>
-            <div class="d-flex flex-wrap align-items-start gap-2">
-                @if($canCreateConsultation)<a href="{{ route('consultations.create', ['student_id' => $student->id]) }}" class="btn btn-outline-primary">Catat Konsultasi</a>@endif
-                @if($canCreateAchievement)<a href="{{ route('achievements.create', ['student_id' => $student->id]) }}" class="btn btn-outline-primary">Catat Prestasi</a>@endif
-                @if($canCreateCase)<a href="{{ route('cases.create', ['student_id' => $student->id]) }}" class="btn btn-primary">Catat Permasalahan</a>@endif
-            </div>
         </div>
 
         @if($isWakaSummary)<div class="alert alert-info">Profil ini dibatasi pada ringkasan dan permasalahan yang dikoordinasikan kepada Anda.</div>@endif
-        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4 d-flex align-items-center gap-3"><div class="sibk-student-avatar">{{ $initials }}</div><div><h2 class="fs-4 mb-1">{{ $student->name }}</h2><div class="text-muted small">NISN {{ $student->nisn }} &bull; {{ $currentMembership?->classroom?->name ?? 'Tanpa kelas aktif' }} &bull; {{ $currentMembership?->academicYear?->name ?? 'Tahun ajaran tidak tersedia' }}</div></div></div></div>
-
-        @include('pages.students._departure-process')
+        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4 d-flex align-items-center gap-3"><div class="sibk-student-avatar">{{ $initials }}</div><div><h2 class="fs-4 mb-1">{{ $student->name }}@if($departure && $departure->status === \App\Models\StudentDeparture::STATUS_OFFICIAL) <span class="badge text-bg-secondary ms-2 fs-6 align-middle">{{ $departure->statusLabel() }}</span>@endif</h2><div class="text-muted small">NISN {{ $student->nisn }} &bull; {{ $currentMembership?->classroom?->name ?? 'Tanpa kelas aktif' }} &bull; {{ $currentMembership?->academicYear?->name ?? 'Tahun ajaran tidak tersedia' }}</div></div></div></div>
 
         <ul class="nav nav-pills mb-4 gap-2">
             @foreach(['ringkasan' => 'Ringkasan', 'kasus' => 'Permasalahan dan Layanan', 'etatib' => 'Data e-Tatib'] as $key => $label)<li class="nav-item"><a class="nav-link {{ $activeTab === $key ? 'active' : '' }}" href="{{ route('students.show', ['student' => $student, 'tab' => $key]) }}">{{ $label }}</a></li>@endforeach
