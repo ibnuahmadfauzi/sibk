@@ -2332,6 +2332,15 @@ small, .small {
       background-color: var(--sibk-color-surface-raised) !important;
       box-shadow: var(--sibk-shadow-raised-sm);
     }
+
+    &.sibk-table__row--clickable:hover {
+      background-color: var(--sibk-color-primary-soft, rgba(var(--sibk-rgb-primary, 79 70 229), 0.06)) !important;
+      box-shadow: var(--sibk-shadow-raised-sm);
+
+      td {
+        color: var(--sibk-color-text-dark);
+      }
+    }
   }
 
   tbody td,

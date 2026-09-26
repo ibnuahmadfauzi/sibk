@@ -18,9 +18,9 @@
                     $activeCases = $student->cases->whereNull('closed_at');
                     $totalConsultations = $student->consultations->count();
                 @endphp
-                <tr>
+                <tr class="sibk-table__row--clickable" style="cursor:pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
                     <td class="fw-semibold">{{ $student->nisn }}</td>
-                    <td><a href="{{ route('students.show', $student) }}" class="fw-semibold text-decoration-none link-primary">{{ $student->name }}</a></td>
+                    <td class="fw-semibold">{{ $student->name }}</td>
                     <td>{{ $membership?->classroom?->name ?? '—' }}</td>
                     <td class="text-center"><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td>
                     <td class="text-center"><span class="fw-semibold {{ $totalConsultations > 0 ? 'text-info' : 'text-muted' }}">{{ $totalConsultations }}</span></td>
