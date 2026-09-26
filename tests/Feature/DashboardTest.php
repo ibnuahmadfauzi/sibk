@@ -135,7 +135,7 @@ class DashboardTest extends TestCase
 
         $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('Tidak ada permasalahan berstatus Tindak Lanjut.')
+            ->assertSee('Belum ada aktivitas terbaru dari kelas yang Anda ampu.')
             ->assertDontSee('Tidak ada jadwal tindak lanjut dalam waktu dekat.');
     }
 

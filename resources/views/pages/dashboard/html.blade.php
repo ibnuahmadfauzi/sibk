@@ -120,7 +120,10 @@
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
-                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada permasalahan berstatus Tindak Lanjut." />
+                        <x-empty-state
+                            title="{{ $dashboard['schedule_empty_title'] ?? 'Tidak ada tindak lanjut' }}"
+                            description="{{ $dashboard['schedule_empty_description'] ?? 'Tidak ada permasalahan berstatus Tindak Lanjut.' }}"
+                        />
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)

@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
@@ -112,11 +113,25 @@ class DashboardService
             'read_only' => $mode === 'waka',
             'description' => $mode === 'waka' ? 'Ringkasan seluruh permasalahan aktif sekolah — tampilan hanya-baca tanpa catatan internal atau konsultasi sensitif.' : 'Ringkasan operasional dari data layanan sesuai kewenangan Anda.',
             'stats' => $stats,
-            'schedule_title' => $mode === 'waka' ? 'Permasalahan aktif sekolah' : 'Permasalahan Tindak Lanjut',
+            'schedule_title' => match ($mode) {
+                'waka' => 'Permasalahan aktif sekolah',
+                'teacher' => 'Aktivitas Terbaru',
+                default => 'Permasalahan Tindak Lanjut',
+            },
             'schedule_url' => $mode === 'waka' ? route('waka.monitoring.handling') : route('cases.index'),
-            'tindak_lanjut' => $mode === 'waka'
-                ? $this->caseItems((clone $cases)->latest('updated_at')->limit(6)->get())
-                : $this->followUpItems($followUpCases->limit(6)->get()),
+            'schedule_empty_title' => match ($mode) {
+                'teacher' => 'Belum ada aktivitas',
+                default => 'Tidak ada tindak lanjut',
+            },
+            'schedule_empty_description' => match ($mode) {
+                'teacher' => 'Belum ada aktivitas terbaru dari kelas yang Anda ampu.',
+                default => 'Tidak ada permasalahan berstatus Tindak Lanjut.',
+            },
+            'tindak_lanjut' => match ($mode) {
+                'waka' => $this->caseItems((clone $cases)->latest('updated_at')->limit(6)->get()),
+                'teacher' => $this->teacherLatestActivities($user, $year),
+                default => $this->followUpItems($followUpCases->limit(6)->get()),
+            },
             'context_panel' => [
                 'title' => match ($mode) {
                     'teacher' => 'Kelas Ampuan',
@@ -240,6 +255,90 @@ class DashboardService
                 'url' => route('students.index', ['classroom_id' => $classroom->getKey()]),
             ];
         })->values()->all();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function teacherLatestActivities(User $user, ?AcademicYear $year): array
+    {
+        $assignedClassroomIds = TeacherAssignment::query()
+            ->where('user_id', $user->getKey())
+            ->when($year,
+                fn (Builder $query, AcademicYear $selected): Builder => $query->where('academic_year_id', $selected->getKey()),
+                fn (Builder $query): Builder => $query->inActiveYear()
+            )
+            ->pluck('classroom_id');
+
+        if ($assignedClassroomIds->isEmpty()) {
+            return [];
+        }
+
+        $cases = BkCase::query()
+            ->accessibleTo($user)
+            ->whereIn('classroom_id', $assignedClassroomIds)
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->getKey()))
+            ->with(['student', 'temporaryStudent', 'classroom', 'status', 'serviceField', 'followUpType'])
+            ->latest('created_at')
+            ->latest('id')
+            ->limit(6)
+            ->get();
+
+        $consultations = Consultation::query()
+            ->accessibleTo($user)
+            ->whereIn('classroom_id', $assignedClassroomIds)
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->where('academic_year_id', $selected->getKey()))
+            ->with(['student', 'temporaryStudent', 'classroom', 'serviceField'])
+            ->latest('created_at')
+            ->latest('id')
+            ->limit(6)
+            ->get();
+
+        $caseItems = $cases->map(function (BkCase $case): array {
+            $date = $case->service_date ?? $case->created_at;
+            $statusTone = match ($case->status?->code) {
+                ServiceRecordStatus::COMPLETED => 'success',
+                ServiceRecordStatus::NEEDS_FOLLOW_UP => 'warning',
+                default => 'primary',
+            };
+
+            return [
+                'timestamp' => $case->created_at?->timestamp ?? 0,
+                'date' => $date->format('d'),
+                'month' => $date->locale('id')->translatedFormat('M'),
+                'year' => $date->format('Y'),
+                'code' => 'Layanan permasalahan',
+                'title' => $case->followUpType?->label
+                    ?? ($case->serviceField?->label ? 'Layanan '.$case->serviceField->label : 'Permasalahan layanan BK'),
+                'context_label' => sprintf('%s (%s)', $case->identityName(), $case->classroom?->name ?? 'tanpa kelas'),
+                'status' => $case->status?->label ?? 'Aktif',
+                'status_tone' => $statusTone,
+                'url' => route('cases.show', $case),
+            ];
+        });
+
+        $consultationItems = $consultations->map(function (Consultation $consultation): array {
+            $date = $consultation->session_date ?? $consultation->created_at;
+
+            return [
+                'timestamp' => $consultation->created_at?->timestamp ?? 0,
+                'date' => $date->format('d'),
+                'month' => $date->locale('id')->translatedFormat('M'),
+                'year' => $date->format('Y'),
+                'code' => 'Layanan konsultasi',
+                'title' => $consultation->serviceField?->label ? 'Konsultasi '.$consultation->serviceField->label : 'Sesi konsultasi',
+                'context_label' => sprintf('%s (%s)', $consultation->identityName(), $consultation->classroom?->name ?? 'tanpa kelas'),
+                'status' => 'Konsultasi',
+                'status_tone' => 'info',
+                'url' => route('consultations.show', $consultation),
+            ];
+        });
+
+        return $caseItems->concat($consultationItems)
+            ->sortByDesc('timestamp')
+            ->take(6)
+            ->values()
+            ->all();
     }
 
     /** @return list<array{label: string, value: string, meta: string}> */
