@@ -1100,6 +1100,44 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function preview_lists_duplicate_nisn_rows_while_import_rejects_them(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $payload = [
+            'success' => true,
+            'data' => [
+                ['nama' => 'Murid Pertama', 'nisn' => '0012345678', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+                ['nama' => 'Murid Kedua', 'nisn' => '0012345678', 'rombel' => 'X RPL 2', 'tahun_pelajaran' => $year->name],
+                ['nama' => 'Murid Aman', 'nisn' => '0098765432', 'rombel' => 'X RPL 1', 'tahun_pelajaran' => $year->name],
+            ],
+        ];
+        Http::fake(['https://8.8.8.8/duplicate-roster' => Http::response($payload)]);
+
+        $response = $this->actingAs($admin)->postJson(route('data-master.roster-imports.preview'), [
+            'api_url' => 'https://8.8.8.8/duplicate-roster',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.rows', 3)
+            ->assertJsonPath('data.students', 2)
+            ->assertJsonPath('data.conflict_count', 2)
+            ->assertJsonPath('data.can_import', false)
+            ->assertJsonPath('data.entries.0.nisn', '0012345678')
+            ->assertJsonPath('data.entries.0.name', 'Murid Pertama')
+            ->assertJsonPath('data.entries.0.status', 'NISN ganda pada respons API')
+            ->assertJsonPath('data.entries.1.nisn', '0012345678')
+            ->assertJsonPath('data.entries.1.name', 'Murid Kedua');
+        $this->assertCount(2, $response->json('data.entries'));
+        $this->assertStringNotContainsString('Murid Aman', $response->getContent());
+        $this->assertValidationError(
+            fn () => app(AcademicYearPreparationService::class)->importRosterPayload($payload, $admin),
+            'data',
+        );
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    #[Test]
     public function preview_lists_all_fifteen_classroom_conflicts_and_blocks_import(): void
     {
         $admin = $this->userWithRole('admin_it');

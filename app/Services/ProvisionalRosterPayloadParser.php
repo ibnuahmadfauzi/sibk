@@ -14,7 +14,7 @@ final class ProvisionalRosterPayloadParser
      * @param  array<string, mixed>  $payload
      * @return list<array{nisn: string, name: string, classroom: string, academic_year_name: string}>
      */
-    public function parse(array $payload): array
+    public function parse(array $payload, bool $forPreview = false): array
     {
         if (($payload['success'] ?? null) !== true) {
             $this->fail('Respons API daftar murid tidak berhasil.');
@@ -71,7 +71,7 @@ final class ProvisionalRosterPayloadParser
             }
 
             $rosterKey = $academicYearName.'|'.$nisn;
-            if (isset($seenNisn[$rosterKey])) {
+            if (! $forPreview && isset($seenNisn[$rosterKey])) {
                 $this->fail('Satu NISN hanya boleh muncul sekali pada tahun pelajaran yang sama.');
             }
 

@@ -46,7 +46,7 @@ final class ApiSiswaRosterImportService
         try {
             $this->assertPublicUrl($url);
             $payload = $this->fetchPayload($url);
-            $rows = $this->payloadParser->parse($payload);
+            $rows = $this->payloadParser->parse($payload, forPreview: true);
 
             return $this->buildPreview($rows);
         } catch (ValidationException $exception) {
@@ -219,6 +219,10 @@ final class ApiSiswaRosterImportService
      */
     private function buildPreview(array $rows): array
     {
+        $nisnCounts = array_count_values(array_map(
+            fn (array $row): string => $row['academic_year_name'].'|'.$row['nisn'],
+            $rows,
+        ));
         $rowsByYear = collect($rows)->groupBy('academic_year_name');
         $years = AcademicYear::query()
             ->whereIn('name', $rowsByYear->keys())
@@ -283,7 +287,9 @@ final class ApiSiswaRosterImportService
                         || mb_strtolower($membership->classroom->name) !== mb_strtolower($row['classroom']),
                 );
             $inactiveClassroom = $inactiveClassrooms->has(mb_strtolower($row['classroom']));
+            $duplicateNisn = $nisnCounts[$row['academic_year_name'].'|'.$row['nisn']] > 1;
             $status = match (true) {
+                $duplicateNisn => 'NISN ganda pada respons API',
                 $identityConflict => 'NISN perlu diperiksa',
                 $classroomConflict => 'Rombel berbeda',
                 $inactiveClassroom => 'Rombel nonaktif',
@@ -291,7 +297,7 @@ final class ApiSiswaRosterImportService
                 $studentMemberships->isNotEmpty() => 'Sudah ada',
                 default => 'Siap diimpor',
             };
-            if ($identityConflict || $classroomConflict || $inactiveClassroom) {
+            if ($duplicateNisn || $identityConflict || $classroomConflict || $inactiveClassroom) {
                 $conflictCount++;
                 $entries[] = [
                     'nisn' => $row['nisn'],
