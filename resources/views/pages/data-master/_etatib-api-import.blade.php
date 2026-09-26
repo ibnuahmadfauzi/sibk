@@ -47,6 +47,7 @@
             class="row g-2 align-items-end"
             data-etatib-api-form
             data-preview-url="{{ route('data-master.etatib.preview') }}"
+            data-dapodik-url="{{ route('data-master.index', ['tab' => 'dapodik']) }}"
             data-manual-sync-url="{{ route('data-master.etatib.sync') }}"
             data-automatic-sync-url="{{ route('data-master.etatib.automatic.store') }}"
         >

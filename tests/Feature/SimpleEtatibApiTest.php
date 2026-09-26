@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
 use App\Models\Role;
@@ -54,6 +55,8 @@ class SimpleEtatibApiTest extends TestCase
             ->assertJsonPath('data.students', 2)
             ->assertJsonPath('data.matched', 1)
             ->assertJsonPath('data.conflicts', 1)
+            ->assertJsonPath('data.missing_students', 1)
+            ->assertJsonPath('data.name_mismatches', 0)
             ->assertJsonPath('data.missing', 0)
             ->assertJsonPath('data.identity_conflicts.0.nisn', '0081784737')
             ->assertJsonPath('data.identity_conflicts.0.classroom', '11 TKJ 1')
@@ -112,8 +115,28 @@ class SimpleEtatibApiTest extends TestCase
             ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
             ->assertOk()
             ->assertJsonPath('data.conflicts', 1)
+            ->assertJsonPath('data.missing_students', 0)
+            ->assertJsonPath('data.name_mismatches', 1)
             ->assertJsonPath('data.identity_conflicts.0.classroom', '12 PH 2')
-            ->assertJsonPath('data.identity_conflicts.0.reason', 'Master: Nama di Master · Kelas -');
+            ->assertJsonPath('data.identity_conflicts.0.reason', 'Nama pada master: Nama di Master · Kelas master: -');
+    }
+
+    public function test_preview_warns_when_active_year_does_not_cover_latest_violation(): void
+    {
+        AcademicYear::query()->create([
+            'name' => '2024/2025',
+            'starts_on' => '2024-07-01',
+            'ends_on' => '2025-06-30',
+            'is_active' => true,
+        ]);
+        Http::fake([self::URL => Http::response($this->payload())]);
+
+        $response = $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+
+        $this->assertStringContainsString('2024/2025', $response->json('data.roster_warning'));
+        $this->assertStringContainsString('2026', $response->json('data.roster_warning'));
     }
 
     public function test_sync_rejects_changed_api_response_after_preview(): void

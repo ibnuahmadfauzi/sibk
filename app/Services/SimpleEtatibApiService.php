@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\Etatib\EtatibUnavailableException;
 use App\Integrations\IntegrationOperationContext;
+use App\Models\AcademicYear;
 use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
@@ -39,7 +40,7 @@ final class SimpleEtatibApiService
         private readonly ?Closure $resolver = null,
     ) {}
 
-    /** @return array{rows: int, students: int, matched: int, conflicts: int, missing: int, identity_conflicts: list<array{nisn: string, name: string, classroom: string, reason: string}>, fingerprint: string} */
+    /** @return array{rows: int, students: int, matched: int, conflicts: int, missing: int, missing_students: int, name_mismatches: int, roster_warning: string|null, identity_conflicts: list<array{nisn: string, name: string, classroom: string, reason: string, kind: string}>, fingerprint: string} */
     public function preview(string $url, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
@@ -87,9 +88,10 @@ final class SimpleEtatibApiService
                     'nisn' => $record['nisn'],
                     'name' => $record['source_student_name'],
                     'classroom' => $group->pluck('source_classroom_name')->unique()->implode(', '),
+                    'kind' => $student instanceof Student ? 'name_mismatch' : 'nisn_not_found',
                     'reason' => $student instanceof Student
-                        ? 'Master: '.$student->name.' · Kelas '.($student->classMemberships->first()?->classroom?->name ?? '-')
-                        : 'NISN belum ditemukan pada master murid.',
+                        ? 'Nama pada master: '.$student->name.' · Kelas master: '.($student->classMemberships->first()?->classroom?->name ?? '-')
+                        : 'NISN ini belum ada pada master murid.',
                 ];
             })
             ->values()
@@ -101,6 +103,9 @@ final class SimpleEtatibApiService
             'matched' => $matched,
             'conflicts' => count($records) - $matched,
             'missing' => $this->missingActiveCount($records),
+            'missing_students' => collect($identityConflicts)->where('kind', 'nisn_not_found')->count(),
+            'name_mismatches' => collect($identityConflicts)->where('kind', 'name_mismatch')->count(),
+            'roster_warning' => $this->rosterWarning($records),
             'identity_conflicts' => $identityConflicts,
             'fingerprint' => $this->fingerprint($records),
         ];
@@ -205,6 +210,27 @@ final class SimpleEtatibApiService
             ->active()
             ->whereNotIn('source_identifier', array_column($records, 'source_id'))
             ->count();
+    }
+
+    /** @param list<array<string, int|string|null>> $records */
+    private function rosterWarning(array $records): ?string
+    {
+        $year = AcademicYear::query()->active()->first();
+        $latestDate = collect($records)->max('occurred_at');
+        if ($year?->starts_on === null || $year->ends_on === null || ! is_string($latestDate)) {
+            return null;
+        }
+
+        $date = substr($latestDate, 0, 10);
+        if ($date >= $year->starts_on->toDateString() && $date <= $year->ends_on->toDateString()) {
+            return null;
+        }
+
+        return sprintf(
+            'Tahun ajaran aktif %s tidak mencakup pelanggaran terbaru (%s). Perbarui data murid untuk periode yang sesuai sebelum mencocokkan identitas.',
+            $year->name,
+            CarbonImmutable::parse($date)->format('d-m-Y'),
+        );
     }
 
     /** @param list<array<string, int|string|null>> $records */

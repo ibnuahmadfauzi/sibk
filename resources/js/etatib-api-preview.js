@@ -6,7 +6,7 @@ const element = (tag, className = '', text = '') => {
     return node;
 };
 
-const render = (container, preview) => {
+const render = (container, preview, dapodikUrl) => {
     container.replaceChildren();
     const tone = preview.missing > 0 || preview.conflicts > 0 ? 'alert-warning' : 'alert-success';
     container.append(element(
@@ -15,9 +15,17 @@ const render = (container, preview) => {
         preview.missing > 0
             ? `${preview.missing} pelanggaran aktif sebelumnya tidak ada dalam respons API. Sinkronisasi ditahan; periksa sumber data.`
             : preview.conflicts > 0
-            ? `${preview.conflicts} pelanggaran perlu pemeriksaan identitas setelah sinkronisasi.`
+            ? `${preview.conflicts} pelanggaran memiliki identitas yang perlu diperiksa.`
             : 'Tidak ada indikasi konflik identitas.',
     ));
+
+    if (preview.roster_warning) {
+        const warning = element('div', 'alert alert-warning', preview.roster_warning);
+        const link = element('a', 'd-block mt-2 fw-semibold', 'Buka tab Dapodik untuk memperbarui data murid');
+        link.href = dapodikUrl;
+        warning.append(link);
+        container.append(warning);
+    }
 
     const summary = element('div', 'd-flex flex-wrap gap-4 mb-3');
     summary.append(
@@ -28,21 +36,28 @@ const render = (container, preview) => {
     );
     container.append(summary);
     if (preview.conflicts > 0) {
-        const details = element('details', 'mb-3');
-        details.append(element('summary', 'fw-semibold',
-            `Lihat ${preview.identity_conflicts.length} identitas yang perlu diperiksa`));
-        const list = element('ul', 'list-group mt-2');
-        preview.identity_conflicts.forEach((item) => {
-            const row = element('li', 'list-group-item');
-            row.append(
-                element('strong', 'd-block', `${item.name} · NISN ${item.nisn}`),
-                element('span', 'd-block', `Kelas e-Tatib: ${item.classroom}`),
-                element('span', 'text-muted small', item.reason),
-            );
-            list.append(row);
+        container.append(element('p', 'mb-3',
+            `${preview.missing_students} identitas memiliki NISN yang belum ada di master. ${preview.name_mismatches} identitas memiliki NISN sama tetapi nama berbeda.`));
+        [
+            ['name_mismatch', preview.name_mismatches, 'Nama berbeda'],
+            ['nisn_not_found', preview.missing_students, 'NISN belum ada di master'],
+        ].forEach(([kind, count, label]) => {
+            if (!count) return;
+            const details = element('details', 'mb-3');
+            details.append(element('summary', 'fw-semibold', `Lihat ${count} identitas: ${label}`));
+            const list = element('ul', 'list-group mt-2');
+            preview.identity_conflicts.filter((item) => item.kind === kind).forEach((item) => {
+                const row = element('li', 'list-group-item');
+                row.append(
+                    element('strong', 'd-block', `${item.name} · NISN ${item.nisn}`),
+                    element('span', 'd-block', `Kelas e-Tatib: ${item.classroom}`),
+                    element('span', 'text-muted small', item.reason),
+                );
+                list.append(row);
+            });
+            details.append(list);
+            container.append(details);
         });
-        details.append(list);
-        container.append(details);
         container.append(element('p', 'text-muted small mb-0',
             'Setelah sinkronisasi, buka Yang Perlu Ditinjau untuk mencocokkan identitas yang belum sesuai.'));
     }
@@ -102,7 +117,7 @@ export const initEtatibApiPreview = async (root = document) => {
                 body.replaceChildren(element('div', 'alert alert-danger mb-0', message));
                 return;
             }
-            render(body, payload.data);
+            render(body, payload.data, form.dataset.dapodikUrl);
             previewedUrl = url.value;
             confirm.disabled = payload.data.missing > 0;
             automaticPassword.disabled = payload.data.missing > 0;
