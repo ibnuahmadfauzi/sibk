@@ -15,6 +15,7 @@ use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
+use App\Models\WithdrawalProgress;
 use App\Services\AuditService;
 use App\Services\CaseService;
 use App\Services\WakaMonitoringService;
@@ -35,8 +36,14 @@ class CaseController extends Controller
         $isWakaOnly = $user->hasRole('waka_kesiswaan')
             && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
         $activeTab = $request->string('tab', 'kasus')->toString();
-        if (! in_array($activeTab, ['kasus', 'konsultasi'], true)) {
+        if (! in_array($activeTab, ['kasus', 'konsultasi', 'pengunduran-diri'], true)) {
             $activeTab = 'kasus';
+        }
+
+        if ($activeTab === 'pengunduran-diri') {
+            abort_unless($user->can('viewAny', WithdrawalProgress::class), 403);
+
+            return $this->withdrawalIndex($request, $user);
         }
 
         if ($activeTab === 'konsultasi') {
@@ -355,6 +362,32 @@ class CaseController extends Controller
             'consultationStatuses' => collect(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
             'isWakaOnly' => $isWakaOnly,
+        ]);
+    }
+
+    private function withdrawalIndex(Request $request, User $user): View
+    {
+        $query = WithdrawalProgress::query()->accessibleTo($user)
+            ->with(['student:id,name', 'teacher:id,name', 'classroom:id,name']);
+        $search = $request->string('search')->trim()->toString();
+        $query->when($search !== '', fn ($records) => $records
+            ->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%')));
+        $progress = $request->string('progress')->toString();
+        $query->when(in_array($progress, array_keys(WithdrawalProgress::labels()), true),
+            fn ($records) => $records->where('progress', $progress));
+
+        $canCreate = $user->can('create', WithdrawalProgress::class);
+        $students = $canCreate ? Student::query()
+            ->availableForService()
+            ->forActiveTeacherAssignment($user)
+            ->whereNotIn('id', WithdrawalProgress::query()->select('student_id'))
+            ->orderBy('name')->get() : collect();
+
+        return view('pages.cases.index', [
+            'activeTab' => 'pengunduran-diri',
+            'withdrawals' => $query->orderByDesc('recorded_on')->orderByDesc('id')->paginate(20)->withQueryString(),
+            'withdrawalStudents' => $students,
+            'canCreateWithdrawal' => $canCreate,
         ]);
     }
 }

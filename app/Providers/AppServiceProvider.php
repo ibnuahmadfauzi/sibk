@@ -18,6 +18,7 @@ use App\Models\Student;
 use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Models\WithdrawalProgress;
 use App\Policies\AchievementPolicy;
 use App\Policies\CasePolicy;
 use App\Policies\ConsultationPolicy;
@@ -27,6 +28,7 @@ use App\Policies\StudentPolicy;
 use App\Policies\TeacherAssignmentPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WakaMonitoringPolicy;
+use App\Policies\WithdrawalProgressPolicy;
 use App\Services\IntegrationSettingService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -84,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Consultation::class, ConsultationPolicy::class);
         Gate::policy(Student::class, StudentPolicy::class);
         Gate::policy(StudentDeparture::class, StudentDeparturePolicy::class);
+        Gate::policy(WithdrawalProgress::class, WithdrawalProgressPolicy::class);
 
         Gate::define('viewReports', fn (User $user): bool => app(ReportPolicy::class)->viewAny($user));
         Gate::define('manageDataMaster', fn (User $user): bool => $user->is_active && $user->hasRole('admin_it'));

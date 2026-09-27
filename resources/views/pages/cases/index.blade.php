@@ -6,15 +6,16 @@
     <div class="sibk-dashboard" data-page-id="PG-101">
         @if(session('success'))<x-notification-toast>{{ session('success') }}</x-notification-toast>@endif
         <div class="sibk-page-header mb-4">
-            <div class="sibk-page-header__copy"><h1>Layanan BK</h1><p>Cari, filter, dan kelola catatan permasalahan serta sesi konsultasi.</p></div>
+            <div class="sibk-page-header__copy"><h1>Layanan BK</h1><p>Catatan permasalahan, konsultasi, dan progres penanganan pengunduran diri murid.</p></div>
         </div>
 
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
             <ul class="nav nav-pills gap-2 mb-0">
                 <li class="nav-item"><a class="nav-link {{ $activeTab === 'kasus' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'kasus']) }}">Catatan Permasalahan</a></li>
                 @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
+                @can('viewAny', \App\Models\WithdrawalProgress::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'pengunduran-diri' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">Pengunduran Diri</a></li>@endcan
             </ul>
-            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@endif
+            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawal-create-modal" @disabled($withdrawalStudents->isEmpty())>Catat Pengunduran Diri</button>@endif
         </div>
 
         @if($activeTab === 'kasus')
@@ -89,7 +90,7 @@
                 @empty<tr><td colspan="8" class="text-center text-muted py-4">Belum ada permasalahan yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
 
-        @else
+        @elseif($activeTab === 'konsultasi')
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="konsultasi">
                 <div class="col-12 col-lg-5"><label class="form-label" for="consultation_search">Cari nama murid</label><input class="form-control" id="consultation_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
@@ -107,6 +108,8 @@
                     <tr data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}"><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }}</div></td>@unless($isWakaOnly)<td>{{ $session->problem }}</td>@endunless<td>{{ $session->serviceField->label }}</td><td><a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm btn-outline-info">Detail</a></td></tr>
                 @empty<tr><td colspan="5" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($consultations->hasPages())<div class="mt-3">{{ $consultations->links() }}</div>@endif
+        @else
+            @include('pages.cases._withdrawals')
         @endif
         <div class="modal fade" id="case-modal" tabindex="-1" aria-labelledby="case-modal-title" aria-hidden="true" data-service-record-modal>
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
