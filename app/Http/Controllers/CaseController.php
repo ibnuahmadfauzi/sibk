@@ -61,6 +61,7 @@ class CaseController extends Controller
                 'serviceField:id,label',
                 'status:id,label,code',
                 'followUpType:id,label',
+                'followUps.followUpType',
             ]), fn ($cases) => $cases->with([
                 'classroom',
                 'temporaryStudent',
@@ -68,6 +69,7 @@ class CaseController extends Controller
                 'serviceField',
                 'status',
                 'followUpType',
+                'followUps.followUpType',
             ]));
 
         $search = $request->string('search')->trim()->toString();

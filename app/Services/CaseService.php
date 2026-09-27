@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
+use App\Models\CaseFollowUp;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Student;
@@ -204,6 +205,14 @@ class CaseService
             );
             $before = ['follow_up_type_id' => $case->follow_up_type_id, 'status_id' => $case->status_id];
             $case->update(['follow_up_type_id' => $type?->getKey(), 'status_id' => $status->getKey()]);
+            if ($type !== null) {
+                CaseFollowUp::query()->create([
+                    'case_id' => $case->getKey(),
+                    'follow_up_type_id' => $type->getKey(),
+                    'follow_up_date' => now()->toDateString(),
+                    'created_by' => $actor->getKey(),
+                ]);
+            }
             $case->refresh();
             $this->auditService->recordChanges(
                 action: 'case.follow_up_updated',
@@ -215,6 +224,54 @@ class CaseService
             );
 
             return $case->load(['status', 'followUpType']);
+        });
+    }
+
+    /**
+     * @param  array{follow_up_type_id: int|string, follow_up_date: string, notes?: string|null}  $data
+     */
+    public function addFollowUp(BkCase $case, array $data, User $actor): CaseFollowUp
+    {
+        return DB::transaction(function () use ($case, $data, $actor): CaseFollowUp {
+            $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
+            $this->assertActiveYear($case);
+            if (! $case->isOwnedBy($actor)) {
+                throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
+            }
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Tindak lanjut kasus selesai tidak dapat diubah.']);
+            }
+
+            $type = $this->reference('follow_up_type', (int) $data['follow_up_type_id']);
+            $status = $this->referenceByCode('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP);
+
+            $followUp = CaseFollowUp::query()->create([
+                'case_id' => $case->getKey(),
+                'follow_up_type_id' => $type->getKey(),
+                'follow_up_date' => $data['follow_up_date'],
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $actor->getKey(),
+            ]);
+
+            $case->update([
+                'follow_up_type_id' => $type->getKey(),
+                'status_id' => $status->getKey(),
+            ]);
+            $case->refresh();
+
+            $this->auditService->record(
+                action: 'case.follow_up_added',
+                auditable: $case,
+                summary: sprintf('Tindak lanjut %s untuk %s ditambahkan.', $type->label, $case->identityName()),
+                actor: $actor,
+                after: [
+                    'follow_up_id' => $followUp->getKey(),
+                    'follow_up_type_id' => $type->getKey(),
+                    'follow_up_date' => $followUp->follow_up_date->toDateString(),
+                ],
+            );
+
+            return $followUp->load(['followUpType', 'case']);
         });
     }
 

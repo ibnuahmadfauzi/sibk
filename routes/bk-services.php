@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\CaseController;
+use App\Http\Controllers\CaseFollowUpController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,3 +19,5 @@ use Illuminate\Support\Facades\Route;
 Route::get('/cases/{case}/edit', [CaseController::class, 'edit'])->name('cases.edit');
 Route::patch('/cases/{case}', [CaseController::class, 'update'])->name('cases.update');
 Route::patch('/cases/{case}/follow-up', [CaseController::class, 'updateFollowUp'])->name('cases.follow-up.update');
+Route::get('/cases/{case}/follow-ups', [CaseFollowUpController::class, 'index'])->name('cases.follow-ups.index');
+Route::post('/cases/{case}/follow-ups', [CaseFollowUpController::class, 'store'])->name('cases.follow-ups.store');

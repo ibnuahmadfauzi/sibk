@@ -67,6 +67,12 @@ class BkCase extends Model
         return $this->belongsTo(ReferenceValue::class, 'follow_up_type_id');
     }
 
+    /** @return HasMany<CaseFollowUp, $this> */
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(CaseFollowUp::class, 'case_id')->orderByDesc('follow_up_date')->orderByDesc('id');
+    }
+
     /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
