@@ -123,7 +123,10 @@
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
-                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada permasalahan berstatus Tindak Lanjut." />
+                        <x-empty-state
+                            title="{{ $dashboard['schedule_empty_title'] ?? 'Tidak ada tindak lanjut' }}"
+                            description="{{ $dashboard['schedule_empty_description'] ?? 'Tidak ada permasalahan berstatus Tindak Lanjut.' }}"
+                        />
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
@@ -157,17 +160,34 @@
                             <h2 id="context-panel-title">{{ $dashboard['context_panel']['title'] }}</h2>
                         </div>
                     </header>
-                    <div class="sibk-activity-list">
-                        @foreach ($dashboard['context_panel']['items'] as $item)
-                            <article class="sibk-activity-row">
-                                <div class="sibk-activity-row__content">
-                                    <strong>{{ $item['label'] }}</strong>
-                                    <span>{{ $item['meta'] }}</span>
-                                </div>
-                                <strong>{{ $item['value'] }}</strong>
-                            </article>
-                        @endforeach
-                    </div>
+                    @if (empty($dashboard['context_panel']['items']))
+                        <x-empty-state
+                            title="{{ $dashboard['context_panel']['empty_title'] ?? 'Belum ada data' }}"
+                            description="{{ $dashboard['context_panel']['empty_description'] ?? 'Tidak ada data untuk ditampilkan.' }}"
+                        />
+                    @else
+                        <div class="sibk-activity-list">
+                            @foreach ($dashboard['context_panel']['items'] as $item)
+                                @if (!empty($item['url']))
+                                    <a href="{{ $item['url'] }}" class="sibk-activity-row text-decoration-none">
+                                        <div class="sibk-activity-row__content">
+                                            <strong>{{ $item['label'] }}</strong>
+                                            <span>{{ $item['meta'] }}</span>
+                                        </div>
+                                        <strong class="text-body">{{ $item['value'] }}</strong>
+                                    </a>
+                                @else
+                                    <article class="sibk-activity-row">
+                                        <div class="sibk-activity-row__content">
+                                            <strong>{{ $item['label'] }}</strong>
+                                            <span>{{ $item['meta'] }}</span>
+                                        </div>
+                                        <strong>{{ $item['value'] }}</strong>
+                                    </article>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
                 </section>
             </div>
         </div>

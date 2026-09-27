@@ -245,6 +245,8 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Halaman:** `GET /data-master?tab=dapodik` menampilkan impor URL API Siswa dan CSV; `GET /data-master?tab=etatib` menampilkan sinkronisasi e-Tatib; `GET /data-master?tab=sinkronisasi` menampilkan seluruh `external_sync_issues` dengan `resolved_at` kosong dan riwayat `external_sync_runs`, masing-masing 20 per halaman melalui `issue_page` dan `run_page`. Ketiganya khusus Admin IT aktif melalui capability `manageDataMaster`. Panel koneksi Dapodik langsung tidak ditampilkan selama adapternya `unavailable`; URL lama `GET /admin/api` mengalihkan ke tab Dapodik.
 - **Endpoint:**
   - `POST /data-master/etatib/preview` untuk pratinjau URL API e-Tatib sekali pakai.
+  - `GET /data-master/sync-issues/{issue}` menampilkan perbandingan data dan catatan pemeriksaan (INT-15).
+  - `PATCH /data-master/sync-issues/{issue}` menerima `status` (`reviewed` atau `source_correction`) dan `note` wajib maksimal 1.000 karakter; catatan disimpan pada `details.review` dengan `status`, `note`, `reviewed_by`, dan `reviewed_at`, lalu mengalihkan ke halaman pemeriksaan. Respons detail memakai `Cache-Control: no-store`.
   - `POST /data-master/etatib/sync` untuk mengambil ulang URL dan menyinkronkan snapshot e-Tatib.
   - `POST /data-master/etatib/automatic` untuk memvalidasi ulang, menyinkronkan, menyimpan URL terenkripsi, dan mengaktifkan jadwal otomatis.
   - `POST /data-master/etatib/automatic/sync` untuk sinkronisasi manual memakai URL otomatis tersimpan.
