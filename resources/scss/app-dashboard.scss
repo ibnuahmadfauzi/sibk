@@ -3644,14 +3644,14 @@ select.sibk-withdrawal-progress {
     min-height: 7.5rem;
     padding: 1rem;
     border-radius: var(--sibk-radius-md);
-    background: #fff;
     box-shadow: var(--sibk-shadow-inset-lg);
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
 
     h3 {
       margin: 0 0 0.5rem;
       font-size: 0.95rem;
       font-weight: 600;
+      color: var(--sibk-color-text);
     }
 
     small {
@@ -3680,8 +3680,12 @@ select.sibk-withdrawal-progress {
     font-size: 1.6rem;
     line-height: 1;
 
-    &--warning {
-      color: #c95b20;
+    &--danger {
+      color: var(--sibk-color-danger-strong);
+    }
+
+    &--success {
+      color: #246b56;
     }
   }
 }
