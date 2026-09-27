@@ -2307,7 +2307,7 @@ small, .small {
 
 .table,
 .sibk-table {
-  --bs-table-bg: transparent !important;
+  --bs-table-bg: var(--sibk-color-surface-raised) !important;
   background-color: transparent !important;
   vertical-align: middle;
   margin-bottom: 0;
@@ -2316,7 +2316,7 @@ small, .small {
 
   thead th,
   th {
-    background-color: transparent !important;
+    background-color: var(--sibk-color-surface-raised) !important;
     color: var(--sibk-color-text-dark) !important;
     font-weight: 700;
     font-size: 0.85rem;
@@ -2326,23 +2326,34 @@ small, .small {
   }
 
   tbody tr {
-    transition: all 0.2s ease-in-out;
+    transition: background-color 0.18s ease-in-out;
 
-    &:hover {
-      background-color: var(--sibk-color-surface-raised) !important;
-      box-shadow: var(--sibk-shadow-raised-sm);
+    &:hover,
+    &.sibk-table__row--clickable:hover {
+      background-color: var(--sibk-color-page) !important;
+      box-shadow: none;
+
+      > td,
+      > th,
+      td,
+      th {
+        background-color: var(--sibk-color-page) !important;
+        --bs-table-bg: var(--sibk-color-page) !important;
+        color: var(--sibk-color-text-dark);
+      }
     }
   }
 
   tbody td,
   td {
-    background-color: transparent !important;
+    background-color: var(--sibk-color-surface-raised) !important;
     padding: 0.875rem 1rem;
     color: var(--sibk-color-text);
     font-size: 0.9rem;
     border-bottom: 1px dashed var(--sibk-color-border-light);
     word-break: normal;
     overflow-wrap: break-word;
+    transition: background-color 0.18s ease-in-out, color 0.18s ease-in-out;
   }
 
   tbody tr:last-child td {

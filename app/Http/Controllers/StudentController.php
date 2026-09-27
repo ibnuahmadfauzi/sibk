@@ -11,6 +11,7 @@ use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\Student;
 use App\Models\StudentDeparture;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +36,8 @@ class StudentController extends Controller
                     ->with('classroom.academicYear'),
                 'cases' => fn ($cases) => $cases
                     ->accessibleTo($user),
+                'consultations' => fn ($consultations) => $consultations
+                    ->accessibleTo($user),
             ]);
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($students) => $students->where(function ($filter) use ($search): void {
@@ -46,13 +49,26 @@ class StudentController extends Controller
                 ->active()
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))));
 
-        return view('pages.students.index', [
-            'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
-            'classrooms' => Classroom::query()
+        if ($user->hasRole('guru_bk')) {
+            $assignedClassroomIds = TeacherAssignment::query()
+                ->where('user_id', $user->getKey())
+                ->inActiveYear()
+                ->pluck('classroom_id');
+            $classroomQuery = Classroom::query()
                 ->active()
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
-                ->orderBy('name')
-                ->get(),
+                ->whereIn('id', $assignedClassroomIds)
+                ->orderBy('name');
+        } else {
+            $classroomQuery = Classroom::query()
+                ->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->orderBy('name');
+        }
+
+        return view('pages.students.index', [
+            'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
+            'classrooms' => $classroomQuery->get(),
         ]);
     }
 
