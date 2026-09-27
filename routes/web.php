@@ -26,6 +26,7 @@ use App\Http\Controllers\LegacyPreviewController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentDepartureController;
+use App\Http\Controllers\WithdrawalProgressController;
 use App\Models\IntegrationSetting;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
+        Route::post('/withdrawals', [WithdrawalProgressController::class, 'store'])->name('withdrawals.store');
+        Route::patch('/withdrawals/{withdrawal}/progress', [WithdrawalProgressController::class, 'updateProgress'])->name('withdrawals.progress.update');
 
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
         Route::get('/students/show', [StudentController::class, 'legacy'])->name('students.legacy');
