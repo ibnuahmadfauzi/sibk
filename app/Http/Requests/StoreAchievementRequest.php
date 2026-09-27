@@ -34,9 +34,6 @@ class StoreAchievementRequest extends FormRequest
             'organizer' => ['required', 'string', 'max:200'],
             'achievement_date' => ['required', 'date', 'before_or_equal:today'],
             'result' => ['required', 'string', 'max:250'],
-            'evidence_reference' => ['required', 'string', 'max:2000'],
-            'evidence_description' => ['nullable', 'string', 'max:5000'],
-            'notes' => ['nullable', 'string', 'max:10000'],
         ];
     }
 
@@ -55,7 +52,6 @@ class StoreAchievementRequest extends FormRequest
             'achievement_date.required' => 'Tanggal prestasi wajib diisi.',
             'achievement_date.before_or_equal' => 'Tanggal prestasi tidak boleh berada di masa depan.',
             'result.required' => 'Hasil atau peringkat wajib diisi.',
-            'evidence_reference.required' => 'Referensi bukti prestasi wajib diisi.',
         ];
     }
 }

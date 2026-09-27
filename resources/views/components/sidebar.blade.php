@@ -113,6 +113,15 @@
             @endcan
             @endif
 
+            @can('create', App\Models\Achievement::class)
+                <p class="sibk-sidebar__section">PENGELOLAAN PRESTASI</p>
+                <a class="sibk-nav-link {{ request()->routeIs('achievements.*') ? 'is-active' : '' }}" href="{{ route('achievements.index') }}"
+                    aria-current="{{ request()->routeIs('achievements.*') ? 'page' : 'false' }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z"/><path d="M8 5H5v2a4 4 0 0 0 4 4M16 5h3v2a4 4 0 0 1-4 4M12 11v5M8 20h8M9 16h6v4H9z"/></svg>
+                    <span>Prestasi</span>
+                </a>
+            @endcan
+
             <p class="sibk-sidebar__section">UTILITAS</p>
 
             <a class="sibk-nav-link {{ request()->routeIs('account.index') ? 'is-active' : '' }}" href="{{ route('account.index') }}"

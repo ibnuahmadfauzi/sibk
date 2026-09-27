@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AchievementIndexRequest;
 use App\Http\Requests\StoreAchievementRequest;
 use App\Http\Requests\UpdateAchievementRequest;
-use App\Http\Requests\VerifyAchievementRequest;
 use App\Models\Achievement;
 use App\Models\Classroom;
 use App\Models\ReferenceValue;
@@ -26,7 +25,7 @@ class AchievementController extends Controller
         /** @var User $user */
         $user = $request->user();
         $filters = $request->validated();
-        $query = Achievement::query()->accessibleTo($user)->with(['student', 'type', 'level', 'verificationStatus', 'recorder']);
+        $query = Achievement::query()->accessibleTo($user)->with(['student', 'type', 'level', 'recorder']);
         $search = trim((string) ($filters['search'] ?? ''));
         $query->when($search, fn (Builder $achievements): Builder => $achievements->where(function (Builder $filter) use ($search): void {
             $filter->where('activity_name', 'like', '%'.$search.'%')
@@ -37,7 +36,6 @@ class AchievementController extends Controller
         $query->when($filters['student_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('student_id', $id));
         $query->when($filters['type_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('type_id', $id));
         $query->when($filters['level_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('level_id', $id));
-        $query->when($filters['status_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('verification_status_id', $id));
         $query->when($filters['date_start'] ?? null, fn (Builder $items, string $date): Builder => $items->whereDate('achievement_date', '>=', $date));
         $query->when($filters['date_end'] ?? null, fn (Builder $items, string $date): Builder => $items->whereDate('achievement_date', '<=', $date));
         $query->when($filters['classroom_id'] ?? null, fn (Builder $items, int $id): Builder => $items->whereHas('student.classMemberships', fn (Builder $memberships): Builder => $memberships
@@ -65,21 +63,19 @@ class AchievementController extends Controller
         $actor = $request->user();
         $achievement = $service->create($request->validated(), $actor);
 
-        return redirect()->route('achievements.show', $achievement)->with('success', 'Prestasi berhasil dicatat dan menunggu verifikasi.');
+        return redirect()->route('achievements.show', $achievement)->with('success', 'Prestasi berhasil dicatat.');
     }
 
     public function show(Request $request, Achievement $achievement): View
     {
         /** @var User $user */
         $user = $request->user();
-        $achievement->load(['student.classMemberships.classroom.academicYear', 'type', 'level', 'verificationStatus', 'recorder', 'reviewer']);
+        $achievement->load(['student.classMemberships.classroom.academicYear', 'type', 'level', 'recorder']);
         abort_unless($user->can('view', $achievement), 403);
 
         return view('pages.achievements.show', [
             'achievement' => $achievement,
             'canUpdateAchievement' => $user->can('update', $achievement),
-            'canVerifyAchievement' => $user->can('verify', $achievement),
-            'evidenceUrl' => $this->evidenceUrl($achievement->evidence_reference),
         ]);
     }
 
@@ -92,7 +88,6 @@ class AchievementController extends Controller
                 ->active()
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                 ->with('classroom'),
-            'verificationStatus',
         ]);
         abort_unless($user->can('update', $achievement), 403);
 
@@ -108,21 +103,12 @@ class AchievementController extends Controller
         return redirect()->route('achievements.show', $achievement)->with('success', 'Prestasi berhasil diperbarui.');
     }
 
-    public function verify(VerifyAchievementRequest $request, Achievement $achievement, AchievementService $service): RedirectResponse
-    {
-        /** @var User $actor */
-        $actor = $request->user();
-        $service->verify($achievement, $request->validated(), $actor);
-
-        return redirect()->route('achievements.show', $achievement)->with('success', 'Keputusan verifikasi prestasi berhasil disimpan.');
-    }
-
     private function form(User $user, ?Achievement $achievement, Request $request): View
     {
         return view('pages.achievements.create', [
             'achievement' => $achievement,
             'isEdit' => $achievement !== null,
-            'students' => Student::query()->availableForService()->professionallyAccessibleTo($user)
+            'students' => Student::query()->availableForService()
                 ->with(['classMemberships' => fn ($memberships) => $memberships
                     ->active()
                     ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
@@ -138,21 +124,10 @@ class AchievementController extends Controller
     private function options(User $user): array
     {
         return [
-            'students' => Student::query()->active()->accessibleTo($user)->orderBy('name')->get(),
-            'classrooms' => Classroom::query()->active()->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->accessibleTo($user))->orderBy('name')->get(),
+            'students' => Student::query()->active()->when($user->hasRole('guru_bk'), fn (Builder $students): Builder => $students->professionallyAccessibleTo($user))->orderBy('name')->get(),
+            'classrooms' => Classroom::query()->active()->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->when($user->hasRole('guru_bk'), fn (Builder $accessible): Builder => $accessible->professionallyAccessibleTo($user)))->orderBy('name')->get(),
             'types' => ReferenceValue::query()->active()->forCategory('achievement_type')->orderBy('sort_order')->get(),
             'levels' => ReferenceValue::query()->active()->forCategory('achievement_level')->orderBy('sort_order')->get(),
-            'statuses' => ReferenceValue::query()->active()->forCategory('achievement_verification_status')->orderBy('sort_order')->get(),
         ];
-    }
-
-    private function evidenceUrl(string $reference): ?string
-    {
-        if (filter_var($reference, FILTER_VALIDATE_URL) === false) {
-            return null;
-        }
-        $scheme = mb_strtolower((string) parse_url($reference, PHP_URL_SCHEME));
-
-        return in_array($scheme, ['http', 'https'], true) ? $reference : null;
     }
 }

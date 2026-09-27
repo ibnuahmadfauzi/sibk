@@ -40,7 +40,7 @@ class AuthorizationMatrixTest extends TestCase
         yield 'Koordinator BK' => ['koordinator_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
             '/assignments/classes' => 200,
-            '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
+            '/achievements' => 403, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
             '/assignments/classes/manage' => 302, '/waka/reports?tab=penanganan' => 403,
@@ -48,7 +48,7 @@ class AuthorizationMatrixTest extends TestCase
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 200,
             '/assignments/classes' => 200,
-            '/achievements' => 403, '/consultations/create' => 403,
+            '/achievements' => 200, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 302,
             '/consultations' => 302, '/assignments/classes/manage' => 403,
