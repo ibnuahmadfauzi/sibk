@@ -8,9 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SyncEtatibApiRequest;
 use App\Integrations\IntegrationConfigurationException;
 use App\Models\AcademicYear;
+use App\Models\Classroom;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
+use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
@@ -34,12 +37,49 @@ class DataMasterController extends Controller
             ->orderByDesc('id')
             ->first();
         $activeAcademicYear = AcademicYear::query()->active()->first();
+        $activeTab = match ($request->query('tab')) {
+            'etatib' => 'etatib',
+            'sinkronisasi' => 'sinkronisasi',
+            default => 'dapodik',
+        };
+        $syncIssues = $activeTab === 'sinkronisasi' ? ExternalSyncIssue::query()
+            ->whereNull('resolved_at')
+            ->with('syncRun:id,source,started_at')
+            ->latest('id')
+            ->paginate(20, ['*'], 'issue_page')
+            ->withQueryString() : null;
+        $localTargets = [];
+        if ($syncIssues !== null) {
+            $localIds = fn (string $type): array => $syncIssues->getCollection()
+                ->filter(fn (ExternalSyncIssue $issue): bool => $issue->entity_type === $type
+                    && $issue->issue_code === 'unmatched_local_record'
+                    && str_starts_with((string) $issue->source_identifier, 'local:'))
+                ->map(fn (ExternalSyncIssue $issue): int => (int) substr($issue->source_identifier, 6))
+                ->all();
+            foreach (AcademicYear::query()->whereKey($localIds('academic_year'))->get(['id', 'name']) as $year) {
+                $localTargets['academic_year:'.$year->id] = 'Tahun ajaran '.$year->name;
+            }
+            foreach (Student::query()->whereKey($localIds('student'))->get(['id', 'name', 'nisn']) as $student) {
+                $localTargets['student:'.$student->id] = $student->name.' (NISN '.$student->nisn.')';
+            }
+            foreach (Classroom::query()->whereKey($localIds('classroom'))->with('academicYear:id,name')->get(['id', 'name', 'academic_year_id']) as $classroom) {
+                $localTargets['classroom:'.$classroom->id] = $classroom->name.' ('.$classroom->academicYear?->name.')';
+            }
+            foreach (StudentClassMembership::query()->whereKey($localIds('membership'))
+                ->with(['student:id,name', 'classroom:id,name', 'academicYear:id,name'])
+                ->get(['id', 'student_id', 'classroom_id', 'academic_year_id']) as $membership) {
+                $localTargets['membership:'.$membership->id] = ($membership->student?->name ?? 'Murid').' — '.($membership->classroom?->name ?? 'Kelas').' ('.$membership->academicYear?->name.')';
+            }
+        }
 
         return response()->view('pages.data-master.index', [
-            'activeTab' => match ($request->query('tab')) {
-                'etatib' => 'etatib',
-                default => 'dapodik',
-            },
+            'activeTab' => $activeTab,
+            'syncIssues' => $syncIssues,
+            'localTargets' => $localTargets,
+            'syncRuns' => $syncIssues === null ? null : ExternalSyncRun::query()
+                ->latest('started_at')
+                ->paginate(20, ['id', 'source', 'status', 'started_at', 'processed_count', 'conflict_count', 'summary'], 'run_page')
+                ->withQueryString(),
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
             'latestDapodikPreview' => ExternalSyncRun::query()
                 ->where('source', 'dapodik')

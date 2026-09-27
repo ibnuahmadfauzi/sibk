@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\ExternalSyncIssue;
+use App\Models\ExternalSyncRun;
 use App\Models\Role;
+use App\Models\Student;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,6 +171,67 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Kesiapan Aktivasi')
             ->assertSee('Persiapan')
             ->assertSee('disabled>Aktifkan Tahun Ajaran', false);
+    }
+
+    public function test_sync_tab_shows_every_open_dashboard_issue_and_routes_identity_conflicts(): void
+    {
+        $admin = $this->authenticateAs('admin_it');
+        $run = ExternalSyncRun::query()->create([
+            'source' => 'etatib', 'status' => ExternalSyncRun::STATUS_WARNING,
+            'started_at' => now(), 'finished_at' => now(),
+        ]);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $run->id, 'entity_type' => 'etatib_record',
+            'source_identifier' => 'etatib-1', 'nisn' => '0012345678',
+            'input_name' => 'Murid A', 'issue_code' => 'student_not_found',
+            'summary' => 'Identitas belum cocok.',
+        ]);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $run->id, 'entity_type' => 'etatib_record',
+            'source_identifier' => 'etatib-2', 'nisn' => '0012345679',
+            'issue_code' => 'student_classroom_mismatch',
+            'summary' => 'Kelas sumber berbeda.',
+        ]);
+        $dapodikRun = ExternalSyncRun::query()->create([
+            'source' => 'dapodik', 'status' => ExternalSyncRun::STATUS_WARNING,
+            'started_at' => now(), 'finished_at' => now(),
+        ]);
+        $localStudent = Student::query()->create([
+            'nisn' => '0098765432', 'name' => 'Murid Lokal', 'is_active' => true,
+        ]);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $dapodikRun->id, 'entity_type' => 'student',
+            'source_identifier' => 'local:'.$localStudent->id, 'issue_code' => 'unmatched_local_record',
+            'summary' => 'Data sekolah belum cocok dengan Dapodik.',
+        ]);
+        $localYear = AcademicYear::query()->create(['name' => '2025/2026', 'is_active' => false]);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $dapodikRun->id, 'entity_type' => 'academic_year',
+            'source_identifier' => 'local:'.$localYear->id, 'issue_code' => 'unmatched_local_record',
+            'summary' => 'Tahun sekolah belum cocok dengan Dapodik.',
+        ]);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $run->id, 'entity_type' => 'etatib_record',
+            'source_identifier' => 'etatib-3', 'issue_code' => 'student_not_found',
+            'summary' => 'Sudah selesai.', 'resolved_at' => now(),
+        ]);
+
+        $url = route('data-master.index', ['tab' => 'sinkronisasi']);
+        $this->get('/dashboard')->assertOk()->assertSee($url);
+        $this->get($url)->assertOk()
+            ->assertSee('4 masalah dari Dapodik dan e-Tatib')
+            ->assertSee('Identitas belum cocok.')
+            ->assertSee('Kelas sumber berbeda.')
+            ->assertSee('Data sekolah belum cocok dengan Dapodik.')
+            ->assertSee('Murid Lokal (NISN 0098765432)')
+            ->assertSee('Tahun ajaran 2025/2026')
+            ->assertSee('Riwayat Sinkronisasi')
+            ->assertSee(route('data-master.etatib.conflicts.index'))
+            ->assertDontSee('Sudah selesai.');
+
+        $admin->roles()->detach();
+        $admin->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $this->get($url)->assertForbidden();
     }
 
     public function test_data_master_shows_preparation_and_import_in_one_dapodik_tab(): void

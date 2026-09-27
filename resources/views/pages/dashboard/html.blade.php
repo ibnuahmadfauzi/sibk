@@ -97,6 +97,9 @@
                                     @else
                                         <span class="sibk-stat-meta">{{ $stat['meta'] }}</span>
                                     @endif
+                                    @if(isset($stat['url']))
+                                        <a class="small" href="{{ $stat['url'] }}">Lihat rincian konflik</a>
+                                    @endif
                                 </div>
                             </div>
                         </article>

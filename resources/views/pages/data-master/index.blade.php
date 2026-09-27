@@ -25,6 +25,7 @@
             @foreach([
                 'dapodik' => 'Dapodik',
                 'etatib' => 'e-Tatib',
+                'sinkronisasi' => 'Sinkronisasi',
             ] as $tab => $label)
                 <a
                     class="nav-link {{ $activeTab === $tab ? 'active' : '' }}"
@@ -47,10 +48,12 @@
                     </div>
                 </div>
             </section>
-        @else
+        @elseif($activeTab === 'etatib')
             <section id="data-master-etatib" aria-label="e-Tatib">
                 @include('pages.data-master._etatib-api-import')
             </section>
+        @else
+            @include('pages.data-master._sync-issues')
         @endif
 
         @if($rolloverSummary?->needsConfirmationCount() > 0 || $unresolvedIssueCount > 0 || $latestDapodikPreview)

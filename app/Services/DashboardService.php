@@ -162,11 +162,11 @@ class DashboardService
             'stats' => [
                 ['label' => 'Akun aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran aktif', 'tone' => 'primary', 'kind' => 'students'],
                 ['label' => 'Akun nonaktif', 'value' => (string) User::query()->where('is_active', false)->count(), 'meta' => 'Tidak dapat masuk', 'tone' => 'warning', 'kind' => 'cases'],
-                ['label' => 'Konflik belum selesai', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Dapodik dan e-Tatib', 'tone' => 'success', 'kind' => 'schedule'],
+                ['label' => 'Konflik belum selesai', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Dapodik dan e-Tatib', 'tone' => 'success', 'kind' => 'schedule', 'url' => route('data-master.index', ['tab' => 'sinkronisasi'])],
                 ['label' => 'Tahun ajaran aktif', 'value' => (string) AcademicYear::query()->where('is_active', true)->count(), 'meta' => 'Baseline operasional', 'tone' => 'info', 'kind' => 'etatib'],
             ],
             'schedule_title' => 'Status sinkronisasi terbaru',
-            'schedule_url' => route('data-master.index'),
+            'schedule_url' => route('data-master.index', ['tab' => 'sinkronisasi']),
             'tindak_lanjut' => $syncRuns->map(fn (ExternalSyncRun $run): array => [
                 'date' => $run->started_at->format('d'),
                 'month' => $run->started_at->locale('id')->translatedFormat('M'),
@@ -176,7 +176,7 @@ class DashboardService
                 'context_label' => sprintf('%d diproses, %d konflik', $run->processed_count, $run->conflict_count),
                 'status' => $run->status,
                 'status_tone' => $run->status === ExternalSyncRun::STATUS_FAILED ? 'danger' : 'info',
-                'url' => route('data-master.index'),
+                'url' => route('data-master.index', ['tab' => 'sinkronisasi']),
             ])->all(),
             'context_panel' => [
                 'title' => 'Kesiapan data dan integrasi',
