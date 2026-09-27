@@ -226,7 +226,8 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('Murid Lokal (NISN 0098765432)')
             ->assertSee('Tahun ajaran 2025/2026')
             ->assertSee('Riwayat Sinkronisasi')
-            ->assertSee('Periksa')
+            ->assertSee('data-sync-issue-toggle', false)
+            ->assertSee('sync-issue-detail-1')
             ->assertDontSee('Sudah selesai.');
 
         $admin->roles()->detach();

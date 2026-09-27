@@ -62,7 +62,7 @@
                                 <td>{{ $record->category }}</td>
                                 <td class="fw-bold text-danger">+{{ $record->points }}</td>
                                 <td>{{ $record->source_total_points ?? '-' }}</td>
-                                <td>{{ $record->source_classroom_name ?: '-' }}</td>
+                                <td>{{ $record->effective_classroom_name ?: '-' }}</td>
                                 <td>{{ $record->recorded_by_name ?: '-' }}</td>
                             </tr>
                         @empty

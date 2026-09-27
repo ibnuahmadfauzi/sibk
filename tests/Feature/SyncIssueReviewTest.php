@@ -56,8 +56,8 @@ final class SyncIssueReviewTest extends TestCase
         $issue = $this->issue();
 
         $this->patch(route('data-master.sync-issues.update', $issue), [
-            'status' => 'source_correction', 'note' => 'Perbaiki NISN pada sumber.',
-        ])->assertRedirect(route('data-master.sync-issues.show', $issue));
+            'action' => 'source_correction', 'note' => 'Perbaiki NISN pada sumber.',
+        ])->assertRedirect(route('data-master.index', ['tab' => 'sinkronisasi']).'#sync-issues-title');
 
         $issue->refresh();
         $this->assertNull($issue->resolved_at);
@@ -75,19 +75,19 @@ final class SyncIssueReviewTest extends TestCase
         $admin = $this->authenticateAs('admin_it');
         $issue = $this->issue();
         $url = route('data-master.sync-issues.update', $issue);
-        $this->patch($url, ['status' => 'resolved', 'note' => 'x'])->assertSessionHasErrors('status');
-        $this->patch($url, ['status' => 'reviewed'])->assertSessionHasErrors('note');
+        $this->patch($url, ['action' => 'resolved', 'note' => 'x'])->assertSessionHasErrors('action');
+        $this->patch($url, ['action' => 'source_correction'])->assertSessionHasErrors('note');
         $this->assertSame(['original' => 'tetap'], $issue->fresh()->details);
 
         $admin->roles()->detach();
         $admin->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
         $this->get(route('data-master.sync-issues.show', $issue))->assertForbidden();
-        $this->patch($url, ['status' => 'reviewed', 'note' => 'Sudah dilihat.'])->assertForbidden();
+        $this->patch($url, ['action' => 'source_correction', 'note' => 'Sudah dilihat.'])->assertForbidden();
 
         $admin->roles()->detach();
         $admin->roles()->attach(Role::query()->where('slug', 'admin_it')->firstOrFail());
         $issue->update(['resolved_at' => now()]);
-        $this->patch($url, ['status' => 'reviewed', 'note' => 'Sudah dilihat.'])->assertSessionHasErrors('status');
+        $this->patch($url, ['action' => 'source_correction', 'note' => 'Sudah dilihat.'])->assertSessionHasErrors('action');
         $this->assertSame(['original' => 'tetap'], $issue->fresh()->details);
     }
 

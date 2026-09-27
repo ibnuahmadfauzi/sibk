@@ -538,8 +538,8 @@ class EtatibSyncService
             ->with('classroom:id,name')
             ->get()
             ->pluck('classroom.name')
-            ->filter()
-            ->map(fn (string $name): string => $this->normalizeText($name));
+            ->filter();
+        $normalizedClassroomNames = $classroomNames->map(fn (string $name): string => $this->normalizeText($name));
 
         $unresolvedWarning = ExternalSyncIssue::query()
             ->where('entity_type', 'etatib_record')
@@ -547,10 +547,23 @@ class EtatibSyncService
             ->where('issue_code', 'student_classroom_mismatch')
             ->whereNull('resolved_at');
 
-        if ($classroomNames->isNotEmpty()
-            && ! $classroomNames->contains($this->normalizeText($sourceClassroom))
+        if ($normalizedClassroomNames->isNotEmpty()
+            && ! $normalizedClassroomNames->contains($this->normalizeText($sourceClassroom))
         ) {
             if (! $unresolvedWarning->exists()) {
+                $lastDecision = ExternalSyncIssue::query()
+                    ->where('entity_type', 'etatib_record')
+                    ->where('source_identifier', $item['source_id'])
+                    ->where('issue_code', 'student_classroom_mismatch')
+                    ->whereNotNull('resolved_at')
+                    ->latest('id')->first();
+                $signature = SyncIssueReviewService::classroomSignature(
+                    $student->getKey(), $occurredAt, $sourceClassroom,
+                    $classroomNames->all(),
+                );
+                if (data_get($lastDecision?->details, 'review.choice.signature') === $signature) {
+                    return;
+                }
                 $this->issue(
                     $run,
                     $item,
