@@ -41,21 +41,27 @@
 
 @if($canCreateWithdrawal && $withdrawalStudents->isNotEmpty())
     <div class="modal fade" id="withdrawal-create-modal" tabindex="-1" aria-labelledby="withdrawal-create-title" aria-hidden="true" data-withdrawal-create-modal @if($errors->any() && old('_form') === 'withdrawal') data-show-on-error @endif>
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" method="POST" action="{{ route('withdrawals.store') }}">
+            @csrf<input type="hidden" name="_form" value="withdrawal">
             <div class="modal-header"><h2 class="modal-title fs-5" id="withdrawal-create-title">Catat Pengunduran Diri</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
-            <form method="POST" action="{{ route('withdrawals.store') }}">
-                @csrf<input type="hidden" name="_form" value="withdrawal">
                 <div class="modal-body">
                     @if($errors->any() && old('_form') === 'withdrawal')<div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>@endif
                     <p class="text-muted small">Catatan ini memantau penanganan di BK dan tidak menetapkan murid resmi keluar.</p>
-                    <div class="mb-3"><label class="form-label" for="withdrawal-student">Nama murid</label><select class="form-select" id="withdrawal-student" name="student_id" required><option value="">Pilih murid</option>@foreach($withdrawalStudents as $student)<option value="{{ $student->id }}" @selected(old('student_id') == $student->id)>{{ $student->name }} · NISN {{ $student->nisn }}</option>@endforeach</select></div>
-                    <div class="mb-3"><label class="form-label" for="withdrawal-date">Tanggal</label><input class="form-control" type="date" id="withdrawal-date" name="recorded_on" value="{{ old('recorded_on', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required></div>
+                    @php($selectedWithdrawalStudent = $withdrawalStudents->firstWhere('id', old('student_id')))
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-7">
+                            <label class="form-label" for="withdrawal-student-lookup">Nama murid atau NISN</label>
+                            <input class="form-control" id="withdrawal-student-lookup" list="withdrawal-student-options" value="{{ $selectedWithdrawalStudent ? $selectedWithdrawalStudent->name.' · NISN '.$selectedWithdrawalStudent->nisn : '' }}" placeholder="Ketik nama atau NISN" autocomplete="off" required>
+                            <input type="hidden" id="withdrawal-student-id" name="student_id" value="{{ old('student_id') }}">
+                            <datalist id="withdrawal-student-options">@foreach($withdrawalStudents as $student)<option value="{{ $student->name }} · NISN {{ $student->nisn }}" data-id="{{ $student->id }}"></option><option value="{{ $student->nisn }} · {{ $student->name }}" data-id="{{ $student->id }}"></option>@endforeach</datalist>
+                        </div>
+                        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-date">Tanggal</label><input class="form-control" type="date" id="withdrawal-date" name="recorded_on" value="{{ old('recorded_on', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required></div>
+                    </div>
                     <div class="mb-3"><label class="form-label" for="withdrawal-reason">Alasan pengunduran diri</label><textarea class="form-control" id="withdrawal-reason" name="reason" rows="3" maxlength="2000" required>{{ old('reason') }}</textarea></div>
                     <div class="mb-3"><label class="form-label" for="withdrawal-progress">Progres penanganan</label><select class="form-select" id="withdrawal-progress" name="progress" required>@foreach(\App\Models\WithdrawalProgress::labels() as $value => $label)<option value="{{ $value }}" @selected(old('progress', \App\Models\WithdrawalProgress::PROGRESS_IN_PROGRESS) === $value)>{{ $label }}</option>@endforeach</select></div>
                     <div><label class="form-label" for="withdrawal-note">Catatan</label><textarea class="form-control" id="withdrawal-note" name="note" rows="2" maxlength="1000">{{ old('note') }}</textarea></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
-            </form>
-        </div></div>
+        </form></div>
     </div>
 @endif

@@ -96,8 +96,14 @@ final class WithdrawalProgressTest extends TestCase
     public function test_tab_filters_records_and_keeps_reason_inside_detail_for_bk_only(): void
     {
         [$teacher, $student] = $this->assignedStudent();
-        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student))->assertRedirect();
         $url = route('cases.index', ['tab' => 'pengunduran-diri']);
+        $this->actingAs($teacher)->get($url)->assertOk()
+            ->assertSee('id="withdrawal-student-lookup"', false)
+            ->assertSee('list="withdrawal-student-options"', false)
+            ->assertSee('name="student_id"', false)
+            ->assertSee('Simpan')
+            ->assertDontSee('id="modal-tambah-tindak-lanjut"', false);
+        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student))->assertRedirect();
 
         $this->get($url)->assertOk()
             ->assertSee('Catat Pengunduran Diri')
