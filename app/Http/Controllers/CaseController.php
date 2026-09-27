@@ -144,6 +144,8 @@ class CaseController extends Controller
             ->get();
         $etatibRecords = ExternalTatibRecord::query()
             ->active()
+            ->with(['latestClassroomIssue', 'student.classMemberships' => fn ($memberships) => $memberships
+                ->active()->with(['academicYear:id,starts_on,ends_on', 'classroom:id,name'])])
             ->where(function ($records) use ($accessibleStudents, $temporaryNisnFilter): void {
                 $records->whereIn('student_id', (clone $accessibleStudents)->select('students.id'));
 

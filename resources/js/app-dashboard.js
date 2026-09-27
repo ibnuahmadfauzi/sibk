@@ -105,6 +105,34 @@ document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
     });
 });
 
+document.querySelectorAll('[data-sync-issue-toggle]').forEach((button) => {
+    const subject = button.dataset.syncIssueName;
+    button.addEventListener('click', async () => {
+        const detail = document.getElementById(button.getAttribute('aria-controls'));
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+        detail.classList.toggle('d-none', expanded);
+        button.setAttribute('aria-expanded', String(!expanded));
+        button.title = expanded ? 'Tampilkan rincian' : 'Tutup rincian';
+        button.setAttribute('aria-label', `${button.title} ${subject}`);
+        if (expanded || detail.dataset.loaded) return;
+
+        try {
+            const response = await fetch(button.dataset.detailUrl, { headers: { Accept: 'text/html' } });
+            if (!response.ok) throw new Error('Gagal memuat rincian.');
+            detail.querySelector('[data-sync-issue-content]').innerHTML = await response.text();
+            detail.dataset.loaded = 'true';
+        } catch {
+            detail.querySelector('[data-sync-issue-content]').textContent = 'Rincian belum dapat dimuat. Tutup lalu buka kembali untuk mencoba lagi.';
+        }
+    });
+    if (button.hasAttribute('data-auto-open')) button.click();
+});
+
+document.addEventListener('submit', (event) => {
+    const input = event.target.querySelector('[data-sync-membership-input]');
+    if (input) input.value = event.target.querySelector('[name="action"]:checked')?.dataset.syncMembership ?? '';
+});
+
 document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     form.addEventListener('submit', (event) => {
         const message = form.dataset.confirmMessage;

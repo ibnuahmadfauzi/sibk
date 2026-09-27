@@ -99,7 +99,10 @@ class StudentController extends Controller
             ->with(['source', 'serviceField', 'status', 'assignments.teacher'])
             ->latest('service_date')
             ->get();
-        $etatibQuery = ExternalTatibRecord::query()->active()->where('student_id', $student->getKey());
+        $etatibQuery = ExternalTatibRecord::query()->active()
+            ->with(['latestClassroomIssue', 'student.classMemberships' => fn ($memberships) => $memberships
+                ->active()->with(['academicYear:id,starts_on,ends_on', 'classroom:id,name'])])
+            ->where('student_id', $student->getKey());
         if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false) {
             $etatibQuery->whereHas('cases', fn ($cases) => $cases->accessibleTo($user));
         }
