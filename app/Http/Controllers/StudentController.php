@@ -128,7 +128,7 @@ class StudentController extends Controller
         $achievements = Achievement::query()
             ->accessibleTo($user)
             ->where('student_id', $student->getKey())
-            ->with(['type', 'level', 'verificationStatus', 'recorder', 'reviewer'])
+            ->with(['type', 'level', 'recorder'])
             ->latest('achievement_date')
             ->get();
 
@@ -158,7 +158,6 @@ class StudentController extends Controller
             'canViewConsultations' => $user->can('viewAny', Consultation::class),
             'canCreateConsultation' => $canUseProfessionalActions && $user->can('create', Consultation::class),
             'canCreateCase' => $canUseProfessionalActions && $user->can('create', BkCase::class),
-            'canCreateAchievement' => $canUseProfessionalActions && $user->can('create', Achievement::class),
             'departure' => $departure,
             'canCreateDeparture' => ($departure === null || $departure->status === StudentDeparture::STATUS_CANCELLED)
                 && $user->can('create', [StudentDeparture::class, $student]),

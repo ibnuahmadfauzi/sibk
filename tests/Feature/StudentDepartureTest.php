@@ -360,8 +360,7 @@ final class StudentDepartureTest extends TestCase
             ->assertOk()
             ->assertDontSee($student->name);
         $this->actingAs($teacher)->get(route('achievements.create'))
-            ->assertOk()
-            ->assertDontSee($student->name);
+            ->assertForbidden();
     }
 
     public function test_archived_records_and_official_departure_do_not_reappear_cross_surface(): void

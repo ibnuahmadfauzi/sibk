@@ -2308,6 +2308,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $preparation = app(AcademicYearPreparationService::class);
         $admin = $this->userWithRole('admin_it');
         $coordinator = $this->userWithRole('koordinator_bk');
+        $waka = $this->userWithRole('waka_kesiswaan');
         $assignedTeacher = $this->userWithRole('guru_bk');
         $otherTeacher = $this->userWithRole('guru_bk');
         $year = $this->prepareYear($preparation, $admin);
@@ -2354,7 +2355,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $achievementPayload = $this->achievementPayload($student);
         $this->assertValidationError(fn () => app(CaseService::class)->createCase($casePayload, $assignedTeacher), 'student_id');
         $this->assertValidationError(fn () => app(ConsultationService::class)->create($consultationPayload, $assignedTeacher), 'student_id');
-        $this->assertValidationError(fn () => app(AchievementService::class)->create($achievementPayload, $assignedTeacher), 'student_id');
+        $this->actingAs($assignedTeacher)->get(route('achievements.create'))->assertForbidden();
         $this->actingAs($assignedTeacher)->get(route('students.show', $student))->assertForbidden();
 
         $preparation->activate($year, $coordinator);
@@ -2374,7 +2375,7 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
             ->assertSee('Permasalahan');
-        $this->actingAs($assignedTeacher)->get(route('achievements.create'))
+        $this->actingAs($waka)->get(route('achievements.create'))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
             ->assertSee('Catat Prestasi');
@@ -2418,15 +2419,11 @@ class DelayedDapodikPreparationTest extends TestCase
             'consultation',
         );
 
-        $achievement = app(AchievementService::class)->create($achievementPayload, $assignedTeacher);
+        $achievement = app(AchievementService::class)->create($achievementPayload, $waka);
         $this->assertInstanceOf(Achievement::class, $achievement);
-        $this->actingAs($assignedTeacher)->get(route('achievements.edit', $achievement))
-            ->assertOk()
-            ->assertSee('Edit Prestasi');
-        $this->assertValidationError(
-            fn () => app(AchievementService::class)->create($achievementPayload, $otherTeacher),
-            'student_id',
-        );
+        $this->actingAs($assignedTeacher)->get(route('achievements.show', $achievement))->assertOk();
+        $this->get(route('achievements.edit', $achievement))->assertForbidden();
+        $this->actingAs($waka)->get(route('achievements.edit', $achievement))->assertOk()->assertSee('Edit Prestasi');
     }
 
     /** @return array<string, mixed> */

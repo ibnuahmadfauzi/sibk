@@ -6,6 +6,7 @@ use App\Http\Controllers\AcademicYearActivationController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\AchievementController;
+use App\Http\Controllers\AchievementImportController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
 use App\Http\Controllers\Admin\ClassroomCatalogController;
 use App\Http\Controllers\Admin\ApiManagementController;
@@ -98,10 +99,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
         Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
         Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
+        Route::post('/achievements/import', [AchievementImportController::class, 'store'])->name('achievements.import');
         Route::get('/achievements/{achievement}', [AchievementController::class, 'show'])->name('achievements.show');
         Route::get('/achievements/{achievement}/edit', [AchievementController::class, 'edit'])->name('achievements.edit');
         Route::patch('/achievements/{achievement}', [AchievementController::class, 'update'])->name('achievements.update');
-        Route::post('/achievements/{achievement}/verify', [AchievementController::class, 'verify'])->name('achievements.verify');
 
         Route::get('/data-master', [DataMasterController::class, 'index'])
             ->middleware('cache.headers:no_store')
