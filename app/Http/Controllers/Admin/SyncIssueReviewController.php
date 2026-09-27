@@ -53,7 +53,9 @@ final class SyncIssueReviewController extends Controller
         }
         $reviewer = User::query()->find(data_get($issue->details, 'review.reviewed_by'));
 
-        return response()->view('pages.data-master.sync-issue-review', compact('issue', 'record', 'masterStudent', 'memberships', 'local', 'reviewer'))
+        $view = $request->boolean('inline') ? 'pages.data-master._sync-issue-detail' : 'pages.data-master.sync-issue-review';
+
+        return response()->view($view, compact('issue', 'record', 'masterStudent', 'memberships', 'local', 'reviewer'))
             ->header('Cache-Control', 'no-store');
     }
 
@@ -61,8 +63,12 @@ final class SyncIssueReviewController extends Controller
     {
         /** @var User $actor */
         $actor = $request->user();
-        $service->review($issue, $actor, $request->string('status')->toString(), $request->string('note')->toString());
+        $action = $request->string('action')->toString();
+        $service->review($issue, $actor, $action, $request->integer('membership_id') ?: null, $request->input('note'));
 
-        return redirect()->route('data-master.sync-issues.show', $issue)->with('success', 'Pemeriksaan tersimpan. Masalah tetap terbuka sampai datanya cocok.');
+        $resolved = $action !== 'source_correction';
+
+        return redirect()->to(route('data-master.index', ['tab' => 'sinkronisasi']).($resolved ? '#sync-decisions-title' : '#sync-issues-title'))
+            ->with('success', $resolved ? 'Pilihan kelas tersimpan. Masalah selesai.' : 'Koreksi sumber dicatat. Masalah tetap terbuka.');
     }
 }

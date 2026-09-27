@@ -2290,6 +2290,7 @@ small, .small {
 }
 
 .table-responsive {
+  position: relative;
   background: var(--sibk-color-field) !important;
   border: 1px solid var(--sibk-color-border-light) !important;
   border-radius: var(--sibk-radius-md) !important;
@@ -2298,6 +2299,15 @@ small, .small {
   margin: 0.75rem 0 1rem 0 !important;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: var(--sibk-shadow-inset-lg);
+    pointer-events: none;
+  }
 }
 
 .sibk-panel .table-responsive {
@@ -3208,6 +3218,8 @@ small, .small {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+
+  &::after { content: none; }
 }
 
 .sibk-document-meta {

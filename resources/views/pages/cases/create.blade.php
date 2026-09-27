@@ -133,7 +133,7 @@
                                     NISN {{ $record->nisn }} · {{ $record->occurred_at?->locale('id')->translatedFormat('d M Y H:i') ?? 'Tanggal belum tersedia' }} · {{ $record->points }} poin
                                 </span>
                                 <span class="text-muted small d-block">
-                                    Total resmi {{ $record->source_total_points ?? '-' }} · Kelas {{ $record->source_classroom_name ?: '-' }} · Pencatat {{ $record->recorded_by_name ?: '-' }}
+                                    Total resmi {{ $record->source_total_points ?? '-' }} · Kelas {{ $record->effective_classroom_name ?: '-' }} · Pencatat {{ $record->recorded_by_name ?: '-' }}
                                 </span>
                             </label>
                         </div>

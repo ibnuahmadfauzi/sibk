@@ -18,8 +18,9 @@ final class ReviewSyncIssueRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::in(['reviewed', 'source_correction'])],
-            'note' => ['required', 'string', 'max:1000'],
+            'action' => ['required', Rule::in(['use_school', 'use_etatib', 'source_correction'])],
+            'membership_id' => ['required_if:action,use_school', 'nullable', 'integer'],
+            'note' => ['required_if:action,source_correction', 'nullable', 'string', 'max:1000'],
         ];
     }
 }

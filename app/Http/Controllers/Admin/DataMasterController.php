@@ -75,6 +75,12 @@ class DataMasterController extends Controller
         return response()->view('pages.data-master.index', [
             'activeTab' => $activeTab,
             'syncIssues' => $syncIssues,
+            'classroomDecisions' => $syncIssues === null ? null : ExternalSyncIssue::query()
+                ->where('issue_code', 'student_classroom_mismatch')
+                ->whereNotNull('resolved_at')
+                ->whereIn('details->review->action', ['use_school', 'use_etatib'])
+                ->latest('resolved_at')->latest('id')
+                ->paginate(10, ['*'], 'decision_page')->withQueryString(),
             'localTargets' => $localTargets,
             'syncRuns' => $syncIssues === null ? null : ExternalSyncRun::query()
                 ->latest('started_at')
