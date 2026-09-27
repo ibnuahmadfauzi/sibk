@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\EtatibAutomaticSyncController;
 use App\Http\Controllers\Admin\EtatibIdentityMappingController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
+use App\Http\Controllers\Admin\SyncIssueReviewController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
@@ -102,6 +103,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/data-master', [DataMasterController::class, 'index'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.index');
+        Route::get('/data-master/sync-issues/{issue}', [SyncIssueReviewController::class, 'show'])
+            ->name('data-master.sync-issues.show');
+        Route::patch('/data-master/sync-issues/{issue}', [SyncIssueReviewController::class, 'update'])
+            ->name('data-master.sync-issues.update');
         Route::get('/data-master/classes', [ClassroomCatalogController::class, 'index'])->name('data-master.classrooms.index');
         Route::post('/data-master/classes', [ClassroomCatalogController::class, 'store'])->name('data-master.classrooms.store');
         Route::patch('/data-master/classes/{catalog}', [ClassroomCatalogController::class, 'update'])->name('data-master.classrooms.update');

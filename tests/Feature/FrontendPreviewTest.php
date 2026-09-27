@@ -219,14 +219,14 @@ class FrontendPreviewTest extends TestCase
         $url = route('data-master.index', ['tab' => 'sinkronisasi']);
         $this->get('/dashboard')->assertOk()->assertSee($url);
         $this->get($url)->assertOk()
-            ->assertSee('4 masalah dari Dapodik dan e-Tatib')
+            ->assertSee('4 data memiliki masalah')
             ->assertSee('Identitas belum cocok.')
             ->assertSee('Kelas sumber berbeda.')
             ->assertSee('Data sekolah belum cocok dengan Dapodik.')
             ->assertSee('Murid Lokal (NISN 0098765432)')
             ->assertSee('Tahun ajaran 2025/2026')
             ->assertSee('Riwayat Sinkronisasi')
-            ->assertSee(route('data-master.etatib.conflicts.index'))
+            ->assertSee('Periksa')
             ->assertDontSee('Sudah selesai.');
 
         $admin->roles()->detach();
