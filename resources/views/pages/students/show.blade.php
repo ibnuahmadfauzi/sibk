@@ -23,9 +23,9 @@
                 </div>
             </div>
             <div class="sibk-student-hero__stats">
-                <div class="sibk-student-hero__stat"><h3>Layanan BK</h3><div class="sibk-student-hero__service"><strong>{{ $stats['cases'] }}</strong><span>Permasalahan</span></div><div class="sibk-student-hero__service"><strong>{{ $stats['consultations'] }}</strong><span>Konsultasi</span></div></div>
-                <div class="sibk-student-hero__stat"><h3>Poin e-Tatib</h3><strong class="sibk-student-hero__number sibk-student-hero__number--warning">{{ $stats['points'] }}</strong><small>Terakhir disinkronkan: {{ $stats['last_synced_at']?->locale('id')->translatedFormat('d M Y') ?? 'Belum tersedia' }}</small></div>
-                <div class="sibk-student-hero__stat"><h3>Prestasi</h3><strong class="sibk-student-hero__number">{{ $stats['achievements'] }}</strong><small>Tercatat</small></div>
+                <div class="sibk-student-hero__stat sibk-tone--primary"><h3>Layanan BK</h3><div class="sibk-student-hero__service"><strong>{{ $stats['cases'] }}</strong><span>Permasalahan</span></div><div class="sibk-student-hero__service"><strong>{{ $stats['consultations'] }}</strong><span>Konsultasi</span></div></div>
+                <div class="sibk-student-hero__stat sibk-tone--danger"><h3>Poin e-Tatib</h3><strong class="sibk-student-hero__number sibk-student-hero__number--danger">{{ $stats['points'] }}</strong><small>Terakhir disinkronkan: {{ $stats['last_synced_at']?->locale('id')->translatedFormat('d M Y') ?? 'Belum tersedia' }}</small></div>
+                <div class="sibk-student-hero__stat sibk-tone--success"><h3>Prestasi</h3><strong class="sibk-student-hero__number sibk-student-hero__number--success">{{ $stats['achievements'] }}</strong><small>Tercatat</small></div>
             </div>
         </section>
 
