@@ -39,16 +39,35 @@
         <section class="sibk-panel" aria-labelledby="classroom-list-title">
             <div class="sibk-panel__header">
                 <div>
-                    <h2 class="sibk-panel__title" id="classroom-list-title">Daftar Rombel</h2>
-                    <p class="sibk-panel__subtitle">Klik nama untuk menggantinya. Gunakan tombol status untuk mengaktifkan atau menonaktifkan rombel.</p>
+                    <h2 class="sibk-panel__title" id="classroom-list-title">{{ $jurusan === null ? 'Daftar Jurusan' : 'Rombel Jurusan '.$jurusan }}</h2>
+                    <p class="sibk-panel__subtitle">{{ $jurusan === null ? 'Lihat daftar rombel pada setiap jurusan.' : 'Klik nama untuk menggantinya. Gunakan tombol status untuk mengaktifkan atau menonaktifkan rombel.' }}</p>
                 </div>
-                <span class="sibk-badge sibk-badge--primary">{{ $classrooms->count() }} rombel</span>
+                <div class="d-flex align-items-center gap-2">
+                    @if($jurusan !== null)<a class="btn btn-outline-secondary btn-sm" href="{{ route('data-master.classrooms.index') }}">Semua Jurusan</a>@endif
+                    <span class="sibk-badge sibk-badge--primary">{{ $jurusan === null ? $classrooms->count() : $groups->get($jurusan)->count() }} rombel</span>
+                </div>
             </div>
             <div class="table-responsive">
-                <table class="table sibk-table mb-0 align-middle">
+                <table class="table sibk-table sibk-classroom-table mb-0 align-middle">
+                    @if($jurusan === null)
+                    <thead><tr><th scope="col">Jurusan</th><th scope="col">Jumlah Rombel</th><th scope="col">Aksi</th></tr></thead>
+                    <tbody>
+                        @forelse($groups as $name => $group)
+                            <tr>
+                                <td class="fw-semibold">{{ $name }}</td>
+                                <td>{{ $group->count() }}</td>
+                                <td><a class="btn btn-outline-primary sibk-icon-button" href="{{ route('data-master.classrooms.index', ['jurusan' => $name]) }}" aria-label="Lihat daftar rombel jurusan {{ $name }}" title="Lihat rombel jurusan {{ $name }}">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                </a></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="text-center text-muted py-4">Belum ada rombel. Tambahkan rombel sekolah untuk memulai.</td></tr>
+                        @endforelse
+                    </tbody>
+                    @else
                     <thead><tr><th scope="col">Nama Rombel</th><th scope="col">Status</th></tr></thead>
                     <tbody>
-                        @forelse($classrooms as $classroom)
+                        @foreach($groups->get($jurusan) as $classroom)
                             <tr>
                                 <td>
                                     <button class="btn btn-link fw-semibold p-0 text-start sibk-classroom-name" type="button"
@@ -63,6 +82,7 @@
                                         @csrf @method('PATCH')
                                         <input type="hidden" name="name" value="{{ $classroom->name }}">
                                         <input type="hidden" name="is_active" value="{{ $classroom->is_active ? '0' : '1' }}">
+                                        <input type="hidden" name="jurusan" value="{{ $jurusan }}">
                                         <button class="sibk-account-switch sibk-classroom-switch" type="submit" role="switch"
                                             aria-checked="{{ $classroom->is_active ? 'true' : 'false' }}"
                                             aria-label="Status rombel {{ $classroom->name }}"
@@ -73,10 +93,9 @@
                                     </form>
                                 </td>
                             </tr>
-                        @empty
-                            <tr><td colspan="2" class="text-center text-muted py-4">Belum ada rombel. Tambahkan rombel sekolah untuk memulai.</td></tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
+                    @endif
                 </table>
             </div>
         </section>
@@ -88,6 +107,7 @@
                 <form method="POST" data-classroom-rename-form>
                     @csrf @method('PATCH')
                     <input type="hidden" name="is_active" value="1">
+                    @if($jurusan !== null)<input type="hidden" name="jurusan" value="{{ $jurusan }}">@endif
                     <div class="modal-header">
                         <h2 class="modal-title fs-5" id="renameClassroomTitle">Ganti Nama Rombel</h2>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>

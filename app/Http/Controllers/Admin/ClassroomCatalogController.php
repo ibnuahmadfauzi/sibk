@@ -14,12 +14,20 @@ use Illuminate\Support\Facades\Gate;
 
 final class ClassroomCatalogController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         Gate::authorize('manageDataMaster');
 
+        $classrooms = ClassroomCatalog::query()->orderByDesc('is_active')->orderBy('name')->get();
+        $groups = $classrooms->groupBy(fn (ClassroomCatalog $classroom): string => $this->jurusan($classroom->name))
+            ->sortKeys(SORT_NATURAL);
+        $jurusan = $request->query('jurusan');
+        abort_if($jurusan !== null && (! is_string($jurusan) || ! $groups->has($jurusan)), 404);
+
         return view('pages.data-master.classrooms', [
-            'classrooms' => ClassroomCatalog::query()->orderByDesc('is_active')->orderBy('name')->get(),
+            'classrooms' => $classrooms,
+            'groups' => $groups,
+            'jurusan' => $jurusan,
         ]);
     }
 
@@ -36,9 +44,22 @@ final class ClassroomCatalogController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'is_active' => ['required', 'boolean'],
+            'jurusan' => ['sometimes', 'string'],
         ]);
         $service->update($catalog, $data['name'], (bool) $data['is_active'], $request->user());
 
-        return redirect()->route('data-master.classrooms.index')->with('success', 'Rombel diperbarui.');
+        $parameters = isset($data['jurusan']) ? ['jurusan' => $this->jurusan($data['name'])] : [];
+
+        return redirect()->route('data-master.classrooms.index', $parameters)->with('success', 'Rombel diperbarui.');
+    }
+
+    private function jurusan(string $name): string
+    {
+        $name = (string) preg_replace('/\s+/u', ' ', trim($name));
+        if (! preg_match('/^(?:XIII|XII|XI|X|1[0-3]) ([\p{L}].*)$/iu', $name, $matches)) {
+            return 'Lainnya';
+        }
+
+        return mb_strtoupper(trim((string) preg_replace('/\s+\d+[A-Z]?$/iu', '', $matches[1])));
     }
 }

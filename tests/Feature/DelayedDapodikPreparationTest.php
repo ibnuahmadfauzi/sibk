@@ -141,6 +141,31 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function data_kelas_groups_rombel_by_jurusan_and_keeps_editing_in_the_selected_group(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $rpl = ClassroomCatalog::query()->create(['name' => 'X RPL 1', 'is_active' => true]);
+        ClassroomCatalog::query()->create(['name' => 'XI RPL 2', 'is_active' => false]);
+        ClassroomCatalog::query()->create(['name' => '12 RPL 3', 'is_active' => true]);
+        ClassroomCatalog::query()->create(['name' => 'X AK 1', 'is_active' => true]);
+        ClassroomCatalog::query()->create(['name' => 'Kelas Percobaan', 'is_active' => true]);
+
+        $this->actingAs($admin)->get(route('data-master.classrooms.index'))
+            ->assertOk()->assertSee('Lihat daftar rombel jurusan RPL')
+            ->assertSee('Lihat daftar rombel jurusan AK')
+            ->assertSee('Lihat daftar rombel jurusan Lainnya')
+            ->assertDontSee('Ganti nama rombel X RPL 1');
+
+        $this->actingAs($admin)->get(route('data-master.classrooms.index', ['jurusan' => 'RPL']))
+            ->assertOk()->assertSee('X RPL 1')->assertSee('XI RPL 2')->assertSee('12 RPL 3')->assertDontSee('X AK 1');
+        $this->actingAs($admin)->patch(route('data-master.classrooms.update', $rpl), [
+            'name' => 'X AK 2', 'is_active' => 1, 'jurusan' => 'RPL',
+        ])->assertRedirect(route('data-master.classrooms.index', ['jurusan' => 'AK']));
+        $this->actingAs($admin)->get(route('data-master.classrooms.index', ['jurusan' => 'AK']))
+            ->assertOk()->assertSee('X AK 2');
+    }
+
+    #[Test]
     public function reactivating_a_classroom_adds_it_to_an_open_year_that_did_not_copy_it(): void
     {
         $admin = $this->userWithRole('admin_it');
