@@ -2081,21 +2081,6 @@ small, .small {
   }
 }
 
-.sibk-student-stat-value {
-  font-size: 1.25rem;
-}
-
-.sibk-student-stat-sub {
-  font-size: 0.75rem;
-  line-height: 1.2;
-}
-
-@media (min-width: 576px) {
-  .sibk-student-stat-value {
-    font-size: 1.5rem;
-  }
-}
-
 .sibk-security-info {
   display: flex;
   align-items: center;
@@ -3606,6 +3591,118 @@ select.sibk-withdrawal-progress {
   justify-content: center;
   flex: 0 0 auto;
   font-weight: 700;
+}
+
+.sibk-student-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: var(--sibk-radius-lg);
+  background: linear-gradient(145deg, #4880c8, #234f88);
+  box-shadow: var(--sibk-shadow-raised-sm);
+  color: #fff;
+
+  &__identity {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 1rem;
+  }
+
+  .sibk-student-avatar {
+    width: 4rem;
+    height: 4rem;
+    background: #eaf3ff;
+    font-size: 1.1rem;
+  }
+
+  &__identity-text {
+    min-width: 0;
+
+    h2 {
+      margin: 0 0 0.25rem;
+      font-size: clamp(1.25rem, 2vw, 1.6rem);
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    div {
+      line-height: 1.45;
+    }
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  &__stat {
+    min-width: 0;
+    min-height: 7.5rem;
+    padding: 1rem;
+    border-radius: var(--sibk-radius-md);
+    background: #fff;
+    color: var(--sibk-color-text-dark);
+
+    h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    small {
+      display: block;
+      margin-top: 0.35rem;
+      color: #526784;
+      line-height: 1.3;
+    }
+  }
+
+  &__service {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+
+    strong {
+      color: #2868b7;
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+  }
+
+  &__number {
+    display: block;
+    color: #526784;
+    font-size: 1.6rem;
+    line-height: 1;
+
+    &--warning {
+      color: #c95b20;
+    }
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .sibk-student-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .sibk-student-hero {
+    padding: 1rem;
+
+    &__stats {
+      grid-template-columns: 1fr;
+    }
+
+    &__stat {
+      min-height: 0;
+    }
+  }
 }
 
 // ─── Mobile & Tablet Responsive Optimizations ───────────────────────────────
