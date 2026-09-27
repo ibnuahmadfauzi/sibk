@@ -166,6 +166,53 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function data_kelas_counts_only_active_students_in_the_active_year(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $rpl = ClassroomCatalog::query()->create(['name' => 'X RPL 1', 'is_active' => true]);
+        $emptyRpl = ClassroomCatalog::query()->create(['name' => 'X RPL 2', 'is_active' => true]);
+        $ak = ClassroomCatalog::query()->create(['name' => 'X AK 1', 'is_active' => true]);
+        $current = AcademicYear::query()->create(['name' => '2026/2027', 'is_active' => true]);
+        $archived = AcademicYear::query()->create(['name' => '2025/2026', 'is_active' => false, 'activated_at' => now()->subYear()]);
+        $preparing = AcademicYear::query()->create(['name' => '2027/2028', 'is_active' => false]);
+        $currentRpl = Classroom::query()->create(['academic_year_id' => $current->id, 'classroom_catalog_id' => $rpl->id, 'name' => $rpl->name, 'is_active' => true]);
+        $inactiveRpl = Classroom::query()->create(['academic_year_id' => $current->id, 'classroom_catalog_id' => $emptyRpl->id, 'name' => $emptyRpl->name, 'is_active' => false]);
+        $archivedRpl = Classroom::query()->create(['academic_year_id' => $archived->id, 'classroom_catalog_id' => $rpl->id, 'name' => $rpl->name, 'is_active' => true]);
+        $preparingAk = Classroom::query()->create(['academic_year_id' => $preparing->id, 'classroom_catalog_id' => $ak->id, 'name' => $ak->name, 'is_active' => true]);
+
+        foreach ([
+            [$currentRpl, true, true],
+            [$currentRpl, false, true],
+            [$currentRpl, true, false],
+            [$inactiveRpl, true, true],
+            [$archivedRpl, true, true],
+            [$preparingAk, true, true],
+        ] as $index => [$classroom, $activeMembership, $activeStudent]) {
+            $student = Student::query()->create(['nisn' => sprintf('%010d', $index + 1), 'name' => 'Murid '.($index + 1), 'is_active' => $activeStudent]);
+            StudentClassMembership::query()->create([
+                'student_id' => $student->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $classroom->academic_year_id,
+                'is_active' => $activeMembership,
+            ]);
+        }
+
+        $this->actingAs($admin)->get(route('data-master.classrooms.index'))
+            ->assertOk()->assertSee('Jumlah Murid')
+            ->assertSee('Jumlah murid tahun ajaran aktif 2026/2027.')
+            ->assertSeeInOrder(['<td class="fw-semibold">RPL</td>', '<td>2</td>', '<td>1</td>'], false)
+            ->assertSeeInOrder(['<td class="fw-semibold">AK</td>', '<td>1</td>', '<td>0</td>'], false);
+        $this->actingAs($admin)->get(route('data-master.classrooms.index', ['jurusan' => 'RPL']))
+            ->assertOk()->assertSee('Jumlah Murid')
+            ->assertSeeInOrder(['X RPL 1</button>', '<td>1</td>', 'X RPL 2</button>', '<td>0</td>'], false);
+
+        $current->update(['is_active' => false]);
+        $this->actingAs($admin)->get(route('data-master.classrooms.index'))
+            ->assertOk()->assertSee('Belum ada tahun ajaran aktif; jumlah murid ditampilkan 0.')
+            ->assertSeeInOrder(['<td class="fw-semibold">RPL</td>', '<td>2</td>', '<td>0</td>'], false);
+    }
+
+    #[Test]
     public function reactivating_a_classroom_adds_it_to_an_open_year_that_did_not_copy_it(): void
     {
         $admin = $this->userWithRole('admin_it');

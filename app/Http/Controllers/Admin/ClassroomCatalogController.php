@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
+use App\Models\Classroom;
 use App\Models\ClassroomCatalog;
 use App\Services\ClassroomCatalogService;
 use Illuminate\Contracts\View\View;
@@ -24,10 +26,24 @@ final class ClassroomCatalogController extends Controller
         $jurusan = $request->query('jurusan');
         abort_if($jurusan !== null && (! is_string($jurusan) || ! $groups->has($jurusan)), 404);
 
+        $activeYear = AcademicYear::query()->active()->first();
+        $studentCounts = $activeYear === null ? collect() : Classroom::query()
+            ->active()
+            ->where('academic_year_id', $activeYear->getKey())
+            ->withCount(['studentClassMemberships as student_count' => fn ($memberships) => $memberships
+                ->active()
+                ->where('academic_year_id', $activeYear->getKey())
+                ->whereHas('student', fn ($students) => $students->active())])
+            ->get()
+            ->groupBy('classroom_catalog_id')
+            ->map(fn ($classrooms) => $classrooms->sum('student_count'));
+
         return view('pages.data-master.classrooms', [
             'classrooms' => $classrooms,
             'groups' => $groups,
             'jurusan' => $jurusan,
+            'activeYear' => $activeYear,
+            'studentCounts' => $studentCounts,
         ]);
     }
 

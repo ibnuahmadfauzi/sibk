@@ -40,7 +40,7 @@
             <div class="sibk-panel__header">
                 <div>
                     <h2 class="sibk-panel__title" id="classroom-list-title">{{ $jurusan === null ? 'Daftar Jurusan' : 'Rombel Jurusan '.$jurusan }}</h2>
-                    <p class="sibk-panel__subtitle">{{ $jurusan === null ? 'Lihat daftar rombel pada setiap jurusan.' : 'Klik nama untuk menggantinya. Gunakan tombol status untuk mengaktifkan atau menonaktifkan rombel.' }}</p>
+                    <p class="sibk-panel__subtitle">{{ $jurusan === null ? 'Lihat daftar rombel pada setiap jurusan.' : 'Klik nama untuk menggantinya. Gunakan tombol status untuk mengaktifkan atau menonaktifkan rombel.' }} {{ $activeYear ? 'Jumlah murid tahun ajaran aktif '.$activeYear->name.'.' : 'Belum ada tahun ajaran aktif; jumlah murid ditampilkan 0.' }}</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     @if($jurusan !== null)<a class="btn btn-outline-secondary btn-sm" href="{{ route('data-master.classrooms.index') }}">Semua Jurusan</a>@endif
@@ -50,22 +50,23 @@
             <div class="table-responsive">
                 <table class="table sibk-table sibk-classroom-table mb-0 align-middle">
                     @if($jurusan === null)
-                    <thead><tr><th scope="col">Jurusan</th><th scope="col">Jumlah Rombel</th><th scope="col">Aksi</th></tr></thead>
+                    <thead><tr><th scope="col">Jurusan</th><th scope="col">Jumlah Rombel</th><th scope="col">Jumlah Murid</th><th scope="col">Aksi</th></tr></thead>
                     <tbody>
                         @forelse($groups as $name => $group)
                             <tr>
                                 <td class="fw-semibold">{{ $name }}</td>
                                 <td>{{ $group->count() }}</td>
-                                <td><a class="btn btn-outline-primary sibk-icon-button" href="{{ route('data-master.classrooms.index', ['jurusan' => $name]) }}" aria-label="Lihat daftar rombel jurusan {{ $name }}" title="Lihat rombel jurusan {{ $name }}">
-                                    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                <td>{{ $group->sum(fn ($classroom) => $studentCounts->get($classroom->id, 0)) }}</td>
+                                <td><a class="btn btn-sm p-0 sibk-icon-button sibk-report-control" href="{{ route('data-master.classrooms.index', ['jurusan' => $name]) }}" aria-label="Lihat daftar rombel jurusan {{ $name }}" title="Lihat rombel jurusan {{ $name }}">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg>
                                 </a></td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="text-center text-muted py-4">Belum ada rombel. Tambahkan rombel sekolah untuk memulai.</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted py-4">Belum ada rombel. Tambahkan rombel sekolah untuk memulai.</td></tr>
                         @endforelse
                     </tbody>
                     @else
-                    <thead><tr><th scope="col">Nama Rombel</th><th scope="col">Status</th></tr></thead>
+                    <thead><tr><th scope="col">Nama Rombel</th><th scope="col">Jumlah Murid</th><th scope="col">Status</th></tr></thead>
                     <tbody>
                         @foreach($groups->get($jurusan) as $classroom)
                             <tr>
@@ -77,6 +78,7 @@
                                         data-classroom-update-url="{{ route('data-master.classrooms.update', $classroom) }}"
                                         aria-label="Ganti nama rombel {{ $classroom->name }}">{{ $classroom->name }}</button>
                                 </td>
+                                <td>{{ $studentCounts->get($classroom->id, 0) }}</td>
                                 <td>
                                     <form action="{{ route('data-master.classrooms.update', $classroom) }}" method="POST">
                                         @csrf @method('PATCH')
