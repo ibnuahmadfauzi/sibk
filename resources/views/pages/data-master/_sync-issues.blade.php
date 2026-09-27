@@ -2,15 +2,14 @@
     <div class="sibk-panel__header">
         <div>
             <h2 class="sibk-panel__title" id="sync-issues-title">Masalah Sinkronisasi Belum Selesai</h2>
-            <p class="sibk-panel__subtitle">{{ $syncIssues->total() }} masalah dari Dapodik dan e-Tatib. Angka ini sama dengan ringkasan dashboard; angka pada riwayat sinkronisasi tetap menunjukkan hasil saat proses berlangsung.</p>
+            <p class="sibk-panel__subtitle">{{ $syncIssues->total() }} data memiliki masalah.</p>
         </div>
     </div>
     <div class="table-responsive">
         <table class="table sibk-table mb-0">
-            <thead><tr><th scope="col">Sumber</th><th scope="col">Data</th><th scope="col">Masalah</th><th scope="col">Tindak lanjut</th></tr></thead>
+            <thead><tr><th scope="col">Sumber</th><th scope="col">Data</th><th scope="col">Masalah</th><th scope="col">Pemeriksaan</th><th scope="col">Aksi</th></tr></thead>
             <tbody>
                 @forelse($syncIssues as $issue)
-                    @php($canMap = $issue->entity_type === 'etatib_record' && in_array($issue->issue_code, ['student_not_found', 'student_name_mismatch'], true))
                     @php($dataLabel = match ($issue->entity_type) { 'academic_year' => 'Tahun ajaran', 'student' => 'Murid', 'classroom' => 'Kelas', 'membership' => 'Keanggotaan kelas', 'etatib_record' => 'Pelanggaran e-Tatib', default => 'Data sumber' })
                     <tr>
                         <td>{{ $issue->syncRun?->source === 'etatib' ? 'e-Tatib' : 'Dapodik' }}</td>
@@ -20,19 +19,17 @@
                         </td>
                         <td>{{ $issue->summary }}</td>
                         <td>
-                            @if($canMap)
-                                <a href="{{ route('data-master.etatib.conflicts.index') }}">Cocokkan identitas</a>
-                            @elseif($issue->issue_code === 'student_classroom_mismatch')
-                                Periksa kelas di sumber e-Tatib dan riwayat murid. Perbaiki data sumber yang keliru, lalu sinkronkan ulang.
-                            @elseif($issue->issue_code === 'unmatched_local_record')
-                                Data lokal tetap disimpan. Periksa dengan sumber resmi; belum ada aksi penyelesaian untuk catatan ini di aplikasi.
-                            @else
-                                Periksa data sumber dan hasil sinkronisasi. Catatan ini belum memiliki aksi penyelesaian di aplikasi.
+                            {{ match (data_get($issue->details, 'review.status')) { 'reviewed' => 'Terakhir diperiksa', 'source_correction' => 'Perlu koreksi sumber', default => 'Belum diperiksa' } }}
+                            @if(data_get($issue->details, 'review.reviewed_at'))
+                                <span class="d-block small text-muted">{{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->locale('id')->translatedFormat('d M Y, H.i') }}</span>
                             @endif
                         </td>
+                        <td><a class="btn btn-sm p-0 sibk-icon-button sibk-report-control" href="{{ route('data-master.sync-issues.show', $issue) }}" aria-label="Periksa {{ $issue->input_name ?: ($issue->nisn ?: $dataLabel) }}" title="Periksa">
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg>
+                        </a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="text-center text-muted py-4">Tidak ada masalah sinkronisasi yang belum selesai.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted py-4">Tidak ada masalah sinkronisasi yang belum selesai.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -46,7 +43,7 @@
     <div class="sibk-panel__header">
         <div>
             <h2 class="sibk-panel__title" id="sync-runs-title">Riwayat Sinkronisasi</h2>
-            <p class="sibk-panel__subtitle">Jumlah konflik di sini adalah hasil saat sinkronisasi berlangsung, bukan jumlah yang masih terbuka.</p>
+            <p class="sibk-panel__subtitle">Hasil sinkronisasi sebelumnya.</p>
         </div>
     </div>
     <div class="table-responsive">
