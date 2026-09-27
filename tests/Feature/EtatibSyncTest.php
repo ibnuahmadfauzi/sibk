@@ -72,7 +72,10 @@ class EtatibSyncTest extends TestCase
         $issue = ExternalSyncIssue::query()->where('issue_code', 'student_classroom_mismatch')->sole();
 
         $this->get(route('data-master.sync-issues.show', ['issue' => $issue, 'inline' => 1]))
-            ->assertOk()->assertSee('Gunakan kelas sekolah: 11 DKV 2')->assertSee('Gunakan kelas e-Tatib: 11 DKV 1');
+            ->assertOk()->assertSee('Kelas Murid Resmi pada tanggal kejadian')
+            ->assertSee('11 DKV 2')->assertSee('sesuai data sekolah')
+            ->assertSee('11 DKV 1')->assertSee('sesuai data e-Tatib')
+            ->assertSee('Keputusan ini hanya berlaku untuk pelanggaran ini.');
         $this->patch(route('data-master.sync-issues.update', $issue), ['action' => 'use_school', 'membership_id' => $membership->id])
             ->assertRedirect(route('data-master.index', ['tab' => 'sinkronisasi']).'#sync-decisions-title');
         $issue->refresh();

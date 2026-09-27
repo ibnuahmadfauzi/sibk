@@ -45,7 +45,7 @@
 </div>
 
 @if(data_get($issue->details, 'review.action'))
-    <p class="small mt-3 mb-0">Tindakan terakhir: {{ match (data_get($issue->details, 'review.action')) { 'use_school' => 'Gunakan kelas sekolah', 'use_etatib' => 'Gunakan kelas e-Tatib', default => 'Perlu koreksi sumber' } }}
+    <p class="small mt-3 mb-0">Keputusan terakhir: {{ match (data_get($issue->details, 'review.action')) { 'use_school' => 'Kelas saat kejadian sesuai data sekolah', 'use_etatib' => 'Kelas saat kejadian sesuai data e-Tatib', default => 'Perlu koreksi data' } }}
         @if(data_get($issue->details, 'review.choice.classroom')) — {{ data_get($issue->details, 'review.choice.classroom') }} @endif<br>
         Oleh {{ $reviewer?->name ?? 'Petugas tidak tersedia' }}
         @if(data_get($issue->details, 'review.reviewed_at')) · {{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->locale('id')->translatedFormat('d M Y, H.i') }} @endif
@@ -61,25 +61,27 @@
         @method('PATCH')
         <input type="hidden" name="_sync_issue" value="{{ $issue->id }}">
         <fieldset>
-            <legend class="fs-6 fw-bold">Pilih tindakan</legend>
+            <legend class="fs-6 fw-bold">{{ $issue->issue_code === 'student_classroom_mismatch' ? 'Kelas '.($masterStudent?->name ?? $issue->input_name ?? 'murid').' pada tanggal kejadian' : 'Pilih tindak lanjut' }}</legend>
             @if($issue->issue_code === 'student_classroom_mismatch' && $record?->student_id && $record->occurred_at && $memberships->isNotEmpty())
+                <p class="small mb-2">Pilih kelas yang benar berdasarkan bukti pada tanggal kejadian.</p>
                 @foreach($memberships as $membership)
                     @if($membership->classroom)
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="action" id="action-school-{{ $issue->id }}-{{ $membership->id }}" value="use_school" data-sync-membership="{{ $membership->id }}" @checked(old('action') === 'use_school' && old('membership_id') == $membership->id) required>
-                            <label class="form-check-label" for="action-school-{{ $issue->id }}-{{ $membership->id }}">Gunakan kelas sekolah: {{ $membership->classroom->name }} ({{ $membership->academicYear?->name }}) untuk kejadian ini</label>
+                            <label class="form-check-label" for="action-school-{{ $issue->id }}-{{ $membership->id }}">{{ $membership->classroom->name }} ({{ $membership->academicYear?->name }}) — sesuai data sekolah</label>
                         </div>
                     @endif
                 @endforeach
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="action" id="action-etatib-{{ $issue->id }}" value="use_etatib" @checked(old('action') === 'use_etatib') required>
-                    <label class="form-check-label" for="action-etatib-{{ $issue->id }}">Gunakan kelas e-Tatib: {{ $record->source_classroom_name }} untuk kejadian ini</label>
+                    <label class="form-check-label" for="action-etatib-{{ $issue->id }}">{{ $record->source_classroom_name }} — sesuai data e-Tatib</label>
                 </div>
                 <input type="hidden" name="membership_id" value="" data-sync-membership-input>
+                <p class="small text-muted mt-2 mb-0">Keputusan ini hanya berlaku untuk pelanggaran ini. Jika riwayat kelas sekolah keliru, perbaiki melalui sumber resmi.</p>
             @endif
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="action" id="action-correction-{{ $issue->id }}" value="source_correction" @checked(old('action') === 'source_correction') required>
-                <label class="form-check-label" for="action-correction-{{ $issue->id }}">Perlu koreksi data sumber</label>
+                <label class="form-check-label" for="action-correction-{{ $issue->id }}">Belum dapat menentukan; perlu koreksi data</label>
             </div>
         </fieldset>
         <label for="review-note-{{ $issue->id }}" class="form-label mt-3">Catatan singkat (wajib jika perlu koreksi sumber)</label>
