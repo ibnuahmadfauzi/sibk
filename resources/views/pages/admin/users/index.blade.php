@@ -32,33 +32,9 @@
         </div>
 
         @if(session('success') || $temporaryPasswordResult !== null)
-            <div class="sibk-assignment-toast-region" aria-live="polite" aria-atomic="true">
-                <div class="toast sibk-assignment-toast" id="accountSuccessToast" role="status">
-                    <div class="toast-body d-flex align-items-start gap-2">
-                        <span class="sibk-assignment-toast__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24">
-                                <path d="m5 12 4 4L19 6" />
-                            </svg>
-                        </span>
-                        <div class="flex-grow-1">
-                            <strong class="d-block">
-                                {{ $temporaryPasswordResult !== null ? 'Sandi sementara tersedia' : 'Perubahan berhasil' }}
-                            </strong>
-                            <span>
-                                {{ $temporaryPasswordResult !== null
-                                    ? 'Buka detail akun dan salin sandi sekarang.'
-                                    : session('success') }}
-                            </span>
-                        </div>
-                        <button
-                            class="btn-close"
-                            type="button"
-                            data-bs-dismiss="toast"
-                            aria-label="Tutup pemberitahuan"
-                        ></button>
-                    </div>
-                </div>
-            </div>
+            <x-notification-toast :title="$temporaryPasswordResult !== null ? 'Sandi sementara tersedia' : 'Perubahan berhasil'">
+                {{ $temporaryPasswordResult !== null ? 'Buka detail akun dan salin sandi sekarang.' : session('success') }}
+            </x-notification-toast>
         @endif
 
         @if($errors->any())

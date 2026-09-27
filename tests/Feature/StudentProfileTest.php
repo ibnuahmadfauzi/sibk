@@ -52,6 +52,21 @@ class StudentProfileTest extends TestCase
         $this->actingAs($otherTeacher)->get(route('students.show', $student))->assertForbidden();
     }
 
+    public function test_undated_etatib_record_is_visible_without_inventing_a_date(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $record = $this->etatibRecord($student, 'ET-TANPA-TANGGAL', 'Pelanggaran tanpa tanggal');
+        $record->update(['occurred_at' => null]);
+
+        $this->actingAs($teacher)
+            ->get(route('students.show', ['student' => $student, 'tab' => 'etatib']))
+            ->assertOk()
+            ->assertSee('Tanggal belum tersedia');
+        $this->get(route('cases.create'))
+            ->assertOk()
+            ->assertSee('Tanggal belum tersedia');
+    }
+
     public function test_waka_uses_safe_portal_instead_of_generic_student_profile(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();

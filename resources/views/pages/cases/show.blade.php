@@ -4,7 +4,7 @@
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-103">
-        @if(session('success'))<div class="alert alert-success" role="alert">{{ session('success') }}</div>@endif
+        @if(session('success'))<x-notification-toast>{{ session('success') }}</x-notification-toast>@endif
         <div class="sibk-page-header mb-4 d-flex flex-wrap justify-content-between gap-3">
             <div class="sibk-page-header__copy"><a href="{{ route('cases.index') }}" class="text-decoration-none small">&larr; Kembali ke daftar</a><h1 class="mb-1">Detail Permasalahan</h1></div>
             <div class="d-flex gap-2">

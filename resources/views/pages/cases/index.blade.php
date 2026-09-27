@@ -4,7 +4,7 @@
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-101">
-        @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+        @if(session('success'))<x-notification-toast>{{ session('success') }}</x-notification-toast>@endif
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy"><h1>Layanan BK</h1><p>Cari, filter, dan kelola catatan permasalahan serta sesi konsultasi.</p></div>
         </div>

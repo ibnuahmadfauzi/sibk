@@ -189,6 +189,22 @@ final class EtatibAutomaticSyncTest extends TestCase
         $this->assertDatabaseCount('external_tatib_records', 1);
     }
 
+    public function test_scheduled_sync_saves_a_changing_timestamp_without_a_date(): void
+    {
+        $this->automaticSetting();
+        $first = $this->payload();
+        $first[0]['tanggal_pelanggaran'] = now('Asia/Jakarta')->format('d M Y H:i:s');
+        $second = $first;
+        $second[0]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSecond()->format('d M Y H:i:s');
+        Http::fake([self::URL => Http::sequence()->push($first)->push($second)]);
+
+        $this->artisan('sibk:sync-etatib')->assertSuccessful();
+
+        $this->assertDatabaseCount('external_tatib_records', 1);
+        $this->assertSame(1, ExternalTatibRecord::query()->whereNull('occurred_at')->count());
+        $this->assertDatabaseHas('external_sync_runs', ['status' => ExternalSyncRun::STATUS_WARNING]);
+    }
+
     public function test_admin_can_sync_now_and_replace_the_stored_url_after_revalidation(): void
     {
         $admin = $this->admin();

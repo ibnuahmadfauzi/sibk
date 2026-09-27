@@ -8,17 +8,6 @@
         </div>
     </div>
     <div class="sibk-panel__body p-4">
-        @if($errors->getBag('etatib_api')->any())
-            <div class="alert alert-danger" role="alert">
-                {{ $errors->getBag('etatib_api')->first() }}
-            </div>
-        @endif
-        @if($errors->getBag('etatib_automatic')->any())
-            <div class="alert alert-danger" role="alert">
-                {{ $errors->getBag('etatib_automatic')->first() }}
-            </div>
-        @endif
-
         @if($etatibAutomaticSetting['enabled'])
             <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
                 <div>

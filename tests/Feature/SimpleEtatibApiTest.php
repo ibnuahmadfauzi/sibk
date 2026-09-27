@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
-use App\Models\EtatibIdentityMapping;
+use App\Models\IntegrationSetting;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
@@ -102,6 +103,34 @@ class SimpleEtatibApiTest extends TestCase
             'received_count' => 1,
             'processed_count' => 1,
         ]);
+    }
+
+    public function test_preview_remains_valid_after_ten_minutes_while_session_is_active(): void
+    {
+        Http::fake([self::URL => Http::sequence()
+            ->push([$this->payload()[0]])
+            ->push([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk();
+        $this->travel(11)->minutes();
+
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+            ->assertSessionHas('warning', 'Sinkronisasi e-Tatib selesai dengan 1 data yang perlu diperiksa.');
+    }
+
+    public function test_sync_without_preview_shows_error_toast_on_data_master(): void
+    {
+        Http::fake([self::URL => Http::response([$this->payload()[0]])]);
+
+        $this->actingAs($this->admin())
+            ->followingRedirects()
+            ->from(route('data-master.index', ['tab' => 'etatib']))
+            ->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertSee('sibk-notification-toast--error', false)
+            ->assertSee('Sesi tinjauan e-Tatib berakhir. Tinjau data kembali sebelum sinkronisasi.');
     }
 
     public function test_preview_flags_same_nisn_with_different_name_and_shows_source_class(): void
@@ -210,6 +239,126 @@ class SimpleEtatibApiTest extends TestCase
 
         $this->assertDatabaseCount('external_tatib_records', 0);
         $this->assertDatabaseHas('external_sync_runs', ['status' => ExternalSyncRun::STATUS_FAILED]);
+    }
+
+    public function test_changing_current_timestamp_is_saved_without_date_or_duplicates_on_repeat_sync(): void
+    {
+        Student::query()->create(['nisn' => '0093200788', 'name' => 'FERRYSCHA PUTRI']);
+        $sequence = Http::sequence();
+        foreach (range(0, 7) as $seconds) {
+            $payload = $this->payload();
+            $payload[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSeconds($seconds)->format('d M Y H:i:s');
+            $sequence->push($payload);
+        }
+        Http::fake([self::URL => $sequence]);
+
+        $admin = $this->admin();
+        foreach (range(1, 2) as $attempt) {
+            $this->actingAs($admin)
+                ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+                ->assertOk()
+                ->assertJsonPath('data.rows', 2)
+                ->assertJsonPath('data.undated', 1)
+                ->assertJsonPath('data.missing', 0);
+            $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+                ->assertSessionHas('warning');
+
+            $this->assertDatabaseCount('external_tatib_records', 2);
+            $this->assertSame(1, ExternalTatibRecord::query()->whereNull('occurred_at')->count());
+            $this->assertStringStartsWith('simple-undated-', ExternalTatibRecord::query()->whereNull('occurred_at')->sole()->source_identifier);
+            $this->assertDatabaseHas('external_sync_runs', [
+                'status' => ExternalSyncRun::STATUS_WARNING,
+                'received_count' => 2,
+                'processed_count' => 2,
+                'is_full_snapshot' => true,
+            ]);
+        }
+    }
+
+    public function test_changing_current_timestamp_can_activate_automatic_sync_with_warning(): void
+    {
+        $sequence = Http::sequence();
+        foreach (range(0, 3) as $seconds) {
+            $payload = $this->payload();
+            $payload[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSeconds($seconds)->format('d M Y H:i:s');
+            $sequence->push($payload);
+        }
+        Http::fake([self::URL => $sequence]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertJsonPath('data.undated', 1);
+        $this->post(route('data-master.etatib.automatic.store'), [
+            'api_url' => self::URL,
+            'current_password' => 'password',
+        ])->assertSessionHas('warning');
+
+        $this->assertDatabaseCount('external_tatib_records', 2);
+        $this->assertTrue((bool) IntegrationSetting::query()
+            ->where('provider', 'etatib')->value('automatic_sync_enabled'));
+    }
+
+    public function test_later_valid_date_updates_the_same_undated_record(): void
+    {
+        Student::query()->create(['nisn' => '0093200788', 'name' => 'FERRYSCHA PUTRI']);
+        Student::query()->create(['nisn' => '0081784737', 'name' => 'Ridho Parulian Siagian']);
+        $sequence = Http::sequence();
+        foreach (range(0, 3) as $seconds) {
+            $payload = $this->payload();
+            $payload[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSeconds($seconds)->format('d M Y H:i:s');
+            $sequence->push($payload);
+        }
+        $sequence->push($this->payload())->push($this->payload());
+        Http::fake([self::URL => $sequence]);
+
+        $admin = $this->admin();
+        $this->actingAs($admin)->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])->assertSessionHas('warning');
+        $undatedId = ExternalTatibRecord::query()->whereNull('occurred_at')->sole()->id;
+
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()
+            ->assertJsonPath('data.undated', 0);
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])->assertSessionHas('success');
+
+        $this->assertDatabaseCount('external_tatib_records', 2);
+        $this->assertNotNull(ExternalTatibRecord::query()->findOrFail($undatedId)->occurred_at);
+    }
+
+    public function test_ambiguous_undated_violations_are_rejected(): void
+    {
+        $first = $this->payload();
+        $first[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->format('d M Y H:i:s');
+        $duplicate = $first[1];
+        $duplicate['tanggal_pelanggaran'] = now('Asia/Jakarta')->subDay()->format('d M Y H:i:s');
+        $first[] = $duplicate;
+        $second = $first;
+        $second[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSecond()->format('d M Y H:i:s');
+        Http::fake([self::URL => Http::sequence()->push($first)->push($second)]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('api_url');
+        $this->assertDatabaseCount('external_tatib_records', 0);
+    }
+
+    public function test_other_api_changes_are_not_hidden_by_a_changing_timestamp(): void
+    {
+        $first = $this->payload();
+        $first[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->format('d M Y H:i:s');
+        $second = $first;
+        $second[1]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSecond()->format('d M Y H:i:s');
+        $second[0]['poin_pelanggaran'] = 15;
+        Http::fake([self::URL => Http::sequence()->push($first)->push($second)]);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('api_url');
+
+        $this->assertDatabaseCount('external_tatib_records', 0);
     }
 
     public function test_missing_previous_record_blocks_sync_and_preserves_local_data(): void

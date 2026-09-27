@@ -14,8 +14,9 @@ initApiSiswaPreview();
 initEtatibApiPreview();
 initEtatibIdentityMapping();
 
-const dataMasterToast = document.getElementById('dataMasterToast');
-if (dataMasterToast) new Toast(dataMasterToast, { delay: 4500 }).show();
+document.querySelectorAll('[data-notification-toast]').forEach((toast) => {
+    new Toast(toast, { delay: toast.classList.contains('sibk-notification-toast--error') ? 8000 : 4500 }).show();
+});
 
 const renameClassroomModal = document.getElementById('renameClassroomModal');
 if (renameClassroomModal) {
@@ -115,11 +116,6 @@ document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
 });
 
 const assignmentScrollKey = 'sibk.assignmentScrollY';
-
-const assignmentSuccessToast = document.getElementById('assignmentSuccessToast');
-if (assignmentSuccessToast) {
-    new Toast(assignmentSuccessToast, { delay: 4500 }).show();
-}
 
 const classUnassignModal = document.getElementById('classUnassignModal');
 if (classUnassignModal) {
@@ -230,9 +226,6 @@ if (classPicker) {
 
 const accountPage = document.querySelector('[data-page-id="ADMIN-USERS"]');
 if (accountPage) {
-    const successToast = document.getElementById('accountSuccessToast');
-    if (successToast) new Toast(successToast, { delay: 4500 }).show();
-
     const rolePicker = (root) => {
         const selected = new Map();
         let locked = false;

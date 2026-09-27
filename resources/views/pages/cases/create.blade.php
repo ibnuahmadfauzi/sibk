@@ -123,7 +123,7 @@
                             <label class="form-check-label w-100" for="etatib-{{ $record->id }}">
                                 <span class="fw-semibold">{{ $record->violation_type }}</span>
                                 <span class="text-muted small d-block">
-                                    NISN {{ $record->nisn }} · {{ $record->occurred_at->locale('id')->translatedFormat('d M Y H:i') }} · {{ $record->points }} poin
+                                    NISN {{ $record->nisn }} · {{ $record->occurred_at?->locale('id')->translatedFormat('d M Y H:i') ?? 'Tanggal belum tersedia' }} · {{ $record->points }} poin
                                 </span>
                                 <span class="text-muted small d-block">
                                     Total resmi {{ $record->source_total_points ?? '-' }} · Kelas {{ $record->source_classroom_name ?: '-' }} · Pencatat {{ $record->recorded_by_name ?: '-' }}

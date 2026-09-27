@@ -10,13 +10,11 @@
         data-candidate-url="{{ route('data-master.etatib.candidates') }}"
     >
         @if(session('success'))
-            <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+            <x-notification-toast>{{ session('success') }}</x-notification-toast>
         @endif
 
         @if($errors->any())
-            <div class="alert alert-danger" role="alert">
-                {{ $errors->first() }}
-            </div>
+            <x-notification-toast tone="error">{{ $errors->first() }}</x-notification-toast>
         @endif
 
         <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">
