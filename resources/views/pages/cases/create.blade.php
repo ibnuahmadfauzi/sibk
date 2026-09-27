@@ -15,9 +15,20 @@
             <div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
         @endif
 
-        <div class="sibk-panel mb-4 border-0 shadow-sm">
+        @php
+            $selectedSourceId = old('case_source_id', request('case_source_id', $temporaryNisnFilter ? $caseSources->firstWhere('code', 'e_tatib')?->id : null));
+            $selectedSource = $caseSources->firstWhere('id', $selectedSourceId);
+            $selectedSourceCode = $selectedSource?->code;
+            $isEtatibSource = $selectedSourceCode === 'e_tatib';
+            $isManualSource = in_array($selectedSourceCode, ['murid_datang_sendiri', 'temuan_guru_bk', 'rujukan'], true);
+            $showPanel = $isEtatibSource || $isManualSource;
+            $isRujukanInitial = $selectedSourceCode === 'rujukan';
+        @endphp
+
+        <div class="sibk-panel mb-4 border-0 shadow-sm {{ ! $showPanel ? 'd-none' : '' }}" id="temporary-student-panel">
             <div class="sibk-panel__body p-4">
-                <form action="{{ route('cases.create') }}" method="GET" id="etatib-filter-form">
+                <form action="{{ route('cases.create') }}" method="GET" id="etatib-filter-form" class="{{ ! $isEtatibSource ? 'd-none' : '' }}">
+                    <input type="hidden" name="case_source_id" value="{{ $caseSources->firstWhere('code', 'e_tatib')?->id }}">
                     <label for="etatib_temporary_nisn_filter" class="form-label sibk-form-label mb-2">Cari e-Tatib dengan NISN</label>
                     <div class="row g-3">
                         <div class="col-12 col-md-8">
@@ -29,7 +40,7 @@
                     </div>
                 </form>
 
-                <div class="row g-3 mt-1">
+                <div class="row g-3 {{ ! $isManualSource ? 'd-none' : '' }}" id="new-student-fields">
                     <div class="col-12 col-md-4">
                         <label for="temporary_nisn" class="form-label sibk-form-label">NISN Murid Baru</label>
                         <input form="case-create-form" class="form-control sibk-form-control" id="temporary_nisn" name="temporary_nisn" value="{{ old('temporary_nisn', $temporaryNisnFilter) }}" maxlength="20" inputmode="numeric" placeholder="Isi bila murid belum tersedia">
@@ -72,7 +83,7 @@
                             <label for="sumber" class="form-label sibk-form-label">Sumber</label>
                             <select class="form-select sibk-form-select" id="sumber" name="case_source_id" required>
                                 <option value="">Pilih sumber</option>
-                                @foreach($caseSources as $source)<option value="{{ $source->id }}" data-code="{{ $source->code }}" @selected((string) old('case_source_id') === (string) $source->id)>{{ $source->label }}</option>@endforeach
+                                @foreach($caseSources as $source)<option value="{{ $source->id }}" data-code="{{ $source->code }}" @selected((string) $selectedSourceId === (string) $source->id)>{{ $source->label }}</option>@endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -86,10 +97,6 @@
                             <label for="tanggal" class="form-label sibk-form-label">Tanggal Layanan</label>
                             <input type="date" class="form-control sibk-form-control" id="tanggal" name="service_date" value="{{ old('service_date', today()->toDateString()) }}" required>
                         </div>
-                        @php
-                            $selectedSource = $caseSources->firstWhere('id', old('case_source_id'));
-                            $isRujukanInitial = $selectedSource?->code === 'rujukan';
-                        @endphp
                         <div @class(['col-12', 'd-none' => ! $isRujukanInitial]) id="referrer-group">
                             <label for="referrer" class="form-label sibk-form-label">Pihak Perujuk</label>
                             <input class="form-control sibk-form-control" id="referrer" name="referrer" value="{{ old('referrer') }}" placeholder="Isi bila sumber permasalahan berasal dari rujukan">
@@ -103,9 +110,9 @@
                     <h4 class="fs-5 mb-1 text-dark fw-bold">Informasi Permasalahan</h4>
                     <p class="text-muted small mb-4">Tuliskan informasi yang diperlukan untuk memulai penanganan.</p>
                     <div class="row g-4">
-                        <div class="col-md-6"><label for="initial_info" class="form-label sibk-form-label">Informasi Awal</label><textarea class="form-control sibk-form-control" id="initial_info" name="initial_info" rows="4" required>{{ old('initial_info') }}</textarea></div>
-                        <div class="col-md-6"><label for="initial_action" class="form-label sibk-form-label">Penanganan Awal</label><textarea class="form-control sibk-form-control" id="initial_action" name="initial_action" rows="4" required>{{ old('initial_action') }}</textarea></div>
-                        <div class="col-12"><label for="internal_note" class="form-label sibk-form-label">Catatan Internal</label><textarea class="form-control sibk-form-control" id="internal_note" name="internal_note" rows="2" placeholder="Hanya terlihat bagi Guru BK yang memiliki penugasan aktif">{{ old('internal_note') }}</textarea></div>
+                        <div class="col-md-6"><label for="initial_info" class="form-label sibk-form-label">Latar Belakang</label><textarea class="form-control sibk-form-control" id="initial_info" name="initial_info" rows="4" required>{{ old('initial_info') }}</textarea></div>
+                        <div class="col-md-6"><label for="initial_action" class="form-label sibk-form-label">Penanganan</label><textarea class="form-control sibk-form-control" id="initial_action" name="initial_action" rows="4" required>{{ old('initial_action') }}</textarea></div>
+                        <div class="col-12"><label for="internal_note" class="form-label sibk-form-label">Hasil</label><textarea class="form-control sibk-form-control" id="internal_note" name="internal_note" rows="2" placeholder="Hanya terlihat bagi Guru BK yang memiliki penugasan aktif">{{ old('internal_note') }}</textarea></div>
                     </div>
                 </div>
             </div>
@@ -167,6 +174,29 @@
             };
 
             const referrerGroup = document.getElementById('referrer-group');
+            const temporaryStudentPanel = document.getElementById('temporary-student-panel');
+            const etatibFilterForm = document.getElementById('etatib-filter-form');
+            const newStudentFields = document.getElementById('new-student-fields');
+
+            const updateSourceFieldsVisibility = () => {
+                const selectedOption = sumber?.selectedOptions[0];
+                const code = selectedOption?.dataset?.code || '';
+                const text = selectedOption?.text?.trim().toLowerCase() || '';
+
+                const isEtatib = code === 'e_tatib' || text === 'e-tatib';
+                const isManual = ['murid_datang_sendiri', 'temuan_guru_bk', 'rujukan'].includes(code)
+                    || ['murid datang sendiri', 'temuan guru bk', 'rujukan'].includes(text);
+
+                if (temporaryStudentPanel) {
+                    temporaryStudentPanel.classList.toggle('d-none', !isEtatib && !isManual);
+                }
+                if (etatibFilterForm) {
+                    etatibFilterForm.classList.toggle('d-none', !isEtatib);
+                }
+                if (newStudentFields) {
+                    newStudentFields.classList.toggle('d-none', !isManual);
+                }
+            };
 
             const updateReferrerState = () => {
                 const selectedOption = sumber?.selectedOptions[0];
@@ -193,10 +223,14 @@
                 refreshEtatib();
             });
 
-            sumber?.addEventListener('change', updateReferrerState);
+            sumber?.addEventListener('change', () => {
+                updateReferrerState();
+                updateSourceFieldsVisibility();
+            });
 
             refreshEtatib();
             updateReferrerState();
+            updateSourceFieldsVisibility();
         });
     </script>
 @endsection
