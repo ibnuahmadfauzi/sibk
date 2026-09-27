@@ -84,13 +84,13 @@ class StudentController extends Controller
             ->with(['classroom', 'academicYear'])
             ->first();
 
-        $activeTab = $request->string('tab', 'ringkasan')->toString();
+        $activeTab = $request->string('tab', 'kasus')->toString();
         $allowedTabs = ['ringkasan', 'kasus', 'etatib', 'konsultasi', 'prestasi'];
         if (in_array($activeTab, $allowedTabs, true) === false) {
-            $activeTab = 'ringkasan';
+            $activeTab = 'kasus';
         }
         if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false && $activeTab === 'konsultasi') {
-            $activeTab = 'ringkasan';
+            $activeTab = 'kasus';
         }
 
         $cases = BkCase::query()
@@ -147,8 +147,10 @@ class StudentController extends Controller
             ),
             'currentMembership' => $currentMembership,
             'stats' => [
-                'active_cases' => $cases->whereNull('closed_at')->count(),
+                'cases' => $cases->count(),
+                'consultations' => $consultations->count(),
                 'points' => $officialEtatibTotal ?? $etatibRecords->sum('points'),
+                'last_synced_at' => $etatibRecords->max('synced_at'),
                 'achievements' => $achievements->count(),
             ],
             'recentActivities' => $this->recentActivities($cases, $consultations, $etatibRecords, $achievements),
