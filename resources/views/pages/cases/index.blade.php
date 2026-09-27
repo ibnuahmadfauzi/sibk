@@ -203,6 +203,7 @@
             </div></div>
         </div>
 
+        @if($activeTab === 'kasus')
         {{-- Modal Tambah Tindak Lanjut --}}
         <div class="modal fade" id="modal-tambah-tindak-lanjut" tabindex="-1" aria-labelledby="modalTambahTindakLanjutLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -247,6 +248,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 @endsection
 
@@ -392,6 +394,21 @@
 @section('extra-javascript')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const withdrawalLookup = document.getElementById('withdrawal-student-lookup');
+    if (withdrawalLookup) {
+        const studentId = document.getElementById('withdrawal-student-id');
+        const options = [...document.querySelectorAll('#withdrawal-student-options option')];
+        withdrawalLookup.addEventListener('input', () => {
+            studentId.value = options.find((option) => option.value === withdrawalLookup.value)?.dataset.id ?? '';
+            withdrawalLookup.setCustomValidity('');
+        });
+        withdrawalLookup.form.addEventListener('submit', (event) => {
+            if (studentId.value) return;
+            event.preventDefault();
+            withdrawalLookup.setCustomValidity('Pilih murid dari saran yang tersedia.');
+            withdrawalLookup.reportValidity();
+        });
+    }
     // ── Popover Tindak Lanjut (posisi fixed, timbul di atas tabel) ──────────
     const modalElement = document.getElementById('modal-tambah-tindak-lanjut');
     let activePopover = null;  // popover element yang sedang terbuka
