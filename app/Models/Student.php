@@ -57,6 +57,19 @@ class Student extends Model
         return $this->hasMany(ExternalTatibRecord::class);
     }
 
+    public function tatibPoints(): int
+    {
+        $records = $this->relationLoaded('etatibRecords')
+            ? $this->etatibRecords
+            : $this->etatibRecords()->active()->latest('occurred_at')->get();
+
+        $officialTotal = $records
+            ->first(fn (ExternalTatibRecord $record): bool => $record->source_total_points !== null)
+            ?->source_total_points;
+
+        return (int) ($officialTotal ?? $records->sum('points'));
+    }
+
     /** @return HasOne<StudentDeparture, $this> */
     public function departure(): HasOne
     {

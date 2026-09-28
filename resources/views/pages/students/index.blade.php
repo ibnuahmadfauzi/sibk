@@ -11,12 +11,13 @@
             <div class="col-12 col-md-2"><button class="btn btn-primary w-100">Cari</button></div>
         </form></div></div>
 
-        <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>NISN</th><th>Nama Murid</th><th>Kelas Aktif</th><th class="text-center">Permasalahan</th><th class="text-center">Konsultasi</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>NISN</th><th>Nama Murid</th><th>Kelas Aktif</th><th class="text-center">Permasalahan</th><th class="text-center">Konsultasi</th><th class="text-center">Total Poin</th></tr></thead><tbody>
             @forelse($students as $student)
                 @php
                     $membership = $student->classMemberships->first();
                     $activeCases = $student->cases->whereNull('closed_at');
                     $totalConsultations = $student->consultations->count();
+                    $totalTatibPoints = $student->tatibPoints();
                 @endphp
                 <tr class="sibk-table__row--clickable" style="cursor:pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
                     <td class="fw-semibold">{{ $student->nisn }}</td>
@@ -24,8 +25,9 @@
                     <td>{{ $membership?->classroom?->name ?? '—' }}</td>
                     <td class="text-center"><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td>
                     <td class="text-center"><span class="fw-semibold {{ $totalConsultations > 0 ? 'text-info' : 'text-muted' }}">{{ $totalConsultations }}</span></td>
+                    <td class="text-center"><span class="fw-semibold {{ $totalTatibPoints > 0 ? 'text-danger' : 'text-muted' }}">{{ $totalTatibPoints }}</span></td>
                 </tr>
-            @empty<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data murid yang sesuai.</td></tr>@endforelse
+            @empty<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data murid yang sesuai.</td></tr>@endforelse
         </tbody></table></div>@if($students->hasPages())<div class="mt-3"><div class="text-muted small mb-2">Menampilkan {{ $students->count() }} dari {{ $students->total() }} murid</div>{{ $students->links() }}</div>@endif
     </div>
 @endsection

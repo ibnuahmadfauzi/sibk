@@ -52,6 +52,17 @@ class StudentProfileTest extends TestCase
         $this->actingAs($otherTeacher)->get(route('students.show', $student))->assertForbidden();
     }
 
+    public function test_students_index_displays_tatib_points_total(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $this->etatibRecord($student, 'ET-001', 'Terlambat');
+
+        $this->actingAs($teacher)->get(route('students.index'))
+            ->assertOk()
+            ->assertSee('Total Poin')
+            ->assertSee('10');
+    }
+
     public function test_undated_etatib_record_is_visible_without_inventing_a_date(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
