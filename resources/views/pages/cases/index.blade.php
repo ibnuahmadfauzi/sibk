@@ -188,11 +188,111 @@
                     'direction' => request('sort') === $column && request('direction') === 'asc' ? 'desc' : 'asc',
                 ]));
             @endphp
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Murid dan Kelas</th>@unless($isWakaOnly)<th>Permasalahan</th>@endunless<th>Jenis Layanan</th><th>Aksi</th></tr></thead><tbody>
-                @forelse($consultations as $session)
-                    <tr data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}"><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }}</div></td>@unless($isWakaOnly)<td>{{ $session->problem }}</td>@endunless<td>{{ $session->serviceField->label }}</td><td><a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm btn-outline-info">Detail</a></td></tr>
-                @empty<tr><td colspan="5" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>@endforelse
-            </tbody></table></div>@if($consultations->hasPages())<div class="mt-3">{{ $consultations->links() }}</div>@endif
+            <section class="sibk-panel sibk-operational-report" aria-labelledby="consultation-list-title">
+                <div class="sibk-panel__header p-4 border-bottom">
+                    <h2 class="h5 mb-1" id="consultation-list-title">Daftar Konsultasi</h2>
+                    @include('pages.reports._summary', ['items' => [[
+                        'value' => $consultations->total(),
+                        'label' => 'Total Konsultasi',
+                    ]]])
+                </div>
+                <div class="table-responsive sibk-operational-report-table">
+                    <table class="table sibk-table align-middle mb-0">
+                        <thead><tr><th scope="col">No</th><th scope="col">Hari/Tanggal</th><th scope="col">Nama & Kelas</th><th scope="col">Layanan/Jenis Masalah</th><th scope="col">Hasil</th><th scope="col">Aksi</th></tr></thead>
+                        <tbody>
+                            @forelse($consultations as $session)
+                                @php
+                                    $detailId = "consultation-detail-{$session->id}";
+                                    $result = $isWakaOnly ? '—' : ($session->result ?: '—');
+                                @endphp
+                                <tr class="sibk-report-row">
+                                    <td>{{ $consultations->firstItem() + $loop->index }}</td>
+                                    <td><strong>{{ $session->session_date->locale('id')->translatedFormat('l') }}</strong><div class="small text-muted">{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</div></td>
+                                    <td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }}</div></td>
+                                    <td><span class="d-block small text-muted">Konsultasi</span><strong class="sibk-report-service-field d-block">{{ $session->serviceField->label }}</strong></td>
+                                    <td>{{ $result }}</td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            @if($isWakaOnly)
+                                                <a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm sibk-icon-button sibk-report-control" title="Tampilkan detail layanan" aria-label="Tampilkan detail layanan {{ $session->identityName() }}">
+                                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                                </a>
+                                            @else
+                                                <button class="btn btn-sm sibk-icon-button sibk-report-control" type="button" data-report-detail-toggle data-report-detail-name="{{ $session->identityName() }}" aria-controls="{{ $detailId }}" aria-expanded="false" aria-label="Tampilkan detail layanan {{ $session->identityName() }}" title="Tampilkan detail layanan">
+                                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                                </button>
+                                            @endif
+                                            @can('archive', $session)
+                                                <form action="{{ route('consultations.destroy', $session) }}" method="POST" data-confirm-submit data-confirm-message="Arsipkan catatan layanan ini?">
+                                                    @csrf @method('DELETE')
+                                                    <button class="btn btn-sm btn-outline-danger sibk-icon-button" type="submit" aria-label="Arsipkan {{ $session->identityName() }}" title="Arsipkan">
+                                                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V3h8v3"/><path d="m19 6-1 15H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+                                                    </button>
+                                                </form>
+                                            @endcan
+                                        </div>
+                                    </td>
+                                </tr>
+                                @unless($isWakaOnly)
+                                    <tr class="sibk-report-detail-row d-none" id="{{ $detailId }}">
+                                        <td class="sibk-report-detail-spacer" aria-hidden="true"></td>
+                                        <td colspan="5"><div class="sibk-report-detail-panel"><div class="row g-3">
+                                            <div class="col-12 col-lg-6"><strong class="d-block mb-1">Latar Belakang Masalah</strong><p class="mb-0">{{ $session->problem ?: '—' }}</p></div>
+                                            <div class="col-12 col-lg-6"><strong class="d-block mb-1">Penanganan</strong><p class="mb-0">{{ $session->handling ?: '—' }}</p></div>
+                                        </div></div></td>
+                                    </tr>
+                                @endunless
+                            @empty
+                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="sibk-operational-report-cards p-3">
+                    @forelse($consultations as $session)
+                        @php
+                            $cardDetailId = "consultation-card-detail-{$session->id}";
+                            $result = $isWakaOnly ? '—' : ($session->result ?: '—');
+                        @endphp
+                        <article class="sibk-panel sibk-operational-report-card p-3">
+                            <div class="d-flex justify-content-between gap-3 mb-3">
+                                <div>
+                                    <h3 class="h6 mb-1">{{ $session->identityName() }}</h3>
+                                    <p class="small text-muted mb-0">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }} &middot; {{ $session->session_date->locale('id')->translatedFormat('l, d M Y') }}</p>
+                                </div>
+                                <span class="sibk-badge flex-column align-items-start gap-0"><span class="small fw-normal">Konsultasi</span><strong>{{ $session->serviceField->label }}</strong></span>
+                            </div>
+                            <dl class="mb-3"><div class="py-2"><dt>Hasil</dt><dd class="mb-0">{{ $result }}</dd></div></dl>
+                            @unless($isWakaOnly)
+                                <div class="sibk-report-detail-panel d-none mb-3" id="{{ $cardDetailId }}">
+                                    <div class="mb-3"><strong class="d-block mb-1">Latar Belakang Masalah</strong><p class="mb-0">{{ $session->problem ?: '—' }}</p></div>
+                                    <div><strong class="d-block mb-1">Penanganan</strong><p class="mb-0">{{ $session->handling ?: '—' }}</p></div>
+                                </div>
+                            @endunless
+                            <div class="d-flex justify-content-end gap-2">
+                                @if($isWakaOnly)
+                                    <a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm sibk-icon-button sibk-report-control" title="Tampilkan detail layanan" aria-label="Tampilkan detail layanan {{ $session->identityName() }}">
+                                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                    </a>
+                                @else
+                                    <button class="btn btn-sm sibk-icon-button sibk-report-control" type="button" data-report-detail-toggle data-report-detail-name="{{ $session->identityName() }}" aria-controls="{{ $cardDetailId }}" aria-expanded="false" aria-label="Tampilkan detail layanan {{ $session->identityName() }}" title="Tampilkan detail layanan">
+                                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                    </button>
+                                @endif
+                                @can('archive', $session)
+                                    <form action="{{ route('consultations.destroy', $session) }}" method="POST" data-confirm-submit data-confirm-message="Arsipkan catatan layanan ini?">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger" type="submit">Arsipkan</button>
+                                    </form>
+                                @endcan
+                            </div>
+                        </article>
+                    @empty
+                        <p class="text-center text-muted mb-0 py-3">Belum ada sesi konsultasi yang dapat Anda akses.</p>
+                    @endforelse
+                </div>
+            </section>
+            @if($consultations->hasPages())<div class="mt-4">{{ $consultations->links() }}</div>@endif
         @else
             @include('pages.cases._withdrawals')
         @endif

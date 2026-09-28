@@ -378,12 +378,12 @@ class ConsultationManagementTest extends TestCase
         }
 
         $this->get(route('cases.index', ['tab' => 'konsultasi']))
-            ->assertSee('Tanggal')
-            ->assertSee('Murid dan Kelas')
-            ->assertSee('Permasalahan')
-            ->assertSee('Jenis Layanan')
-            ->assertSee('Aksi')
-            ->assertSee('<tr data-modal-url="'.route('consultations.show', [$listedZeta, 'modal' => 1]).'">', false);
+            ->assertSeeInOrder(['No', 'Hari/Tanggal', 'Nama & Kelas', 'Layanan/Jenis Masalah', 'Hasil', 'Aksi'], false)
+            ->assertSee('Jumat')
+            ->assertSee('18 Sep 2026')
+            ->assertSee('Hasil Murid Zeta')
+            ->assertSee('aria-controls="consultation-detail-'.$listedZeta->id.'"', false)
+            ->assertSee('<tr class="sibk-report-row">', false);
     }
 
     public function test_shared_list_keeps_class_snapshot_after_membership_change(): void
@@ -404,6 +404,41 @@ class ConsultationManagementTest extends TestCase
             ->assertSee('X RPL 1')
             ->assertDontSee('X RPL Historis');
         $this->assertSame($consultation->classroom_id, $consultation->fresh()->classroom_id);
+    }
+
+    public function test_shared_list_uses_operational_report_table_design(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $this->createConsultation($teacher, $student);
+
+        $this->actingAs($teacher)->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertSee('Daftar Konsultasi')
+            ->assertSee('Total Konsultasi')
+            ->assertSeeInOrder(['No', 'Hari/Tanggal', 'Nama & Kelas', 'Layanan/Jenis Masalah', 'Hasil', 'Aksi'], false)
+            ->assertSee('class="sibk-panel sibk-operational-report"', false)
+            ->assertSee('class="sibk-report-summary"', false)
+            ->assertSee('class="table-responsive sibk-operational-report-table"', false)
+            ->assertSee('class="sibk-operational-report-cards p-3"', false)
+            ->assertSee('class="sibk-report-row"', false)
+            ->assertSee('data-report-detail-toggle', false)
+            ->assertSee('class="sibk-report-detail-row d-none"', false)
+            ->assertSee('class="sibk-report-service-field d-block"', false)
+            ->assertSee('class="btn btn-sm sibk-icon-button sibk-report-control"', false)
+            ->assertSee('class="btn btn-sm btn-outline-danger sibk-icon-button"', false);
+    }
+
+    public function test_waka_list_keeps_six_columns_without_exposing_consultation_result(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($teacher, $student);
+        $waka = $this->userWithRole('waka_kesiswaan');
+
+        $this->actingAs($waka)->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertSeeInOrder(['No', 'Hari/Tanggal', 'Nama & Kelas', 'Layanan/Jenis Masalah', 'Hasil', 'Aksi'], false)
+            ->assertSee('<td>—</td>', false)
+            ->assertDontSee($consultation->result);
     }
 
     public function test_previous_year_consultation_is_read_only(): void
