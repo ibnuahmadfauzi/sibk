@@ -151,7 +151,8 @@ class CaseController extends Controller
                 ->with('classroom')])
             ->orderBy('name')
             ->get();
-        $etatibRecords = ExternalTatibRecord::query()
+        $search = $request->string('search')->trim()->toString();
+        $etatibRecordsQuery = ExternalTatibRecord::query()
             ->active()
             ->with(['latestClassroomIssue', 'student.classMemberships' => fn ($memberships) => $memberships
                 ->active()->with(['academicYear:id,starts_on,ends_on', 'classroom:id,name'])])
@@ -165,24 +166,61 @@ class CaseController extends Controller
                 }
             })
             ->when($temporaryNisnFilter !== null, fn ($records) => $records->where('nisn', $temporaryNisnFilter))
+            ->when($search !== '', function ($records) use ($search): void {
+                $records->where(function ($query) use ($search): void {
+                    $query->where('nisn', 'like', '%'.$search.'%')
+                        ->orWhere('source_student_name', 'like', '%'.$search.'%')
+                        ->orWhereHas('student', fn ($sq) => $sq->where('name', 'like', '%'.$search.'%'));
+                });
+            })
             ->latest('occurred_at')
-            ->latest('id')
+            ->latest('id');
+
+        $etatibRecords = $etatibRecordsQuery
             ->limit(self::ETATIB_RECORD_LIMIT + 1)
             ->get();
         $etatibRecordsCapped = $etatibRecords->count() > self::ETATIB_RECORD_LIMIT;
         $etatibRecords = $etatibRecords->take(self::ETATIB_RECORD_LIMIT);
 
+        $temporaryClassrooms = Classroom::query()->active()
+            ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+            ->whereHas('teacherAssignments', fn ($assignments) => $assignments->where('user_id', $user->id))
+            ->orderBy('name')->get();
+
+        $formattedEtatibRecords = $etatibRecords->map(function (ExternalTatibRecord $record) use ($temporaryClassrooms) {
+            $student = $record->student;
+            $activeClassroom = $student?->classMemberships?->first()?->classroom;
+            $classroomName = $activeClassroom?->name ?: ($record->effective_classroom_name ?: '-');
+            $studentName = $student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib');
+            $classroomId = $activeClassroom?->id ?? $temporaryClassrooms->firstWhere('name', $classroomName)?->id;
+
+            return [
+                'id' => $record->id,
+                'student_id' => $student?->id,
+                'nisn' => $record->nisn,
+                'student_name' => $studentName,
+                'classroom_name' => $classroomName,
+                'classroom_id' => $classroomId,
+                'violation_type' => $record->violation_type,
+                'occurred_at' => $record->occurred_at?->locale('id')->translatedFormat('d M Y H:i') ?? 'Tanggal belum tersedia',
+                'occurred_at_date' => $record->occurred_at?->toDateString(),
+                'points' => $record->points,
+                'category' => $record->category ?: 'Ringan',
+                'recorded_by_name' => $record->recorded_by_name ?: '-',
+                'source_total_points' => $record->source_total_points ?? $record->points,
+            ];
+        });
+
         return view('pages.cases.create', [
             'students' => $students,
-            'temporaryClassrooms' => Classroom::query()->active()
-                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
-                ->whereHas('teacherAssignments', fn ($assignments) => $assignments->where('user_id', $user->id))
-                ->orderBy('name')->get(),
+            'temporaryClassrooms' => $temporaryClassrooms,
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
             'etatibRecords' => $etatibRecords,
+            'formattedEtatibRecords' => $formattedEtatibRecords,
             'etatibRecordsCapped' => $etatibRecordsCapped,
             'temporaryNisnFilter' => $temporaryNisnFilter,
+            'search' => $search,
             'preselectedStudentId' => $preselectedStudentId,
         ]);
     }

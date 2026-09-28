@@ -25,7 +25,7 @@ class CaseService
     ) {}
 
     /**
-     * @param  array{student_id?: int|string|null, temporary_nisn?: string|null, temporary_name?: string|null, case_source_id: int|string, service_field_id: int|string, service_date: string, referrer?: string|null, initial_info: string, initial_action: string, internal_note?: string|null, etatib_record_ids?: list<int|string>}  $data
+     * @param  array{student_id?: int|string|null, temporary_nisn?: string|null, temporary_name?: string|null, temporary_classroom_id?: int|string|null, case_source_id: int|string, service_field_id: int|string, service_date: string, referrer?: string|null, initial_info: string, initial_action: string, resolution_summary?: string|null, internal_note?: string|null, etatib_record_ids?: list<int|string>}  $data
      */
     public function createCase(array $data, User $actor): BkCase
     {
@@ -110,6 +110,7 @@ class CaseService
                 'referrer' => $data['referrer'] ?? null,
                 'initial_info' => $data['initial_info'],
                 'initial_action' => $data['initial_action'],
+                'resolution_summary' => $data['resolution_summary'] ?? null,
                 'internal_note' => $data['internal_note'] ?? null,
                 'created_by' => $actor->getKey(),
             ]);
@@ -253,8 +254,13 @@ class CaseService
                 'created_by' => $actor->getKey(),
             ]);
 
+            $latestFollowUp = $case->followUps()
+                ->orderByDesc('follow_up_date')
+                ->orderByDesc('id')
+                ->first();
+
             $case->update([
-                'follow_up_type_id' => $type->getKey(),
+                'follow_up_type_id' => $latestFollowUp?->follow_up_type_id ?? $type->getKey(),
                 'status_id' => $status->getKey(),
             ]);
             $case->refresh();

@@ -49,18 +49,34 @@ class CaseFollowUpController extends Controller
         $case->refresh();
 
         if ($request->wantsJson() || $request->ajax()) {
+            $latestFollowUp = $case->followUps()->with('followUpType')->first();
+            $allFollowUps = $case->followUps()
+                ->with('followUpType')
+                ->get()
+                ->map(fn ($item) => [
+                    'id' => $item->id,
+                    'follow_up_type_id' => $item->follow_up_type_id,
+                    'follow_up_type_label' => $item->followUpType?->label,
+                    'follow_up_date' => $item->follow_up_date->toDateString(),
+                    'follow_up_date_formatted' => $item->follow_up_date->locale('id')->translatedFormat('d M Y'),
+                    'notes' => $item->notes,
+                    'created_at' => $item->created_at?->toIso8601String(),
+                ]);
+
             return response()->json([
                 'message' => 'Tindak lanjut berhasil ditambahkan.',
                 'data' => [
                     'id' => $followUp->id,
                     'follow_up_type_id' => $followUp->follow_up_type_id,
                     'follow_up_type_label' => $followUp->followUpType?->label,
+                    'latest_follow_up_label' => $latestFollowUp?->followUpType?->label ?? $followUp->followUpType?->label,
                     'follow_up_date' => $followUp->follow_up_date->toDateString(),
                     'follow_up_date_formatted' => $followUp->follow_up_date->locale('id')->translatedFormat('d M Y'),
                     'notes' => $followUp->notes,
                     'status_code' => $case->status?->code,
                     'status_label' => $case->status?->label,
                     'updated_at' => $case->updated_at?->toJSON(),
+                    'follow_ups' => $allFollowUps,
                 ],
             ]);
         }

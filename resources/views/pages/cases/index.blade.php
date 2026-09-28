@@ -32,10 +32,8 @@
                 ]));
             @endphp
             <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr>
-                <th>Murid</th>
-                <th>Kelas</th>
-                <th>Tanggal</th>
-                @unless($isWakaOnly)<th>Sumber</th>@endunless
+                <th>Hari/Tanggal</th>
+                <th>Nama & Kelas</th>
                 <th>Jenis Masalah</th>
                 <th>Status</th>
                 <th>Tindak Lanjut</th>
@@ -46,21 +44,27 @@
                         $completed = $case->status?->code === \App\Support\ServiceRecordStatus::COMPLETED;
                         $badgeTone = match($case->status?->code) {
                             'selesai' => 'success',
-                            'sedang_diproses', 'membutuhkan_tindak_lanjut' => 'warning',
+                            'sedang_diproses' => 'info',
+                            'membutuhkan_tindak_lanjut' => 'warning',
                             default => 'primary',
                         };
                     @endphp
                     <tr @unless($isWakaOnly)data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}"@endunless>
-                        <td class="fw-semibold">{{ $case->identityName() }}</td>
-                        <td>{{ $case->classroom?->name ?? '—' }}</td>
-                        <td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td>
-                        @unless($isWakaOnly)<td>{{ $case->source->label }}</td>@endunless
+                        <td>
+                            <div class="fw-semibold text-dark">{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</div>
+                            <div class="text-muted small">({{ $case->service_date->locale('id')->translatedFormat('l') }})</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ $case->identityName() }}</div>
+                            <div class="text-muted small">{{ $case->classroom?->name ?? '—' }}</div>
+                        </td>
                         <td>{{ $case->serviceField->label }}</td>
                         <td><span id="case-status-{{ $case->id }}" class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
                         <td>
                             @php
-                                $hasFollowUp = $case->followUpType !== null;
-                                $followUpLabel = $case->followUpType?->label ?? 'Belum ada';
+                                $latestFollowUp = $case->followUps->first();
+                                $followUpLabel = $latestFollowUp?->followUpType?->label ?? ($case->followUpType?->label ?? 'Belum ada');
+                                $hasFollowUp = $followUpLabel !== 'Belum ada';
                             @endphp
 
                             <div class="sibk-follow-up-dropdown" data-case-id="{{ $case->id }}">
@@ -79,32 +83,31 @@
                                 <div class="sibk-follow-up-popover" id="follow-up-popover-{{ $case->id }}" aria-labelledby="follow-up-btn-{{ $case->id }}" role="dialog" style="display:none;">
                                     <h6 class="fw-bold fs-6 text-dark mb-3">Riwayat Tindak Lanjut</h6>
 
-                                    <div class="sibk-follow-up-history mb-3" id="case-follow-up-history-{{ $case->id }}">
+                                    <div class="sibk-follow-up-history mb-2" id="case-follow-up-history-{{ $case->id }}">
                                         @forelse($case->followUps as $fu)
-                                            <div class="sibk-follow-up-entry mb-2 pb-1">
-                                                <div class="text-secondary small fw-medium">{{ $fu->follow_up_date->locale('id')->translatedFormat('d M Y') }}</div>
-                                                <div class="d-flex align-items-center gap-2 small text-primary fw-medium">
-                                                    <span class="rounded-circle bg-primary" style="width: 6px; height: 6px; flex-shrink: 0; display: inline-block;"></span>
+                                            <div class="sibk-follow-up-entry {{ $loop->first ? 'sibk-follow-up-entry--latest' : '' }}">
+                                                <div class="sibk-follow-up-entry__date">{{ $fu->follow_up_date->locale('id')->translatedFormat('d M Y') }}</div>
+                                                <div class="sibk-follow-up-entry__type">
+                                                    <span class="sibk-follow-up-entry__dot"></span>
                                                     <span>{{ $fu->followUpType?->label ?? '—' }}</span>
                                                 </div>
-                                                @if($fu->notes)
-                                                    <div class="text-muted smaller ps-3 mt-1" style="font-size: 0.78rem;">{{ $fu->notes }}</div>
-                                                @endif
                                             </div>
                                         @empty
-                                            <div class="text-muted small py-1 sibk-follow-up-empty-msg">Belum ada riwayat tindak lanjut.</div>
+                                            <div class="text-muted small py-2 px-1 sibk-follow-up-empty-msg">Belum ada riwayat tindak lanjut.</div>
                                         @endforelse
                                     </div>
 
                                     @can('update', $case)
                                         @unless($completed)
-                                            <div class="border-top pt-2 mt-2">
+                                            <div class="sibk-follow-up-add-wrapper">
                                                 <button type="button"
-                                                    class="btn btn-sm btn-link text-primary p-0 text-decoration-none fw-semibold d-inline-flex align-items-center gap-1 btn-open-add-follow-up"
+                                                    class="btn btn-link sibk-follow-up-add-btn btn-open-add-follow-up"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modal-tambah-tindak-lanjut"
                                                     data-case-id="{{ $case->id }}"
                                                     data-case-name="{{ $case->identityName() }}"
                                                     data-store-url="{{ route('cases.follow-ups.store', $case) }}">
-                                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
                                                     </svg>
                                                     <span>Tambah Tindak Lanjut</span>
@@ -129,50 +132,59 @@
                         </td>
                         <td>
                             <div class="d-flex align-items-center gap-1">
-                                {{-- Detail --}}
-                                <a href="{{ route('cases.show', $case) }}"
-                                    @unless($isWakaOnly)data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}"@endunless
-                                    class="btn btn-icon-action btn-icon-action--info"
-                                    title="Detail">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                </a>
-
                                 @can('update', $case)
-                                    {{-- Edit --}}
+                                    {{-- 1. Edit (pensil) --}}
                                     <a href="{{ route('cases.edit', $case) }}"
                                         data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
-                                        @if($completed) onclick="if (! window.confirm('Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }" @endif
-                                        class="btn btn-icon-action btn-icon-action--primary"
+                                        @if($completed)
+                                            data-confirm-message="Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"
+                                            onclick="if (! window.confirm('Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }"
+                                            class="btn btn-icon-action btn-icon-action--disabled"
+                                        @else
+                                            class="btn btn-icon-action btn-icon-action--primary"
+                                        @endif
                                         title="Edit">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
                                     </a>
+                                @endcan
 
-                                    {{-- Selesai (hanya jika belum selesai) --}}
-                                    @unless($completed)
+                                @can('archive', $case)
+                                    {{-- 2. Hapus (trash) --}}
+                                    @if($completed)
+                                        <button type="button" class="btn btn-icon-action btn-icon-action--disabled" disabled title="Permasalahan telah selesai">
+                                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                                        </button>
+                                    @else
+                                        <form action="{{ route('cases.destroy', $case) }}" method="POST"
+                                            data-confirm-submit
+                                            data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-icon-action btn-icon-action--danger" title="Arsipkan">
+                                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endcan
+
+                                @can('update', $case)
+                                    {{-- 3. Selesai (centang) --}}
+                                    @if($completed)
+                                        <button type="button" class="btn btn-icon-action btn-icon-action--disabled" disabled title="Permasalahan telah selesai">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                        </button>
+                                    @else
                                         <a href="{{ route('cases.edit', $case) }}"
                                             data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
                                             class="btn btn-icon-action btn-icon-action--success"
                                             title="Selesaikan Kasus">
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                                         </a>
-                                    @endunless
-                                @endcan
-
-                                @can('archive', $case)
-                                    {{-- Hapus --}}
-                                    <form action="{{ route('cases.destroy', $case) }}" method="POST"
-                                        data-confirm-submit
-                                        data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-icon-action btn-icon-action--danger" title="Arsipkan">
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-                                        </button>
-                                    </form>
+                                    @endif
                                 @endcan
                             </div>
                         </td>
                     </tr>
-                @empty<tr><td colspan="8" class="text-center text-muted py-4">Belum ada permasalahan yang dapat Anda akses.</td></tr>@endforelse
+                @empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada permasalahan yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
 
         @elseif($activeTab === 'konsultasi')
@@ -206,12 +218,12 @@
         @if($activeTab === 'kasus')
         {{-- Modal Tambah Tindak Lanjut --}}
         <div class="modal fade" id="modal-tambah-tindak-lanjut" tabindex="-1" aria-labelledby="modalTambahTindakLanjutLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
                 <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
-                    <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+                    <div class="modal-header border-bottom-0 pb-0 pt-4 px-4 d-flex align-items-center justify-content-between">
                         <div>
                             <h2 class="modal-title fs-5 fw-bold text-dark mb-0" id="modalTambahTindakLanjutLabel">Tambah Tindak Lanjut</h2>
-                            <p class="text-muted small mb-0 mt-1" id="modal-tindak-lanjut-student"></p>
+                            <div class="text-muted small mt-1" id="modal-tindak-lanjut-student"></div>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
@@ -221,8 +233,8 @@
                             <div class="alert alert-danger d-none py-2 small" id="modal-follow-up-error"></div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-semibold text-secondary small mb-1" for="modal_follow_up_type_id">Jenis Tindak Lanjut</label>
-                                <select name="follow_up_type_id" id="modal_follow_up_type_id" class="form-select" required>
+                                <label class="form-label fw-semibold text-dark small mb-1" for="modal_follow_up_type_id">Jenis Tindak Lanjut</label>
+                                <select name="follow_up_type_id" id="modal_follow_up_type_id" class="form-select py-2 border-secondary-subtle rounded-3" required>
                                     <option value="" disabled selected>Pilih jenis tindak lanjut</option>
                                     @foreach($followUpTypes as $type)
                                         <option value="{{ $type->id }}">{{ $type->label }}</option>
@@ -231,18 +243,13 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-semibold text-secondary small mb-1" for="modal_follow_up_date">Tanggal</label>
-                                <input type="date" name="follow_up_date" id="modal_follow_up_date" class="form-control" value="{{ now()->toDateString() }}" required>
-                            </div>
-
-                            <div class="mb-2">
-                                <label class="form-label fw-semibold text-secondary small mb-1" for="modal_follow_up_notes">Catatan (opsional)</label>
-                                <textarea name="notes" id="modal_follow_up_notes" class="form-control" rows="3" placeholder="Dilakukan kunjungan ke rumah siswa."></textarea>
+                                <label class="form-label fw-semibold text-dark small mb-1" for="modal_follow_up_date">Tanggal</label>
+                                <input type="date" name="follow_up_date" id="modal_follow_up_date" class="form-control py-2 border-secondary-subtle rounded-3" value="{{ now()->toDateString() }}" required>
                             </div>
                         </div>
-                        <div class="modal-footer border-top-0 px-4 pt-2 pb-4 gap-2">
-                            <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary px-4" id="btn-submit-follow-up">Simpan</button>
+                        <div class="modal-footer border-top-0 px-4 pt-2 pb-4 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light border border-secondary-subtle px-4 py-2 rounded-3 text-secondary fw-medium" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm" id="btn-submit-follow-up">Simpan</button>
                         </div>
                     </form>
                 </div>
@@ -264,7 +271,7 @@
         align-items: center !important;
         justify-content: space-between !important;
         gap: 8px !important;
-        padding: 0.35rem 0.75rem !important;
+        padding: 0.38rem 0.8rem !important;
         font-size: 0.8125rem !important;
         font-weight: 500 !important;
         border-radius: 8px !important;
@@ -304,8 +311,15 @@
     }
 
     .sibk-follow-up-pill__chevron {
+        color: #3b82f6 !important;
         transition: transform 0.2s ease;
+        flex-shrink: 0;
     }
+
+    .sibk-follow-up-pill--empty .sibk-follow-up-pill__chevron {
+        color: #94a3b8 !important;
+    }
+
     .sibk-follow-up-pill[aria-expanded="true"] .sibk-follow-up-pill__chevron {
         transform: rotate(180deg);
     }
@@ -314,13 +328,13 @@
     .sibk-follow-up-popover {
         position: fixed;
         z-index: 1055;
-        min-width: 260px;
-        max-width: 320px;
+        min-width: 270px;
+        max-width: 330px;
         background: #ffffff;
         border-radius: 14px;
         border: 1px solid #e2e8f0;
         box-shadow: 0 20px 40px -8px rgba(0,0,0,0.14), 0 8px 16px -4px rgba(0,0,0,0.08);
-        padding: 1rem;
+        padding: 1.1rem;
         animation: sibkPopoverIn 0.15s ease;
     }
 
@@ -329,8 +343,66 @@
         to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .sibk-follow-up-entry:not(:last-child) {
-        border-bottom: 1px dashed #f1f5f9;
+    .sibk-follow-up-entry {
+        padding: 6px 10px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        transition: background 0.15s ease;
+    }
+
+    .sibk-follow-up-entry--latest {
+        background-color: #eff6ff;
+    }
+
+    .sibk-follow-up-entry__date {
+        font-size: 0.8125rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+
+    .sibk-follow-up-entry__type {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .sibk-follow-up-entry__dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: #2563eb;
+        flex-shrink: 0;
+        display: inline-block;
+    }
+
+    .sibk-follow-up-add-wrapper {
+        border-top: 1px solid #f1f5f9;
+        padding-top: 8px;
+        margin-top: 8px;
+    }
+
+    .sibk-follow-up-add-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        color: #2563eb !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        padding: 6px 10px !important;
+        text-decoration: none !important;
+        border-radius: 6px !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+        transition: background 0.15s ease !important;
+    }
+
+    .sibk-follow-up-add-btn:hover {
+        background-color: #eff6ff !important;
+        color: #1d4ed8 !important;
     }
 
     /* ── Icon action buttons ─────────────────────────────────── */
@@ -387,6 +459,15 @@
     .btn-icon-action--danger:hover {
         background: #fee2e2 !important;
         border-color: #fecaca !important;
+    }
+
+    .btn-icon-action--disabled,
+    .btn-icon-action:disabled {
+        color: #94a3b8 !important;
+        border-color: #e2e8f0 !important;
+        background: #f8fafc !important;
+        cursor: not-allowed !important;
+        opacity: 0.65 !important;
     }
 </style>
 @endsection
@@ -496,22 +577,60 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') closePopover();
     });
 
-    // ── "+ Tambah Tindak Lanjut" ────────────────────────────────────────────
-    document.addEventListener('click', (event) => {
-        const trigger = event.target.closest('.btn-open-add-follow-up');
-        if (!trigger) return;
+    function showModal() {
+        if (window.bootstrap?.Modal && modalElement) {
+            window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
+            return;
+        }
+        if (modalElement) {
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.removeAttribute('aria-hidden');
+            modalElement.setAttribute('aria-modal', 'true');
+            let backdrop = document.querySelector('.modal-backdrop');
+            if (!backdrop) {
+                backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            }
+            document.body.classList.add('modal-open');
+        }
+    }
 
-        event.preventDefault();
-        event.stopPropagation();
+    function hideModal() {
+        if (window.bootstrap?.Modal && modalElement) {
+            const inst = window.bootstrap.Modal.getInstance(modalElement)
+                || window.bootstrap.Modal.getOrCreateInstance(modalElement);
+            inst?.hide();
+        }
+        if (modalElement) {
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+        }
+    }
+
+    if (modalElement) {
+        modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideModal();
+            });
+        });
+    }
+
+    function prepareAddFollowUp(trigger) {
+        if (!trigger) return;
 
         targetCaseId  = trigger.dataset.caseId;
         targetStoreUrl = trigger.dataset.storeUrl;
         const caseName = trigger.dataset.caseName || '';
 
-        // Tutup popover sebelum buka modal
         closePopover();
 
-        // Setup modal
         const studentLabel = document.getElementById('modal-tindak-lanjut-student');
         if (studentLabel) studentLabel.textContent = caseName ? `Murid: ${caseName}` : '';
 
@@ -524,10 +643,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateInput = form.querySelector('[name="follow_up_date"]');
             if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
         }
+    }
 
-        if (window.bootstrap?.Modal) {
-            window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
-        }
+    if (modalElement) {
+        modalElement.addEventListener('show.bs.modal', (event) => {
+            const trigger = event.relatedTarget || document.querySelector(`.btn-open-add-follow-up[data-case-id="${targetCaseId}"]`);
+            if (trigger) prepareAddFollowUp(trigger);
+        });
+    }
+
+    // ── "+ Tambah Tindak Lanjut" ────────────────────────────────────────────
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('.btn-open-add-follow-up');
+        if (!trigger) return;
+
+        prepareAddFollowUp(trigger);
+        showModal();
     });
 
     // ── Submit form tambah tindak lanjut ────────────────────────────────────
@@ -545,7 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const payload = {
                 follow_up_type_id: formData.get('follow_up_type_id'),
                 follow_up_date:    formData.get('follow_up_date'),
-                notes:             formData.get('notes'),
             };
 
             const token = document.querySelector('meta[name="csrf-token"]')?.content
@@ -579,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 1. Update pill label & style
                 const labelDisplay = document.getElementById(`case-follow-up-label-display-${targetCaseId}`);
-                if (labelDisplay) labelDisplay.textContent = data.follow_up_type_label;
+                if (labelDisplay) labelDisplay.textContent = data.latest_follow_up_label || data.follow_up_type_label;
 
                 const pillBtn = document.getElementById(`follow-up-btn-${targetCaseId}`);
                 if (pillBtn) {
@@ -597,32 +727,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 3. Update hidden compatibility targets
                 const hiddenLabel   = document.getElementById(`case-follow-up-${targetCaseId}`);
                 const hiddenUpdated = document.getElementById(`case-updated-at-${targetCaseId}`);
-                if (hiddenLabel) hiddenLabel.textContent = data.follow_up_type_label;
+                if (hiddenLabel) hiddenLabel.textContent = data.latest_follow_up_label || data.follow_up_type_label;
                 if (hiddenUpdated && data.updated_at) hiddenUpdated.textContent = data.updated_at;
 
-                // 4. Prepend entry ke popover riwayat
+                // 4. Update riwayat di dalam popover
                 const historyContainer = document.getElementById(`case-follow-up-history-${targetCaseId}`);
                 if (historyContainer) {
-                    const emptyMsg = historyContainer.querySelector('.sibk-follow-up-empty-msg');
-                    if (emptyMsg) emptyMsg.remove();
+                    if (data.follow_ups && Array.isArray(data.follow_ups) && data.follow_ups.length > 0) {
+                        historyContainer.innerHTML = '';
+                        data.follow_ups.forEach((fu, idx) => {
+                            const entry = document.createElement('div');
+                            entry.className = `sibk-follow-up-entry ${idx === 0 ? 'sibk-follow-up-entry--latest' : ''}`;
+                            entry.innerHTML = `
+                                <div class="sibk-follow-up-entry__date">${escapeHtml(fu.follow_up_date_formatted)}</div>
+                                <div class="sibk-follow-up-entry__type">
+                                    <span class="sibk-follow-up-entry__dot"></span>
+                                    <span>${escapeHtml(fu.follow_up_type_label)}</span>
+                                </div>
+                            `;
+                            historyContainer.appendChild(entry);
+                        });
+                    } else {
+                        const emptyMsg = historyContainer.querySelector('.sibk-follow-up-empty-msg');
+                        if (emptyMsg) emptyMsg.remove();
 
-                    const newEntry = document.createElement('div');
-                    newEntry.className = 'sibk-follow-up-entry mb-2 pb-1';
-                    newEntry.innerHTML = `
-                        <div class="text-secondary small fw-medium">${escapeHtml(data.follow_up_date_formatted)}</div>
-                        <div class="d-flex align-items-center gap-2 small text-primary fw-medium">
-                            <span class="rounded-circle bg-primary" style="width:6px;height:6px;flex-shrink:0;display:inline-block;"></span>
-                            <span>${escapeHtml(data.follow_up_type_label)}</span>
-                        </div>
-                        ${data.notes ? `<div class="text-muted ps-3 mt-1" style="font-size:0.78rem;">${escapeHtml(data.notes)}</div>` : ''}
-                    `;
-                    historyContainer.insertBefore(newEntry, historyContainer.firstChild);
+                        historyContainer.querySelectorAll('.sibk-follow-up-entry--latest').forEach(el => el.classList.remove('sibk-follow-up-entry--latest'));
+
+                        const newEntry = document.createElement('div');
+                        newEntry.className = 'sibk-follow-up-entry sibk-follow-up-entry--latest';
+                        newEntry.innerHTML = `
+                            <div class="sibk-follow-up-entry__date">${escapeHtml(data.follow_up_date_formatted)}</div>
+                            <div class="sibk-follow-up-entry__type">
+                                <span class="sibk-follow-up-entry__dot"></span>
+                                <span>${escapeHtml(data.follow_up_type_label)}</span>
+                            </div>
+                        `;
+                        historyContainer.insertBefore(newEntry, historyContainer.firstChild);
+                    }
                 }
 
                 // 5. Tutup modal
-                if (window.bootstrap?.Modal) {
-                    window.bootstrap.Modal.getInstance(modalElement)?.hide();
-                }
+                hideModal();
 
                 // 6. Buka kembali popover agar user lihat riwayat terbaru
                 setTimeout(() => {
