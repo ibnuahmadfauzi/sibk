@@ -6,6 +6,7 @@ use App\Http\Controllers\AcademicYearActivationController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\AchievementController;
+use App\Http\Controllers\AchievementImportController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
 use App\Http\Controllers\Admin\ClassroomCatalogController;
 use App\Http\Controllers\Admin\ApiManagementController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\LegacyPreviewController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentDepartureController;
+use App\Http\Controllers\WithdrawalProgressController;
 use App\Models\IntegrationSetting;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +59,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
+        Route::post('/withdrawals', [WithdrawalProgressController::class, 'store'])->name('withdrawals.store');
+        Route::patch('/withdrawals/{withdrawal}/progress', [WithdrawalProgressController::class, 'updateProgress'])->name('withdrawals.progress.update');
 
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
         Route::get('/students/show', [StudentController::class, 'legacy'])->name('students.legacy');
@@ -95,10 +99,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/achievements', [AchievementController::class, 'index'])->name('achievements.index');
         Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
         Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
+        Route::post('/achievements/import', [AchievementImportController::class, 'store'])->name('achievements.import');
         Route::get('/achievements/{achievement}', [AchievementController::class, 'show'])->name('achievements.show');
         Route::get('/achievements/{achievement}/edit', [AchievementController::class, 'edit'])->name('achievements.edit');
         Route::patch('/achievements/{achievement}', [AchievementController::class, 'update'])->name('achievements.update');
-        Route::post('/achievements/{achievement}/verify', [AchievementController::class, 'verify'])->name('achievements.verify');
 
         Route::get('/data-master', [DataMasterController::class, 'index'])
             ->middleware('cache.headers:no_store')

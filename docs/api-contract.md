@@ -159,7 +159,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Controller:** `AchievementController`; impor memakai `AchievementImportController@store`.
 - **Form Request:** `AchievementIndexRequest`, `StoreAchievementRequest`, `UpdateAchievementRequest`, dan `ImportAchievementRequest`.
 - **Input manual:** `student_id`, `type_id`, `level_id`, `activity_name`, `organizer`, `achievement_date`, dan `result`.
-- **Import Excel:** `.xlsx`; setiap baris dipetakan ke murid dan field input manual. Seluruh berkas divalidasi sebelum transaksi, perubahan bersifat atomik, dan berkas mentah tidak disimpan setelah proses.
+- **Import Excel:** multipart `file` berformat `.xlsx`, maksimal 2 MB dan 1.000 baris data. Header berurutan `nisn,jenis,tingkat,kegiatan,penyelenggara,tanggal,hasil`; `jenis` dan `tingkat` memakai kode referensi aktif, `tanggal` memakai `YYYY-MM-DD` atau tanggal Excel. Setiap baris dipetakan ke murid dan field input manual. Seluruh berkas divalidasi sebelum transaksi, perubahan bersifat atomik, dan berkas mentah tidak disimpan setelah proses.
 - **Authorization:** Waka Kesiswaan dapat membuat, membaca, mengubah, dan mengimpor prestasi. Guru BK hanya dapat membaca prestasi murid dalam scope profesional melalui daftar/profil yang diizinkan. Koordinator BK dan Admin IT tidak memperoleh hak kelola prestasi dari fungsi mereka.
 - **Tidak tersedia:** endpoint verifikasi, status verifikasi, catatan verifikasi, evidence reference, evidence description, atau upload bukti.
 - **Lifecycle:** perubahan prestasi tidak membuat kasus, mengubah status kasus, menambah tindak lanjut, atau menghasilkan rekomendasi otomatis.
@@ -171,6 +171,13 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Keputusan:** hanya Koordinator BK memilih `batal` atau `resmi_keluar`; `effective_date` wajib untuk `resmi_keluar`.
 - **Scope layanan:** hanya `resmi_keluar` yang sudah efektif menghentikan layanan baru dan memulai retensi. Data histori tetap tersedia sesuai policy.
 - **Integrasi:** Dapodik/e-Tatib tidak dapat membuat, memperbarui, membatalkan, atau meresmikan proses keluar murid.
+
+### Progres Penanganan Pengunduran Diri (MD-19)
+- **Daftar:** `GET /cases?tab=pengunduran-diri`, filter `search` (nama murid) dan `progress`.
+- **Endpoint:** `POST /withdrawals` dan `PATCH /withdrawals/{withdrawal}/progress`.
+- **Input catat:** `student_id`, `recorded_on`, `progress` (`in_progress|at_bk|at_tu`), `reason` wajib; `note` opsional. Tanggal tidak boleh di masa depan.
+- **Input ubah:** `progress` saja.
+- **Authorization dan perilaku:** mengikuti MD-19.
 
 ---
 

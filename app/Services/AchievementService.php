@@ -8,6 +8,7 @@ use App\Models\Achievement;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -18,6 +19,8 @@ class AchievementService
     /** @param array<string, mixed> $data */
     public function create(array $data, User $actor): Achievement
     {
+        abort_unless($actor->can('create', Achievement::class), 403);
+
         return DB::transaction(function () use ($data, $actor): Achievement {
             $student = Student::query()->lockForUpdate()->findOrFail((int) $data['student_id']);
             $this->ensureStudentScope($student, $actor, (string) $data['achievement_date']);
@@ -25,7 +28,8 @@ class AchievementService
             $achievement = Achievement::query()->create([
                 ...$this->metadata($data),
                 'student_id' => $student->getKey(),
-                'verification_status_id' => $this->status('menunggu')->getKey(),
+                'evidence_reference' => '',
+                'verification_status_id' => ReferenceValue::query()->forCategory('achievement_verification_status')->where('code', 'terverifikasi')->valueOrFail('id'),
                 'recorded_by' => $actor->getKey(),
             ]);
             $this->auditService->record(
@@ -36,7 +40,7 @@ class AchievementService
                 after: $this->auditSnapshot($achievement),
             );
 
-            return $achievement->load(['student', 'type', 'level', 'verificationStatus', 'recorder']);
+            return $achievement->load(['student', 'type', 'level', 'recorder']);
         });
     }
 
@@ -44,8 +48,11 @@ class AchievementService
     public function update(Achievement $achievement, array $data, User $actor): Achievement
     {
         return DB::transaction(function () use ($achievement, $data, $actor): Achievement {
-            $achievement = Achievement::query()->with('verificationStatus')->lockForUpdate()->findOrFail($achievement->getKey());
+            $achievement = Achievement::query()->lockForUpdate()->findOrFail($achievement->getKey());
             abort_unless($actor->can('update', $achievement), 403);
+            if (! $achievement->updated_at->equalTo(CarbonImmutable::parse((string) $data['expected_updated_at']))) {
+                throw ValidationException::withMessages(['expected_updated_at' => 'Data telah berubah. Muat ulang sebelum menyimpan.']);
+            }
             $student = Student::query()->lockForUpdate()->findOrFail($achievement->student_id);
             $this->ensureStudentScope($student, $actor, (string) $data['achievement_date']);
             $this->validateReferences($data);
@@ -62,40 +69,17 @@ class AchievementService
                 after: [...$this->auditSnapshot($achievement), 'changed_fields' => $changedFields],
             );
 
-            return $achievement->load(['student', 'type', 'level', 'verificationStatus', 'recorder']);
-        });
-    }
-
-    /** @param array{decision: string, verification_notes?: string|null} $data */
-    public function verify(Achievement $achievement, array $data, User $reviewer): Achievement
-    {
-        return DB::transaction(function () use ($achievement, $data, $reviewer): Achievement {
-            $achievement = Achievement::query()->with('verificationStatus')->lockForUpdate()->findOrFail($achievement->getKey());
-            abort_unless($reviewer->can('verify', $achievement), 403);
-            $before = $this->auditSnapshot($achievement);
-            $achievement->update([
-                'verification_status_id' => $this->status($data['decision'])->getKey(),
-                'reviewer_id' => $reviewer->getKey(),
-                'reviewed_at' => now(),
-                'verification_notes' => filled($data['verification_notes'] ?? null) ? trim((string) $data['verification_notes']) : null,
-            ]);
-            $this->auditService->record(
-                action: 'achievement.reviewed',
-                auditable: $achievement,
-                summary: sprintf('Prestasi %s dinyatakan %s.', $achievement->activity_name, $data['decision']),
-                actor: $reviewer,
-                before: $before,
-                after: $this->auditSnapshot($achievement->refresh()),
-            );
-
-            return $achievement->load(['student', 'type', 'level', 'verificationStatus', 'recorder', 'reviewer']);
+            return $achievement->load(['student', 'type', 'level', 'recorder']);
         });
     }
 
     private function ensureStudentScope(Student $student, User $actor, string $date): void
     {
-        if (! Student::query()->availableForService($date)->professionallyAccessibleTo($actor)->whereKey($student->getKey())->exists()) {
-            throw ValidationException::withMessages(['student_id' => 'Murid tidak berada dalam kewenangan profesional Anda.']);
+        if (! $actor->can('create', Achievement::class)) {
+            abort(403);
+        }
+        if (! Student::query()->availableForService($date)->whereKey($student->getKey())->exists()) {
+            throw ValidationException::withMessages(['student_id' => 'Murid tidak tersedia pada tanggal prestasi.']);
         }
     }
 
@@ -119,15 +103,7 @@ class AchievementService
             'organizer' => trim((string) $data['organizer']),
             'achievement_date' => $data['achievement_date'],
             'result' => trim((string) $data['result']),
-            'evidence_reference' => trim((string) $data['evidence_reference']),
-            'evidence_description' => filled($data['evidence_description'] ?? null) ? trim((string) $data['evidence_description']) : null,
-            'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
         ];
-    }
-
-    private function status(string $code): ReferenceValue
-    {
-        return ReferenceValue::query()->active()->forCategory('achievement_verification_status')->where('code', $code)->firstOrFail();
     }
 
     /** @return array<string, mixed> */
@@ -138,10 +114,7 @@ class AchievementService
             'type_id' => $achievement->type_id,
             'level_id' => $achievement->level_id,
             'achievement_date' => $achievement->achievement_date?->toDateString(),
-            'verification_status_id' => $achievement->verification_status_id,
             'recorded_by' => $achievement->recorded_by,
-            'reviewer_id' => $achievement->reviewer_id,
-            'reviewed_at' => $achievement->reviewed_at?->toISOString(),
         ];
     }
 }

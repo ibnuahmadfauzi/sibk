@@ -52,15 +52,23 @@ class StudentProfileTest extends TestCase
         $this->actingAs($otherTeacher)->get(route('students.show', $student))->assertForbidden();
     }
 
-    public function test_students_index_displays_tatib_points_total(): void
+    public function test_profile_opens_history_beneath_summary_header(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
-        $this->etatibRecord($student, 'ET-001', 'Terlambat');
+        $this->createCase($teacher, $student);
+        $this->createConsultation($teacher, $student);
+        $this->etatibRecord($student, 'ET-PROFIL', 'Pelanggaran profil');
 
-        $this->actingAs($teacher)->get(route('students.index'))
+        $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()
-            ->assertSee('Total Poin')
-            ->assertSee('10');
+            ->assertSee('sibk-student-hero', false)
+            ->assertSee('Permasalahan dan Layanan')
+            ->assertSee('Riwayat kelas dan aktivitas layanan')
+            ->assertSee('Terakhir disinkronkan:')
+            ->assertDontSee('Pelanggaran profil');
+
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'ringkasan']))
+            ->assertOk()->assertSee('Histori kelas');
     }
 
     public function test_undated_etatib_record_is_visible_without_inventing_a_date(): void

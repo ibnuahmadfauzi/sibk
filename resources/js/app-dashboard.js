@@ -105,6 +105,15 @@ document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
     });
 });
 
+document.querySelectorAll('[data-withdrawal-progress]').forEach((select) => {
+    select.addEventListener('change', () => {
+        select.form.requestSubmit();
+    });
+});
+
+const withdrawalCreateModal = document.querySelector('[data-withdrawal-create-modal][data-show-on-error]');
+if (withdrawalCreateModal) Modal.getOrCreateInstance(withdrawalCreateModal).show();
+
 document.querySelectorAll('[data-sync-issue-toggle]').forEach((button) => {
     const subject = button.dataset.syncIssueName;
     button.addEventListener('click', async () => {

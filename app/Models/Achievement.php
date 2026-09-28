@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['student_id', 'type_id', 'level_id', 'activity_name', 'organizer', 'achievement_date', 'result', 'evidence_reference', 'evidence_description', 'notes', 'verification_status_id', 'recorded_by', 'reviewer_id', 'reviewed_at', 'verification_notes'])]
+#[Fillable(['student_id', 'type_id', 'level_id', 'activity_name', 'organizer', 'achievement_date', 'result', 'evidence_reference', 'verification_status_id', 'recorded_by'])]
 class Achievement extends Model
 {
     use SoftDeletes;
@@ -62,9 +62,10 @@ class Achievement extends Model
     /** @param Builder<Achievement> $query */
     public function scopeAccessibleTo(Builder $query, User $user): Builder
     {
-        $query->withinStudentServicePeriod();
+        $query->withinStudentServicePeriod()->whereNotIn('verification_status_id', ReferenceValue::query()
+            ->forCategory('achievement_verification_status')->where('code', 'ditolak')->select('id'));
 
-        if ($user->hasRole('koordinator_bk')) {
+        if ($user->hasRole('waka_kesiswaan')) {
             return $query;
         }
 
@@ -75,31 +76,10 @@ class Achievement extends Model
                 $hasAccess = true;
             }
 
-            if ($user->hasRole('waka_kesiswaan')) {
-                $method = $hasAccess ? 'orWhere' : 'where';
-                $verifiedStatus = ReferenceValue::query()
-                    ->forCategory('achievement_verification_status')
-                    ->where('code', 'terverifikasi')
-                    ->select('id');
-                $wakaStudents = Student::query()
-                    ->whereHas('cases', fn (Builder $cases): Builder => $cases->accessibleTo($user))
-                    ->select('students.id');
-                $access->{$method}(function (Builder $waka) use ($verifiedStatus, $wakaStudents): void {
-                    $waka->whereIn('verification_status_id', $verifiedStatus)
-                        ->whereIn('student_id', $wakaStudents);
-                });
-                $hasAccess = true;
-            }
-
             if (! $hasAccess) {
                 $access->whereRaw('1 = 0');
             }
         });
-    }
-
-    public function isPending(): bool
-    {
-        return $this->verificationStatus?->code === 'menunggu';
     }
 
     /** @return array<string, string> */

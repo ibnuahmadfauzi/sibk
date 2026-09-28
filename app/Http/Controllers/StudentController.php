@@ -87,13 +87,13 @@ class StudentController extends Controller
             ->with(['classroom', 'academicYear'])
             ->first();
 
-        $activeTab = $request->string('tab', 'ringkasan')->toString();
+        $activeTab = $request->string('tab', 'kasus')->toString();
         $allowedTabs = ['ringkasan', 'kasus', 'etatib', 'konsultasi', 'prestasi'];
         if (in_array($activeTab, $allowedTabs, true) === false) {
-            $activeTab = 'ringkasan';
+            $activeTab = 'kasus';
         }
         if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false && $activeTab === 'konsultasi') {
-            $activeTab = 'ringkasan';
+            $activeTab = 'kasus';
         }
 
         $cases = BkCase::query()
@@ -131,7 +131,7 @@ class StudentController extends Controller
         $achievements = Achievement::query()
             ->accessibleTo($user)
             ->where('student_id', $student->getKey())
-            ->with(['type', 'level', 'verificationStatus', 'recorder', 'reviewer'])
+            ->with(['type', 'level', 'recorder'])
             ->latest('achievement_date')
             ->get();
 
@@ -150,8 +150,10 @@ class StudentController extends Controller
             ),
             'currentMembership' => $currentMembership,
             'stats' => [
-                'active_cases' => $cases->whereNull('closed_at')->count(),
+                'cases' => $cases->count(),
+                'consultations' => $consultations->count(),
                 'points' => $officialEtatibTotal ?? $etatibRecords->sum('points'),
+                'last_synced_at' => $etatibRecords->max('synced_at'),
                 'achievements' => $achievements->count(),
             ],
             'recentActivities' => $this->recentActivities($cases, $consultations, $etatibRecords, $achievements),
@@ -159,7 +161,6 @@ class StudentController extends Controller
             'canViewConsultations' => $user->can('viewAny', Consultation::class),
             'canCreateConsultation' => $canUseProfessionalActions && $user->can('create', Consultation::class),
             'canCreateCase' => $canUseProfessionalActions && $user->can('create', BkCase::class),
-            'canCreateAchievement' => $canUseProfessionalActions && $user->can('create', Achievement::class),
             'departure' => $departure,
             'canCreateDeparture' => ($departure === null || $departure->status === StudentDeparture::STATUS_CANCELLED)
                 && $user->can('create', [StudentDeparture::class, $student]),
