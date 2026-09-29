@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\AchievementService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -33,11 +34,6 @@ class AchievementController extends Controller
                 ->orWhereHas('student', fn (Builder $students): Builder => $students
                     ->where('name', 'like', '%'.$search.'%')->orWhere('nisn', 'like', '%'.$search.'%'));
         }));
-        $query->when($filters['student_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('student_id', $id));
-        $query->when($filters['type_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('type_id', $id));
-        $query->when($filters['level_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('level_id', $id));
-        $query->when($filters['date_start'] ?? null, fn (Builder $items, string $date): Builder => $items->whereDate('achievement_date', '>=', $date));
-        $query->when($filters['date_end'] ?? null, fn (Builder $items, string $date): Builder => $items->whereDate('achievement_date', '<=', $date));
         $query->when($filters['classroom_id'] ?? null, fn (Builder $items, int $id): Builder => $items->whereHas('student.classMemberships', fn (Builder $memberships): Builder => $memberships
             ->where('classroom_id', $id)));
 
@@ -54,7 +50,7 @@ class AchievementController extends Controller
         $user = $request->user();
         abort_unless($user->can('create', Achievement::class), 403);
 
-        return $this->form($user, null, $request);
+        return view('pages.achievements.create', $this->formData(null, $request));
     }
 
     public function store(StoreAchievementRequest $request, AchievementService $service): RedirectResponse
@@ -73,7 +69,7 @@ class AchievementController extends Controller
         $achievement->load(['student.classMemberships.classroom.academicYear', 'type', 'level', 'recorder']);
         abort_unless($user->can('view', $achievement), 403);
 
-        return view('pages.achievements.show', [
+        return view($request->boolean('modal') ? 'pages.achievements._detail-modal' : 'pages.achievements.show', [
             'achievement' => $achievement,
             'canUpdateAchievement' => $user->can('update', $achievement),
         ]);
@@ -91,21 +87,29 @@ class AchievementController extends Controller
         ]);
         abort_unless($user->can('update', $achievement), 403);
 
-        return $this->form($user, $achievement, $request);
+        return view($request->boolean('modal') ? 'pages.achievements._edit-modal' : 'pages.achievements.create', $this->formData($achievement, $request));
     }
 
-    public function update(UpdateAchievementRequest $request, Achievement $achievement, AchievementService $service): RedirectResponse
+    public function update(UpdateAchievementRequest $request, Achievement $achievement, AchievementService $service): RedirectResponse|JsonResponse
     {
         /** @var User $actor */
         $actor = $request->user();
         $service->update($achievement, $request->validated(), $actor);
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Prestasi berhasil diperbarui.',
+                'redirect' => route('achievements.index'),
+            ]);
+        }
+
         return redirect()->route('achievements.show', $achievement)->with('success', 'Prestasi berhasil diperbarui.');
     }
 
-    private function form(User $user, ?Achievement $achievement, Request $request): View
+    /** @return array<string, mixed> */
+    private function formData(?Achievement $achievement, Request $request): array
     {
-        return view('pages.achievements.create', [
+        return [
             'achievement' => $achievement,
             'isEdit' => $achievement !== null,
             'students' => Student::query()->availableForService()
@@ -117,14 +121,13 @@ class AchievementController extends Controller
             'types' => ReferenceValue::query()->active()->forCategory('achievement_type')->orderBy('sort_order')->get(),
             'levels' => ReferenceValue::query()->active()->forCategory('achievement_level')->orderBy('sort_order')->get(),
             'preselectedStudentId' => $request->integer('student_id') ?: null,
-        ]);
+        ];
     }
 
     /** @return array<string, mixed> */
     private function options(User $user): array
     {
         return [
-            'students' => Student::query()->active()->when($user->hasRole('guru_bk'), fn (Builder $students): Builder => $students->professionallyAccessibleTo($user))->orderBy('name')->get(),
             'classrooms' => Classroom::query()->active()->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->when($user->hasRole('guru_bk'), fn (Builder $accessible): Builder => $accessible->professionallyAccessibleTo($user)))->orderBy('name')->get(),
             'types' => ReferenceValue::query()->active()->forCategory('achievement_type')->orderBy('sort_order')->get(),
             'levels' => ReferenceValue::query()->active()->forCategory('achievement_level')->orderBy('sort_order')->get(),
