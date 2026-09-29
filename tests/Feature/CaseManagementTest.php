@@ -119,6 +119,26 @@ class CaseManagementTest extends TestCase
         $this->assertNull($case->temporary_student_id);
     }
 
+    public function test_non_etatib_lookup_selection_keeps_selected_student_when_nisn_changes_before_submit(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Terpilih', '0044444444');
+        $staleNisn = $student->nisn;
+        $student->update(['nisn' => '0055555555']);
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload(),
+            'student_id' => $student->id,
+            'temporary_nisn' => $staleNisn,
+            'temporary_name' => $student->name,
+            'temporary_classroom_id' => $student->classMemberships()->firstOrFail()->classroom_id,
+        ])->assertRedirect(route('cases.index', ['tab' => 'kasus']));
+
+        $case = BkCase::query()->firstOrFail();
+        $this->assertSame($student->id, $case->student_id);
+        $this->assertNull($case->temporary_student_id);
+    }
+
     public function test_manual_unknown_nisn_creates_temporary_identity(): void
     {
         $teacher = $this->userWithRole('guru_bk');
