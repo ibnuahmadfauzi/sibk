@@ -43,10 +43,10 @@ class ConsultationManagementTest extends TestCase
             ->assertDontSee('<h2 class="h5 fw-bold text-dark mb-0">Informasi Layanan</h2>', false)
             ->assertSee('step-badge rounded-circle bg-primary', false)
             ->assertSee('id="student_lookup_results"', false)
-            ->assertSee('id="student_name_display"', false)
-            ->assertSee('id="student_classroom_display"', false)
-            ->assertSee('id="student_manual_toggle"', false)
-            ->assertSee('id="student_manual_fields"', false)
+            ->assertSee('id="student_nisn"', false)
+            ->assertSee('id="student_name"', false)
+            ->assertSee('id="manual_classroom_select"', false)
+            ->assertSee('id="student_lookup_hint"', false)
             ->assertSee('name="student_id"', false)
             ->assertSee('name="temporary_nisn"', false)
             ->assertSee('name="temporary_name"', false)
@@ -67,13 +67,34 @@ class ConsultationManagementTest extends TestCase
         $response->assertSessionHasNoErrors();
 
         $consultation = Consultation::query()->firstOrFail();
-        $response->assertRedirect(route('consultations.show', $consultation));
+        $response->assertRedirect(route('cases.index', ['tab' => 'konsultasi']));
+        $response->assertSessionHas('success', 'Konsultasi berhasil dicatat.');
         $this->assertSame($student->id, $consultation->student_id);
         $this->assertNull($consultation->temporary_student_id);
         $this->assertSame('2026-09-17', $consultation->session_date->toDateString());
         $this->assertSame('Kesulitan beradaptasi di kelas.', $consultation->problem);
         $this->assertSame('Asesmen dan konseling individual.', $consultation->handling);
         $this->assertSame('Murid menyepakati langkah perbaikan.', $consultation->result);
+    }
+
+    public function test_consultation_lookup_selection_accepts_autofilled_identity_fields(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $classroomId = $student->classMemberships()->firstOrFail()->classroom_id;
+
+        $response = $this->actingAs($teacher)->post(route('consultations.store'), [
+            ...$this->payload(),
+            'student_id' => $student->id,
+            'temporary_nisn' => $student->nisn,
+            'temporary_name' => $student->name,
+            'temporary_classroom_id' => $classroomId,
+            'session_date' => '2026-09-17',
+        ]);
+        $response->assertSessionHasNoErrors();
+
+        $consultation = Consultation::query()->firstOrFail();
+        $this->assertSame($student->id, $consultation->student_id);
+        $this->assertNull($consultation->temporary_student_id);
     }
 
     public function test_exact_master_nisn_is_not_duplicated_as_temporary_identity(): void
@@ -91,7 +112,7 @@ class ConsultationManagementTest extends TestCase
         $this->assertSame('Murid Scope', $student->refresh()->name);
     }
 
-    public function test_create_form_restores_manual_student_mode_after_validation_error(): void
+    public function test_create_form_restores_temporary_student_input_after_validation_error(): void
     {
         [$teacher] = $this->teacherAndScopedStudent();
         $classroomId = TeacherAssignment::query()->where('user_id', $teacher->id)->value('classroom_id');
@@ -109,8 +130,6 @@ class ConsultationManagementTest extends TestCase
 
         $this->get(route('consultations.create'))
             ->assertOk()
-            ->assertSee('data-manual-mode="true"', false)
-            ->assertSee('id="student_manual_fields"', false)
             ->assertSee('value="0098765432"', false)
             ->assertSee('value="Murid Manual"', false)
             ->assertSee('value="'.$classroomId.'" selected', false);

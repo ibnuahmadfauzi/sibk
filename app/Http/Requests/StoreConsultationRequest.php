@@ -15,6 +15,29 @@ class StoreConsultationRequest extends FormRequest
         return $this->user()?->can('create', Consultation::class) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('student_id')) {
+            $this->merge([
+                'temporary_student_id' => null,
+                'temporary_nisn' => null,
+                'temporary_name' => null,
+                'temporary_classroom_id' => null,
+            ]);
+        } elseif ($this->filled('temporary_student_id')) {
+            $this->merge([
+                'student_id' => null,
+                'temporary_nisn' => null,
+                'temporary_name' => null,
+            ]);
+        } elseif ($this->filled('temporary_nisn')) {
+            $this->merge([
+                'student_id' => null,
+                'temporary_student_id' => null,
+            ]);
+        }
+    }
+
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {

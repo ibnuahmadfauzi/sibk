@@ -5,7 +5,6 @@
 @section('body')
     @php
         $userDisplayName = auth()->user()?->name ?? 'Guru BK';
-        $selectedStudent = $isEdit ? null : $students->firstWhere('id', old('student_id', $preselectedStudentId));
         $studentLookupData = $isEdit ? [] : $students->map(function ($student) {
             $classroom = $student->classMemberships->first()?->classroom;
 
@@ -14,6 +13,7 @@
                 'nisn' => $student->nisn,
                 'name' => $student->name,
                 'classroom' => $classroom?->name ?? 'Rombel belum tercatat',
+                'classroom_id' => $student->classMemberships->first()?->classroom_id,
             ];
         })->values();
     @endphp
@@ -68,124 +68,109 @@
         <script>
             document.addEventListener('DOMContentLoaded', () => {
                 const students = @json($studentLookupData);
-                const form = document.getElementById('consultation-create-form');
-                const lookup = document.getElementById('student_lookup');
-                const studentId = document.getElementById('student_id');
-                const studentName = document.getElementById('student_name_display');
-                const studentClassroom = document.getElementById('student_classroom_display');
-                const results = document.getElementById('student_lookup_results');
-                const manualToggle = document.getElementById('student_manual_toggle');
-                const manualFields = document.getElementById('student_manual_fields');
-                const temporaryNisn = document.getElementById('temporary_nisn');
-                const temporaryName = document.getElementById('temporary_name');
-                const temporaryClassroom = document.getElementById('temporary_classroom_id');
+                const hiddenStudentId = document.getElementById('hidden_student_id');
+                const studentNisnInput = document.getElementById('student_nisn');
+                const studentNameInput = document.getElementById('student_name');
+                const manualClassroomSelect = document.getElementById('manual_classroom_select');
+                const studentLookupResults = document.getElementById('student_lookup_results');
 
-                const hideResults = () => {
-                    results?.classList.add('d-none');
-                    lookup?.setAttribute('aria-expanded', 'false');
-                };
+                function hideStudentLookup() {
+                    if (!studentLookupResults) return;
 
-                const selectStudent = (student) => {
-                    studentId.value = student.id;
-                    lookup.value = `${student.nisn} — ${student.name}`;
-                    studentName.value = student.name;
-                    studentClassroom.value = student.classroom;
-                    temporaryNisn.value = '';
-                    temporaryName.value = '';
-                    temporaryClassroom.value = '';
-                    hideResults();
-                };
+                    studentLookupResults.classList.add('d-none');
+                    studentLookupResults.innerHTML = '';
+                    studentNisnInput?.setAttribute('aria-expanded', 'false');
+                    studentNameInput?.setAttribute('aria-expanded', 'false');
+                }
 
-                const renderResults = () => {
-                    if (!results || lookup.disabled) return hideResults();
-                    const term = lookup.value.trim().toLocaleLowerCase('id');
-                    results.replaceChildren();
-                    if (!term) return hideResults();
+                function selectStudent(student) {
+                    if (hiddenStudentId) hiddenStudentId.value = student.id;
+                    if (studentNisnInput) studentNisnInput.value = student.nisn || '';
+                    if (studentNameInput) studentNameInput.value = student.name || '';
+                    if (manualClassroomSelect) manualClassroomSelect.value = student.classroom_id || '';
+                    hideStudentLookup();
+                }
 
-                    const matches = students.filter((student) =>
-                        String(student.nisn).toLocaleLowerCase('id').includes(term)
-                        || student.name.toLocaleLowerCase('id').includes(term)
-                    ).slice(0, 6);
+                function escapeHtml(str) {
+                    if (!str) return '';
+                    return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+                }
+
+                function renderStudentLookup(query) {
+                    if (!studentLookupResults) {
+                        hideStudentLookup();
+                        return;
+                    }
+
+                    const term = String(query || '').trim().toLowerCase();
+                    if (!term) {
+                        hideStudentLookup();
+                        return;
+                    }
+
+                    const matches = students.filter(student =>
+                        String(student.nisn || '').toLowerCase().includes(term)
+                        || String(student.name || '').toLowerCase().includes(term)
+                    ).slice(0, 8);
+
+                    studentLookupResults.innerHTML = '';
+                    studentLookupResults.classList.remove('d-none');
+                    studentNisnInput?.setAttribute('aria-expanded', 'true');
+                    studentNameInput?.setAttribute('aria-expanded', 'true');
 
                     if (matches.length === 0) {
-                        const empty = document.createElement('div');
-                        empty.className = 'px-3 py-2 small text-secondary bg-white';
-                        empty.textContent = 'Murid tidak ditemukan. Gunakan input manual.';
-                        results.appendChild(empty);
-                    } else {
-                        matches.forEach((student) => {
-                            const option = document.createElement('button');
-                            const nisn = document.createElement('strong');
-                            const name = document.createElement('span');
-                            const classroom = document.createElement('span');
-                            option.type = 'button';
-                            option.className = 'list-group-item list-group-item-action px-3 py-2 text-start';
-                            option.setAttribute('role', 'option');
-                            nisn.className = 'd-block small text-primary';
-                            nisn.textContent = student.nisn;
-                            name.className = 'd-block fw-semibold text-dark';
-                            name.textContent = student.name;
-                            classroom.className = 'd-block small text-secondary';
-                            classroom.textContent = student.classroom;
-                            option.append(nisn, name, classroom);
-                            option.addEventListener('click', () => selectStudent(student));
-                            results.appendChild(option);
-                        });
+                        studentLookupResults.innerHTML = '<div class="px-3 py-2 small text-secondary">Murid tidak ditemukan. Silakan lanjutkan isi data secara manual.</div>';
+                        return;
                     }
-                    results.classList.remove('d-none');
-                    lookup.setAttribute('aria-expanded', 'true');
-                };
 
-                const setManualMode = (manual, clear = true) => {
-                    form.dataset.manualMode = manual ? 'true' : 'false';
-                    manualFields.classList.toggle('d-none', !manual);
-                    [temporaryNisn, temporaryName, temporaryClassroom].forEach((field) => { field.disabled = !manual; });
-                    lookup.disabled = manual;
-                    manualToggle.textContent = manual ? 'Kembali cari murid lokal' : 'Murid belum ada? Isi manual';
-                    manualToggle.setAttribute('aria-expanded', manual ? 'true' : 'false');
-                    if (clear) {
-                        studentId.value = '';
-                        lookup.value = '';
-                        studentName.value = '';
-                        studentClassroom.value = '';
-                        if (!manual) {
-                            temporaryNisn.value = '';
-                            temporaryName.value = '';
-                            temporaryClassroom.value = '';
+                    matches.forEach(student => {
+                        const option = document.createElement('button');
+                        option.type = 'button';
+                        option.className = 'list-group-item list-group-item-action px-3 py-2 text-start';
+                        option.setAttribute('role', 'option');
+                        option.innerHTML = `<span class="d-block fw-semibold text-dark">${escapeHtml(student.name)}</span><span class="small text-secondary">NISN: ${escapeHtml(student.nisn)} &bull; Rombel: ${escapeHtml(student.classroom)}</span>`;
+                        option.addEventListener('click', () => selectStudent(student));
+                        studentLookupResults.appendChild(option);
+                    });
+                }
+
+                [studentNisnInput, studentNameInput].forEach(input => {
+                    input?.addEventListener('input', () => {
+                        if (hiddenStudentId) hiddenStudentId.value = '';
+                        renderStudentLookup(input.value);
+                    });
+                    input?.addEventListener('focus', () => renderStudentLookup(input.value));
+                    input?.addEventListener('keydown', event => {
+                        if (event.key === 'Escape') hideStudentLookup();
+                        if (event.key === 'ArrowDown') {
+                            const firstOption = studentLookupResults?.querySelector('button');
+                            if (firstOption) {
+                                event.preventDefault();
+                                firstOption.focus();
+                            }
                         }
-                    }
-                    hideResults();
-                    (manual ? temporaryNisn : lookup).focus();
-                };
-
-                lookup?.addEventListener('input', () => {
-                    studentId.value = '';
-                    studentName.value = '';
-                    studentClassroom.value = '';
-                    renderResults();
-                });
-                lookup?.addEventListener('focus', renderResults);
-                lookup?.addEventListener('keydown', (event) => {
-                    if (event.key === 'Escape') hideResults();
-                    if (event.key === 'ArrowDown') {
-                        const firstResult = results?.querySelector('button');
-                        if (firstResult) {
-                            event.preventDefault();
-                            firstResult.focus();
-                        }
-                    }
-                });
-                manualToggle?.addEventListener('click', () => setManualMode(form.dataset.manualMode !== 'true'));
-                document.addEventListener('click', (event) => {
-                    if (!results?.contains(event.target) && event.target !== lookup) hideResults();
+                    });
                 });
 
-                window.setTimeout(() => {
-                    const selected = students.find((student) => String(student.id) === String(studentId.value));
-                    const manual = !selected && Boolean(temporaryNisn.value || temporaryName.value || temporaryClassroom.value);
-                    if (selected) selectStudent(selected);
-                    setManualMode(manual, false);
-                }, 0);
+                document.addEventListener('click', event => {
+                    if (!studentLookupResults?.contains(event.target)
+                        && event.target !== studentNisnInput
+                        && event.target !== studentNameInput) {
+                        hideStudentLookup();
+                    }
+                });
+
+                if (hiddenStudentId && hiddenStudentId.value) {
+                    const selected = students.find(s => String(s.id) === String(hiddenStudentId.value));
+                    if (selected && (!studentNisnInput?.value || !studentNameInput?.value)) {
+                        selectStudent(selected);
+                    }
+                }
             });
         </script>
     @endunless
