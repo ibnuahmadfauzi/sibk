@@ -59,8 +59,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/cases', [CaseController::class, 'store'])->name('cases.store');
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
+        Route::get('/withdrawals/create', [WithdrawalProgressController::class, 'create'])->name('withdrawals.create');
         Route::post('/withdrawals', [WithdrawalProgressController::class, 'store'])->name('withdrawals.store');
-        Route::patch('/withdrawals/{withdrawal}/progress', [WithdrawalProgressController::class, 'updateProgress'])->name('withdrawals.progress.update');
+        Route::post('/withdrawals/{withdrawal}/follow-ups', [WithdrawalProgressController::class, 'storeFollowUp'])->name('withdrawals.follow-ups.store');
 
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
         Route::get('/students/show', [StudentController::class, 'legacy'])->name('students.legacy');

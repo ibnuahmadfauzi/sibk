@@ -13,6 +13,7 @@ use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
+use App\Models\WithdrawalProgressFollowUp;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -28,33 +29,97 @@ final class WithdrawalProgressTest extends TestCase
         $this->travelTo('2026-09-27 09:00:00');
     }
 
-    public function test_teacher_records_one_note_and_changes_only_progress(): void
+    public function test_create_page_records_fixed_initial_progress_and_history(): void
     {
         [$teacher, $student, $classroom] = $this->assignedStudent();
-        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student))
-            ->assertRedirect(route('cases.index', ['tab' => 'pengunduran-diri']));
+
+        $this->actingAs($teacher)->get(route('withdrawals.create'))
+            ->assertOk()
+            ->assertSee('data-withdrawal-create-page', false)
+            ->assertSee('id="withdrawal-student-lookup"', false)
+            ->assertSee('role="listbox"', false)
+            ->assertSeeInOrder(['Murid dan Tanggal', 'Catatan Pengunduran Diri', 'Progres awal'])
+            ->assertSee('name="student_id"', false)
+            ->assertSee('name="recorded_on"', false)
+            ->assertSee('name="reason"', false)
+            ->assertSee('name="note"', false)
+            ->assertDontSee('name="progress"', false);
+
+        $this->post(route('withdrawals.store'), [
+            ...$this->payload($student),
+            'progress' => WithdrawalProgress::PROGRESS_AT_TU,
+        ])->assertRedirect(route('cases.index', ['tab' => 'pengunduran-diri']));
 
         $withdrawal = WithdrawalProgress::query()->firstOrFail();
         $this->assertSame($teacher->id, $withdrawal->teacher_id);
         $this->assertSame($classroom->id, $withdrawal->classroom_id);
-        $this->assertSame('Permintaan dari keluarga.', $withdrawal->reason);
         $this->assertSame(WithdrawalProgress::PROGRESS_IN_PROGRESS, $withdrawal->progress);
-
-        $this->patch(route('withdrawals.progress.update', $withdrawal), [
-            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
-            'reason' => 'Tidak boleh diubah melalui dropdown',
-        ])->assertRedirect();
-        $this->assertSame(WithdrawalProgress::PROGRESS_AT_BK, $withdrawal->refresh()->progress);
-        $this->assertSame('Permintaan dari keluarga.', $withdrawal->reason);
-        $this->assertSame(2, AuditLog::query()->where('auditable_type', $withdrawal->getMorphClass())->count());
-        $this->assertDatabaseCount('student_departures', 0);
+        $this->assertDatabaseHas('withdrawal_progress_follow_ups', [
+            'withdrawal_progress_id' => $withdrawal->id,
+            'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
+            'created_by' => $teacher->id,
+            'notes' => null,
+        ]);
+        $this->assertDatabaseCount('withdrawal_progress_follow_ups', 1);
+        $this->assertSame('2026-09-26', WithdrawalProgressFollowUp::query()->firstOrFail()->follow_up_date->toDateString());
 
         $this->post(route('withdrawals.store'), $this->payload($student))
             ->assertSessionHasErrors('student_id');
         $this->assertDatabaseCount('withdrawal_progresses', 1);
     }
 
-    public function test_unassigned_teacher_and_other_roles_cannot_mutate(): void
+    public function test_follow_ups_are_append_only_and_latest_date_controls_current_progress(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
+        $withdrawal = WithdrawalProgress::query()->firstOrFail();
+
+        $this->postJson(route('withdrawals.follow-ups.store', $withdrawal), [
+            'progress' => WithdrawalProgress::PROGRESS_AT_TU,
+            'follow_up_date' => '2026-09-27',
+            'notes' => 'Berkas diterima TU.',
+        ])->assertOk()
+            ->assertJsonPath('data.current_progress', WithdrawalProgress::PROGRESS_AT_TU)
+            ->assertJsonCount(2, 'data.follow_ups');
+
+        $this->postJson(route('withdrawals.follow-ups.store', $withdrawal), [
+            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
+            'follow_up_date' => '2026-09-26',
+            'notes' => 'Catatan susulan untuk hari sebelumnya.',
+        ])->assertOk()->assertJsonPath('data.current_progress', WithdrawalProgress::PROGRESS_AT_TU);
+
+        $this->postJson(route('withdrawals.follow-ups.store', $withdrawal), [
+            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
+            'follow_up_date' => '2026-09-27',
+            'notes' => null,
+        ])->assertOk()->assertJsonPath('data.current_progress', WithdrawalProgress::PROGRESS_AT_BK);
+
+        $this->assertSame(WithdrawalProgress::PROGRESS_AT_BK, $withdrawal->refresh()->progress);
+        $this->assertDatabaseCount('withdrawal_progress_follow_ups', 4);
+        $this->assertSame(3, AuditLog::query()->where('action', 'withdrawal_progress.follow_up_added')->count());
+        $this->assertDatabaseCount('student_departures', 0);
+    }
+
+    public function test_follow_up_validates_progress_and_date_range(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
+        $withdrawal = WithdrawalProgress::query()->firstOrFail();
+
+        $this->postJson(route('withdrawals.follow-ups.store', $withdrawal), [
+            'progress' => 'resmi_keluar',
+            'follow_up_date' => '2026-09-25',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['progress', 'follow_up_date']);
+
+        $this->postJson(route('withdrawals.follow-ups.store', $withdrawal), [
+            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
+            'follow_up_date' => '2026-09-28',
+        ])->assertUnprocessable()->assertJsonValidationErrors('follow_up_date');
+
+        $this->assertDatabaseCount('withdrawal_progress_follow_ups', 1);
+    }
+
+    public function test_authorization_keeps_coordinator_read_only_and_blocks_other_roles(): void
     {
         [$teacher, $student] = $this->assignedStudent();
         $otherTeacher = $this->userWithRole('guru_bk');
@@ -62,66 +127,73 @@ final class WithdrawalProgressTest extends TestCase
         $waka = $this->userWithRole('waka_kesiswaan');
         $admin = $this->userWithRole('admin_it');
 
-        $this->actingAs($otherTeacher)->post(route('withdrawals.store'), $this->payload($student))
-            ->assertSessionHasErrors('student_id');
-        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student))
-            ->assertRedirect();
+        $this->actingAs($otherTeacher)->get(route('withdrawals.create'))->assertOk();
+        $this->post(route('withdrawals.store'), $this->payload($student))->assertSessionHasErrors('student_id');
+        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
         $withdrawal = WithdrawalProgress::query()->firstOrFail();
-        $otherTeacher->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
 
         foreach ([$otherTeacher, $coordinator, $waka, $admin] as $user) {
-            $this->actingAs($user)->patch(route('withdrawals.progress.update', $withdrawal), [
+            $this->actingAs($user)->post(route('withdrawals.follow-ups.store', $withdrawal), [
                 'progress' => WithdrawalProgress::PROGRESS_AT_TU,
+                'follow_up_date' => '2026-09-27',
             ])->assertForbidden();
         }
         foreach ([$coordinator, $waka, $admin] as $user) {
-            $this->actingAs($user)->post(route('withdrawals.store'), $this->payload($student))
-                ->assertForbidden();
+            $this->actingAs($user)->get(route('withdrawals.create'))->assertForbidden();
+            $this->post(route('withdrawals.store'), $this->payload($student))->assertForbidden();
         }
-        $this->assertSame(WithdrawalProgress::PROGRESS_IN_PROGRESS, $withdrawal->refresh()->progress);
+
         $this->assertTrue($coordinator->can('view', $withdrawal));
         $this->assertFalse($waka->can('view', $withdrawal));
         $this->assertFalse($admin->can('view', $withdrawal));
+        $this->assertDatabaseCount('withdrawal_progress_follow_ups', 1);
     }
 
-    public function test_invalid_progress_and_future_date_are_rejected(): void
+    public function test_index_uses_case_style_follow_up_and_responsive_local_detail(): void
     {
         [$teacher, $student] = $this->assignedStudent();
-        $this->actingAs($teacher)->post(route('withdrawals.store'), [
-            ...$this->payload($student), 'recorded_on' => '2026-09-28', 'progress' => 'resmi_keluar',
-        ])->assertSessionHasErrors(['recorded_on', 'progress']);
-        $this->assertDatabaseCount('withdrawal_progresses', 0);
-    }
-
-    public function test_tab_filters_records_and_keeps_reason_inside_detail_for_bk_only(): void
-    {
-        [$teacher, $student] = $this->assignedStudent();
+        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
+        $withdrawal = WithdrawalProgress::query()->firstOrFail();
         $url = route('cases.index', ['tab' => 'pengunduran-diri']);
-        $this->actingAs($teacher)->get($url)->assertOk()
-            ->assertSee('id="withdrawal-student-lookup"', false)
-            ->assertSee('list="withdrawal-student-options"', false)
-            ->assertSee('name="student_id"', false)
-            ->assertSee('Simpan')
-            ->assertDontSee('id="modal-tambah-tindak-lanjut"', false);
-        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student))->assertRedirect();
 
         $this->get($url)->assertOk()
-            ->assertSee('Catat Pengunduran Diri')
-            ->assertSee('Nama Guru')->assertSee('Nama Siswa')->assertSee('Progres Penanganan')
-            ->assertSee('data-withdrawal-progress', false)->assertSee('data-report-detail-toggle', false)
-            ->assertSee($student->name)
-            ->assertSee('Alasan pengunduran diri')
-            ->assertSee('Permintaan dari keluarga.');
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Guru BK', 'Progres', 'Tindak Lanjut', 'Aksi'])
+            ->assertSee('href="'.route('withdrawals.create').'"', false)
+            ->assertSee('data-withdrawal-popover-trigger', false)
+            ->assertSee('data-withdrawal-follow-up-open', false)
+            ->assertSee('data-store-url="'.route('withdrawals.follow-ups.store', $withdrawal).'"', false)
+            ->assertSee('data-withdrawal-detail', false)
+            ->assertSee('modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable', false)
+            ->assertSee('data-detail-history', false)
+            ->assertSee('Riwayat Tindak Lanjut')
+            ->assertSee('data-reason="Permintaan dari keluarga."', false)
+            ->assertSee($student->nisn)
+            ->assertDontSee('data-withdrawal-progress', false)
+            ->assertDontSee('id="withdrawal-create-modal"', false)
+            ->assertDontSee('data-report-detail-toggle', false);
+
         $this->get($url.'&search=Tidak%20Ada')->assertOk()->assertDontSee('Permintaan dari keluarga.');
-        $this->get($url.'&progress='.WithdrawalProgress::PROGRESS_AT_TU)->assertOk()
-            ->assertDontSee('Permintaan dari keluarga.');
+        $this->get($url.'&progress='.WithdrawalProgress::PROGRESS_AT_TU)->assertOk()->assertDontSee('Permintaan dari keluarga.');
 
         $coordinator = $this->userWithRole('koordinator_bk');
-        $this->actingAs($coordinator)->get($url)->assertOk()->assertSee($student->name)
-            ->assertDontSee('name="student_id"', false);
+        $this->actingAs($coordinator)->get($url)->assertOk()
+            ->assertSee($student->name)
+            ->assertSee('data-withdrawal-popover-trigger', false)
+            ->assertDontSee('data-withdrawal-follow-up-open', false)
+            ->assertDontSee(route('withdrawals.create'));
         foreach (['waka_kesiswaan', 'admin_it'] as $role) {
             $this->actingAs($this->userWithRole($role))->get($url)->assertForbidden();
         }
+    }
+
+    public function test_create_page_shows_empty_state_when_every_candidate_has_a_note(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
+
+        $this->get(route('withdrawals.create'))->assertOk()
+            ->assertSee('Semua murid sudah memiliki catatan')
+            ->assertDontSee('data-withdrawal-create-form', false);
     }
 
     public function test_backdated_note_uses_classroom_from_recorded_year(): void
@@ -148,6 +220,7 @@ final class WithdrawalProgressTest extends TestCase
         $withdrawal = WithdrawalProgress::query()->firstOrFail();
         $this->assertSame($pastClassroom->id, $withdrawal->classroom_id);
         $this->assertNotSame($currentClassroom->id, $withdrawal->classroom_id);
+        $this->assertSame('2026-06-15', WithdrawalProgressFollowUp::query()->firstOrFail()->follow_up_date->toDateString());
     }
 
     /** @return array{User, Student, Classroom} */
@@ -177,7 +250,6 @@ final class WithdrawalProgressTest extends TestCase
         return [
             'student_id' => $student->id,
             'recorded_on' => '2026-09-26',
-            'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
             'note' => 'Pertemuan dengan keluarga.',
             'reason' => 'Permintaan dari keluarga.',
         ];
@@ -187,7 +259,6 @@ final class WithdrawalProgressTest extends TestCase
     {
         $user = User::factory()->create();
         $user->roles()->attach(Role::query()->where('slug', $slug)->firstOrFail());
-
         return $user;
     }
 }

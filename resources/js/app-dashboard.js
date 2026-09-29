@@ -10,12 +10,14 @@ import { initEtatibApiPreview } from './etatib-api-preview';
 import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
+import { initWithdrawalProgress } from './withdrawal-progress';
 
 initFormDrafts();
 initServiceRecords();
 initApiSiswaPreview();
 initEtatibApiPreview();
 initEtatibIdentityMapping();
+initWithdrawalProgress();
 
 document.querySelectorAll('[data-notification-toast]').forEach((toast) => {
     new Toast(toast, { delay: toast.classList.contains('sibk-notification-toast--error') ? 8000 : 4500 }).show();
@@ -107,15 +109,6 @@ document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
         );
     });
 });
-
-document.querySelectorAll('[data-withdrawal-progress]').forEach((select) => {
-    select.addEventListener('change', () => {
-        select.form.requestSubmit();
-    });
-});
-
-const withdrawalCreateModal = document.querySelector('[data-withdrawal-create-modal][data-show-on-error]');
-if (withdrawalCreateModal) Modal.getOrCreateInstance(withdrawalCreateModal).show();
 
 document.querySelectorAll('[data-sync-issue-toggle]').forEach((button) => {
     const subject = button.dataset.syncIssueName;

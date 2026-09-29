@@ -444,7 +444,7 @@ class CaseController extends Controller
     private function withdrawalIndex(Request $request, User $user): View
     {
         $query = WithdrawalProgress::query()->accessibleTo($user)
-            ->with(['student:id,name', 'teacher:id,name', 'classroom:id,name']);
+            ->with(['student:id,nisn,name', 'teacher:id,name', 'classroom:id,name', 'followUps.creator:id,name']);
         $search = $request->string('search')->trim()->toString();
         $query->when($search !== '', fn ($records) => $records
             ->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%')));
@@ -452,18 +452,10 @@ class CaseController extends Controller
         $query->when(in_array($progress, array_keys(WithdrawalProgress::labels()), true),
             fn ($records) => $records->where('progress', $progress));
 
-        $canCreate = $user->can('create', WithdrawalProgress::class);
-        $students = $canCreate ? Student::query()
-            ->availableForService()
-            ->forActiveTeacherAssignment($user)
-            ->whereNotIn('id', WithdrawalProgress::query()->select('student_id'))
-            ->orderBy('name')->get() : collect();
-
         return view('pages.cases.index', [
             'activeTab' => 'pengunduran-diri',
             'withdrawals' => $query->orderByDesc('recorded_on')->orderByDesc('id')->paginate(20)->withQueryString(),
-            'withdrawalStudents' => $students,
-            'canCreateWithdrawal' => $canCreate,
+            'canCreateWithdrawal' => $user->can('create', WithdrawalProgress::class),
         ]);
     }
 }

@@ -16,7 +16,7 @@
                 @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
                 @can('viewAny', \App\Models\WithdrawalProgress::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'pengunduran-diri' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">Pengunduran Diri</a></li>@endcan
             </ul>
-            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawal-create-modal" @disabled($withdrawalStudents->isEmpty())>Catat Pengunduran Diri</button>@endif
+            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<a href="{{ route('withdrawals.create') }}" class="btn btn-primary">Catat Pengunduran Diri</a>@endif
         </div>
 
         @if($activeTab === 'kasus')
@@ -540,21 +540,6 @@
 @section('extra-javascript')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const withdrawalLookup = document.getElementById('withdrawal-student-lookup');
-    if (withdrawalLookup) {
-        const studentId = document.getElementById('withdrawal-student-id');
-        const options = [...document.querySelectorAll('#withdrawal-student-options option')];
-        withdrawalLookup.addEventListener('input', () => {
-            studentId.value = options.find((option) => option.value === withdrawalLookup.value)?.dataset.id ?? '';
-            withdrawalLookup.setCustomValidity('');
-        });
-        withdrawalLookup.form.addEventListener('submit', (event) => {
-            if (studentId.value) return;
-            event.preventDefault();
-            withdrawalLookup.setCustomValidity('Pilih murid dari saran yang tersedia.');
-            withdrawalLookup.reportValidity();
-        });
-    }
     // ── Popover Tindak Lanjut (posisi fixed, timbul di atas tabel) ──────────
     const modalElement = document.getElementById('modal-tambah-tindak-lanjut');
     let activePopover = null;  // popover element yang sedang terbuka

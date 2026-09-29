@@ -178,9 +178,9 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 
 ### Progres Penanganan Pengunduran Diri (MD-19)
 - **Daftar:** `GET /cases?tab=pengunduran-diri`, filter `search` (nama murid) dan `progress`.
-- **Endpoint:** `POST /withdrawals` dan `PATCH /withdrawals/{withdrawal}/progress`.
-- **Input catat:** `student_id`, `recorded_on`, `progress` (`in_progress|at_bk|at_tu`), `reason` wajib; `note` opsional. Tanggal tidak boleh di masa depan.
-- **Input ubah:** `progress` saja.
+- **Endpoint:** `GET /withdrawals/create`, `POST /withdrawals`, dan `POST /withdrawals/{withdrawal}/follow-ups`.
+- **Input catat:** `student_id`, `recorded_on`, dan `reason` wajib; `note` opsional. Tanggal tidak boleh di masa depan dan progres awal selalu `in_progress` di server.
+- **Input tindak lanjut:** `progress` (`in_progress|at_bk|at_tu`) dan `follow_up_date` wajib; `notes` opsional. Tanggal berada di antara tanggal catatan awal dan hari berjalan. Respons JSON mengembalikan progres terkini serta seluruh histori untuk pembaruan antarmuka.
 - **Authorization dan perilaku:** mengikuti MD-19.
 
 ---

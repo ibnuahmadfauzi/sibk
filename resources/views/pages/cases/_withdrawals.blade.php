@@ -1,67 +1,89 @@
+@php
+    $progressLabels = \App\Models\WithdrawalProgress::labels();
+    $progressTone = fn (string $progress): string => match($progress) {
+        'at_tu' => 'success',
+        'at_bk' => 'warning',
+        default => 'danger',
+    };
+@endphp
+
 <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4">
     <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
         <input type="hidden" name="tab" value="pengunduran-diri">
-        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-search">Nama murid</label><input class="form-control" id="withdrawal-search" name="search" value="{{ request('search') }}" placeholder="Cari nama murid"></div>
-        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-progress-filter">Progres</label><select class="form-select" id="withdrawal-progress-filter" name="progress"><option value="">Semua progres</option>@foreach(\App\Models\WithdrawalProgress::labels() as $value => $label)<option value="{{ $value }}" @selected(request('progress') === $value)>{{ $label }}</option>@endforeach</select></div>
+        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-search">Cari pengunduran diri</label><input class="form-control" id="withdrawal-search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
+        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-progress-filter">Progres</label><select class="form-select" id="withdrawal-progress-filter" name="progress"><option value="">Semua progres</option>@foreach($progressLabels as $value => $label)<option value="{{ $value }}" @selected(request('progress') === $value)>{{ $label }}</option>@endforeach</select></div>
         <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Filter</button></div>
     </form>
 </div></div>
 
 <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr>
-    <th scope="col">No</th><th scope="col">Nama Guru</th><th scope="col">Tanggal</th><th scope="col">Nama Siswa</th><th scope="col">Kelas</th><th scope="col">Progres Penanganan</th><th scope="col">Catatan</th><th scope="col">Aksi</th>
+    <th scope="col">Hari/Tanggal</th><th scope="col">Nama &amp; Kelas</th><th scope="col">Guru BK</th><th scope="col">Progres</th><th scope="col">Tindak Lanjut</th><th scope="col">Aksi</th>
 </tr></thead><tbody>
-    @forelse($withdrawals as $withdrawal)
-        <tr>
-            <td>{{ $withdrawals->firstItem() + $loop->index }}</td>
-            <td>{{ $withdrawal->teacher?->name ?? 'Guru tidak tersedia' }}</td>
-            <td>{{ $withdrawal->recorded_on->locale('id')->translatedFormat('d M Y') }}</td>
-            <td>{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }}</td>
-            <td>{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}</td>
-            <td>
-                @can('update', $withdrawal)
-                    <form method="POST" action="{{ route('withdrawals.progress.update', $withdrawal) }}" data-withdrawal-progress-form>
-                        @csrf @method('PATCH')
-                        <select name="progress" class="form-select form-select-sm sibk-withdrawal-progress sibk-withdrawal-progress--{{ $withdrawal->progress }}" aria-label="Progres penanganan {{ $withdrawal->student?->name }}" data-withdrawal-progress>
-                            @foreach(\App\Models\WithdrawalProgress::labels() as $value => $label)<option value="{{ $value }}" @selected($withdrawal->progress === $value)>{{ $label }}</option>@endforeach
-                        </select>
-                    </form>
-                @else
-                    <span class="sibk-badge sibk-badge--{{ match($withdrawal->progress) { 'at_tu' => 'success', 'at_bk' => 'warning', default => 'danger' } }}">{{ $withdrawal->progressLabel() }}</span>
-                @endcan
-            </td>
-            <td>{{ $withdrawal->note ?: '—' }}</td>
-            <td><button type="button" class="btn btn-sm p-0 sibk-icon-button sibk-report-control" data-report-detail-toggle data-report-detail-name="{{ $withdrawal->student?->name }}" aria-controls="withdrawal-detail-{{ $withdrawal->id }}" aria-expanded="false" aria-label="Tampilkan detail layanan {{ $withdrawal->student?->name }}" title="Tampilkan detail layanan"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg></button></td>
-        </tr>
-        <tr class="sibk-report-detail-row d-none" id="withdrawal-detail-{{ $withdrawal->id }}"><td colspan="8"><div class="sibk-report-detail-panel"><strong>Alasan pengunduran diri</strong><p class="mb-0 mt-1">{{ $withdrawal->reason }}</p></div></td></tr>
-    @empty
-        <tr><td colspan="8" class="text-center text-muted py-4">Belum ada progres pengunduran diri yang dapat Anda akses.</td></tr>
-    @endforelse
+@forelse($withdrawals as $withdrawal)
+    @php
+        $history = $withdrawal->followUps->map(fn ($followUp): array => [
+            'id' => $followUp->id,
+            'progress' => $followUp->progress,
+            'progressLabel' => $followUp->progressLabel(),
+            'followUpDate' => $followUp->follow_up_date->toDateString(),
+            'followUpDateFormatted' => $followUp->follow_up_date->locale('id')->translatedFormat('d M Y'),
+            'notes' => $followUp->notes,
+            'creatorName' => $followUp->creator?->name,
+        ])->values();
+    @endphp
+    <tr>
+        <td><div class="fw-semibold text-dark">{{ $withdrawal->recorded_on->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $withdrawal->recorded_on->locale('id')->translatedFormat('l') }})</div></td>
+        <td><div class="fw-semibold text-dark">{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }}</div><div class="text-muted small">{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}</div></td>
+        <td>{{ $withdrawal->teacher?->name ?? 'Guru tidak tersedia' }}</td>
+        <td><span id="withdrawal-progress-badge-{{ $withdrawal->id }}" class="sibk-badge sibk-badge--{{ $progressTone($withdrawal->progress) }}">{{ $withdrawal->progressLabel() }}</span></td>
+        <td>
+            <div class="sibk-follow-up-dropdown" data-withdrawal-id="{{ $withdrawal->id }}">
+                <button type="button" class="btn sibk-follow-up-pill sibk-follow-up-pill--active" id="withdrawal-follow-up-btn-{{ $withdrawal->id }}" data-withdrawal-popover-trigger aria-expanded="false" title="Lihat riwayat tindak lanjut">
+                    <span data-withdrawal-follow-up-label>{{ $history->count() }} entri</span>
+                    <svg class="sibk-follow-up-pill__chevron" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 01.708 0L8 10.293l5.646-5.647a.5.5 0 01.708.708l-6 6a.5.5 0 01-.708 0l-6-6a.5.5 0 010-.708z"/></svg>
+                </button>
+                <div class="sibk-follow-up-popover" data-withdrawal-popover aria-labelledby="withdrawal-follow-up-btn-{{ $withdrawal->id }}" role="dialog" style="display:none">
+                    <h3 class="fw-bold fs-6 text-dark mb-3">Riwayat Tindak Lanjut</h3>
+                    <div class="sibk-follow-up-history mb-2" data-withdrawal-history>
+                        @foreach($history as $item)
+                            <div class="sibk-follow-up-entry {{ $loop->first ? 'sibk-follow-up-entry--latest' : '' }}"><div class="sibk-follow-up-entry__date">{{ $item['followUpDateFormatted'] }}</div><div class="sibk-follow-up-entry__type"><span class="sibk-follow-up-entry__dot"></span><span>{{ $item['progressLabel'] }}</span></div>@if($item['notes'])<div class="small text-muted mt-1">{{ $item['notes'] }}</div>@endif</div>
+                        @endforeach
+                    </div>
+                    @can('update', $withdrawal)
+                        <div class="sibk-follow-up-add-wrapper"><button type="button" class="btn btn-link sibk-follow-up-add-btn" data-withdrawal-follow-up-open data-withdrawal-id="{{ $withdrawal->id }}" data-student-name="{{ $withdrawal->student?->name }}" data-store-url="{{ route('withdrawals.follow-ups.store', $withdrawal) }}" data-min-date="{{ $withdrawal->recorded_on->toDateString() }}" data-current-progress="{{ $withdrawal->progress }}"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15"/></svg><span>Tambah Tindak Lanjut</span></button></div>
+                    @endcan
+                </div>
+            </div>
+        </td>
+        <td>
+            <button type="button" class="btn btn-icon-action btn-icon-action--info" data-withdrawal-detail aria-label="Lihat detail pengunduran diri {{ $withdrawal->student?->name }}" title="Lihat detail"
+                data-student-name="{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }}" data-student-nisn="{{ $withdrawal->student?->nisn }}" data-classroom="{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}"
+                data-recorded-on="{{ $withdrawal->recorded_on->locale('id')->translatedFormat('d F Y') }}" data-recorded-day="{{ $withdrawal->recorded_on->locale('id')->translatedFormat('l') }}" data-teacher-name="{{ $withdrawal->teacher?->name ?? 'Guru tidak tersedia' }}"
+                data-progress="{{ $withdrawal->progress }}" data-progress-label="{{ $withdrawal->progressLabel() }}" data-reason="{{ $withdrawal->reason }}" data-note="{{ $withdrawal->note }}" data-follow-ups="{{ $history->toJson() }}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+        </td>
+    </tr>
+@empty
+    <tr><td colspan="6" class="text-center text-muted py-4">Belum ada progres pengunduran diri yang dapat Anda akses.</td></tr>
+@endforelse
 </tbody></table></div>
 @if($withdrawals->hasPages())<div class="mt-3">{{ $withdrawals->links() }}</div>@endif
 
-@if($canCreateWithdrawal && $withdrawalStudents->isNotEmpty())
-    <div class="modal fade" id="withdrawal-create-modal" tabindex="-1" aria-labelledby="withdrawal-create-title" aria-hidden="true" data-withdrawal-create-modal @if($errors->any() && old('_form') === 'withdrawal') data-show-on-error @endif>
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" method="POST" action="{{ route('withdrawals.store') }}">
-            @csrf<input type="hidden" name="_form" value="withdrawal">
-            <div class="modal-header"><h2 class="modal-title fs-5" id="withdrawal-create-title">Catat Pengunduran Diri</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
-                <div class="modal-body">
-                    @if($errors->any() && old('_form') === 'withdrawal')<div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>@endif
-                    <p class="text-muted small">Catatan ini memantau penanganan di BK dan tidak menetapkan murid resmi keluar.</p>
-                    @php($selectedWithdrawalStudent = $withdrawalStudents->firstWhere('id', old('student_id')))
-                    <div class="row g-3 mb-3">
-                        <div class="col-12 col-md-7">
-                            <label class="form-label" for="withdrawal-student-lookup">Nama murid atau NISN</label>
-                            <input class="form-control" id="withdrawal-student-lookup" list="withdrawal-student-options" value="{{ $selectedWithdrawalStudent ? $selectedWithdrawalStudent->name.' · NISN '.$selectedWithdrawalStudent->nisn : '' }}" placeholder="Ketik nama atau NISN" autocomplete="off" required>
-                            <input type="hidden" id="withdrawal-student-id" name="student_id" value="{{ old('student_id') }}">
-                            <datalist id="withdrawal-student-options">@foreach($withdrawalStudents as $student)<option value="{{ $student->name }} · NISN {{ $student->nisn }}" data-id="{{ $student->id }}"></option><option value="{{ $student->nisn }} · {{ $student->name }}" data-id="{{ $student->id }}"></option>@endforeach</datalist>
-                        </div>
-                        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-date">Tanggal</label><input class="form-control" type="date" id="withdrawal-date" name="recorded_on" value="{{ old('recorded_on', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required></div>
-                    </div>
-                    <div class="mb-3"><label class="form-label" for="withdrawal-reason">Alasan pengunduran diri</label><textarea class="form-control" id="withdrawal-reason" name="reason" rows="3" maxlength="2000" required>{{ old('reason') }}</textarea></div>
-                    <div class="mb-3"><label class="form-label" for="withdrawal-progress">Progres penanganan</label><select class="form-select" id="withdrawal-progress" name="progress" required>@foreach(\App\Models\WithdrawalProgress::labels() as $value => $label)<option value="{{ $value }}" @selected(old('progress', \App\Models\WithdrawalProgress::PROGRESS_IN_PROGRESS) === $value)>{{ $label }}</option>@endforeach</select></div>
-                    <div><label class="form-label" for="withdrawal-note">Catatan</label><textarea class="form-control" id="withdrawal-note" name="note" rows="2" maxlength="1000">{{ old('note') }}</textarea></div>
-                </div>
-                <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
-        </form></div>
-    </div>
-@endif
+<div class="modal fade" id="withdrawal-detail-modal" tabindex="-1" aria-labelledby="withdrawal-detail-title" aria-hidden="true" data-withdrawal-detail-modal><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header border-0 pb-2"><h2 class="modal-title fs-5 fw-bold" id="withdrawal-detail-title">Detail Pengunduran Diri</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body pt-2 sibk-case-detail"><div class="row g-3">
+        <div class="col-12 col-md-6"><section class="sibk-panel h-100"><div class="sibk-case-detail__heading"><span class="sibk-case-detail__icon text-primary bg-primary-subtle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path stroke-linecap="round" d="M4 21v-2a8 8 0 0116 0v2"/></svg></span><h3 class="fs-6 fw-bold mb-0">Data Murid</h3></div><dl class="sibk-case-detail__fields mb-0"><div><dt>NISN</dt><dd data-detail="studentNisn">—</dd></div><div><dt>Nama</dt><dd data-detail="studentName">—</dd></div><div><dt>Rombel</dt><dd data-detail="classroom">—</dd></div></dl></section></div>
+        <div class="col-12 col-md-6"><section class="sibk-panel h-100"><div class="sibk-case-detail__heading"><span class="sibk-case-detail__icon text-primary bg-primary-subtle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linejoin="round" d="M6 3h8l4 4v14H6zM14 3v5h4"/><path stroke-linecap="round" d="M9 12h6m-6 4h6"/></svg></span><h3 class="fs-6 fw-bold mb-0">Informasi Umum</h3></div><dl class="sibk-case-detail__fields mb-0"><div><dt>Tanggal Pencatatan</dt><dd data-detail="recordedOn">—</dd></div><div><dt>Guru BK</dt><dd data-detail="teacherName">—</dd></div><div><dt>Progres</dt><dd><span class="sibk-badge sibk-badge--info" data-detail="progressLabel">—</span></dd></div></dl></section></div>
+        <div class="col-12"><section class="sibk-panel"><div class="sibk-case-detail__heading"><span class="sibk-case-detail__icon text-warning bg-warning-subtle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linejoin="round" d="M6 3h8l4 4v14H6zM14 3v5h4"/><path stroke-linecap="round" d="M9 12h6m-6 4h6"/></svg></span><h3 class="fs-6 fw-bold mb-0">Catatan Pengunduran Diri</h3></div><div class="row g-0 p-3"><div class="col-12 col-md-6 sibk-case-detail__note"><h4 class="small fw-bold mb-1">Alasan Pengunduran Diri</h4><p class="small text-muted text-break mb-0 sibk-case-detail__text" data-detail="reason">—</p></div><div class="col-12 col-md-6 sibk-case-detail__note"><h4 class="small fw-bold mb-1">Catatan Awal</h4><p class="small text-muted text-break mb-0 sibk-case-detail__text" data-detail="note">—</p></div></div></section></div>
+        <div class="col-12"><section class="sibk-panel"><div class="sibk-case-detail__heading"><span class="sibk-case-detail__icon text-success bg-success-subtle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 2"/></svg></span><h3 class="fs-6 fw-bold mb-0">Riwayat Tindak Lanjut</h3></div><ol class="sibk-case-detail__history list-unstyled p-3 mb-0" data-detail-history></ol></section></div>
+    </div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Tutup</button></div>
+</div></div></div>
+
+<div class="modal fade" id="withdrawal-follow-up-modal" tabindex="-1" aria-labelledby="withdrawal-follow-up-title" aria-hidden="true" data-withdrawal-follow-up-modal><div class="modal-dialog modal-dialog-centered"><form class="modal-content" method="POST" data-withdrawal-follow-up-form>
+    @csrf
+    <div class="modal-header"><div><h2 class="modal-title fs-5 fw-bold" id="withdrawal-follow-up-title">Tambah Tindak Lanjut</h2><div class="small text-muted mt-1" data-follow-up-student></div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body"><div class="alert alert-danger d-none" role="alert" data-follow-up-error></div><div class="mb-3"><label class="form-label fw-semibold" for="withdrawal-follow-up-progress">Progres</label><select class="form-select" id="withdrawal-follow-up-progress" name="progress" required>@foreach($progressLabels as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></div><div class="mb-3"><label class="form-label fw-semibold" for="withdrawal-follow-up-date">Tanggal</label><input class="form-control" id="withdrawal-follow-up-date" name="follow_up_date" type="date" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" required></div><div><label class="form-label fw-semibold" for="withdrawal-follow-up-notes">Catatan <span class="text-muted fw-normal">(opsional)</span></label><textarea class="form-control" id="withdrawal-follow-up-notes" name="notes" rows="3" maxlength="2000"></textarea></div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary" data-follow-up-submit>Simpan</button></div>
+</form></div></div>

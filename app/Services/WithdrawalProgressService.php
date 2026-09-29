@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
+use App\Models\WithdrawalProgressFollowUp;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -45,9 +46,16 @@ final class WithdrawalProgressService
                 'teacher_id' => $actor->getKey(),
                 'classroom_id' => $membership->classroom_id,
                 'recorded_on' => $data['recorded_on'],
-                'progress' => $data['progress'],
+                'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
                 'note' => $data['note'] ?? null,
                 'reason' => $data['reason'],
+            ]);
+
+            $withdrawal->followUps()->create([
+                'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
+                'follow_up_date' => $withdrawal->recorded_on->toDateString(),
+                'notes' => null,
+                'created_by' => $actor->getKey(),
             ]);
 
             $this->auditService->record('withdrawal_progress.created', $withdrawal,
@@ -62,19 +70,39 @@ final class WithdrawalProgressService
         });
     }
 
-    public function updateProgress(WithdrawalProgress $withdrawal, string $progress, User $actor): void
+    /** @param array<string, mixed> $data */
+    public function addFollowUp(WithdrawalProgress $withdrawal, array $data, User $actor): WithdrawalProgressFollowUp
     {
-        DB::transaction(function () use ($withdrawal, $progress, $actor): void {
+        return DB::transaction(function () use ($withdrawal, $data, $actor): WithdrawalProgressFollowUp {
             $withdrawal = WithdrawalProgress::query()->lockForUpdate()->findOrFail($withdrawal->getKey());
             abort_unless($actor->can('update', $withdrawal), 403);
-            if (! in_array($progress, array_keys(WithdrawalProgress::labels()), true)) {
+            if (! in_array($data['progress'], array_keys(WithdrawalProgress::labels()), true)) {
                 throw ValidationException::withMessages(['progress' => 'Progres penanganan tidak valid.']);
             }
 
-            $before = ['progress' => $withdrawal->progress];
-            $withdrawal->update(['progress' => $progress]);
-            $this->auditService->recordChanges('withdrawal_progress.updated', $withdrawal,
-                'Progres pengunduran diri diperbarui.', $actor, $before, ['progress' => $progress]);
+            $followUp = $withdrawal->followUps()->create([
+                'progress' => $data['progress'],
+                'follow_up_date' => $data['follow_up_date'],
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $actor->getKey(),
+            ]);
+            $latest = $withdrawal->followUps()->firstOrFail();
+            $withdrawal->update(['progress' => $latest->progress]);
+
+            $this->auditService->record(
+                'withdrawal_progress.follow_up_added',
+                $withdrawal,
+                'Tindak lanjut pengunduran diri ditambahkan.',
+                $actor,
+                [],
+                [
+                    'follow_up_id' => $followUp->getKey(),
+                    'progress' => $followUp->progress,
+                    'follow_up_date' => $followUp->follow_up_date->toDateString(),
+                ],
+            );
+
+            return $followUp->load('creator');
         });
     }
 }

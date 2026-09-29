@@ -2959,12 +2959,10 @@ small, .small {
   }
 }
 
-select.sibk-withdrawal-progress {
-  min-width: 15rem;
-
-  &--at_tu { background-color: var(--sibk-color-success-soft) !important; color: var(--sibk-color-success) !important; }
-  &--at_bk { background-color: var(--sibk-color-warning-soft) !important; color: var(--sibk-color-warning) !important; }
-  &--in_progress { background-color: var(--sibk-color-danger-soft) !important; color: var(--sibk-color-danger-strong) !important; }
+.withdrawal-student-options {
+  max-height: 18rem;
+  overflow-y: auto;
+  z-index: 20;
 }
 
 .sibk-icon-button.sibk-class-add {
