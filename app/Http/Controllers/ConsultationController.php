@@ -104,7 +104,7 @@ class ConsultationController extends Controller
         $data = $this->formValues($user, $consultation, $request);
 
         return $request->boolean('modal')
-            ? view('pages.consultations._edit-modal', [...$data, 'modal' => true])
+            ? view('pages.consultations._edit-content', [...$data, 'modal' => true])
             : view('pages.consultations.create', $data);
     }
 

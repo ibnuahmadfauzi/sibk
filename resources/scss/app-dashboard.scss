@@ -2674,6 +2674,117 @@ small, .small {
   }
 }
 
+.sibk-case-detail {
+  font-size: .875rem;
+
+  .sibk-panel {
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem;
+    background: var(--bs-tertiary-bg, #f8fafc);
+
+    .fs-6 { font-size: .875rem !important; }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: .5rem;
+    flex-shrink: 0;
+  }
+
+  &__fields {
+    padding: 0 .75rem .75rem;
+
+    > div {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      gap: .75rem;
+      padding: .5rem 0;
+    }
+
+    > div + div { border-top: 1px solid var(--bs-border-color); }
+    dt { color: var(--bs-secondary-color); font-weight: 400; }
+    dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+  }
+
+  &__text { white-space: pre-line; }
+  &__note + &__note { margin-top: 1rem; }
+
+  &__history-entry {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 2rem;
+    position: relative;
+    padding-bottom: .75rem;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 115px;
+      top: 1rem;
+      bottom: -.5rem;
+      width: 2px;
+      background: var(--bs-success-border-subtle, #d1e7dd);
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 111px;
+      top: .75rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--bs-success);
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+
+      &::before { display: none; }
+    }
+  }
+}
+
+.sibk-case-edit {
+  .form-control,
+  .form-select,
+  .btn { font-size: .875rem; }
+
+  .form-label {
+    font-weight: 600;
+    margin-bottom: .375rem;
+  }
+
+  &__lock {
+    position: absolute;
+    right: .75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .sibk-case-detail__note + .sibk-case-detail__note {
+    margin-top: 0;
+    padding-left: 1rem;
+    border-left: 1px solid var(--bs-border-color);
+  }
+
+  .sibk-case-detail__note:not(:last-child) { padding-right: 1rem; }
+}
+
 .sibk-report-summary {
   display: flex;
   flex-wrap: wrap;
