@@ -30,7 +30,7 @@
         </section>
 
         <ul class="nav nav-pills mb-4 gap-2" aria-label="Riwayat murid">
-            @foreach(['kasus' => 'Permasalahan dan Layanan', 'etatib' => 'Data e-Tatib'] as $key => $label)<li class="nav-item"><a class="nav-link {{ $activeTab === $key ? 'active' : '' }}" href="{{ route('students.show', ['student' => $student, 'tab' => $key]) }}" @if($activeTab === $key) aria-current="page" @endif>{{ $label }}</a></li>@endforeach
+            @foreach(['kasus' => 'Permasalahan', 'etatib' => 'Data e-Tatib'] as $key => $label)<li class="nav-item"><a class="nav-link {{ $activeTab === $key ? 'active' : '' }}" href="{{ route('students.show', ['student' => $student, 'tab' => $key]) }}" @if($activeTab === $key) aria-current="page" @endif>{{ $label }}</a></li>@endforeach
             @if($canViewConsultations)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('students.show', ['student' => $student, 'tab' => 'konsultasi']) }}">Konsultasi</a></li>@endif
             <li class="nav-item"><a class="nav-link {{ $activeTab === 'prestasi' ? 'active' : '' }}" href="{{ route('students.show', ['student' => $student, 'tab' => 'prestasi']) }}">Prestasi</a></li>
         </ul>

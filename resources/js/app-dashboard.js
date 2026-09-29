@@ -145,6 +145,58 @@ document.addEventListener('submit', (event) => {
     if (input) input.value = event.target.querySelector('[name="action"]:checked')?.dataset.syncMembership ?? '';
 });
 
+const appConfirmationElement = document.querySelector('[data-app-confirmation-modal]');
+if (appConfirmationElement) {
+    const appConfirmation = Modal.getOrCreateInstance(appConfirmationElement);
+    const title = appConfirmationElement.querySelector('[data-app-confirmation-title]');
+    const message = appConfirmationElement.querySelector('[data-app-confirmation-message]');
+    const subject = appConfirmationElement.querySelector('[data-app-confirmation-subject]');
+    const suffix = appConfirmationElement.querySelector('[data-app-confirmation-suffix]');
+    const cancel = appConfirmationElement.querySelector('[data-app-confirmation-cancel]');
+    const action = appConfirmationElement.querySelector('[data-app-confirmation-action]');
+    let pendingForm;
+    let pendingSubmitter;
+
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || !form.matches('[data-app-confirm-submit]')) return;
+        if (form.dataset.confirmed === 'true') {
+            delete form.dataset.confirmed;
+            return;
+        }
+
+        event.preventDefault();
+        pendingForm = form;
+        pendingSubmitter = event.submitter;
+        title.textContent = form.dataset.confirmTitle || 'Konfirmasi';
+        message.textContent = form.dataset.confirmMessage || 'Apakah Anda ingin melanjutkan?';
+        subject.textContent = form.dataset.confirmSubject ? ` ${form.dataset.confirmSubject}` : '';
+        suffix.textContent = form.dataset.confirmSuffix || '';
+        action.textContent = form.dataset.confirmAction || 'Ya, lanjutkan';
+        appConfirmationElement.dataset.tone = form.dataset.confirmTone || 'primary';
+        action.classList.toggle('btn-danger', form.dataset.confirmTone === 'danger');
+        action.classList.toggle('btn-success', form.dataset.confirmTone === 'success');
+        action.classList.toggle('btn-primary', !['danger', 'success'].includes(form.dataset.confirmTone));
+        appConfirmation.show();
+    }, true);
+
+    appConfirmationElement.addEventListener('shown.bs.modal', () => cancel.focus());
+    appConfirmationElement.addEventListener('hidden.bs.modal', () => {
+        pendingSubmitter?.focus();
+        pendingForm = undefined;
+        pendingSubmitter = undefined;
+        action.disabled = false;
+    });
+    action.addEventListener('click', () => {
+        if (!pendingForm) return;
+
+        action.disabled = true;
+        pendingForm.dataset.confirmed = 'true';
+        appConfirmation.hide();
+        pendingForm.requestSubmit(pendingSubmitter);
+    });
+}
+
 document.querySelectorAll('form[data-confirm-submit]').forEach((form) => {
     form.addEventListener('submit', (event) => {
         const message = form.dataset.confirmMessage;

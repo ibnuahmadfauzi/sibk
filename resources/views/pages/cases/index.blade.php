@@ -5,6 +5,7 @@
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-101">
         @if(session('success'))<x-notification-toast>{{ session('success') }}</x-notification-toast>@endif
+        @if($errors->any())<x-notification-toast tone="error">{{ $errors->first() }}</x-notification-toast>@endif
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy"><h1>Layanan BK</h1><p>Catatan permasalahan, konsultasi, dan progres penanganan pengunduran diri murid.</p></div>
         </div>
@@ -49,7 +50,7 @@
                             default => 'primary',
                         };
                     @endphp
-                    <tr @unless($isWakaOnly)data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}"@endunless>
+                    <tr>
                         <td>
                             <div class="fw-semibold text-dark">{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</div>
                             <div class="text-muted small">({{ $case->service_date->locale('id')->translatedFormat('l') }})</div>
@@ -132,6 +133,14 @@
                         </td>
                         <td>
                             <div class="d-flex align-items-center gap-1">
+                                @can('view', $case)
+                                    <a href="{{ route('cases.show', $case) }}"
+                                        @unless($isWakaOnly)data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}"@endunless
+                                        class="btn btn-icon-action btn-icon-action--info"
+                                        title="Lihat selengkapnya" aria-label="Lihat selengkapnya">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 11v6m0-10v.01"/></svg>
+                                    </a>
+                                @endcan
                                 @can('update', $case)
                                     {{-- 1. Edit (pensil) --}}
                                     <a href="{{ route('cases.edit', $case) }}"
@@ -156,8 +165,13 @@
                                         </button>
                                     @else
                                         <form action="{{ route('cases.destroy', $case) }}" method="POST"
-                                            data-confirm-submit
-                                            data-confirm-message="Data akan diarsipkan dan tidak tampil pada daftar utama. Lanjutkan?">
+                                            data-app-confirm-submit
+                                            data-confirm-title="Hapus Kasus BK?"
+                                            data-confirm-message="Apakah Anda yakin ingin menghapus kasus milik"
+                                            data-confirm-subject="{{ $case->identityName() }} ({{ $case->classroom?->name ?? 'Tanpa Rombel' }})"
+                                            data-confirm-suffix="?"
+                                            data-confirm-action="Hapus"
+                                            data-confirm-tone="danger">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-icon-action btn-icon-action--danger" title="Arsipkan">
                                                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
@@ -173,12 +187,20 @@
                                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                                         </button>
                                     @else
-                                        <a href="{{ route('cases.edit', $case) }}"
-                                            data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
-                                            class="btn btn-icon-action btn-icon-action--success"
-                                            title="Selesaikan Kasus">
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                                        </a>
+                                        <form action="{{ route('cases.complete', $case) }}" method="POST"
+                                            data-app-confirm-submit
+                                            data-confirm-title="Selesaikan Kasus BK?"
+                                            data-confirm-message="Apakah Anda yakin ingin menandai kasus milik"
+                                            data-confirm-subject="{{ $case->identityName() }} ({{ $case->classroom?->name ?? 'Tanpa Rombel' }})"
+                                            data-confirm-suffix=" sebagai selesai?"
+                                            data-confirm-action="Selesaikan"
+                                            data-confirm-tone="success">
+                                            @csrf @method('PATCH')
+                                            <input type="hidden" id="case-complete-updated-at-{{ $case->id }}" name="expected_updated_at" value="{{ $case->updated_at->toJSON() }}">
+                                            <button type="submit" class="btn btn-icon-action btn-icon-action--success" title="Selesaikan Permasalahan" aria-label="Selesaikan Permasalahan">
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                            </button>
+                                        </form>
                                     @endif
                                 @endcan
                             </div>
@@ -309,7 +331,7 @@
             @include('pages.cases._withdrawals')
         @endif
         <div class="modal fade" id="case-modal" tabindex="-1" aria-labelledby="case-modal-title" aria-hidden="true" data-service-record-modal>
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+            <div class="modal-dialog {{ $activeTab === 'kasus' ? 'modal-lg' : '' }} modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
                 <div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Detail Layanan BK</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                 <div class="modal-body"><p class="text-muted mb-0">Memuat data…</p></div>
             </div></div>
@@ -506,6 +528,73 @@
     }
 
     /* ── Icon action buttons ─────────────────────────────────── */
+    .sibk-case-detail { font-size: .875rem; }
+    .sibk-case-detail .sibk-panel { box-shadow: none; }
+    .sibk-case-edit .form-control, .sibk-case-edit .form-select, .sibk-case-edit .btn { font-size: .875rem; }
+    .sibk-case-edit .form-label { font-weight: 600; margin-bottom: .375rem; }
+    .sibk-case-edit__lock { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .sibk-case-detail__heading .fs-6 { font-size: .875rem !important; }
+    .sibk-case-detail__heading {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .75rem;
+        background: var(--bs-tertiary-bg, #f8fafc);
+    }
+    .sibk-case-detail__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: .5rem;
+        flex-shrink: 0;
+    }
+    .sibk-case-detail__fields { padding: 0 .75rem .75rem; }
+    .sibk-case-detail__fields > div {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        gap: .75rem;
+        padding: .5rem 0;
+    }
+    .sibk-case-detail__fields > div + div { border-top: 1px solid var(--bs-border-color); }
+    .sibk-case-detail__fields dt { color: var(--bs-secondary-color); font-weight: 400; }
+    .sibk-case-detail__fields dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .sibk-case-detail__text { white-space: pre-line; }
+    .sibk-case-detail__note + .sibk-case-detail__note { margin-top: 1rem; }
+    .sibk-case-detail__history-entry {
+        display: grid;
+        grid-template-columns: 100px minmax(0, 1fr);
+        gap: 2rem;
+        position: relative;
+        padding-bottom: .75rem;
+    }
+    .sibk-case-detail__history-entry::before {
+        content: '';
+        position: absolute;
+        left: 115px;
+        top: 1rem;
+        bottom: -.5rem;
+        width: 2px;
+        background: var(--bs-success-border-subtle, #d1e7dd);
+    }
+    .sibk-case-detail__history-entry::after {
+        content: '';
+        position: absolute;
+        left: 111px;
+        top: .75rem;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--bs-success);
+    }
+    .sibk-case-detail__history-entry:last-child { padding-bottom: 0; }
+    .sibk-case-detail__history-entry:last-child::before { display: none; }
+    @media (min-width: 768px) {
+        .sibk-case-detail__note + .sibk-case-detail__note { margin-top: 0; padding-left: 1rem; border-left: 1px solid var(--bs-border-color); }
+        .sibk-case-detail__note:not(:last-child) { padding-right: 1rem; }
+    }
+
     .btn-icon-action {
         display: inline-flex !important;
         align-items: center !important;
@@ -827,8 +916,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 3. Update hidden compatibility targets
                 const hiddenLabel   = document.getElementById(`case-follow-up-${targetCaseId}`);
                 const hiddenUpdated = document.getElementById(`case-updated-at-${targetCaseId}`);
+                const completeUpdated = document.getElementById(`case-complete-updated-at-${targetCaseId}`);
                 if (hiddenLabel) hiddenLabel.textContent = data.latest_follow_up_label || data.follow_up_type_label;
                 if (hiddenUpdated && data.updated_at) hiddenUpdated.textContent = data.updated_at;
+                if (completeUpdated && data.updated_at) completeUpdated.value = data.updated_at;
 
                 // 4. Update riwayat di dalam popover
                 const historyContainer = document.getElementById(`case-follow-up-history-${targetCaseId}`);

@@ -65,6 +65,7 @@ assert.deepEqual(collectSafeValues([
     { name: 'credential', value: 'credential', type: 'text' },
     { name: 'secret_note', value: 'secret', type: 'text' },
     { name: 'attachment', value: 'file.csv', type: 'file' },
+    { name: 'action', value: 'complete', type: 'submit' },
 ]), { title: 'Aman' });
 assert.deepEqual(collectSafeValues([
     { name: 'etatib_record_ids[]', value: '11', type: 'checkbox', checked: true },

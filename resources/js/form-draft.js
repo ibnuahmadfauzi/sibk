@@ -7,7 +7,7 @@ const initialisedLogoutForms = new WeakSet();
 const isUnsafe = (field) => {
     const name = (field.name ?? '').toLowerCase();
 
-    return !name || field.disabled || field.type === 'file'
+    return !name || field.disabled || ['button', 'file', 'image', 'reset', 'submit'].includes(field.type)
         || ['_token', '_method'].includes(name)
         || /password|token|credential|secret/.test(name);
 };

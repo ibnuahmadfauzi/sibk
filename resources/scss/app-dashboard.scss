@@ -15,6 +15,111 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.sibk-confirmation-modal {
+  .modal-dialog { max-width: 36rem; }
+
+  .modal-content {
+    position: relative;
+    border: 0;
+    border-radius: var(--sibk-radius-lg);
+    padding: 2.25rem 2.5rem 2rem;
+  }
+
+  &__close {
+    position: absolute;
+    top: .75rem;
+    right: .75rem;
+    z-index: 1;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: .75rem;
+  }
+
+  .modal-body { padding: 0; }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin-bottom: 1.25rem;
+    border-radius: 50%;
+    background: var(--sibk-color-primary-soft);
+    color: var(--sibk-color-primary);
+
+    svg {
+      width: 3rem;
+      height: 3rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
+
+  &__title {
+    margin-bottom: .75rem;
+    font-size: 1.5rem;
+  }
+
+  &__message {
+    max-width: 30rem;
+    margin: 0 auto;
+    color: var(--sibk-color-text-muted);
+    font-size: 1rem;
+
+    strong { color: var(--sibk-color-text-dark); }
+  }
+
+  .modal-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    max-width: 26rem;
+    margin: 1.75rem auto 0;
+    padding: 0;
+
+    .btn {
+      min-height: 3rem;
+      margin: 0;
+      box-shadow: none !important;
+    }
+
+    .btn-success {
+      background: var(--sibk-color-success) !important;
+      border-color: var(--sibk-color-success) !important;
+      color: #fff !important;
+    }
+
+    .btn-danger {
+      background: var(--sibk-color-danger) !important;
+      border-color: var(--sibk-color-danger) !important;
+      color: #fff !important;
+    }
+  }
+
+  &[data-tone="success"] &__icon {
+    background: var(--sibk-color-success-soft);
+    color: var(--sibk-color-success);
+  }
+
+  &[data-tone="danger"] &__icon {
+    background: var(--sibk-color-danger-soft);
+    color: var(--sibk-color-danger);
+  }
+
+  &[data-tone="success"] [data-app-confirmation-danger],
+  &[data-tone="danger"] [data-app-confirmation-success] { display: none; }
+
+  @media (max-width: 575.98px) {
+    .modal-content { padding: 2rem 1.25rem 1.5rem; }
+    &__title { font-size: 1.25rem; }
+    .modal-footer { width: 100%; gap: .75rem; }
+  }
+}
+
 // ─── Global Heading & Typography Hierarchy ──────────────────────────────────
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6 {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ArchiveCaseRequest;
+use App\Http\Requests\CompleteCaseRequest;
 use App\Http\Requests\StoreCaseRequest;
 use App\Http\Requests\UpdateCaseFollowUpRequest;
 use App\Http\Requests\UpdateCaseRequest;
@@ -229,9 +230,9 @@ class CaseController extends Controller
     {
         /** @var User $actor */
         $actor = $request->user();
-        $case = $caseService->createCase($request->validated(), $actor);
+        $caseService->createCase($request->validated(), $actor);
 
-        return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil dibuat.');
+        return redirect()->route('cases.index', ['tab' => 'kasus'])->with('success', 'Kasus berhasil dibuat.');
     }
 
     public function show(
@@ -259,11 +260,13 @@ class CaseController extends Controller
         }
 
         $case->load([
+            'student',
             'classroom',
             'temporaryStudent',
             'source',
             'serviceField',
             'status',
+            'followUps.followUpType',
             'assignments.teacher',
             'etatibRecords',
         ]);
@@ -286,14 +289,20 @@ class CaseController extends Controller
         $user = $request->user();
         abort_unless($user->can('update', $case), 403);
         $case->load(['student', 'temporaryStudent', 'source', 'serviceField', 'status']);
+        $data = [
+            'case' => $case,
+            'serviceFields' => ReferenceValue::query()
+                ->forCategory('service_field')
+                ->where(fn ($fields) => $fields->where('is_active', true)->orWhere('id', $case->service_field_id))
+                ->orderBy('sort_order')
+                ->get(),
+        ];
 
         if ($request->boolean('modal')) {
-            return view('pages.cases._edit-modal', ['case' => $case]);
+            return view('pages.cases._edit-modal', $data);
         }
 
-        return view('pages.cases.edit', [
-            'case' => $case,
-        ]);
+        return view('pages.cases.edit', $data);
     }
 
     public function update(UpdateCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse|JsonResponse
@@ -310,6 +319,22 @@ class CaseController extends Controller
         }
 
         return redirect()->route('cases.show', $case)->with('success', 'Kasus berhasil diperbarui.');
+    }
+
+    public function complete(CompleteCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse|JsonResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        $case = $caseService->complete($case, $request->validated('expected_updated_at'), $actor);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => 'Permasalahan berhasil diselesaikan.',
+                'redirect' => route('cases.index'),
+            ]);
+        }
+
+        return redirect()->route('cases.index')->with('success', 'Permasalahan berhasil diselesaikan.');
     }
 
     public function updateFollowUp(

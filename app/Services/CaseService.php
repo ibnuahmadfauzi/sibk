@@ -145,7 +145,7 @@ class CaseService
         });
     }
 
-    /** @param array{initial_info: string, initial_action: string, resolution_summary?: string|null, action: string, expected_updated_at: string} $data */
+    /** @param array{service_field_id?: int|string, service_date?: string, initial_info: string, initial_action: string, resolution_summary?: string|null, action: string, expected_updated_at: string} $data */
     public function update(BkCase $case, array $data, User $actor): BkCase
     {
         return DB::transaction(function () use ($case, $data, $actor): BkCase {
@@ -160,19 +160,67 @@ class CaseService
             $changes = [
                 'initial_info' => $data['initial_info'],
                 'initial_action' => $data['initial_action'],
-                'resolution_summary' => $data['resolution_summary'] ?? null,
             ];
-            if ($data['action'] === 'complete') {
-                $changes['status_id'] = $this->referenceByCode('case_status', ServiceRecordStatus::COMPLETED)->getKey();
-                $changes['closed_at'] = today()->toDateString();
+            if (array_key_exists('resolution_summary', $data)) {
+                $changes['resolution_summary'] = $data['resolution_summary'];
             }
-
+            if (array_key_exists('service_field_id', $data)) {
+                if ($case->service_field_id !== (int) $data['service_field_id']) {
+                    $this->reference('service_field', (int) $data['service_field_id']);
+                }
+                $changes['service_field_id'] = (int) $data['service_field_id'];
+            }
+            if (array_key_exists('service_date', $data)) {
+                if ($case->service_date?->toDateString() !== $data['service_date']) {
+                    $studentId = $case->student_id ?? $case->temporaryStudent()->value('reconciled_student_id');
+                    $this->assertStudentAvailable($studentId, (string) $data['service_date']);
+                }
+                $changes['service_date'] = $data['service_date'];
+            }
             $case->update($changes);
             $case->refresh();
             $this->auditService->recordChanges(
                 action: 'case.updated',
                 auditable: $case,
                 summary: sprintf('Kasus untuk %s diperbarui.', $case->identityName()),
+                actor: $actor,
+                before: $before,
+                after: $this->editableSnapshot($case),
+            );
+
+            return $case->load(['status', 'followUpType']);
+        });
+    }
+
+    public function complete(BkCase $case, string $expectedUpdatedAt, User $actor): BkCase
+    {
+        return DB::transaction(function () use ($case, $expectedUpdatedAt, $actor): BkCase {
+            $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
+            $this->assertActiveYear($case);
+            if (! $case->isOwnedBy($actor)) {
+                throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
+            }
+
+            $this->assertFresh($case, $expectedUpdatedAt);
+            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
+                throw ValidationException::withMessages(['case' => 'Permasalahan ini sudah selesai.']);
+            }
+            if (trim((string) $case->resolution_summary) === '') {
+                throw ValidationException::withMessages([
+                    'resolution_summary' => 'Isi Hasil / Ringkasan melalui edit sebelum menyelesaikan permasalahan.',
+                ]);
+            }
+
+            $before = $this->editableSnapshot($case);
+            $case->update([
+                'status_id' => $this->referenceByCode('case_status', ServiceRecordStatus::COMPLETED)->getKey(),
+                'closed_at' => today()->toDateString(),
+            ]);
+            $case->refresh();
+            $this->auditService->recordChanges(
+                action: 'case.completed',
+                auditable: $case,
+                summary: sprintf('Permasalahan untuk %s diselesaikan.', $case->identityName()),
                 actor: $actor,
                 before: $before,
                 after: $this->editableSnapshot($case),
@@ -335,10 +383,26 @@ class CaseService
         }
     }
 
+    private function assertStudentAvailable(mixed $studentId, string $date): void
+    {
+        if ($studentId === null) {
+            return;
+        }
+
+        Student::query()->lockForUpdate()->findOrFail($studentId);
+        if (! Student::query()->availableForService($date)->whereKey($studentId)->exists()) {
+            throw ValidationException::withMessages([
+                'service_date' => 'Tanggal layanan harus sebelum tanggal keluar resmi murid.',
+            ]);
+        }
+    }
+
     /** @return array<string, mixed> */
     private function editableSnapshot(BkCase $case): array
     {
         return [
+            'service_field_id' => $case->service_field_id,
+            'service_date' => $case->service_date?->toDateString(),
             'initial_info' => $case->initial_info,
             'initial_action' => $case->initial_action,
             'resolution_summary' => $case->resolution_summary,

@@ -31,6 +31,7 @@ const files = {
     routes: 'routes/web.php',
     package: 'package.json',
     appDashboard: 'resources/js/app-dashboard.js',
+    appLayout: 'resources/views/layouts/app-2.blade.php',
     apiSiswaPreview: 'resources/js/api-siswa-preview.js',
     etatibIdentityMapping: 'resources/js/etatib-identity-mapping.js',
     serviceRecords: 'resources/js/service-records.js',
@@ -152,7 +153,6 @@ assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.la
 assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
 for (const [key, form, record] of [
     ['casesCreate', 'case', 'new'],
-    ['caseEditModal', 'case', '{{ $case->id }}'],
     ['consultationEditModal', 'consultation', '{{ $consultation?->id ?? \'new\' }}'],
 ]) {
     assert(contents[key].includes(`data-autosave-form="${form}"`), `${files[key]} belum memiliki kunci autosave form.`);
@@ -160,6 +160,14 @@ for (const [key, form, record] of [
     assert(contents[key].includes('data-draft-status'), `${files[key]} belum menampilkan status draft.`);
     assert(contents[key].includes('data-clear-draft'), `${files[key]} belum menyediakan Hapus Draft.`);
 }
+assert(!contents.caseEditModal.includes('data-autosave-form'), 'Modal edit kasus tidak boleh menyimpan draft.');
+assert(!contents.caseEditModal.includes('data-draft-status'), 'Modal edit kasus tidak boleh menampilkan status draft.');
+assert(!contents.caseEditModal.includes('data-clear-draft'), 'Modal edit kasus tidak boleh menyediakan Hapus Draft.');
+assert(contents.appLayout.includes('data-app-confirmation-modal'), 'Layout aplikasi belum menyediakan popup konfirmasi.');
+assert(contents.appLayout.includes('data-app-confirmation-subject'), 'Popup konfirmasi belum menyediakan identitas murid.');
+assert(contents.appDashboard.includes("form.matches('[data-app-confirm-submit]')"), 'Popup konfirmasi aplikasi belum menangani submit form.');
+assert(contents.casesIndex.includes('data-app-confirm-submit'), 'Hapus kasus belum memakai popup konfirmasi aplikasi.');
+assert(contents.casesIndex.includes('completeUpdated.value = data.updated_at'), 'Timestamp aksi Selesaikan belum mengikuti pembaruan tindak lanjut.');
 assert(contents.consultationEditModal.includes('data-confirm-submit'), 'Edit konsultasi belum memakai kontrak konfirmasi.');
 for (const retired of ['registration_number', 'consultation_status_id', 'consultation_month', 'consultation_class', '$session->topic', '$session->status']) {
     assert(!contents.casesIndex.includes(retired), `Tab konsultasi masih memuat UI retired: ${retired}.`);

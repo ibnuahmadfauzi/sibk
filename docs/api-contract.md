@@ -82,13 +82,14 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
   - Buat tepat satu `CaseAssignment` bertipe `owner` untuk Guru BK pencatat,
     tanpa periode tanggal; relasi ini tidak dapat diganti melalui aplikasi.
   - Catat jejak audit otomatis.
+- **Response:** redirect ke daftar Layanan BK tab Catat Permasalahan dengan pemberitahuan berhasil.
 
 ### Ubah dan Arsip Kasus
 - **Endpoint:** `GET /cases/{case}/edit`, `PATCH /cases/{case}`.
 - **Controller:** `CaseController@edit`, `CaseController@update`.
 - **Form Request:** `UpdateCaseRequest`.
-- **Field:** `action=save|complete` dan `expected_updated_at`. Untuk `action=save`, field yang dapat diubah adalah `initial_info` (Latar Belakang Masalah) dan `initial_action` (Penanganan). Untuk `action=complete`, `resolution_summary` wajib dan diproses sebagai aksi penyelesaian.
-- **Field tetap:** murid/identitas sementara, kode internal, sumber kasus, tautan e-Tatib, pemilik, tindak lanjut, dan status tidak dapat diubah melalui `action=save`.
+- **Field:** `action=save` dan `expected_updated_at`. Field yang dapat diubah adalah `service_field_id`, `service_date`, `initial_info` (Latar Belakang Masalah), `initial_action` (Penanganan), dan `resolution_summary` (Hasil / Ringkasan).
+- **Field tetap:** murid/identitas sementara, kode internal, sumber kasus, tautan e-Tatib, pemilik, tindak lanjut, dan status tidak dapat diubah melalui `action=save`. `case_source_id` dan field identitas ditolak bila dikirim pada update.
 - **Authorization:** hanya Guru BK pemilik yang masih berwenang. Fungsi Koordinator tidak memberikan hak mengubah catatan profesional atau mengalihkan pemilik kasus.
 - **Kasus selesai:** `action=save` tetap dapat dipakai oleh pemilik yang masih berwenang sesuai `CASE-14`; status `selesai`, `closed_at`, identitas, dan pemilik tidak berubah.
 - **Optimistic concurrency:** konflik `expected_updated_at` ditolak tanpa menimpa perubahan lain.
@@ -108,11 +109,11 @@ Koordinasi dilakukan di luar aplikasi. Tidak ada endpoint, controller, request,
 model, relasi, atau data koordinasi pada kontrak aktif.
 
 ### Selesaikan Kasus
-- **Endpoint:** `PATCH /cases/{case}` dengan `action=complete`.
-- **Controller:** `CaseController@update`.
-- **Form Request:** `UpdateCaseRequest` dengan validasi kondisional untuk aksi penyelesaian.
-- **Request:** `action=complete`, `resolution_summary` (required, string, max:10000), dan `expected_updated_at`.
-- **Business Logic:** `CaseService::complete()` menetapkan `resolution_summary`, status `selesai`, dan `closed_at` dari waktu server secara atomik sesuai `CASE-06` dan `CASE-12`; konflik optimistic concurrency ditolak.
+- **Endpoint:** `PATCH /cases/{case}/complete`.
+- **Controller:** `CaseController@complete`.
+- **Form Request:** `CompleteCaseRequest`.
+- **Request:** `expected_updated_at` (required, date).
+- **Business Logic:** `CaseService::complete()` memakai ringkasan tersimpan sesuai `CASE-06` dan `CASE-12`, lalu menetapkan status `selesai` dan `closed_at` dari waktu server secara atomik; konflik optimistic concurrency ditolak.
 
 ---
 
