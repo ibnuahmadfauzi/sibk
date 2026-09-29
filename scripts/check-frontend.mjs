@@ -151,6 +151,10 @@ const consultationActionIndex = contents.casesIndex.indexOf("route('consultation
 const sharedModalIndex = contents.casesIndex.indexOf('data-service-record-modal');
 assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.lastIndexOf('@endif'), 'Tab konsultasi belum berbagi shell modal yang dirender setelah kedua tab.');
 assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
+assert(contents.casesCreate.includes('id="student_lookup_results"'), 'Form kasus belum menyediakan hasil pencarian murid.');
+assert(contents.casesCreate.match(/aria-controls="student_lookup_results"/g)?.length === 2, 'Pencarian murid harus tersedia dari field NISN dan nama.');
+assert(contents.casesCreate.includes('student.nisn') && contents.casesCreate.includes('student.name'), 'Pencarian murid belum mencocokkan NISN dan nama.');
+assert(contents.casesCreate.includes('lanjutkan isi data secara manual'), 'Fallback input murid manual belum dijelaskan.');
 for (const [key, form, record] of [
     ['casesCreate', 'case', 'new'],
     ['consultationEditModal', 'consultation', '{{ $consultation?->id ?? \'new\' }}'],

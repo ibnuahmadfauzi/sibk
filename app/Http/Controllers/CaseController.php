@@ -152,6 +152,17 @@ class CaseController extends Controller
                 ->with('classroom')])
             ->orderBy('name')
             ->get();
+        $studentLookupData = $students->map(function (Student $student): array {
+            $membership = $student->classMemberships->first();
+
+            return [
+                'id' => $student->id,
+                'nisn' => $student->nisn,
+                'name' => $student->name,
+                'classroom_id' => $membership?->classroom_id,
+                'classroom_name' => $membership?->classroom?->name ?? '-',
+            ];
+        })->values();
         $search = $request->string('search')->trim()->toString();
         $etatibRecordsQuery = ExternalTatibRecord::query()
             ->active()
@@ -213,7 +224,7 @@ class CaseController extends Controller
         });
 
         return view('pages.cases.create', [
-            'students' => $students,
+            'studentLookupData' => $studentLookupData,
             'temporaryClassrooms' => $temporaryClassrooms,
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),

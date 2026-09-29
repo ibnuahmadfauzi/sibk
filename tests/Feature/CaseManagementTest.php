@@ -82,6 +82,43 @@ class CaseManagementTest extends TestCase
         $this->assertSame('Nama Resmi', $student->refresh()->name);
     }
 
+    public function test_create_form_exposes_lookup_for_students_in_teacher_scope_only(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Dalam Scope', '0011111111');
+        $this->scopedStudent($otherTeacher, 'Murid Luar Scope', '0022222222', 'XI RPL 2');
+
+        $this->actingAs($teacher)->get(route('cases.create'))
+            ->assertOk()
+            ->assertSee('aria-controls="student_lookup_results"', false)
+            ->assertSee('id="student_lookup_results"', false)
+            ->assertSee('Murid Dalam Scope')
+            ->assertSee($student->nisn)
+            ->assertSee('X RPL 1')
+            ->assertDontSee('Murid Luar Scope')
+            ->assertDontSee('0022222222');
+    }
+
+    public function test_non_etatib_lookup_selection_accepts_autofilled_identity_fields(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Terpilih', '0033333333');
+        $classroomId = $student->classMemberships()->firstOrFail()->classroom_id;
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload(),
+            'student_id' => $student->id,
+            'temporary_nisn' => $student->nisn,
+            'temporary_name' => $student->name,
+            'temporary_classroom_id' => $classroomId,
+        ])->assertRedirect(route('cases.index', ['tab' => 'kasus']));
+
+        $case = BkCase::query()->firstOrFail();
+        $this->assertSame($student->id, $case->student_id);
+        $this->assertNull($case->temporary_student_id);
+    }
+
     public function test_manual_unknown_nisn_creates_temporary_identity(): void
     {
         $teacher = $this->userWithRole('guru_bk');

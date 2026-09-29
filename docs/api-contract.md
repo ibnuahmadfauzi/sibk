@@ -63,6 +63,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
 ### Buat Kasus Baru
+- **Halaman:** `GET /cases/create` memuat kandidat murid aktif dalam scope penugasan Guru BK untuk pencarian lokal melalui field NISN atau nama; pilihan mengisi identitas dan rombel, sedangkan nilai yang tidak ditemukan tetap diproses sebagai identitas sementara.
 - **Endpoint:** `POST /cases`
 - **Controller:** `CaseController@store`
 - **Form Request:** `StoreCaseRequest`
