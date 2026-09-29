@@ -157,7 +157,9 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi serta prestasi yang diizinkan, dan statistik berbasis scope. Proyeksi Waka tidak memuat payload e-Tatib mentah atau catatan internal.
 
 ### Pengelolaan prestasi oleh Waka
+- **Filter daftar:** `search` (nama/NISN murid, kegiatan, atau penyelenggara) dan `classroom_id`.
 - **Endpoint:** `GET /achievements`, `GET /achievements/create`, `POST /achievements`, `GET /achievements/{achievement}`, `GET /achievements/{achievement}/edit`, `PATCH /achievements/{achievement}`, dan `POST /achievements/import`.
+- **Modal:** `GET /achievements/{achievement}?modal=1` dan `GET /achievements/{achievement}/edit?modal=1` mengembalikan partial modal. `PATCH` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke daftar prestasi.
 - **Controller:** `AchievementController`; impor memakai `AchievementImportController@store`.
 - **Form Request:** `AchievementIndexRequest`, `StoreAchievementRequest`, `UpdateAchievementRequest`, dan `ImportAchievementRequest`.
 - **Input manual:** `student_id`, `type_id`, `level_id`, `activity_name`, `organizer`, `achievement_date`, dan `result`.
@@ -387,7 +389,7 @@ terlihat pada dashboard serta halaman operasional terkait.
 - **Controller:** `WakaMonitoringController` untuk daftar murid dan `ReportController` untuk laporan bersama.
 - **Form Request:** `WakaMonitoringRequest` untuk daftar murid dan `OperationalReportRequest` untuk halaman laporan bersama.
 - **Authorization:** Waka Kesiswaan aktif memperoleh daftar laporan hanya-baca. `ReportPolicy::viewDocument` menolak preview, cetak/PDF, ekspor Excel, dan preview per catatan bagi akun Waka murni.
-- **Arsitektur informasi akun Waka murni:** Dashboard; PEMANTAUAN WAKA berisi Murid dengan Kasus, Proses Keluar Murid, Prestasi, dan Laporan; UTILITAS berisi Akun Saya. Mutasi Waka hanya tersedia pada Prestasi; layanan BK tetap hanya-baca.
+- **Arsitektur informasi akun Waka murni:** Dashboard; PEMANTAUAN WAKA berisi Proses Keluar Murid, Prestasi, dan Laporan; UTILITAS berisi Akun Saya. Mutasi Waka hanya tersedia pada Prestasi; layanan BK tetap hanya-baca. Endpoint Murid dengan Kasus tetap tersedia sebagai fallback internal, tetapi tidak ditampilkan di navigasi Waka.
 - **Murid dengan Kasus:** satu row per identitas internal, dengan nama, kelas historis, jumlah kasus, jumlah aktif, status terbaru, dan Guru BK. Filter `period/status`; sort hanya `murid`, `kelas`, `status`, atau `guru_bk`.
 - **Laporan:** memakai filter dan pagination laporan operasional. Proyeksi Blade hanya berisi No, Hari/Tanggal, Nama/Kelas, Jenis Masalah, Hasil / Ringkasan, Guru BK, dan Keterangan; latar belakang, penanganan, hasil terpisah, URL aksi, dan kemampuan arsip tidak dikirim.
 - **Field terlarang:** NISN, kode kasus, catatan internal, latar belakang, penanganan, payload provider mentah, dokumen sensitif, audit teknis, dan field di luar allowlist.

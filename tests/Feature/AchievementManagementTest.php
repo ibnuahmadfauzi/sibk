@@ -17,8 +17,8 @@ use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -127,6 +127,75 @@ class AchievementManagementTest extends TestCase
         $this->assertDatabaseCount('achievements', 0);
     }
 
+    public function test_excel_import_requirements_are_revealed_by_an_accessible_info_button(): void
+    {
+        $waka = $this->userWithRole('waka_kesiswaan');
+
+        $this->actingAs($waka)->get(route('achievements.index'))
+            ->assertOk()
+            ->assertSee('<details', false)
+            ->assertSee('<summary', false)
+            ->assertSee('title="Lihat syarat file Excel"', false)
+            ->assertDontSee('data-bs-toggle="collapse"', false)
+            ->assertSee('Maksimal 1.000 baris dan 2 MB');
+    }
+
+    public function test_achievement_list_uses_search_and_class_filters_with_modal_detail(): void
+    {
+        [, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->post(route('achievements.store'), $this->payload($student))->assertRedirect();
+        $achievement = Achievement::query()->firstOrFail();
+
+        $this->get(route('achievements.index', ['type_id' => 'retired']))
+            ->assertOk()
+            ->assertSee('name="search"', false)
+            ->assertSee('name="classroom_id"', false)
+            ->assertSee('>Tampilkan<', false)
+            ->assertDontSee('>Reset<', false)
+            ->assertDontSee('name="student_id"', false)
+            ->assertDontSee('name="type_id"', false)
+            ->assertDontSee('name="level_id"', false)
+            ->assertDontSee('name="date_start"', false)
+            ->assertDontSee('name="date_end"', false)
+            ->assertSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false)
+            ->assertSee('data-modal-url="'.route('achievements.edit', [$achievement, 'modal' => 1]).'"', false)
+            ->assertSee('title="Lihat selengkapnya"', false)
+            ->assertSee('title="Edit prestasi"', false)
+            ->assertSee('class="btn btn-sm btn-link d-inline-flex p-2" title="Edit prestasi"', false)
+            ->assertDontSee('>Detail<', false)
+            ->assertDontSee('>Edit<', false)
+            ->assertSee('data-service-record-modal', false);
+
+        $this->get(route('achievements.index', ['search' => 'Murid Prestasi']))
+            ->assertOk()
+            ->assertSee('>Reset<', false)
+            ->assertDontSee('>Tampilkan<', false);
+
+        $this->get(route('achievements.show', [$achievement, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('Detail Prestasi')
+            ->assertSee($achievement->activity_name)
+            ->assertSee('data-modal-url="'.route('achievements.edit', [$achievement, 'modal' => 1]).'"', false)
+            ->assertDontSee('<html', false);
+
+        $this->get(route('achievements.edit', [$achievement, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('Edit Prestasi')
+            ->assertSee('name="expected_updated_at"', false)
+            ->assertSee('name="activity_name"', false)
+            ->assertDontSee('data-autosave-form', false)
+            ->assertDontSee('<html', false);
+
+        $this->travel(1)->seconds();
+        $this->patchJson(route('achievements.update', $achievement), [
+            ...$this->payload($student),
+            'result' => 'Juara I',
+            'expected_updated_at' => $achievement->updated_at->toJSON(),
+        ])->assertOk()->assertJsonPath('redirect', route('achievements.index'));
+        $this->assertSame('Juara I', $achievement->refresh()->result);
+    }
+
     /** @return array{User, Student} */
     private function assignedStudent(): array
     {
@@ -157,7 +226,7 @@ class AchievementManagementTest extends TestCase
     /** @param list<list<string>> $rows */
     private function excel(array $rows, bool $excelDate = false): UploadedFile
     {
-        $book = new Spreadsheet();
+        $book = new Spreadsheet;
         $book->getActiveSheet()->fromArray($rows);
         if ($excelDate) {
             $book->getActiveSheet()->setCellValue('F2', Date::PHPToExcel(new \DateTimeImmutable('2026-08-10')));

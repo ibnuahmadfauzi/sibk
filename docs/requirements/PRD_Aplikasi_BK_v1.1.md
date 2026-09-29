@@ -125,7 +125,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Konsultasi minimum             | Record mandiri terhubung murid berisi tanggal, jenis layanan, Latar Belakang Masalah, dan Penanganan; Hasil / Ringkasan dapat ditambahkan kemudian. | Inti        |
 | Data dan histori murid         | Profil, e-Tatib, kasus, layanan, konsultasi, tindak lanjut, serta histori lintas kelas dan Guru BK.    | Inti        |
 | Dashboard dan laporan          | Pemantauan, rekap per scope Guru BK, rekap gabungan Koordinator, dan laporan Waka yang diizinkan.      | Inti        |
-| Akses Waka                     | Portal khusus berisi Dashboard, Murid dengan Kasus, dan Laporan; seluruh detail kasus dan konsultasi memakai proyeksi hanya-baca yang diaudit. | Inti        |
+| Akses Waka                     | Portal khusus berisi Dashboard, Prestasi, dan Laporan; seluruh detail kasus dan konsultasi memakai proyeksi hanya-baca yang diaudit. | Inti        |
 | Audit                          | Jejak perubahan append-only tanpa halaman pembaca umum; satu simpan resmi mencatat hanya field yang berubah. | Inti        |
 | Retensi                        | Data operasional tidak dihapus sebelum tersimpan minimum tiga tahun; draf Persiapan yang belum aktif dapat dibatalkan sesuai pemeriksaan relasi. Penghapusan otomatis belum diaktifkan. | Inti        |
 | Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel; Guru BK membaca sesuai scope sebagai konteks layanan. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
@@ -202,7 +202,7 @@ Konfigurasi koneksi langsung dapat disimpan sebelum kontrak provider tersedia, t
 
 # Arsitektur informasi dan laporan
 
-Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Laporan. Guru BK, Koordinator BK, dan Waka memakai halaman Laporan yang sama secara visual berupa daftar catatan kasus dan konsultasi sesuai scope. Waka tetap memakai navigasi khusus Dashboard, Murid dengan Kasus, Prestasi, Laporan, dan Akun Saya, tetapi tidak mempunyai portal laporan bertab terpisah. Proses keluar murid tersedia read-only bagi Waka. Penugasan tersedia sesuai peran Koordinator, sedangkan pengelolaan akun, rekonsiliasi identitas, data master, dan sinkronisasi tersedia bagi Admin IT. Dapodik dan e-Tatib tetap menjadi sistem sumber, bukan modul navigasi utama. Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak menjadi menu atau halaman MVP.
+Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Laporan. Guru BK, Koordinator BK, dan Waka memakai halaman Laporan yang sama secara visual berupa daftar catatan kasus dan konsultasi sesuai scope. Waka tetap memakai navigasi khusus Dashboard, Proses Keluar Murid, Prestasi, Laporan, dan Akun Saya, tetapi tidak mempunyai menu Murid dengan Kasus maupun portal laporan bertab terpisah. Proses keluar murid tersedia read-only bagi Waka. Penugasan tersedia sesuai peran Koordinator, sedangkan pengelolaan akun, rekonsiliasi identitas, data master, dan sinkronisasi tersedia bagi Admin IT. Dapodik dan e-Tatib tetap menjadi sistem sumber, bukan modul navigasi utama. Koreksi Data, Notifikasi, dan Riwayat Perubahan tidak menjadi menu atau halaman MVP.
 
 | **Area**            | **Fungsi**                                                                                                |
 |---------------------|-----------------------------------------------------------------------------------------------------------|
