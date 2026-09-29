@@ -51,7 +51,13 @@ class StoreCaseRequest extends FormRequest
         } elseif (! $isEtatib) {
             // Bersihkan data e-tatib bila bukan sumber e-tatib
             $this->merge(['etatib_record_ids' => []]);
-            if ($this->filled('temporary_nisn')) {
+            if ($this->filled('student_id')) {
+                $this->merge([
+                    'temporary_nisn' => null,
+                    'temporary_name' => null,
+                    'temporary_classroom_id' => null,
+                ]);
+            } elseif ($this->filled('temporary_nisn')) {
                 $this->merge(['student_id' => null]);
             }
         }

@@ -185,11 +185,11 @@
                     <div class="row g-3 pt-2">
                         <div class="col-12 col-md-4">
                             <label for="student_nisn" class="form-label text-dark fw-semibold small mb-2">NISN</label>
-                            <input type="text" class="form-control py-2 border-secondary-subtle rounded-3 {{ $isEtatibInitial ? 'bg-light text-muted' : '' }}" id="student_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" maxlength="20" inputmode="numeric" placeholder="Masukkan NISN" {{ $isEtatibInitial ? 'readonly' : 'required' }}>
+                            <input type="text" class="form-control py-2 border-secondary-subtle rounded-3 {{ $isEtatibInitial ? 'bg-light text-muted' : '' }}" id="student_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" maxlength="20" inputmode="numeric" placeholder="Masukkan NISN" aria-controls="student_lookup_results" aria-autocomplete="list" aria-expanded="false" {{ $isEtatibInitial ? 'readonly' : 'required' }}>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="student_name" class="form-label text-dark fw-semibold small mb-2">Nama Murid</label>
-                            <input type="text" class="form-control py-2 border-secondary-subtle rounded-3 {{ $isEtatibInitial ? 'bg-light text-muted' : '' }}" id="student_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Masukkan nama murid" {{ $isEtatibInitial ? 'readonly' : 'required' }}>
+                            <input type="text" class="form-control py-2 border-secondary-subtle rounded-3 {{ $isEtatibInitial ? 'bg-light text-muted' : '' }}" id="student_name" name="temporary_name" value="{{ old('temporary_name') }}" maxlength="150" placeholder="Masukkan nama murid" aria-controls="student_lookup_results" aria-autocomplete="list" aria-expanded="false" {{ $isEtatibInitial ? 'readonly' : 'required' }}>
                         </div>
                         <div class="col-12 col-md-4">
                             <label for="student_classroom" class="form-label text-dark fw-semibold small mb-2">Rombel</label>
@@ -206,6 +206,12 @@
                                     </option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div class="col-12">
+                            <div id="student_lookup_results" class="list-group border rounded-3 overflow-hidden d-none" role="listbox" aria-label="Hasil pencarian murid"></div>
+                            <p class="small text-secondary mb-0 mt-2" id="student_lookup_hint">
+                                Ketik NISN atau nama untuk mencari murid. Jika tidak ditemukan, lanjutkan mengisi data secara manual.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -362,6 +368,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Data master e-Tatib yang diformat dari server
             const etatibRecordsData = @json($formattedEtatibRecords);
+            const studentLookupData = @json($studentLookupData);
 
             // Elemen DOM
             const form = document.getElementById('case-create-form');
@@ -382,6 +389,8 @@
             const studentNameInput = document.getElementById('student_name');
             const etatibClassroomDisplay = document.getElementById('etatib_classroom_display');
             const manualClassroomSelect = document.getElementById('manual_classroom_select');
+            const studentLookupResults = document.getElementById('student_lookup_results');
+            const studentLookupHint = document.getElementById('student_lookup_hint');
 
             const hiddenStudentId = document.getElementById('hidden_student_id');
             const hiddenEtatibRecordId = document.getElementById('hidden_etatib_record_id');
@@ -440,7 +449,7 @@
                     if (isEtatib) {
                         sourceInfoText.textContent = 'Jika sumber dipilih "e-Tatib", Anda dapat mencari data langsung dari e-Tatib: berdasarkan NISN atau nama.';
                     } else {
-                        sourceInfoText.textContent = `Anda telah memilih "${selectedText}". Silakan lengkapi data murid secara manual.`;
+                        sourceInfoText.textContent = `Anda telah memilih "${selectedText}". Cari murid lewat NISN atau nama, atau lanjutkan mengisi manual jika datanya belum tersedia.`;
                     }
                 }
 
@@ -455,6 +464,8 @@
                 // 3. Tampilkan/Sembunyikan Bagian e-Tatib
                 if (etatibSearchSection) etatibSearchSection.classList.toggle('d-none', !isEtatib);
                 if (etatibViolationSection) etatibViolationSection.classList.toggle('d-none', !isEtatib);
+                if (studentLookupHint) studentLookupHint.classList.toggle('d-none', isEtatib);
+                if (isEtatib) hideStudentLookup();
 
                 // 4. Nomor Urut Langkah (Step Numbering)
                 if (isEtatib) {
@@ -505,8 +516,62 @@
 
                     // Kosongkan referensi e-Tatib
                     if (hiddenEtatibRecordId) hiddenEtatibRecordId.value = '';
-                    if (hiddenStudentId) hiddenStudentId.value = '';
                 }
+            }
+
+            function hideStudentLookup() {
+                if (!studentLookupResults) return;
+
+                studentLookupResults.classList.add('d-none');
+                studentLookupResults.innerHTML = '';
+                studentNisnInput?.setAttribute('aria-expanded', 'false');
+                studentNameInput?.setAttribute('aria-expanded', 'false');
+            }
+
+            function selectStudent(student) {
+                if (hiddenStudentId) hiddenStudentId.value = student.id;
+                if (studentNisnInput) studentNisnInput.value = student.nisn || '';
+                if (studentNameInput) studentNameInput.value = student.name || '';
+                if (manualClassroomSelect) manualClassroomSelect.value = student.classroom_id || '';
+                hideStudentLookup();
+            }
+
+            function renderStudentLookup(query) {
+                if (!studentLookupResults || isEtatibSelected()) {
+                    hideStudentLookup();
+                    return;
+                }
+
+                const term = String(query || '').trim().toLowerCase();
+                if (!term) {
+                    hideStudentLookup();
+                    return;
+                }
+
+                const matches = studentLookupData.filter(student =>
+                    String(student.nisn || '').toLowerCase().includes(term)
+                    || String(student.name || '').toLowerCase().includes(term)
+                ).slice(0, 8);
+
+                studentLookupResults.innerHTML = '';
+                studentLookupResults.classList.remove('d-none');
+                studentNisnInput?.setAttribute('aria-expanded', 'true');
+                studentNameInput?.setAttribute('aria-expanded', 'true');
+
+                if (matches.length === 0) {
+                    studentLookupResults.innerHTML = '<div class="px-3 py-2 small text-secondary">Murid tidak ditemukan. Silakan lanjutkan isi data secara manual.</div>';
+                    return;
+                }
+
+                matches.forEach(student => {
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.className = 'list-group-item list-group-item-action px-3 py-2 text-start';
+                    option.setAttribute('role', 'option');
+                    option.innerHTML = `<span class="d-block fw-semibold text-dark">${escapeHtml(student.name)}</span><span class="small text-secondary">NISN: ${escapeHtml(student.nisn)} &bull; Rombel: ${escapeHtml(student.classroom_name)}</span>`;
+                    option.addEventListener('click', () => selectStudent(student));
+                    studentLookupResults.appendChild(option);
+                });
             }
 
             // Terapkan Detail Data Record e-Tatib yang Terpilih ke Form
@@ -678,6 +743,32 @@
                 updateSourceState();
                 if (isEtatibSelected()) {
                     renderEtatibResults();
+                }
+            });
+
+            [studentNisnInput, studentNameInput].forEach(input => {
+                input?.addEventListener('input', () => {
+                    if (hiddenStudentId) hiddenStudentId.value = '';
+                    renderStudentLookup(input.value);
+                });
+                input?.addEventListener('focus', () => renderStudentLookup(input.value));
+                input?.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') hideStudentLookup();
+                    if (event.key === 'ArrowDown') {
+                        const firstOption = studentLookupResults?.querySelector('button');
+                        if (firstOption) {
+                            event.preventDefault();
+                            firstOption.focus();
+                        }
+                    }
+                });
+            });
+
+            document.addEventListener('click', event => {
+                if (!studentLookupResults?.contains(event.target)
+                    && event.target !== studentNisnInput
+                    && event.target !== studentNameInput) {
+                    hideStudentLookup();
                 }
             });
 

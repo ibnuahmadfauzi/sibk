@@ -474,6 +474,19 @@ final class StudentDepartureTest extends TestCase
         $this->assertSame('2026-09-10', $case->refresh()->service_date?->toDateString());
 
         try {
+            app(CaseService::class)->update($case, [
+                'service_date' => '2026-09-14',
+                'initial_info' => $case->initial_info,
+                'initial_action' => $case->initial_action,
+                'action' => 'save',
+                'expected_updated_at' => $case->updated_at->toISOString(),
+            ], $teacher);
+            $this->fail('Tanggal kasus dapat dipindah ke tanggal keluar resmi.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('service_date', $exception->errors());
+        }
+
+        try {
             app(ConsultationService::class)->update($consultation, [
                 'service_field_id' => $consultation->service_field_id,
                 'session_date' => '2026-09-14',

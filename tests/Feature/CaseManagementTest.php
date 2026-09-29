@@ -57,7 +57,7 @@ class CaseManagementTest extends TestCase
         ]);
 
         $case = BkCase::query()->firstOrFail();
-        $response->assertRedirect(route('cases.show', $case));
+        $response->assertRedirect(route('cases.index', ['tab' => 'kasus']));
         $this->assertSame(ServiceRecordStatus::IN_PROGRESS, $case->status->code);
         $this->assertDatabaseHas('case_etatib_links', [
             'case_id' => $case->id,
@@ -80,6 +80,63 @@ class CaseManagementTest extends TestCase
         $this->assertSame($student->id, $case->student_id);
         $this->assertNull($case->temporary_student_id);
         $this->assertSame('Nama Resmi', $student->refresh()->name);
+    }
+
+    public function test_create_form_exposes_lookup_for_students_in_teacher_scope_only(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Dalam Scope', '0011111111');
+        $this->scopedStudent($otherTeacher, 'Murid Luar Scope', '0022222222', 'XI RPL 2');
+
+        $this->actingAs($teacher)->get(route('cases.create'))
+            ->assertOk()
+            ->assertSee('aria-controls="student_lookup_results"', false)
+            ->assertSee('id="student_lookup_results"', false)
+            ->assertSee('Murid Dalam Scope')
+            ->assertSee($student->nisn)
+            ->assertSee('X RPL 1')
+            ->assertDontSee('Murid Luar Scope')
+            ->assertDontSee('0022222222');
+    }
+
+    public function test_non_etatib_lookup_selection_accepts_autofilled_identity_fields(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Terpilih', '0033333333');
+        $classroomId = $student->classMemberships()->firstOrFail()->classroom_id;
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload(),
+            'student_id' => $student->id,
+            'temporary_nisn' => $student->nisn,
+            'temporary_name' => $student->name,
+            'temporary_classroom_id' => $classroomId,
+        ])->assertRedirect(route('cases.index', ['tab' => 'kasus']));
+
+        $case = BkCase::query()->firstOrFail();
+        $this->assertSame($student->id, $case->student_id);
+        $this->assertNull($case->temporary_student_id);
+    }
+
+    public function test_non_etatib_lookup_selection_keeps_selected_student_when_nisn_changes_before_submit(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Terpilih', '0044444444');
+        $staleNisn = $student->nisn;
+        $student->update(['nisn' => '0055555555']);
+
+        $this->actingAs($teacher)->post(route('cases.store'), [
+            ...$this->casePayload(),
+            'student_id' => $student->id,
+            'temporary_nisn' => $staleNisn,
+            'temporary_name' => $student->name,
+            'temporary_classroom_id' => $student->classMemberships()->firstOrFail()->classroom_id,
+        ])->assertRedirect(route('cases.index', ['tab' => 'kasus']));
+
+        $case = BkCase::query()->firstOrFail();
+        $this->assertSame($student->id, $case->student_id);
+        $this->assertNull($case->temporary_student_id);
     }
 
     public function test_manual_unknown_nisn_creates_temporary_identity(): void
@@ -125,22 +182,57 @@ class CaseManagementTest extends TestCase
         $teacher = $this->userWithRole('guru_bk');
         $case = $this->createCase($teacher, $this->scopedStudent($teacher));
 
-        $this->actingAs($teacher)->patch(route('cases.update', $case), [
-            ...$this->updatePayload($case),
-            'action' => 'complete',
-            'resolution_summary' => '',
+        $this->actingAs($teacher)->patch(route('cases.complete', $case), [
+            'expected_updated_at' => $case->updated_at->toJSON(),
+            'resolution_summary' => 'Ringkasan yang belum disimpan tidak boleh dipakai.',
         ])->assertSessionHasErrors('resolution_summary');
 
-        $this->actingAs($teacher)->patch(route('cases.update', $case), [
-            ...$this->updatePayload($case),
-            'action' => 'complete',
-            'resolution_summary' => 'Murid menyepakati langkah penyelesaian.',
+        $case->update(['resolution_summary' => 'Murid menyepakati langkah penyelesaian.']);
+        $this->actingAs($teacher)->patch(route('cases.complete', $case), [
+            'expected_updated_at' => $case->updated_at->toJSON(),
+            'initial_info' => 'Narasi dari payload yang harus diabaikan.',
             'closed_at' => '1999-01-01',
-        ])->assertRedirect(route('cases.show', $case));
+        ])->assertRedirect(route('cases.index'));
 
         $case->refresh();
         $this->assertSame(ServiceRecordStatus::COMPLETED, $case->status->code);
         $this->assertSame('2026-09-17', $case->closed_at?->toDateString());
+        $this->assertSame('Murid menyepakati langkah penyelesaian.', $case->resolution_summary);
+        $this->assertSame('Informasi awal layanan.', $case->initial_info);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'case.completed', 'auditable_id' => $case->id]);
+    }
+
+    public function test_completion_rejects_stale_and_completed_cases_and_non_owners(): void
+    {
+        Carbon::setTestNow('2026-09-17 08:30:00');
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher), ['resolution_summary' => 'Kesepakatan selesai.']);
+        $staleTimestamp = $case->updated_at->toJSON();
+        Carbon::setTestNow('2026-09-17 08:31:00');
+        $case->update(['initial_info' => 'Perubahan dari tab lain.']);
+
+        $this->actingAs($teacher)->patchJson(route('cases.complete', $case), [
+            'expected_updated_at' => $staleTimestamp,
+        ])->assertUnprocessable()->assertJsonValidationErrors('expected_updated_at');
+        $this->assertNull($case->refresh()->closed_at);
+
+        foreach ([$this->userWithRole('guru_bk'), $this->userWithRole('waka_kesiswaan')] as $other) {
+            $this->actingAs($other)->patchJson(route('cases.complete', $case), [
+                'expected_updated_at' => $case->updated_at->toJSON(),
+            ])->assertForbidden();
+        }
+
+        $this->actingAs($teacher)->patch(route('cases.update', $case), [
+            ...$this->updatePayload($case),
+            'action' => 'complete',
+        ])->assertSessionHasErrors('action');
+
+        $this->actingAs($teacher)->patchJson(route('cases.complete', $case), [
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertOk();
+        $this->actingAs($teacher)->patchJson(route('cases.complete', $case->refresh()), [
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertUnprocessable()->assertJsonValidationErrors('case');
     }
 
     public function test_completed_case_can_save_narratives_and_audit_only_changed_fields(): void
@@ -167,6 +259,41 @@ class CaseManagementTest extends TestCase
         $audit = AuditLog::query()->where('action', 'case.updated')->latest('id')->firstOrFail();
         $this->assertSame(['initial_action' => 'Asesmen awal.'], $audit->before_values);
         $this->assertSame(['initial_action' => 'Penanganan diperjelas setelah kasus selesai.'], $audit->after_values);
+    }
+
+    public function test_owner_can_update_case_metadata_but_not_source_or_identity(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $serviceField = $this->reference('service_field', 'sosial');
+
+        $this->actingAs($teacher)->patch(route('cases.update', $case), [
+            ...$this->updatePayload($case),
+            'service_field_id' => $serviceField->id,
+            'service_date' => '2026-08-02',
+        ])->assertRedirect(route('cases.show', $case));
+
+        $case->refresh();
+        $this->assertSame($serviceField->id, $case->service_field_id);
+        $this->assertSame('2026-08-02', $case->service_date?->toDateString());
+
+        $serviceField->update(['is_active' => false]);
+        $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('<option value="'.$serviceField->id.'" selected>'.$serviceField->label.'</option>', false);
+        $this->actingAs($teacher)->patch(route('cases.update', $case), [
+            ...$this->updatePayload($case),
+            'service_field_id' => $serviceField->id,
+            'service_date' => $case->service_date?->toDateString(),
+        ])->assertRedirect(route('cases.show', $case));
+
+        $case->refresh();
+
+        $this->actingAs($teacher)->patch(route('cases.update', $case), [
+            ...$this->updatePayload($case),
+            'case_source_id' => $this->reference('case_source', 'rujukan')->id,
+            'temporary_name' => 'Identitas yang diubah',
+        ])->assertSessionHasErrors(['case_source_id', 'temporary_name']);
     }
 
     public function test_stale_case_update_is_rejected(): void
@@ -251,11 +378,20 @@ class CaseManagementTest extends TestCase
         $response = $this->actingAs($teacher)->get(route('cases.index'));
 
         $response->assertOk()
-            ->assertSeeInOrder(['Murid', 'Kelas', 'Tanggal', 'Sumber', 'Jenis Masalah', 'Status', 'Tindak Lanjut', 'Aksi'])
-            ->assertSee('<tr data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'">', false)
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Status', 'Tindak Lanjut', 'Aksi'], false)
+            ->assertDontSee('<tr data-modal-url=', false)
+            ->assertSee('href="'.route('cases.show', $case).'"', false)
+            ->assertSee('title="Lihat selengkapnya" aria-label="Lihat selengkapnya"', false)
             ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false)
             ->assertSee('data-follow-up-url="'.$this->followUpUrl($case).'"', false)
             ->assertSee('data-save-status', false)
+            ->assertSee('action="'.route('cases.complete', $case).'"', false)
+            ->assertSee('id="case-complete-updated-at-'.$case->id.'"', false)
+            ->assertSee('data-confirm-title="Selesaikan Kasus BK?"', false)
+            ->assertSee('data-confirm-title="Hapus Kasus BK?"', false)
+            ->assertSee('data-confirm-subject="'.$case->identityName().' ('.$case->classroom->name.')"', false)
+            ->assertSee('data-app-confirmation-modal', false)
+            ->assertDontSee('intent=complete', false)
             ->assertSee('aria-labelledby="case-modal-title"', false)
             ->assertSee('modal-dialog-scrollable', false)
             ->assertSee('aria-label="Tutup"', false)
@@ -340,16 +476,42 @@ class CaseManagementTest extends TestCase
             ->assertOk()->assertViewIs('pages.cases.show')->assertSee('Detail Permasalahan');
         $this->actingAs($teacher)->get(route('cases.show', [$case, 'modal' => 1]))
             ->assertOk()->assertViewIs('pages.cases._detail-modal')
-            ->assertSeeInOrder(['Nama', 'Tanggal', 'Kelas', 'Jenis Masalah', 'Status', 'Guru BK', 'Latar Belakang', 'Penanganan', 'Catatan Penyelesaian']);
+            ->assertSeeInOrder(['Detail Kasus BK', 'Data Murid', 'NISN', 'Nama', 'Rombel', 'Informasi Layanan', 'Sumber', 'Tanggal Layanan', 'Jenis Masalah', 'Status', 'Catatan Permasalahan', 'Latar Belakang', 'Penanganan', 'Ringkasan', 'Riwayat Tindak Lanjut'])
+            ->assertSee($case->student->nisn)
+            ->assertSee($case->source->label)
+            ->assertSee('Belum ada riwayat tindak lanjut.');
         $this->actingAs($teacher)->get(route('cases.edit', $case))
             ->assertOk()->assertViewIs('pages.cases.edit')->assertSee('Ubah Permasalahan');
         $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
             ->assertOk()->assertViewIs('pages.cases._edit-modal')
+            ->assertSeeInOrder(['Edit Kasus BK', 'Data Murid', 'Sumber:', $case->source->label, 'NISN', 'Nama Murid', 'Rombel', 'Jenis Masalah', 'Tanggal Layanan', 'Catatan Permasalahan', 'Latar Belakang', 'Penanganan', 'Ringkasan', 'Batal', 'Simpan Perubahan'])
             ->assertSee('name="expected_updated_at"', false)
             ->assertSee('name="action" value="save"', false)
-            ->assertSee('name="action" value="complete"', false)
+            ->assertSee('name="service_field_id"', false)
+            ->assertSee('name="service_date"', false)
+            ->assertDontSee('name="action" value="complete"', false)
+            ->assertDontSee('name="case_source_id"', false)
             ->assertDontSee('name="change_reason"', false)
-            ->assertDontSee('name="waka_summary"', false);
+            ->assertDontSee('name="waka_summary"', false)
+            ->assertDontSee('data-autosave-form', false)
+            ->assertDontSee('data-draft-status', false)
+            ->assertDontSee('data-clear-draft', false);
+    }
+
+    public function test_etatib_edit_modal_shows_locked_student_identity(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher);
+        $case = $this->createCase($teacher, $student, ['case_source_id' => $this->reference('case_source', 'e_tatib')->id]);
+
+        $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('Data murid diisi otomatis dari e-Tatib dan tidak dapat diubah.')
+            ->assertSee('id="case-edit-nisn" value="'.$student->nisn.'" disabled', false)
+            ->assertSee('id="case-edit-name" value="'.$student->name.'" disabled', false)
+            ->assertSee('id="case-edit-classroom" value="'.$case->classroom->name.'" disabled', false)
+            ->assertDontSee('name="student_id"', false)
+            ->assertDontSee('name="case_source_id"', false);
     }
 
     public function test_completed_case_edit_trigger_requires_confirmation_and_waka_cannot_mutate(): void
@@ -402,6 +564,9 @@ class CaseManagementTest extends TestCase
         AcademicYear::query()->whereKey($case->academic_year_id)->update(['is_active' => false]);
 
         $this->assertFalse($teacher->can('update', $case->fresh()));
+        $this->actingAs($teacher)->patchJson(route('cases.complete', $case), [
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertForbidden();
         $this->actingAs($teacher)->delete(route('cases.destroy', $case))->assertForbidden();
         $this->assertDatabaseHas('cases', ['id' => $case->id, 'deleted_at' => null]);
     }
