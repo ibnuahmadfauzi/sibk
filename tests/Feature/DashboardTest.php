@@ -170,6 +170,28 @@ class DashboardTest extends TestCase
         $this->assertSame(['primary', 'primary', 'primary'], array_column($actions, 'tone'));
     }
 
+    public function test_coordinator_quick_actions_exclude_case_and_consultation_creation(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Quick Action');
+        $actions = app(DashboardService::class)->forUser($coordinator, $this->year)['quick_actions'];
+        $labels = array_column($actions, 'label');
+
+        $this->assertSame(['Laporan'], $labels);
+        $this->assertNotContains('Catat Permasalahan', $labels);
+        $this->assertNotContains('Catat Konsultasi', $labels);
+    }
+
+    public function test_coordinator_dashboard_does_not_render_case_and_consultation_quick_menu(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Tampilan');
+
+        $this->actingAs($coordinator)->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSee('Laporan')
+            ->assertDontSee('Catat Permasalahan')
+            ->assertDontSee('Catat Konsultasi');
+    }
+
     public function test_teacher_dashboard_displays_only_assigned_classes_in_context_panel(): void
     {
         $teacher = $this->userWithRole('guru_bk', 'Guru Ampuan');

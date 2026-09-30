@@ -441,6 +441,12 @@ class DashboardService
             ];
         }
 
+        if ($mode === 'coordinator') {
+            return [
+                ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => true, 'icon' => 'report', 'tone' => 'primary'],
+            ];
+        }
+
         return [
             ['label' => 'Catat Permasalahan', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
             ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => true, 'icon' => 'consultation', 'tone' => 'primary'],
