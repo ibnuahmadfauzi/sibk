@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['student_id', 'teacher_id', 'classroom_id', 'recorded_on', 'progress', 'note', 'reason'])]
 final class WithdrawalProgress extends Model
@@ -51,6 +52,14 @@ final class WithdrawalProgress extends Model
     public function classroom(): BelongsTo
     {
         return $this->belongsTo(Classroom::class);
+    }
+
+    /** @return HasMany<WithdrawalProgressFollowUp, $this> */
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(WithdrawalProgressFollowUp::class)
+            ->orderByDesc('follow_up_date')
+            ->orderByDesc('id');
     }
 
     /** @param Builder<WithdrawalProgress> $query */

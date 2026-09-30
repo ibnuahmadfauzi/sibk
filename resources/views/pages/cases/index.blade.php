@@ -16,7 +16,7 @@
                 @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
                 @can('viewAny', \App\Models\WithdrawalProgress::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'pengunduran-diri' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">Pengunduran Diri</a></li>@endcan
             </ul>
-            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawal-create-modal" @disabled($withdrawalStudents->isEmpty())>Catat Pengunduran Diri</button>@endif
+            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<a href="{{ route('withdrawals.create') }}" class="btn btn-primary">Catat Pengunduran Diri</a>@endif
         </div>
 
         @if($activeTab === 'kasus')
@@ -216,122 +216,65 @@
                 <div class="col-12 col-lg-5"><label class="form-label" for="consultation_field">Jenis Masalah</label><select class="form-select" id="consultation_field" name="service_field_id"><option value="">Semua jenis masalah</option>@foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) request('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach</select></div>
                 <div class="col-12 col-lg-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
-            @php
-                $consultationSortUrl = fn (string $column) => route('cases.index', array_merge(request()->query(), [
-                    'sort' => $column,
-                    'direction' => request('sort') === $column && request('direction') === 'asc' ? 'desc' : 'asc',
-                ]));
-            @endphp
-            <section class="sibk-panel sibk-operational-report" aria-labelledby="consultation-list-title">
-                <div class="sibk-panel__header p-4 border-bottom">
-                    <h2 class="h5 mb-1" id="consultation-list-title">Daftar Konsultasi</h2>
-                    @include('pages.reports._summary', ['items' => [[
-                        'value' => $consultations->total(),
-                        'label' => 'Total Konsultasi',
-                    ]]])
-                </div>
-                <div class="table-responsive sibk-operational-report-table">
-                    <table class="table sibk-table align-middle mb-0">
-                        <thead><tr><th scope="col">No</th><th scope="col">Hari/Tanggal</th><th scope="col">Nama & Kelas</th><th scope="col">Layanan/Jenis Masalah</th><th scope="col">Hasil</th><th scope="col">Aksi</th></tr></thead>
-                        <tbody>
+            <div class="table-responsive">
+                <table class="table sibk-table mb-0 align-middle">
+                    <thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Nama & Kelas</th><th scope="col">Jenis Layanan</th><th scope="col">Aksi</th></tr></thead>
+                    <tbody>
                             @forelse($consultations as $session)
-                                @php
-                                    $detailId = "consultation-detail-{$session->id}";
-                                    $result = $isWakaOnly ? '—' : ($session->result ?: '—');
-                                @endphp
-                                <tr class="sibk-report-row">
-                                    <td>{{ $consultations->firstItem() + $loop->index }}</td>
-                                    <td><strong>{{ $session->session_date->locale('id')->translatedFormat('l') }}</strong><div class="small text-muted">{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</div></td>
+                                <tr>
+                                    <td><strong>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</strong><div class="small text-muted">({{ $session->session_date->locale('id')->translatedFormat('l') }})</div></td>
                                     <td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }}</div></td>
-                                    <td><span class="d-block small text-muted">Konsultasi</span><strong class="sibk-report-service-field d-block">{{ $session->serviceField->label }}</strong></td>
-                                    <td>{{ $result }}</td>
+                                    <td>{{ $session->serviceField->label }}</td>
                                     <td>
-                                        <div class="d-flex gap-2">
-                                            @if($isWakaOnly)
-                                                <a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm sibk-icon-button sibk-report-control" title="Tampilkan detail layanan" aria-label="Tampilkan detail layanan {{ $session->identityName() }}">
-                                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <a href="{{ route('consultations.show', $session) }}"
+                                                data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}"
+                                                class="btn btn-icon-action btn-icon-action--info"
+                                                title="Lihat detail"
+                                                aria-label="Lihat detail konsultasi {{ $session->identityName() }}">
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                            </a>
+                                            @can('update', $session)
+                                                <a href="{{ route('consultations.edit', $session) }}"
+                                                    data-modal-url="{{ route('consultations.edit', [$session, 'modal' => 1]) }}"
+                                                    data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"
+                                                    onclick="if (! window.confirm(this.dataset.confirmMessage)) { event.stopImmediatePropagation(); return false; }"
+                                                    class="btn btn-icon-action btn-icon-action--primary"
+                                                    title="Edit"
+                                                    aria-label="Edit konsultasi {{ $session->identityName() }}">
+                                                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
                                                 </a>
-                                            @else
-                                                <button class="btn btn-sm sibk-icon-button sibk-report-control" type="button" data-report-detail-toggle data-report-detail-name="{{ $session->identityName() }}" aria-controls="{{ $detailId }}" aria-expanded="false" aria-label="Tampilkan detail layanan {{ $session->identityName() }}" title="Tampilkan detail layanan">
-                                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-                                                </button>
-                                            @endif
+                                            @endcan
                                             @can('archive', $session)
-                                                <form action="{{ route('consultations.destroy', $session) }}" method="POST" data-confirm-submit data-confirm-message="Arsipkan catatan layanan ini?">
+                                                <form action="{{ route('consultations.destroy', $session) }}" method="POST"
+                                                    data-app-confirm-submit
+                                                    data-confirm-title="Hapus Konsultasi?"
+                                                    data-confirm-message="Apakah Anda yakin ingin menghapus konsultasi milik"
+                                                    data-confirm-subject="{{ $session->identityName() }} ({{ $session->classroom?->name ?? 'Tanpa Rombel' }})"
+                                                    data-confirm-suffix="?"
+                                                    data-confirm-action="Hapus"
+                                                    data-confirm-tone="danger">
                                                     @csrf @method('DELETE')
-                                                    <button class="btn btn-sm btn-outline-danger sibk-icon-button" type="submit" aria-label="Arsipkan {{ $session->identityName() }}" title="Arsipkan">
-                                                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V3h8v3"/><path d="m19 6-1 15H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+                                                    <button class="btn btn-icon-action btn-icon-action--danger" type="submit" aria-label="Arsipkan konsultasi {{ $session->identityName() }}" title="Arsipkan">
+                                                        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                                                     </button>
                                                 </form>
                                             @endcan
                                         </div>
                                     </td>
                                 </tr>
-                                @unless($isWakaOnly)
-                                    <tr class="sibk-report-detail-row d-none" id="{{ $detailId }}">
-                                        <td class="sibk-report-detail-spacer" aria-hidden="true"></td>
-                                        <td colspan="5"><div class="sibk-report-detail-panel"><div class="row g-3">
-                                            <div class="col-12 col-lg-6"><strong class="d-block mb-1">Latar Belakang Masalah</strong><p class="mb-0">{{ $session->problem ?: '—' }}</p></div>
-                                            <div class="col-12 col-lg-6"><strong class="d-block mb-1">Penanganan</strong><p class="mb-0">{{ $session->handling ?: '—' }}</p></div>
-                                        </div></div></td>
-                                    </tr>
-                                @endunless
                             @empty
-                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>
+                                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>
                             @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div class="sibk-operational-report-cards p-3">
-                    @forelse($consultations as $session)
-                        @php
-                            $cardDetailId = "consultation-card-detail-{$session->id}";
-                            $result = $isWakaOnly ? '—' : ($session->result ?: '—');
-                        @endphp
-                        <article class="sibk-panel sibk-operational-report-card p-3">
-                            <div class="d-flex justify-content-between gap-3 mb-3">
-                                <div>
-                                    <h3 class="h6 mb-1">{{ $session->identityName() }}</h3>
-                                    <p class="small text-muted mb-0">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }} &middot; {{ $session->session_date->locale('id')->translatedFormat('l, d M Y') }}</p>
-                                </div>
-                                <span class="sibk-badge flex-column align-items-start gap-0"><span class="small fw-normal">Konsultasi</span><strong>{{ $session->serviceField->label }}</strong></span>
-                            </div>
-                            <dl class="mb-3"><div class="py-2"><dt>Hasil</dt><dd class="mb-0">{{ $result }}</dd></div></dl>
-                            @unless($isWakaOnly)
-                                <div class="sibk-report-detail-panel d-none mb-3" id="{{ $cardDetailId }}">
-                                    <div class="mb-3"><strong class="d-block mb-1">Latar Belakang Masalah</strong><p class="mb-0">{{ $session->problem ?: '—' }}</p></div>
-                                    <div><strong class="d-block mb-1">Penanganan</strong><p class="mb-0">{{ $session->handling ?: '—' }}</p></div>
-                                </div>
-                            @endunless
-                            <div class="d-flex justify-content-end gap-2">
-                                @if($isWakaOnly)
-                                    <a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-sm sibk-icon-button sibk-report-control" title="Tampilkan detail layanan" aria-label="Tampilkan detail layanan {{ $session->identityName() }}">
-                                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-                                    </a>
-                                @else
-                                    <button class="btn btn-sm sibk-icon-button sibk-report-control" type="button" data-report-detail-toggle data-report-detail-name="{{ $session->identityName() }}" aria-controls="{{ $cardDetailId }}" aria-expanded="false" aria-label="Tampilkan detail layanan {{ $session->identityName() }}" title="Tampilkan detail layanan">
-                                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-                                    </button>
-                                @endif
-                                @can('archive', $session)
-                                    <form action="{{ route('consultations.destroy', $session) }}" method="POST" data-confirm-submit data-confirm-message="Arsipkan catatan layanan ini?">
-                                        @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger" type="submit">Arsipkan</button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </article>
-                    @empty
-                        <p class="text-center text-muted mb-0 py-3">Belum ada sesi konsultasi yang dapat Anda akses.</p>
-                    @endforelse
-                </div>
-            </section>
-            @if($consultations->hasPages())<div class="mt-4">{{ $consultations->links() }}</div>@endif
+                    </tbody>
+                </table>
+            </div>
+            @if($consultations->hasPages())<div class="mt-3">{{ $consultations->links() }}</div>@endif
         @else
             @include('pages.cases._withdrawals')
         @endif
         <div class="modal fade" id="case-modal" tabindex="-1" aria-labelledby="case-modal-title" aria-hidden="true" data-service-record-modal>
-            <div class="modal-dialog {{ $activeTab === 'kasus' ? 'modal-lg' : '' }} modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+            <div class="modal-dialog {{ in_array($activeTab, ['kasus', 'konsultasi'], true) ? 'modal-lg' : '' }} modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
                 <div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Detail Layanan BK</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                 <div class="modal-body"><p class="text-muted mb-0">Memuat data…</p></div>
             </div></div>
@@ -531,73 +474,6 @@
     }
 
     /* ── Icon action buttons ─────────────────────────────────── */
-    .sibk-case-detail { font-size: .875rem; }
-    .sibk-case-detail .sibk-panel { box-shadow: none; }
-    .sibk-case-edit .form-control, .sibk-case-edit .form-select, .sibk-case-edit .btn { font-size: .875rem; }
-    .sibk-case-edit .form-label { font-weight: 600; margin-bottom: .375rem; }
-    .sibk-case-edit__lock { position: absolute; right: .75rem; top: 50%; transform: translateY(-50%); pointer-events: none; }
-    .sibk-case-detail__heading .fs-6 { font-size: .875rem !important; }
-    .sibk-case-detail__heading {
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-        padding: .75rem;
-        background: var(--bs-tertiary-bg, #f8fafc);
-    }
-    .sibk-case-detail__icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: .5rem;
-        flex-shrink: 0;
-    }
-    .sibk-case-detail__fields { padding: 0 .75rem .75rem; }
-    .sibk-case-detail__fields > div {
-        display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-        gap: .75rem;
-        padding: .5rem 0;
-    }
-    .sibk-case-detail__fields > div + div { border-top: 1px solid var(--bs-border-color); }
-    .sibk-case-detail__fields dt { color: var(--bs-secondary-color); font-weight: 400; }
-    .sibk-case-detail__fields dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-    .sibk-case-detail__text { white-space: pre-line; }
-    .sibk-case-detail__note + .sibk-case-detail__note { margin-top: 1rem; }
-    .sibk-case-detail__history-entry {
-        display: grid;
-        grid-template-columns: 100px minmax(0, 1fr);
-        gap: 2rem;
-        position: relative;
-        padding-bottom: .75rem;
-    }
-    .sibk-case-detail__history-entry::before {
-        content: '';
-        position: absolute;
-        left: 115px;
-        top: 1rem;
-        bottom: -.5rem;
-        width: 2px;
-        background: var(--bs-success-border-subtle, #d1e7dd);
-    }
-    .sibk-case-detail__history-entry::after {
-        content: '';
-        position: absolute;
-        left: 111px;
-        top: .75rem;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: var(--bs-success);
-    }
-    .sibk-case-detail__history-entry:last-child { padding-bottom: 0; }
-    .sibk-case-detail__history-entry:last-child::before { display: none; }
-    @media (min-width: 768px) {
-        .sibk-case-detail__note + .sibk-case-detail__note { margin-top: 0; padding-left: 1rem; border-left: 1px solid var(--bs-border-color); }
-        .sibk-case-detail__note:not(:last-child) { padding-right: 1rem; }
-    }
-
     .btn-icon-action {
         display: inline-flex !important;
         align-items: center !important;
@@ -667,21 +543,6 @@
 @section('extra-javascript')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const withdrawalLookup = document.getElementById('withdrawal-student-lookup');
-    if (withdrawalLookup) {
-        const studentId = document.getElementById('withdrawal-student-id');
-        const options = [...document.querySelectorAll('#withdrawal-student-options option')];
-        withdrawalLookup.addEventListener('input', () => {
-            studentId.value = options.find((option) => option.value === withdrawalLookup.value)?.dataset.id ?? '';
-            withdrawalLookup.setCustomValidity('');
-        });
-        withdrawalLookup.form.addEventListener('submit', (event) => {
-            if (studentId.value) return;
-            event.preventDefault();
-            withdrawalLookup.setCustomValidity('Pilih murid dari saran yang tersedia.');
-            withdrawalLookup.reportValidity();
-        });
-    }
     // ── Popover Tindak Lanjut (posisi fixed, timbul di atas tabel) ──────────
     const modalElement = document.getElementById('modal-tambah-tindak-lanjut');
     let activePopover = null;  // popover element yang sedang terbuka

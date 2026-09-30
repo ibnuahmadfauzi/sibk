@@ -41,7 +41,8 @@ class ConsultationController extends Controller
         $actor = $request->user();
         $consultation = $service->create($request->validated(), $actor);
 
-        return redirect()->route('consultations.show', $consultation)->with('success', 'Konsultasi berhasil dicatat.');
+        return redirect()->route('cases.index', ['tab' => 'konsultasi'])
+            ->with('success', 'Konsultasi berhasil dicatat.');
     }
 
     public function show(Request $request, Consultation $consultation, AuditService $auditService): View
@@ -104,7 +105,7 @@ class ConsultationController extends Controller
         $data = $this->formValues($user, $consultation, $request);
 
         return $request->boolean('modal')
-            ? view('pages.consultations._edit-modal', [...$data, 'modal' => true])
+            ? view('pages.consultations._edit-content', [...$data, 'modal' => true])
             : view('pages.consultations.create', $data);
     }
 
