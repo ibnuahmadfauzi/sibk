@@ -60,6 +60,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::delete('/cases/{case}', [CaseController::class, 'destroy'])->name('cases.destroy');
         Route::get('/cases/{case}', [CaseController::class, 'show'])->name('cases.show');
         Route::get('/withdrawals/create', [WithdrawalProgressController::class, 'create'])->name('withdrawals.create');
+        Route::get('/withdrawals/{withdrawal}/edit', [WithdrawalProgressController::class, 'edit'])->name('withdrawals.edit');
+        Route::patch('/withdrawals/{withdrawal}', [WithdrawalProgressController::class, 'update'])->name('withdrawals.update');
+        Route::delete('/withdrawals/{withdrawal}', [WithdrawalProgressController::class, 'destroy'])->name('withdrawals.destroy');
         Route::post('/withdrawals', [WithdrawalProgressController::class, 'store'])->name('withdrawals.store');
         Route::post('/withdrawals/{withdrawal}/follow-ups', [WithdrawalProgressController::class, 'storeFollowUp'])->name('withdrawals.follow-ups.store');
 

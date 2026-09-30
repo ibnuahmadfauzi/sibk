@@ -9,6 +9,7 @@ use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
 use App\Models\WithdrawalProgressFollowUp;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -103,6 +104,78 @@ final class WithdrawalProgressService
             );
 
             return $followUp->load('creator');
+        });
+    }
+
+    /** @param array<string, mixed> $data */
+    public function update(WithdrawalProgress $withdrawal, array $data, User $actor): WithdrawalProgress
+    {
+        return DB::transaction(function () use ($withdrawal, $data, $actor): WithdrawalProgress {
+            $withdrawal = WithdrawalProgress::query()->lockForUpdate()->findOrFail($withdrawal->getKey());
+            abort_unless($actor->can('update', $withdrawal), 403);
+
+            $recordedOn = CarbonImmutable::parse($data['recorded_on'])->toDateString();
+
+            if ($recordedOn !== $withdrawal->recorded_on->toDateString()) {
+                if (! Student::query()->availableForService($recordedOn)
+                    ->forActiveTeacherAssignment($actor)
+                    ->whereKey($withdrawal->student_id)->exists()) {
+                    throw ValidationException::withMessages(['recorded_on' => 'Murid tidak berada dalam kelas yang ditugaskan kepada Anda.']);
+                }
+
+                $membership = StudentClassMembership::query()->active()
+                    ->where('student_id', $withdrawal->student_id)
+                    ->whereHas('academicYear', fn ($years) => $years
+                        ->whereDate('starts_on', '<=', $recordedOn)
+                        ->whereDate('ends_on', '>=', $recordedOn))
+                    ->first();
+                if ($membership === null) {
+                    throw ValidationException::withMessages(['recorded_on' => 'Kelas murid pada tanggal tersebut tidak tersedia.']);
+                }
+                $withdrawal->classroom_id = $membership->classroom_id;
+
+                $initialFollowUp = WithdrawalProgressFollowUp::query()
+                    ->where('withdrawal_progress_id', $withdrawal->getKey())
+                    ->whereDate('follow_up_date', $withdrawal->recorded_on->toDateString())
+                    ->whereNull('notes')
+                    ->orderBy('id')
+                    ->first();
+                $initialFollowUp?->update(['follow_up_date' => $recordedOn]);
+            }
+
+            $withdrawal->update([
+                'recorded_on' => $recordedOn,
+                'reason' => $data['reason'],
+                'note' => $data['note'] ?? null,
+            ]);
+
+            $this->auditService->record('withdrawal_progress.updated', $withdrawal,
+                'Penanganan pengunduran diri diperbarui.', $actor, [], [
+                    'student_id' => $withdrawal->student_id,
+                    'classroom_id' => $withdrawal->classroom_id,
+                    'recorded_on' => $withdrawal->recorded_on->toDateString(),
+                    'progress' => $withdrawal->progress,
+                ]);
+
+            return $withdrawal->fresh();
+        });
+    }
+
+    public function destroy(WithdrawalProgress $withdrawal, User $actor): void
+    {
+        DB::transaction(function () use ($withdrawal, $actor): void {
+            $withdrawal = WithdrawalProgress::query()->lockForUpdate()->findOrFail($withdrawal->getKey());
+            abort_unless($actor->can('delete', $withdrawal), 403);
+
+            $this->auditService->record('withdrawal_progress.deleted', $withdrawal,
+                'Penanganan pengunduran diri dihapus.', $actor, [], [
+                    'student_id' => $withdrawal->student_id,
+                    'classroom_id' => $withdrawal->classroom_id,
+                    'recorded_on' => $withdrawal->recorded_on->toDateString(),
+                    'progress' => $withdrawal->progress,
+                ]);
+
+            $withdrawal->delete();
         });
     }
 }

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeleteWithdrawalProgressRequest;
 use App\Http\Requests\StoreWithdrawalProgressFollowUpRequest;
 use App\Http\Requests\StoreWithdrawalProgressRequest;
+use App\Http\Requests\UpdateWithdrawalProgressRequest;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
@@ -45,6 +47,45 @@ final class WithdrawalProgressController extends Controller
 
         return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
             ->with('success', 'Penanganan pengunduran diri berhasil dicatat.');
+    }
+
+    public function edit(Request $request, WithdrawalProgress $withdrawal): View
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        abort_unless($actor->can('update', $withdrawal), 403);
+
+        $withdrawal->load(['student', 'classroom', 'teacher']);
+
+        return view('pages.withdrawals.edit', [
+            'withdrawal' => $withdrawal,
+        ]);
+    }
+
+    public function update(
+        UpdateWithdrawalProgressRequest $request,
+        WithdrawalProgress $withdrawal,
+        WithdrawalProgressService $service,
+    ): RedirectResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+        $service->update($withdrawal, $request->validated(), $actor);
+
+        return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
+            ->with('success', 'Penanganan pengunduran diri berhasil diperbarui.');
+    }
+
+    public function destroy(
+        DeleteWithdrawalProgressRequest $request,
+        WithdrawalProgress $withdrawal,
+        WithdrawalProgressService $service,
+    ): RedirectResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+        $service->destroy($withdrawal, $actor);
+
+        return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
+            ->with('success', 'Penanganan pengunduran diri beserta riwayat tindak lanjutnya berhasil dihapus.');
     }
 
     public function storeFollowUp(

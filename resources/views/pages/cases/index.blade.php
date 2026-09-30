@@ -409,6 +409,11 @@
         to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    .sibk-follow-up-history {
+        max-height: 240px;
+        overflow-y: auto;
+    }
+
     .sibk-follow-up-entry {
         padding: 6px 10px;
         border-radius: 8px;

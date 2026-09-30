@@ -197,12 +197,26 @@ const wireCreatePage = (page, root, environment) => {
     if (selected) applyStudentSelection(state, selected);
 };
 
-const positionPopover = (popover, button) => {
-    const rect = button.getBoundingClientRect();
-    const width = Math.min(320, window.innerWidth - 16);
+export const positionPopover = (popover, button, environment = {}) => {
+    const windowObject = environment.window ?? globalThis.window;
+    const rect = button.getBoundingClientRect?.() ?? { left: 0, top: 0, bottom: 0, right: 0 };
+    const vw = windowObject?.innerWidth ?? 1024;
+    const vh = windowObject?.innerHeight ?? 768;
+    const width = Math.min(320, vw - 16);
+    const pw = popover.offsetWidth || width;
+    const ph = popover.offsetHeight || 180;
+
+    let left = rect.left;
+    if (left + pw > vw - 8) left = vw - pw - 8;
+    if (left < 8) left = 8;
+
+    let top = rect.bottom + 8;
+    if (top + ph > vh - 8) top = rect.top - ph - 8;
+    if (top < 8) top = 8;
+
     popover.style.width = `${width}px`;
-    popover.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px`;
-    popover.style.top = `${rect.bottom + 8}px`;
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
 };
 
 export const renderPopoverHistory = (container, items, create = (tag) => document.createElement(tag)) => {
@@ -280,7 +294,7 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             closePopover();
             if (opening) {
                 popover.style.display = 'block';
-                positionPopover(popover, popoverTrigger);
+                positionPopover(popover, popoverTrigger, environment);
                 popoverTrigger.setAttribute('aria-expanded', 'true');
                 activePopover = popover;
                 activePopoverButton = popoverTrigger;
@@ -346,12 +360,7 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             const history = wrapper?.querySelector('[data-withdrawal-history]');
             if (history) renderPopoverHistory(history, data.follow_ups, environment.createElement);
             const count = wrapper?.querySelector('[data-withdrawal-follow-up-label]');
-            if (count) count.textContent = `${data.follow_ups.length} entri`;
-            const badge = root.querySelector(`#withdrawal-progress-badge-${followUpTarget.id}`);
-            if (badge) {
-                badge.textContent = data.current_progress_label;
-                badge.className = `sibk-badge sibk-badge--${toneForProgress(data.current_progress)}`;
-            }
+            if (count) count.textContent = data.follow_ups[0]?.progress_label ?? data.current_progress_label;
             followUpTarget.trigger.dataset.currentProgress = data.current_progress;
             const detailTrigger = followUpTarget.trigger.closest('tr')?.querySelector('[data-withdrawal-detail]');
             if (detailTrigger) {

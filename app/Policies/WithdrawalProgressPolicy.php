@@ -32,4 +32,9 @@ final class WithdrawalProgressPolicy
             && Student::query()->forActiveTeacherAssignment($user)
                 ->whereKey($withdrawal->student_id)->exists();
     }
+
+    public function delete(User $user, WithdrawalProgress $withdrawal): bool
+    {
+        return $this->update($user, $withdrawal);
+    }
 }

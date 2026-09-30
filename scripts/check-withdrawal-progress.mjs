@@ -9,6 +9,7 @@ import {
     readDetailTrigger,
     renderLookupResults,
     renderPopoverHistory,
+    positionPopover,
     validateLookupSelection,
 } from '../resources/js/withdrawal-progress.js';
 
@@ -110,6 +111,25 @@ renderPopoverHistory(popover, [
 assert.equal(popover.children.length, 2);
 assert.match(popover.children[0].className, /latest/);
 assert.equal(popover.children[0].children[1].children[1].textContent, 'Masuk TU');
+
+// Popover positioning: normal (below button) vs flipped (above button when near bottom)
+const popoverEl = {
+    style: {},
+    offsetWidth: 290,
+    offsetHeight: 220,
+};
+const mockEnv = { window: { innerWidth: 1024, innerHeight: 768 } };
+const topBtn = { getBoundingClientRect: () => ({ left: 100, top: 100, bottom: 130, right: 200 }) };
+positionPopover(popoverEl, topBtn, mockEnv);
+assert.equal(popoverEl.style.top, '138px'); // 130 + 8
+assert.equal(popoverEl.style.left, '100px');
+
+// When button is near bottom of viewport, popover should flip above
+const bottomBtn = { getBoundingClientRect: () => ({ left: 100, top: 600, bottom: 630, right: 200 }) };
+positionPopover(popoverEl, bottomBtn, mockEnv);
+// top (630 + 8 = 638) + ph (220) = 858 > 768 - 8 (760), flips: rect.top (600) - ph (220) - 8 = 372px
+assert.equal(popoverEl.style.top, '372px');
+assert.equal(popoverEl.style.left, '100px');
 
 const listeners = new Map();
 const root = {
