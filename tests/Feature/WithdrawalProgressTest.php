@@ -157,7 +157,7 @@ final class WithdrawalProgressTest extends TestCase
         $url = route('cases.index', ['tab' => 'pengunduran-diri']);
 
         $this->get($url)->assertOk()
-            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Guru BK', 'Tindak Lanjut', 'Aksi'])
+            ->assertSeeInOrder(['No', 'Nama Guru', 'Tanggal', 'Nama Siswa', 'Kelas', 'Progres Penanganan', 'Catatan'])
             ->assertSee('href="'.route('withdrawals.create').'"', false)
             ->assertSee('data-withdrawal-popover-trigger', false)
             ->assertSee('data-withdrawal-follow-up-open', false)
@@ -167,6 +167,7 @@ final class WithdrawalProgressTest extends TestCase
             ->assertSee('data-detail-history', false)
             ->assertSee('Riwayat Tindak Lanjut')
             ->assertSee('<span data-withdrawal-follow-up-label>'.WithdrawalProgress::labels()[WithdrawalProgress::PROGRESS_IN_PROGRESS].'</span>', false)
+            ->assertSee('Pertemuan dengan keluarga.')
             ->assertSee('data-reason="Permintaan dari keluarga."', false)
             ->assertSee($student->nisn)
             ->assertSee('href="'.route('withdrawals.edit', $withdrawal).'"', false)

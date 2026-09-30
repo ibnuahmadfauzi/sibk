@@ -390,6 +390,23 @@
         transform: rotate(180deg);
     }
 
+    .sibk-follow-up-pill--withdrawal {
+        white-space: normal !important;
+        line-height: 1.35 !important;
+        text-align: left !important;
+        width: 100% !important;
+        max-width: 240px !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .sibk-follow-up-pill--withdrawal [data-withdrawal-follow-up-label] {
+        display: inline-block;
+        min-width: 0;
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+
     /* ── Popover: posisi fixed agar timbul di atas tabel ─────── */
     .sibk-follow-up-popover {
         position: fixed;
