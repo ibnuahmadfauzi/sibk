@@ -237,8 +237,6 @@
                                             @can('update', $session)
                                                 <a href="{{ route('consultations.edit', $session) }}"
                                                     data-modal-url="{{ route('consultations.edit', [$session, 'modal' => 1]) }}"
-                                                    data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"
-                                                    onclick="if (! window.confirm(this.dataset.confirmMessage)) { event.stopImmediatePropagation(); return false; }"
                                                     class="btn btn-icon-action btn-icon-action--primary"
                                                     title="Edit"
                                                     aria-label="Edit konsultasi {{ $session->identityName() }}">

@@ -172,7 +172,6 @@ assert(contents.appLayout.includes('data-app-confirmation-subject'), 'Popup konf
 assert(contents.appDashboard.includes("form.matches('[data-app-confirm-submit]')"), 'Popup konfirmasi aplikasi belum menangani submit form.');
 assert(contents.casesIndex.includes('data-app-confirm-submit'), 'Hapus kasus belum memakai popup konfirmasi aplikasi.');
 assert(contents.casesIndex.includes('completeUpdated.value = data.updated_at'), 'Timestamp aksi Selesaikan belum mengikuti pembaruan tindak lanjut.');
-assert(contents.consultationEditModal.includes('data-confirm-submit'), 'Edit konsultasi belum memakai kontrak konfirmasi.');
 for (const retired of ['registration_number', 'consultation_status_id', 'consultation_month', 'consultation_class', '$session->topic', '$session->status']) {
     assert(!contents.casesIndex.includes(retired), `Tab konsultasi masih memuat UI retired: ${retired}.`);
 }

@@ -7,9 +7,7 @@
     <div class="modal-body pt-2 sibk-case-detail sibk-case-edit" @if($modal) data-consultation-edit-modal @endif>
         <form action="{{ route('consultations.update', $consultation) }}" method="POST"
             data-autosave-form="consultation"
-            data-autosave-record="{{ $consultation->id }}"
-            data-confirm-submit
-            data-confirm-message="Layanan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?">
+            data-autosave-record="{{ $consultation->id }}">
             @csrf
             @method('PATCH')
             <input type="hidden" name="expected_updated_at" value="{{ old('expected_updated_at', $consultation->updated_at->toJSON()) }}">
