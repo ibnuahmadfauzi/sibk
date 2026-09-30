@@ -69,6 +69,10 @@ class FakeForm {
         this.action = '/consultations/1';
         this.method = 'PATCH';
     }
+
+    getAttribute(name) {
+        return name === 'action' ? '/consultations/1' : null;
+    }
 }
 
 globalThis.HTMLFormElement = FakeForm;
@@ -120,6 +124,51 @@ for (const action of ['save', 'complete']) {
     assert.equal(redirectedTo, '/cases?tab=konsultasi');
 }
 assert.equal(confirmedEvent.prevented, true);
+
+const shadowedActionEvent = submitEventFor(new FakeForm({}));
+shadowedActionEvent.target.action = { toString: () => '[object HTMLButtonElement]' };
+let requestedUrl;
+assert.equal(await handleModalSubmit(shadowedActionEvent, {
+    confirm: () => true,
+    csrfToken: 'csrf',
+    request: async (url) => {
+        requestedUrl = url;
+        return { ok: true, status: 200, json: async () => ({ redirect: '/cases/1' }) };
+    },
+    formData: () => ({}),
+    clearDraft: () => {},
+    redirect: () => {},
+}), true);
+assert.equal(requestedUrl, '/consultations/1');
+
+const failedEvent = submitEventFor(new FakeForm({}));
+const notices = [];
+assert.equal(await handleModalSubmit(failedEvent, {
+    confirm: () => true,
+    request: async () => ({ ok: false, status: 500 }),
+    csrfToken: 'csrf',
+    formData: () => ({}),
+    notify: (message) => notices.push(message),
+}), false);
+assert.deepEqual(notices, ['Gagal menyimpan perubahan. Silakan coba lagi.']);
+
+for (const status of [200, 422]) {
+    let draftCleared = false;
+    let redirected = false;
+    const messages = [];
+    assert.equal(await handleModalSubmit(submitEventFor(new FakeForm({})), {
+        confirm: () => true,
+        request: async () => ({ ok: status === 200, status, json: async () => { throw new SyntaxError('Invalid JSON'); } }),
+        csrfToken: 'csrf',
+        formData: () => ({}),
+        clearDraft: () => { draftCleared = true; },
+        redirect: () => { redirected = true; },
+        notify: (message) => messages.push(message),
+    }), false);
+    assert.equal(draftCleared, false);
+    assert.equal(redirected, false);
+    assert.deepEqual(messages, ['Gagal menyimpan perubahan. Silakan coba lagi.']);
+}
 
 const rootListeners = new Map();
 const rootWithoutModal = {

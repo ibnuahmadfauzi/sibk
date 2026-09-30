@@ -93,7 +93,7 @@
         <div class="d-flex justify-content-end gap-2 mb-5">
             <span class="small text-muted me-auto align-self-center" data-draft-status aria-live="polite"></span>
             <button type="button" class="btn btn-light" data-clear-draft>Hapus Draft</button>
-            <a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-secondary">Batal</a>
+            <a href="{{ $isEdit ? route('consultations.show', $consultation) : route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-primary">Batal</a>
             <button class="btn btn-primary" type="submit">Simpan</button>
         </div>
     </form>

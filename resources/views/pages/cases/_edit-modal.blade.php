@@ -87,9 +87,9 @@
         </div>
         <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
             @if(request()->boolean('modal'))
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Batal</button>
             @else
-                <a href="{{ route('cases.show', $case) }}" class="btn btn-outline-secondary">Batal</a>
+                <a href="{{ route('cases.show', $case) }}" class="btn btn-outline-primary">Batal</a>
             @endif
             <button type="submit" name="action" value="save" class="btn btn-primary">Simpan Perubahan</button>
         </div>

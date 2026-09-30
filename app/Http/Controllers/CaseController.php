@@ -323,9 +323,11 @@ class CaseController extends Controller
         $case = $caseService->update($case, $request->validated(), $actor);
 
         if ($request->wantsJson()) {
+            $request->session()->flash('success', 'Kasus berhasil diperbarui.');
+
             return response()->json([
                 'message' => 'Kasus berhasil diperbarui.',
-                'redirect' => route('cases.show', $case),
+                'redirect' => route('cases.index', ['tab' => 'kasus']),
             ]);
         }
 

@@ -319,7 +319,9 @@ class ConsultationManagementTest extends TestCase
             ...$this->payload(),
             'problem' => 'Permasalahan modal diperbarui.',
             'expected_updated_at' => $consultation->updated_at->toJSON(),
-        ])->assertOk()->assertJsonPath('redirect', $listUrl);
+        ])->assertOk()
+            ->assertJsonPath('redirect', $listUrl)
+            ->assertSessionHas('success', 'Konsultasi berhasil diperbarui.');
 
         $this->deleteJson(route('consultations.destroy', $consultation))
             ->assertOk()

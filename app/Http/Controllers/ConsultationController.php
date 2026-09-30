@@ -118,6 +118,8 @@ class ConsultationController extends Controller
         $consultation = $service->update($consultation, $request->validated(), $actor);
 
         if ($request->expectsJson()) {
+            $request->session()->flash('success', 'Konsultasi berhasil diperbarui.');
+
             return response()->json([
                 'message' => 'Konsultasi berhasil diperbarui.',
                 'redirect' => route('cases.index', ['tab' => 'konsultasi']),

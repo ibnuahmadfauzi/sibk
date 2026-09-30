@@ -286,6 +286,18 @@ small, .small {
   }
 }
 
+.btn[data-clear-draft] {
+  background: var(--bs-secondary-bg-subtle) !important;
+  border-color: var(--bs-secondary-border-subtle) !important;
+  color: var(--bs-secondary-text-emphasis) !important;
+
+  &:hover,
+  &:focus {
+    background: var(--bs-secondary-border-subtle) !important;
+    color: var(--sibk-color-text-dark) !important;
+  }
+}
+
 .btn:focus-visible {
   outline: 0.2rem solid var(--sibk-focus-ring) !important;
   outline-offset: 0.125rem;
@@ -2990,7 +3002,7 @@ select.sibk-withdrawal-progress {
 
 .sibk-notification-toast {
   background: var(--sibk-color-success-soft);
-  border: 1px solid var(--sibk-color-border-light);
+  border: 1px solid var(--sibk-color-success);
   border-left: 3px solid var(--sibk-color-success);
   border-radius: var(--sibk-radius-md);
   box-shadow: var(--sibk-shadow-raised);
@@ -3026,6 +3038,7 @@ select.sibk-withdrawal-progress {
 
   &--warning {
     background: var(--sibk-color-warning-soft);
+    border-color: var(--sibk-color-warning);
     border-left-color: var(--sibk-color-warning);
 
     .sibk-notification-toast__icon {
@@ -3035,6 +3048,7 @@ select.sibk-withdrawal-progress {
 
   &--error {
     background: var(--sibk-color-danger-soft);
+    border-color: var(--sibk-color-danger);
     border-left-color: var(--sibk-color-danger);
 
     .sibk-notification-toast__icon {
