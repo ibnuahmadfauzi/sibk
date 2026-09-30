@@ -44,7 +44,7 @@
                 <div class="col-12 col-lg-5"><div class="sibk-panel h-100"><div class="sibk-panel__header p-4 pb-0"><h2 class="sibk-panel__title">Ringkasan layanan</h2></div><div class="sibk-panel__body p-4">@forelse($recentActivities as $activity)<div class="border-bottom py-2"><strong>{{ $activity['date']?->locale('id')->translatedFormat('d M Y') }}</strong><span class="text-muted d-block">{{ $activity['label'] }}</span></div>@empty<p class="text-muted mb-0">Belum ada layanan.</p>@endforelse</div></div></div>
             </div>
         @elseif($activeTab === 'kasus')
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Jenis Masalah</th><th>Sumber</th><th>Status</th><th>Guru BK</th><th></th></tr></thead><tbody>@forelse($cases as $case)<tr><td>{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $case->serviceField->label }}</td><td>{{ $case->source->label }}</td><td>{{ $case->status->label }}</td><td>{{ $case->assignments->first()?->teacher?->name ?? '—' }}</td><td><a href="{{ route('cases.show', $case) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat permasalahan yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Jenis Masalah</th><th scope="col">Sumber</th><th scope="col">Status</th><th scope="col">Guru BK</th><th scope="col">Aksi</th></tr></thead><tbody>@forelse($cases as $case)@php $badgeTone = match($case->status?->code) { 'selesai' => 'success', 'sedang_diproses' => 'info', 'membutuhkan_tindak_lanjut' => 'warning', default => 'primary', }; @endphp<tr><td><div class="fw-semibold text-dark">{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $case->service_date->locale('id')->translatedFormat('l') }})</div></td><td>{{ $case->serviceField->label }}</td><td>{{ $case->source->label }}</td><td><span class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td><td>{{ $case->assignments->first()?->teacher?->name ?? '—' }}</td><td><div class="d-flex align-items-center gap-1"><a href="{{ route('cases.show', $case) }}" @unless($isWakaSummary)data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}"@endunless class="btn btn-icon-action btn-icon-action--info" title="Lihat selengkapnya" aria-label="Lihat selengkapnya"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 11v6m0-10v.01"/></svg></a></div></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat permasalahan yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
             <details class="sibk-panel mt-4">
                 <summary class="sibk-panel__header p-4 fw-semibold">Riwayat kelas dan aktivitas layanan</summary>
                 <div class="sibk-panel__body p-4 row g-4">
@@ -54,28 +54,33 @@
             </details>
         @elseif($activeTab === 'etatib')
             <div class="table-responsive">
-                <table class="table sibk-table mb-0">
+                <table class="table sibk-table mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th>Waktu</th>
-                            <th>Pelanggaran</th>
-                            <th>Kategori</th>
-                            <th>Poin</th>
-                            <th>Total Resmi</th>
-                            <th>Kelas Saat Kejadian</th>
-                            <th>Pencatat</th>
+                            <th scope="col">Waktu/Tanggal</th>
+                            <th scope="col">Pelanggaran</th>
+                            <th scope="col">Kategori</th>
+                            <th scope="col">Poin</th>
+                            <th scope="col">Total Resmi</th>
+                            <th scope="col">Kelas Saat Kejadian</th>
+                            <th scope="col">Pencatat</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($etatibRecords as $record)
                             <tr>
-                                <td>{{ $record->occurred_at?->locale('id')->translatedFormat('d M Y H:i') ?? 'Tanggal belum tersedia' }}</td>
-                                <td>{{ $record->violation_type }}</td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ $record->occurred_at?->locale('id')->translatedFormat('d M Y') ?? 'Tanggal belum tersedia' }}</div>
+                                    @if($record->occurred_at)
+                                        <div class="text-muted small">{{ $record->occurred_at->format('H:i') }} ({{ $record->occurred_at->locale('id')->translatedFormat('l') }})</div>
+                                    @endif
+                                </td>
+                                <td><div class="fw-semibold text-dark">{{ $record->violation_type }}</div></td>
                                 <td>{{ $record->category }}</td>
-                                <td class="fw-bold text-danger">+{{ $record->points }}</td>
-                                <td>{{ $record->source_total_points ?? '-' }}</td>
-                                <td>{{ $record->effective_classroom_name ?: '-' }}</td>
-                                <td>{{ $record->recorded_by_name ?: '-' }}</td>
+                                <td><span class="sibk-badge sibk-badge--danger">+{{ $record->points }}</span></td>
+                                <td>{{ $record->source_total_points ?? '—' }}</td>
+                                <td>{{ $record->effective_classroom_name ?: '—' }}</td>
+                                <td>{{ $record->recorded_by_name ?: '—' }}</td>
                             </tr>
                         @empty
                             <tr>
@@ -86,9 +91,47 @@
                 </table>
             </div>
         @elseif($activeTab === 'konsultasi' && $canViewConsultations)
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Permasalahan</th><th>Penanganan</th><th>Hasil</th><th></th></tr></thead><tbody>@forelse($consultations as $session)<tr><td>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $session->serviceField->label }}</td><td>{{ \Illuminate\Support\Str::limit($session->problem, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->handling, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->result, 100) }}</td><td><a href="{{ route('consultations.show', $session) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada konsultasi yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Jenis Layanan</th><th scope="col">Permasalahan</th><th scope="col">Penanganan</th><th scope="col">Hasil</th><th scope="col">Aksi</th></tr></thead><tbody>@forelse($consultations as $session)<tr><td><div class="fw-semibold text-dark">{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $session->session_date->locale('id')->translatedFormat('l') }})</div></td><td>{{ $session->serviceField->label }}</td><td>{{ \Illuminate\Support\Str::limit($session->problem, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->handling, 100) }}</td><td>{{ \Illuminate\Support\Str::limit($session->result, 100) }}</td><td><div class="d-flex align-items-center gap-1"><a href="{{ route('consultations.show', $session) }}" data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}" class="btn btn-icon-action btn-icon-action--info" title="Lihat detail" aria-label="Lihat detail konsultasi"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></a></div></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada konsultasi yang dapat diakses.</td></tr>@endforelse</tbody></table></div>
         @else
-            <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th>Tanggal</th><th>Kegiatan</th><th>Jenis / Tingkat</th><th>Hasil</th><th>Pencatat</th><th></th></tr></thead><tbody>@forelse($achievements as $achievement)<tr><td>{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</td><td>{{ $achievement->activity_name }}<span class="small text-muted d-block">{{ $achievement->organizer }}</span></td><td>{{ $achievement->type->label }} / {{ $achievement->level->label }}</td><td>{{ $achievement->result }}</td><td>{{ $achievement->recorder->name }}</td><td><a href="{{ route('achievements.show', $achievement) }}">Buka</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-5">Belum ada prestasi yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Kegiatan</th><th scope="col">Jenis / Tingkat</th><th scope="col">Hasil</th><th scope="col">Pencatat</th><th scope="col">Aksi</th></tr></thead><tbody>@forelse($achievements as $achievement)<tr><td><div class="fw-semibold text-dark">{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $achievement->achievement_date->locale('id')->translatedFormat('l') }})</div></td><td><div class="fw-semibold text-dark">{{ $achievement->activity_name }}</div><div class="text-muted small">{{ $achievement->organizer }}</div></td><td>{{ $achievement->type->label }} / {{ $achievement->level->label }}</td><td><span class="sibk-badge sibk-badge--success">{{ $achievement->result }}</span></td><td>{{ $achievement->recorder->name }}</td><td><div class="d-flex align-items-center gap-1"><a href="{{ route('achievements.show', $achievement) }}" data-modal-url="{{ route('achievements.show', [$achievement, 'modal' => 1]) }}" class="btn btn-icon-action btn-icon-action--info" title="Lihat selengkapnya" aria-label="Lihat selengkapnya"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 11v6m0-10v.01"/></svg></a></div></td></tr>@empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada prestasi yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
         @endif
+        <div class="modal fade" id="case-modal" tabindex="-1" aria-labelledby="case-modal-title" aria-hidden="true" data-service-record-modal>
+            <div class="modal-dialog {{ in_array($activeTab, ['kasus', 'konsultasi', 'prestasi'], true) ? 'modal-lg' : '' }} modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+                <div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Detail Layanan BK</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+                <div class="modal-body"><p class="text-muted mb-0">Memuat data…</p></div>
+            </div></div>
+            <div data-modal-submit-error>
+                <x-notification-toast tone="error" title="Gagal menyimpan"><span data-modal-submit-error-message></span></x-notification-toast>
+            </div>
+        </div>
     </div>
+@endsection
+
+@section('extra-css')
+<style>
+    .btn-icon-action {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 32px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        border-radius: 8px !important;
+        border: 1px solid transparent !important;
+        transition: all 0.15s ease !important;
+        cursor: pointer !important;
+        background: transparent !important;
+        flex-shrink: 0 !important;
+    }
+
+    .btn-icon-action--info {
+        color: #0891b2 !important;
+        border-color: #cffafe !important;
+        background: #f0fdfe !important;
+    }
+    .btn-icon-action--info:hover {
+        background: #cffafe !important;
+        border-color: #a5f3fc !important;
+    }
+</style>
 @endsection

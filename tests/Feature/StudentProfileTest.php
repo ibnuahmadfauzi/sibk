@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\Achievement;
 use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\Consultation;
@@ -190,6 +191,41 @@ class StudentProfileTest extends TestCase
             ->assertSee('X AKL Histori')
             ->assertSee('2026/2027')
             ->assertDontSee('s.d. sekarang');
+    }
+
+    public function test_profile_renders_modal_action_triggers_and_shared_modal_shell(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $consultation = $this->createConsultation($teacher, $student);
+        $achievement = Achievement::query()->create([
+            'student_id' => $student->id,
+            'type_id' => $this->reference('achievement_type', 'akademik')->id,
+            'level_id' => $this->reference('achievement_level', 'kota_kabupaten')->id,
+            'activity_name' => 'Lomba Sains',
+            'organizer' => 'Dinas Pendidikan',
+            'achievement_date' => '2026-08-01',
+            'result' => 'Juara I',
+            'evidence_reference' => 'Sertifikat',
+            'verification_status_id' => $this->reference('achievement_verification_status', 'terverifikasi')->id,
+            'recorded_by' => $teacher->id,
+        ]);
+
+        $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+            ->assertOk()
+            ->assertSee('data-service-record-modal', false)
+            ->assertSee('id="case-modal"', false)
+            ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false);
+
+        $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertSee('data-service-record-modal', false)
+            ->assertSee('data-modal-url="'.route('consultations.show', [$consultation, 'modal' => 1]).'"', false);
+
+        $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+            ->assertOk()
+            ->assertSee('data-service-record-modal', false)
+            ->assertSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false);
     }
 
     /** @return array{User, Student} */
