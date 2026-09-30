@@ -93,6 +93,7 @@ export const initFormDraft = (form, environment) => {
     if (restore) {
         restoreValues(form, restore);
         setStatus(form, 'Draft dipulihkan');
+        form.querySelector('[data-draft-restored]')?.classList.remove('d-none');
     }
 
     let timer;
@@ -116,6 +117,7 @@ export const initFormDraft = (form, environment) => {
     form.querySelector('[data-clear-draft]')?.addEventListener('click', () => {
         removeDraft(storage, key);
         setStatus(form, 'Draft dihapus');
+        form.querySelector('[data-draft-restored]')?.classList.add('d-none');
     });
 
     return true;

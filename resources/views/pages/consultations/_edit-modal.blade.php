@@ -19,6 +19,11 @@
     @csrf
     <input type="hidden" name="student_id" id="hidden_student_id" value="{{ old('student_id', $preselectedStudentId) }}">
 
+    <div class="alert alert-info d-flex align-items-start gap-2 d-none" data-draft-restored role="status">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16" class="text-info flex-shrink-0 mt-1" aria-hidden="true"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/></svg>
+        <div class="small"><strong>Draft dipulihkan.</strong> Isian form ini berasal dari draft tersimpan di perangkat Anda dan belum tersimpan ke server. Hapus draft jika isian ini tidak diperlukan.</div>
+    </div>
+
     <div class="card border-0 shadow-sm rounded-4 mb-3">
         <div class="card-body p-3 p-md-4">
             <div class="d-flex align-items-center gap-3 mb-3">
