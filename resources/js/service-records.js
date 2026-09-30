@@ -60,20 +60,33 @@ export const handleModalSubmit = async (event, environment = {}) => {
 
     const request = environment.request ?? fetch;
     const formData = environment.formData ?? ((value, submitter) => new FormData(value, submitter));
-    const response = await request(form.action, {
-        method: form.method || 'POST',
-        headers: { Accept: 'application/json', 'X-CSRF-TOKEN': environment.csrfToken ?? csrfToken() },
-        body: formData(form, event.submitter),
-    });
-    if (response.status === 422) {
-        renderErrors(form, (await response.json()).errors ?? {});
-
+    const notify = environment.notify ?? (() => {});
+    let response;
+    let payload;
+    try {
+        response = await request(form.getAttribute('action'), {
+            method: form.method || 'POST',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': environment.csrfToken ?? csrfToken() },
+            body: formData(form, event.submitter),
+        });
+        if (response.status === 422) {
+            const errors = (await response.json()).errors ?? {};
+            renderErrors(form, errors);
+            notify(Object.values(errors)[0]?.[0] ?? 'Periksa kembali isian yang belum sesuai.');
+            return false;
+        }
+        if (!response.ok) {
+            notify('Gagal menyimpan perubahan. Silakan coba lagi.');
+            return false;
+        }
+        payload = await response.json();
+    } catch {
+        notify('Gagal menyimpan perubahan. Silakan coba lagi.');
         return false;
     }
-    if (!response.ok) return false;
 
     (environment.clearDraft ?? clearModalDraft)(form);
-    const redirect = (await response.json()).redirect ?? window.location.href;
+    const redirect = payload?.redirect ?? window.location.href;
     (environment.redirect ?? ((url) => window.location.assign(url)))(redirect);
 
     return true;
@@ -172,7 +185,15 @@ export const initServiceRecords = async (root = document) => {
                 event.target.click();
             }
         });
-        modalElement.addEventListener('submit', (event) => { void handleModalSubmit(event); });
+        modalElement.addEventListener('submit', (event) => { void handleModalSubmit(event, {
+            notify: async (message) => {
+                const toast = modalElement.querySelector('[data-modal-submit-error] [data-notification-toast]');
+                if (!toast) return;
+                toast.querySelector('[data-modal-submit-error-message]').textContent = message;
+                const { default: Toast } = await import('bootstrap/js/dist/toast.js');
+                Toast.getOrCreateInstance(toast, { delay: 8000 }).show();
+            },
+        }); });
     }
 
     root.addEventListener('change', (event) => {

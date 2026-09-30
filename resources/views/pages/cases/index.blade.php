@@ -276,6 +276,9 @@
                 <div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Detail Layanan BK</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                 <div class="modal-body"><p class="text-muted mb-0">Memuat data…</p></div>
             </div></div>
+            <div data-modal-submit-error>
+                <x-notification-toast tone="error" title="Gagal menyimpan"><span data-modal-submit-error-message></span></x-notification-toast>
+            </div>
         </div>
 
         @if($activeTab === 'kasus')

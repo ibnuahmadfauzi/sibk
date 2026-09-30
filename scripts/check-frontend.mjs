@@ -155,6 +155,8 @@ assert(contents.casesCreate.includes('id="student_lookup_results"'), 'Form kasus
 assert(contents.casesCreate.match(/aria-controls="student_lookup_results"/g)?.length === 2, 'Pencarian murid harus tersedia dari field NISN dan nama.');
 assert(contents.casesCreate.includes('student.nisn') && contents.casesCreate.includes('student.name'), 'Pencarian murid belum mencocokkan NISN dan nama.');
 assert(contents.casesCreate.includes('lanjutkan isi data secara manual'), 'Fallback input murid manual belum dijelaskan.');
+assert(contents.casesCreate.includes('const visiblePageCount = 5;'), 'Pagination e-Tatib belum membatasi jumlah nomor halaman.');
+assert(!contents.casesCreate.includes('for (let i = 1; i <= totalPages; i++)'), 'Pagination e-Tatib masih merender seluruh nomor halaman.');
 for (const [key, form, record] of [
     ['casesCreate', 'case', 'new'],
     ['consultationEditModal', 'consultation', '{{ $consultation?->id ?? \'new\' }}'],

@@ -27,18 +27,6 @@
                 </div>
             </div>
 
-            {{-- User Profile Badge --}}
-            <div class="d-none d-md-flex align-items-center gap-2 px-3 py-2 bg-white rounded-pill border shadow-sm">
-                <span class="rounded-circle bg-light d-flex align-items-center justify-content-center text-primary" style="width: 30px; height: 30px;">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                </span>
-                <span class="small fw-semibold text-dark">{{ $userDisplayName }}</span>
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-muted ms-1">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </div>
         </div>
 
         @if($errors->any())
@@ -349,10 +337,10 @@
             {{-- Footer Actions --}}
             <div class="d-flex flex-wrap align-items-center justify-content-end gap-3 pb-5">
                 <span class="small text-muted me-auto" data-draft-status aria-live="polite"></span>
-                <button type="button" class="btn btn-light border border-secondary-subtle px-4 py-2 rounded-3 text-dark fw-medium" data-clear-draft id="btn-clear-draft">
+                <button type="button" class="btn btn-light px-4 py-2 rounded-3 fw-medium" data-clear-draft id="btn-clear-draft">
                     Hapus Draft
                 </button>
-                <a href="{{ route('cases.index') }}" class="btn btn-link text-secondary text-decoration-none px-3 py-2 fw-medium">
+                <a href="{{ route('cases.index', ['tab' => 'kasus']) }}" class="btn btn-outline-primary px-4 py-2 rounded-3 fw-medium">
                     Batal
                 </a>
                 <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm" id="btn-save-case">
@@ -701,7 +689,13 @@
                 paginationControls.appendChild(prevBtn);
 
                 // Tombol Angka Halaman
-                for (let i = 1; i <= totalPages; i++) {
+                const visiblePageCount = 5;
+                const firstPage = Math.min(
+                    Math.max(currentPage - Math.floor(visiblePageCount / 2), 1),
+                    Math.max(totalPages - visiblePageCount + 1, 1),
+                );
+                const lastPage = Math.min(firstPage + visiblePageCount - 1, totalPages);
+                for (let i = firstPage; i <= lastPage; i++) {
                     const pageBtn = document.createElement('button');
                     pageBtn.type = 'button';
                     pageBtn.className = `btn btn-sm ${i === currentPage ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'}`;
