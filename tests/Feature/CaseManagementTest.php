@@ -296,6 +296,17 @@ class CaseManagementTest extends TestCase
         ])->assertSessionHasErrors(['case_source_id', 'temporary_name']);
     }
 
+    public function test_modal_case_update_returns_to_case_list_with_success_notice(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+
+        $this->actingAs($teacher)->patchJson(route('cases.update', $case), $this->updatePayload($case))
+            ->assertOk()
+            ->assertJsonPath('redirect', route('cases.index', ['tab' => 'kasus']))
+            ->assertSessionHas('success', 'Kasus berhasil diperbarui.');
+    }
+
     public function test_stale_case_update_is_rejected(): void
     {
         Carbon::setTestNow('2026-09-17 08:30:00');

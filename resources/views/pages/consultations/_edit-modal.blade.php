@@ -101,7 +101,7 @@
     <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 pb-4">
         <span class="small text-muted me-auto" data-draft-status aria-live="polite"></span>
         <button type="button" class="btn btn-light border border-secondary-subtle px-4 py-2 rounded-3 text-dark fw-medium" data-clear-draft id="btn-clear-draft">Hapus Draft</button>
-        <a href="{{ route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-link text-secondary text-decoration-none px-3 py-2 fw-medium">Batal</a>
+        <a href="{{ route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-outline-primary px-4 py-2 rounded-3 fw-medium">Batal</a>
         <button type="submit" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm" id="btn-save-consultation">Simpan</button>
     </div>
 </form>

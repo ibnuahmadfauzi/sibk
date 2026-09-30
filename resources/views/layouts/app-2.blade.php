@@ -56,7 +56,7 @@
                     </p>
                 </div>
                 <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-app-confirmation-cancel>Batal</button>
+                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal" data-app-confirmation-cancel>Batal</button>
                     <button type="button" class="btn btn-primary" data-app-confirmation-action>Ya, lanjutkan</button>
                 </div>
             </div>
