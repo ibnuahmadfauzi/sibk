@@ -88,16 +88,16 @@
 
             <div class="d-flex flex-column gap-3">
                 <div>
-                    <label for="problem" class="form-label text-dark fw-semibold small mb-2">Permasalahan <span class="text-danger">*</span></label>
-                    <textarea class="form-control border-secondary-subtle rounded-3 px-3 py-2 small" id="problem" name="problem" rows="2" maxlength="10000" placeholder="Tuliskan permasalahan yang dibahas dalam konsultasi ini." required>{{ old('problem') }}</textarea>
+                    <label for="problem" class="form-label text-dark fw-semibold small mb-2">Latar Belakang <span class="text-danger">*</span></label>
+                    <textarea class="form-control border-secondary-subtle rounded-3 px-3 py-2 small" id="problem" name="problem" rows="2" maxlength="10000" placeholder="Jelaskan kondisi, kronologi, atau alasan siswa mendapatkan layanan BK." required>{{ old('problem') }}</textarea>
                 </div>
                 <div>
                     <label for="handling" class="form-label text-dark fw-semibold small mb-2">Penanganan <span class="text-danger">*</span></label>
-                    <textarea class="form-control border-secondary-subtle rounded-3 px-3 py-2 small" id="handling" name="handling" rows="2" maxlength="10000" placeholder="Tuliskan tindakan yang dilakukan dalam konsultasi ini." required>{{ old('handling') }}</textarea>
+                    <textarea class="form-control border-secondary-subtle rounded-3 px-3 py-2 small" id="handling" name="handling" rows="2" maxlength="10000" placeholder="Tuliskan tindakan yang dilakukan dalam menangani permasalahan ini." required>{{ old('handling') }}</textarea>
                 </div>
                 <div>
-                    <label for="result" class="form-label text-dark fw-semibold small mb-2">Hasil <span class="text-danger">*</span></label>
-                    <textarea class="form-control border-secondary-subtle rounded-3 px-3 py-2 small" id="result" name="result" rows="2" maxlength="10000" placeholder="Tuliskan hasil konsultasi secara singkat." required>{{ old('result') }}</textarea>
+                    <label for="result" class="form-label text-dark fw-semibold small mb-2">Ringkasan / Hasil <span class="text-danger">*</span></label>
+                    <textarea class="form-control border-secondary-subtle rounded-3 px-3 py-2 small" id="result" name="result" rows="2" maxlength="10000" placeholder="Tuliskan ringkasan permasalahan dan penanganan secara singkat." required>{{ old('result') }}</textarea>
                 </div>
             </div>
         </div>

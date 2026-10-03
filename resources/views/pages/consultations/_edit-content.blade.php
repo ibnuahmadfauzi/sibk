@@ -84,7 +84,7 @@
                             @foreach([
                                 'problem' => ['Latar Belakang', true],
                                 'handling' => ['Penanganan', true],
-                                'result' => ['Ringkasan', true],
+                                'result' => ['Ringkasan / Hasil', true],
                             ] as $field => [$label, $required])
                                 <div @class(['mb-3' => !$loop->last])>
                                     <label class="form-label" for="consultation-edit-{{ $field }}">{{ $label }} <span class="text-danger">*</span></label>
