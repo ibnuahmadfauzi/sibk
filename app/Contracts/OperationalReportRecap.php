@@ -7,6 +7,7 @@ namespace App\Contracts;
 use App\Models\BkCase;
 use App\Models\Consultation;
 use App\Models\User;
+use App\Models\WithdrawalProgress;
 
 interface OperationalReportRecap
 {
@@ -16,8 +17,8 @@ interface OperationalReportRecap
     /** @param array<string, mixed> $filters @return array<string, mixed> */
     public function allForDocument(User $actor, array $filters): array;
 
-    public function findRecord(User $actor, string $type, int $id): BkCase|Consultation;
+    public function findRecord(User $actor, string $type, int $id): BkCase|Consultation|WithdrawalProgress;
 
     /** @return array<string, mixed> */
-    public function recordForDocument(BkCase|Consultation $record): array;
+    public function recordForDocument(BkCase|Consultation|WithdrawalProgress $record): array;
 }

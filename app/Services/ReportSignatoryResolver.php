@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\BkCase;
 use App\Models\Consultation;
 use App\Models\User;
+use App\Models\WithdrawalProgress;
 use Illuminate\Database\Eloquent\Builder;
 
 final class ReportSignatoryResolver
@@ -21,11 +22,13 @@ final class ReportSignatoryResolver
     }
 
     /** @return array{left: array{role: string, name: string}, right: array{role: string, name: string}} */
-    public function forRecord(BkCase|Consultation $record): array
+    public function forRecord(BkCase|Consultation|WithdrawalProgress $record): array
     {
-        $teacher = $record instanceof BkCase
-            ? $record->assignments->first()?->teacher
-            : $record->counselor;
+        $teacher = match (true) {
+            $record instanceof BkCase => $record->assignments->first()?->teacher,
+            $record instanceof Consultation => $record->counselor,
+            $record instanceof WithdrawalProgress => $record->teacher,
+        };
 
         return [
             'left' => $this->uniqueActiveRole('waka_kesiswaan', 'Waka Kesiswaan'),

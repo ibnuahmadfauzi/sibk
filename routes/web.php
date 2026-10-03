@@ -84,7 +84,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/preview', [ReportController::class, 'preview'])->name('reports.preview');
         Route::get('/reports/records/{type}/{id}/preview', [ReportController::class, 'recordPreview'])
-            ->whereIn('type', ['case', 'consultation'])
+            ->whereIn('type', ['case', 'consultation', 'withdrawal'])
             ->whereNumber('id')
             ->name('reports.records.preview');
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');

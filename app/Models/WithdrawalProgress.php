@@ -36,6 +36,11 @@ final class WithdrawalProgress extends Model
         return self::labels()[$this->progress] ?? $this->progress;
     }
 
+    public function identityName(): string
+    {
+        return $this->student?->name ?? 'Identitas tidak tersedia';
+    }
+
     /** @return BelongsTo<Student, $this> */
     public function student(): BelongsTo
     {

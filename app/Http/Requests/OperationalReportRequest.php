@@ -37,7 +37,7 @@ final class OperationalReportRequest extends FormRequest
         return [
             'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
             'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
-            'service_type' => ['required', Rule::in(['all', 'case', 'consultation'])],
+            'service_type' => ['required', Rule::in(['case', 'consultation', 'withdrawal'])],
             'per_page' => ['required', 'integer', Rule::in([10, 25, 50, 100])],
             'page' => ['nullable', 'integer', 'min:1'],
             'format' => [
@@ -122,9 +122,14 @@ final class OperationalReportRequest extends FormRequest
                 ?? AcademicYear::query()->orderByDesc('starts_on')->value('id');
         }
 
+        $serviceType = $this->input('service_type');
+        if (blank($serviceType)) {
+            $serviceType = 'case';
+        }
+
         $this->merge([
             'academic_year_id' => $yearId,
-            'service_type' => $this->input('service_type', 'all'),
+            'service_type' => $serviceType,
             'per_page' => $this->input('per_page', 10),
         ]);
     }

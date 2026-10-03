@@ -10,6 +10,7 @@ use App\Models\BkCase;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\User;
+use App\Models\WithdrawalProgress;
 use App\Policies\ReportPolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -82,19 +83,20 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->reportData($actor, $filters, $year, $rows, $summary);
     }
 
-    public function findRecord(User $actor, string $type, int $id): BkCase|Consultation
+    public function findRecord(User $actor, string $type, int $id): BkCase|Consultation|WithdrawalProgress
     {
         abort_unless($this->policy->viewDocument($actor), 403);
 
         return match ($type) {
             'case' => $this->caseQuery($actor)->whereKey($id)->firstOrFail(),
             'consultation' => $this->consultationQuery($actor)->whereKey($id)->firstOrFail(),
+            'withdrawal' => $this->withdrawalQuery($actor)->whereKey($id)->firstOrFail(),
             default => abort(404),
         };
     }
 
     /** @return array<string, mixed> */
-    public function recordForDocument(BkCase|Consultation $record): array
+    public function recordForDocument(BkCase|Consultation|WithdrawalProgress $record): array
     {
         return $this->recordRow($record, null, 1);
     }
@@ -113,7 +115,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'classroom_id' => isset($filters['classroom_id'])
                 ? (int) $filters['classroom_id']
                 : null,
-            'service_type' => $filters['service_type'] ?? 'all',
+            'service_type' => ! empty($filters['service_type']) ? $filters['service_type'] : 'case',
             'per_page' => (int) ($filters['per_page'] ?? 10),
         ]];
     }
@@ -150,10 +152,25 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->selectRaw('consultations.session_date AS service_date')
             ->toBase();
 
+        $withdrawalEvents = WithdrawalProgress::query()
+            ->accessibleTo($actor)
+            ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
+                ->whereHas('classroom', fn (Builder $classrooms): Builder => $classrooms
+                    ->where('academic_year_id', $selected->getKey())))
+            ->when(
+                $filters['classroom_id'],
+                fn (Builder $query, int $classroomId): Builder => $query->where('withdrawal_progresses.classroom_id', $classroomId),
+            )
+            ->selectRaw("'withdrawal' AS record_type")
+            ->selectRaw('withdrawal_progresses.id AS record_id')
+            ->selectRaw('withdrawal_progresses.recorded_on AS service_date')
+            ->toBase();
+
         $events = match ($filters['service_type']) {
             'case' => $caseEvents,
             'consultation' => $consultationEvents,
-            default => $caseEvents->unionAll($consultationEvents),
+            'withdrawal' => $withdrawalEvents,
+            default => $caseEvents,
         };
 
         return DB::query()->fromSub($events, 'report_records');
@@ -169,6 +186,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->selectRaw('COUNT(*) AS total_count')
             ->selectRaw("SUM(CASE WHEN record_type = 'case' THEN 1 ELSE 0 END) AS case_count")
             ->selectRaw("SUM(CASE WHEN record_type = 'consultation' THEN 1 ELSE 0 END) AS consultation_count")
+            ->selectRaw("SUM(CASE WHEN record_type = 'withdrawal' THEN 1 ELSE 0 END) AS withdrawal_count")
             ->first();
 
         $items = [[
@@ -176,17 +194,20 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'value' => (int) ($counts?->total_count ?? 0),
         ]];
 
-        if ($serviceType !== 'consultation') {
+        if ($serviceType === 'case') {
             $items[] = [
                 'label' => 'Permasalahan',
                 'value' => (int) ($counts?->case_count ?? 0),
             ];
-        }
-
-        if ($serviceType !== 'case') {
+        } elseif ($serviceType === 'consultation') {
             $items[] = [
                 'label' => 'Konsultasi',
                 'value' => (int) ($counts?->consultation_count ?? 0),
+            ];
+        } elseif ($serviceType === 'withdrawal') {
+            $items[] = [
+                'label' => 'Pengunduran Diri',
+                'value' => (int) ($counts?->withdrawal_count ?? 0),
             ];
         }
 
@@ -198,16 +219,6 @@ final class OperationalReportRecapService implements OperationalReportRecap
     {
         $counts = array_column($summary, 'value', 'label');
 
-        if (array_key_exists('Permasalahan', $counts)
-            && array_key_exists('Konsultasi', $counts)) {
-            return sprintf(
-                'Pada laporan ini terdapat %d catatan layanan BK, terdiri atas %d catatan permasalahan dan %d catatan konsultasi.',
-                $counts['Total Catatan'],
-                $counts['Permasalahan'],
-                $counts['Konsultasi'],
-            );
-        }
-
         if (array_key_exists('Permasalahan', $counts)) {
             return sprintf(
                 'Pada laporan ini terdapat %d catatan permasalahan.',
@@ -215,9 +226,23 @@ final class OperationalReportRecapService implements OperationalReportRecap
             );
         }
 
+        if (array_key_exists('Konsultasi', $counts)) {
+            return sprintf(
+                'Pada laporan ini terdapat %d catatan konsultasi.',
+                $counts['Konsultasi'],
+            );
+        }
+
+        if (array_key_exists('Pengunduran Diri', $counts)) {
+            return sprintf(
+                'Pada laporan ini terdapat %d catatan pengunduran diri.',
+                $counts['Pengunduran Diri'],
+            );
+        }
+
         return sprintf(
-            'Pada laporan ini terdapat %d catatan konsultasi.',
-            $counts['Konsultasi'],
+            'Pada laporan ini terdapat %d catatan layanan BK.',
+            $counts['Total Catatan'] ?? 0,
         );
     }
 
@@ -239,17 +264,25 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->whereKey($events->where('record_type', 'consultation')->pluck('record_id'))
             ->get()
             ->keyBy('id');
+        $withdrawals = $this->withdrawalQuery($actor)
+            ->whereKey($events->where('record_type', 'withdrawal')->pluck('record_id'))
+            ->get()
+            ->keyBy('id');
 
         return $events->values()->map(function (object $event, int $index) use (
             $actor,
             $cases,
             $consultations,
+            $withdrawals,
             $year,
             $firstNumber,
         ): array {
-            $record = $event->record_type === 'case'
-                ? $cases->get((int) $event->record_id)
-                : $consultations->get((int) $event->record_id);
+            $record = match ($event->record_type) {
+                'case' => $cases->get((int) $event->record_id),
+                'consultation' => $consultations->get((int) $event->record_id),
+                'withdrawal' => $withdrawals->get((int) $event->record_id),
+                default => null,
+            };
 
             abort_if($record === null, 404);
 
@@ -289,16 +322,44 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ]);
     }
 
+    /** @return Builder<WithdrawalProgress> */
+    private function withdrawalQuery(User $actor): Builder
+    {
+        return WithdrawalProgress::query()
+            ->accessibleTo($actor)
+            ->with([
+                'student',
+                'classroom',
+                'teacher',
+                'followUps.creator',
+            ]);
+    }
+
     /** @return array<string, mixed> */
     private function recordRow(
-        BkCase|Consultation $record,
+        BkCase|Consultation|WithdrawalProgress $record,
         ?User $actor,
         int $number,
         ?AcademicYear $year = null,
     ): array {
         $isCase = $record instanceof BkCase;
-        $type = $isCase ? 'case' : 'consultation';
-        $date = $isCase ? $record->service_date : $record->session_date;
+        $isConsultation = $record instanceof Consultation;
+        $isWithdrawal = $record instanceof WithdrawalProgress;
+
+        $type = match (true) {
+            $isCase => 'case',
+            $isConsultation => 'consultation',
+            $isWithdrawal => 'withdrawal',
+        };
+        $date = match (true) {
+            $isCase => $record->service_date,
+            $isConsultation => $record->session_date,
+            $isWithdrawal => $record->recorded_on,
+        };
+
+        $withdrawalProgressLabel = $isWithdrawal
+            ? ($record->followUps->first()?->progressLabel() ?? $record->progressLabel())
+            : null;
 
         return [
             'number' => $number,
@@ -309,39 +370,75 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'date_label' => $date->locale('id')->translatedFormat('d M Y'),
             'name' => $record->identityName(),
             'classroom' => $this->classroomName($record, $year),
-            'service' => $isCase ? 'Permasalahan' : 'Konsultasi',
-            'service_field' => $record->serviceField?->label ?? '—',
-            'problem' => $isCase ? $record->initial_info : $record->problem,
-            'handling' => $isCase ? $record->initial_action : $record->handling,
-            'detail_label' => $isCase ? 'Catatan Penyelesaian' : 'Hasil',
-            'detail_note' => $isCase
-                ? ($record->resolution_summary ?: '—')
-                : ($record->result ?: '—'),
-            'follow_up_label' => $isCase
-                ? ($record->followUpType?->label ?? $record->status?->label ?? '—')
-                : 'Selesai',
-            'document_note' => $isCase
-                ? sprintf(
+            'service' => match (true) {
+                $isCase => 'Permasalahan',
+                $isConsultation => 'Konsultasi',
+                $isWithdrawal => 'Pengunduran Diri',
+            },
+            'service_field' => $isWithdrawal
+                ? 'Pengunduran Diri'
+                : ($record->serviceField?->label ?? '—'),
+            'problem' => match (true) {
+                $isCase => $record->initial_info,
+                $isConsultation => $record->problem,
+                $isWithdrawal => $record->note,
+            },
+            'handling' => match (true) {
+                $isCase => $record->initial_action,
+                $isConsultation => $record->handling,
+                $isWithdrawal => '—',
+            },
+            'detail_label' => match (true) {
+                $isCase => 'Catatan Penyelesaian',
+                $isConsultation => 'Hasil',
+                $isWithdrawal => 'Progres Penanganan',
+            },
+            'detail_note' => match (true) {
+                $isCase => ($record->resolution_summary ?: '—'),
+                $isConsultation => ($record->result ?: '—'),
+                $isWithdrawal => ($withdrawalProgressLabel ?? '—'),
+            },
+            'follow_up_label' => match (true) {
+                $isCase => ($record->followUpType?->label ?? $record->status?->label ?? '—'),
+                $isConsultation => 'Selesai',
+                $isWithdrawal => ($withdrawalProgressLabel ?? '—'),
+            },
+            'document_note' => match (true) {
+                $isCase => sprintf(
                     "Sumber: %s\nTindak Lanjut: %s",
                     $record->source?->label ?? '—',
                     $record->followUpType?->label ?? '—',
-                )
-                : 'Selesai',
-            'counselor' => $isCase
-                ? ($record->assignments->first()?->teacher?->name ?? '—')
-                : ($record->counselor?->name ?? '—'),
-            'archive_url' => route(
-                $isCase ? 'cases.destroy' : 'consultations.destroy',
-                $record,
-            ),
-            'can_archive' => $actor?->can('archive', $record) ?? false,
+                ),
+                $isConsultation => 'Selesai',
+                $isWithdrawal => $record->note
+                    ? sprintf("Progres: %s\nCatatan: %s", $withdrawalProgressLabel ?? '—', $record->note)
+                    : sprintf("Progres: %s", $withdrawalProgressLabel ?? '—'),
+            },
+            'counselor' => match (true) {
+                $isCase => ($record->assignments->first()?->teacher?->name ?? '—'),
+                $isConsultation => ($record->counselor?->name ?? '—'),
+                $isWithdrawal => ($record->teacher?->name ?? '—'),
+            },
+            'archive_url' => match (true) {
+                $isCase => route('cases.destroy', $record),
+                $isConsultation => route('consultations.destroy', $record),
+                $isWithdrawal => route('withdrawals.destroy', $record),
+            },
+            'can_archive' => match (true) {
+                $isCase, $isConsultation => $actor?->can('archive', $record) ?? false,
+                $isWithdrawal => $actor?->can('delete', $record) ?? false,
+            },
         ];
     }
 
     private function classroomName(
-        BkCase|Consultation $record,
+        BkCase|Consultation|WithdrawalProgress $record,
         ?AcademicYear $year,
     ): string {
+        if ($record instanceof WithdrawalProgress) {
+            return $record->classroom?->name ?? 'Belum tersedia';
+        }
+
         return $record->classroom?->name ?? ($record->temporary_student_id ? 'Identitas sementara' : 'Belum tersedia');
     }
 

@@ -106,12 +106,6 @@
                     @enderror
                 >
                     <option
-                        value="all"
-                        @selected($report['filters']['service_type'] === 'all')
-                    >
-                        Semua layanan
-                    </option>
-                    <option
                         value="case"
                         @selected($report['filters']['service_type'] === 'case')
                     >
@@ -122,6 +116,12 @@
                         @selected($report['filters']['service_type'] === 'consultation')
                     >
                         Catatan Konsultasi
+                    </option>
+                    <option
+                        value="withdrawal"
+                        @selected($report['filters']['service_type'] === 'withdrawal')
+                    >
+                        Catatan Pengunduran Diri
                     </option>
                 </select>
                 @error('service_type')
