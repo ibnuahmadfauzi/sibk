@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -263,6 +264,104 @@ class DashboardTest extends TestCase
             ->assertDontSee('XII TKJ 1')
             ->assertDontSee('Cakupan layanan Anda')
             ->assertDontSee('Permasalahan khusus aktif');
+    }
+
+    public function test_teacher_dashboard_activity_cards_are_display_only_and_capped_at_four(): void
+    {
+        $teacher = $this->userWithRole('guru_bk', 'Guru Aktivitas');
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $this->year->id,
+            'name' => 'X RPL 1',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $this->year->id,
+            'assigned_by' => $teacher->id,
+        ]);
+
+        for ($i = 1; $i <= 3; $i++) {
+            $student = Student::query()->create([
+                'nisn' => sprintf('00112233%02d', $i),
+                'name' => 'Murid Kasus '.$i,
+                'is_active' => true,
+            ]);
+            StudentClassMembership::query()->create([
+                'student_id' => $student->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $this->year->id,
+                'is_active' => true,
+            ]);
+            $case = BkCase::query()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $this->year->id,
+                'classroom_id' => $classroom->id,
+                'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
+                'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+                'status_id' => $this->reference('case_status', ServiceRecordStatus::IN_PROGRESS)->id,
+                'service_date' => '2026-08-20',
+                'initial_info' => 'Info '.$i,
+                'initial_action' => 'Aksi '.$i,
+                'created_by' => $teacher->id,
+                'created_at' => now()->addMinutes($i),
+            ]);
+            CaseAssignment::query()->create([
+                'case_id' => $case->id,
+                'user_id' => $teacher->id,
+                'reason' => 'Pemilik',
+                'assigned_by' => $teacher->id,
+            ]);
+        }
+
+        for ($j = 1; $j <= 3; $j++) {
+            $student = Student::query()->create([
+                'nisn' => sprintf('00112244%02d', $j),
+                'name' => 'Murid Konsul '.$j,
+                'is_active' => true,
+            ]);
+            StudentClassMembership::query()->create([
+                'student_id' => $student->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $this->year->id,
+                'is_active' => true,
+            ]);
+            Consultation::query()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $this->year->id,
+                'classroom_id' => $classroom->id,
+                'service_field_id' => $this->reference('service_field', 'belajar')->id,
+                'counselor_id' => $teacher->id,
+                'session_date' => '2026-08-21',
+                'problem' => 'Konsul problem '.$j,
+                'handling' => 'Konsul action '.$j,
+                'result' => 'Konsul result '.$j,
+                'created_at' => now()->addMinutes(10 + $j),
+            ]);
+        }
+
+        $dashboard = app(DashboardService::class)->forUser($teacher, $this->year);
+        $this->assertCount(4, $dashboard['tindak_lanjut']);
+        $this->assertNull($dashboard['schedule_url']);
+        foreach ($dashboard['tindak_lanjut'] as $activity) {
+            $this->assertArrayNotHasKey('url', $activity);
+            $this->assertNotEmpty($activity['date']);
+            $this->assertNotEmpty($activity['month']);
+            $this->assertNotEmpty($activity['year']);
+            $this->assertNotEmpty($activity['code']);
+            $this->assertNotEmpty($activity['title']);
+            $this->assertNotEmpty($activity['context_label']);
+            $this->assertNotEmpty($activity['status']);
+        }
+
+        $response = $this->actingAs($teacher)->get(route('dashboard.preview'));
+        $response->assertOk();
+        $response->assertSee('Aktivitas Terbaru');
+        $response->assertDontSee('Lihat semua');
+        $response->assertSee('article class="sibk-list-item"', false);
+        $response->assertDontSee('sibk-list-item__chevron', false);
+        $response->assertDontSee(route('cases.show', BkCase::firstOrFail()));
+        $response->assertDontSee(route('consultations.show', Consultation::firstOrFail()));
     }
 
     /** @return array{Student, BkCase} */

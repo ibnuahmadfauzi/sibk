@@ -117,9 +117,11 @@
                             <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <h2 id="tindak-lanjut-title">{{ $dashboard['schedule_title'] }}</h2>
                         </div>
-                        <a href="{{ $dashboard['schedule_url'] }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
-                            Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-                        </a>
+                        @if (!empty($dashboard['schedule_url']))
+                            <a href="{{ $dashboard['schedule_url'] }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
+                                Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                            </a>
+                        @endif
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
@@ -130,21 +132,38 @@
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
-                                <a href="{{ $item['url'] }}" class="sibk-list-item text-decoration-none">
-                                    <div class="sibk-list-item__date-box">
-                                        <strong>{{ $item['date'] }}</strong>
-                                        <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
-                                    </div>
-                                    <div class="sibk-list-item__content">
-                                        <strong>{{ $item['code'] }}</strong>
-                                        <span>{{ $item['title'] }}</span>
-                                        <small>{{ $item['context_label'] }}</small>
-                                    </div>
-                                    <div class="sibk-list-item__trailing">
-                                        <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
-                                        <svg class="sibk-list-item__chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-                                    </div>
-                                </a>
+                                @if (!empty($item['url']))
+                                    <a href="{{ $item['url'] }}" class="sibk-list-item text-decoration-none">
+                                        <div class="sibk-list-item__date-box">
+                                            <strong>{{ $item['date'] }}</strong>
+                                            <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
+                                        </div>
+                                        <div class="sibk-list-item__content">
+                                            <strong>{{ $item['code'] }}</strong>
+                                            <span>{{ $item['title'] }}</span>
+                                            <small>{{ $item['context_label'] }}</small>
+                                        </div>
+                                        <div class="sibk-list-item__trailing">
+                                            <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                            <svg class="sibk-list-item__chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                                        </div>
+                                    </a>
+                                @else
+                                    <article class="sibk-list-item">
+                                        <div class="sibk-list-item__date-box">
+                                            <strong>{{ $item['date'] }}</strong>
+                                            <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
+                                        </div>
+                                        <div class="sibk-list-item__content">
+                                            <strong>{{ $item['code'] }}</strong>
+                                            <span>{{ $item['title'] }}</span>
+                                            <small>{{ $item['context_label'] }}</small>
+                                        </div>
+                                        <div class="sibk-list-item__trailing">
+                                            <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                        </div>
+                                    </article>
+                                @endif
                             @endforeach
                         </div>
                     @endif

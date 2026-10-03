@@ -1708,7 +1708,7 @@ small, .small {
   box-shadow: var(--sibk-shadow-raised-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &:hover {
+  &[href]:hover {
     transform: translateY(-2px);
     box-shadow: var(--sibk-shadow-raised);
     background: #ffffff;

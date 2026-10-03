@@ -118,7 +118,11 @@ class DashboardService
                 'teacher' => 'Aktivitas Terbaru',
                 default => 'Permasalahan Tindak Lanjut',
             },
-            'schedule_url' => $mode === 'waka' ? route('waka.monitoring.handling') : route('cases.index'),
+            'schedule_url' => match ($mode) {
+                'teacher' => null,
+                'waka' => route('waka.monitoring.handling'),
+                default => route('cases.index'),
+            },
             'schedule_empty_title' => match ($mode) {
                 'teacher' => 'Belum ada aktivitas',
                 default => 'Tidak ada tindak lanjut',
@@ -280,7 +284,7 @@ class DashboardService
             ->with(['student', 'temporaryStudent', 'classroom', 'status', 'serviceField', 'followUpType'])
             ->latest('created_at')
             ->latest('id')
-            ->limit(6)
+            ->limit(4)
             ->get();
 
         $consultations = Consultation::query()
@@ -291,7 +295,7 @@ class DashboardService
             ->with(['student', 'temporaryStudent', 'classroom', 'serviceField'])
             ->latest('created_at')
             ->latest('id')
-            ->limit(6)
+            ->limit(4)
             ->get();
 
         $caseItems = $cases->map(function (BkCase $case): array {
@@ -313,7 +317,6 @@ class DashboardService
                 'context_label' => sprintf('%s (%s)', $case->identityName(), $case->classroom?->name ?? 'tanpa kelas'),
                 'status' => $case->status?->label ?? 'Aktif',
                 'status_tone' => $statusTone,
-                'url' => route('cases.show', $case),
             ];
         });
 
@@ -330,13 +333,12 @@ class DashboardService
                 'context_label' => sprintf('%s (%s)', $consultation->identityName(), $consultation->classroom?->name ?? 'tanpa kelas'),
                 'status' => 'Konsultasi',
                 'status_tone' => 'info',
-                'url' => route('consultations.show', $consultation),
             ];
         });
 
         return $caseItems->concat($consultationItems)
             ->sortByDesc('timestamp')
-            ->take(6)
+            ->take(4)
             ->values()
             ->all();
     }
