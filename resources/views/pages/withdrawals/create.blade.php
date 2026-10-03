@@ -5,9 +5,7 @@
 @section('body')
     <div class="sibk-dashboard py-3" data-withdrawal-create-page data-withdrawal-students="{{ $withdrawalLookup->toJson() }}">
         <div class="d-flex align-items-center gap-3 mb-4">
-            <a href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}" class="btn btn-light rounded-circle shadow-sm border d-flex align-items-center justify-content-center text-dark flex-shrink-0" style="width:44px;height:44px" aria-label="Kembali ke daftar pengunduran diri">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-            </a>
+            <x-back-button :href="route('cases.index', ['tab' => 'pengunduran-diri'])" label="Kembali ke daftar pengunduran diri" />
             <div><h1 class="h4 fw-bold mb-1 text-dark">Catat Pengunduran Diri</h1><p class="text-secondary small mb-0">Catat penanganan awal pengunduran diri murid dalam scope Anda.</p></div>
         </div>
 

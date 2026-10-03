@@ -335,6 +335,16 @@ small, .small {
   color: var(--sibk-color-text) !important;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    display: block;
+    flex-shrink: 0;
+  }
+
   &:hover,
   &:focus {
     box-shadow: inset 2px 2px 5px rgba(188, 175, 160, 0.6), inset -2px -2px 5px #ffffff !important;

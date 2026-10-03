@@ -91,6 +91,10 @@ class CaseManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('cases.create'))
             ->assertOk()
+            ->assertSee('href="'.route('cases.index').'"', false)
+            ->assertSee('btn-icon btn-light', false)
+            ->assertSee('aria-label="Kembali ke daftar kasus"', false)
+            ->assertSee('polyline points="12 19 5 12 12 5"', false)
             ->assertSee('aria-controls="student_lookup_results"', false)
             ->assertSee('id="student_lookup_results"', false)
             ->assertSee('Murid Dalam Scope')

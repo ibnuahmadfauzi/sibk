@@ -23,17 +23,9 @@
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div class="d-flex align-items-center gap-3">
                 @if($isEdit)
-                    <a href="{{ route('consultations.show', $consultation) }}" class="btn btn-light rounded-circle shadow-sm border d-flex align-items-center justify-content-center text-dark flex-shrink-0" style="width: 44px; height: 44px;" aria-label="Kembali ke detail konsultasi">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                    </a>
+                    <x-back-button :href="route('consultations.show', $consultation)" label="Kembali ke detail konsultasi" />
                 @else
-                    <a href="{{ route('cases.index', ['tab' => 'konsultasi']) }}" class="btn btn-light rounded-circle shadow-sm border d-flex align-items-center justify-content-center text-dark flex-shrink-0" style="width: 44px; height: 44px;" aria-label="Kembali ke daftar konsultasi">
-                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                    </a>
+                    <x-back-button :href="route('cases.index', ['tab' => 'konsultasi'])" label="Kembali ke daftar konsultasi" />
                 @endif
                 <div>
                     <h1 class="h4 fw-bold mb-1 text-dark">{{ $isEdit ? 'Ubah' : 'Catat' }} Konsultasi</h1>

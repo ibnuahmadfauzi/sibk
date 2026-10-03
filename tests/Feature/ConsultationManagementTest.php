@@ -38,6 +38,10 @@ class ConsultationManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('consultations.create'))
             ->assertOk()
+            ->assertSee('href="'.route('cases.index', ['tab' => 'konsultasi']).'"', false)
+            ->assertSee('btn-icon btn-light', false)
+            ->assertSee('aria-label="Kembali ke daftar konsultasi"', false)
+            ->assertSee('polyline points="12 19 5 12 12 5"', false)
             ->assertSee('Catat Konsultasi')
             ->assertSeeInOrder(['Murid dan Layanan', 'Catatan Layanan'], false)
             ->assertDontSee('<h2 class="h5 fw-bold text-dark mb-0">Informasi Layanan</h2>', false)

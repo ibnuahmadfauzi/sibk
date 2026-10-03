@@ -16,11 +16,7 @@
         {{-- Header Halaman --}}
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div class="d-flex align-items-center gap-3">
-                <a href="{{ route('cases.index') }}" class="btn btn-light rounded-circle shadow-sm border d-flex align-items-center justify-content-center text-dark flex-shrink-0" style="width: 44px; height: 44px;" aria-label="Kembali ke daftar kasus">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                </a>
+                <x-back-button :href="route('cases.index')" label="Kembali ke daftar kasus" />
                 <div>
                     <h1 class="h4 fw-bold mb-1 text-dark">Catat Permasalahan</h1>
                     <p class="text-secondary small mb-0">Catat informasi layanan BK secara terstruktur dan lengkap.</p>
