@@ -146,8 +146,13 @@
                                     <a href="{{ route('cases.edit', $case) }}"
                                         data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
                                         @if($completed)
-                                            data-confirm-message="Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"
-                                            onclick="if (! window.confirm('Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }"
+                                            data-app-confirm
+                                            data-confirm-title="Edit Permasalahan Selesai?"
+                                            data-confirm-message="Permasalahan milik"
+                                            data-confirm-subject="{{ $case->identityName() }} ({{ $case->classroom?->name ?? 'Tanpa Rombel' }})"
+                                            data-confirm-suffix=" telah selesai. Apakah Anda ingin melanjutkan pengeditan?"
+                                            data-confirm-action="Lanjutkan"
+                                            data-confirm-tone="warning"
                                             class="btn btn-icon-action btn-icon-action--disabled"
                                         @else
                                             class="btn btn-icon-action btn-icon-action--primary"

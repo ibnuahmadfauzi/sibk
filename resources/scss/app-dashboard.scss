@@ -98,6 +98,12 @@ body {
       border-color: var(--sibk-color-danger) !important;
       color: #fff !important;
     }
+
+    .btn-warning {
+      background: var(--sibk-color-warning) !important;
+      border-color: var(--sibk-color-warning) !important;
+      color: #fff !important;
+    }
   }
 
   &[data-tone="success"] &__icon {
@@ -110,8 +116,20 @@ body {
     color: var(--sibk-color-danger);
   }
 
-  &[data-tone="success"] [data-app-confirmation-danger],
-  &[data-tone="danger"] [data-app-confirmation-success] { display: none; }
+  &[data-tone="warning"] &__icon {
+    background: var(--sibk-color-warning-soft);
+    color: var(--sibk-color-warning);
+  }
+
+  [data-app-confirmation-success],
+  [data-app-confirmation-danger],
+  [data-app-confirmation-warning] { display: none; }
+
+  &[data-tone="success"] [data-app-confirmation-success],
+  &[data-tone="danger"] [data-app-confirmation-danger],
+  &[data-tone="warning"] [data-app-confirmation-warning] { display: block; }
+
+  &:not([data-tone="success"]):not([data-tone="danger"]):not([data-tone="warning"]) [data-app-confirmation-warning] { display: block; }
 
   @media (max-width: 575.98px) {
     .modal-content { padding: 2rem 1.25rem 1.5rem; }

@@ -530,13 +530,27 @@ class CaseManagementTest extends TestCase
         $teacher = $this->userWithRole('guru_bk');
         $case = $this->createCase($teacher, $this->scopedStudent($teacher));
         $this->completeCase($teacher, $case);
-        $confirmation = "if (! window.confirm('Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?')) { event.stopImmediatePropagation(); return false; }";
+        $indexResponse = $this->actingAs($teacher)->get(route('cases.index'));
+        $indexResponse->assertSee('data-app-confirm', false);
+        $indexResponse->assertSee('data-confirm-title="Edit Permasalahan Selesai?"', false);
+        $indexResponse->assertSee('data-confirm-message="Permasalahan milik"', false);
+        $indexResponse->assertSee('data-confirm-suffix=" telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false);
+        $indexResponse->assertSee('btn-icon-action--disabled', false);
+        $indexResponse->assertDontSee('window.confirm');
 
-        $this->actingAs($teacher)->get(route('cases.index'))
-            ->assertSee('data-confirm-message="Permasalahan ini telah selesai. Apakah Anda ingin melanjutkan pengeditan?"', false)
-            ->assertSee('onclick="'.$confirmation.'"', false);
-        $this->actingAs($teacher)->get(route('cases.show', $case))
-            ->assertSee('onclick="'.$confirmation.'"', false);
+        $showResponse = $this->actingAs($teacher)->get(route('cases.show', $case));
+        $showResponse->assertSee('data-app-confirm', false);
+        $showResponse->assertSee('data-confirm-title="Edit Permasalahan Selesai?"', false);
+        $showResponse->assertDontSee('window.confirm');
+
+        $activeCase = $this->createCase($teacher, $this->scopedStudent($teacher, 'Murid Aktif', '0088888888'));
+        $activeResponse = $this->actingAs($teacher)->get(route('cases.show', $activeCase));
+        $activeResponse->assertSee('<a href="'.route('cases.edit', $activeCase).'" class="btn btn-primary">Ubah</a>', false);
+
+        $activeListResponse = $this->actingAs($teacher)->get(route('cases.index', ['search' => 'Murid Aktif']));
+        $activeListResponse->assertSee('btn-icon-action--primary', false);
+        $activeListResponse->assertSee('data-app-confirm-submit', false);
+        $activeListResponse->assertDontSee('data-confirm-title="Edit Permasalahan Selesai?"', false);
 
         $nonOwner = $this->userWithRole('guru_bk');
         $this->actingAs($nonOwner)->delete(route('cases.destroy', $case))->assertForbidden();
