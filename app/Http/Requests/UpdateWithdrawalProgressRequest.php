@@ -22,8 +22,24 @@ final class UpdateWithdrawalProgressRequest extends FormRequest
     {
         return [
             'recorded_on' => ['required', 'date', 'before_or_equal:today'],
-            'note' => ['nullable', 'string', 'max:1000'],
-            'reason' => ['required', 'string', 'max:2000'],
+            'note' => ['required', 'string', 'max:2000'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return [
+            'recorded_on' => 'tanggal pencatatan',
+            'note' => 'catatan',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'note.required' => 'Catatan wajib diisi.',
         ];
     }
 }

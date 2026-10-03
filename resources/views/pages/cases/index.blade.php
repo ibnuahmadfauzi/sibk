@@ -277,7 +277,7 @@
             @include('pages.cases._withdrawals')
         @endif
         <div class="modal fade" id="case-modal" tabindex="-1" aria-labelledby="case-modal-title" aria-hidden="true" data-service-record-modal>
-            <div class="modal-dialog {{ in_array($activeTab, ['kasus', 'konsultasi'], true) ? 'modal-lg' : '' }} modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+            <div class="modal-dialog {{ in_array($activeTab, ['kasus', 'konsultasi', 'pengunduran-diri'], true) ? 'modal-lg' : '' }} modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
                 <div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Detail Layanan BK</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                 <div class="modal-body"><p class="text-muted mb-0">Memuat data…</p></div>
             </div></div>

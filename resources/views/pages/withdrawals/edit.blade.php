@@ -31,8 +31,7 @@
 
             <section class="card border-0 shadow-sm rounded-4" aria-labelledby="withdrawal-edit-note-title"><div class="card-body p-3 p-md-4">
                 <div class="d-flex align-items-center gap-3 mb-4"><span class="step-badge rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px">2</span><div><h2 class="h5 fw-bold mb-0" id="withdrawal-edit-note-title">Catatan Pengunduran Diri</h2><p class="small text-muted mb-0 mt-1">Catatan ini tidak menetapkan murid resmi keluar.</p></div></div>
-                <div class="mb-3"><label class="form-label fw-semibold" for="withdrawal-edit-reason">Alasan Pengunduran Diri <span class="text-danger">*</span></label><textarea class="form-control" id="withdrawal-edit-reason" name="reason" rows="4" maxlength="2000" required>{{ old('reason', $withdrawal->reason) }}</textarea></div>
-                <div class="mb-3"><label class="form-label fw-semibold" for="withdrawal-edit-note">Catatan Awal <span class="text-muted fw-normal">(opsional)</span></label><textarea class="form-control" id="withdrawal-edit-note" name="note" rows="3" maxlength="1000">{{ old('note', $withdrawal->note) }}</textarea></div>
+                <div class="mb-3"><label class="form-label fw-semibold" for="withdrawal-edit-note">Catatan <span class="text-danger">*</span></label><textarea class="form-control" id="withdrawal-edit-note" name="note" rows="4" maxlength="2000" required>{{ old('note', $withdrawal->note ?? $withdrawal->reason) }}</textarea></div>
             </div></section>
 
             <div class="d-flex flex-column-reverse flex-sm-row justify-content-end gap-2 mt-4"><a class="btn btn-light border" href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">Batal</a><button class="btn btn-primary" type="submit">Simpan Perubahan</button></div>

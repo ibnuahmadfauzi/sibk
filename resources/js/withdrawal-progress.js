@@ -96,7 +96,6 @@ export const readDetailTrigger = (trigger) => ({
     teacherName: trigger.dataset.teacherName,
     progress: trigger.dataset.progress,
     progressLabel: trigger.dataset.progressLabel,
-    reason: trigger.dataset.reason,
     note: trigger.dataset.note,
     followUps: safeJson(trigger.dataset.followUps),
 });
@@ -150,7 +149,6 @@ export const fillDetailModal = (modal, data, environment = {}) => {
         progressBadge.textContent = data.progressLabel || '—';
         progressBadge.className = `sibk-badge sibk-badge--${toneForProgress(data.progress)}`;
     }
-    text('[data-detail="reason"]', data.reason);
     text('[data-detail="note"]', data.note);
     const history = modal.querySelector('[data-detail-history]');
     if (history) appendDetailHistory(history, data.followUps ?? [], environment.createElement ?? ((tag) => document.createElement(tag)));
@@ -249,7 +247,7 @@ const toneForProgress = (progress) => ({ at_tu: 'success', at_bk: 'warning' }[pr
 
 const validationMessage = (payload) => {
     const errors = payload?.errors ?? {};
-    return Object.values(errors).flat()[0] ?? payload?.message ?? 'Tindak lanjut belum dapat disimpan.';
+    return Object.values(errors).flat()[0] ?? payload?.message ?? 'Progres penanganan belum dapat disimpan.';
 };
 
 export const initWithdrawalProgress = async (root = document, environment = {}) => {

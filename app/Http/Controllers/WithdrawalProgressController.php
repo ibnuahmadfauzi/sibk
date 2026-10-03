@@ -57,19 +57,34 @@ final class WithdrawalProgressController extends Controller
 
         $withdrawal->load(['student', 'classroom', 'teacher']);
 
-        return view('pages.withdrawals.edit', [
-            'withdrawal' => $withdrawal,
-        ]);
+        return view(
+            $request->boolean('modal') ? 'pages.withdrawals._edit-modal' : 'pages.withdrawals.edit',
+            ['withdrawal' => $withdrawal],
+        );
     }
 
     public function update(
         UpdateWithdrawalProgressRequest $request,
         WithdrawalProgress $withdrawal,
         WithdrawalProgressService $service,
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $service->update($withdrawal, $request->validated(), $actor);
+        $withdrawal = $service->update($withdrawal, $request->validated(), $actor);
+
+        if ($request->expectsJson()) {
+            $request->session()->flash('success', 'Penanganan pengunduran diri berhasil diperbarui.');
+
+            return response()->json([
+                'message' => 'Penanganan pengunduran diri berhasil diperbarui.',
+                'redirect' => route('cases.index', ['tab' => 'pengunduran-diri']),
+                'data' => [
+                    'recorded_on' => $withdrawal->recorded_on?->toDateString(),
+                    'note' => $withdrawal->note,
+                    'updated_at' => $withdrawal->updated_at?->toJSON(),
+                ],
+            ]);
+        }
 
         return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
             ->with('success', 'Penanganan pengunduran diri berhasil diperbarui.');
@@ -85,7 +100,7 @@ final class WithdrawalProgressController extends Controller
         $service->destroy($withdrawal, $actor);
 
         return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
-            ->with('success', 'Penanganan pengunduran diri beserta riwayat tindak lanjutnya berhasil dihapus.');
+            ->with('success', 'Penanganan pengunduran diri beserta riwayat progres penanganannya berhasil dihapus.');
     }
 
     public function storeFollowUp(
@@ -102,7 +117,7 @@ final class WithdrawalProgressController extends Controller
             $followUps = $withdrawal->followUps()->with('creator')->get();
 
             return response()->json([
-                'message' => 'Tindak lanjut berhasil ditambahkan.',
+                'message' => 'Progres penanganan berhasil ditambahkan.',
                 'data' => [
                     'id' => $followUp->id,
                     'progress' => $followUp->progress,
@@ -126,7 +141,7 @@ final class WithdrawalProgressController extends Controller
         }
 
         return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
-            ->with('success', 'Tindak lanjut pengunduran diri berhasil ditambahkan.');
+            ->with('success', 'Progres penanganan pengunduran diri berhasil ditambahkan.');
     }
 
     /** @return Collection<int, Student> */

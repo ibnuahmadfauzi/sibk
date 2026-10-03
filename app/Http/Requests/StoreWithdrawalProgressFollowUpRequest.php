@@ -32,7 +32,6 @@ final class StoreWithdrawalProgressFollowUpRequest extends FormRequest
                 'after_or_equal:'.$withdrawal->recorded_on->toDateString(),
                 'before_or_equal:today',
             ],
-            'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

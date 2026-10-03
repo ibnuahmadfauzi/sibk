@@ -42,14 +42,16 @@ final class WithdrawalProgressService
                 throw ValidationException::withMessages(['recorded_on' => 'Kelas murid pada tanggal tersebut tidak tersedia.']);
             }
 
+            $note = $data['note'];
+
             $withdrawal = WithdrawalProgress::query()->create([
                 'student_id' => $student->getKey(),
                 'teacher_id' => $actor->getKey(),
                 'classroom_id' => $membership->classroom_id,
                 'recorded_on' => $data['recorded_on'],
                 'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
-                'note' => $data['note'] ?? null,
-                'reason' => $data['reason'],
+                'note' => $note,
+                'reason' => $note,
             ]);
 
             $withdrawal->followUps()->create([
@@ -84,7 +86,7 @@ final class WithdrawalProgressService
             $followUp = $withdrawal->followUps()->create([
                 'progress' => $data['progress'],
                 'follow_up_date' => $data['follow_up_date'],
-                'notes' => $data['notes'] ?? null,
+                'notes' => null,
                 'created_by' => $actor->getKey(),
             ]);
             $latest = $withdrawal->followUps()->firstOrFail();
@@ -93,7 +95,7 @@ final class WithdrawalProgressService
             $this->auditService->record(
                 'withdrawal_progress.follow_up_added',
                 $withdrawal,
-                'Tindak lanjut pengunduran diri ditambahkan.',
+                'Progres penanganan pengunduran diri ditambahkan.',
                 $actor,
                 [],
                 [
@@ -143,10 +145,12 @@ final class WithdrawalProgressService
                 $initialFollowUp?->update(['follow_up_date' => $recordedOn]);
             }
 
+            $note = $data['note'];
+
             $withdrawal->update([
                 'recorded_on' => $recordedOn,
-                'reason' => $data['reason'],
-                'note' => $data['note'] ?? null,
+                'note' => $note,
+                'reason' => $note,
             ]);
 
             $this->auditService->record('withdrawal_progress.updated', $withdrawal,
