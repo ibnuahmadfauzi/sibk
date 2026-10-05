@@ -153,7 +153,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->toBase();
 
         $withdrawalEvents = WithdrawalProgress::query()
-            ->accessibleTo($actor)
+            ->when(! $actor->hasRole('waka_kesiswaan'), fn (Builder $query): Builder => $query->accessibleTo($actor))
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->whereHas('classroom', fn (Builder $classrooms): Builder => $classrooms
                     ->where('academic_year_id', $selected->getKey())))
@@ -326,7 +326,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     private function withdrawalQuery(User $actor): Builder
     {
         return WithdrawalProgress::query()
-            ->accessibleTo($actor)
+            ->when(! $actor->hasRole('waka_kesiswaan'), fn (Builder $query): Builder => $query->accessibleTo($actor))
             ->with([
                 'student',
                 'classroom',
@@ -412,7 +412,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $isConsultation => 'Selesai',
                 $isWithdrawal => $record->note
                     ? sprintf("Progres: %s\nCatatan: %s", $withdrawalProgressLabel ?? '—', $record->note)
-                    : sprintf("Progres: %s", $withdrawalProgressLabel ?? '—'),
+                    : sprintf('Progres: %s', $withdrawalProgressLabel ?? '—'),
             },
             'counselor' => match (true) {
                 $isCase => ($record->assignments->first()?->teacher?->name ?? '—'),
@@ -468,7 +468,13 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     'Hasil',
                     'Aksi',
                 ]
-                : [
+                : ($filters['service_type'] === 'withdrawal' ? [
+                    'No',
+                    'Hari / Tanggal',
+                    'Nama / Kelas',
+                    'Guru',
+                    'Keterangan',
+                ] : [
                     'No',
                     'Hari / Tanggal',
                     'Nama / Kelas',
@@ -476,7 +482,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     'Ringkasan',
                     'Guru BK',
                     'Keterangan',
-                ],
+                ]),
             'rows' => $rows,
             'summary' => $summary,
             'summary_sentence' => $this->summarySentence($summary),

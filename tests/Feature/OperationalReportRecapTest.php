@@ -67,6 +67,54 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($admin)->get(route('reports.index'))->assertForbidden();
     }
 
+    public function test_waka_withdrawal_report_shows_latest_progress_and_bottom_pagination(): void
+    {
+        [$year, $classroom, $student, $owner] = $this->caseFixture();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        for ($i = 0; $i < 11; $i++) {
+            $student = Student::query()->create([
+                'nisn' => sprintf('009999%04d', $i),
+                'name' => 'Murid Pengunduran '.$i,
+                'is_active' => true,
+            ]);
+            $withdrawal = WithdrawalProgress::query()->create([
+                'student_id' => $student->id,
+                'teacher_id' => $owner->id,
+                'classroom_id' => $classroom->id,
+                'recorded_on' => '2026-09-03',
+                'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
+                'reason' => 'Alasan rahasia.',
+                'note' => 'Catatan rahasia.',
+            ]);
+            foreach (['2026-09-05' => WithdrawalProgress::PROGRESS_AT_TU, '2026-09-04' => WithdrawalProgress::PROGRESS_AT_BK] as $date => $progress) {
+                $withdrawal->followUps()->create([
+                    'progress' => $progress,
+                    'follow_up_date' => $date,
+                    'notes' => 'Tindak lanjut rahasia.',
+                    'created_by' => $owner->id,
+                ]);
+            }
+        }
+
+        $filters = ['academic_year_id' => $year->id, 'service_type' => 'withdrawal'];
+        $response = $this->actingAs($waka)->get(route('reports.index', $filters));
+        $response->assertOk()
+            ->assertViewHas('report', fn (array $report): bool => $report['columns'] === ['No', 'Hari / Tanggal', 'Nama / Kelas', 'Guru', 'Keterangan']
+                && $report['rows']->total() === 11 && $report['rows']->count() === 10)
+            ->assertSee('Berkas pengunduran sudah masuk TU')
+            ->assertDontSee('Berkas pengunduran masih di BK')
+            ->assertDontSee('Catatan Layanan')
+            ->assertDontSee('data-report-page-size', false)
+            ->assertDontSee('Alasan rahasia.')
+            ->assertDontSee('Catatan rahasia.')
+            ->assertDontSee('Tindak lanjut rahasia.')
+            ->assertSee('page=2', false);
+        $this->actingAs($waka)->get(route('reports.index', $filters + ['page' => 2]))
+            ->assertOk()->assertViewHas('report', fn (array $report): bool => $report['rows']->first()['number'] === 11);
+        $this->actingAs($waka)->get(route('reports.records.preview', ['type' => 'withdrawal', 'id' => $withdrawal->id]))
+            ->assertForbidden();
+    }
+
     public function test_jenis_layanan_dropdown_options_match_specification(): void
     {
         [, , , $owner] = $this->caseFixture();

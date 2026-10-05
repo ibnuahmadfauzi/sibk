@@ -20,6 +20,7 @@
                             <strong>{{ $row['name'] }}</strong>
                             <div class="small text-muted">{{ $row['classroom'] }}</div>
                         </td>
+                        @if($report['filters']['service_type'] !== 'withdrawal')
                         <td>
                             <span class="d-block small text-muted">
                                 {{ $row['service'] }}
@@ -29,6 +30,7 @@
                             </strong>
                         </td>
                         <td>{{ $row['detail_note'] }}</td>
+                        @endif
                         <td>{{ $row['counselor'] }}</td>
                         <td>{{ $row['follow_up_label'] }}</td>
                     </tr>

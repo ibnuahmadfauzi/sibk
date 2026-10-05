@@ -52,8 +52,9 @@
 
     <section
         class="sibk-panel sibk-operational-report"
-        aria-labelledby="operational-report-title"
+        aria-label="Daftar layanan BK"
     >
+        @if($report['can_view_document'])
         <div
             class="sibk-panel__header p-4 border-bottom d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3"
         >
@@ -95,6 +96,8 @@
                 </select>
             </div>
         </div>
+
+        @endif
 
         @include('pages.reports._desktop-table')
         @include('pages.reports._mobile-cards')

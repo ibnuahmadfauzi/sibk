@@ -14,6 +14,7 @@
                             {{ $row['day_label'] }}, {{ $row['date_label'] }}
                         </p>
                     </div>
+                    @if($report['filters']['service_type'] !== 'withdrawal')
                     <span
                         class="sibk-badge flex-column align-items-start gap-0"
                     >
@@ -22,14 +23,17 @@
                         </span>
                         <strong>{{ $row['service_field'] }}</strong>
                     </span>
+                    @endif
                 </div>
                 <dl class="mb-0">
+                    @if($report['filters']['service_type'] !== 'withdrawal')
                     <div class="py-2">
                         <dt>Ringkasan</dt>
                         <dd class="mb-0">{{ $row['detail_note'] }}</dd>
                     </div>
+                    @endif
                     <div class="py-2">
-                        <dt>Guru BK</dt>
+                        <dt>{{ $report['filters']['service_type'] === 'withdrawal' ? 'Guru' : 'Guru BK' }}</dt>
                         <dd class="mb-0">{{ $row['counselor'] }}</dd>
                     </div>
                     <div class="py-2">

@@ -232,7 +232,7 @@ Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript 
 
 Laporan pelanggaran, poin, tindak lanjut, dan prestasi tidak menjadi menu laporan terpisah bagi Waka.
 
-Waka melihat daftar layanan dengan filter, ringkasan, urutan, dan pagination yang sama seperti Koordinator. Kolomnya dibatasi ke **No**, **Hari/Tanggal**, **Nama/Kelas**, **Jenis Masalah**, **Hasil / Ringkasan**, **Guru BK**, dan **Keterangan**. Hasil / Ringkasan memakai `resolution_summary|result` dan dapat `—` bila belum tersedia; latar belakang masalah, penanganan, hasil terpisah, aksi, preview, cetak/PDF, dan ekspor tidak tersedia. Waka tidak menerima kode kasus, NISN, catatan internal, payload provider mentah, atau dokumen sensitif.
+Waka melihat daftar layanan dengan filter dan urutan seperti Koordinator, tanpa ringkasan Catatan Layanan atau pemilih jumlah data, serta pagination di bawah tabel. Laporan pengunduran diri berfokus pada identitas murid, guru, dan progres berkas terbaru. Kolom kasus/konsultasi dibatasi ke **No**, **Hari/Tanggal**, **Nama/Kelas**, **Jenis Masalah**, **Hasil / Ringkasan**, **Guru BK**, dan **Keterangan**. Hasil / Ringkasan memakai `resolution_summary|result` dan dapat `—` bila belum tersedia; latar belakang masalah, penanganan, hasil terpisah, aksi, preview, cetak/PDF, dan ekspor tidak tersedia. Waka tidak menerima kode kasus, NISN, catatan internal, payload provider mentah, atau dokumen sensitif.
 
 # Risiko dan ketergantungan
 
