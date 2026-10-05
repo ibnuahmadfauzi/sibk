@@ -49,24 +49,25 @@ final class WakaDashboardTest extends TestCase
                 'Sedang diproses',
                 'Membutuhkan tindak lanjut',
                 'Selesai bulan ini',
-                'Membutuhkan Perhatian',
-                'Komposisi Status',
                 'Penanganan Terbaru',
+                'Komposisi Status',
             ])
             ->assertDontSee($coordinated->registration_number)
             ->assertDontSee('SENTINEL-INTERNAL');
     }
 
-    public function test_every_dashboard_case_has_read_only_detail_link(): void
+    public function test_dashboard_shows_latest_cases_without_action_buttons(): void
     {
         [$waka, $coordinated, $notCoordinated] = $this->dashboardFixture();
 
         $response = $this->actingAs($waka)->get(route('dashboard.preview'));
 
         $response->assertOk()
-            ->assertSee('Lihat detail')
-            ->assertSee('href="'.route('cases.show', $coordinated).'"', false)
-            ->assertSee('href="'.route('cases.show', $notCoordinated).'"', false);
+            ->assertDontSee('Membutuhkan Perhatian')
+            ->assertDontSee('Lihat semua')
+            ->assertDontSee('Lihat detail')
+            ->assertDontSee('href="'.route('cases.show', $coordinated).'"', false)
+            ->assertDontSee('href="'.route('cases.show', $notCoordinated).'"', false);
     }
 
     public function test_waka_dashboard_view_is_audited_without_sensitive_data(): void

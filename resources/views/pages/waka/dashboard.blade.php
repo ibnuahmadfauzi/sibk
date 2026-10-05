@@ -48,28 +48,34 @@
 
     <div class="row g-3 mt-1">
         <div class="col-12 col-xl-8">
-            <section class="sibk-panel sibk-panel--inset" aria-labelledby="waka-attention-title">
+            <section class="sibk-panel sibk-panel--inset" aria-labelledby="waka-latest-title">
                 <header class="sibk-panel__header">
-                    <div class="sibk-panel__title-group"><h2 id="waka-attention-title">Membutuhkan Perhatian</h2></div>
-                    <a
-                        class="btn btn-sm btn-outline-primary"
-                        href="{{ route('reports.index', ['service_type' => 'case']) }}"
-                    >
-                        Lihat semua penanganan
-                    </a>
+                    <div class="sibk-panel__title-group"><h2 id="waka-latest-title">Penanganan Terbaru</h2></div>
                 </header>
-                @if(empty($dashboard['attention']))
-                    <x-empty-state title="Tidak ada penanganan mendesak" description="Belum ada permasalahan yang membutuhkan tindak lanjut atau perhatian khusus." />
+                @if(empty($dashboard['latest']))
+                    <x-empty-state title="Belum ada penanganan" description="Penanganan terbaru pada tahun ajaran terpilih akan tampil di sini." />
                 @else
-                    <div class="p-3">
-                        @foreach($dashboard['attention'] as $row)
-                            <article class="border-bottom border-secondary-subtle py-3 first-pt-0">
-                                <div class="d-flex flex-wrap justify-content-between gap-2">
-                                    <div><h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-0">{{ $row['kelas'] }} - Guru BK: {{ $row['guru_bk'] }}</p></div>
-                                    <span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span>
-                                </div>
-                                <p class="small mb-0"><strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}</p>
-                                <a class="btn btn-sm btn-outline-primary mt-2" href="{{ $row['detail_url'] }}">Lihat detail</a>
+                    <div class="table-responsive d-none d-lg-block">
+                        <table class="table sibk-table align-middle">
+                            <thead><tr><th>Murid</th><th>Kelas</th><th>Jenis Masalah</th><th>Status</th><th>Guru BK</th><th>Tanggal</th></tr></thead>
+                            <tbody>
+                                @foreach($dashboard['latest'] as $row)
+                                    <tr>
+                                        <td class="fw-semibold">{{ $row['nama_murid'] }}</td><td>{{ $row['kelas'] }}</td><td>{{ $row['bidang'] }}</td>
+                                        <td><span class="sibk-badge sibk-badge--{{ $row['status_code'] === 'selesai' ? 'success' : (in_array($row['status_code'], ['sedang_diproses', 'membutuhkan_tindak_lanjut'], true) ? 'warning' : 'primary') }}">{{ $row['status'] }}</span></td>
+                                        <td>{{ $row['guru_bk'] }}</td><td>{{ $row['tanggal'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-lg-none p-3">
+                        @foreach($dashboard['latest'] as $row)
+                            <article class="sibk-panel sibk-panel--inset p-3 mb-3">
+                                <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-2">{{ $row['kelas'] }} - {{ $row['tanggal'] }}</p>
+                                <p class="small mb-2">{{ $row['bidang'] }} - Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>
+                                <p class="mb-2"><span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span></p>
+                                <p class="small mb-3"><strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}</p>
                             </article>
                         @endforeach
                     </div>
@@ -91,45 +97,4 @@
         </div>
     </div>
 
-    <section class="sibk-panel mt-3" aria-labelledby="waka-latest-title">
-        <header class="sibk-panel__header">
-            <div class="sibk-panel__title-group"><h2 id="waka-latest-title">Penanganan Terbaru</h2></div>
-            <a
-                class="btn btn-sm btn-outline-primary"
-                href="{{ route('reports.index') }}"
-            >
-                Buka Laporan
-            </a>
-        </header>
-        @if(empty($dashboard['latest']))
-            <x-empty-state title="Belum ada penanganan" description="Penanganan terbaru pada tahun ajaran terpilih akan tampil di sini." />
-        @else
-            <div class="table-responsive d-none d-lg-block">
-                <table class="table sibk-table align-middle">
-                    <thead><tr><th>Murid</th><th>Kelas</th><th>Jenis Masalah</th><th>Status</th><th>Guru BK</th><th>Tanggal</th><th>Akses</th></tr></thead>
-                    <tbody>
-                        @foreach($dashboard['latest'] as $row)
-                            <tr>
-                                <td class="fw-semibold">{{ $row['nama_murid'] }}</td><td>{{ $row['kelas'] }}</td><td>{{ $row['bidang'] }}</td>
-                                <td><span class="sibk-badge sibk-badge--{{ $row['status_code'] === 'selesai' ? 'success' : (in_array($row['status_code'], ['sedang_diproses', 'membutuhkan_tindak_lanjut'], true) ? 'warning' : 'primary') }}">{{ $row['status'] }}</span></td>
-                                <td>{{ $row['guru_bk'] }}</td><td>{{ $row['tanggal'] }}</td>
-                                <td><a class="btn btn-sm btn-outline-primary" href="{{ $row['detail_url'] }}">Lihat detail</a></td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <div class="d-lg-none p-3">
-                @foreach($dashboard['latest'] as $row)
-                    <article class="sibk-panel sibk-panel--inset p-3 mb-3">
-                        <h3 class="h6 mb-1">{{ $row['nama_murid'] }}</h3><p class="small text-muted mb-2">{{ $row['kelas'] }} - {{ $row['tanggal'] }}</p>
-                        <p class="small mb-2">{{ $row['bidang'] }} - Guru BK: <strong>{{ $row['guru_bk'] }}</strong></p>
-                        <p class="mb-2"><span class="sibk-badge sibk-badge--warning">{{ $row['status'] }}</span></p>
-                        <p class="small mb-3"><strong>Tindak lanjut:</strong> {{ $row['tindak_lanjut'] }}</p>
-                        <a class="btn btn-outline-primary w-100" href="{{ $row['detail_url'] }}">Lihat detail</a>
-                    </article>
-                @endforeach
-            </div>
-        @endif
-    </section>
 </div>
