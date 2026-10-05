@@ -8,11 +8,12 @@ use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\AchievementController;
 use App\Http\Controllers\AchievementImportController;
 use App\Http\Controllers\Admin\AcademicYearPreparationController;
-use App\Http\Controllers\Admin\ClassroomCatalogController;
 use App\Http\Controllers\Admin\ApiManagementController;
+use App\Http\Controllers\Admin\ClassroomCatalogController;
 use App\Http\Controllers\Admin\DapodikReconciliationController;
 use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\EtatibAutomaticSyncController;
+use App\Http\Controllers\Admin\EtatibDuplicateDecisionController;
 use App\Http\Controllers\Admin\EtatibIdentityMappingController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
 use App\Http\Controllers\Admin\SyncIssueReviewController;
@@ -145,6 +146,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/data-master/etatib/sync', [DataMasterController::class, 'synchronizeEtatib'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.sync');
+        Route::delete('/data-master/etatib/duplicates/{decision}', [EtatibDuplicateDecisionController::class, 'destroy'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.duplicates.destroy');
         Route::post('/data-master/etatib/automatic', [EtatibAutomaticSyncController::class, 'store'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.automatic.store');

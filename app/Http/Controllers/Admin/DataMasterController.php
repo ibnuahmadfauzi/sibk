@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\SyncEtatibApiRequest;
 use App\Integrations\IntegrationConfigurationException;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
+use App\Models\EtatibDuplicateDecision;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
@@ -87,6 +88,10 @@ class DataMasterController extends Controller
                 ->paginate(20, ['id', 'source', 'status', 'started_at', 'processed_count', 'conflict_count', 'summary'], 'run_page')
                 ->withQueryString(),
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
+            'etatibDuplicateDecisions' => $activeTab === 'etatib'
+                ? EtatibDuplicateDecision::query()->where('is_active', true)->latest('approved_at')
+                    ->paginate(10, ['id', 'source_nisn', 'source_name', 'copy_count', 'approved_at'], 'duplicate_page')->withQueryString()
+                : null,
             'latestDapodikPreview' => ExternalSyncRun::query()
                 ->where('source', 'dapodik')
                 ->where('status', ExternalSyncRun::STATUS_PREVIEW_READY)
@@ -187,7 +192,7 @@ class DataMasterController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->synchronize($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions());
+        $run = $service->synchronize($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions(), $request->duplicateDecisions());
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['etatib_sync' => $run->summary ?? 'Sinkronisasi e-Tatib gagal.']);

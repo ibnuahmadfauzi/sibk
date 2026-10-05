@@ -8,6 +8,7 @@ use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\Etatib\EtatibUnavailableException;
 use App\Integrations\IntegrationOperationContext;
 use App\Models\AcademicYear;
+use App\Models\EtatibDuplicateDecision;
 use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
@@ -46,7 +47,17 @@ final class SimpleEtatibApiService
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
         $read = $this->verifiedRecords($url);
-        $records = $read['records'];
+        $records = $this->uniqueRecords($read['records']);
+        $groups = $this->duplicateGroups($read['records']);
+        $approved = EtatibDuplicateDecision::query()->where('url_hash', hash('sha256', $url))
+            ->where('is_active', true)->whereIn('group_key', array_column($groups, 'key'))
+            ->get()->keyBy('group_key');
+        foreach ($groups as &$group) {
+            $decision = $approved->get($group['key']);
+            $group['approved'] = $decision !== null;
+            $group['decision_id'] = $decision?->getKey();
+        }
+        unset($group);
         $students = Student::query()
             ->whereIn('nisn', collect($records)->pluck('nisn')->unique())
             ->with(['classMemberships' => fn ($memberships) => $memberships
@@ -128,7 +139,8 @@ final class SimpleEtatibApiService
         }, $identityConflicts);
 
         return [
-            'rows' => $read['received'],
+            'rows' => count($records),
+            'received' => $read['received'],
             'undated' => $read['undated'],
             'students' => collect($records)->pluck('nisn')->unique()->count(),
             'matched' => $matched,
@@ -138,12 +150,13 @@ final class SimpleEtatibApiService
             'name_mismatches' => collect($identityConflicts)->where('kind', 'name_mismatch')->count(),
             'active_year' => AcademicYear::query()->active()->value('name'),
             'identity_conflicts' => $identityConflicts,
-            'fingerprint' => $this->fingerprint($records),
+            'duplicate_groups' => $groups,
+            'fingerprint' => $this->fingerprint($read['records']),
         ];
     }
 
     /** @param array<string, mixed>|null $preview */
-    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = []): ExternalSyncRun
+    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = [], array $duplicateDecisions = []): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
@@ -151,10 +164,30 @@ final class SimpleEtatibApiService
             'provider' => IntegrationSetting::PROVIDER_ETATIB,
         ]);
 
+        $newApprovals = [];
+
         return $this->syncService->synchronizeUsing(
-            fn (IntegrationOperationContext $context): EtatibSnapshot => $this->snapshotForSync($url, $preview, $actor),
+            function (IntegrationOperationContext $context) use ($url, $preview, $actor, $duplicateDecisions, &$newApprovals): EtatibSnapshot {
+                return $this->snapshotForSync($url, $preview, $actor, $duplicateDecisions, $newApprovals);
+            },
             $actor,
             $decisions,
+            function () use ($url, $actor, &$newApprovals): void {
+                foreach ($newApprovals as $group) {
+                    $decision = EtatibDuplicateDecision::query()->firstOrCreate(
+                        ['url_hash' => hash('sha256', $url), 'group_key' => $group['key']],
+                        ['source_nisn' => $group['nisn'], 'source_name' => $group['name'], 'copy_count' => $group['count'],
+                            'is_active' => true, 'approved_by' => $actor->getKey(), 'approved_at' => now()],
+                    );
+                    if (! $decision->wasRecentlyCreated) {
+                        $decision->update(['is_active' => true, 'approved_by' => $actor->getKey(), 'approved_at' => now(),
+                            'revoked_by' => null, 'revoked_at' => null]);
+                    }
+                    app(AuditService::class)->record('etatib.duplicate_approved', $decision,
+                        'Baris e-Tatib identik disetujui sebagai satu kejadian.', $actor,
+                        after: ['group_key' => $group['key'], 'copy_count' => $group['count']]);
+                }
+            },
         );
     }
 
@@ -215,7 +248,7 @@ final class SimpleEtatibApiService
     }
 
     /** @param array<string, mixed>|null $preview */
-    private function snapshotForSync(string $url, ?array $preview = null, ?User $actor = null): EtatibSnapshot
+    private function snapshotForSync(string $url, ?array $preview = null, ?User $actor = null, array $duplicateDecisions = [], array &$newApprovals = []): EtatibSnapshot
     {
         try {
             $read = $this->verifiedRecords($url);
@@ -233,6 +266,27 @@ final class SimpleEtatibApiService
             if ($actor !== null && ! hash_equals($preview['fingerprint'], $this->fingerprint($records))) {
                 throw new EtatibUnavailableException('Data API e-Tatib berubah setelah ditinjau. Tinjau data terbaru sebelum sinkronisasi.');
             }
+
+            $groups = $this->duplicateGroups($records);
+            $keys = array_column($groups, 'key');
+            if (count($duplicateDecisions) !== count(array_unique($duplicateDecisions))
+                || array_diff($duplicateDecisions, $keys) !== []) {
+                throw new EtatibUnavailableException('Pilihan duplikasi tidak sesuai dengan pratinjau. Tinjau data kembali.');
+            }
+            $approved = EtatibDuplicateDecision::query()->where('url_hash', hash('sha256', $url))
+                ->where('is_active', true)->whereIn('group_key', $keys)->pluck('group_key')->all();
+            $unapproved = array_diff($keys, $approved, $duplicateDecisions);
+            if ($unapproved !== []) {
+                throw new EtatibUnavailableException('Ada baris e-Tatib identik yang belum diputuskan Admin IT. Tinjau data kembali.');
+            }
+            $newApprovals = array_values(array_filter($groups,
+                static fn (array $group): bool => in_array($group['key'], $duplicateDecisions, true)
+                    && ! in_array($group['key'], $approved, true)));
+            $records = $this->uniqueRecords($records);
+            foreach ($records as &$record) {
+                unset($record['_source_hash'], $record['_row']);
+            }
+            unset($record);
 
             $missing = $this->missingActiveCount($records);
             if ($missing > 0) {
@@ -269,13 +323,46 @@ final class SimpleEtatibApiService
     private function fingerprint(array $records): string
     {
         $stable = array_map(static function (array $record): array {
-            unset($record['source_synced_at']);
+            unset($record['source_synced_at'], $record['_row']);
 
             return $record;
         }, $records);
         usort($stable, static fn (array $left, array $right): int => strcmp($left['source_id'], $right['source_id']));
 
         return hash('sha256', json_encode($stable, JSON_THROW_ON_ERROR));
+    }
+
+    /** @param list<array<string, int|string|null>> $records @return list<array<string, int|string|null>> */
+    private function uniqueRecords(array $records): array
+    {
+        return array_values(collect($records)->unique('source_id')->all());
+    }
+
+    /** @param list<array<string, int|string|null>> $records @return list<array<string, mixed>> */
+    private function duplicateGroups(array $records): array
+    {
+        $groups = [];
+        foreach ($records as $record) {
+            $groups[$record['source_id']]['rows'][] = $record['_row'];
+            $groups[$record['source_id']]['record'] = $record;
+        }
+        $result = [];
+        foreach ($groups as $group) {
+            $count = count($group['rows']);
+            if ($count < 2) {
+                continue;
+            }
+            $record = $group['record'];
+            unset($record['source_id'], $record['source_synced_at']);
+            $result[] = [
+                'key' => hash('sha256', json_encode([$record['_source_hash'], $count], JSON_THROW_ON_ERROR)),
+                'rows' => $group['rows'], 'count' => $count,
+                'nisn' => $record['nisn'], 'name' => $record['source_student_name'],
+                'classroom' => $record['source_classroom_name'],
+            ];
+        }
+
+        return $result;
     }
 
     /** @return array{records: list<array<string, int|string|null>>, received: int, undated: int} */
@@ -343,8 +430,10 @@ final class SimpleEtatibApiService
             }
             $oldRecord['source_id'] = $sourceId;
             $oldRecord['occurred_at'] = null;
+            $oldRecord['_source_hash'] = $sourceId;
             $newRecord['source_id'] = $sourceId;
             $newRecord['occurred_at'] = null;
+            $newRecord['_source_hash'] = $sourceId;
             $stableFirst[] = $oldRecord;
             $stableSecond[] = $newRecord;
         }
@@ -409,7 +498,7 @@ final class SimpleEtatibApiService
     /** @param array<string, int|string|null> $record */
     private function withoutDateFingerprint(array $record): string
     {
-        unset($record['source_id'], $record['occurred_at'], $record['source_synced_at']);
+        unset($record['source_id'], $record['occurred_at'], $record['source_synced_at'], $record['_source_hash'], $record['_row']);
 
         return hash('sha256', json_encode($record, JSON_THROW_ON_ERROR));
     }
@@ -524,16 +613,12 @@ final class SimpleEtatibApiService
                 (string) $points,
                 $this->normalizeText($recorder),
             ]));
-            if (isset($identifiers[$identifier])) {
-                $this->fail(sprintf(
-                    'Data e-Tatib baris %d identik dengan baris %d dan tidak dapat dibedakan karena API tidak memiliki ID pelanggaran.',
-                    $index + 1,
-                    $identifiers[$identifier],
-                ));
+            $sourceFields = [];
+            foreach ($required as $field) {
+                $sourceFields[$field] = $item[$field];
             }
-            $identifiers[$identifier] = $index + 1;
-
-            $records[] = [
+            $sourceHash = hash('sha256', json_encode($sourceFields, JSON_THROW_ON_ERROR));
+            $record = [
                 'source_id' => $identifier,
                 'nisn' => $nisn,
                 'source_nisn' => $sourceNisn,
@@ -548,7 +633,18 @@ final class SimpleEtatibApiService
                 'source_status' => 'active',
                 'source_synced_at' => now()->format('Y-m-d H:i:s'),
                 'source_deleted_at' => null,
+                '_source_hash' => $sourceHash,
+                '_row' => $index + 1,
             ];
+            if (isset($identifiers[$identifier])) {
+                $previous = $records[$identifiers[$identifier] - 1];
+                if ($previous['_source_hash'] !== $sourceHash) {
+                    $this->fail(sprintf('Data e-Tatib baris %d memakai penanda yang sama dengan baris %d, tetapi isinya berbeda. Sinkronisasi ditahan.', $index + 1, $identifiers[$identifier]));
+                }
+            } else {
+                $identifiers[$identifier] = $index + 1;
+            }
+            $records[] = $record;
         }
 
         return $records;

@@ -39,6 +39,7 @@
             data-dapodik-url="{{ route('data-master.index', ['tab' => 'dapodik']) }}"
             data-manual-sync-url="{{ route('data-master.etatib.sync') }}"
             data-automatic-sync-url="{{ route('data-master.etatib.automatic.store') }}"
+            data-duplicate-revoke-url="{{ route('data-master.etatib.duplicates.destroy', ['decision' => '__DECISION__']) }}"
         >
             @csrf
             <label class="form-label small mb-0" for="etatib_api_url">Tautan API e-Tatib</label>
@@ -121,6 +122,44 @@
         </div>
     </div>
 </div>
+
+@if($etatibDuplicateDecisions?->isNotEmpty())
+    <section class="sibk-panel mb-4" aria-labelledby="etatib-duplicate-decisions-title">
+        <div class="sibk-panel__header">
+            <div>
+                <h2 class="sibk-panel__title" id="etatib-duplicate-decisions-title">Keputusan Duplikasi Aktif</h2>
+                <p class="sibk-panel__subtitle">Keputusan tetap dapat dibatalkan meskipun kelompoknya tidak lagi dikirim API. Riwayat tersimpan tidak dihapus.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table sibk-table mb-0">
+                <thead><tr><th scope="col">Murid</th><th scope="col">Keputusan</th><th scope="col">Disetujui</th><th scope="col">Tindakan</th></tr></thead>
+                <tbody>
+                    @foreach($etatibDuplicateDecisions as $decision)
+                        <tr>
+                            <td>{{ $decision->source_name }}<span class="d-block small text-muted">NISN {{ $decision->source_nisn }}</span></td>
+                            <td>{{ $decision->copy_count }} salinan dianggap satu kejadian</td>
+                            <td>{{ $decision->approved_at->locale('id')->translatedFormat('d M Y, H.i') }}</td>
+                            <td>
+                                <form action="{{ route('data-master.etatib.duplicates.destroy', $decision) }}" method="POST"
+                                    data-app-confirm-submit data-confirm-title="Batalkan keputusan duplikasi?"
+                                    data-confirm-message="Sinkronisasi berikutnya memerlukan tinjauan ulang untuk kelompok ini. Riwayat tersimpan tidak dihapus."
+                                    data-confirm-subject="{{ $decision->source_name }}" data-confirm-action="Batalkan Keputusan" data-confirm-tone="danger">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-outline-danger btn-sm" type="submit">Batalkan Keputusan</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @if($etatibDuplicateDecisions->hasPages())
+            <div class="p-3">{{ $etatibDuplicateDecisions->links() }}</div>
+        @endif
+    </section>
+@endif
 
 @if($etatibAutomaticSetting['enabled'])
     <section class="sibk-panel mb-4" aria-labelledby="etatib-automatic-disable-title">
