@@ -70,7 +70,7 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Hanya untuk dilihat')
             ->assertSee('Tren Murid Tercatat')
             ->assertSee('Sebaran per Tingkat')
-            ->assertSee('Murid yang Perlu Tindak Lanjut')
+            ->assertSee('id="waka-follow-up-title"', false)
             ->assertSee('data-waka-year-filter', false)
             ->assertSee('Murid Tercatat')
             ->assertSee('Sedang Ditangani')

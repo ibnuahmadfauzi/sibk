@@ -8,7 +8,7 @@
             </div>
             <div class="modal-body">
                 <p id="achievement-import-help" class="mb-3">Pilih berkas .xlsx. Maksimal 1.000 baris dan 2 MB. Semua baris diperiksa sebelum disimpan.</p>
-                <details class="border rounded p-3 mb-3" @if($errors->has('file')) open @endif>
+                <details class="sibk-import-guide border rounded p-3 mb-3" @if($errors->has('file')) open @endif>
                     <summary title="Lihat syarat file Excel" class="fw-semibold">Format dan kode isian Excel</summary>
                     <div class="mt-3 small">
                         <p class="mb-2">Baris pertama berisi nama kolom berikut, sesuai urutan:</p>

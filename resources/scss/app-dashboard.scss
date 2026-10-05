@@ -4222,6 +4222,37 @@ small, .small {
   }
 }
 
+.sibk-import-guide {
+  background: var(--sibk-color-primary-soft);
+  border-color: var(--sibk-color-primary) !important;
+  color: var(--sibk-color-text-dark);
+
+  code {
+    color: var(--sibk-color-text-dark);
+    border-color: var(--sibk-color-primary) !important;
+  }
+}
+
+.sibk-panel[aria-labelledby="waka-trend-title"] {
+  background: var(--sibk-color-page);
+  box-shadow: var(--sibk-shadow-inset-lg);
+}
+
+.sibk-panel[aria-labelledby="waka-follow-up-title"] {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+
+  > .sibk-panel__header {
+    padding: 0.875rem 1.25rem !important;
+    background: var(--sibk-color-surface-raised) !important;
+    border: 1px solid var(--sibk-color-border-light) !important;
+    border-radius: var(--sibk-radius-md);
+    box-shadow: var(--sibk-shadow-raised-sm) !important;
+    margin-bottom: 0.5rem;
+  }
+}
+
 .sibk-waka-trend {
   display: flex;
   gap: 0.5rem;
