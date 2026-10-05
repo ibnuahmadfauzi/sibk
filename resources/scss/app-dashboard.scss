@@ -4257,7 +4257,9 @@ small, .small {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-top: 1.5rem;
+  padding: 1.5rem 0.75rem 0.75rem;
+  background: var(--sibk-color-primary-soft);
+  border-radius: var(--sibk-radius-md);
 
   &__month {
     flex: 1 0 2.25rem;
