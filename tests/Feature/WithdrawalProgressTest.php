@@ -216,8 +216,8 @@ final class WithdrawalProgressTest extends TestCase
             ->assertSee('<strong class="d-block mb-1">Catatan</strong>', false)
             ->assertSee('href="'.route('withdrawals.edit', $withdrawal).'"', false)
             ->assertSee('data-confirm-title="Hapus penanganan pengunduran diri?"', false)
-            ->assertDontSee('withdrawal-progress-badge', false)
-            ->assertDontSee('data-withdrawal-progress', false)
+            ->assertSee('withdrawal-progress-badge', false)
+            ->assertSee('data-withdrawal-progress="in_progress"', false)
             ->assertDontSee('id="withdrawal-create-modal"', false)
             ->assertDontSee('data-report-detail-toggle', false);
 

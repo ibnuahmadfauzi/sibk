@@ -58,7 +58,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 ### Daftar dan Form Kasus
 - **Endpoint:** `GET /cases`, `GET /cases/create`
 - **Controller:** `CaseController@index`
-- **Authorization:** `Guru BK` (scope profesional yang diizinkan), `Koordinator BK` (semua kasus), dan Waka aktif (proyeksi hanya-baca seluruh kasus).
+- **Authorization:** `Guru BK` (scope profesional yang diizinkan), `Koordinator BK` (scope Guru BK yang sah, AUTH-02/AUTH-04), dan Waka aktif (proyeksi hanya-baca seluruh kasus).
 - **Query Params:** `search` (nama), `status_id`, `sort`, `direction`, `tab`, dan `page`; sort memakai allowlist dan ID sebagai tie-breaker.
 - **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
@@ -101,7 +101,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Controller:** `CaseController@show`
 - **Authorization:** `CasePolicy@view`
   - Waka Kesiswaan membaca proyeksi hanya-baca seluruh kasus tanpa catatan internal atau payload e-Tatib mentah.
-  - Koordinator melihat ringkasan lintas kasus; catatan internal hanya terlihat jika juga berperan sebagai Guru BK dan merupakan owner aktif kasus tersebut.
+  - Koordinator membaca detail kasus dalam scope Guru BK; catatan internal hanya terlihat jika juga berperan sebagai Guru BK dan merupakan owner aktif kasus tersebut.
   - Admin IT tidak memiliki akses daftar/detail kasus hanya karena role teknis.
 
 ### Riwayat koordinasi Waka (dipensiunkan Revisi 3.2)
@@ -136,8 +136,10 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ### Daftar, detail, dan formulir konsultasi
 - **Endpoint:** `GET /consultations` mengalihkan ke `GET /cases?tab=konsultasi`; `GET /consultations/create`; `GET /consultations/{consultation}`; `GET /consultations/{consultation}/edit`.
 - **Controller:** `CaseController@index` untuk daftar dan `ConsultationController` untuk formulir/detail.
+- **Form modal (CONS-01):** `GET /consultations/create?modal=1` mengembalikan fragmen HTML form. `POST /consultations` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke tab konsultasi; validasi gagal mengembalikan HTTP 422 beserta `errors`.
+- **Detail dalam baris (CONS-06):** `GET /consultations/{consultation}?inline=1` mengembalikan fragmen HTML `problem` dan `handling` untuk ditampilkan di bawah baris tabel; policy dan audit pembacaan sama dengan endpoint detail.
 - **Filter daftar:** `search` (nama), `service_field_id`, `sort`, `direction`, dan `page`; sort hanya `tanggal`, `nama`, `kelas`, atau `jenis_layanan` dengan ID sebagai tie-breaker.
-- **Authorization:** Guru BK membaca histori dalam scope profesional, Koordinator membaca sesuai fungsi, Waka aktif membaca proyeksi detail hanya-baca, dan Admin IT ditolak.
+- **Authorization:** Guru BK membaca histori dalam scope profesional, Koordinator mengikuti scope Guru BK pada daftar/detail layanan (AUTH-02/AUTH-04), Waka aktif membaca proyeksi detail hanya-baca, dan Admin IT ditolak.
 
 ### Catat, ubah, dan arsip konsultasi
 - **Endpoint:** `POST /consultations`; `PATCH /consultations/{consultation}`; `DELETE /consultations/{consultation}`.
@@ -414,7 +416,7 @@ terlihat pada dashboard serta halaman operasional terkait.
   - `page`: integer minimum 1 dan hanya berlaku pada daftar.
   - `format`: hanya `xlsx`; hanya berlaku pada endpoint ekspor.
 - **Authorization:** `ReportPolicy::viewAny` mengizinkan Guru BK, Koordinator BK, dan Waka. `ReportPolicy::viewDocument` mengizinkan Koordinator serta Guru BK yang tidak merangkap Waka; Admin IT ditolak. Akun Waka+Guru tetap memakai proyeksi Waka tanpa dokumen agar cakupan seluruh sekolah tidak berpindah ke kemampuan cetak Guru BK; Koordinator tetap memperoleh dokumen sesuai kewenangannya.
-- **Business Logic:** `OperationalReportRecapService` menyatukan query `BkCase::accessibleTo()`, `Consultation::accessibleTo()`, dan `WithdrawalProgress::accessibleTo()` sebagai satu row per catatan. Guru BK dibatasi scope profesional atau kasus yang menjadi tanggung jawabnya; Koordinator memperoleh gabungan yang diizinkan.
+- **Business Logic:** `OperationalReportRecapService` menyatukan query kasus, konsultasi, dan pengunduran diri sebagai satu row per catatan. Khusus query laporan Koordinator, kasus/konsultasi memakai `withinStudentServicePeriod()` tanpa filter penugasan; actor lain memakai `accessibleTo()`. Query daftar, dokumen, dan pencarian record laporan memakai batas yang sama. `findRecord()` menegakkan `ReportPolicy::viewDocument` sebelum pencarian; pratinjau record Koordinator memakai akses laporan ini, bukan policy detail Layanan BK. Query pengunduran diri tetap mengikuti akses laporan existing.
 - **Kolom:** No; Hari/Tanggal; Nama & Kelas; Layanan/Jenis Masalah; Hasil / Ringkasan; Aksi. UI Guru BK/Koordinator menampilkan jenis catatan kecil sebagai `Permasalahan|Konsultasi|Pengunduran Diri` tanpa kata `Catatan`, lalu label bidang layanan lebih besar dan tebal. Satu ikon kaca pembesar membuka baris detail Latar Belakang Masalah dan Penanganan; Hasil / Ringkasan tidak diulang pada baris detail.
 - **Ringkasan:** dihitung dari seluruh query terscope setelah filter tahun ajaran, kelas, dan jenis layanan, sebelum pagination. Total Catatan selalu tampil. Permasalahan, Konsultasi, atau Pengunduran Diri yang tidak relevan dengan filter jenis layanan disembunyikan. UI memakai kartu angka; preview/PDF dan Excel memakai kalimat naratif yang menjelaskan total serta komposisi hasil filter.
 - **Mapping:** kasus memakai `resolution_summary` sebagai Hasil / Ringkasan, `initial_info` sebagai Latar Belakang Masalah, dan `initial_action` sebagai Penanganan. Konsultasi memakai `result` sebagai Hasil / Ringkasan, `problem` sebagai Latar Belakang Masalah, dan `handling` sebagai Penanganan. Pengunduran diri memakai label progres sebagai Hasil / Ringkasan dan `note` sebagai Catatan. Nilai hasil null ditampilkan `—`.

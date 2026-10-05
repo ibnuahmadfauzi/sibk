@@ -5,8 +5,44 @@ import {
     handleModalSubmit,
     initServiceRecords,
     renderModalContent,
+    toggleServiceNotes,
     updateFollowUp,
 } from '../resources/js/service-records.js';
+
+const notesButton = {
+    dataset: { serviceNotesUrl: '/consultations/1?inline=1' },
+    attributes: { 'aria-controls': 'consultation-notes-1', 'aria-expanded': 'false' },
+    getAttribute(name) { return this.attributes[name]; },
+    setAttribute(name, value) { this.attributes[name] = value; },
+};
+const notesContent = { innerHTML: '', textContent: '' };
+let notesHidden = true;
+const notesRow = {
+    classList: { toggle(name, hidden) { notesHidden = hidden; } },
+    querySelector() { return notesContent; },
+};
+const notesRoot = { querySelector() { return notesRow; } };
+let notesRequests = 0;
+const loadNotes = async () => {
+    notesRequests++;
+    return { ok: true, text: async () => '<p>Latar belakang dan penanganan</p>' };
+};
+await toggleServiceNotes(notesButton, notesRoot, loadNotes);
+assert.equal(notesHidden, false);
+assert.equal(notesButton.attributes['aria-expanded'], 'true');
+assert.equal(notesContent.innerHTML, '<p>Latar belakang dan penanganan</p>');
+await toggleServiceNotes(notesButton, notesRoot, loadNotes);
+assert.equal(notesHidden, true);
+await toggleServiceNotes(notesButton, notesRoot, loadNotes);
+assert.equal(notesRequests, 1);
+delete notesButton.dataset.notesLoaded;
+notesButton.attributes['aria-expanded'] = 'false';
+await toggleServiceNotes(notesButton, notesRoot, async () => ({ ok: false }));
+assert.match(notesContent.textContent, /gagal dimuat/);
+assert.equal(notesButton.dataset.notesLoaded, undefined);
+await toggleServiceNotes(notesButton, notesRoot, loadNotes);
+await toggleServiceNotes(notesButton, notesRoot, loadNotes);
+assert.equal(notesRequests, 2);
 
 class FakeNode {
     constructor(parent = null, { modalUrl, interactive = false } = {}) {
@@ -55,7 +91,7 @@ assert.equal(linkEvent.prevented, true);
 assert.equal(opened[1], modalLink);
 
 const modalContent = { innerHTML: '' };
-const modalElement = { querySelector: () => modalContent };
+const modalElement = { querySelector: () => modalContent, querySelectorAll: () => [] };
 let initialisedRoot;
 renderModalContent(modalElement, '<form data-autosave-form="case"></form>', (rootElement) => {
     initialisedRoot = rootElement;

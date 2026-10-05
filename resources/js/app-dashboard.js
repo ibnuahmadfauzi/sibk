@@ -10,11 +10,13 @@ import { initEtatibApiPreview } from './etatib-api-preview';
 import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
+import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
 import { initReportPreview } from './report-preview';
 
 initFormDrafts();
 initServiceRecords();
+initConsultationCreate();
 initApiSiswaPreview();
 initEtatibApiPreview();
 initEtatibIdentityMapping();

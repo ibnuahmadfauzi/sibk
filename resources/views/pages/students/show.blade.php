@@ -61,7 +61,7 @@
                             <th scope="col">Pelanggaran</th>
                             <th scope="col">Kategori</th>
                             <th scope="col">Poin</th>
-                            <th scope="col">Total Resmi</th>
+                            <!-- <th scope="col">Total Resmi</th> -->
                             <th scope="col">Kelas Saat Kejadian</th>
                             <th scope="col">Pencatat</th>
                         </tr>
@@ -78,7 +78,7 @@
                                 <td><div class="fw-semibold text-dark">{{ $record->violation_type }}</div></td>
                                 <td>{{ $record->category }}</td>
                                 <td><span class="sibk-badge sibk-badge--danger">+{{ $record->points }}</span></td>
-                                <td>{{ $record->source_total_points ?? '—' }}</td>
+                                <!-- <td>{{ $record->source_total_points ?? '—' }}</td> -->
                                 <td>{{ $record->effective_classroom_name ?: '—' }}</td>
                                 <td>{{ $record->recorded_by_name ?: '—' }}</td>
                             </tr>

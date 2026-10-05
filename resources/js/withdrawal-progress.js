@@ -170,6 +170,8 @@ export const renderPopoverHistory = (container, items, create = (tag) => documen
         const dot = create('span');
         dot.className = 'sibk-follow-up-entry__dot';
         const label = create('span');
+        label.className = 'badge rounded-pill withdrawal-progress-badge';
+        label.setAttribute('data-withdrawal-progress', item.progress ?? 'in_progress');
         label.textContent = item.progress_label ?? item.progressLabel ?? '—';
         type.append(dot, label);
         entry.append(date, type);
@@ -304,6 +306,8 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             if (history) renderPopoverHistory(history, data.follow_ups, environment.createElement);
             const count = wrapper?.querySelector('[data-withdrawal-follow-up-label]');
             if (count) count.textContent = data.follow_ups[0]?.progress_label ?? data.current_progress_label;
+            const badge = wrapper?.querySelector('[data-withdrawal-popover-trigger]');
+            if (badge) badge.dataset.withdrawalProgress = data.follow_ups[0]?.progress ?? data.current_progress;
             followUpTarget.trigger.dataset.currentProgress = data.current_progress;
             followUpModalInstance.hide();
         } catch (caught) {

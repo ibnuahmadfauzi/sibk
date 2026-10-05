@@ -126,8 +126,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         array $filters,
         ?AcademicYear $year,
     ): QueryBuilder {
-        $caseEvents = BkCase::query()
-            ->accessibleTo($actor)
+        $caseEvents = $this->reportServiceQuery(BkCase::query(), $actor)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('cases.academic_year_id', $selected->getKey()))
             ->when(
@@ -139,8 +138,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->selectRaw('cases.service_date AS service_date')
             ->toBase();
 
-        $consultationEvents = Consultation::query()
-            ->accessibleTo($actor)
+        $consultationEvents = $this->reportServiceQuery(Consultation::query(), $actor)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('consultations.academic_year_id', $selected->getKey()))
             ->when(
@@ -295,11 +293,17 @@ final class OperationalReportRecapService implements OperationalReportRecap
         });
     }
 
+    private function reportServiceQuery(Builder $query, User $actor): Builder
+    {
+        return $actor->hasRole('koordinator_bk')
+            ? $query->withinStudentServicePeriod()
+            : $query->accessibleTo($actor);
+    }
+
     /** @return Builder<BkCase> */
     private function caseQuery(User $actor): Builder
     {
-        return BkCase::query()
-            ->accessibleTo($actor)
+        return $this->reportServiceQuery(BkCase::query(), $actor)
             ->with([
                 'classroom',
                 'source',
@@ -313,8 +317,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     /** @return Builder<Consultation> */
     private function consultationQuery(User $actor): Builder
     {
-        return Consultation::query()
-            ->accessibleTo($actor)
+        return $this->reportServiceQuery(Consultation::query(), $actor)
             ->with([
                 'classroom',
                 'serviceField',

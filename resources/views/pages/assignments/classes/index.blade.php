@@ -22,7 +22,7 @@
         @if($canChooseYear)
             <section class="sibk-panel sibk-activation-panel mb-4" aria-labelledby="activation-readiness-title">
                 <div class="sibk-panel__body p-4">
-                    <h2 class="fs-5" id="activation-readiness-title">Kesiapan Aktivasi</h2>
+                    <h2 class="fs-5" id="activation-readiness-title">Tahun Ajaran</h2>
                     @if($activeYear !== null || $preparationYears->isNotEmpty())
                         <form
                             class="d-flex flex-wrap align-items-end gap-2 mb-3"
@@ -30,7 +30,7 @@
                             method="GET"
                         >
                             <div>
-                                <label class="form-label text-white" for="preparation_year_id">Tahun penugasan</label>
+                                <!-- <label class="form-label text-white" for="preparation_year_id">Tahun Ajaran</label> -->
                                 <select
                                     class="form-select"
                                     id="preparation_year_id"
@@ -184,12 +184,7 @@
             </div>
         </div>
 
-        <h2 class="fs-5 mb-3">
-            Daftar Penugasan {{ $selectedYear->name }}
-            <span class="small fw-normal">
-                ({{ $selectedYear->is_active ? 'Aktif' : 'Persiapan' }})
-            </span>
-        </h2>
+        
         <div class="table-responsive">
             <table class="table sibk-table mb-0">
                 <thead>

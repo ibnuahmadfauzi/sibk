@@ -5,7 +5,7 @@
 <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4">
     <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
         <input type="hidden" name="tab" value="pengunduran-diri">
-        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-search">Cari pengunduran diri</label><input class="form-control" id="withdrawal-search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
+        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-search">Cari Murid</label><input class="form-control" id="withdrawal-search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
         <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-progress-filter">Progres</label><select class="form-select" id="withdrawal-progress-filter" name="progress"><option value="">Semua progres</option>@foreach($progressLabels as $value => $label)<option value="{{ $value }}" @selected(request('progress') === $value)>{{ $label }}</option>@endforeach</select></div>
         <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Filter</button></div>
     </form>
@@ -36,7 +36,7 @@
         <td>{{ $withdrawal->teacher?->name ?? 'Guru tidak tersedia' }}</td>
         <td style="min-width: 240px;">
             <div class="sibk-follow-up-dropdown w-100" data-withdrawal-id="{{ $withdrawal->id }}" style="max-width: 240px;">
-                <button type="button" class="btn sibk-follow-up-pill sibk-follow-up-pill--active sibk-follow-up-pill--withdrawal text-start" id="withdrawal-follow-up-btn-{{ $withdrawal->id }}" data-withdrawal-popover-trigger aria-expanded="false" title="Lihat riwayat progres penanganan" style="white-space: normal !important; line-height: 1.35; max-width: 240px; width: 100%;">
+                <button type="button" class="btn badge rounded-pill sibk-follow-up-pill sibk-follow-up-pill--withdrawal text-start" data-withdrawal-progress="{{ $history->first()['progress'] ?? $withdrawal->progress }}" id="withdrawal-follow-up-btn-{{ $withdrawal->id }}" data-withdrawal-popover-trigger aria-expanded="false" title="Lihat riwayat progres penanganan" style="white-space: normal !important; line-height: 1.35; max-width: 240px; width: 100%;">
                     <span data-withdrawal-follow-up-label>{{ $history->first()['progressLabel'] ?? $withdrawal->progressLabel() }}</span>
                     <svg class="sibk-follow-up-pill__chevron flex-shrink-0 ms-2" width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 01.708 0L8 10.293l5.646-5.647a.5.5 0 01.708.708l-6 6a.5.5 0 01-.708 0l-6-6a.5.5 0 010-.708z"/></svg>
                 </button>
@@ -44,7 +44,7 @@
                     <h3 class="fw-bold fs-6 text-dark mb-3">Riwayat Progres Penanganan</h3>
                     <div class="sibk-follow-up-history mb-2" data-withdrawal-history>
                         @foreach($history as $item)
-                            <div class="sibk-follow-up-entry {{ $loop->first ? 'sibk-follow-up-entry--latest' : '' }}"><div class="sibk-follow-up-entry__date">{{ $item['followUpDateFormatted'] }}</div><div class="sibk-follow-up-entry__type"><span class="sibk-follow-up-entry__dot"></span><span>{{ $item['progressLabel'] }}</span></div>@if($item['notes'])<div class="small text-muted mt-1">{{ $item['notes'] }}</div>@endif</div>
+                            <div class="sibk-follow-up-entry {{ $loop->first ? 'sibk-follow-up-entry--latest' : '' }}"><div class="sibk-follow-up-entry__date">{{ $item['followUpDateFormatted'] }}</div><div class="sibk-follow-up-entry__type"><span class="sibk-follow-up-entry__dot"></span><span class="badge rounded-pill withdrawal-progress-badge" data-withdrawal-progress="{{ $item['progress'] }}">{{ $item['progressLabel'] }}</span></div>@if($item['notes'])<div class="small text-muted mt-1">{{ $item['notes'] }}</div>@endif</div>
                         @endforeach
                     </div>
                     @can('update', $withdrawal)

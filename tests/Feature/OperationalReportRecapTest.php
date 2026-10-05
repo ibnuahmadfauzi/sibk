@@ -32,6 +32,54 @@ class OperationalReportRecapTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
+    public function test_coordinator_reads_out_of_scope_records_only_through_reports_and_withdrawals(): void
+    {
+        [$year, $classroom, $student, $owner, $case] = $this->caseFixture();
+        $consultation = Consultation::query()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+            'classroom_id' => $classroom->id,
+            'service_field_id' => $case->service_field_id,
+            'session_date' => '2026-09-02',
+            'problem' => 'Latar konsultasi di luar penugasan.',
+            'handling' => 'Penanganan konsultasi.',
+            'result' => 'Hasil konsultasi luar penugasan.',
+            'counselor_id' => $owner->id,
+        ]);
+        WithdrawalProgress::query()->create([
+            'student_id' => $student->id, 'teacher_id' => $owner->id,
+            'classroom_id' => $classroom->id, 'recorded_on' => '2026-09-03',
+            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
+            'reason' => 'Pindah sekolah.', 'note' => 'Catatan pengunduran lintas kelas.',
+        ]);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $this->actingAs($coordinator);
+
+        foreach (['kasus', 'konsultasi'] as $tab) {
+            $this->get(route('cases.index', ['tab' => $tab]))->assertOk()->assertDontSee($student->name);
+        }
+        $this->get(route('cases.index', ['tab' => 'pengunduran-diri']))->assertOk()->assertSee($student->name);
+        $this->get(route('cases.show', $case))->assertForbidden();
+        $this->get(route('consultations.show', [$consultation, 'inline' => 1]))->assertForbidden();
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
+            ->assertOk()->assertDontSee($consultation->problem)->assertDontSee($consultation->result);
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+            ->assertOk()->assertDontSee($case->initial_info);
+
+        foreach (['case' => $case, 'consultation' => $consultation] as $type => $record) {
+            $filters = ['academic_year_id' => $year->id, 'service_type' => $type];
+            $this->get(route('reports.index', $filters))->assertOk()->assertSee($student->name);
+            $this->get(route('reports.preview', $filters))->assertOk()->assertSee($student->name);
+            $this->get(route('reports.records.preview', ['type' => $type, 'id' => $record->id]))
+                ->assertOk()->assertSee($student->name);
+        }
+        $coordinator->roles()->detach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $coordinator->unsetRelation('roles');
+        $this->get(route('reports.index', ['academic_year_id' => $year->id]))
+            ->assertOk()->assertSee($student->name);
+    }
+
     public function test_report_uses_service_class_snapshot_after_membership_moves(): void
     {
         [$year, $classroom, $student, $owner, $case] = $this->caseFixture();
@@ -154,8 +202,8 @@ class OperationalReportRecapTest extends TestCase
         $response->assertOk()
             ->assertViewHas('report', fn (array $report): bool => $report['columns'] === ['No', 'Hari / Tanggal', 'Nama / Kelas', 'Guru', 'Keterangan']
                 && $report['rows']->total() === 11 && $report['rows']->count() === 10)
-            ->assertSee('Berkas pengunduran sudah masuk TU')
-            ->assertDontSee('Berkas pengunduran masih di BK')
+            ->assertSee('Berkas sudah masuk TU')
+            ->assertDontSee('Berkas masih di BK')
             ->assertDontSee('Catatan Layanan')
             ->assertDontSee('data-report-page-size', false)
             ->assertDontSee('Alasan rahasia.')
@@ -230,7 +278,7 @@ class OperationalReportRecapTest extends TestCase
         $this->assertSame('Pengunduran Diri', $row['service']);
         $this->assertSame('Orang tua sudah konfirmasi.', $row['problem']);
         $this->assertSame('—', $row['handling']);
-        $this->assertSame('Berkas pengunduran masih progres', $row['detail_note']);
+        $this->assertSame('Berkas masih diproses', $row['detail_note']);
 
         // Web request for withdrawal
         $response = $this->actingAs($owner)->get(route('reports.index', [
@@ -339,7 +387,7 @@ class OperationalReportRecapTest extends TestCase
             $response->assertOk()
                 ->assertViewHas('report', fn (array $report): bool => $report['columns'] === [
                     'No', 'Hari / Tanggal', 'Nama / Kelas', 'Guru', 'Keterangan', 'Aksi',
-                ] && $report['rows']->first()['follow_up_label'] === 'Berkas pengunduran sudah masuk TU')
+                ] && $report['rows']->first()['follow_up_label'] === 'Berkas sudah masuk TU')
                 ->assertSee($owner->name)
                 ->assertSee('Catatan awal pengunduran.')
                 ->assertSee('colspan="6"', false)
@@ -370,7 +418,7 @@ class OperationalReportRecapTest extends TestCase
             'academic_year_id' => $year->id,
             'service_type' => 'withdrawal',
         ]))->assertOk()
-            ->assertSee('Berkas pengunduran masih di BK')
+            ->assertSee('Berkas masih di BK')
             ->assertSee('Belum ada catatan.');
     }
 

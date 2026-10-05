@@ -14,7 +14,7 @@
                     <label class="form-label" for="withdrawal-student-lookup">Cari nama atau NISN <span class="text-danger">*</span></label>
                     <input class="form-control" id="withdrawal-student-lookup" type="search" autocomplete="off" placeholder="Ketik nama atau NISN murid" aria-controls="withdrawal-student-options" aria-autocomplete="list" aria-expanded="false" required>
                     <div class="list-group position-absolute start-0 end-0 mx-2 mt-1 shadow-sm d-none withdrawal-student-options" id="withdrawal-student-options" role="listbox"></div>
-                    <div class="form-text">Pilih murid dari daftar hasil pencarian.</div>
+                    <!-- <div class="form-text">Pilih murid dari daftar hasil pencarian.</div> -->
                 </div>
                 <div class="col-12 col-md-5">
                     <label class="form-label" for="withdrawal-recorded-on">Tanggal pencatatan <span class="text-danger">*</span></label>
@@ -26,7 +26,7 @@
                 <div class="col-12">
                     <label class="form-label" for="withdrawal-note">Catatan <span class="text-danger">*</span></label>
                     <textarea class="form-control" id="withdrawal-note" name="note" rows="4" maxlength="2000" required>{{ old('note') }}</textarea>
-                    <div class="form-text">Catatan ini mencatat penanganan awal; status murid belum berubah.</div>
+                    <!-- <div class="form-text">Catatan ini mencatat penanganan awal; status murid belum berubah.</div> -->
                 </div>
             </div>
             <div class="d-flex justify-content-end gap-2 mt-4">

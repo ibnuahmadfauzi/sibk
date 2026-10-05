@@ -16,13 +16,13 @@
                 @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
                 @can('viewAny', \App\Models\WithdrawalProgress::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'pengunduran-diri' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">Pengunduran Diri</a></li>@endcan
             </ul>
-            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<a href="{{ route('withdrawals.create') }}" data-modal-url="{{ route('withdrawals.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Pengunduran Diri</a>@endif
+            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" data-modal-url="{{ route('consultations.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<a href="{{ route('withdrawals.create') }}" data-modal-url="{{ route('withdrawals.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Pengunduran Diri</a>@endif
         </div>
 
         @if($activeTab === 'kasus')
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="kasus">
-                <div class="col-12 col-md-6"><label class="form-label" for="case_search">Cari permasalahan</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="case_search">Cari Murid</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
                 <div class="col-12 col-md-4"><label class="form-label" for="case_status">Status</label><select class="form-select" id="case_status" name="status_id"><option value="">Semua status</option>@foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
@@ -217,28 +217,30 @@
         @elseif($activeTab === 'konsultasi')
             <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
                 <input type="hidden" name="tab" value="konsultasi">
-                <div class="col-12 col-lg-5"><label class="form-label" for="consultation_search">Cari nama murid</label><input class="form-control" id="consultation_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
+                <div class="col-12 col-lg-5"><label class="form-label" for="consultation_search">Cari Murid</label><input class="form-control" id="consultation_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
                 <div class="col-12 col-lg-5"><label class="form-label" for="consultation_field">Jenis Masalah</label><select class="form-select" id="consultation_field" name="service_field_id"><option value="">Semua jenis masalah</option>@foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) request('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach</select></div>
                 <div class="col-12 col-lg-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
             </form></div></div>
             <div class="table-responsive">
                 <table class="table sibk-table mb-0 align-middle">
-                    <thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Nama & Kelas</th><th scope="col">Jenis Layanan</th><th scope="col">Aksi</th></tr></thead>
+                    <thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Nama & Kelas</th><th scope="col">Jenis Masalah</th>@unless($isWakaOnly)<th scope="col">Hasil / Ringkasan</th>@endunless<th scope="col">Aksi</th></tr></thead>
                     <tbody>
                             @forelse($consultations as $session)
                                 <tr>
                                     <td><strong>{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</strong><div class="small text-muted">({{ $session->session_date->locale('id')->translatedFormat('l') }})</div></td>
                                     <td><strong>{{ $session->identityName() }}</strong><div class="small text-muted">{{ $session->classroom?->name ?? 'Rombel belum tercatat' }}</div></td>
                                     <td>{{ $session->serviceField->label }}</td>
+                                    @unless($isWakaOnly)<td class="text-break" style="white-space: pre-line">{{ $session->result ?: '—' }}</td>@endunless
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
-                                            <a href="{{ route('consultations.show', $session) }}"
-                                                data-modal-url="{{ route('consultations.show', [$session, 'modal' => 1]) }}"
+                                            <button type="button"
+                                                data-service-notes-url="{{ route('consultations.show', [$session, 'inline' => 1]) }}"
+                                                aria-controls="consultation-notes-{{ $session->id }}" aria-expanded="false"
                                                 class="btn btn-icon-action btn-icon-action--info"
                                                 title="Lihat detail"
                                                 aria-label="Lihat detail konsultasi {{ $session->identityName() }}">
-                                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                            </a>
+                                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path stroke-linecap="round" d="m16 16 5 5"/></svg>
+                                            </button>
                                             @can('update', $session)
                                                 <a href="{{ route('consultations.edit', $session) }}"
                                                     data-modal-url="{{ route('consultations.edit', [$session, 'modal' => 1]) }}"
@@ -266,8 +268,11 @@
                                         </div>
                                     </td>
                                 </tr>
+                                <tr class="sibk-report-detail-row d-none" id="consultation-notes-{{ $session->id }}">
+                                    <td colspan="{{ $isWakaOnly ? 4 : 5 }}"><div class="sibk-report-detail-panel" data-service-notes-content aria-live="polite"></div></td>
+                                </tr>
                             @empty
-                                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>
+                                <tr><td colspan="{{ $isWakaOnly ? 4 : 5 }}" class="text-center text-muted py-4">Belum ada sesi konsultasi yang dapat Anda akses.</td></tr>
                             @endforelse
                     </tbody>
                 </table>
@@ -403,6 +408,39 @@
         max-width: 240px !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
+    }
+
+    [data-withdrawal-progress="in_progress"] {
+        --withdrawal-color: var(--bs-danger-text-emphasis);
+        --withdrawal-bg: var(--bs-danger-bg-subtle);
+        --withdrawal-border: var(--bs-danger-border-subtle);
+    }
+
+    [data-withdrawal-progress="at_bk"] {
+        --withdrawal-color: var(--bs-primary-text-emphasis);
+        --withdrawal-bg: var(--bs-primary-bg-subtle);
+        --withdrawal-border: var(--bs-primary-border-subtle);
+    }
+
+    [data-withdrawal-progress="at_tu"] {
+        --withdrawal-color: var(--bs-success-text-emphasis);
+        --withdrawal-bg: var(--bs-success-bg-subtle);
+        --withdrawal-border: var(--bs-success-border-subtle);
+    }
+
+    .sibk-follow-up-pill--withdrawal[data-withdrawal-progress],
+    .withdrawal-progress-badge[data-withdrawal-progress] {
+        color: var(--withdrawal-color) !important;
+        background-color: var(--withdrawal-bg) !important;
+        border: 1px solid var(--withdrawal-border) !important;
+        font-weight: 600 !important;
+    }
+
+    .withdrawal-progress-badge {
+        white-space: normal;
+        line-height: 1.5;
+        text-align: left;
+        padding: .4rem .65rem;
     }
 
     .sibk-follow-up-pill--withdrawal [data-withdrawal-follow-up-label] {

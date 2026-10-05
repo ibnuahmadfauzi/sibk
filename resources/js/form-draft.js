@@ -2,6 +2,7 @@ const PREFIX = 'sibk:draft:v1:';
 const TTL = 24 * 60 * 60 * 1000;
 const PENDING_KEY = 'sibk:draft:pending';
 const initialisedForms = new WeakSet();
+const pendingFormFlushes = new WeakMap();
 const initialisedLogoutForms = new WeakSet();
 
 const isUnsafe = (field) => {
@@ -97,16 +98,23 @@ export const initFormDraft = (form, environment) => {
     }
 
     let timer;
+    let dirty = false;
     const persist = () => {
         try {
             saveDraft(storage, key, collectSafeValues(form.elements), clock);
             setStatus(form, 'Draft tersimpan di perangkat');
+            dirty = false;
         } catch {
             setStatus(form, 'Draft gagal disimpan di perangkat', true);
         }
     };
+    pendingFormFlushes.set(form, () => {
+        clearTimer(timer);
+        if (dirty) persist();
+    });
     form.addEventListener('input', () => {
         clearTimer(timer);
+        dirty = true;
         timer = setTimer(persist, 2500);
     });
     form.addEventListener('submit', () => {
@@ -115,12 +123,28 @@ export const initFormDraft = (form, environment) => {
         sessionStorage.setItem(PENDING_KEY, key);
     });
     form.querySelector('[data-clear-draft]')?.addEventListener('click', () => {
+        clearTimer(timer);
+        dirty = false;
         removeDraft(storage, key);
-        setStatus(form, 'Draft dihapus');
+        if (form.querySelector('[data-clear-fields]')) {
+            [...form.elements].forEach((field) => {
+                if (isUnsafe(field)) return;
+                if (field.type === 'checkbox' || field.type === 'radio') field.checked = false;
+                else if (field.tagName === 'SELECT') field.selectedIndex = 0;
+                else field.value = '';
+            });
+            setStatus(form, 'Isian dikosongkan');
+        } else {
+            setStatus(form, 'Draft dihapus');
+        }
         form.querySelector('[data-draft-restored]')?.classList.add('d-none');
     });
 
     return true;
+};
+
+export const flushFormDrafts = (root) => {
+    root.querySelectorAll('[data-autosave-form]').forEach((form) => pendingFormFlushes.get(form)?.());
 };
 
 export const initFormDrafts = (root = document) => {

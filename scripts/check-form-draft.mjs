@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     collectSafeValues,
     draftKey,
+    flushFormDrafts,
     initFormDraft,
     loadDraft,
     purgeExpiredDrafts,
@@ -133,5 +134,34 @@ assert.deepEqual([...arrayForm.elements].map((field) => field.checked), [true, t
 const scalarForm = new CheckboxForm('43', { 'etatib_record_ids[]': '22' });
 initFormDraft(scalarForm, environment);
 assert.deepEqual([...scalarForm.elements].map((field) => field.checked), [false, true]);
+
+class ClearableForm extends FakeForm {
+    constructor() {
+        super();
+        this.dataset.autosaveForm = 'consultation';
+        this.button = { listeners: {}, addEventListener(type, listener) { this.listeners[type] = listener; } };
+        this.elements.push({ name: 'service_field_id', value: '2', type: 'select-one', tagName: 'SELECT', selectedIndex: 1 });
+    }
+
+    querySelector(selector) {
+        return ['[data-clear-draft]', '[data-clear-fields]'].includes(selector) ? this.button : null;
+    }
+}
+
+let cancelledTimer;
+const clearableForm = new ClearableForm();
+const clearableKey = draftKey('17', 'consultation', 'new');
+initFormDraft(clearableForm, { ...environment, clearTimer: (timer) => { cancelledTimer = timer; } });
+await clearableForm.dispatch('input');
+flushFormDrafts({ querySelectorAll: () => [clearableForm] });
+assert.deepEqual(loadDraft(formStorage, clearableKey, clock), { title: 'Sebelum', service_field_id: '2' });
+clearableForm.field.value = 'Isian baru';
+await clearableForm.dispatch('input');
+clearableForm.button.listeners.click();
+flushFormDrafts({ querySelectorAll: () => [clearableForm] });
+assert.equal(cancelledTimer, 1);
+assert.equal(formStorage.getItem(clearableKey), null);
+assert.equal(clearableForm.field.value, '');
+assert.equal(clearableForm.elements[1].selectedIndex, 0);
 
 console.log('Form draft checks passed.');

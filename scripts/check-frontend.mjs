@@ -13,7 +13,7 @@ const files = {
     caseEditModal: 'resources/views/pages/cases/_edit-modal.blade.php',
     casesShow: 'resources/views/pages/cases/show.blade.php',
     consultationCreate: 'resources/views/pages/consultations/create.blade.php',
-    consultationEditModal: 'resources/views/pages/consultations/_edit-modal.blade.php',
+    consultationCreateModal: 'resources/views/pages/consultations/_create-modal.blade.php',
     consultationShow: 'resources/views/pages/consultations/show.blade.php',
     studentsIndex: 'resources/views/pages/students/index.blade.php',
     studentsShow: 'resources/views/pages/students/show.blade.php',
@@ -159,7 +159,7 @@ assert(contents.casesCreate.includes('const visiblePageCount = 5;'), 'Pagination
 assert(!contents.casesCreate.includes('for (let i = 1; i <= totalPages; i++)'), 'Pagination e-Tatib masih merender seluruh nomor halaman.');
 for (const [key, form, record] of [
     ['casesCreate', 'case', 'new'],
-    ['consultationEditModal', 'consultation', '{{ $consultation?->id ?? \'new\' }}'],
+    ['consultationCreateModal', 'consultation', 'new'],
 ]) {
     assert(contents[key].includes(`data-autosave-form="${form}"`), `${files[key]} belum memiliki kunci autosave form.`);
     assert(contents[key].includes(`data-autosave-record="${record}"`), `${files[key]} belum memiliki kunci autosave record.`);

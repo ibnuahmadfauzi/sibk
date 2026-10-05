@@ -16,7 +16,7 @@ class ConsultationPolicy
 
     public function view(User $user, Consultation $consultation): bool
     {
-        return $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan'])
+        return $user->hasRole('waka_kesiswaan')
             || $consultation->isProfessionallyAccessibleTo($user);
     }
 

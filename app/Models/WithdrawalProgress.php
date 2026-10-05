@@ -25,9 +25,9 @@ final class WithdrawalProgress extends Model
     public static function labels(): array
     {
         return [
-            self::PROGRESS_IN_PROGRESS => 'Berkas pengunduran masih progres',
-            self::PROGRESS_AT_BK => 'Berkas pengunduran masih di BK',
-            self::PROGRESS_AT_TU => 'Berkas pengunduran sudah masuk TU',
+            self::PROGRESS_IN_PROGRESS => 'Berkas masih diproses',
+            self::PROGRESS_AT_BK => 'Berkas masih di BK',
+            self::PROGRESS_AT_TU => 'Berkas sudah masuk TU',
         ];
     }
 

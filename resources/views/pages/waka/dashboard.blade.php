@@ -40,7 +40,7 @@
             <section class="sibk-panel h-100" aria-labelledby="waka-trend-title">
                 <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-trend-title">Tren Murid Tercatat</h2></div></header>
                 <div class="p-3 p-md-4">
-                    <p class="small text-muted">Jumlah murid yang mendapat layanan BK setiap bulan.</p>
+                    <p class="small text-muted">Jumlah murid yang memiliki catatan BK setiap bulan.</p>
                     @php
                         $step = max(1, (int) ceil((collect($dashboard['trend'])->max('count') ?? 0) / 4));
                         $maximum = $step * 4;
@@ -91,9 +91,9 @@
     </div>
 
     <section class="sibk-panel mt-3" aria-labelledby="waka-follow-up-title">
-        <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-follow-up-title">Murid yang Perlu Tindak Lanjut</h2></div></header>
+        <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-follow-up-title">Murid Perlu Tindak Lanjut</h2></div></header>
         @if(empty($dashboard['follow_up_students']))
-            <x-empty-state title="Tidak ada murid yang perlu tindak lanjut" description="Murid dengan status permasalahan Tindak Lanjut pada tahun ajaran terpilih akan tampil di sini." />
+            <x-empty-state title="Tidak ada murid perlu tindak lanjut" description="Murid dengan status permasalahan Tindak Lanjut pada tahun ajaran terpilih akan tampil di sini." />
         @else
             <div class="table-responsive">
                 <table class="table sibk-table align-middle sibk-waka-follow-ups mb-0">
