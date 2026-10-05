@@ -2440,8 +2440,27 @@ small, .small {
   }
 }
 
-.sibk-panel .table-responsive {
-  margin: 1rem 1.25rem 1.5rem 1.25rem !important;
+.sibk-panel:has(.table-responsive) {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  padding: 0 !important;
+
+  > .sibk-panel__header {
+    padding: 0 0 0.75rem !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .sibk-panel__body:has(.table-responsive) {
+    padding: 0 !important;
+  }
+
+  > div:has(> nav[role="navigation"]) {
+    padding: 0 !important;
+  }
 }
 
 .sibk-account-profile + .table-responsive {
@@ -3983,11 +4002,6 @@ small, .small {
 
   .sibk-content {
     padding: 1.15rem;
-  }
-
-  .sibk-panel .table-responsive {
-    margin: 0.75rem 0 !important;
-    border-radius: var(--sibk-radius-md) !important;
   }
 
   .sibk-topbar {

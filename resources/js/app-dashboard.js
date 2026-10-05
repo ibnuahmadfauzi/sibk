@@ -89,15 +89,6 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
         event.preventDefault();
         window.location.assign(button.dataset.resetUrl);
     });
-
-    document
-        .querySelectorAll('[data-report-page-size][form="report-filter-form"]')
-        .forEach((select) => {
-            select.addEventListener('change', () => {
-                showApply();
-                form.requestSubmit();
-            });
-        });
 });
 
 document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {

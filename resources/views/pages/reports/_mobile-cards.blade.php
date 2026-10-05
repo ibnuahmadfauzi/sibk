@@ -1,4 +1,4 @@
-<div class="sibk-operational-report-cards p-3">
+<div class="sibk-operational-report-cards">
     @if(! $report['can_view_document'])
         @foreach($report['rows'] as $row)
             <article

@@ -127,7 +127,9 @@ class FrontendPreviewTest extends TestCase
 
         $this->get(route('reports.index'))
             ->assertOk()
-            ->assertSee('Catatan Layanan')
+            ->assertDontSee('Catatan Layanan')
+            ->assertDontSee('data-report-page-size', false)
+            ->assertDontSee('class="sibk-panel sibk-operational-report"', false)
             ->assertSee('sibk-operational-report-table', false)
             ->assertDontSee('Cetak / Unduh Rekap')
             ->assertDontSee('onclick=', false);
@@ -141,6 +143,9 @@ class FrontendPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('sibk-operational-report-table', false)
             ->assertSee('sibk-operational-report-cards', false)
+            ->assertDontSee('Catatan Layanan')
+            ->assertDontSee('data-report-page-size', false)
+            ->assertDontSee('class="sibk-panel sibk-operational-report"', false)
             ->assertSee('Cetak / Unduh Rekap')
             ->assertDontSee('onclick=', false);
     }

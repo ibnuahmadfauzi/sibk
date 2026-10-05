@@ -51,54 +51,9 @@
     @include('pages.reports._filters')
 
     <section
-        class="sibk-panel sibk-operational-report"
+        class="sibk-operational-report"
         aria-label="Daftar layanan BK"
     >
-        @if($report['can_view_document'])
-        <div
-            class="sibk-panel__header p-4 border-bottom d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3"
-        >
-            <div>
-                <h2
-                    class="h5 mb-1"
-                    id="operational-report-title"
-                >
-                    Catatan Layanan
-                </h2>
-                @include('pages.reports._summary', [
-                    'items' => $report['summary'],
-                ])
-            </div>
-
-            <div class="d-flex align-items-center gap-2 no-print">
-                <label
-                    class="text-muted small text-nowrap"
-                    for="per_page"
-                >
-                    Tampilkan
-                </label>
-                <select
-                    class="form-select form-select-sm"
-                    id="per_page"
-                    name="per_page"
-                    form="report-filter-form"
-                    data-report-page-size
-                    aria-label="Jumlah data per halaman"
-                >
-                    @foreach([10, 25, 50, 100] as $size)
-                        <option
-                            value="{{ $size }}"
-                            @selected((int) $report['filters']['per_page'] === $size)
-                        >
-                            {{ $size }} data
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-
-        @endif
-
         @include('pages.reports._desktop-table')
         @include('pages.reports._mobile-cards')
 
