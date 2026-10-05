@@ -140,7 +140,7 @@
                     type="submit"
                     data-report-filter-action
                     data-mode="{{ $hasActiveFilters ? 'reset' : 'apply' }}"
-                    data-reset-url="{{ route('reports.index', ['per_page' => $report['filters']['per_page']]) }}"
+                    data-reset-url="{{ route('reports.index') }}"
                 >
                     {{ $hasActiveFilters ? 'Reset' : 'Terapkan' }}
                 </button>

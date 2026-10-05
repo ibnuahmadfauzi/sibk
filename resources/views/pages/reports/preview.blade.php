@@ -1,4 +1,4 @@
-@extends('layouts.app-2')
+@extends($embedded ? 'layouts.report-embedded' : 'layouts.app-2')
 
 @section('page-title', 'Preview Laporan Layanan BK - Ruang BK')
 
@@ -14,6 +14,7 @@
     class="sibk-dashboard sibk-report-preview-page sibk-report-preview-page--portrait"
     data-page-id="PG-302"
 >
+    @unless($embedded)
     <div class="sibk-report-preview-actions no-print mb-4">
         <a
             class="btn btn-outline-secondary"
@@ -37,6 +38,7 @@
             </button>
         </div>
     </div>
+    @endunless
 
     <article class="sibk-document-sheet sibk-document-sheet--portrait">
         @include('pages.reports.print._letterhead', [

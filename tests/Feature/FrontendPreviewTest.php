@@ -60,11 +60,25 @@ class FrontendPreviewTest extends TestCase
     public function test_pg_002_waka_dashboard_is_explicitly_read_only(): void
     {
         $this->authenticateAs('waka_kesiswaan');
+        AcademicYear::query()->create([
+            'name' => '2026/2027', 'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30', 'is_active' => true,
+        ]);
 
         $this->get('/dashboard')
             ->assertOk()
-            ->assertSee('Hanya untuk dilihat')
-            ->assertSee('Penanganan Terbaru')
+            ->assertDontSee('Hanya untuk dilihat')
+            ->assertSee('Tren Murid Tercatat')
+            ->assertSee('Sebaran per Tingkat')
+            ->assertSee('id="waka-follow-up-title"', false)
+            ->assertSee('data-waka-year-filter', false)
+            ->assertSee('Murid Tercatat')
+            ->assertSee('Sedang Ditangani')
+            ->assertSee('Perlu Tindak Lanjut')
+            ->assertSee('Baru Bulan Ini')
+            ->assertDontSee('Komposisi Status')
+            ->assertDontSee('Penanganan Terbaru')
+            ->assertDontSee('Lihat detail')
             ->assertDontSee('Cari profil murid');
     }
 
@@ -113,7 +127,9 @@ class FrontendPreviewTest extends TestCase
 
         $this->get(route('reports.index'))
             ->assertOk()
-            ->assertSee('Catatan Layanan')
+            ->assertDontSee('Catatan Layanan')
+            ->assertDontSee('data-report-page-size', false)
+            ->assertDontSee('class="sibk-panel sibk-operational-report"', false)
             ->assertSee('sibk-operational-report-table', false)
             ->assertDontSee('Cetak / Unduh Rekap')
             ->assertDontSee('onclick=', false);
@@ -127,6 +143,9 @@ class FrontendPreviewTest extends TestCase
             ->assertOk()
             ->assertSee('sibk-operational-report-table', false)
             ->assertSee('sibk-operational-report-cards', false)
+            ->assertDontSee('Catatan Layanan')
+            ->assertDontSee('data-report-page-size', false)
+            ->assertDontSee('class="sibk-panel sibk-operational-report"', false)
             ->assertSee('Cetak / Unduh Rekap')
             ->assertDontSee('onclick=', false);
     }

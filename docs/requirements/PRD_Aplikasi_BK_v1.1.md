@@ -128,7 +128,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Akses Waka                     | Portal khusus berisi Dashboard, Prestasi, dan Laporan; seluruh detail kasus dan konsultasi memakai proyeksi hanya-baca yang diaudit. | Inti        |
 | Audit                          | Jejak perubahan append-only tanpa halaman pembaca umum; satu simpan resmi mencatat hanya field yang berubah. | Inti        |
 | Retensi                        | Data operasional tidak dihapus sebelum tersimpan minimum tiga tahun; draf Persiapan yang belum aktif dapat dibatalkan sesuai pemeriksaan relasi. Penghapusan otomatis belum diaktifkan. | Inti        |
-| Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel; Guru BK membaca sesuai scope sebagai konteks layanan. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
+| Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel dalam modal; daftar mengutamakan pencarian dan filter tingkat prestasi; Guru BK membaca sesuai scope sebagai konteks layanan; Koordinator membaca prestasi seluruh murid, termasuk saat rangkap Guru BK. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
 
 Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanjut, laporan, dan pengendalian akses inti stabil.
 
@@ -206,7 +206,7 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 
 | **Area**            | **Fungsi**                                                                                                |
 |---------------------|-----------------------------------------------------------------------------------------------------------|
-| Dashboard           | Konteks operasional sesuai peran tanpa daftar audit; Dashboard Waka menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, dan akses baca proses keluar dari proyeksi aman seluruh sekolah. |
+| Dashboard           | Konteks operasional sesuai peran tanpa daftar audit; Dashboard Waka berperspektif murid, menampilkan ringkasan cakupan layanan, tren bulanan, sebaran tingkat, dan murid yang perlu tindak lanjut melalui proyeksi aman seluruh sekolah. |
 | Layanan BK          | Daftar kasus, pembuatan kasus/konsultasi dengan dua narasi utama, penambahan beberapa tindak lanjut per kasus, penyelesaian dengan Hasil / Ringkasan, serta tab catatan progres penanganan pengunduran diri yang terpisah dari keputusan resmi keluar. |
 | Data Murid          | Profil, histori kelas lintas tahun, mirror e-Tatib beserta penanda data baru, kasus, konsultasi, tindak lanjut, dan prestasi yang diizinkan. |
 | Laporan             | Guru BK dan Koordinator memakai daftar catatan kasus/konsultasi dan preview rekap sesuai scope. Waka memakai daftar yang sama dalam mode hanya-baca tanpa preview, cetak, unduhan, atau aksi. |
@@ -232,7 +232,7 @@ Implementasi memakai Eloquent, Form Request, Blade, Bootstrap, SCSS, JavaScript 
 
 Laporan pelanggaran, poin, tindak lanjut, dan prestasi tidak menjadi menu laporan terpisah bagi Waka.
 
-Waka melihat daftar layanan dengan filter, ringkasan, urutan, dan pagination yang sama seperti Koordinator. Kolomnya dibatasi ke **No**, **Hari/Tanggal**, **Nama/Kelas**, **Jenis Masalah**, **Hasil / Ringkasan**, **Guru BK**, dan **Keterangan**. Hasil / Ringkasan memakai `resolution_summary|result` dan dapat `—` bila belum tersedia; latar belakang masalah, penanganan, hasil terpisah, aksi, preview, cetak/PDF, dan ekspor tidak tersedia. Waka tidak menerima kode kasus, NISN, catatan internal, payload provider mentah, atau dokumen sensitif.
+Waka melihat daftar layanan dengan filter dan urutan seperti Koordinator, tanpa ringkasan Catatan Layanan atau pemilih jumlah data, serta pagination di bawah tabel. Laporan pengunduran diri berfokus pada identitas murid, guru, dan progres berkas terbaru. Kolom kasus/konsultasi dibatasi ke **No**, **Hari/Tanggal**, **Nama/Kelas**, **Jenis Masalah**, **Hasil / Ringkasan**, **Guru BK**, dan **Keterangan**. Hasil / Ringkasan memakai `resolution_summary|result` dan dapat `—` bila belum tersedia; latar belakang masalah, penanganan, hasil terpisah, aksi, preview, cetak/PDF, dan ekspor tidak tersedia. Waka tidak menerima kode kasus, NISN, catatan internal, payload provider mentah, atau dokumen sensitif.
 
 # Risiko dan ketergantungan
 

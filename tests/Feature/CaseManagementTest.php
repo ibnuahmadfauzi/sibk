@@ -600,6 +600,35 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseHas('cases', ['id' => $case->id, 'deleted_at' => null]);
     }
 
+    public function test_coordinator_case_access_follows_active_teacher_classes_and_case_ownership(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $assignedStudent = $this->scopedStudent($coordinator, 'Murid Kelas Ampuan', '0011111111');
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $otherStudent = $this->scopedStudent($otherTeacher, 'Murid Kelas Lain', '0022222222', 'XI RPL 2');
+        $ownCase = $this->createCase($coordinator, $otherStudent);
+        $classCase = $this->createCase($otherTeacher, $assignedStudent);
+        $hiddenCase = $this->createCase($otherTeacher, $otherStudent);
+
+        $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'kasus']))
+            ->assertOk()
+            ->assertSee('Murid Kelas Ampuan')
+            ->assertSee('Murid Kelas Lain')
+            ->assertDontSee('href="'.route('cases.show', $hiddenCase).'"', false);
+        $this->get(route('cases.show', $ownCase))->assertOk();
+        $this->get(route('cases.show', $classCase))->assertOk();
+        $this->get(route('cases.show', $hiddenCase))->assertForbidden();
+        $this->get(route('cases.show', [$hiddenCase, 'modal' => 1]))->assertForbidden();
+
+        $coordinatorOnly = $this->userWithRole('koordinator_bk');
+        $this->actingAs($coordinatorOnly)->get(route('cases.index', ['tab' => 'kasus']))
+            ->assertOk()
+            ->assertDontSee('href="'.route('cases.show', $ownCase).'"', false)
+            ->assertDontSee('href="'.route('cases.show', $classCase).'"', false);
+        $this->get(route('cases.show', $ownCase))->assertForbidden();
+    }
+
     private function completeCase(User $teacher, BkCase $case): void
     {
         $case->update([

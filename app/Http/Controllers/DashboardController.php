@@ -28,7 +28,7 @@ class DashboardController extends Controller
                 $user,
                 'dashboard',
                 ['academic_year_id' => $activeYear?->getKey() !== null ? (string) $activeYear->getKey() : null],
-                count($dashboard['attention']) + count($dashboard['latest']),
+                count($dashboard['follow_up_students']),
                 $request,
             );
         }

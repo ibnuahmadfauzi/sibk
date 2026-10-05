@@ -21,13 +21,13 @@
         <section class="sibk-panel" aria-labelledby="consultation-notes-title">
             <div class="sibk-case-detail__heading">
                 <span class="sibk-case-detail__icon text-primary bg-primary-subtle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linejoin="round" d="M6 3h8l4 4v14H6zM14 3v5h4"/><path stroke-linecap="round" d="M9 12h6m-6 4h6"/></svg></span>
-                <h3 class="fs-6 fw-bold mb-0" id="consultation-notes-title">Catatan Permasalahan</h3>
+                <h3 class="fs-6 fw-bold mb-0" id="consultation-notes-title">Catatan Konsultasi</h3>
             </div>
             <div class="row g-0 p-3">
                 @foreach ([
-                    'Latar Belakang' => $consultation->problem,
+                    'Latar Belakang Masalah' => $consultation->problem,
                     'Penanganan' => $consultation->handling,
-                    'Ringkasan' => $consultation->result,
+                    'Hasil / Ringkasan' => $consultation->result,
                 ] as $heading => $text)
                     <div class="col-12 col-md-4 sibk-case-detail__note">
                         <h4 class="small fw-bold mb-1">{{ $heading }}</h4>

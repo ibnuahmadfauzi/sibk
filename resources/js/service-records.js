@@ -1,4 +1,4 @@
-import { draftKey, initFormDrafts, removeDraft } from './form-draft.js';
+import { draftKey, flushFormDrafts, initFormDrafts, removeDraft } from './form-draft.js';
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
     ?? document.querySelector('input[name="_token"]')?.value;
@@ -41,6 +41,7 @@ export const handleModalClick = (event, openModal) => {
 };
 
 export const renderModalContent = (modalElement, html, initialiseDrafts = initFormDrafts) => {
+    flushFormDrafts(modalElement);
     modalElement.querySelector('.modal-content').innerHTML = html;
     initialiseDrafts(modalElement);
 };
@@ -149,9 +150,37 @@ export const updateFollowUp = async (select, environment = {}) => {
 
 const initialisedRoots = new WeakSet();
 
+export const toggleServiceNotes = async (button, root = document, request = fetch) => {
+    const row = root.querySelector(`#${button.getAttribute('aria-controls')}`);
+    if (!row) return;
+    const content = row.querySelector('[data-service-notes-content]');
+    const opening = button.getAttribute('aria-expanded') !== 'true';
+    button.setAttribute('aria-expanded', String(opening));
+    row.classList.toggle('d-none', !opening);
+    if (!opening || button.dataset.notesLoading === 'true' || button.dataset.notesLoaded === 'true') return;
+
+    button.dataset.notesLoading = 'true';
+    content.textContent = 'Memuat catatan…';
+    try {
+        const response = await request(button.dataset.serviceNotesUrl, { headers: { Accept: 'text/html' } });
+        if (!response.ok || response.redirected) throw new Error('Gagal memuat catatan.');
+        content.innerHTML = await response.text();
+        button.dataset.notesLoaded = 'true';
+    } catch {
+        content.textContent = 'Catatan gagal dimuat. Tutup lalu buka kembali untuk mencoba lagi.';
+    } finally {
+        delete button.dataset.notesLoading;
+    }
+};
+
 export const initServiceRecords = async (root = document) => {
     if (initialisedRoots.has(root)) return;
     initialisedRoots.add(root);
+
+    root.addEventListener('click', (event) => {
+        const button = event.target.closest?.('[data-service-notes-url]');
+        if (button) void toggleServiceNotes(button, root);
+    });
 
     const modalElement = root.querySelector('[data-service-record-modal]');
     let requestController;
@@ -161,6 +190,7 @@ export const initServiceRecords = async (root = document) => {
         const { default: Modal } = await import('bootstrap/js/dist/modal.js');
         const modal = Modal.getOrCreateInstance(modalElement);
         modalElement.addEventListener('hidden.bs.modal', () => {
+            flushFormDrafts(modalElement);
             requestController?.abort();
             trigger?.focus();
             trigger = undefined;
@@ -176,6 +206,7 @@ export const initServiceRecords = async (root = document) => {
                 const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: requestController.signal });
                 if (!response.ok) throw new Error('Gagal memuat data.');
                 renderModalContent(modalElement, await response.text());
+                modalElement.dispatchEvent(new CustomEvent('sibk:modal-loaded', { bubbles: true }));
             } catch (error) {
                 if (error.name !== 'AbortError') modalElement.querySelector('.modal-content').textContent = error.message;
             }

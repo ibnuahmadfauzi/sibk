@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Models\Achievement;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AchievementIndexRequest extends FormRequest
 {
@@ -19,7 +20,7 @@ class AchievementIndexRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:200'],
-            'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
+            'level_id' => ['nullable', 'integer', Rule::exists('references', 'id')->where('category', 'achievement_level')->where('is_active', true)],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
@@ -28,7 +29,7 @@ class AchievementIndexRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'classroom_id.exists' => 'Kelas tidak tersedia.',
+            'level_id.exists' => 'Tingkat prestasi tidak tersedia.',
         ];
     }
 }

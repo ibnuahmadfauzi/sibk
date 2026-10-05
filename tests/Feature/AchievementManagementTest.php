@@ -76,8 +76,49 @@ class AchievementManagementTest extends TestCase
         $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
 
         foreach ([$coordinator, $admin] as $user) {
-            $this->actingAs($user)->get(route('achievements.index'))->assertForbidden();
+            $this->actingAs($user)->get(route('achievements.index'))->assertStatus($user->is($coordinator) ? 200 : 403);
             $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+        }
+    }
+
+    public function test_coordinator_and_dual_role_read_all_achievements_without_write_access(): void
+    {
+        [, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->post(route('achievements.import'), ['file' => $this->excel([
+            ['nisn', 'jenis', 'tingkat', 'kegiatan', 'penyelenggara', 'tanggal', 'hasil'],
+            [$student->nisn, 'akademik', 'nasional', 'Prestasi Impor', 'Sekolah', '2026-08-10', 'Juara I'],
+        ])])->assertSessionHasNoErrors();
+        $achievement = Achievement::query()->firstOrFail();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        foreach ([false, true] as $dualRole) {
+            if ($dualRole) {
+                $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+                $coordinator->unsetRelation('roles');
+            }
+            $this->actingAs($coordinator)->get(route('students.index'))
+                ->assertOk()->assertSee($student->name)->assertViewHas('classrooms', fn ($classes): bool => $classes->count() === 1);
+            $this->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+                ->assertOk()->assertSee('Prestasi Impor')
+                ->assertViewHas('stats', fn (array $stats): bool => $stats['achievements'] === 1)
+                ->assertViewHas('canUseProfessionalActions', false);
+            $this->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Impor');
+            $this->get(route('achievements.show', $achievement))->assertOk();
+            $this->get(route('achievements.edit', $achievement))->assertForbidden();
+            $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+            $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
+            $this->assertFalse(Student::query()->professionallyAccessibleTo($coordinator)->whereKey($student->id)->exists());
+            if ($dualRole) {
+                $this->post(route('consultations.store'), [
+                    'student_id' => $student->id,
+                    'service_field_id' => ReferenceValue::query()->forCategory('service_field')->firstOrFail()->id,
+                    'session_date' => '2026-09-01',
+                    'problem' => 'Permasalahan',
+                    'handling' => 'Penanganan',
+                    'result' => 'Hasil',
+                ])->assertSessionHasErrors('student_id');
+                $this->assertDatabaseCount('consultations', 0);
+            }
         }
     }
 
@@ -113,6 +154,12 @@ class AchievementManagementTest extends TestCase
 
         $this->post(route('achievements.import'), ['file' => $this->excel($rows, true)])->assertRedirect(route('achievements.index'));
         $this->assertDatabaseCount('achievements', 2);
+        $this->actingAs($teacher)
+            ->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+            ->assertOk()
+            ->assertSee('Lomba Sains')
+            ->assertSee('Juara I')
+            ->assertViewHas('achievements', fn ($achievements): bool => $achievements->count() === 2);
     }
 
     public function test_waka_cannot_record_future_or_inactive_student_achievement(): void
@@ -137,10 +184,23 @@ class AchievementManagementTest extends TestCase
             ->assertSee('<summary', false)
             ->assertSee('title="Lihat syarat file Excel"', false)
             ->assertDontSee('data-bs-toggle="collapse"', false)
-            ->assertSee('Maksimal 1.000 baris dan 2 MB');
+            ->assertSee('Maksimal 1.000 baris dan 2 MB')
+            ->assertSee('data-bs-target="#achievement-import-modal"', false);
+        $this->from(route('achievements.index'))->post(route('achievements.import'), [])->assertSessionHasErrors('file');
     }
 
-    public function test_achievement_list_uses_search_and_class_filters_with_modal_detail(): void
+    public function test_excel_import_validation_error_is_displayed_inside_the_modal(): void
+    {
+        $this->actingAs($this->userWithRole('waka_kesiswaan'));
+        $response = $this->get(route('achievements.index'))->assertOk();
+        $this->withViewErrors(['file' => 'Berkas Excel wajib dipilih.'])
+            ->view('pages.achievements.index', $response->original->getData())
+            ->assertSee('Perbaiki berkas, lalu pilih kembali untuk mengimpor.')
+            ->assertSee("getElementById('achievement-import-modal')", false);
+
+    }
+
+    public function test_achievement_list_uses_search_and_level_filters_with_modal_detail(): void
     {
         [, $student] = $this->assignedStudent();
         $waka = $this->userWithRole('waka_kesiswaan');
@@ -150,12 +210,12 @@ class AchievementManagementTest extends TestCase
         $this->get(route('achievements.index', ['type_id' => 'retired']))
             ->assertOk()
             ->assertSee('name="search"', false)
-            ->assertSee('name="classroom_id"', false)
-            ->assertSee('>Tampilkan<', false)
+            ->assertDontSee('name="classroom_id"', false)
+            ->assertSee('>Terapkan<', false)
             ->assertDontSee('>Reset<', false)
             ->assertDontSee('name="student_id"', false)
             ->assertDontSee('name="type_id"', false)
-            ->assertDontSee('name="level_id"', false)
+            ->assertSee('name="level_id"', false)
             ->assertDontSee('name="date_start"', false)
             ->assertDontSee('name="date_end"', false)
             ->assertSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false)
@@ -170,7 +230,15 @@ class AchievementManagementTest extends TestCase
         $this->get(route('achievements.index', ['search' => 'Murid Prestasi']))
             ->assertOk()
             ->assertSee('>Reset<', false)
-            ->assertDontSee('>Tampilkan<', false);
+            ->assertSee('>Terapkan<', false);
+
+        $otherLevel = ReferenceValue::query()->forCategory('achievement_level')->where('id', '!=', $achievement->level_id)->firstOrFail();
+        $this->get(route('achievements.index', ['level_id' => $achievement->level_id]))
+            ->assertOk()->assertViewHas('achievements', fn ($rows): bool => $rows->total() === 1);
+        $this->get(route('achievements.index', ['level_id' => $otherLevel->id]))
+            ->assertOk()->assertViewHas('achievements', fn ($rows): bool => $rows->total() === 0);
+        $this->get(route('achievements.index', ['level_id' => $achievement->type_id]))
+            ->assertSessionHasErrors('level_id');
 
         $this->get(route('achievements.show', [$achievement, 'modal' => 1]))
             ->assertOk()

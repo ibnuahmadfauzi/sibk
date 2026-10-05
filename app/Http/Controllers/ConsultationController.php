@@ -32,14 +32,27 @@ class ConsultationController extends Controller
         $user = $request->user();
         abort_unless($user->can('create', Consultation::class), 403);
 
-        return $this->formData($user, null, $request);
+        $data = $this->formValues($user, null, $request);
+
+        return $request->boolean('modal')
+            ? view('pages.consultations._create-modal', [...$data, 'modal' => true])
+            : view('pages.consultations.create', $data);
     }
 
-    public function store(StoreConsultationRequest $request, ConsultationService $service): RedirectResponse
+    public function store(StoreConsultationRequest $request, ConsultationService $service): RedirectResponse|JsonResponse
     {
         /** @var User $actor */
         $actor = $request->user();
         $consultation = $service->create($request->validated(), $actor);
+
+        if ($request->expectsJson()) {
+            $request->session()->flash('success', 'Konsultasi berhasil dicatat.');
+
+            return response()->json([
+                'message' => 'Konsultasi berhasil dicatat.',
+                'redirect' => route('cases.index', ['tab' => 'konsultasi']),
+            ]);
+        }
 
         return redirect()->route('cases.index', ['tab' => 'konsultasi'])
             ->with('success', 'Konsultasi berhasil dicatat.');
@@ -84,7 +97,9 @@ class ConsultationController extends Controller
         ];
 
         return view(
-            $request->boolean('modal') ? 'pages.consultations._detail-modal' : 'pages.consultations.show',
+            $request->boolean('inline')
+                ? 'pages.consultations._notes'
+                : ($request->boolean('modal') ? 'pages.consultations._detail-modal' : 'pages.consultations.show'),
             $data,
         );
     }
@@ -156,11 +171,6 @@ class ConsultationController extends Controller
 
         return redirect()->route('cases.index', ['tab' => 'konsultasi'])
             ->with('success', 'Konsultasi berhasil diarsipkan.');
-    }
-
-    private function formData(User $user, ?Consultation $consultation, Request $request): View
-    {
-        return view('pages.consultations.create', $this->formValues($user, $consultation, $request));
     }
 
     /** @return array<string, mixed> */

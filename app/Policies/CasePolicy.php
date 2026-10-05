@@ -17,10 +17,6 @@ class CasePolicy
 
     public function view(User $user, BkCase $case): bool
     {
-        if ($user->hasRole('koordinator_bk')) {
-            return true;
-        }
-
         if ($user->hasRole('waka_kesiswaan')) {
             return true;
         }

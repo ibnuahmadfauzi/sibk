@@ -4,9 +4,7 @@ import {
     applyStudentSelection,
     buildStudentOption,
     filterStudents,
-    fillDetailModal,
     initWithdrawalProgress,
-    readDetailTrigger,
     renderLookupResults,
     renderPopoverHistory,
     positionPopover,
@@ -77,32 +75,6 @@ const resultsState = {
 assert.equal(renderLookupResults(resultsState, students, { createElement: fakeElement }), true);
 assert.equal(rendered[0].children[1].textContent, 'Murid Scope');
 
-const trigger = {
-    dataset: {
-        studentName: '<img src=x>',
-        studentNisn: '0012345678',
-        classroom: 'X RPL 1',
-        recordedOn: '26 September 2026',
-        recordedDay: 'Sabtu',
-        teacherName: 'Guru BK',
-        progressLabel: 'Berkas pengunduran masih progres',
-        reason: 'Permintaan dari keluarga.',
-        note: 'Pertemuan dengan keluarga.',
-        followUps: JSON.stringify([{ followUpDateFormatted: '26 Sep 2026', progressLabel: 'Masih progres', notes: '<b>aman</b>' }]),
-    },
-};
-const modalFields = {};
-for (const key of ['studentName', 'studentNisn', 'classroom', 'recordedOn', 'teacherName', 'progressLabel', 'reason', 'note']) {
-    modalFields[`[data-detail="${key}"]`] = { textContent: '' };
-}
-modalFields['[data-detail-history]'] = fakeElement('ol');
-const modal = { querySelector: (selector) => modalFields[selector] ?? null };
-const detail = readDetailTrigger(trigger);
-fillDetailModal(modal, detail, { createElement: fakeElement });
-assert.equal(modalFields['[data-detail="studentName"]'].textContent, '<img src=x>');
-assert.equal(modalFields['[data-detail="recordedOn"]'].textContent, '26 September 2026 (Sabtu)');
-assert.equal(modalFields['[data-detail-history]'].children[0].children[1].children[1].textContent, '<b>aman</b>');
-
 const popover = fakeElement('div');
 renderPopoverHistory(popover, [
     { follow_up_date_formatted: '27 Sep 2026', progress_label: 'Masuk TU', notes: 'Diterima.' },
@@ -132,8 +104,10 @@ assert.equal(popoverEl.style.top, '372px');
 assert.equal(popoverEl.style.left, '100px');
 
 const listeners = new Map();
+const noteRow = { hidden: true, classList: { toggle(name, force) { assert.equal(name, 'd-none'); noteRow.hidden = force; } } };
 const root = {
     querySelector() { return null; },
+    getElementById(id) { return id === 'withdrawal-note-1' ? noteRow : null; },
     addEventListener(type, listener) {
         const queue = listeners.get(type) ?? [];
         queue.push(listener);
@@ -144,5 +118,20 @@ assert.equal(await initWithdrawalProgress(root, { window: { addEventListener() {
 assert.equal(await initWithdrawalProgress(root, { window: { addEventListener() {} } }), false);
 assert.equal(listeners.get('click').length, 1);
 assert.equal(listeners.get('keydown').length, 1);
+const noteButton = {
+    title: 'Tampilkan catatan',
+    dataset: { studentName: 'Murid Scope' },
+    attributes: { 'aria-controls': 'withdrawal-note-1', 'aria-expanded': 'false' },
+    getAttribute(name) { return this.attributes[name]; },
+    setAttribute(name, value) { this.attributes[name] = value; },
+};
+const noteClick = { target: { closest(selector) { return selector === '[data-withdrawal-note-toggle]' ? noteButton : null; } } };
+listeners.get('click')[0](noteClick);
+assert.equal(noteRow.hidden, false);
+assert.equal(noteButton.attributes['aria-expanded'], 'true');
+assert.equal(noteButton.attributes['aria-label'], 'Tutup catatan pengunduran diri Murid Scope');
+listeners.get('click')[0](noteClick);
+assert.equal(noteRow.hidden, true);
+assert.equal(noteButton.attributes['aria-expanded'], 'false');
 
 console.log('Withdrawal progress checks passed.');

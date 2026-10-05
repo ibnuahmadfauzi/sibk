@@ -84,6 +84,48 @@ class ConsultationManagementTest extends TestCase
         $this->assertSame('Murid menyepakati langkah perbaikan.', $consultation->result);
     }
 
+    public function test_create_modal_preserves_validation_and_returns_json_after_saving(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+
+        $this->actingAs($teacher)->get(route('consultations.create', ['modal' => 1]))
+            ->assertOk()
+            ->assertSee('class="modal-header', false)
+            ->assertSee('Kosongkan')
+            ->assertDontSee('<!DOCTYPE', false);
+
+        foreach ([route('dashboard.preview'), route('cases.index', ['tab' => 'konsultasi'])] as $url) {
+            $this->get($url)->assertOk()
+                ->assertSee('data-modal-url="'.route('consultations.create', ['modal' => 1]).'"', false)
+                ->assertSee('data-service-record-modal', false);
+        }
+
+        $this->postJson(route('consultations.store'), ['student_id' => $student->id])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['problem', 'handling']);
+        $this->assertDatabaseCount('consultations', 0);
+
+        $this->postJson(route('consultations.store'), [...$this->payload(), 'student_id' => $student->id])
+            ->assertOk()
+            ->assertJsonPath('redirect', route('cases.index', ['tab' => 'konsultasi']));
+        $this->assertDatabaseCount('consultations', 1);
+    }
+
+    public function test_inline_notes_remain_scoped_and_escape_user_content(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($teacher, $student);
+        $consultation->update(['problem' => '<script>alert(1)</script>']);
+        $url = route('consultations.show', [$consultation, 'inline' => 1]);
+
+        $this->actingAs($teacher)->get($url)->assertOk()
+            ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)
+            ->assertDontSee('<script>', false)
+            ->assertDontSee('modal-header', false);
+        $this->actingAs($this->userWithRole('guru_bk'))->get($url)->assertForbidden();
+        $this->actingAs($this->userWithRole('admin_it'))->get($url)->assertForbidden();
+    }
+
     public function test_consultation_lookup_selection_accepts_autofilled_identity_fields(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
@@ -286,7 +328,7 @@ class ConsultationManagementTest extends TestCase
 
         $this->actingAs($owner)->get(route('consultations.show', $consultation))
             ->assertOk()
-            ->assertSeeInOrder(['Informasi Umum', 'Nama Murid', 'Tanggal Layanan', 'NISN', 'Jenis Layanan', 'Rombel/Kelas', 'Catatan Permasalahan', 'Latar Belakang', 'Penanganan', 'Ringkasan'], false)
+            ->assertSeeInOrder(['Informasi Umum', 'Nama Murid', 'Tanggal Layanan', 'NISN', 'Jenis Layanan', 'Rombel/Kelas', 'Catatan Konsultasi', 'Latar Belakang Masalah', 'Penanganan', 'Hasil / Ringkasan'], false)
             ->assertSee($consultation->identityName())
             ->assertSee($consultation->identityNisn())
             ->assertSee('18 September 2026')
@@ -303,7 +345,7 @@ class ConsultationManagementTest extends TestCase
         $this->get(route('consultations.show', [$consultation, 'modal' => 1]))
             ->assertOk()
             ->assertSee('data-consultation-detail-modal', false)
-            ->assertSeeInOrder(['Detail Konsultasi', 'Informasi Umum', 'Catatan Permasalahan', 'Tutup'], false)
+            ->assertSeeInOrder(['Detail Konsultasi', 'Informasi Umum', 'Catatan Konsultasi', 'Tutup'], false)
             ->assertSee('btn-close', false)
             ->assertSee('data-bs-dismiss="modal"', false)
             ->assertDontSee('<html', false)
@@ -313,7 +355,7 @@ class ConsultationManagementTest extends TestCase
         $this->get(route('consultations.edit', $consultation))
             ->assertOk()
             ->assertViewIs('pages.consultations.create')
-            ->assertSeeInOrder(['Edit Konsultasi', 'Informasi Umum', 'Nama Murid', 'Tanggal Layanan', 'NISN', 'Jenis Layanan', 'Rombel/Kelas', 'Catatan Permasalahan', 'Latar Belakang', 'Penanganan', 'Ringkasan', 'Batal', 'Simpan Perubahan'], false)
+            ->assertSeeInOrder(['Edit Konsultasi', 'NISN', 'Nama Murid', 'Rombel', 'Tanggal Layanan', 'Jenis Masalah', 'Latar Belakang Masalah / Permasalahan', 'Penanganan', 'Ringkasan / Hasil', 'Batal', 'Simpan Perubahan'], false)
             ->assertSee('data-autosave-form="consultation"', false)
             ->assertSee('name="session_date"', false)
             ->assertSee('name="service_field_id"', false)
@@ -386,10 +428,10 @@ class ConsultationManagementTest extends TestCase
             $this->actingAs($actor)->get(route('consultations.show', $consultation))->assertForbidden();
         }
 
-        foreach (['koordinator_bk', 'waka_kesiswaan'] as $role) {
-            $actor = $this->userWithRole($role);
-            $this->actingAs($actor)->get(route('consultations.show', $consultation))->assertOk();
-        }
+        $this->actingAs($this->userWithRole('koordinator_bk'))
+            ->get(route('consultations.show', $consultation))->assertForbidden();
+        $this->actingAs($this->userWithRole('waka_kesiswaan'))
+            ->get(route('consultations.show', $consultation))->assertOk();
 
         foreach (['guru_bk', 'koordinator_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
             $actor = $this->userWithRole($role);
@@ -430,13 +472,20 @@ class ConsultationManagementTest extends TestCase
     public function test_shared_list_searches_only_name_filters_service_field_and_uses_allowed_stable_sorts(): void
     {
         [$teacher, $zeta] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
+        $coordinator = $teacher;
+        $coordinator->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
         $zeta->update(['name' => 'Murid Zeta']);
         $year = AcademicYear::query()->firstOrFail();
         $alphaClass = Classroom::query()->create([
             'academic_year_id' => $year->id,
             'name' => 'X AP 1',
             'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $coordinator->id,
+            'classroom_id' => $alphaClass->id,
+            'academic_year_id' => $year->id,
+            'assigned_by' => $coordinator->id,
         ]);
         $alpha = Student::query()->create(['nisn' => '0012345679', 'name' => 'Murid Alpha', 'is_active' => true]);
         StudentClassMembership::query()->create([
@@ -478,11 +527,11 @@ class ConsultationManagementTest extends TestCase
         }
 
         $this->get(route('cases.index', ['tab' => 'konsultasi']))
-            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Layanan', 'Aksi'], false)
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Hasil / Ringkasan', 'Aksi'], false)
             ->assertSee('Jumat')
             ->assertSee('18 Sep 2026')
-            ->assertDontSee('Hasil Murid Zeta')
-            ->assertSee('data-modal-url="'.route('consultations.show', [$listedZeta, 'modal' => 1]).'"', false)
+            ->assertSee('Hasil Murid Zeta')
+            ->assertSee('data-service-notes-url="'.route('consultations.show', [$listedZeta, 'inline' => 1]).'"', false)
             ->assertSee('aria-label="Lihat detail konsultasi '.$listedZeta->identityName().'"', false)
             ->assertDontSee('<th scope="col">No</th>', false)
             ->assertDontSee('<th scope="col">Hasil</th>', false)
@@ -492,7 +541,8 @@ class ConsultationManagementTest extends TestCase
     public function test_shared_list_keeps_class_snapshot_after_membership_change(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
-        $coordinator = $this->userWithRole('koordinator_bk');
+        $coordinator = $teacher;
+        $coordinator->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
         $year = AcademicYear::query()->firstOrFail();
         $consultation = $this->createConsultation($teacher, $student);
         $historicalClass = Classroom::query()->create([
@@ -501,6 +551,12 @@ class ConsultationManagementTest extends TestCase
             'is_active' => true,
         ]);
         $student->classMemberships()->firstOrFail()->update(['classroom_id' => $historicalClass->id]);
+        TeacherAssignment::query()->create([
+            'user_id' => $coordinator->id,
+            'classroom_id' => $historicalClass->id,
+            'academic_year_id' => $year->id,
+            'assigned_by' => $coordinator->id,
+        ]);
 
         $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
@@ -516,12 +572,13 @@ class ConsultationManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Layanan', 'Aksi'], false)
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Hasil / Ringkasan', 'Aksi'], false)
+            ->assertSee($consultation->result)
             ->assertSee('class="table-responsive"', false)
             ->assertSee('class="btn btn-icon-action btn-icon-action--info"', false)
             ->assertSee('class="btn btn-icon-action btn-icon-action--primary"', false)
             ->assertSee('class="btn btn-icon-action btn-icon-action--danger"', false)
-            ->assertSee('data-modal-url="'.route('consultations.show', [$consultation, 'modal' => 1]).'"', false)
+            ->assertSee('data-service-notes-url="'.route('consultations.show', [$consultation, 'inline' => 1]).'"', false)
             ->assertSee('data-modal-url="'.route('consultations.edit', [$consultation, 'modal' => 1]).'"', false)
             ->assertSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
             ->assertSee('aria-label="Edit konsultasi '.$consultation->identityName().'"', false)
@@ -532,14 +589,57 @@ class ConsultationManagementTest extends TestCase
             ->assertDontSee('class="sibk-report-summary"', false)
             ->assertDontSee('class="sibk-operational-report-cards p-3"', false)
             ->assertDontSee('data-report-detail-toggle', false)
-            ->assertDontSee('class="sibk-report-detail-row d-none"', false);
+            ->assertSee('id="consultation-notes-'.$consultation->id.'"', false);
 
         $coordinator = $this->userWithRole('koordinator_bk');
         $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
+            ->assertDontSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee('aria-label="Edit konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee('aria-label="Arsipkan konsultasi '.$consultation->identityName().'"', false);
+    }
+
+    public function test_coordinator_consultation_access_follows_own_teacher_scope_only(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $teacher->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
+        $visible = $this->createConsultation($teacher, $student);
+
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $otherClass = Classroom::query()->create([
+            'academic_year_id' => $student->classMemberships()->firstOrFail()->academic_year_id,
+            'name' => 'XI RPL 2',
+            'is_active' => true,
+        ]);
+        $otherStudent = Student::query()->create(['nisn' => '0099999999', 'name' => 'Murid Luar Kewenangan', 'is_active' => true]);
+        StudentClassMembership::query()->create([
+            'student_id' => $otherStudent->id,
+            'classroom_id' => $otherClass->id,
+            'academic_year_id' => $otherClass->academic_year_id,
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $otherTeacher->id,
+            'classroom_id' => $otherClass->id,
+            'academic_year_id' => $otherClass->academic_year_id,
+            'assigned_by' => $otherTeacher->id,
+        ]);
+        $hidden = $this->createConsultation($otherTeacher, $otherStudent);
+
+        $this->actingAs($teacher)->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertSee($visible->identityName())
+            ->assertDontSee($hidden->identityName());
+        $this->get(route('consultations.show', $visible))->assertOk();
+        foreach ([[], ['modal' => 1], ['inline' => 1]] as $parameters) {
+            $this->get(route('consultations.show', [$hidden, ...$parameters]))->assertForbidden();
+        }
+
+        $coordinatorOnly = $this->userWithRole('koordinator_bk');
+        $this->actingAs($coordinatorOnly)->get(route('cases.index', ['tab' => 'konsultasi']))
+            ->assertOk()
+            ->assertDontSee($visible->identityName())
+            ->assertDontSee($hidden->identityName());
     }
 
     public function test_waka_list_keeps_four_columns_and_detail_only_without_exposing_result(): void
@@ -550,16 +650,19 @@ class ConsultationManagementTest extends TestCase
 
         $this->actingAs($waka)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Layanan', 'Aksi'], false)
-            ->assertSee('data-modal-url="'.route('consultations.show', [$consultation, 'modal' => 1]).'"', false)
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Aksi'], false)
+            ->assertSee('data-service-notes-url="'.route('consultations.show', [$consultation, 'inline' => 1]).'"', false)
             ->assertSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee('aria-label="Edit konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee('aria-label="Arsipkan konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee($consultation->result);
 
-        $this->get(route('consultations.show', [$consultation, 'modal' => 1]))
+        $this->get(route('consultations.show', [$consultation, 'inline' => 1]))
             ->assertOk()
-            ->assertSee('data-consultation-detail-modal', false);
+            ->assertSee($consultation->problem)
+            ->assertSee($consultation->handling)
+            ->assertDontSee('modal-header', false)
+            ->assertDontSee($consultation->result);
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'consultation.viewed_by_waka',
             'auditable_type' => Consultation::class,

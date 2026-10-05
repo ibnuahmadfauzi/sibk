@@ -51,6 +51,7 @@ class ReportController extends Controller
         return view('pages.reports.preview', [
             'report' => $service->allForDocument($user, $request->filters()),
             'signatories' => $signatories->forRecap(),
+            'embedded' => $request->boolean('embedded'),
         ]);
     }
 
@@ -64,7 +65,7 @@ class ReportController extends Controller
         /** @var User $user */
         $user = $request->user();
         $record = $service->findRecord($user, $type, $id);
-        abort_unless($user->can('view', $record), 403);
+        abort_unless($user->hasRole('koordinator_bk') || $user->can('view', $record), 403);
 
         return view('pages.reports.record-preview', [
             'record' => $service->recordForDocument($record),

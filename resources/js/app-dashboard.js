@@ -10,14 +10,22 @@ import { initEtatibApiPreview } from './etatib-api-preview';
 import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
+import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
+import { initReportPreview } from './report-preview';
 
 initFormDrafts();
 initServiceRecords();
+initConsultationCreate();
 initApiSiswaPreview();
 initEtatibApiPreview();
 initEtatibIdentityMapping();
 initWithdrawalProgress();
+initReportPreview(Modal);
+
+document.querySelector('[data-waka-year-filter]')?.addEventListener('change', (event) => {
+    event.currentTarget.form.requestSubmit();
+});
 
 document.querySelectorAll('[data-notification-toast]').forEach((toast) => {
     if (toast.closest('[data-modal-submit-error]')) return;
@@ -85,15 +93,6 @@ document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
         event.preventDefault();
         window.location.assign(button.dataset.resetUrl);
     });
-
-    document
-        .querySelectorAll('[data-report-page-size][form="report-filter-form"]')
-        .forEach((select) => {
-            select.addEventListener('change', () => {
-                showApply();
-                form.requestSubmit();
-            });
-        });
 });
 
 document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {

@@ -126,8 +126,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         array $filters,
         ?AcademicYear $year,
     ): QueryBuilder {
-        $caseEvents = BkCase::query()
-            ->accessibleTo($actor)
+        $caseEvents = $this->reportServiceQuery(BkCase::query(), $actor)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('cases.academic_year_id', $selected->getKey()))
             ->when(
@@ -139,8 +138,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->selectRaw('cases.service_date AS service_date')
             ->toBase();
 
-        $consultationEvents = Consultation::query()
-            ->accessibleTo($actor)
+        $consultationEvents = $this->reportServiceQuery(Consultation::query(), $actor)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('consultations.academic_year_id', $selected->getKey()))
             ->when(
@@ -153,7 +151,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->toBase();
 
         $withdrawalEvents = WithdrawalProgress::query()
-            ->accessibleTo($actor)
+            ->when(! $actor->hasRole('waka_kesiswaan'), fn (Builder $query): Builder => $query->accessibleTo($actor))
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->whereHas('classroom', fn (Builder $classrooms): Builder => $classrooms
                     ->where('academic_year_id', $selected->getKey())))
@@ -295,11 +293,17 @@ final class OperationalReportRecapService implements OperationalReportRecap
         });
     }
 
+    private function reportServiceQuery(Builder $query, User $actor): Builder
+    {
+        return $actor->hasRole('koordinator_bk')
+            ? $query->withinStudentServicePeriod()
+            : $query->accessibleTo($actor);
+    }
+
     /** @return Builder<BkCase> */
     private function caseQuery(User $actor): Builder
     {
-        return BkCase::query()
-            ->accessibleTo($actor)
+        return $this->reportServiceQuery(BkCase::query(), $actor)
             ->with([
                 'classroom',
                 'source',
@@ -313,8 +317,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     /** @return Builder<Consultation> */
     private function consultationQuery(User $actor): Builder
     {
-        return Consultation::query()
-            ->accessibleTo($actor)
+        return $this->reportServiceQuery(Consultation::query(), $actor)
             ->with([
                 'classroom',
                 'serviceField',
@@ -326,7 +329,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
     private function withdrawalQuery(User $actor): Builder
     {
         return WithdrawalProgress::query()
-            ->accessibleTo($actor)
+            ->when(! $actor->hasRole('waka_kesiswaan'), fn (Builder $query): Builder => $query->accessibleTo($actor))
             ->with([
                 'student',
                 'classroom',
@@ -412,7 +415,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $isConsultation => 'Selesai',
                 $isWithdrawal => $record->note
                     ? sprintf("Progres: %s\nCatatan: %s", $withdrawalProgressLabel ?? '—', $record->note)
-                    : sprintf("Progres: %s", $withdrawalProgressLabel ?? '—'),
+                    : sprintf('Progres: %s', $withdrawalProgressLabel ?? '—'),
             },
             'counselor' => match (true) {
                 $isCase => ($record->assignments->first()?->teacher?->name ?? '—'),
@@ -459,16 +462,24 @@ final class OperationalReportRecapService implements OperationalReportRecap
 
         return [
             'title' => 'Laporan Layanan BK',
-            'columns' => $canViewDocument
-                ? [
+            'columns' => match (true) {
+                $filters['service_type'] === 'withdrawal' => [
+                    'No',
+                    'Hari / Tanggal',
+                    'Nama / Kelas',
+                    'Guru',
+                    'Keterangan',
+                    ...($canViewDocument ? ['Aksi'] : []),
+                ],
+                $canViewDocument => [
                     'No',
                     'Hari/Tanggal',
                     'Nama & Kelas',
                     'Layanan/Jenis Masalah',
                     'Hasil',
                     'Aksi',
-                ]
-                : [
+                ],
+                default => [
                     'No',
                     'Hari / Tanggal',
                     'Nama / Kelas',
@@ -477,6 +488,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     'Guru BK',
                     'Keterangan',
                 ],
+            },
             'rows' => $rows,
             'summary' => $summary,
             'summary_sentence' => $this->summarySentence($summary),

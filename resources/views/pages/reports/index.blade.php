@@ -21,12 +21,14 @@
         </div>
         @if($report['can_view_document'])
             <div class="sibk-page-header__actions no-print">
-                <a
+                <button
                     class="btn btn-primary"
-                    href="{{ route('reports.preview', $documentFilters) }}"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#report-preview-modal"
                 >
                     Cetak / Unduh Rekap
-                </a>
+                </button>
             </div>
         @endif
     </header>
@@ -51,51 +53,9 @@
     @include('pages.reports._filters')
 
     <section
-        class="sibk-panel sibk-operational-report"
-        aria-labelledby="operational-report-title"
+        class="sibk-operational-report"
+        aria-label="Daftar layanan BK"
     >
-        <div
-            class="sibk-panel__header p-4 border-bottom d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3"
-        >
-            <div>
-                <h2
-                    class="h5 mb-1"
-                    id="operational-report-title"
-                >
-                    Catatan Layanan
-                </h2>
-                @include('pages.reports._summary', [
-                    'items' => $report['summary'],
-                ])
-            </div>
-
-            <div class="d-flex align-items-center gap-2 no-print">
-                <label
-                    class="text-muted small text-nowrap"
-                    for="per_page"
-                >
-                    Tampilkan
-                </label>
-                <select
-                    class="form-select form-select-sm"
-                    id="per_page"
-                    name="per_page"
-                    form="report-filter-form"
-                    data-report-page-size
-                    aria-label="Jumlah data per halaman"
-                >
-                    @foreach([10, 25, 50, 100] as $size)
-                        <option
-                            value="{{ $size }}"
-                            @selected((int) $report['filters']['per_page'] === $size)
-                        >
-                            {{ $size }} data
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-
         @include('pages.reports._desktop-table')
         @include('pages.reports._mobile-cards')
 
@@ -118,6 +78,30 @@
     @if($report['rows']->hasPages())
         <div class="mt-4 no-print">
             {{ $report['rows']->links() }}
+        </div>
+    @endif
+
+    @if($report['can_view_document'])
+        <div class="modal fade sibk-report-preview-modal" id="report-preview-modal" tabindex="-1" aria-labelledby="report-preview-title" aria-hidden="true" data-report-preview-modal data-preview-url="{{ route('reports.preview', [...$documentFilters, 'embedded' => 1]) }}">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5 me-auto" id="report-preview-title">Pratinjau Rekap</h2>
+                        <a class="btn btn-success text-white" href="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}">Unduh Excel</a>
+                        <button class="btn btn-primary" type="button" data-report-preview-print disabled>Cetak / Simpan PDF</button>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="m-auto" role="status" data-report-preview-loading>Menyiapkan pratinjau laporan…</p>
+                        <div class="m-auto text-center d-none" role="alert" data-report-preview-error>
+                            <p>Pratinjau belum dapat ditampilkan.</p>
+                            <button class="btn btn-outline-primary" type="button" data-report-preview-retry>Coba lagi</button>
+                            <a class="btn btn-link" href="{{ route('reports.preview', $documentFilters) }}" target="_blank" rel="noopener">Buka di halaman baru</a>
+                        </div>
+                        <iframe class="d-none" title="Dokumen rekap layanan BK" data-report-preview-frame></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
     @endif
 

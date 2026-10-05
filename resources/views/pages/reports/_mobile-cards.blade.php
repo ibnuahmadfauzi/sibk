@@ -1,4 +1,4 @@
-<div class="sibk-operational-report-cards p-3">
+<div class="sibk-operational-report-cards">
     @if(! $report['can_view_document'])
         @foreach($report['rows'] as $row)
             <article
@@ -14,6 +14,7 @@
                             {{ $row['day_label'] }}, {{ $row['date_label'] }}
                         </p>
                     </div>
+                    @if($report['filters']['service_type'] !== 'withdrawal')
                     <span
                         class="sibk-badge flex-column align-items-start gap-0"
                     >
@@ -22,14 +23,17 @@
                         </span>
                         <strong>{{ $row['service_field'] }}</strong>
                     </span>
+                    @endif
                 </div>
                 <dl class="mb-0">
+                    @if($report['filters']['service_type'] !== 'withdrawal')
                     <div class="py-2">
                         <dt>Ringkasan</dt>
                         <dd class="mb-0">{{ $row['detail_note'] }}</dd>
                     </div>
+                    @endif
                     <div class="py-2">
-                        <dt>Guru BK</dt>
+                        <dt>{{ $report['filters']['service_type'] === 'withdrawal' ? 'Guru' : 'Guru BK' }}</dt>
                         <dd class="mb-0">{{ $row['counselor'] }}</dd>
                     </div>
                     <div class="py-2">
@@ -56,21 +60,40 @@
                         {{ $row['day_label'] }}, {{ $row['date_label'] }}
                     </p>
                 </div>
+                @if($row['type'] !== 'withdrawal')
                 <span class="sibk-badge flex-column align-items-start gap-0">
                     <span class="small fw-normal">{{ $row['service'] }}</span>
                     <strong>{{ $row['service_field'] }}</strong>
                 </span>
+                @endif
             </div>
             <dl class="mb-3">
+                @if($row['type'] === 'withdrawal')
+                <div class="py-2">
+                    <dt>Guru</dt>
+                    <dd class="mb-0">{{ $row['counselor'] }}</dd>
+                </div>
+                <div class="py-2">
+                    <dt>Keterangan</dt>
+                    <dd class="mb-0">{{ $row['follow_up_label'] }}</dd>
+                </div>
+                @else
                 <div class="py-2">
                     <dt>Hasil</dt>
                     <dd class="mb-0">{{ $row['detail_note'] }}</dd>
                 </div>
+                @endif
             </dl>
             <div
                 class="sibk-report-detail-panel d-none mb-3"
                 id="{{ $detailId }}"
             >
+                @if($row['type'] === 'withdrawal')
+                <div>
+                    <strong class="d-block mb-1">Catatan</strong>
+                    <p class="mb-0">{{ $row['problem'] ?: 'Belum ada catatan.' }}</p>
+                </div>
+                @else
                 <div class="mb-3">
                     <strong class="d-block mb-1">Latar Belakang Masalah</strong>
                     <p class="mb-0">{{ $problem }}</p>
@@ -79,6 +102,7 @@
                     <strong class="d-block mb-1">Penanganan</strong>
                     <p class="mb-0">{{ $handling }}</p>
                 </div>
+                @endif
             </div>
             <div class="d-flex justify-content-end gap-2">
                 <button
@@ -99,23 +123,6 @@
                         <path d="m16 16 5 5" />
                     </svg>
                 </button>
-                @if($row['can_archive'])
-                    <form
-                        action="{{ $row['archive_url'] }}"
-                        method="POST"
-                        data-confirm-submit
-                        data-confirm-message="Arsipkan catatan layanan ini?"
-                    >
-                        @csrf
-                        @method('DELETE')
-                        <button
-                            class="btn btn-sm btn-outline-danger"
-                            type="submit"
-                        >
-                            Arsipkan
-                        </button>
-                    </form>
-                @endif
             </div>
         </article>
     @endforeach

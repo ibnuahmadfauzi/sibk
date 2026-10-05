@@ -46,6 +46,7 @@
                             </div>
                         </div>
 
+                        <div class="table-responsive">
                         <table class="table sibk-account-table mb-0">
                             <tbody>
                                 <tr>
@@ -70,6 +71,7 @@
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

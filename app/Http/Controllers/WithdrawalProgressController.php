@@ -28,7 +28,7 @@ final class WithdrawalProgressController extends Controller
 
         $students = $this->availableStudents($actor);
 
-        return view('pages.withdrawals.create', [
+        return view($request->boolean('modal') ? 'pages.withdrawals._create-modal' : 'pages.withdrawals.create', [
             'withdrawalStudents' => $students,
             'withdrawalLookup' => $students->map(fn (Student $student): array => [
                 'id' => $student->id,
@@ -39,11 +39,20 @@ final class WithdrawalProgressController extends Controller
         ]);
     }
 
-    public function store(StoreWithdrawalProgressRequest $request, WithdrawalProgressService $service): RedirectResponse
+    public function store(StoreWithdrawalProgressRequest $request, WithdrawalProgressService $service): RedirectResponse|JsonResponse
     {
         /** @var User $actor */
         $actor = $request->user();
         $service->create($request->validated(), $actor);
+
+        if ($request->expectsJson()) {
+            $request->session()->flash('success', 'Penanganan pengunduran diri berhasil dicatat.');
+
+            return response()->json([
+                'message' => 'Penanganan pengunduran diri berhasil dicatat.',
+                'redirect' => route('cases.index', ['tab' => 'pengunduran-diri']),
+            ]);
+        }
 
         return redirect()->route('cases.index', ['tab' => 'pengunduran-diri'])
             ->with('success', 'Penanganan pengunduran diri berhasil dicatat.');
