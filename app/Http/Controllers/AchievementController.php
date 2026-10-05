@@ -8,7 +8,6 @@ use App\Http\Requests\AchievementIndexRequest;
 use App\Http\Requests\StoreAchievementRequest;
 use App\Http\Requests\UpdateAchievementRequest;
 use App\Models\Achievement;
-use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
@@ -34,12 +33,11 @@ class AchievementController extends Controller
                 ->orWhereHas('student', fn (Builder $students): Builder => $students
                     ->where('name', 'like', '%'.$search.'%')->orWhere('nisn', 'like', '%'.$search.'%'));
         }));
-        $query->when($filters['classroom_id'] ?? null, fn (Builder $items, int $id): Builder => $items->whereHas('student.classMemberships', fn (Builder $memberships): Builder => $memberships
-            ->where('classroom_id', $id)));
+        $query->when($filters['level_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('level_id', $id));
 
         return view('pages.achievements.index', [
             'achievements' => $query->latest('achievement_date')->latest('id')->paginate(20)->withQueryString(),
-            ...$this->options($user),
+            ...$this->options(),
             'canCreateAchievement' => $user->can('create', Achievement::class),
         ]);
     }
@@ -125,10 +123,9 @@ class AchievementController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function options(User $user): array
+    private function options(): array
     {
         return [
-            'classrooms' => Classroom::query()->active()->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->when($user->hasRole('guru_bk') && ! $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan']), fn (Builder $accessible): Builder => $accessible->professionallyAccessibleTo($user)))->orderBy('name')->get(),
             'types' => ReferenceValue::query()->active()->forCategory('achievement_type')->orderBy('sort_order')->get(),
             'levels' => ReferenceValue::query()->active()->forCategory('achievement_level')->orderBy('sort_order')->get(),
         ];

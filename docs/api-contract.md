@@ -157,14 +157,14 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi serta prestasi yang diizinkan, dan statistik berbasis scope. Proyeksi Waka tidak memuat payload e-Tatib mentah atau catatan internal.
 
 ### Pengelolaan prestasi oleh Waka
-- **Filter daftar:** `search` (nama/NISN murid, kegiatan, atau penyelenggara) dan `classroom_id`.
+- **Filter daftar:** `search` (nama/NISN murid, kegiatan, atau penyelenggara) dan `level_id` (referensi aktif kategori `achievement_level`).
 - **Endpoint:** `GET /achievements`, `GET /achievements/create`, `POST /achievements`, `GET /achievements/{achievement}`, `GET /achievements/{achievement}/edit`, `PATCH /achievements/{achievement}`, dan `POST /achievements/import`.
 - **Modal:** `GET /achievements/{achievement}?modal=1` dan `GET /achievements/{achievement}/edit?modal=1` mengembalikan partial modal. `PATCH` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke daftar prestasi.
 - **Controller:** `AchievementController`; impor memakai `AchievementImportController@store`.
 - **Form Request:** `AchievementIndexRequest`, `StoreAchievementRequest`, `UpdateAchievementRequest`, dan `ImportAchievementRequest`.
 - **Input manual:** `student_id`, `type_id`, `level_id`, `activity_name`, `organizer`, `achievement_date`, dan `result`.
 - **Import Excel:** multipart `file` berformat `.xlsx`, maksimal 2 MB dan 1.000 baris data. Header berurutan `nisn,jenis,tingkat,kegiatan,penyelenggara,tanggal,hasil`; `jenis` dan `tingkat` memakai kode referensi aktif, `tanggal` memakai `YYYY-MM-DD` atau tanggal Excel. Setiap baris dipetakan ke murid dan field input manual. Seluruh berkas divalidasi sebelum transaksi, perubahan bersifat atomik, dan berkas mentah tidak disimpan setelah proses.
-- **Authorization:** Waka Kesiswaan dapat membuat, membaca, mengubah, dan mengimpor prestasi. Guru BK hanya dapat membaca prestasi murid dalam scope profesional melalui daftar/profil yang diizinkan. Sesuai ACH-04, Koordinator BK (termasuk rangkap Guru BK) mendapat akses GET daftar/detail dan prestasi pada profil seluruh murid; filter kelas mengikuti scope baca tersebut. Koordinator BK dan Admin IT tidak memperoleh hak mutasi prestasi dari fungsi mereka.
+- **Authorization:** Waka Kesiswaan dapat membuat, membaca, mengubah, dan mengimpor prestasi. Guru BK hanya dapat membaca prestasi murid dalam scope profesional melalui daftar/profil yang diizinkan. Sesuai ACH-04, Koordinator BK (termasuk rangkap Guru BK) mendapat akses GET daftar/detail dan prestasi pada profil seluruh murid; filter tingkat tetap mengikuti scope baca tersebut. Koordinator BK dan Admin IT tidak memperoleh hak mutasi prestasi dari fungsi mereka.
 - **Tidak tersedia:** endpoint verifikasi, status verifikasi, catatan verifikasi, evidence reference, evidence description, atau upload bukti.
 - **Lifecycle:** perubahan prestasi tidak membuat kasus, mengubah status kasus, menambah tindak lanjut, atau menghasilkan rekomendasi otomatis.
 - **Audit dan retensi:** pencatatan, perubahan, dan impor diaudit; tidak tersedia endpoint hapus permanen atau penghapusan otomatis.
