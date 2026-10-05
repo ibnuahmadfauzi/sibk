@@ -206,7 +206,7 @@ Navigasi utama Guru BK terdiri atas Dashboard, Layanan BK, Data Murid, dan Lapor
 
 | **Area**            | **Fungsi**                                                                                                |
 |---------------------|-----------------------------------------------------------------------------------------------------------|
-| Dashboard           | Konteks operasional sesuai peran tanpa daftar audit; Dashboard Waka menampilkan empat metric kasus, daftar perhatian, komposisi status, penanganan terbaru, dan akses baca proses keluar dari proyeksi aman seluruh sekolah. |
+| Dashboard           | Konteks operasional sesuai peran tanpa daftar audit; Dashboard Waka berperspektif murid, menampilkan ringkasan cakupan layanan, tren bulanan, sebaran tingkat, dan murid yang perlu tindak lanjut melalui proyeksi aman seluruh sekolah. |
 | Layanan BK          | Daftar kasus, pembuatan kasus/konsultasi dengan dua narasi utama, penambahan beberapa tindak lanjut per kasus, penyelesaian dengan Hasil / Ringkasan, serta tab catatan progres penanganan pengunduran diri yang terpisah dari keputusan resmi keluar. |
 | Data Murid          | Profil, histori kelas lintas tahun, mirror e-Tatib beserta penanda data baru, kasus, konsultasi, tindak lanjut, dan prestasi yang diizinkan. |
 | Laporan             | Guru BK dan Koordinator memakai daftar catatan kasus/konsultasi dan preview rekap sesuai scope. Waka memakai daftar yang sama dalam mode hanya-baca tanpa preview, cetak, unduhan, atau aksi. |

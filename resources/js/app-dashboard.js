@@ -19,6 +19,10 @@ initEtatibApiPreview();
 initEtatibIdentityMapping();
 initWithdrawalProgress();
 
+document.querySelector('[data-waka-year-filter]')?.addEventListener('change', (event) => {
+    event.currentTarget.form.requestSubmit();
+});
+
 document.querySelectorAll('[data-notification-toast]').forEach((toast) => {
     if (toast.closest('[data-modal-submit-error]')) return;
     new Toast(toast, { delay: toast.classList.contains('sibk-notification-toast--error') ? 8000 : 4500 }).show();

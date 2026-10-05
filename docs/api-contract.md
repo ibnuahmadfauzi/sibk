@@ -372,7 +372,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
   - Guru BK menerima data dalam cakupan profesional yang diizinkan, termasuk kasus yang menjadi tanggung jawabnya dan kasus dalam cakupan tersebut yang berstatus Tindak Lanjut.
   - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan pada tahun terpilih, dan jumlah kasus Tindak Lanjut tanpa catatan internal.
-  - Waka Kesiswaan menerima agregat aman seluruh kasus sekolah dan tautan detail hanya-baca untuk kasus serta konsultasi sesuai proyeksi allowlist.
+  - Waka Kesiswaan menerima DTO `WakaDashboardService::build()` sesuai `DASH-03`: `metrics`, `trend[]` (`label`, `month`, `count`), `grades[]` (`label`, `count`), dan `follow_up_students[]` (`name`, `classroom`, `services[]` berisi `service`, `teacher`, `summary`, `follow_up`). Query memilih identitas, tanggal, status, kelas, dan hasil/ringkasan yang diperlukan tanpa narasi internal; dashboard tidak mengirim URL detail. Audit dashboard menghitung jumlah murid pada tabel tindak lanjut.
   - Admin IT hanya menerima kesiapan akun, tahun ajaran, sinkronisasi, konflik sumber, dan status provider tanpa identitas atau isi layanan BK.
 - **Multi-role:** fungsi Koordinator diprioritaskan sebagai rekap tata kelola; role teknis tidak membuka isi layanan sensitif.
 - **Payload:** `context_panel` berisi `title` dan daftar item `label`, `value`, serta `meta`; dashboard tidak membaca daftar `audit_logs`.
