@@ -2421,8 +2421,8 @@ small, .small {
 
 .table-responsive {
   position: relative;
-  background: var(--sibk-color-field) !important;
-  border: 1px solid var(--sibk-color-border-light) !important;
+  background: var(--sibk-color-page) !important;
+  border: 1px solid var(--sibk-color-border) !important;
   border-radius: var(--sibk-radius-md) !important;
   box-shadow: var(--sibk-shadow-inset) !important;
   padding: 0 !important;
@@ -2442,12 +2442,19 @@ small, .small {
 
 .sibk-panel .table-responsive {
   margin: 1rem 1.25rem 1.5rem 1.25rem !important;
-  border-radius: var(--sibk-radius-lg) !important;
+}
+
+.sibk-account-profile + .table-responsive {
+  th,
+  td {
+    padding: 0.875rem 1rem !important;
+  }
 }
 
 .table,
 .sibk-table {
-  --bs-table-bg: var(--sibk-color-surface-raised) !important;
+  --bs-table-bg: var(--sibk-color-page) !important;
+  --bs-table-hover-bg: var(--sibk-color-surface-raised);
   background-color: transparent !important;
   vertical-align: middle;
   margin-bottom: 0;
@@ -2456,7 +2463,7 @@ small, .small {
 
   thead th,
   th {
-    background-color: var(--sibk-color-surface-raised) !important;
+    background-color: var(--sibk-color-page) !important;
     color: var(--sibk-color-text-dark) !important;
     font-weight: 700;
     font-size: 0.85rem;
@@ -2470,15 +2477,15 @@ small, .small {
 
     &:hover,
     &.sibk-table__row--clickable:hover {
-      background-color: var(--sibk-color-page) !important;
+      background-color: var(--sibk-color-surface-raised) !important;
       box-shadow: none;
 
       > td,
       > th,
       td,
       th {
-        background-color: var(--sibk-color-page) !important;
-        --bs-table-bg: var(--sibk-color-page) !important;
+        background-color: var(--sibk-color-surface-raised) !important;
+        --bs-table-bg: var(--sibk-color-surface-raised) !important;
         color: var(--sibk-color-text-dark);
       }
     }
@@ -2486,7 +2493,7 @@ small, .small {
 
   tbody td,
   td {
-    background-color: var(--sibk-color-surface-raised) !important;
+    background-color: var(--sibk-color-page) !important;
     padding: 0.875rem 1rem;
     color: var(--sibk-color-text);
     font-size: 0.9rem;

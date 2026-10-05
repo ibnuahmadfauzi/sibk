@@ -7,13 +7,37 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <div class="modal-body">
-                <p id="achievement-import-help">Gunakan berkas .xlsx. Maksimal 1.000 baris dan 2 MB. Seluruh baris diperiksa sebelum disimpan.</p>
-                <details class="mb-3" @if($errors->has('file')) open @endif>
-                    <summary title="Lihat syarat file Excel">Format dan kode isian Excel</summary>
-                    <div class="mt-2 small">
-                        <p>Kolom berurutan: <strong>nisn, jenis, tingkat, kegiatan, penyelenggara, tanggal, hasil</strong>. Tanggal diisi YYYY-MM-DD.</p>
-                        <p>Kode jenis: {{ $types->pluck('code')->join(', ') }}.</p>
-                        <p class="mb-0">Kode tingkat: {{ $levels->pluck('code')->join(', ') }}.</p>
+                <p id="achievement-import-help" class="mb-3">Pilih berkas .xlsx. Maksimal 1.000 baris dan 2 MB. Semua baris diperiksa sebelum disimpan.</p>
+                <details class="border rounded p-3 mb-3" @if($errors->has('file')) open @endif>
+                    <summary title="Lihat syarat file Excel" class="fw-semibold">Format dan kode isian Excel</summary>
+                    <div class="mt-3 small">
+                        <p class="mb-2">Baris pertama berisi nama kolom berikut, sesuai urutan:</p>
+                        <p class="d-flex flex-wrap gap-1 mb-3">
+                            @foreach(['nisn', 'jenis', 'tingkat', 'kegiatan', 'penyelenggara', 'tanggal', 'hasil'] as $column)
+                                <code class="border rounded px-2 py-1">{{ $column }}</code>
+                            @endforeach
+                        </p>
+                        <p class="mb-3">Isi tanggal dengan format <code>YYYY-MM-DD</code> (contoh: <code>2026-09-18</code>) atau tanggal Excel.</p>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <h3 class="fs-6 mb-2">Kode jenis</h3>
+                                <dl class="row gy-1 mb-0">
+                                    @foreach($types as $type)
+                                        <dt class="col-6 fw-normal">{{ $type->label }}</dt>
+                                        <dd class="col-6 mb-0"><code class="text-break">{{ $type->code }}</code></dd>
+                                    @endforeach
+                                </dl>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <h3 class="fs-6 mb-2">Kode tingkat</h3>
+                                <dl class="row gy-1 mb-0">
+                                    @foreach($levels as $level)
+                                        <dt class="col-6 fw-normal">{{ $level->label }}</dt>
+                                        <dd class="col-6 mb-0"><code class="text-break">{{ $level->code }}</code></dd>
+                                    @endforeach
+                                </dl>
+                            </div>
+                        </div>
                     </div>
                 </details>
                 @if($errors->has('file'))
