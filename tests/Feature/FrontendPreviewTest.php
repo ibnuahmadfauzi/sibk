@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\EtatibDuplicateDecision;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\Role;
@@ -235,6 +236,26 @@ class FrontendPreviewTest extends TestCase
         $this->get($url)->assertForbidden();
     }
 
+    public function test_admin_can_find_duplicate_decisions_without_fetching_the_source(): void
+    {
+        $this->authenticateAs('admin_it');
+        $decision = EtatibDuplicateDecision::query()->create([
+            'url_hash' => str_repeat('a', 64), 'group_key' => str_repeat('b', 64),
+            'source_nisn' => '0012345678', 'source_name' => 'Murid Duplikat Uji',
+            'copy_count' => 2, 'approved_at' => now(), 'is_active' => true,
+        ]);
+
+        $this->get(route('data-master.index', ['tab' => 'etatib']))
+            ->assertOk()
+            ->assertSee('Keputusan Duplikasi Aktif')
+            ->assertSee('Murid Duplikat Uji')
+            ->assertSee('2 salinan dianggap satu kejadian')
+            ->assertSee(route('data-master.etatib.duplicates.destroy', $decision))
+            ->assertSee('data-app-confirm-submit', false)
+            ->assertDontSee($decision->url_hash)
+            ->assertDontSee($decision->group_key);
+    }
+
     public function test_data_master_shows_preparation_and_import_in_one_dapodik_tab(): void
     {
         $this->authenticateAs('admin_it');
@@ -280,6 +301,7 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertSee('data-etatib-api-form', false)
             ->assertSee('data-etatib-preview-modal', false)
+            ->assertSee('data-duplicate-revoke-url', false)
             ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertSeeInOrder([
                 'Tautan API e-Tatib',

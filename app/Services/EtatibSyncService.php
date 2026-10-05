@@ -30,6 +30,7 @@ class EtatibSyncService
         private readonly IntegrationOperationLock $operationLock,
         private readonly EtatibIdentityNormalizer $identityNormalizer,
         private readonly array $previewDecisions = [],
+        private readonly ?Closure $beforeApply = null,
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
@@ -49,7 +50,7 @@ class EtatibSyncService
     }
 
     /** @param Closure(IntegrationOperationContext): EtatibSnapshot $snapshotLoader */
-    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null, array $decisions = []): ExternalSyncRun
+    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null, array $decisions = [], ?Closure $beforeApply = null): ExternalSyncRun
     {
         $connector = new class($snapshotLoader) implements EtatibConnector
         {
@@ -70,6 +71,7 @@ class EtatibSyncService
             $this->operationLock,
             $this->identityNormalizer,
             $decisions,
+            $beforeApply,
         ))
             ->synchronize($actor);
     }
@@ -126,6 +128,9 @@ class EtatibSyncService
             ]));
 
             $this->mutate($context, function () use ($snapshot, $run, $actor): void {
+                if ($this->beforeApply !== null) {
+                    ($this->beforeApply)();
+                }
                 $this->applyPreviewDecisions($snapshot, $actor);
                 $syncedAt = now();
                 $processed = 0;

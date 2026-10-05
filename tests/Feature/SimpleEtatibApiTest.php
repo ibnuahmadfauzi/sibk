@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\EtatibDuplicateDecision;
 use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
@@ -383,7 +384,7 @@ class SimpleEtatibApiTest extends TestCase
         $this->assertSame(2, ExternalTatibRecord::query()->active()->count());
     }
 
-    public function test_masked_nisn_and_identical_rows_are_rejected_before_sync(): void
+    public function test_masked_nisn_is_rejected(): void
     {
         $masked = $this->payload()[0];
         $masked['siswa_nisn'] = '95****88';
@@ -393,14 +394,133 @@ class SimpleEtatibApiTest extends TestCase
             ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('api_url');
+    }
 
-        Http::fake([self::URL => Http::response([$this->payload()[0], $this->payload()[0]])]);
-        $this->actingAs($this->admin())
+    public function test_identical_rows_require_approval(): void
+    {
+        Http::fake([self::URL => fn () => Http::response([$this->payload()[0], $this->payload()[0]])]);
+        $preview = $this->actingAs($this->admin())
             ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('api_url');
+            ->assertOk()->assertJsonPath('data.received', 2)->assertJsonPath('data.rows', 1)
+            ->assertJsonPath('data.duplicate_groups.0.rows', [1, 2])
+            ->assertJsonPath('data.duplicate_groups.0.approved', false);
 
+        $key = $preview->json('data.duplicate_groups.0.key');
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+            ->assertSessionHasErrors('etatib_sync');
+        $this->assertDatabaseCount('etatib_duplicate_decisions', 0);
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL, 'duplicate_decisions' => [$key],
+        ])->assertSessionHas('warning');
+
+        $this->assertDatabaseCount('external_tatib_records', 1);
+        $this->assertDatabaseHas('etatib_duplicate_decisions', ['group_key' => $key, 'copy_count' => 2, 'is_active' => true]);
+    }
+
+    public function test_changed_duplicate_count_rejects_old_choice_and_existing_approval(): void
+    {
+        $row = $this->payload()[0];
+        Http::fake([self::URL => Http::sequence()->push([$row, $row])->push([$row, $row, $row])]);
+        $preview = $this->actingAs($this->admin())->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL, 'duplicate_decisions' => [$preview->json('data.duplicate_groups.0.key')],
+        ])->assertSessionHasErrors('etatib_sync');
+        $this->assertDatabaseCount('etatib_duplicate_decisions', 0);
         $this->assertDatabaseCount('external_tatib_records', 0);
+    }
+
+    public function test_forged_duplicate_key_and_later_sync_failure_leave_no_approval(): void
+    {
+        $row = $this->payload()[0];
+        Http::fake([self::URL => fn () => Http::response([$row, $row])]);
+        $admin = $this->admin();
+        $student = Student::query()->create(['nisn' => '0093200788', 'name' => 'NAMA LAIN']);
+        $preview = $this->actingAs($admin)->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $key = $preview->json('data.duplicate_groups.0.key');
+
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL, 'duplicate_decisions' => [str_repeat('a', 64)],
+        ])->assertSessionHasErrors('etatib_sync');
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL, 'duplicate_decisions' => [$key],
+            'identity_decisions' => [['nisn' => '0093200788', 'name' => 'TIDAK ADA', 'student_id' => $student->id]],
+        ])->assertSessionHasErrors('etatib_sync');
+
+        $this->assertDatabaseCount('etatib_duplicate_decisions', 0);
+        $this->assertDatabaseCount('external_tatib_records', 0);
+    }
+
+    public function test_automatic_sync_reuses_only_unchanged_approved_group(): void
+    {
+        $row = $this->payload()[0];
+        $payload = [$row, $row];
+        Http::fake([self::URL => function () use (&$payload) {
+            return Http::response($payload);
+        }]);
+        $admin = $this->admin();
+        $preview = $this->actingAs($admin)->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.automatic.store'), [
+            'api_url' => self::URL, 'current_password' => 'password',
+            'duplicate_decisions' => [$preview->json('data.duplicate_groups.0.key')],
+        ])->assertSessionHas('warning');
+
+        $this->post(route('data-master.etatib.automatic.sync'))->assertSessionHas('warning');
+        $this->assertDatabaseCount('external_tatib_records', 1);
+        $payload[] = $row;
+        $this->post(route('data-master.etatib.automatic.sync'))->assertSessionHasErrors('etatib_automatic', null, 'etatib_automatic');
+        $this->assertDatabaseCount('external_tatib_records', 1);
+    }
+
+    public function test_fingerprint_collision_with_different_source_fields_still_blocks_preview(): void
+    {
+        $row = $this->payload()[0];
+        $different = $row;
+        $different['kategori'] = 'berat';
+        Http::fake([self::URL => Http::response([$row, $different])]);
+
+        $this->actingAs($this->admin())->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertUnprocessable()->assertJsonValidationErrors('api_url');
+        $this->assertDatabaseCount('etatib_duplicate_decisions', 0);
+    }
+
+    public function test_duplicate_row_numbers_stay_at_source_positions_when_another_date_changes(): void
+    {
+        $recent = $this->payload()[1];
+        $recent['tanggal_pelanggaran'] = now('Asia/Jakarta')->format('d M Y H:i:s');
+        $duplicate = $this->payload()[0];
+        $first = [$recent, $duplicate, $duplicate];
+        $second = $first;
+        $second[0]['tanggal_pelanggaran'] = now('Asia/Jakarta')->addSecond()->format('d M Y H:i:s');
+        Http::fake([self::URL => Http::sequence()->push($first)->push($second)]);
+
+        $this->actingAs($this->admin())->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()->assertJsonPath('data.duplicate_groups.0.rows', [2, 3]);
+    }
+
+    public function test_approved_duplicate_is_reused_until_admin_revokes_it(): void
+    {
+        $row = $this->payload()[0];
+        Http::fake([self::URL => fn () => Http::response([$row, $row])]);
+        $admin = $this->admin();
+        $preview = $this->actingAs($admin)->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), [
+            'api_url' => self::URL, 'duplicate_decisions' => [$preview->json('data.duplicate_groups.0.key')],
+        ])->assertSessionHas('warning');
+        $decision = EtatibDuplicateDecision::query()->sole();
+
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()->assertJsonPath('data.duplicate_groups.0.approved', true)
+            ->assertJsonPath('data.duplicate_groups.0.decision_id', $decision->id);
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])->assertSessionHas('warning');
+        $this->assertDatabaseCount('external_tatib_records', 1);
+
+        $this->delete(route('data-master.etatib.duplicates.destroy', $decision))->assertSessionHas('success');
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()->assertJsonPath('data.duplicate_groups.0.approved', false);
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])->assertSessionHasErrors('etatib_sync');
+        $this->assertDatabaseCount('external_tatib_records', 1);
     }
 
     public function test_etatib_api_routes_are_limited_to_admin_it(): void
@@ -416,6 +536,13 @@ class SimpleEtatibApiTest extends TestCase
         $this->actingAs($teacher)
             ->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
             ->assertForbidden();
+        $decision = EtatibDuplicateDecision::query()->create([
+            'url_hash' => hash('sha256', self::URL), 'group_key' => str_repeat('a', 64),
+            'source_nisn' => '0093200788', 'source_name' => 'FERRYSCHA PUTRI',
+            'copy_count' => 2, 'is_active' => true, 'approved_at' => now(),
+        ]);
+        $this->delete(route('data-master.etatib.duplicates.destroy', $decision))->assertForbidden();
+        $this->assertTrue($decision->fresh()->is_active);
     }
 
     /** @return list<array<string, int|string>> */

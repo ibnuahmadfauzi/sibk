@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Integrations\IntegrationOperationContext;
 use App\Integrations\IntegrationOperationLock;
+use App\Models\EtatibDuplicateDecision;
 use App\Models\ExternalSyncRun;
 use App\Models\IntegrationSetting;
 use App\Models\User;
@@ -22,10 +23,10 @@ final class EtatibAutomaticSyncService
     ) {}
 
     /** @param array<string, mixed>|null $preview */
-    public function activate(string $url, User $actor, ?array $preview = null, array $decisions = []): ExternalSyncRun
+    public function activate(string $url, User $actor, ?array $preview = null, array $decisions = [], array $duplicateDecisions = []): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
-        $run = $this->apiService->synchronize($url, $actor, $preview, $decisions);
+        $run = $this->apiService->synchronize($url, $actor, $preview, $decisions, $duplicateDecisions);
 
         if (! in_array($run->status, [ExternalSyncRun::STATUS_SUCCEEDED, ExternalSyncRun::STATUS_WARNING], true)) {
             return $run;
@@ -97,6 +98,29 @@ final class EtatibAutomaticSyncService
                 });
             },
         );
+    }
+
+    public function revokeDuplicateDecision(EtatibDuplicateDecision $decision, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+
+        $this->operationLock->run(IntegrationSetting::PROVIDER_ETATIB, function (IntegrationOperationContext $context) use ($decision, $actor): void {
+            DB::transaction(function () use ($decision, $actor, $context): void {
+                $setting = IntegrationSetting::query()->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+                    ->lockForUpdate()->firstOrFail();
+                $this->operationLock->assertCurrent($context, $setting);
+                $decision = EtatibDuplicateDecision::query()->lockForUpdate()->findOrFail($decision->getKey());
+                if (! $decision->is_active) {
+                    return;
+                }
+                $decision->update(['is_active' => false, 'revoked_by' => $actor->getKey(), 'revoked_at' => now()]);
+                $this->auditService->record('etatib.duplicate_revoked', $decision,
+                    'Keputusan penggabungan baris e-Tatib dicabut.', $actor,
+                    before: ['is_active' => true], after: ['is_active' => false, 'group_key' => $decision->group_key]);
+                $setting->refresh();
+                $this->operationLock->assertCurrent($context, $setting);
+            });
+        });
     }
 
     private function storeUrl(

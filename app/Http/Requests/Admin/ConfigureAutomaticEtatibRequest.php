@@ -25,6 +25,8 @@ final class ConfigureAutomaticEtatibRequest extends FormRequest
             'identity_decisions.*.nisn' => ['required', 'string', 'regex:/^\\d{10}$/'],
             'identity_decisions.*.name' => ['required', 'string', 'max:255'],
             'identity_decisions.*.student_id' => ['required', 'integer', 'exists:students,id'],
+            'duplicate_decisions' => ['sometimes', 'array', 'max:10000'],
+            'duplicate_decisions.*' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'],
         ];
     }
 
@@ -49,5 +51,11 @@ final class ConfigureAutomaticEtatibRequest extends FormRequest
     public function identityDecisions(): array
     {
         return array_values($this->validated('identity_decisions', []));
+    }
+
+    /** @return list<string> */
+    public function duplicateDecisions(): array
+    {
+        return array_values($this->validated('duplicate_decisions', []));
     }
 }

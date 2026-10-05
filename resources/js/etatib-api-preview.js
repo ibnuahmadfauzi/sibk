@@ -8,9 +8,67 @@ const element = (tag, className = '', text = '') => {
 
 const choiceLabel = (student) => `NISN ${student.nisn} · Kelas ${student.classroom}${student.academic_year ? ` (${student.academic_year})` : ''}`;
 
-const render = (container, preview, dapodikUrl) => {
+export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = '') => {
     container.replaceChildren();
-    container.append(element('p', 'fw-semibold mb-3', `${preview.rows} pelanggaran diterima dari e-Tatib.`));
+    const groups = preview.duplicate_groups ?? [];
+    container.append(element('p', 'fw-semibold mb-3', groups.length
+        ? `${preview.received} baris diterima; ${preview.rows} pelanggaran akan disinkronkan jika seluruh duplikasi disetujui.`
+        : `${preview.rows} pelanggaran diterima dari e-Tatib.`));
+    if (groups.length) {
+        container.append(element('div', 'alert alert-warning',
+            'Baris identik belum membuktikan satu kejadian. Konfirmasi hanya setelah memeriksa sumber; pilih Batal untuk menunda sinkronisasi. Total poin sumber tidak diubah.'));
+        groups.forEach((group) => {
+            const card = element('article', 'border rounded-3 p-3 mb-3');
+            card.append(
+                element('h3', 'fs-6 fw-semibold', `Baris ${group.rows.join(', ')}: ${group.count} salinan identik`),
+                element('strong', 'd-block', group.name),
+                element('span', 'd-block small', `NISN ${group.nisn} · Kelas ${group.classroom}`),
+                element('p', 'small mt-2 mb-2', 'Sembilan field sumber sama: NISN, nama, kelas, pelanggaran, kategori, poin, pencatat, tanggal, dan total poin.'),
+            );
+            if (group.approved) {
+                card.append(element('p', 'small mb-2', 'Keputusan tersimpan: dianggap satu kejadian untuk isi dan jumlah salinan ini.'));
+                if (revokeUrl && group.decision_id) {
+                    const revoke = element('form');
+                    revoke.method = 'POST';
+                    revoke.action = revokeUrl.replace('__DECISION__', group.decision_id);
+                    const review = element('details');
+                    review.append(element('summary', 'fw-semibold', 'Tinjau pembatalan keputusan'));
+                    revoke.append(element('p', 'small mt-2', 'Pembatalan menahan duplikasi pada sinkronisasi berikutnya sampai disetujui kembali. Riwayat yang sudah tersimpan tetap dipertahankan.'));
+                    const revokeLabel = element('label', 'd-flex gap-2 align-items-start mb-2');
+                    const revokeChoice = element('input', 'form-check-input mt-1');
+                    revokeChoice.type = 'checkbox';
+                    revokeChoice.required = true;
+                    revokeLabel.append(revokeChoice, element('span', '', 'Saya ingin membatalkan keputusan ini.'));
+                    revoke.append(revokeLabel);
+                    [['_token', document.querySelector('meta[name="csrf-token"]')?.content ?? ''], ['_method', 'DELETE']].forEach(([name, value]) => {
+                        const input = element('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = value;
+                        revoke.append(input);
+                    });
+                    const button = element('button', 'btn btn-outline-danger btn-sm', 'Batalkan Keputusan');
+                    button.type = 'submit';
+                    revoke.append(button);
+                    review.append(revoke);
+                    card.append(review);
+                }
+            } else {
+                const label = element('label', 'd-flex gap-2 align-items-start');
+                const choice = element('input', 'form-check-input mt-1');
+                choice.type = 'checkbox';
+                choice.value = group.key;
+                choice.dataset.duplicateChoice = '';
+                label.append(choice, element('span', '', 'Saya sudah memeriksa sumber: anggap sebagai satu kejadian.'));
+                card.append(label);
+            }
+            container.append(card);
+        });
+    }
+    const identities = element('div');
+    identities.dataset.etatibIdentities = '';
+    container.append(identities);
+    container = identities;
     const identityCount = preview.identity_conflicts.length;
     if (preview.undated > 0) {
         container.append(element('div', 'alert alert-warning',
@@ -122,6 +180,34 @@ const render = (container, preview, dapodikUrl) => {
     }
 };
 
+export const updateEtatibReadiness = (body, missing, confirm, automaticConfirm) => {
+    const pending = [...body.querySelectorAll('[data-duplicate-choice]')].some((choice) => !choice.checked);
+    body.querySelector('[data-etatib-identities]').hidden = pending;
+    confirm.disabled = automaticConfirm.disabled = missing > 0 || pending;
+};
+
+export const writeEtatibDecisions = (form, body) => {
+    form.querySelectorAll('[data-preview-decision]').forEach((input) => input.remove());
+    body.querySelectorAll('[data-identity-choice]:checked').forEach((choice, index) => {
+        [['nisn', choice.dataset.nisn], ['name', choice.dataset.name], ['student_id', choice.value]].forEach(([field, value]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = `identity_decisions[${index}][${field}]`;
+            input.value = value;
+            input.dataset.previewDecision = '';
+            form.append(input);
+        });
+    });
+    body.querySelectorAll('[data-duplicate-choice]:checked').forEach((choice) => {
+        const input = element('input');
+        input.type = 'hidden';
+        input.name = 'duplicate_decisions[]';
+        input.value = choice.value;
+        input.dataset.previewDecision = '';
+        form.append(input);
+    });
+};
+
 export const initEtatibApiPreview = async (root = document) => {
     const form = root.querySelector('[data-etatib-api-form]');
     const modalNode = root.querySelector('[data-etatib-preview-modal]');
@@ -137,20 +223,15 @@ export const initEtatibApiPreview = async (root = document) => {
     const previewButton = form.querySelector('[data-etatib-preview-button]');
     const url = form.elements.namedItem('api_url');
     let previewedUrl = '';
+    let missing = 0;
     let controller;
-    const decisions = () => {
-        form.querySelectorAll('[data-preview-decision]').forEach((input) => input.remove());
-        body.querySelectorAll('[data-identity-choice]:checked').forEach((choice, index) => {
-            [['nisn', choice.dataset.nisn], ['name', choice.dataset.name], ['student_id', choice.value]].forEach(([field, value]) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = `identity_decisions[${index}][${field}]`;
-                input.value = value;
-                input.dataset.previewDecision = '';
-                form.append(input);
-            });
-        });
-    };
+
+
+    body.addEventListener('change', (event) => {
+        if (event.target.matches('[data-duplicate-choice]') && previewedUrl) {
+            updateEtatibReadiness(body, missing, confirm, automaticConfirm);
+        }
+    });
 
     form.addEventListener('submit', async (event) => {
         if (form.dataset.confirmed === 'true') {
@@ -193,10 +274,10 @@ export const initEtatibApiPreview = async (root = document) => {
                 body.replaceChildren(element('div', 'alert alert-danger mb-0', message));
                 return;
             }
-            render(body, payload.data, form.dataset.dapodikUrl);
+            renderEtatibPreview(body, payload.data, form.dataset.dapodikUrl, form.dataset.duplicateRevokeUrl);
             previewedUrl = url.value;
-            confirm.disabled = payload.data.missing > 0;
-            automaticConfirm.disabled = payload.data.missing > 0;
+            missing = payload.data.missing;
+            updateEtatibReadiness(body, missing, confirm, automaticConfirm);
         } catch (error) {
             if (error.name !== 'AbortError') {
                 body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Pratinjau tidak dapat dimuat.'));
@@ -213,7 +294,7 @@ export const initEtatibApiPreview = async (root = document) => {
             return;
         }
         form.dataset.confirmed = 'true';
-        decisions();
+        writeEtatibDecisions(form, body);
         form.action = form.dataset.manualSyncUrl;
         automaticPassword.required = false;
         automaticPassword.disabled = true;
@@ -245,7 +326,7 @@ export const initEtatibApiPreview = async (root = document) => {
         }
 
         form.dataset.confirmed = 'true';
-        decisions();
+        writeEtatibDecisions(form, body);
         form.action = form.dataset.automaticSyncUrl;
         confirm.disabled = true;
         automaticConfirm.disabled = true;
