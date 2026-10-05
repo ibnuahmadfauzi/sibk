@@ -188,7 +188,7 @@ final class WithdrawalProgressTest extends TestCase
         $this->assertDatabaseCount('withdrawal_progress_follow_ups', 1);
     }
 
-    public function test_index_uses_case_style_follow_up_and_responsive_local_detail(): void
+    public function test_index_uses_five_columns_and_inline_note_with_existing_actions(): void
     {
         [$teacher, $student] = $this->assignedStudent();
         $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
@@ -196,22 +196,24 @@ final class WithdrawalProgressTest extends TestCase
         $url = route('cases.index', ['tab' => 'pengunduran-diri']);
 
         $this->get($url)->assertOk()
-            ->assertSeeInOrder(['No', 'Nama Guru', 'Tanggal', 'Nama Siswa', 'Kelas', 'Progres Penanganan', 'Catatan'])
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama/Kelas', 'Guru', 'Progres', 'Aksi'])
             ->assertSee('href="'.route('withdrawals.create').'"', false)
             ->assertSee('data-withdrawal-popover-trigger', false)
             ->assertSee('data-withdrawal-follow-up-open', false)
             ->assertSee('data-store-url="'.route('withdrawals.follow-ups.store', $withdrawal).'"', false)
-            ->assertSee('data-withdrawal-detail', false)
-            ->assertSee('modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable', false)
-            ->assertSee('data-detail-history', false)
+            ->assertSee('data-withdrawal-note-toggle', false)
+            ->assertSee('aria-controls="withdrawal-note-'.$withdrawal->id.'"', false)
+            ->assertSee('id="withdrawal-note-'.$withdrawal->id.'"', false)
+            ->assertSee('<td colspan="5"><div class="sibk-report-detail-panel">', false)
+            ->assertDontSee('data-withdrawal-detail', false)
+            ->assertDontSee('id="withdrawal-detail-modal"', false)
             ->assertSee('Riwayat Progres Penanganan')
             ->assertSee('Tambah Progres Penanganan')
             ->assertDontSee('Riwayat Tindak Lanjut')
             ->assertDontSee('name="notes"', false)
             ->assertSee('<span data-withdrawal-follow-up-label>'.WithdrawalProgress::labels()[WithdrawalProgress::PROGRESS_IN_PROGRESS].'</span>', false)
             ->assertSee('Pertemuan dengan keluarga.')
-            ->assertSee('data-note="Pertemuan dengan keluarga."', false)
-            ->assertSee($student->nisn)
+            ->assertSee('<strong class="d-block mb-1">Catatan</strong>', false)
             ->assertSee('href="'.route('withdrawals.edit', $withdrawal).'"', false)
             ->assertSee('data-confirm-title="Hapus penanganan pengunduran diri?"', false)
             ->assertDontSee('withdrawal-progress-badge', false)

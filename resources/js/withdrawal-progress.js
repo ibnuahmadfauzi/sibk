@@ -92,74 +92,6 @@ export const renderLookupResults = (state, students, environment = {}) => {
     return true;
 };
 
-export const readDetailTrigger = (trigger) => ({
-    studentName: trigger.dataset.studentName,
-    studentNisn: trigger.dataset.studentNisn,
-    classroom: trigger.dataset.classroom,
-    recordedOn: trigger.dataset.recordedOn,
-    recordedDay: trigger.dataset.recordedDay,
-    teacherName: trigger.dataset.teacherName,
-    progress: trigger.dataset.progress,
-    progressLabel: trigger.dataset.progressLabel,
-    note: trigger.dataset.note,
-    followUps: safeJson(trigger.dataset.followUps),
-});
-
-const appendDetailHistory = (container, items, create) => {
-    container.replaceChildren();
-    if (!items.length) {
-        const empty = create('li');
-        empty.className = 'small text-muted';
-        empty.textContent = 'Belum ada riwayat tindak lanjut.';
-        container.append(empty);
-        return;
-    }
-
-    items.forEach((item) => {
-        const entry = create('li');
-        entry.className = 'sibk-case-detail__history-entry';
-        const date = create('div');
-        date.className = 'small text-center fw-semibold';
-        date.textContent = item.followUpDateFormatted ?? item.follow_up_date_formatted ?? '—';
-        const card = create('div');
-        card.className = 'sibk-case-detail__history-card border rounded p-3';
-        const title = create('h4');
-        title.className = 'small fw-bold mb-0';
-        title.textContent = item.progressLabel ?? item.progress_label ?? '—';
-        card.append(title);
-        const notesValue = item.notes;
-        if (notesValue) {
-            const notes = create('p');
-            notes.className = 'small text-muted text-break mt-1 mb-0 sibk-case-detail__text';
-            notes.textContent = notesValue;
-            card.append(notes);
-        }
-        entry.append(date, card);
-        container.append(entry);
-    });
-};
-
-export const fillDetailModal = (modal, data, environment = {}) => {
-    const text = (selector, value) => {
-        const node = modal.querySelector(selector);
-        if (node) node.textContent = value || '—';
-    };
-    text('[data-detail="studentName"]', data.studentName);
-    text('[data-detail="studentNisn"]', data.studentNisn);
-    text('[data-detail="classroom"]', data.classroom);
-    text('[data-detail="recordedOn"]', data.recordedDay ? `${data.recordedOn} (${data.recordedDay})` : data.recordedOn);
-    text('[data-detail="teacherName"]', data.teacherName);
-    const progressBadge = modal.querySelector('[data-detail="progressLabel"]');
-    if (progressBadge) {
-        progressBadge.textContent = data.progressLabel || '—';
-        progressBadge.className = `sibk-badge sibk-badge--${toneForProgress(data.progress)}`;
-    }
-    text('[data-detail="note"]', data.note);
-    const history = modal.querySelector('[data-detail-history]');
-    if (history) appendDetailHistory(history, data.followUps ?? [], environment.createElement ?? ((tag) => document.createElement(tag)));
-    return modal;
-};
-
 const createLookupState = (page) => ({
     form: page.querySelector('[data-withdrawal-create-form]'),
     lookup: page.querySelector('#withdrawal-student-lookup'),
@@ -251,8 +183,6 @@ export const renderPopoverHistory = (container, items, create = (tag) => documen
     });
 };
 
-const toneForProgress = (progress) => ({ at_tu: 'success', at_bk: 'warning' }[progress] ?? 'danger');
-
 const validationMessage = (payload) => {
     const errors = payload?.errors ?? {};
     return Object.values(errors).flat()[0] ?? payload?.message ?? 'Progres penanganan belum dapat disimpan.';
@@ -269,11 +199,9 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
         if (page) wireCreatePage(page, root, environment);
     });
 
-    const detailModal = root.querySelector?.('[data-withdrawal-detail-modal]');
     const followUpModal = root.querySelector?.('[data-withdrawal-follow-up-modal]');
     const Modal = environment.Modal
-        ?? ((detailModal || followUpModal) ? (await import('bootstrap/js/dist/modal.js')).default : null);
-    const detailModalInstance = detailModal ? Modal.getOrCreateInstance(detailModal) : null;
+        ?? (followUpModal ? (await import('bootstrap/js/dist/modal.js')).default : null);
     const followUpModalInstance = followUpModal ? Modal.getOrCreateInstance(followUpModal) : null;
     const followUpForm = followUpModal?.querySelector('[data-withdrawal-follow-up-form]');
     let followUpTarget = null;
@@ -288,11 +216,16 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
     };
 
     root.addEventListener('click', (event) => {
-        const detailTrigger = event.target.closest?.('[data-withdrawal-detail]');
-        if (detailTrigger && detailModal) {
-            event.preventDefault();
-            fillDetailModal(detailModal, readDetailTrigger(detailTrigger), environment);
-            detailModalInstance.show();
+        const noteTrigger = event.target.closest?.('[data-withdrawal-note-toggle]');
+        if (noteTrigger) {
+            const detail = root.getElementById?.(noteTrigger.getAttribute('aria-controls'))
+                ?? root.querySelector?.(`#${noteTrigger.getAttribute('aria-controls')}`);
+            if (!detail) return;
+            const expanded = noteTrigger.getAttribute('aria-expanded') === 'true';
+            detail.classList.toggle('d-none', expanded);
+            noteTrigger.setAttribute('aria-expanded', String(!expanded));
+            noteTrigger.title = expanded ? 'Tampilkan catatan' : 'Tutup catatan';
+            noteTrigger.setAttribute('aria-label', `${noteTrigger.title} pengunduran diri ${noteTrigger.dataset.studentName}`);
             return;
         }
 
@@ -372,12 +305,6 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             const count = wrapper?.querySelector('[data-withdrawal-follow-up-label]');
             if (count) count.textContent = data.follow_ups[0]?.progress_label ?? data.current_progress_label;
             followUpTarget.trigger.dataset.currentProgress = data.current_progress;
-            const detailTrigger = followUpTarget.trigger.closest('tr')?.querySelector('[data-withdrawal-detail]');
-            if (detailTrigger) {
-                detailTrigger.dataset.progress = data.current_progress;
-                detailTrigger.dataset.progressLabel = data.current_progress_label;
-                detailTrigger.dataset.followUps = JSON.stringify(data.follow_ups);
-            }
             followUpModalInstance.hide();
         } catch (caught) {
             error.textContent = caught.message;
