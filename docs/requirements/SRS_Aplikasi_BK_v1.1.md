@@ -51,7 +51,7 @@ Kebutuhan P0 wajib tersedia pada MVP. P0 bertahap tetap termasuk MVP, tetapi dik
 | Laporan/cetak       | Sesuai scope sendiri.                                 | Gabungan seluruh Guru BK aktif.                       | Ringkasan penanganan seluruh kasus dari field aman. | Tidak otomatis.                |
 | Akun/infrastruktur  | Lihat akun sendiri.                                   | Pantau operasional.                                   | Tidak mengelola.                                    | Kelola akun dan infrastruktur. |
 | Konfigurasi koneksi | Tidak.                                                | Tidak.                                                | Tidak.                                              | Gunakan tab Dapodik untuk impor URL API Siswa dan tab e-Tatib untuk sinkronisasi, tanpa membuka isi layanan BK. |
-| Prestasi            | Baca murid dalam scope profesional.                    | Tidak mengelola; akses baca tidak otomatis di luar scope yang sah. | Buat, baca, ubah, dan impor Excel.                  | Tidak mengelola isi prestasi. |
+| Prestasi            | Baca murid dalam scope profesional.                    | Membaca prestasi seluruh murid; tidak mengelola prestasi. | Buat, baca, ubah, dan impor Excel.                  | Tidak mengelola isi prestasi. |
 
 - Koordinator BK menjadi penanggung jawab operasional Aplikasi BK.
 
@@ -173,7 +173,7 @@ Audit lama tetap dipertahankan.
 | ACH-01  | Waka Kesiswaan harus dapat mengelola data prestasi murid setelah fungsi inti stabil. | P0 bertahap | Waka dapat membuat, membaca, dan mengubah prestasi; prestasi terhubung ke profil murid. |
 | ACH-02  | Waka Kesiswaan harus dapat mencatat prestasi secara manual atau melalui impor Excel. | P0 bertahap | Impor divalidasi penuh sebelum transaksi, diproses atomik, dan berkas mentah tidak disimpan. |
 | ACH-03  | Prestasi harus menyimpan informasi minimum murid, jenis, tingkat, kegiatan, penyelenggara, tanggal, dan hasil. | P0 bertahap | Tidak ada field bukti/lampiran, status verifikasi, atau catatan verifikasi pada kontrak aktif. |
-| ACH-04  | Guru BK harus dapat membaca prestasi murid dalam scope profesional sebagai konteks layanan. | P0 bertahap | Guru BK tidak dapat membuat, mengubah, mengimpor, atau memverifikasi prestasi. |
+| ACH-04  | Guru BK membaca prestasi murid dalam scope profesional; Koordinator BK membaca prestasi seluruh murid, termasuk saat rangkap Guru BK. | P0 bertahap | Guru BK dan Koordinator tidak dapat membuat, mengubah, mengimpor, atau memverifikasi prestasi tanpa role Waka. Akses baca Koordinator mencakup profil murid, jumlah prestasi, detail, dan pilihan seluruh kelas. Hak membuat catatan layanan tetap mengikuti kewenangan profesional Guru BK. |
 | ACH-05  | Prestasi tidak boleh mengubah lifecycle layanan BK secara otomatis. | P0 bertahap | Menambah/mengubah prestasi tidak membuat kasus, tindak lanjut, status, atau rekomendasi otomatis. |
 
 ## Dashboard, laporan, dan audit

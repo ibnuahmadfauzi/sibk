@@ -76,8 +76,50 @@ class AchievementManagementTest extends TestCase
         $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
 
         foreach ([$coordinator, $admin] as $user) {
-            $this->actingAs($user)->get(route('achievements.index'))->assertForbidden();
+            $this->actingAs($user)->get(route('achievements.index'))->assertStatus($user->is($coordinator) ? 200 : 403);
             $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+        }
+    }
+
+    public function test_coordinator_and_dual_role_read_all_achievements_without_write_access(): void
+    {
+        [, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->post(route('achievements.import'), ['file' => $this->excel([
+            ['nisn', 'jenis', 'tingkat', 'kegiatan', 'penyelenggara', 'tanggal', 'hasil'],
+            [$student->nisn, 'akademik', 'nasional', 'Prestasi Impor', 'Sekolah', '2026-08-10', 'Juara I'],
+        ])])->assertSessionHasNoErrors();
+        $achievement = Achievement::query()->firstOrFail();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        foreach ([false, true] as $dualRole) {
+            if ($dualRole) {
+                $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+                $coordinator->unsetRelation('roles');
+            }
+            $this->actingAs($coordinator)->get(route('students.index'))
+                ->assertOk()->assertSee($student->name)->assertViewHas('classrooms', fn ($classes): bool => $classes->count() === 1);
+            $this->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+                ->assertOk()->assertSee('Prestasi Impor')
+                ->assertViewHas('stats', fn (array $stats): bool => $stats['achievements'] === 1)
+                ->assertViewHas('canUseProfessionalActions', false);
+            $this->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Impor')
+                ->assertViewHas('classrooms', fn ($classes): bool => $classes->count() === 1);
+            $this->get(route('achievements.show', $achievement))->assertOk();
+            $this->get(route('achievements.edit', $achievement))->assertForbidden();
+            $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+            $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
+            $this->assertFalse(Student::query()->professionallyAccessibleTo($coordinator)->whereKey($student->id)->exists());
+            if ($dualRole) {
+                $this->post(route('consultations.store'), [
+                    'student_id' => $student->id,
+                    'service_field_id' => ReferenceValue::query()->forCategory('service_field')->firstOrFail()->id,
+                    'session_date' => '2026-09-01',
+                    'problem' => 'Permasalahan',
+                    'handling' => 'Penanganan',
+                    'result' => 'Hasil',
+                ])->assertSessionHasErrors('student_id');
+                $this->assertDatabaseCount('consultations', 0);
+            }
         }
     }
 
@@ -113,6 +155,12 @@ class AchievementManagementTest extends TestCase
 
         $this->post(route('achievements.import'), ['file' => $this->excel($rows, true)])->assertRedirect(route('achievements.index'));
         $this->assertDatabaseCount('achievements', 2);
+        $this->actingAs($teacher)
+            ->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+            ->assertOk()
+            ->assertSee('Lomba Sains')
+            ->assertSee('Juara I')
+            ->assertViewHas('achievements', fn ($achievements): bool => $achievements->count() === 2);
     }
 
     public function test_waka_cannot_record_future_or_inactive_student_achievement(): void

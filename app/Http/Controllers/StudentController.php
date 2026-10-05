@@ -52,7 +52,7 @@ class StudentController extends Controller
                 ->active()
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))));
 
-        if ($user->hasRole('guru_bk')) {
+        if ($user->hasRole('guru_bk') && ! $user->hasRole('koordinator_bk')) {
             $assignedClassroomIds = TeacherAssignment::query()
                 ->where('user_id', $user->getKey())
                 ->inActiveYear()

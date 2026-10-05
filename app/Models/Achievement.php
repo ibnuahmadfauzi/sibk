@@ -65,7 +65,7 @@ class Achievement extends Model
         $query->withinStudentServicePeriod()->whereNotIn('verification_status_id', ReferenceValue::query()
             ->forCategory('achievement_verification_status')->where('code', 'ditolak')->select('id'));
 
-        if ($user->hasRole('waka_kesiswaan')) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return $query;
         }
 

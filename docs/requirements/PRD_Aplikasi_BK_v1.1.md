@@ -128,7 +128,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Akses Waka                     | Portal khusus berisi Dashboard, Prestasi, dan Laporan; seluruh detail kasus dan konsultasi memakai proyeksi hanya-baca yang diaudit. | Inti        |
 | Audit                          | Jejak perubahan append-only tanpa halaman pembaca umum; satu simpan resmi mencatat hanya field yang berubah. | Inti        |
 | Retensi                        | Data operasional tidak dihapus sebelum tersimpan minimum tiga tahun; draf Persiapan yang belum aktif dapat dibatalkan sesuai pemeriksaan relasi. Penghapusan otomatis belum diaktifkan. | Inti        |
-| Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel; Guru BK membaca sesuai scope sebagai konteks layanan. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
+| Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel; Guru BK membaca sesuai scope sebagai konteks layanan; Koordinator membaca prestasi seluruh murid, termasuk saat rangkap Guru BK. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
 
 Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanjut, laporan, dan pengendalian akses inti stabil.
 

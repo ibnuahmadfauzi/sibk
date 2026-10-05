@@ -128,7 +128,7 @@ class AchievementController extends Controller
     private function options(User $user): array
     {
         return [
-            'classrooms' => Classroom::query()->active()->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->when($user->hasRole('guru_bk'), fn (Builder $accessible): Builder => $accessible->professionallyAccessibleTo($user)))->orderBy('name')->get(),
+            'classrooms' => Classroom::query()->active()->whereHas('studentClassMemberships.student', fn (Builder $students): Builder => $students->when($user->hasRole('guru_bk') && ! $user->hasAnyRole(['koordinator_bk', 'waka_kesiswaan']), fn (Builder $accessible): Builder => $accessible->professionallyAccessibleTo($user)))->orderBy('name')->get(),
             'types' => ReferenceValue::query()->active()->forCategory('achievement_type')->orderBy('sort_order')->get(),
             'levels' => ReferenceValue::query()->active()->forCategory('achievement_level')->orderBy('sort_order')->get(),
         ];
