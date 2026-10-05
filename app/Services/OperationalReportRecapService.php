@@ -459,22 +459,24 @@ final class OperationalReportRecapService implements OperationalReportRecap
 
         return [
             'title' => 'Laporan Layanan BK',
-            'columns' => $canViewDocument
-                ? [
+            'columns' => match (true) {
+                $filters['service_type'] === 'withdrawal' => [
+                    'No',
+                    'Hari / Tanggal',
+                    'Nama / Kelas',
+                    'Guru',
+                    'Keterangan',
+                    ...($canViewDocument ? ['Aksi'] : []),
+                ],
+                $canViewDocument => [
                     'No',
                     'Hari/Tanggal',
                     'Nama & Kelas',
                     'Layanan/Jenis Masalah',
                     'Hasil',
                     'Aksi',
-                ]
-                : ($filters['service_type'] === 'withdrawal' ? [
-                    'No',
-                    'Hari / Tanggal',
-                    'Nama / Kelas',
-                    'Guru',
-                    'Keterangan',
-                ] : [
+                ],
+                default => [
                     'No',
                     'Hari / Tanggal',
                     'Nama / Kelas',
@@ -482,7 +484,8 @@ final class OperationalReportRecapService implements OperationalReportRecap
                     'Ringkasan',
                     'Guru BK',
                     'Keterangan',
-                ]),
+                ],
+            },
             'rows' => $rows,
             'summary' => $summary,
             'summary_sentence' => $this->summarySentence($summary),

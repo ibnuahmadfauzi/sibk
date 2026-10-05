@@ -268,6 +268,81 @@ class OperationalReportRecapTest extends TestCase
             ->assertDontSee('Pindah luar kota.');
     }
 
+    public function test_bk_withdrawal_report_shows_teacher_latest_progress_and_note_detail(): void
+    {
+        [$year, $classroom, $student, $owner] = $this->caseFixture();
+        $withdrawal = WithdrawalProgress::query()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $owner->id,
+            'classroom_id' => $classroom->id,
+            'recorded_on' => '2026-09-03',
+            'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
+            'reason' => 'Pindah sekolah.',
+            'note' => 'Catatan awal pengunduran.',
+        ]);
+        $withdrawal->followUps()->create([
+            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
+            'follow_up_date' => '2026-09-05',
+            'notes' => 'Catatan progres pertama.',
+            'created_by' => $owner->id,
+        ]);
+        $withdrawal->followUps()->create([
+            'progress' => WithdrawalProgress::PROGRESS_AT_TU,
+            'follow_up_date' => '2026-09-05',
+            'notes' => 'Catatan progres terbaru.',
+            'created_by' => $owner->id,
+        ]);
+        $withdrawal->followUps()->create([
+            'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
+            'follow_up_date' => '2026-09-04',
+            'notes' => 'Catatan lama yang dicatat belakangan.',
+            'created_by' => $owner->id,
+        ]);
+
+        foreach ([$owner, $this->userWithRole('koordinator_bk')] as $actor) {
+            $response = $this->actingAs($actor)->get(route('reports.index', [
+                'academic_year_id' => $year->id,
+                'service_type' => 'withdrawal',
+            ]));
+
+            $response->assertOk()
+                ->assertViewHas('report', fn (array $report): bool => $report['columns'] === [
+                    'No', 'Hari / Tanggal', 'Nama / Kelas', 'Guru', 'Keterangan', 'Aksi',
+                ] && $report['rows']->first()['follow_up_label'] === 'Berkas pengunduran sudah masuk TU')
+                ->assertSee($owner->name)
+                ->assertSee('Catatan awal pengunduran.')
+                ->assertSee('colspan="6"', false)
+                ->assertDontSee('Latar Belakang Masalah')
+                ->assertDontSee('Penanganan</strong>', false)
+                ->assertDontSee('Catatan progres terbaru.');
+            $this->assertMatchesRegularExpression(
+                '/id="report-detail-withdrawal-'.$withdrawal->id.'"\s*>\s*<td colspan="6">/',
+                $response->getContent(),
+            );
+        }
+    }
+
+    public function test_withdrawal_report_uses_record_progress_when_there_is_no_follow_up(): void
+    {
+        [$year, $classroom, $student, $owner] = $this->caseFixture();
+        WithdrawalProgress::query()->create([
+            'student_id' => $student->id,
+            'teacher_id' => $owner->id,
+            'classroom_id' => $classroom->id,
+            'recorded_on' => '2026-09-03',
+            'progress' => WithdrawalProgress::PROGRESS_AT_BK,
+            'reason' => 'Pindah sekolah.',
+            'note' => '',
+        ]);
+
+        $this->actingAs($owner)->get(route('reports.index', [
+            'academic_year_id' => $year->id,
+            'service_type' => 'withdrawal',
+        ]))->assertOk()
+            ->assertSee('Berkas pengunduran masih di BK')
+            ->assertSee('Belum ada catatan.');
+    }
+
     /** @return array{AcademicYear, Classroom, Student, User, BkCase} */
     private function caseFixture(): array
     {

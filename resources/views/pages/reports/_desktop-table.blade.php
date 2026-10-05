@@ -53,13 +53,18 @@
                         <strong>{{ $row['name'] }}</strong>
                         <div class="small text-muted">{{ $row['classroom'] }}</div>
                     </td>
-                    <td>
-                        <span class="d-block small text-muted">{{ $row['service'] }}</span>
-                        <strong class="sibk-report-service-field d-block">
-                            {{ $row['service_field'] }}
-                        </strong>
-                    </td>
-                    <td>{{ $row['detail_note'] }}</td>
+                    @if($report['filters']['service_type'] === 'withdrawal')
+                        <td>{{ $row['counselor'] }}</td>
+                        <td>{{ $row['follow_up_label'] }}</td>
+                    @else
+                        <td>
+                            <span class="d-block small text-muted">{{ $row['service'] }}</span>
+                            <strong class="sibk-report-service-field d-block">
+                                {{ $row['service_field'] }}
+                            </strong>
+                        </td>
+                        <td>{{ $row['detail_note'] }}</td>
+                    @endif
                     <td>
                         <div class="d-flex gap-2">
                             <button
@@ -89,18 +94,23 @@
                 >
                     <td colspan="{{ count($report['columns']) }}">
                         <div class="sibk-report-detail-panel">
-                            <div class="row g-3">
-                                <div class="col-12 col-lg-6">
-                                    <strong class="d-block mb-1">
-                                        Latar Belakang Masalah
-                                    </strong>
-                                    <p class="mb-0">{{ $problem }}</p>
+                            @if($row['type'] === 'withdrawal')
+                                <strong class="d-block mb-1">Catatan</strong>
+                                <p class="mb-0">{{ $row['problem'] ?: 'Belum ada catatan.' }}</p>
+                            @else
+                                <div class="row g-3">
+                                    <div class="col-12 col-lg-6">
+                                        <strong class="d-block mb-1">
+                                            Latar Belakang Masalah
+                                        </strong>
+                                        <p class="mb-0">{{ $problem }}</p>
+                                    </div>
+                                    <div class="col-12 col-lg-6">
+                                        <strong class="d-block mb-1">Penanganan</strong>
+                                        <p class="mb-0">{{ $handling }}</p>
+                                    </div>
                                 </div>
-                                <div class="col-12 col-lg-6">
-                                    <strong class="d-block mb-1">Penanganan</strong>
-                                    <p class="mb-0">{{ $handling }}</p>
-                                </div>
-                            </div>
+                            @endif
                         </div>
                     </td>
                 </tr>
