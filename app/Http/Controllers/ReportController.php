@@ -51,6 +51,7 @@ class ReportController extends Controller
         return view('pages.reports.preview', [
             'report' => $service->allForDocument($user, $request->filters()),
             'signatories' => $signatories->forRecap(),
+            'embedded' => $request->boolean('embedded'),
         ]);
     }
 

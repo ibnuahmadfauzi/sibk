@@ -67,6 +67,37 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($admin)->get(route('reports.index'))->assertForbidden();
     }
 
+    public function test_recap_modal_preserves_filters_and_embedded_document_access(): void
+    {
+        [$year, $classroom, , $owner] = $this->caseFixture();
+        $filters = [
+            'academic_year_id' => $year->id,
+            'classroom_id' => $classroom->id,
+            'service_type' => 'case',
+        ];
+
+        $index = $this->actingAs($owner)->get(route('reports.index', $filters));
+        $index->assertOk()
+            ->assertSee('data-bs-target="#report-preview-modal"', false)
+            ->assertSee('data-preview-url="'.e(route('reports.preview', [...$filters, 'embedded' => 1])).'"', false)
+            ->assertSee('href="'.e(route('reports.export', [...$filters, 'format' => 'xlsx'])).'"', false);
+
+        $this->actingAs($owner)->get(route('reports.preview', [...$filters, 'embedded' => 1]))
+            ->assertOk()
+            ->assertSee('sibk-report-embedded')
+            ->assertSee('sibk-document-sheet')
+            ->assertDontSee('sibk-sidebar')
+            ->assertDontSee('data-print-report');
+
+        $this->actingAs($owner)->get(route('reports.preview', $filters))
+            ->assertOk()->assertSee('Kembali ke Laporan');
+
+        $this->actingAs($this->userWithRole('waka_kesiswaan'))
+            ->get(route('reports.preview', [...$filters, 'embedded' => 1]))->assertForbidden();
+        $this->actingAs($this->userWithRole('admin_it'))
+            ->get(route('reports.preview', [...$filters, 'embedded' => 1]))->assertForbidden();
+    }
+
     public function test_bk_report_detail_spans_all_columns_without_archive_action(): void
     {
         [$year, , , $owner, $case] = $this->caseFixture();

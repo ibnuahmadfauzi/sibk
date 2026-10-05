@@ -3357,6 +3357,80 @@ small, .small {
   }
 }
 
+.sibk-report-preview-modal {
+  .modal-dialog {
+    width: min(calc(100vw - 2rem), calc(210mm + 2rem));
+    max-width: none;
+    height: 94vh;
+    height: 94dvh;
+    margin: 3vh auto;
+    margin: 3dvh auto;
+  }
+
+  .modal-content { height: 100%; }
+
+  .modal-header {
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #e9edf2;
+  }
+
+  iframe {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    border: 0;
+  }
+
+  @media (max-width: 575.98px) {
+    .modal-dialog {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      margin: 0;
+    }
+
+    .modal-content { border-radius: 0; }
+    .modal-header .btn { padding: 0.5rem 0.75rem; }
+  }
+}
+
+@media screen {
+  .sibk-report-embedded {
+    background: #e9edf2;
+    min-width: 0;
+    padding: 1rem;
+
+    .sibk-dashboard {
+      width: max-content;
+      max-width: none;
+      padding: 0;
+      zoom: var(--report-preview-scale, 1);
+    }
+
+    .sibk-document-sheet--portrait {
+      width: 210mm;
+      max-width: none;
+      min-height: 297mm;
+      box-shadow: 0 2px 12px rgba(13, 36, 71, 0.12);
+    }
+
+    .sibk-document-table :is(th, td) {
+      background: #fff !important;
+      color: #111 !important;
+    }
+  }
+}
+
 .sibk-report-preview-actions {
   align-items: center;
   display: flex;

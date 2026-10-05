@@ -11,6 +11,7 @@ import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
 import { initWithdrawalProgress } from './withdrawal-progress';
+import { initReportPreview } from './report-preview';
 
 initFormDrafts();
 initServiceRecords();
@@ -18,6 +19,7 @@ initApiSiswaPreview();
 initEtatibApiPreview();
 initEtatibIdentityMapping();
 initWithdrawalProgress();
+initReportPreview(Modal);
 
 document.querySelector('[data-waka-year-filter]')?.addEventListener('change', (event) => {
     event.currentTarget.form.requestSubmit();

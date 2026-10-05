@@ -176,6 +176,7 @@ export const initServiceRecords = async (root = document) => {
                 const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: requestController.signal });
                 if (!response.ok) throw new Error('Gagal memuat data.');
                 renderModalContent(modalElement, await response.text());
+                modalElement.dispatchEvent(new CustomEvent('sibk:modal-loaded', { bubbles: true }));
             } catch (error) {
                 if (error.name !== 'AbortError') modalElement.querySelector('.modal-content').textContent = error.message;
             }

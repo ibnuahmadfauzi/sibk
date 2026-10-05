@@ -73,6 +73,41 @@ final class WithdrawalProgressTest extends TestCase
         $this->assertDatabaseCount('withdrawal_progresses', 1);
     }
 
+    public function test_create_modal_uses_student_selection_and_returns_json_after_saving(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $this->actingAs($teacher)->get(route('cases.index', ['tab' => 'pengunduran-diri']))
+            ->assertOk()
+            ->assertSee('data-modal-url="'.route('withdrawals.create', ['modal' => 1]).'"', false);
+
+        $this->get(route('withdrawals.create', ['modal' => 1]))
+            ->assertOk()
+            ->assertSee('data-withdrawal-create-page', false)
+            ->assertSee('data-withdrawal-create-form', false)
+            ->assertSee('name="student_id"', false)
+            ->assertSee('name="recorded_on"', false)
+            ->assertSee('name="note"', false)
+            ->assertDontSee('id="withdrawal-student-name"', false)
+            ->assertDontSee('id="withdrawal-student-classroom"', false);
+
+        $this->postJson(route('withdrawals.store'), $this->payload($student))
+            ->assertOk()
+            ->assertJsonPath('redirect', route('cases.index', ['tab' => 'pengunduran-diri']));
+
+        $this->assertDatabaseHas('withdrawal_progresses', ['student_id' => $student->id]);
+    }
+
+    public function test_create_modal_validation_returns_errors_without_saving(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $this->actingAs($teacher)->postJson(route('withdrawals.store'), [
+            ...$this->payload($student),
+            'note' => '',
+        ])->assertUnprocessable()->assertJsonValidationErrors('note');
+
+        $this->assertDatabaseCount('withdrawal_progresses', 0);
+    }
+
     public function test_follow_ups_are_append_only_and_latest_date_controls_current_progress(): void
     {
         [$teacher, $student] = $this->assignedStudent();
@@ -130,6 +165,7 @@ final class WithdrawalProgressTest extends TestCase
         $admin = $this->userWithRole('admin_it');
 
         $this->actingAs($otherTeacher)->get(route('withdrawals.create'))->assertOk();
+        $this->get(route('withdrawals.create', ['modal' => 1]))->assertOk();
         $this->post(route('withdrawals.store'), $this->payload($student))->assertSessionHasErrors('student_id');
         $this->actingAs($teacher)->post(route('withdrawals.store'), $this->payload($student));
         $withdrawal = WithdrawalProgress::query()->firstOrFail();
@@ -142,6 +178,7 @@ final class WithdrawalProgressTest extends TestCase
         }
         foreach ([$coordinator, $waka, $admin] as $user) {
             $this->actingAs($user)->get(route('withdrawals.create'))->assertForbidden();
+            $this->get(route('withdrawals.create', ['modal' => 1]))->assertForbidden();
             $this->post(route('withdrawals.store'), $this->payload($student))->assertForbidden();
         }
 

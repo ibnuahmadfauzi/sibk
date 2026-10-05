@@ -35,6 +35,11 @@ export const applyStudentSelection = (state, student) => {
     }
     if (state.studentName) state.studentName.value = student.name;
     if (state.studentClassroom) state.studentClassroom.value = student.classroom;
+    if (state.selected) {
+        state.selected.querySelector('[data-withdrawal-selected-name]').textContent = `${student.name} (${student.nisn})`;
+        state.selected.querySelector('[data-withdrawal-selected-classroom]').textContent = student.classroom;
+        state.selected.classList.remove('d-none');
+    }
     hideResults(state);
     return student;
 };
@@ -162,6 +167,7 @@ const createLookupState = (page) => ({
     studentId: page.querySelector('#withdrawal-student-id'),
     studentName: page.querySelector('#withdrawal-student-name'),
     studentClassroom: page.querySelector('#withdrawal-student-classroom'),
+    selected: page.querySelector('[data-withdrawal-selected-student]'),
 });
 
 const wireCreatePage = (page, root, environment) => {
@@ -171,8 +177,9 @@ const wireCreatePage = (page, root, environment) => {
 
     state.lookup.addEventListener('input', () => {
         state.studentId.value = '';
-        state.studentName.value = '';
-        state.studentClassroom.value = '';
+        if (state.studentName) state.studentName.value = '';
+        if (state.studentClassroom) state.studentClassroom.value = '';
+        state.selected?.classList.add('d-none');
         renderLookupResults(state, students, environment);
     });
     state.lookup.addEventListener('focus', () => renderLookupResults(state, students, environment));
@@ -183,12 +190,13 @@ const wireCreatePage = (page, root, environment) => {
             if (first) { event.preventDefault(); first.focus(); }
         }
     });
-    root.addEventListener('click', (event) => {
+    page.addEventListener('click', (event) => {
         if (!state.results?.contains(event.target) && event.target !== state.lookup) hideResults(state);
     });
     state.form.addEventListener('submit', (event) => {
         if (validateLookupSelection(state)) return;
         event.preventDefault();
+        event.stopPropagation();
     });
 
     const selected = students.find((student) => String(student.id) === String(state.studentId.value));
@@ -256,6 +264,10 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
 
     const createPage = root.querySelector?.('[data-withdrawal-create-page]');
     if (createPage) wireCreatePage(createPage, root, environment);
+    root.addEventListener('sibk:modal-loaded', (event) => {
+        const page = event.target.querySelector?.('[data-withdrawal-create-page]');
+        if (page) wireCreatePage(page, root, environment);
+    });
 
     const detailModal = root.querySelector?.('[data-withdrawal-detail-modal]');
     const followUpModal = root.querySelector?.('[data-withdrawal-follow-up-modal]');

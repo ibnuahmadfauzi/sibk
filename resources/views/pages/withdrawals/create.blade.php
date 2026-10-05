@@ -25,8 +25,6 @@
                     <div class="row g-3">
                         <div class="col-12 col-lg-7 position-relative"><label class="form-label fw-semibold" for="withdrawal-student-lookup">Cari nama atau NISN <span class="text-danger">*</span></label><input class="form-control" id="withdrawal-student-lookup" type="search" autocomplete="off" placeholder="Ketik nama atau NISN murid" aria-controls="withdrawal-student-options" aria-autocomplete="list" aria-expanded="false" required><div class="list-group position-absolute start-0 end-0 mx-3 mt-1 shadow-sm d-none withdrawal-student-options" id="withdrawal-student-options" role="listbox"></div></div>
                         <div class="col-12 col-lg-5"><label class="form-label fw-semibold" for="withdrawal-recorded-on">Tanggal Pencatatan <span class="text-danger">*</span></label><input class="form-control" id="withdrawal-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required></div>
-                        <div class="col-12 col-md-6"><label class="form-label fw-semibold" for="withdrawal-student-name">Nama Murid</label><input class="form-control bg-light" id="withdrawal-student-name" readonly></div>
-                        <div class="col-12 col-md-6"><label class="form-label fw-semibold" for="withdrawal-student-classroom">Rombel/Kelas</label><input class="form-control bg-light" id="withdrawal-student-classroom" readonly></div>
                     </div>
                 </div></section>
 
