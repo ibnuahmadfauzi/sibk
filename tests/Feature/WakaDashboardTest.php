@@ -53,8 +53,12 @@ final class WakaDashboardTest extends TestCase
                 'Baru Bulan Ini',
                 'Tren Murid Tercatat',
                 'Sebaran per Tingkat',
-                'Murid yang Perlu Tindak Lanjut',
-            ])
+                'id="waka-follow-up-title"',
+            ], false)
+            ->assertSee('Jumlah murid yang mendapat layanan BK setiap bulan.')
+            ->assertSee('Setiap murid dihitung sekali per bulan.')
+            ->assertSee('Grafik tren murid per bulan')
+            ->assertSee('bulan berjalan')
             ->assertDontSee($coordinated->registration_number)
             ->assertDontSee('SENTINEL-INTERNAL');
     }

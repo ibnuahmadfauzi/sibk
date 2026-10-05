@@ -103,23 +103,6 @@
                         <path d="m16 16 5 5" />
                     </svg>
                 </button>
-                @if($row['can_archive'])
-                    <form
-                        action="{{ $row['archive_url'] }}"
-                        method="POST"
-                        data-confirm-submit
-                        data-confirm-message="Arsipkan catatan layanan ini?"
-                    >
-                        @csrf
-                        @method('DELETE')
-                        <button
-                            class="btn btn-sm btn-outline-danger"
-                            type="submit"
-                        >
-                            Arsipkan
-                        </button>
-                    </form>
-                @endif
             </div>
         </article>
     @endforeach

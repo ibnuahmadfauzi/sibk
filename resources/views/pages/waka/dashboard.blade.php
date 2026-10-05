@@ -40,18 +40,38 @@
             <section class="sibk-panel h-100" aria-labelledby="waka-trend-title">
                 <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-trend-title">Tren Murid Tercatat</h2></div></header>
                 <div class="p-3 p-md-4">
-                    <p class="small text-muted">Murid unik dengan catatan BK setiap bulan. Murid yang sama dapat muncul pada bulan berbeda.</p>
-                    @php($maximum = max(1, collect($dashboard['trend'])->max('count')))
-                    <div class="sibk-waka-trend" role="list" aria-label="Jumlah murid tercatat per bulan">
-                        @foreach($dashboard['trend'] as $month)
-                            <div class="sibk-waka-trend__month" role="listitem" aria-label="{{ $month['month'] }}: {{ $month['count'] }} murid">
-                                <div class="sibk-waka-trend__plot" aria-hidden="true">
-                                    <strong>{{ $month['count'] }}</strong>
-                                    <span class="sibk-waka-trend__bar" style="height: {{ $month['count'] / $maximum * 100 }}%"></span>
-                                </div>
-                                <span aria-hidden="true" class="small">{{ $month['label'] }}</span>
+                    <p class="small text-muted">Jumlah murid yang mendapat layanan BK setiap bulan.</p>
+                    @php
+                        $step = max(1, (int) ceil((collect($dashboard['trend'])->max('count') ?? 0) / 4));
+                        $maximum = $step * 4;
+                        $currentMonth = now()->format('Y-m');
+                    @endphp
+                    <div class="sibk-waka-trend">
+                        <div class="sibk-waka-trend__scale" aria-hidden="true">
+                            @for($tick = 0; $tick <= 4; $tick++)
+                                <span style="bottom: {{ $tick * 25 }}%">{{ $tick * $step }}</span>
+                            @endfor
+                        </div>
+                        <div class="sibk-waka-trend__scroll" tabindex="0" role="group" aria-label="Grafik tren murid per bulan" aria-describedby="waka-trend-note">
+                            <div class="sibk-waka-trend__months" role="list" aria-label="Jumlah murid per bulan">
+                                @foreach($dashboard['trend'] as $month)
+                                    @php($isCurrentMonth = $month['month'] === $currentMonth)
+                                    <div class="sibk-waka-trend__month {{ $isCurrentMonth ? 'sibk-waka-trend__month--current' : '' }}" role="listitem" aria-label="{{ $month['month'] }}: {{ $month['count'] }} murid{{ $isCurrentMonth ? ', bulan berjalan' : '' }}">
+                                        <div class="sibk-waka-trend__plot" style="--bar-height: {{ $month['count'] / $maximum * 100 }}%" aria-hidden="true">
+                                            <strong class="sibk-waka-trend__value">{{ $month['count'] }}</strong>
+                                            <span class="sibk-waka-trend__bar"></span>
+                                        </div>
+                                        <span aria-hidden="true" class="sibk-waka-trend__label small">{{ $month['label'] }}</span>
+                                    </div>
+                                @endforeach
                             </div>
-                        @endforeach
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between gap-2 small text-muted mt-3">
+                        <p class="mb-0" id="waka-trend-note">Setiap murid dihitung sekali per bulan.</p>
+                        @if(collect($dashboard['trend'])->contains('month', $currentMonth))
+                            <span class="sibk-waka-trend__legend">Bulan berjalan</span>
+                        @endif
                     </div>
                 </div>
             </section>

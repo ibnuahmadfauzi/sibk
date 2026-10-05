@@ -67,6 +67,28 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($admin)->get(route('reports.index'))->assertForbidden();
     }
 
+    public function test_bk_report_detail_spans_all_columns_without_archive_action(): void
+    {
+        [$year, , , $owner, $case] = $this->caseFixture();
+
+        $response = $this->actingAs($owner)->get(route('reports.index', [
+            'academic_year_id' => $year->id,
+            'service_type' => 'case',
+        ]));
+
+        $response->assertOk()
+            ->assertSee('data-report-detail-toggle', false)
+            ->assertSee('colspan="6"', false)
+            ->assertDontSee('sibk-report-detail-spacer', false)
+            ->assertDontSee('action="'.route('cases.destroy', $case).'"', false)
+            ->assertDontSee('Arsipkan '.$case->student->name);
+
+        $this->assertMatchesRegularExpression(
+            '/id="report-detail-case-'.$case->id.'"\s*>\s*<td colspan="6">/',
+            $response->getContent(),
+        );
+    }
+
     public function test_waka_withdrawal_report_shows_latest_progress_and_bottom_pagination(): void
     {
         [$year, $classroom, $student, $owner] = $this->caseFixture();
