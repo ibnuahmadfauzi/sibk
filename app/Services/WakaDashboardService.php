@@ -124,7 +124,7 @@ final class WakaDashboardService
             ->groupBy('student')->map(static fn (Collection $student): string => $student->last()['grade']);
         $counts = $latest->countBy();
 
-        return collect(['X', 'XI', 'XII', 'Tidak diketahui'])
+        return collect(['X', 'XI', 'XII'])
             ->map(static fn (string $label): array => ['label' => $label, 'count' => $counts[$label] ?? 0])->all();
     }
 

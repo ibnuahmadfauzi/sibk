@@ -130,7 +130,14 @@ final class WakaDashboardTest extends TestCase
         $this->assertSame(0, $dashboard['trend'][1]['count']);
         $this->assertSame(3, $dashboard['trend'][2]['count']);
         $this->assertSame(3, $dashboard['grades'][0]['count']);
+        $this->assertSame(['X', 'XI', 'XII'], array_column($dashboard['grades'], 'label'));
         $this->assertSame(1, count($dashboard['follow_up_students']));
+
+        $classroom->update(['name' => 'Kelas tanpa tingkat', 'grade_level' => null]);
+        $withoutGrade = app(WakaDashboardService::class)->build($waka, $this->year);
+        $this->assertSame([0, 0, 0], array_column($withoutGrade['grades'], 'count'));
+        $this->assertSame($dashboard['metrics'], $withoutGrade['metrics']);
+        $this->assertSame($dashboard['trend'], $withoutGrade['trend']);
     }
 
     public function test_new_this_month_uses_first_service_across_prior_years(): void
