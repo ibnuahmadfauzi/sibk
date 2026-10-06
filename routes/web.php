@@ -108,6 +108,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/achievements/{achievement}', [AchievementController::class, 'show'])->name('achievements.show');
         Route::get('/achievements/{achievement}/edit', [AchievementController::class, 'edit'])->name('achievements.edit');
         Route::patch('/achievements/{achievement}', [AchievementController::class, 'update'])->name('achievements.update');
+        Route::delete('/achievements/{achievement}', [AchievementController::class, 'destroy'])->name('achievements.destroy');
 
         Route::get('/data-master', [DataMasterController::class, 'index'])
             ->middleware('cache.headers:no_store')

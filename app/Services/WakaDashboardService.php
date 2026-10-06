@@ -48,13 +48,14 @@ final class WakaDashboardService
             'scope' => $year?->name ?? 'Periode kalender berjalan',
             'read_only' => true,
             'metrics' => [
-                ['label' => 'Murid Tercatat', 'value' => (string) $studentKeys->count(), 'meta' => 'Tahun ajaran', 'tone' => 'primary', 'kind' => 'students'],
+                ['label' => 'Murid', 'value' => (string) $studentKeys->count(), 'meta' => 'Memiliki Catatan', 'tone' => 'primary', 'kind' => 'students'],
                 ['label' => 'Sedang Ditangani', 'value' => (string) $active->map(fn (BkCase $case): string => $this->studentKey($case))->unique()->count(), 'meta' => 'Masih aktif', 'tone' => 'info', 'kind' => 'cases'],
                 ['label' => 'Perlu Tindak Lanjut', 'value' => (string) $followUps->map(fn (BkCase $case): string => $this->studentKey($case))->unique()->count(), 'meta' => 'Belum selesai', 'tone' => 'warning', 'kind' => 'schedule'],
                 ['label' => 'Baru Bulan Ini', 'value' => (string) $studentKeys->filter(static fn (string $key): bool => str_starts_with($firstDates[$key] ?? '', $month) && ($firstDates[$key] ?? '') >= $start->toDateString() && ($firstDates[$key] ?? '') <= $end->toDateString())->count(), 'meta' => 'Bulan berjalan', 'tone' => 'success', 'kind' => 'students'],
             ],
             'trend' => $this->trend($records, $start, $end),
             'grades' => $this->grades($records),
+            'top_case_classrooms' => $this->topCaseClassrooms($cases),
             'follow_up_students' => $this->followUpStudents($followUps),
         ];
     }
@@ -126,6 +127,19 @@ final class WakaDashboardService
 
         return collect(['X', 'XI', 'XII'])
             ->map(static fn (string $label): array => ['label' => $label, 'count' => $counts[$label] ?? 0])->all();
+    }
+
+    /** @param Collection<int, BkCase> $cases @return list<array{label: string, count: int}> */
+    private function topCaseClassrooms(Collection $cases): array
+    {
+        return $cases->filter(static fn (BkCase $case): bool => $case->classroom !== null)
+            ->groupBy('classroom_id')
+            ->map(fn (Collection $classCases): array => [
+                'label' => $classCases->first()->classroom->name,
+                'count' => $classCases->map(fn (BkCase $case): string => $this->studentKey($case))->unique()->count(),
+            ])
+            ->sortBy([['count', 'desc'], ['label', 'asc']])
+            ->take(3)->values()->all();
     }
 
     private function grade(?Classroom $classroom): string

@@ -2375,7 +2375,7 @@ class DelayedDapodikPreparationTest extends TestCase
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
             ->assertSee('Permasalahan');
-        $this->actingAs($waka)->get(route('achievements.create'))
+        $this->actingAs($waka)->get(route('achievements.create', ['modal' => 1]))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
             ->assertSee('Catat Prestasi');
@@ -2421,9 +2421,13 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $achievement = app(AchievementService::class)->create($achievementPayload, $waka);
         $this->assertInstanceOf(Achievement::class, $achievement);
-        $this->actingAs($assignedTeacher)->get(route('achievements.show', $achievement))->assertOk();
+        $this->actingAs($assignedTeacher)->get(route('achievements.show', $achievement))
+            ->assertRedirect(route('achievements.index'));
         $this->get(route('achievements.edit', $achievement))->assertForbidden();
-        $this->actingAs($waka)->get(route('achievements.edit', $achievement))->assertOk()->assertSee('Edit Prestasi');
+        $this->actingAs($waka)->get(route('achievements.edit', $achievement))
+            ->assertRedirect(route('achievements.index', ['edit' => $achievement->id]));
+        $this->get(route('achievements.edit', [$achievement, 'modal' => 1]))
+            ->assertOk()->assertSee('Edit Prestasi');
     }
 
     /** @return array<string, mixed> */

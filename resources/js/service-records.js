@@ -216,6 +216,7 @@ export const initServiceRecords = async (root = document) => {
                 event.target.click();
             }
         });
+        root.querySelector('[data-modal-auto-open]')?.click();
         modalElement.addEventListener('submit', (event) => { void handleModalSubmit(event, {
             notify: async (message) => {
                 const toast = modalElement.querySelector('[data-modal-submit-error] [data-notification-toast]');

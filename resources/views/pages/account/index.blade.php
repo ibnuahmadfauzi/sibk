@@ -3,123 +3,89 @@
 @section('page-title', 'Akun Saya - Ruang BK')
 
 @section('body')
-    <div class="sibk-dashboard">
-        <!-- Header -->
+    <div class="sibk-dashboard sibk-account-page">
+        @if(session('success'))
+            <x-notification-toast>{{ session('success') }}</x-notification-toast>
+        @endif
         <div class="sibk-page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
             <div class="sibk-page-header__copy">
                 <h1>Akun Saya</h1>
                 <p>Identitas akun yang digunakan untuk masuk ke Ruang BK.</p>
             </div>
             @can('manageDataMaster')
-                <div class="d-flex gap-2">
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-primary d-inline-flex align-items-center gap-2">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Kelola Akun
-                    </a>
-                </div>
+                <a href="{{ route('admin.users.index') }}" class="btn btn-primary">Kelola Akun</a>
             @endcan
         </div>
 
-
-        <div class="row g-4">
-            <!-- Kolom Kiri: Profil & Info Personal -->
-            <div class="col-lg-7 col-xl-8">
-                <div class="sibk-panel h-100">
-                    <div class="sibk-panel__header sibk-account-panel__header">
-                        <h3 class="sibk-panel__title">Informasi Akun</h3>
-                    </div>
-
-                    <div class="sibk-panel__body p-4">
-                        <div class="sibk-account-profile">
-                            <div class="sibk-account-profile__avatar">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                            </div>
-                            <div class="sibk-account-profile__info">
-                                <h4 class="sibk-account-profile__name">{{ $account['name'] }}</h4>
-                                <p class="sibk-account-profile__email">{{ $account['email'] }}</p>
-                            </div>
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-8">
+                <section class="sibk-account-card" aria-labelledby="account-information-title">
+                    <!-- <h2 id="account-information-title" class="sibk-account-card__title">Informasi Akun</h2> -->
+                    <div class="sibk-account-profile">
+                        <div class="sibk-account-profile__avatar" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
                         </div>
-
-                        <div class="table-responsive">
-                        <table class="table sibk-account-table mb-0">
-                            <tbody>
-                                <tr>
-                                    <th scope="row">Peran</th>
-                                    <td>{{ implode(', ', $account['roles']) ?: 'Belum memiliki peran' }}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Email</th>
-                                    <td>{{ $account['email'] }}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Status akun</th>
-                                    <td><span class="sibk-badge {{ $account['status'] === 'Aktif' ? 'sibk-badge--success' : 'sibk-badge--warning' }}">{{ $account['status'] }}</span></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Login terakhir</th>
-                                    <td>{{ $account['last_login_at']?->locale('id')->translatedFormat('d F Y H.i') ?? 'Belum tercatat' }}</td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Tahun ajaran aktif</th>
-                                    <td>{{ $account['academic_year'] }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="sibk-account-profile__info">
+                            <h3 class="sibk-account-profile__name">{{ $account['name'] }}</h3>
                         </div>
                     </div>
-                </div>
+                    <dl class="sibk-account-details">
+                        <div><dt>Peran</dt><dd>{{ implode(', ', $account['roles']) ?: 'Belum memiliki peran' }}</dd></div>
+                        <div><dt>Email</dt><dd>{{ $account['email'] }}</dd></div>
+                        <div><dt>Status akun</dt><dd><span class="sibk-badge {{ $account['status'] === 'Aktif' ? 'sibk-badge--success' : 'sibk-badge--warning' }}">{{ $account['status'] }}</span></dd></div>
+                        <div><dt>Login terakhir</dt><dd>{{ $account['last_login_at'] ? $account['last_login_at']->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('j F Y, H.i').' WIB' : 'Belum tercatat' }}</dd></div>
+                        <div><dt>Tahun ajaran aktif</dt><dd>{{ $account['academic_year'] }}</dd></div>
+                    </dl>
+                </section>
             </div>
 
-            <!-- Kolom Kanan: Keamanan & Info -->
-            <div class="col-lg-5 col-xl-4 d-flex flex-column gap-4">
-                <div class="sibk-panel">
-                    <div class="sibk-panel__header sibk-account-panel__header">
-                        <h3 class="sibk-panel__title">Keamanan Akun</h3>
-                        <p class="sibk-panel__subtitle">Kelola keamanan akun yang sedang digunakan.</p>
+            <div class="col-lg-4 d-flex flex-column gap-4">
+                <section class="sibk-account-card sibk-account-card--inset" aria-labelledby="account-security-title">
+                    <h2 id="account-security-title" class="sibk-account-card__title">Keamanan Akun</h2>
+                    <p class="sibk-account-card__description">Gunakan kata sandi unik dan jangan membagikannya.</p>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                    <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#account-password-modal">Ubah Sandi</button>
+                    <form action="{{ route('logout') }}" method="POST" class="sibk-account-logout" data-clear-drafts-user>
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger d-inline-flex align-items-center gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <path d="m16 17 5-5-5-5M21 12H9"/>
+                            </svg>
+                            Keluar
+                        </button>
+                    </form>
                     </div>
-
-                    <div class="sibk-panel__body p-4">
-                        <div class="sibk-security-info">
-                            <div class="sibk-security-info__icon sibk-icon-tone--primary">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                            </div>
-                            <div class="sibk-security-info__text">
-                                <h5 class="sibk-security-info__title">Kata sandi</h5>
-                                <p class="sibk-security-info__desc">Gunakan kata sandi unik dan jangan membagikannya.</p>
-                            </div>
-                        </div>
-
-                        <a class="btn btn-primary w-100 mb-3" href="{{ route('account.password.edit') }}">Ganti Kata Sandi</a>
-                        <form action="{{ route('logout') }}" method="POST" data-clear-drafts-user>
-                            @csrf
-                            <button type="submit" class="btn w-100 sibk-btn-logout">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                                    <polyline points="16 17 21 12 16 7"/>
-                                    <line x1="21" x2="9" y1="12" y2="12"/>
-                                </svg>
-                                Keluar
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="sibk-account-info-box">
-                    <h4 class="sibk-account-info-box__title">Akun dan akses</h4>
-                    <p class="sibk-account-info-box__text">
-                        Hubungi Admin IT sekolah untuk mengubah data akun yang tidak dapat Anda ubah di sini.
-                    </p>
-                </div>
+                </section>
+                <section class="sibk-account-help" aria-labelledby="account-help-title">
+                    <h2 id="account-help-title" class="sibk-account-card__title">Perubahan Data Akun</h2>
+                    <p class="sibk-account-card__description mb-0">Untuk mengubah nama, email, atau peran, hubungi Admin IT sekolah.</p>
+                </section>
             </div>
         </div>
     </div>
+    <div class="modal fade" id="account-password-modal" tabindex="-1" aria-labelledby="account-password-title" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h2 class="modal-title fs-5" id="account-password-title">Ubah Sandi</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">@include('pages.account._password-form', ['modal' => true])</div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('extra-javascript')
+@if($errors->any() || request()->boolean('password'))
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.bootstrap.Modal.getOrCreateInstance(document.getElementById('account-password-modal')).show();
+    });
+</script>
+@endif
 @endsection

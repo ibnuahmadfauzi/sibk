@@ -224,8 +224,8 @@ class StudentProfileTest extends TestCase
 
         $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
             ->assertOk()
-            ->assertSee('data-service-record-modal', false)
-            ->assertSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false);
+            ->assertSee($achievement->activity_name)
+            ->assertDontSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false);
     }
 
     /** @return array{User, Student} */

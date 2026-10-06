@@ -45,8 +45,9 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Business Logic:** `AccountService` menyimpan akun dan role dalam transaksi; `TemporaryPasswordService` menerbitkan password sementara 24 jam, memutus sesi target, menetapkan `must_change_password`, dan menulis audit tanpa nilai password.
 - **Status akun:** Penonaktifan/pemulihan menggunakan `is_active`; tidak tersedia endpoint hapus akun permanen.
 
-### Pergantian Password Wajib
+### Pergantian Password
 - **Endpoint:** `GET /account/change-password`, `PATCH /account/change-password`.
+- **Tampilan dan redirect (ACC-01):** pergantian biasa memakai modal di Akun Saya; GET mengarahkan ke `/account?password=1`, dan PATCH berhasil kembali ke `/account`. Akun dengan `must_change_password` tetap memakai halaman pergantian wajib; PATCH berhasil menuju dashboard. Validasi browser kembali ke form, dan modal dibuka kembali ketika terdapat pesan kesalahan tanpa mengisi ulang nilai password.
 - **Authorization:** akun aktif dengan sesi sah; middleware `password.changed` membatasi route operasional sampai password sementara diganti.
 - **Request:** `current_password`, `password`, dan `password_confirmation`; password baru minimal delapan karakter serta memuat huruf dan angka.
 - **Business Logic:** password baru mengosongkan `must_change_password` dan `temporary_password_expires_at`, mengisi `password_changed_at`, memutus sesi lain, dan diaudit tanpa nilai password. Password sementara kedaluwarsa ditolak saat login.
@@ -160,16 +161,17 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 
 ### Pengelolaan prestasi oleh Waka
 - **Filter daftar:** `search` (nama/NISN murid, kegiatan, atau penyelenggara) dan `level_id` (referensi aktif kategori `achievement_level`).
-- **Endpoint:** `GET /achievements`, `GET /achievements/create`, `POST /achievements`, `GET /achievements/{achievement}`, `GET /achievements/{achievement}/edit`, `PATCH /achievements/{achievement}`, dan `POST /achievements/import`.
-- **Modal:** `GET /achievements/{achievement}?modal=1` dan `GET /achievements/{achievement}/edit?modal=1` mengembalikan partial modal. `PATCH` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke daftar prestasi.
+- **Endpoint:** `GET /achievements`, `GET /achievements/create`, `POST /achievements`, `GET /achievements/{achievement}`, `GET /achievements/{achievement}/edit`, `PATCH /achievements/{achievement}`, `DELETE /achievements/{achievement}`, dan `POST /achievements/import`.
+- **Modal (ACH-03):** `GET /achievements/create?modal=1` dan `GET /achievements/{achievement}/edit?modal=1` mengembalikan partial form. Tanpa `modal=1`, keduanya mengarahkan ke daftar dengan parameter `create=1` (serta `student_id` bila ada) atau `edit={id}` untuk membuka modal. Endpoint detail lama mengarahkan ke daftar setelah otorisasi. `POST`, `PATCH`, dan `DELETE` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke daftar; request biasa mengarahkan ke daftar.
 - **Controller:** `AchievementController`; impor memakai `AchievementImportController@store`.
-- **Form Request:** `AchievementIndexRequest`, `StoreAchievementRequest`, `UpdateAchievementRequest`, dan `ImportAchievementRequest`.
+- **Form Request:** `AchievementIndexRequest`, `StoreAchievementRequest`, `UpdateAchievementRequest`, `DeleteAchievementRequest`, dan `ImportAchievementRequest`.
+- **Kontrol versi (ACH-01):** `PATCH` dan `DELETE` menyertakan `expected_updated_at`; versi tidak cocok menghasilkan validasi 422.
 - **Input manual:** `student_id`, `type_id`, `level_id`, `activity_name`, `organizer`, `achievement_date`, dan `result`.
 - **Import Excel:** multipart `file` berformat `.xlsx`, maksimal 2 MB dan 1.000 baris data. Header berurutan `nisn,jenis,tingkat,kegiatan,penyelenggara,tanggal,hasil`; `jenis` dan `tingkat` memakai kode referensi aktif, `tanggal` memakai `YYYY-MM-DD` atau tanggal Excel. Setiap baris dipetakan ke murid dan field input manual. Seluruh berkas divalidasi sebelum transaksi, perubahan bersifat atomik, dan berkas mentah tidak disimpan setelah proses.
-- **Authorization:** Waka Kesiswaan dapat membuat, membaca, mengubah, dan mengimpor prestasi. Guru BK hanya dapat membaca prestasi murid dalam scope profesional melalui daftar/profil yang diizinkan. Sesuai ACH-04, Koordinator BK (termasuk rangkap Guru BK) mendapat akses GET daftar/detail dan prestasi pada profil seluruh murid; filter tingkat tetap mengikuti scope baca tersebut. Koordinator BK dan Admin IT tidak memperoleh hak mutasi prestasi dari fungsi mereka.
+- **Authorization:** policy mengikuti ACH-01 dan ACH-04; aksi `delete` memakai batas akses Waka yang sama dengan `update`.
 - **Tidak tersedia:** endpoint verifikasi, status verifikasi, catatan verifikasi, evidence reference, evidence description, atau upload bukti.
 - **Lifecycle:** perubahan prestasi tidak membuat kasus, mengubah status kasus, menambah tindak lanjut, atau menghasilkan rekomendasi otomatis.
-- **Audit dan retensi:** pencatatan, perubahan, dan impor diaudit; tidak tersedia endpoint hapus permanen atau penghapusan otomatis.
+- **Audit dan retensi (ACH-01):** pencatatan, perubahan, impor, dan soft delete diaudit; tidak tersedia endpoint hapus permanen atau penghapusan otomatis.
 ### Proses Keluar Murid
 - **Endpoint Guru BK/Koordinator:** `POST /students/{student}/departure`, `PATCH /students/{student}/departure`, dan `POST /students/{student}/departure/finalize`.
 - **Endpoint Waka:** `GET /waka/student-departures` untuk daftar/detail operasional read-only tanpa narasi privat kasus atau konsultasi.
@@ -375,7 +377,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Business Logic:** `DashboardService::forUser()` membentuk query terpisah untuk setiap fungsi akun.
   - Guru BK menerima data dalam cakupan profesional yang diizinkan, termasuk kasus yang menjadi tanggung jawabnya dan kasus dalam cakupan tersebut yang berstatus Tindak Lanjut.
   - Koordinator BK menerima jumlah Guru BK aktif, kelas tanpa penugasan pada tahun terpilih, dan jumlah kasus Tindak Lanjut tanpa catatan internal.
-  - Waka Kesiswaan menerima DTO `WakaDashboardService::build()` sesuai `DASH-03`: `metrics`, `trend[]` (`label`, `month`, `count`), `grades[]` (`label`, `count`), dan `follow_up_students[]` (`name`, `classroom`, `services[]` berisi `service`, `teacher`, `summary`, `follow_up`). Query memilih identitas, tanggal, status, kelas, dan hasil/ringkasan yang diperlukan tanpa narasi internal; dashboard tidak mengirim URL detail. Audit dashboard menghitung jumlah murid pada tabel tindak lanjut.
+  - Waka Kesiswaan menerima DTO `WakaDashboardService::build()` sesuai `DASH-03`: `metrics`, `trend[]` (`label`, `month`, `count`), `grades[]` (`label`, `count`), `top_case_classrooms[]` (`label`, `count`), dan `follow_up_students[]` (`name`, `classroom`, `services[]` berisi `service`, `teacher`, `summary`, `follow_up`). Query memilih identitas, tanggal, status, kelas, dan hasil/ringkasan yang diperlukan tanpa narasi internal; dashboard tidak mengirim URL detail. Audit dashboard menghitung jumlah murid pada tabel tindak lanjut.
   - Admin IT hanya menerima kesiapan akun, tahun ajaran, sinkronisasi, konflik sumber, dan status provider tanpa identitas atau isi layanan BK.
 - **Multi-role:** fungsi Koordinator diprioritaskan sebagai rekap tata kelola; role teknis tidak membuka isi layanan sensitif.
 - **Payload:** `context_panel` berisi `title` dan daftar item `label`, `value`, serta `meta`; dashboard tidak membaca daftar `audit_logs`.

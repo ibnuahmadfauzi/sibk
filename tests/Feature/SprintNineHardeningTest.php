@@ -59,7 +59,7 @@ class SprintNineHardeningTest extends TestCase
             'is_active' => true,
         ]);
         $admin = $this->userWithRole('admin_it', 'Admin Nyata');
-        $admin->update(['last_login_at' => '2026-08-20 08:30:00']);
+        $admin->forceFill(['last_login_at' => '2026-08-20 08:30:00'])->save();
 
         $this->actingAs($admin)->get(route('account.index'))
             ->assertOk()
@@ -67,10 +67,21 @@ class SprintNineHardeningTest extends TestCase
             ->assertSee($admin->email)
             ->assertSee('Admin IT')
             ->assertSee('2026/2027')
+            ->assertSee('20 Agustus 2026, 15.30 WIB')
             ->assertDontSee('Ubah Kata Sandi')
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
             ->assertSee('Data Master');
+    }
+
+    public function test_account_without_login_history_shows_fallback(): void
+    {
+        $user = $this->userWithRole('guru_bk', 'Guru Baru');
+        $user->forceFill(['last_login_at' => null])->save();
+
+        $this->actingAs($user)->get(route('account.index'))
+            ->assertOk()
+            ->assertSee('Belum tercatat');
     }
 
     public function test_production_database_seeder_never_creates_demo_accounts(): void

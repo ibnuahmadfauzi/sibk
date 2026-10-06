@@ -13,6 +13,7 @@ import { initServiceRecords } from './service-records';
 import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
 import { initReportPreview } from './report-preview';
+import { initAchievementForms } from './achievement-form';
 
 initFormDrafts();
 initServiceRecords();
@@ -22,6 +23,19 @@ initEtatibApiPreview();
 initEtatibIdentityMapping();
 initWithdrawalProgress();
 initReportPreview(Modal);
+document.querySelectorAll('[data-password-visibility]').forEach((toggle) => {
+    const input = document.getElementById(toggle.dataset.passwordVisibility);
+    if (!input) return;
+    toggle.addEventListener('change', () => {
+        input.type = toggle.checked ? 'text' : 'password';
+    });
+    toggle.closest('.modal')?.addEventListener('hidden.bs.modal', () => {
+        toggle.checked = false;
+        input.type = 'password';
+    });
+});
+initAchievementForms();
+document.addEventListener('sibk:modal-loaded', (event) => initAchievementForms(event.target));
 
 document.querySelector('[data-waka-year-filter]')?.addEventListener('change', (event) => {
     event.currentTarget.form.requestSubmit();

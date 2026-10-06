@@ -38,7 +38,7 @@
     <div class="row g-3 mt-1">
         <div class="col-12 col-xl-8">
             <section class="sibk-panel h-100" aria-labelledby="waka-trend-title">
-                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-trend-title">Tren Murid Tercatat</h2></div></header>
+                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-trend-title">Grafik Catatan BK</h2></div></header>
                 <div class="p-3 p-md-4">
                     <p class="small text-muted">Jumlah murid yang memiliki catatan BK setiap bulan.</p>
                     @php
@@ -76,15 +76,30 @@
                 </div>
             </section>
         </div>
-        <div class="col-12 col-xl-4">
-            <section class="sibk-panel h-100" aria-labelledby="waka-grades-title">
-                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-grades-title">Sebaran per Tingkat</h2></div></header>
-                <div class="p-3 p-md-4">
+        <div class="col-12 col-xl-4 d-flex flex-column gap-3">
+            <section class="sibk-panel" aria-labelledby="waka-grades-title">
+                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-grades-title">Murid per Tingkat</h2></div></header>
+                <div class="px-3 px-md-4 py-2">
                     @foreach($dashboard['grades'] as $grade)
-                        <div class="d-flex justify-content-between gap-3 py-3 border-bottom border-secondary-subtle">
-                            <span>{{ $grade['label'] }}</span><strong>{{ $grade['count'] }} murid</strong>
+                        <div class="d-flex justify-content-between gap-3 py-2">
+                            <span>Kelas {{ ['X' => 10, 'XI' => 11, 'XII' => 12][$grade['label']] }}</span><strong>{{ $grade['count'] }} murid</strong>
                         </div>
                     @endforeach
+                </div>
+            </section>
+            <section class="sibk-panel" aria-labelledby="waka-top-classrooms-title">
+                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-top-classrooms-title">Catatan Permasalahan Terbanyak</h2></div></header>
+                <div class="px-3 px-md-4 py-2">
+                        <ul class="list-unstyled mb-0">
+                            @forelse($dashboard['top_case_classrooms'] as $classroom)
+                                <li class="d-flex align-items-baseline justify-content-between gap-3 py-2">
+                                    <span>{{ $classroom['label'] }}</span>
+                                    <strong class="text-nowrap">{{ $classroom['count'] }} murid</strong>
+                                </li>
+                            @empty
+                                <li class="small text-muted py-2">Belum ada catatan permasalahan pada periode ini.</li>
+                            @endforelse
+                        </ul>
                 </div>
             </section>
         </div>

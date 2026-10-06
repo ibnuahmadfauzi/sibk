@@ -13,26 +13,7 @@
 
         <section class="sibk-panel">
             <div class="sibk-panel__body p-4">
-                @if($errors->any())
-                    <div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-                @endif
-                <form method="POST" action="{{ route('account.password.update') }}" class="row g-3">
-                    @csrf
-                    @method('PATCH')
-                    <div class="col-12">
-                        <label class="form-label" for="current_password">Kata sandi saat ini</label>
-                        <input class="form-control" id="current_password" name="current_password" type="password" autocomplete="current-password" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="password">Kata sandi baru</label>
-                        <input class="form-control" id="password" name="password" type="password" minlength="8" autocomplete="new-password" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="password_confirmation">Konfirmasi kata sandi baru</label>
-                        <input class="form-control" id="password_confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
-                    </div>
-                    <div class="col-12"><button class="btn btn-primary" type="submit">Simpan Kata Sandi</button></div>
-                </form>
+                @include('pages.account._password-form')
             </div>
         </section>
     </div>

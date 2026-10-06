@@ -29,4 +29,9 @@ class AchievementPolicy
     {
         return $user->hasRole('waka_kesiswaan') && $this->view($user, $achievement);
     }
+
+    public function delete(User $user, Achievement $achievement): bool
+    {
+        return $this->update($user, $achievement);
+    }
 }
