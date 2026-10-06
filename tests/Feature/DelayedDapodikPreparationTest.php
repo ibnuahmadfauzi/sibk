@@ -2248,7 +2248,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($coordinator)
             ->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
-            ->assertSee('Kesiapan Aktivasi')
+            ->assertSee('id="activation-readiness-title"', false)
             ->assertSee('Aktifkan Tahun Ajaran')
             ->assertSee('type="button" disabled', false);
         $otherYear = AcademicYear::query()->create([

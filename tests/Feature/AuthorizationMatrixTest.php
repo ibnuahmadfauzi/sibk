@@ -202,7 +202,7 @@ class AuthorizationMatrixTest extends TestCase
             ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
-            ->assertSee('Kesiapan Aktivasi');
+            ->assertSee('id="activation-readiness-title"', false);
         $this->actingAs($teacher)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
             ->assertForbidden();
         $this->actingAs($waka)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
