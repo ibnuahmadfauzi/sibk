@@ -20,17 +20,16 @@
         <x-notification-toast tone="error" title="Perubahan belum tersimpan">{{ $errors->first() }}</x-notification-toast>
     @endif
     <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4">
-        @php($hasActiveFilters = trim((string) request('search')) !== '' || request()->filled('level_id'))
-        <form action="{{ route('achievements.index') }}" method="GET" class="row g-3 align-items-end">
-            <div class="col-12 col-lg-6"><label for="achievement_search" class="form-label">Cari</label><input id="achievement_search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Murid, NISN, kegiatan, atau penyelenggara"></div>
-            <div class="col-12 col-md-6 col-lg-3"><label for="achievement_level" class="form-label">Tingkat Prestasi</label><select id="achievement_level" name="level_id" class="form-select"><option value="">Semua tingkat</option>@foreach($levels as $level)<option value="{{ $level->id }}" @selected((string) request('level_id') === (string) $level->id)>{{ $level->label }}</option>@endforeach</select></div>
-            <div class="col-12 col-md-6 col-lg-3 d-flex gap-2"><button class="btn btn-primary flex-grow-1">Terapkan</button>@if($hasActiveFilters)<a href="{{ route('achievements.index') }}" class="btn btn-light">Reset</a>@endif</div>
+        <form action="{{ route('achievements.index') }}" method="GET" class="row g-3 align-items-end" data-auto-filter data-filter-reset-url="{{ route('achievements.index') }}">
+            <div class="col-12 col-lg-6"><label for="achievement_search" class="form-label">Cari</label><input id="achievement_search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Murid, NISN, kegiatan, atau penyelenggara" data-filter-field></div>
+            <div class="col-12 col-md-6 col-lg-3"><label for="achievement_level" class="form-label">Tingkat Prestasi</label><select id="achievement_level" name="level_id" class="form-select" data-filter-field><option value="">Semua tingkat</option>@foreach($levels as $level)<option value="{{ $level->id }}" @selected((string) request('level_id') === (string) $level->id)>{{ $level->label }}</option>@endforeach</select></div>
+            <div class="col-12 col-md-6 col-lg-3"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
         </form>
     </div></div>
     <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th scope="col">Murid</th><th scope="col">Kegiatan</th><th scope="col">Jenis / Tingkat</th><th scope="col">Tanggal</th><th scope="col">Hasil</th><th scope="col">Aksi</th></tr></thead><tbody>
         @forelse($achievements as $achievement)
             <tr>
-                <td><strong>{{ $achievement->student->name }}</strong><span class="small text-muted d-block">{{ $achievement->student->nisn }}</span></td>
+                <td><strong>{{ \App\Support\StudentName::display($achievement->student->name) }}</strong><span class="small text-muted d-block">{{ $achievement->student->nisn }}</span></td>
                 <td>{{ $achievement->activity_name }}<span class="small text-muted d-block">{{ $achievement->organizer }}</span></td>
                 <td>{{ $achievement->type->label }}<span class="small text-muted d-block">{{ $achievement->level->label }}</span></td>
                 <td class="text-nowrap">{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</td>
@@ -43,7 +42,7 @@
                         <form action="{{ route('achievements.destroy', $achievement) }}" method="POST"
                             data-app-confirm-submit data-confirm-tone="danger" data-confirm-title="Hapus prestasi?"
                             data-confirm-message="Hapus prestasi" data-confirm-subject="{{ $achievement->activity_name }}"
-                            data-confirm-suffix=" untuk {{ $achievement->student->name }}?" data-confirm-action="Ya, hapus">
+                            data-confirm-suffix=" untuk {{ \App\Support\StudentName::display($achievement->student->name) }}?" data-confirm-action="Ya, hapus">
                             @csrf
                             @method('DELETE')
                             <input type="hidden" name="expected_updated_at" value="{{ $achievement->updated_at?->toJSON() }}">

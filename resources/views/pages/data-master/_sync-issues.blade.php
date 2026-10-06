@@ -12,10 +12,11 @@
             <tbody>
                 @forelse($syncIssues as $issue)
                     @php($dataLabel = match ($issue->entity_type) { 'academic_year' => 'Tahun ajaran', 'student' => 'Murid', 'classroom' => 'Kelas', 'membership' => 'Keanggotaan kelas', 'etatib_record' => 'Pelanggaran e-Tatib', default => 'Data sumber' })
+                    @php($issueDisplayName = in_array($issue->entity_type, ['student', 'etatib_record'], true) ? \App\Support\StudentName::display($issue->input_name) : $issue->input_name)
                     <tr>
                         <td>{{ $issue->syncRun?->source === 'etatib' ? 'e-Tatib' : 'Dapodik' }}</td>
                         <td>
-                            {{ $issue->input_name ?: ($issue->nisn ? 'NISN '.$issue->nisn : ($localTargets[$issue->entity_type.':'.(int) substr((string) $issue->source_identifier, 6)] ?? $dataLabel.' '.str_replace('local:', '#', (string) $issue->source_identifier))) }}
+                            {{ $issueDisplayName ?: ($issue->nisn ? 'NISN '.$issue->nisn : ($localTargets[$issue->entity_type.':'.(int) substr((string) $issue->source_identifier, 6)] ?? $dataLabel.' '.str_replace('local:', '#', (string) $issue->source_identifier))) }}
                             @if($issue->input_name && $issue->nisn)<span class="d-block small text-muted">NISN {{ $issue->nisn }}</span>@endif
                         </td>
                         <td>{{ $issue->summary }}</td>
@@ -25,7 +26,7 @@
                                 <span class="d-block small text-muted">{{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->locale('id')->translatedFormat('d M Y, H.i') }}</span>
                             @endif
                         </td>
-                        <td><button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="button" data-sync-issue-toggle data-sync-issue-name="{{ $issue->input_name ?: ($issue->nisn ?: $dataLabel) }}" @if(old('_sync_issue') == $issue->id) data-auto-open @endif data-detail-url="{{ route('data-master.sync-issues.show', ['issue' => $issue, 'inline' => 1]) }}" aria-controls="sync-issue-detail-{{ $issue->id }}" aria-expanded="false" aria-label="Tampilkan rincian {{ $issue->input_name ?: ($issue->nisn ?: $dataLabel) }}" title="Tampilkan rincian">
+                        <td><button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="button" data-sync-issue-toggle data-sync-issue-name="{{ $issueDisplayName ?: ($issue->nisn ?: $dataLabel) }}" @if(old('_sync_issue') == $issue->id) data-auto-open @endif data-detail-url="{{ route('data-master.sync-issues.show', ['issue' => $issue, 'inline' => 1]) }}" aria-controls="sync-issue-detail-{{ $issue->id }}" aria-expanded="false" aria-label="Tampilkan rincian {{ $issueDisplayName ?: ($issue->nisn ?: $dataLabel) }}" title="Tampilkan rincian">
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg>
                         </button></td>
                     </tr>
@@ -54,11 +55,11 @@
             <tbody>
                 @forelse($classroomDecisions as $decision)
                     <tr>
-                        <td>{{ $decision->input_name ?: ($decision->nisn ? 'NISN '.$decision->nisn : 'Pelanggaran e-Tatib') }}</td>
+                        <td>{{ \App\Support\StudentName::display($decision->input_name) ?: ($decision->nisn ? 'NISN '.$decision->nisn : 'Pelanggaran e-Tatib') }}</td>
                         <td>{{ data_get($decision->details, 'review.choice.classroom') ?? '-' }}<span class="d-block small text-muted">{{ data_get($decision->details, 'review.action') === 'use_school' ? 'Data sekolah' : 'Data e-Tatib' }}</span></td>
                         <td>Selesai</td>
                         <td>{{ $decision->resolved_at?->locale('id')->translatedFormat('d M Y, H.i') ?? '-' }}</td>
-                        <td><button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="button" data-sync-issue-toggle data-sync-issue-name="{{ $decision->input_name ?: ($decision->nisn ?: 'pelanggaran e-Tatib') }}" data-detail-url="{{ route('data-master.sync-issues.show', ['issue' => $decision, 'inline' => 1]) }}" aria-controls="sync-issue-detail-{{ $decision->id }}" aria-expanded="false" aria-label="Tampilkan rincian {{ $decision->input_name ?: ($decision->nisn ?: 'pelanggaran e-Tatib') }}" title="Tampilkan rincian">
+                        <td><button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="button" data-sync-issue-toggle data-sync-issue-name="{{ \App\Support\StudentName::display($decision->input_name) ?: ($decision->nisn ?: 'pelanggaran e-Tatib') }}" data-detail-url="{{ route('data-master.sync-issues.show', ['issue' => $decision, 'inline' => 1]) }}" aria-controls="sync-issue-detail-{{ $decision->id }}" aria-expanded="false" aria-label="Tampilkan rincian {{ \App\Support\StudentName::display($decision->input_name) ?: ($decision->nisn ?: 'pelanggaran e-Tatib') }}" title="Tampilkan rincian">
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg>
                         </button></td>
                     </tr>

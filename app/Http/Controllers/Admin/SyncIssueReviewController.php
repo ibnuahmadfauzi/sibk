@@ -43,11 +43,11 @@ final class SyncIssueReviewController extends Controller
         if ($issue->issue_code === 'unmatched_local_record' && str_starts_with((string) $issue->source_identifier, 'local:')) {
             $id = (int) substr($issue->source_identifier, 6);
             $local = match ($issue->entity_type) {
-                'student' => ($student = Student::query()->find($id)) === null ? null : $student->name.' (NISN '.$student->nisn.')',
+                'student' => ($student = Student::query()->find($id)) === null ? null : \App\Support\StudentName::display($student->name).' (NISN '.$student->nisn.')',
                 'academic_year' => AcademicYear::query()->find($id)?->name,
                 'classroom' => ($classroom = Classroom::query()->with('academicYear:id,name')->find($id)) === null ? null : $classroom->name.' ('.$classroom->academicYear?->name.')',
                 'membership' => ($membership = StudentClassMembership::query()->with(['student:id,name', 'classroom:id,name', 'academicYear:id,name'])->find($id)) === null
-                    ? null : $membership->student?->name.' — '.$membership->classroom?->name.' ('.$membership->academicYear?->name.')',
+                    ? null : \App\Support\StudentName::display($membership->student?->name).' — '.$membership->classroom?->name.' ('.$membership->academicYear?->name.')',
                 default => null,
             };
         }

@@ -13,7 +13,7 @@
             <div class="col-12 position-relative">
                 <label for="achievement-student-lookup" class="form-label">Murid <span class="text-danger">*</span></label>
                 @if($isEdit)
-                    <input id="achievement-student-lookup" class="form-control" value="{{ $achievement->student->name }} ({{ $achievement->student->nisn }}) · {{ $achievement->student->classMemberships->first()?->classroom?->name ?? 'Rombel belum tercatat' }}" disabled>
+                    <input id="achievement-student-lookup" class="form-control" value="{{ \App\Support\StudentName::display($achievement->student->name) }} ({{ $achievement->student->nisn }}) · {{ $achievement->student->classMemberships->first()?->classroom?->name ?? 'Rombel belum tercatat' }}" disabled>
                 @else
                     <input type="hidden" name="student_id" value="{{ old('student_id', $preselectedStudentId) }}">
                     <input id="achievement-student-lookup" class="form-control" type="search" autocomplete="off" placeholder="Ketik nama atau NISN murid" data-achievement-lookup aria-controls="achievement-student-options" aria-autocomplete="list" aria-expanded="false" required>

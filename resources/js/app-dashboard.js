@@ -1,4 +1,6 @@
+import { initAccountInformation } from './account-information';
 import 'bootstrap/js/dist/dropdown';
+import 'bootstrap/js/dist/tab';
 import Toast from 'bootstrap/js/dist/toast';
 import 'bootstrap/js/dist/offcanvas';
 import Modal from 'bootstrap/js/dist/modal';
@@ -14,6 +16,8 @@ import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
 import { initReportPreview } from './report-preview';
 import { initAchievementForms } from './achievement-form';
+import { displayStudentName } from './student-name';
+import { initAutoFilters } from './auto-filter';
 
 initFormDrafts();
 initServiceRecords();
@@ -36,10 +40,6 @@ document.querySelectorAll('[data-password-visibility]').forEach((toggle) => {
 });
 initAchievementForms();
 document.addEventListener('sibk:modal-loaded', (event) => initAchievementForms(event.target));
-
-document.querySelector('[data-waka-year-filter]')?.addEventListener('change', (event) => {
-    event.currentTarget.form.requestSubmit();
-});
 
 document.querySelectorAll('[data-notification-toast]').forEach((toast) => {
     if (toast.closest('[data-modal-submit-error]')) return;
@@ -64,50 +64,13 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
 document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
     select.addEventListener('change', () => {
         const form = select.closest('form');
-        const classroom = form?.querySelector('[name="classroom_id"]');
+        const classroom = form?.querySelector('[name="classroom_search"]');
 
         if (classroom) classroom.value = '';
     });
 });
 
-document.querySelectorAll('[data-report-filter-form]').forEach((form) => {
-    const button = form.querySelector('[data-report-filter-action]');
-    const filters = [...form.querySelectorAll('[data-report-filter]')];
-    const initialValues = filters.map((field) => field.value).join('|');
-    const filtersAreActive = form.dataset.filtersActive === 'true';
-
-    const showApply = () => {
-        button.dataset.mode = 'apply';
-        button.textContent = 'Terapkan';
-        button.classList.remove('btn-outline-primary');
-        button.classList.add('btn-primary');
-    };
-
-    const showReset = () => {
-        button.dataset.mode = 'reset';
-        button.textContent = 'Reset';
-        button.classList.remove('btn-primary');
-        button.classList.add('btn-outline-primary');
-    };
-
-    form.addEventListener('change', () => {
-        const currentValues = filters.map((field) => field.value).join('|');
-
-        if (filtersAreActive && currentValues === initialValues) {
-            showReset();
-            return;
-        }
-
-        showApply();
-    });
-
-    form.addEventListener('submit', (event) => {
-        if (button.dataset.mode !== 'reset') return;
-
-        event.preventDefault();
-        window.location.assign(button.dataset.resetUrl);
-    });
-});
+initAutoFilters();
 
 document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -119,7 +82,7 @@ document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
         button.title = expanded ? 'Tampilkan detail layanan' : 'Tutup detail layanan';
         button.setAttribute(
             'aria-label',
-            `${button.title} ${button.dataset.reportDetailName}`,
+            `${button.title} ${displayStudentName(button.dataset.reportDetailName)}`,
         );
     });
 });
@@ -443,6 +406,10 @@ if (accountPage) {
         accountForm.querySelector('[name="_account_target"]').value = edit ? button.dataset.accountId : '';
         accountModal.querySelector('#accountModalTitle').textContent = edit ? `Edit ${button.dataset.accountName}` : 'Tambah akun';
         accountForm.querySelector('[data-account-submit]').textContent = edit ? 'Simpan akun' : 'Buat akun';
+        const status = accountForm.querySelector('[name="is_active"]');
+        accountForm.querySelector('[data-account-status-field]').classList.toggle('d-none', !edit);
+        status.disabled = !edit || button.dataset.accountId === accountPage.dataset.currentUserId;
+        if (!keepInput) status.value = edit ? button.dataset.accountActive : '1';
         if (!keepInput) {
             accountForm.querySelector('[name="name"]').value = edit ? button.dataset.accountName : '';
             accountForm.querySelector('[name="email"]').value = edit ? button.dataset.accountEmail : '';
@@ -469,15 +436,7 @@ if (accountPage) {
         accountRolesModal.querySelector('[data-account-role-option]:not([hidden]):not(:disabled)')?.focus();
     });
 
-    accountPage.querySelectorAll('[data-account-detail-toggle]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const detail = document.getElementById(button.getAttribute('aria-controls'));
-            const expanded = button.getAttribute('aria-expanded') === 'true';
-            detail.classList.toggle('d-none', expanded);
-            button.setAttribute('aria-expanded', String(!expanded));
-            button.title = expanded ? 'Tampilkan detail akun' : 'Tutup detail akun';
-        });
-    });
+    initAccountInformation(accountPage);
 
     if (accountPage.dataset.accountOldAction) {
         const target = accountPage.dataset.accountOldTarget;
@@ -501,6 +460,9 @@ if (accountPage) {
             setAccountRoles(oldRoles, button?.dataset.accountId === accountPage.dataset.currentUserId);
             Modal.getOrCreateInstance(accountModal).show();
         }
+    } else if (new URLSearchParams(window.location.search).get('action') === 'create') {
+        setupAccount(accountPage.querySelector('[data-account-create]'));
+        Modal.getOrCreateInstance(accountModal).show();
     }
 }
 

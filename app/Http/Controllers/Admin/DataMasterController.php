@@ -61,7 +61,7 @@ class DataMasterController extends Controller
                 $localTargets['academic_year:'.$year->id] = 'Tahun ajaran '.$year->name;
             }
             foreach (Student::query()->whereKey($localIds('student'))->get(['id', 'name', 'nisn']) as $student) {
-                $localTargets['student:'.$student->id] = $student->name.' (NISN '.$student->nisn.')';
+                $localTargets['student:'.$student->id] = \App\Support\StudentName::display($student->name).' (NISN '.$student->nisn.')';
             }
             foreach (Classroom::query()->whereKey($localIds('classroom'))->with('academicYear:id,name')->get(['id', 'name', 'academic_year_id']) as $classroom) {
                 $localTargets['classroom:'.$classroom->id] = $classroom->name.' ('.$classroom->academicYear?->name.')';
@@ -69,7 +69,7 @@ class DataMasterController extends Controller
             foreach (StudentClassMembership::query()->whereKey($localIds('membership'))
                 ->with(['student:id,name', 'classroom:id,name', 'academicYear:id,name'])
                 ->get(['id', 'student_id', 'classroom_id', 'academic_year_id']) as $membership) {
-                $localTargets['membership:'.$membership->id] = ($membership->student?->name ?? 'Murid').' — '.($membership->classroom?->name ?? 'Kelas').' ('.$membership->academicYear?->name.')';
+                $localTargets['membership:'.$membership->id] = \App\Support\StudentName::display($membership->student?->name ?? 'Murid').' — '.($membership->classroom?->name ?? 'Kelas').' ('.$membership->academicYear?->name.')';
             }
         }
 

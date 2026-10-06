@@ -34,9 +34,9 @@
             @endif
         </div>
         @if($years->isNotEmpty())
-            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter">
-                <div class="flex-grow-1"><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
-                <button class="btn btn-outline-primary text-nowrap">Terapkan</button>
+            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview') }}">
+                <div class="flex-grow-1"><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id" data-filter-field data-filter-default="{{ request()->has('academic_year_id') ? '' : $activeYear?->id }}">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
+                <button class="btn btn-outline-primary text-nowrap" type="submit" data-filter-action>Filter</button>
             </form>
         @endif
 
@@ -62,11 +62,14 @@
             <div class="row g-3 sibk-stat-row">
                 @foreach ($dashboard['stats'] as $stat)
                     <div class="col-12 col-sm-6 col-xl-3">
-                        <article class="sibk-stat-card sibk-tone--{{ $stat['tone'] }}">
+                        <article class="sibk-stat-card position-relative sibk-tone--{{ $dashboard['role_key'] === 'teacher' ? match ($stat['kind']) { 'students' => 'success', 'cases' => 'primary', default => $stat['tone'] } : $stat['tone'] }}">
                             <div class="sibk-stat-card__inner">
                                 <div class="sibk-stat-card__icon-col">
                                     <div class="sibk-stat-card__icon" aria-hidden="true">
                                         @switch($stat['kind'])
+                                            @case('attention')
+                                                <svg viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg>
+                                                @break
                                             @case('students')
                                                 <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2.7-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 15c3.6 0 6 2.2 6 5"/></svg>
                                                 @break
@@ -82,7 +85,13 @@
                                     </div>
                                 </div>
                                 <div class="sibk-stat-card__content-col">
-                                    <h2 class="sibk-stat-card__label">{{ $stat['label'] }}</h2>
+                                    <h2 class="sibk-stat-card__label">
+                                        @if(isset($stat['url']))
+                                            <a class="stretched-link text-reset text-decoration-none" href="{{ $stat['url'] }}">{{ $stat['label'] }}</a>
+                                        @else
+                                            {{ $stat['label'] }}
+                                        @endif
+                                    </h2>
                                     <strong class="sibk-stat-card__value">{{ $stat['value'] }}</strong>
 
                                     @if (isset($stat['delta']))
@@ -96,9 +105,6 @@
                                         </span>
                                     @else
                                         <span class="sibk-stat-meta">{{ $stat['meta'] }}</span>
-                                    @endif
-                                    @if(isset($stat['url']))
-                                        <a class="small" href="{{ $stat['url'] }}">Lihat rincian konflik</a>
                                     @endif
                                 </div>
                             </div>
@@ -129,6 +135,25 @@
                             title="{{ $dashboard['schedule_empty_title'] ?? 'Tidak ada tindak lanjut' }}"
                             description="{{ $dashboard['schedule_empty_description'] ?? 'Tidak ada permasalahan berstatus Tindak Lanjut.' }}"
                         />
+                    @elseif($dashboard['role_key'] === 'teacher')
+                        <ul class="sibk-teacher-activities list-unstyled mb-0">
+                            @foreach($dashboard['tindak_lanjut'] as $item)
+                                <li class="sibk-teacher-activities__row">
+                                    <div class="sibk-list-item__date-box">
+                                        <strong>{{ $item['date'] }}</strong>
+                                        <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
+                                    </div>
+                                    <div class="sibk-list-item__content">
+                                        <strong>{{ $item['title'] }}</strong>
+                                        <span>{{ $item['context_label'] }}</span>
+                                        @if(!empty($item['follow_up']))
+                                            <small>Tindak Lanjut: {{ $item['follow_up'] }}</small>
+                                        @endif
+                                    </div>
+                                    <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
                     @else
                         <div class="sibk-list-group">
                             @foreach ($dashboard['tindak_lanjut'] as $item)
@@ -179,7 +204,9 @@
                             <h2 id="context-panel-title">{{ $dashboard['context_panel']['title'] }}</h2>
                         </div>
                     </header>
-                    @if (empty($dashboard['context_panel']['items']))
+                    @if($dashboard['role_key'] === 'teacher')
+                        @include('pages.dashboard._teacher-classes')
+                    @elseif (empty($dashboard['context_panel']['items']))
                         <x-empty-state
                             title="{{ $dashboard['context_panel']['empty_title'] ?? 'Belum ada data' }}"
                             description="{{ $dashboard['context_panel']['empty_description'] ?? 'Tidak ada data untuk ditampilkan.' }}"
@@ -193,7 +220,11 @@
                                             <strong>{{ $item['label'] }}</strong>
                                             <span>{{ $item['meta'] }}</span>
                                         </div>
-                                        <strong class="text-body">{{ $item['value'] }}</strong>
+                                        @if(isset($item['tone']))
+                                            <span class="badge sibk-icon-tone--{{ $item['tone'] }}">{{ $item['value'] }}</span>
+                                        @else
+                                            <strong class="text-body">{{ $item['value'] }}</strong>
+                                        @endif
                                     </a>
                                 @else
                                     <article class="sibk-activity-row">
@@ -201,7 +232,11 @@
                                             <strong>{{ $item['label'] }}</strong>
                                             <span>{{ $item['meta'] }}</span>
                                         </div>
-                                        <strong>{{ $item['value'] }}</strong>
+                                        @if(isset($item['tone']))
+                                            <span class="badge sibk-icon-tone--{{ $item['tone'] }}">{{ $item['value'] }}</span>
+                                        @else
+                                            <strong>{{ $item['value'] }}</strong>
+                                        @endif
                                     </article>
                                 @endif
                             @endforeach

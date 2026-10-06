@@ -60,7 +60,7 @@
                     </form>
                     </div>
                 </section>
-                <section class="sibk-account-help" aria-labelledby="account-help-title">
+                <section class="sibk-account-card sibk-account-help sibk-tone--primary" aria-labelledby="account-help-title">
                     <h2 id="account-help-title" class="sibk-account-card__title">Perubahan Data Akun</h2>
                     <p class="sibk-account-card__description mb-0">Untuk mengubah nama, email, atau peran, hubungi Admin IT sekolah.</p>
                 </section>

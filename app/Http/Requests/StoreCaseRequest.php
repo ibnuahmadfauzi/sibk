@@ -40,7 +40,7 @@ class StoreCaseRequest extends FormRequest
                     if ($record->student_id && ! $this->filled('student_id')) {
                         $this->merge(['student_id' => $record->student_id]);
                     }
-                    if (! $this->filled('student_id') && ! $this->filled('temporary_nisn')) {
+                    if (! $this->filled('student_id')) {
                         $this->merge([
                             'temporary_nisn' => $record->nisn,
                             'temporary_name' => $record->source_student_name ?: 'Murid e-Tatib',

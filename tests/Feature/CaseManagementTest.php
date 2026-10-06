@@ -393,7 +393,10 @@ class CaseManagementTest extends TestCase
         $response = $this->actingAs($teacher)->get(route('cases.index'));
 
         $response->assertOk()
-            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Status', 'Tindak Lanjut', 'Aksi'], false)
+            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Tindak Lanjut', 'Hasil', 'Aksi'], false)
+            ->assertDontSee('<th>Status</th>', false)
+            ->assertDontSee('name="status_id"', false)
+            ->assertSee('name="follow_up_type_id"', false)
             ->assertDontSee('<tr data-modal-url=', false)
             ->assertSee('href="'.route('cases.show', $case).'"', false)
             ->assertSee('title="Lihat selengkapnya" aria-label="Lihat selengkapnya"', false)
@@ -415,17 +418,52 @@ class CaseManagementTest extends TestCase
         $this->assertSame(1, substr_count($response->getContent(), 'id="case-modal"'));
     }
 
-    public function test_case_search_matches_name_only_and_status_filter_is_applied(): void
+    public function test_case_list_shows_result_and_expandable_notes_only_to_professional_users(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher), [
+            'initial_info' => 'Latar khusus murid.',
+            'initial_action' => 'Penanganan khusus murid.',
+            'resolution_summary' => 'Hasil khusus murid.',
+        ]);
+
+        $this->actingAs($teacher)->get(route('cases.index'))
+            ->assertOk()
+            ->assertSee('Hasil khusus murid.')
+            ->assertSee('data-report-detail-toggle', false)
+            ->assertSee('aria-controls="case-notes-'.$case->id.'"', false)
+            ->assertSee('id="case-notes-'.$case->id.'"', false)
+            ->assertSee('Latar khusus murid.')
+            ->assertSee('Penanganan khusus murid.')
+            ->assertSee('title="Lihat selengkapnya" aria-label="Lihat selengkapnya"', false);
+
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->get(route('cases.index'))
+            ->assertOk()
+            ->assertSee($case->identityName())
+            ->assertDontSee('Hasil khusus murid.')
+            ->assertDontSee('Latar khusus murid.')
+            ->assertDontSee('Penanganan khusus murid.')
+            ->assertDontSee('data-report-detail-toggle', false);
+    }
+
+    public function test_case_search_matches_name_only_and_follow_up_filter_is_applied(): void
     {
         $teacher = $this->userWithRole('guru_bk');
         $alpha = $this->createCase($teacher, $this->scopedStudent($teacher, 'Alpha Murid', '0011111111'));
         $beta = $this->createCase($teacher, $this->scopedStudent($teacher, 'Beta Murid', '0022222222'));
-        $beta->update(['status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id]);
+        $homeVisit = $this->reference('follow_up_type', 'home_visit');
+        $beta->update([
+            'status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id,
+            'follow_up_type_id' => $homeVisit->id,
+        ]);
 
         $this->actingAs($teacher)->get(route('cases.index', ['search' => 'Alpha']))
             ->assertSee('Alpha Murid')->assertDontSee('Beta Murid');
         $this->actingAs($teacher)->get(route('cases.index', ['search' => '0011111111']))
             ->assertDontSee('Alpha Murid');
+        $this->actingAs($teacher)->get(route('cases.index', ['follow_up_type_id' => $homeVisit->id]))
+            ->assertSee('Beta Murid')->assertDontSee('Alpha Murid');
         $this->actingAs($teacher)->get(route('cases.index', ['status_id' => $beta->status_id]))
             ->assertSee('Beta Murid')->assertDontSee('Alpha Murid');
         $this->assertNotSame($alpha->id, $beta->id);
@@ -700,6 +738,27 @@ class CaseManagementTest extends TestCase
         ]);
 
         return $student;
+    }
+
+    public function test_etatib_request_keeps_raw_source_name_when_display_name_is_submitted(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $record = $this->etatibRecord($this->scopedStudent($teacher));
+        $record->update(['student_id' => null, 'source_student_name' => 'NADIA PUTRI']);
+        $request = new class extends \App\Http\Requests\StoreCaseRequest {
+            public function prepare(): void
+            {
+                $this->prepareForValidation();
+            }
+        };
+        $request->merge([
+            'case_source_id' => $this->reference('case_source', 'e_tatib')->id,
+            'etatib_record_ids' => [$record->id],
+            'temporary_nisn' => $record->nisn,
+            'temporary_name' => 'Nadia Putri',
+        ]);
+        $request->prepare();
+        $this->assertSame('NADIA PUTRI', $request->input('temporary_name'));
     }
 
     private function etatibRecord(Student $student): ExternalTatibRecord

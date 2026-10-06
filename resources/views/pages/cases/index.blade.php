@@ -20,11 +20,11 @@
         </div>
 
         @if($activeTab === 'kasus')
-            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
+            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET" data-auto-filter data-filter-reset-url="{{ route('cases.index', ['tab' => 'kasus']) }}">
                 <input type="hidden" name="tab" value="kasus">
-                <div class="col-12 col-md-6"><label class="form-label" for="case_search">Cari Murid</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
-                <div class="col-12 col-md-4"><label class="form-label" for="case_status">Status</label><select class="form-select" id="case_status" name="status_id"><option value="">Semua status</option>@foreach($caseStatuses as $status)<option value="{{ $status->id }}" @selected((string) request('status_id') === (string) $status->id)>{{ $status->label }}</option>@endforeach</select></div>
-                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
+                <div class="col-12 col-md-6"><label class="form-label" for="case_search">Cari Murid</label><input class="form-control" id="case_search" name="search" value="{{ request('search') }}" placeholder="Nama murid" data-filter-field></div>
+                <div class="col-12 col-md-4"><label class="form-label" for="case_follow_up">Tindak Lanjut</label><select class="form-select" id="case_follow_up" name="follow_up_type_id" data-filter-field><option value="">Semua tindak lanjut</option>@foreach($followUpTypes as $type)<option value="{{ $type->id }}" @selected((string) request('follow_up_type_id') === (string) $type->id)>{{ $type->label }}</option>@endforeach</select></div>
+                <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
             </form></div></div>
             @php
                 $sortUrl = fn (string $column) => route('cases.index', array_merge(request()->query(), [
@@ -36,19 +36,13 @@
                 <th>Hari/Tanggal</th>
                 <th>Nama & Kelas</th>
                 <th>Jenis Masalah</th>
-                <th>Status</th>
                 <th>Tindak Lanjut</th>
+                <th>Hasil</th>
                 <th>Aksi</th>
             </tr></thead><tbody>
                 @forelse($cases as $case)
                     @php
                         $completed = $case->status?->code === \App\Support\ServiceRecordStatus::COMPLETED;
-                        $badgeTone = match($case->status?->code) {
-                            'selesai' => 'success',
-                            'sedang_diproses' => 'info',
-                            'membutuhkan_tindak_lanjut' => 'warning',
-                            default => 'primary',
-                        };
                     @endphp
                     <tr>
                         <td>
@@ -60,7 +54,6 @@
                             <div class="text-muted small">{{ $case->classroom?->name ?? '—' }}</div>
                         </td>
                         <td>{{ $case->serviceField->label }}</td>
-                        <td><span id="case-status-{{ $case->id }}" class="sibk-badge sibk-badge--{{ $badgeTone }}">{{ $case->status->label }}</span></td>
                         <td>
                             @php
                                 $latestFollowUp = $case->followUps->first();
@@ -119,21 +112,30 @@
                                 </div>
                             </div>
 
-                            {{-- Hidden attributes and fallback for automated checks & backward compatibility --}}
+                            @can('update', $case)
                             <span class="visually-hidden"
                                 data-follow-up-url="{{ route('cases.follow-up.update', $case) }}"
                                 data-follow-up-label-target="#case-follow-up-{{ $case->id }}"
-                                data-follow-up-status-target="#case-status-{{ $case->id }}"
                                 data-follow-up-timestamp-target="#case-updated-at-{{ $case->id }}"
                                 data-expected-updated-at="{{ $case->updated_at->toJSON() }}"
                                 data-previous-value="{{ $case->follow_up_type_id }}"
                                 data-save-status></span>
                             <span id="case-follow-up-{{ $case->id }}" class="visually-hidden">{{ $case->followUpType?->label ?? 'Belum ada' }}</span>
                             <span id="case-updated-at-{{ $case->id }}" class="visually-hidden">{{ $case->updated_at->toJSON() }}</span>
+                            @endcan
                         </td>
+                        <td class="sibk-case-result">{{ $isWakaOnly ? '—' : ($case->resolution_summary ?: '—') }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-1">
                                 @can('view', $case)
+                                    @unless($isWakaOnly)
+                                        <button type="button" class="btn btn-icon-action btn-icon-action--primary"
+                                            data-report-detail-toggle data-report-detail-name="{{ $case->identityName() }}"
+                                            aria-controls="case-notes-{{ $case->id }}" aria-expanded="false"
+                                            aria-label="Tampilkan detail layanan {{ $case->identityName() }}" title="Tampilkan detail layanan">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+                                        </button>
+                                    @endunless
                                     <a href="{{ route('cases.show', $case) }}"
                                         @unless($isWakaOnly)data-modal-url="{{ route('cases.show', [$case, 'modal' => 1]) }}"@endunless
                                         class="btn btn-icon-action btn-icon-action--info"
@@ -211,15 +213,39 @@
                             </div>
                         </td>
                     </tr>
+                    @unless($isWakaOnly)
+                        @can('view', $case)
+                            <tr class="sibk-report-detail-row d-none" id="case-notes-{{ $case->id }}">
+                                <td colspan="6">
+                                    <div class="sibk-report-detail-panel">
+                                        <div class="row g-3">
+                                            <div class="col-12 col-lg-2">
+                                                <strong class="d-block mb-1">Sumber</strong>
+                                                <p class="mb-0">{{ $case->source?->label ?? '—' }}</p>
+                                            </div>
+                                            <div class="col-12 col-lg-5">
+                                                <strong class="d-block mb-1">Latar Belakang Masalah</strong>
+                                                <p class="mb-0">{{ $case->initial_info ?: '—' }}</p>
+                                            </div>
+                                            <div class="col-12 col-lg-5">
+                                                <strong class="d-block mb-1">Penanganan</strong>
+                                                <p class="mb-0">{{ $case->initial_action ?: '—' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endcan
+                    @endunless
                 @empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada permasalahan yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
 
         @elseif($activeTab === 'konsultasi')
-            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
+            <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4"><form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET" data-auto-filter data-filter-reset-url="{{ route('cases.index', ['tab' => 'konsultasi']) }}">
                 <input type="hidden" name="tab" value="konsultasi">
-                <div class="col-12 col-lg-5"><label class="form-label" for="consultation_search">Cari Murid</label><input class="form-control" id="consultation_search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
-                <div class="col-12 col-lg-5"><label class="form-label" for="consultation_field">Jenis Masalah</label><select class="form-select" id="consultation_field" name="service_field_id"><option value="">Semua jenis masalah</option>@foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) request('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach</select></div>
-                <div class="col-12 col-lg-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
+                <div class="col-12 col-lg-5"><label class="form-label" for="consultation_search">Cari Murid</label><input class="form-control" id="consultation_search" name="search" value="{{ request('search') }}" placeholder="Nama murid" data-filter-field></div>
+                <div class="col-12 col-lg-5"><label class="form-label" for="consultation_field">Jenis Masalah</label><select class="form-select" id="consultation_field" name="service_field_id" data-filter-field><option value="">Semua jenis masalah</option>@foreach($serviceFields as $field)<option value="{{ $field->id }}" @selected((string) request('service_field_id') === (string) $field->id)>{{ $field->label }}</option>@endforeach</select></div>
+                <div class="col-12 col-lg-2"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
             </form></div></div>
             <div class="table-responsive">
                 <table class="table sibk-table mb-0 align-middle">
@@ -831,13 +857,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (pillBtn) {
                     pillBtn.classList.remove('sibk-follow-up-pill--empty');
                     pillBtn.classList.add('sibk-follow-up-pill--active');
-                }
-
-                // 2. Update status badge
-                const statusBadge = document.getElementById(`case-status-${targetCaseId}`);
-                if (statusBadge) {
-                    statusBadge.textContent = data.status_label || 'Tindak Lanjut';
-                    statusBadge.className = 'sibk-badge sibk-badge--warning';
                 }
 
                 // 3. Update hidden compatibility targets

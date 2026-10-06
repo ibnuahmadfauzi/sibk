@@ -217,7 +217,8 @@ class AchievementManagementTest extends TestCase
             ->assertOk()
             ->assertSee('name="search"', false)
             ->assertDontSee('name="classroom_id"', false)
-            ->assertSee('>Terapkan<', false)
+            ->assertSee('data-auto-filter', false)
+            ->assertSee('data-filter-action>Filter<', false)
             ->assertDontSee('>Reset<', false)
             ->assertDontSee('name="student_id"', false)
             ->assertDontSee('name="type_id"', false)
@@ -234,8 +235,8 @@ class AchievementManagementTest extends TestCase
 
         $this->get(route('achievements.index', ['search' => 'Murid Prestasi']))
             ->assertOk()
-            ->assertSee('>Reset<', false)
-            ->assertSee('>Terapkan<', false);
+            ->assertSee('data-filter-reset-url="'.route('achievements.index').'"', false)
+            ->assertSee('data-filter-action>Filter<', false);
 
         $otherLevel = ReferenceValue::query()->forCategory('achievement_level')->where('id', '!=', $achievement->level_id)->firstOrFail();
         $this->get(route('achievements.index', ['level_id' => $achievement->level_id]))

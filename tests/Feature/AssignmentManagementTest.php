@@ -114,15 +114,15 @@ class AssignmentManagementTest extends TestCase
         $this->actingAs($coordinator)->get(route('assignments.classes.index'))
             ->assertOk()
             ->assertViewHas('selectedYear', fn ($year) => $year->is($activeYear))
-            ->assertSee('Daftar Penugasan '.$activeYear->name)
-            ->assertSee('Tahun penugasan')
+            ->assertSee('Penugasan Kelas')
+            ->assertSee('data-auto-filter', false)
             ->assertDontSee('id="academic_year_id"', false);
 
         $this->actingAs($coordinator)->get(route('assignments.classes.index', [
             'academic_year_id' => $preparationYear->id,
         ]))->assertOk()
             ->assertViewHas('selectedYear', fn ($year) => $year->is($preparationYear))
-            ->assertSee('Daftar Penugasan '.$preparationYear->name)
+            ->assertSee('Penugasan Kelas')
             ->assertSee('type="hidden" name="academic_year_id" value="'.$preparationYear->id.'"', false)
             ->assertSee('XI RPL 1');
 
@@ -147,7 +147,7 @@ class AssignmentManagementTest extends TestCase
             'academic_year_id' => $preparationYear->id,
         ]))->assertOk()
             ->assertViewHas('selectedYear', fn ($year) => $year->is($preparationYear))
-            ->assertSee('Daftar Penugasan '.$preparationYear->name);
+            ->assertSee('Penugasan Kelas');
     }
 
     public function test_batch_assignment_saves_selected_classes_together(): void

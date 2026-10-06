@@ -167,7 +167,7 @@ final class WakaDashboardService
                 $latest = $studentCases->first();
 
                 return [
-                    'name' => $latest->student?->name ?? $latest->temporaryStudent?->reconciledStudent?->name ?? $latest->identityName(),
+                    'name' => \App\Support\StudentName::display($latest->student?->name ?? $latest->temporaryStudent?->reconciledStudent?->name ?? $latest->identityName()),
                     'classroom' => $latest->classroom?->name ?? '-',
                     'services' => $studentCases->map(static fn (BkCase $case): array => [
                         'service' => 'Permasalahan',

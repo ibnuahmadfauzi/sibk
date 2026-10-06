@@ -7,6 +7,7 @@
     $documentFilters = array_filter([
         'academic_year_id' => $report['filters']['academic_year_id'],
         'classroom_id' => $report['filters']['classroom_id'],
+        'classroom_search' => $report['filters']['classroom_search'],
         'service_type' => $report['filters']['service_type'],
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
@@ -49,8 +50,7 @@
         ])
 
         <p class="sibk-document-summary">
-            <strong>Ringkasan laporan:</strong>
-            {{ $report['summary_sentence'] }}
+            <strong>{{ $report['document_section_title'] }}</strong>
         </p>
 
         <div class="table-responsive">
@@ -88,7 +88,7 @@
                                 </span>
                             </td>
                             <td>
-                                <strong class="d-block text-uppercase">
+                                <strong class="d-block">
                                     {{ $row['name'] }}
                                 </strong>
                                 <span class="sibk-document-meta">{{ $row['classroom'] }}</span>

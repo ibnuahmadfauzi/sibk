@@ -147,6 +147,8 @@
                     class="row g-3 align-items-end"
                     action="{{ route('assignments.classes.index') }}"
                     method="GET"
+                    data-auto-filter
+                    data-filter-reset-url="{{ route('assignments.classes.index', $canChooseYear && ! $selectedYear->is_active ? ['academic_year_id' => $selectedYear->id] : []) }}"
                 >
                     @if($canChooseYear && ! $selectedYear->is_active)
                         <input type="hidden" name="academic_year_id" value="{{ $selectedYear->id }}">
@@ -162,6 +164,7 @@
                             autocomplete="off"
                             placeholder="Ketik nama kelas"
                             value="{{ request('search_kelas') }}"
+                            data-filter-field
                         >
                         <datalist id="class-suggestions">
                             @foreach($classSuggestions as $className)
@@ -171,14 +174,14 @@
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label" for="status">Status guru</label>
-                        <select class="form-select" id="status" name="status">
+                        <select class="form-select" id="status" name="status" data-filter-field data-filter-default="all">
                             <option value="all">Semua</option>
                             <option value="assigned" @selected(request('status') === 'assigned')>Ditugaskan</option>
                             <option value="unassigned" @selected(request('status') === 'unassigned')>Belum ditugaskan</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-3">
-                        <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
+                        <button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button>
                     </div>
                 </form>
             </div>

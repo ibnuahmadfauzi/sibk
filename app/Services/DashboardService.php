@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Integrations\IntegrationSettingState;
 use App\Models\AcademicYear;
 use App\Models\BkCase;
 use App\Models\Classroom;
@@ -97,11 +98,12 @@ class DashboardService
         };
         $activeCases = (clone $cases)->whereNull('closed_at')->count();
         $stats = [
-            ['label' => $mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan', 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan permasalahan aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
-            ['label' => $mode === 'waka' ? 'Seluruh permasalahan aktif' : 'Permasalahan aktif', 'value' => (string) $activeCases, 'meta' => $mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan', 'tone' => 'warning', 'kind' => 'cases'],
-            ['label' => 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => 'Perlu ditindaklanjuti', 'tone' => 'success', 'kind' => 'schedule'],
-            ['label' => 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Sesuai akses Anda', 'tone' => 'info', 'kind' => 'etatib'],
+            ['label' => $mode === 'teacher' ? 'Murid Binaan' : ($mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan'), 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan permasalahan aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
+            ['label' => $mode === 'teacher' ? 'Belum Selesai' : ($mode === 'waka' ? 'Seluruh permasalahan aktif' : 'Permasalahan aktif'), 'value' => (string) $activeCases, 'meta' => $mode === 'teacher' ? 'Permasalahan aktif' : ($mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan'), 'tone' => 'warning', 'kind' => 'cases'],
+            ['label' => $mode === 'teacher' ? 'Perlu Tindak Lanjut' : 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => $mode === 'teacher' ? 'Menunggu tindak lanjut' : 'Perlu ditindaklanjuti', 'tone' => $mode === 'teacher' ? 'warning' : 'success', 'kind' => 'schedule'],
+            ['label' => $mode === 'teacher' ? 'Pelanggaran e-Tatib' : 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Sesuai akses Anda', 'tone' => 'info', 'kind' => 'etatib'],
         ];
+        $assignedClasses = $mode === 'teacher' ? $this->teacherAssignedClasses($user, $year) : [];
 
         return [
             'role_key' => $mode,
@@ -128,7 +130,7 @@ class DashboardService
                 default => 'Tidak ada tindak lanjut',
             },
             'schedule_empty_description' => match ($mode) {
-                'teacher' => 'Belum ada aktivitas terbaru dari kelas yang Anda ampu.',
+                'teacher' => 'Belum ada aktivitas terbaru dari kelas binaan Anda.',
                 default => 'Tidak ada permasalahan berstatus Tindak Lanjut.',
             },
             'tindak_lanjut' => match ($mode) {
@@ -138,15 +140,16 @@ class DashboardService
             },
             'context_panel' => [
                 'title' => match ($mode) {
-                    'teacher' => 'Kelas Ampuan',
+                    'teacher' => 'Kelas Binaan',
                     'coordinator' => 'Kesiapan penugasan BK',
                 },
                 'items' => match ($mode) {
-                    'teacher' => $this->teacherAssignedClasses($user, $year),
+                    'teacher' => $assignedClasses,
                     'coordinator' => $this->coordinatorCoverageItems($year),
                 },
+                'groups' => $mode === 'teacher' ? $this->groupTeacherClasses($assignedClasses) : [],
                 'empty_title' => match ($mode) {
-                    'teacher' => 'Belum ada kelas ampuan',
+                    'teacher' => 'Belum ada kelas binaan',
                     default => 'Tidak ada data',
                 },
                 'empty_description' => match ($mode) {
@@ -172,6 +175,7 @@ class DashboardService
             ->first();
         $automaticSyncFailed = (bool) $etatibSetting?->automatic_sync_enabled
             && $lastAutomaticEtatibRun?->status === ExternalSyncRun::STATUS_FAILED;
+        $integrationItems = $this->technicalIntegrationItems($automaticSyncFailed);
 
         return [
             'role_key' => 'admin',
@@ -183,14 +187,14 @@ class DashboardService
             'alerts' => $automaticSyncFailed ? [[
                 'tone' => 'danger',
                 'title' => 'Pembaruan otomatis e-Tatib gagal',
-                'message' => $lastAutomaticEtatibRun?->summary ?? 'Periksa status sinkronisasi pada Data Master.',
+                'message' => 'Periksa status sinkronisasi pada Data Master.',
                 'url' => route('data-master.index'),
             ]] : [],
             'stats' => [
-                ['label' => 'Akun aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran aktif', 'tone' => 'primary', 'kind' => 'students'],
-                ['label' => 'Akun nonaktif', 'value' => (string) User::query()->where('is_active', false)->count(), 'meta' => 'Tidak dapat masuk', 'tone' => 'warning', 'kind' => 'cases'],
-                ['label' => 'Konflik belum selesai', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Dapodik dan e-Tatib', 'tone' => 'success', 'kind' => 'schedule', 'url' => route('data-master.index', ['tab' => 'sinkronisasi'])],
-                ['label' => 'Tahun ajaran aktif', 'value' => (string) AcademicYear::query()->where('is_active', true)->count(), 'meta' => 'Baseline operasional', 'tone' => 'info', 'kind' => 'etatib'],
+                ['label' => 'Akun Aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran', 'tone' => 'primary', 'kind' => 'students'],
+                ['label' => 'Akun Nonaktif', 'value' => (string) User::query()->where('is_active', false)->count(), 'meta' => 'Tidak dapat masuk', 'tone' => 'info', 'kind' => 'cases'],
+                ['label' => 'Konflik Sinkronisasi', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Perlu ditinjau', 'tone' => 'warning', 'kind' => 'attention', 'url' => route('data-master.index', ['tab' => 'sinkronisasi'])],
+                ['label' => 'Integrasi Bermasalah', 'value' => (string) collect($integrationItems)->whereIn('tone', ['warning', 'danger'])->count(), 'meta' => 'Perlu konfigurasi', 'tone' => 'warning', 'kind' => 'attention'],
             ],
             'schedule_title' => 'Status sinkronisasi terbaru',
             'schedule_url' => route('data-master.index', ['tab' => 'sinkronisasi']),
@@ -198,20 +202,40 @@ class DashboardService
                 'date' => $run->started_at->format('d'),
                 'month' => $run->started_at->locale('id')->translatedFormat('M'),
                 'year' => $run->started_at->format('Y'),
-                'code' => strtoupper($run->source).' #'.$run->id,
-                'title' => $run->summary ?: 'Sinkronisasi sumber eksternal',
+                'code' => $this->syncSourceLabel($run->source),
+                'title' => match ($run->status) {
+                    ExternalSyncRun::STATUS_SUCCEEDED => 'Sinkronisasi berhasil',
+                    ExternalSyncRun::STATUS_WARNING => 'Sinkronisasi perlu ditinjau',
+                    ExternalSyncRun::STATUS_FAILED => 'Sinkronisasi gagal',
+                    ExternalSyncRun::STATUS_RUNNING => 'Sinkronisasi sedang berlangsung',
+                    ExternalSyncRun::STATUS_PREVIEW_READY => 'Pratinjau siap ditinjau',
+                    ExternalSyncRun::STATUS_SUPERSEDED => 'Pratinjau sudah diganti',
+                    default => 'Status sinkronisasi belum diketahui',
+                },
                 'context_label' => sprintf('%d diproses, %d konflik', $run->processed_count, $run->conflict_count),
-                'status' => $run->status,
-                'status_tone' => $run->status === ExternalSyncRun::STATUS_FAILED ? 'danger' : 'info',
+                'status' => match ($run->status) {
+                    ExternalSyncRun::STATUS_SUCCEEDED => 'Berhasil',
+                    ExternalSyncRun::STATUS_WARNING => 'Peringatan',
+                    ExternalSyncRun::STATUS_FAILED => 'Gagal',
+                    ExternalSyncRun::STATUS_RUNNING => 'Berlangsung',
+                    ExternalSyncRun::STATUS_PREVIEW_READY => 'Pratinjau siap',
+                    ExternalSyncRun::STATUS_SUPERSEDED => 'Diganti',
+                    default => 'Belum diketahui',
+                },
+                'status_tone' => match ($run->status) {
+                    ExternalSyncRun::STATUS_FAILED => 'danger',
+                    ExternalSyncRun::STATUS_WARNING => 'warning',
+                    ExternalSyncRun::STATUS_SUCCEEDED => 'success',
+                    default => 'info',
+                },
                 'url' => route('data-master.index', ['tab' => 'sinkronisasi']),
             ])->all(),
             'context_panel' => [
-                'title' => 'Kesiapan data dan integrasi',
-                'items' => $this->technicalReadinessItems($year),
+                'title' => 'Status Integrasi',
+                'items' => $integrationItems,
             ],
             'quick_actions' => [
-                ['label' => 'Kelola akun', 'url' => route('admin.users.index'), 'primary' => true, 'icon' => 'account', 'tone' => 'primary'],
-                ['label' => 'Buka data master', 'url' => route('data-master.index'), 'primary' => false, 'icon' => 'data', 'tone' => 'info'],
+                ['label' => 'Tambah Akun', 'url' => route('admin.users.index', ['action' => 'create']), 'primary' => true, 'icon' => 'account', 'tone' => 'primary'],
             ],
         ];
     }
@@ -244,6 +268,13 @@ class DashboardService
             ->sortBy('name', SORT_NATURAL);
 
         return $classrooms->map(function (Classroom $classroom): array {
+            preg_match('/^(?:Kelas\s+)?(12|11|10|XII|XI|X)(?:\s|[-\/]|$)/iu', trim($classroom->name), $gradeMatch);
+            $grade = $classroom->grade_level ?: match (strtoupper($gradeMatch[1] ?? '')) {
+                'X', '10' => 10,
+                'XI', '11' => 11,
+                'XII', '12' => 12,
+                default => null,
+            };
             $metaParts = [];
             if ($classroom->grade_level) {
                 $metaParts[] = 'Tingkat '.$classroom->grade_level;
@@ -255,10 +286,38 @@ class DashboardService
             return [
                 'label' => $classroom->name,
                 'value' => sprintf('%d murid', $classroom->student_count ?? 0),
+                'student_count' => (int) ($classroom->student_count ?? 0),
                 'meta' => ! empty($metaParts) ? implode(' • ', $metaParts) : 'Kelas aktif',
                 'url' => route('students.index', ['classroom_id' => $classroom->getKey()]),
+                'grade' => $grade,
             ];
         })->values()->all();
+    }
+
+    /** @param list<array<string, mixed>> $classes @return array<int, array<string, mixed>> */
+    private function groupTeacherClasses(array $classes): array
+    {
+        $groups = [];
+        foreach ([10, 11, 12] as $grade) {
+            $items = array_values(array_map(
+                fn (array $item): array => [
+                    'label' => $item['label'],
+                    'value' => $item['value'],
+                    'url' => $item['url'],
+                ],
+                array_filter($classes, fn (array $item): bool => (int) $item['grade'] === $grade)
+            ));
+            $groups[$grade] = [
+                'items' => $items,
+                'class_count' => count($items),
+                'student_count' => array_sum(array_map(
+                    fn (array $item): int => $item['grade'] === $grade ? $item['student_count'] : 0,
+                    $classes
+                )),
+            ];
+        }
+
+        return $groups;
     }
 
     /** @return list<array<string, mixed>> */
@@ -284,7 +343,7 @@ class DashboardService
             ->with(['student', 'temporaryStudent', 'classroom', 'status', 'serviceField', 'followUpType'])
             ->latest('created_at')
             ->latest('id')
-            ->limit(4)
+            ->limit(5)
             ->get();
 
         $consultations = Consultation::query()
@@ -295,7 +354,7 @@ class DashboardService
             ->with(['student', 'temporaryStudent', 'classroom', 'serviceField'])
             ->latest('created_at')
             ->latest('id')
-            ->limit(4)
+            ->limit(5)
             ->get();
 
         $caseItems = $cases->map(function (BkCase $case): array {
@@ -312,9 +371,11 @@ class DashboardService
                 'month' => $date->locale('id')->translatedFormat('M'),
                 'year' => $date->format('Y'),
                 'code' => 'Layanan permasalahan',
-                'title' => $case->followUpType?->label
-                    ?? ($case->serviceField?->label ? 'Layanan '.$case->serviceField->label : 'Permasalahan layanan BK'),
-                'context_label' => sprintf('%s (%s)', $case->identityName(), $case->classroom?->name ?? 'tanpa kelas'),
+                'title' => $case->serviceField?->label
+                    ? 'Permasalahan '.$case->serviceField->label
+                    : 'Permasalahan layanan BK',
+                'follow_up' => $case->followUpType?->label,
+                'context_label' => sprintf('%s · %s', \App\Support\StudentName::display($case->identityName()), $case->classroom?->name ?? 'Tanpa kelas'),
                 'status' => $case->status?->label ?? 'Aktif',
                 'status_tone' => $statusTone,
             ];
@@ -330,7 +391,8 @@ class DashboardService
                 'year' => $date->format('Y'),
                 'code' => 'Layanan konsultasi',
                 'title' => $consultation->serviceField?->label ? 'Konsultasi '.$consultation->serviceField->label : 'Sesi konsultasi',
-                'context_label' => sprintf('%s (%s)', $consultation->identityName(), $consultation->classroom?->name ?? 'tanpa kelas'),
+                'follow_up' => null,
+                'context_label' => sprintf('%s · %s', \App\Support\StudentName::display($consultation->identityName()), $consultation->classroom?->name ?? 'Tanpa kelas'),
                 'status' => 'Konsultasi',
                 'status_tone' => 'info',
             ];
@@ -338,7 +400,7 @@ class DashboardService
 
         return $caseItems->concat($consultationItems)
             ->sortByDesc('timestamp')
-            ->take(4)
+            ->take(5)
             ->values()
             ->all();
     }
@@ -362,21 +424,56 @@ class DashboardService
         ];
     }
 
-    /** @return list<array{label: string, value: string, meta: string}> */
-    private function technicalReadinessItems(?AcademicYear $year): array
+    /** @return list<array{label: string, value: string, meta: string, tone: string, url: string}> */
+    private function technicalIntegrationItems(bool $automaticEtatibSyncFailed): array
     {
-        $configuredProviders = IntegrationSetting::query()
-            ->whereIn('provider', IntegrationSetting::PROVIDERS)
-            ->whereNotNull('credentials')
-            ->distinct()
-            ->count('provider');
-
-        return [
-            ['label' => 'Akun aktif', 'value' => (string) User::query()->active()->count(), 'meta' => 'Seluruh peran operasional'],
-            ['label' => 'Konflik sinkronisasi', 'value' => (string) ExternalSyncIssue::query()->whereNull('resolved_at')->count(), 'meta' => 'Belum diselesaikan'],
-            ['label' => 'Tahun ajaran aktif', 'value' => $year?->name ?? 'Belum ada', 'meta' => 'Periode dashboard'],
-            ['label' => 'Provider tanpa credential', 'value' => (string) (count(IntegrationSetting::PROVIDERS) - $configuredProviders), 'meta' => 'Dapodik dan e-Tatib'],
+        $sources = [
+            'dapodik' => ['label' => 'Dapodik', 'tab' => 'dapodik'],
+            'etatib' => ['label' => 'e-Tatib', 'tab' => 'etatib'],
+            'api_siswa' => ['label' => 'API Siswa', 'tab' => 'dapodik'],
         ];
+
+        $items = [];
+        foreach ($sources as $source => $display) {
+            $run = ExternalSyncRun::query()->where('source', $source)->latest('started_at')->first();
+            $conflicts = ExternalSyncIssue::query()->whereNull('resolved_at')
+                ->whereHas('syncRun', fn (Builder $query): Builder => $query->where('source', $source))
+                ->count();
+            $dapodikState = $source === 'dapodik'
+                ? app(IntegrationStateResolver::class)->forProvider(IntegrationSetting::PROVIDER_DAPODIK)->state
+                : null;
+
+            [$value, $meta, $tone] = match (true) {
+                $conflicts > 0 => ['Perhatian', $conflicts.' konflik perlu ditinjau', 'warning'],
+                $source === 'etatib' && $automaticEtatibSyncFailed => ['Perhatian', 'Pembaruan otomatis gagal', 'warning'],
+                $run?->status === ExternalSyncRun::STATUS_FAILED => ['Perhatian', 'Sinkronisasi gagal', 'warning'],
+                $run?->status === ExternalSyncRun::STATUS_WARNING => ['Perhatian', 'Sinkronisasi perlu ditinjau', 'warning'],
+                $dapodikState === IntegrationSettingState::STATE_UNCONFIGURED => ['Perlu konfigurasi', 'Atur koneksi sumber', 'warning'],
+                $dapodikState !== null && $dapodikState !== IntegrationSettingState::STATE_ACTIVE => ['Perhatian', 'Koneksi belum siap', 'warning'],
+                $run?->status === ExternalSyncRun::STATUS_SUCCEEDED => ['Normal', $source === 'api_siswa' ? 'Impor terakhir berhasil' : 'Sinkronisasi berhasil', 'success'],
+                $run?->status === ExternalSyncRun::STATUS_RUNNING => ['Berlangsung', 'Sinkronisasi sedang berjalan', 'info'],
+                default => ['Belum ada data', 'Belum ada sinkronisasi berhasil', 'info'],
+            };
+            $items[] = [
+                'label' => $display['label'],
+                'value' => $value,
+                'meta' => $meta,
+                'tone' => $tone,
+                'url' => route('data-master.index', ['tab' => $conflicts > 0 ? 'sinkronisasi' : $display['tab']]),
+            ];
+        }
+
+        return $items;
+    }
+
+    private function syncSourceLabel(string $source): string
+    {
+        return match ($source) {
+            'dapodik' => 'Dapodik',
+            'etatib' => 'e-Tatib',
+            'api_siswa' => 'Data Siswa',
+            default => 'Sumber data',
+        };
     }
 
     /** @return array{string, string} */
@@ -407,7 +504,7 @@ class DashboardService
                 'year' => $case->service_date->format('Y'),
                 'code' => 'Layanan permasalahan',
                 'title' => $case->followUpType?->label ?? 'Tindak Lanjut',
-                'context_label' => sprintf('%s (%s)', $case->identityName(), $case->classroom?->name ?? 'tanpa kelas'),
+                'context_label' => sprintf('%s (%s)', \App\Support\StudentName::display($case->identityName()), $case->classroom?->name ?? 'tanpa kelas'),
                 'status' => $case->status->label,
                 'status_tone' => 'warning',
                 'url' => route('cases.show', $case),
@@ -425,7 +522,7 @@ class DashboardService
                 'year' => $case->service_date->format('Y'),
                 'code' => 'Layanan permasalahan',
                 'title' => 'Permasalahan layanan BK',
-                'context_label' => $case->identityName(),
+                'context_label' => \App\Support\StudentName::display($case->identityName()),
                 'status' => $case->status->label,
                 'status_tone' => $case->closed_at === null ? 'warning' : 'success',
                 'url' => route('cases.show', $case),
@@ -452,7 +549,6 @@ class DashboardService
         return [
             ['label' => 'Catat Permasalahan', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
             ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => true, 'icon' => 'consultation', 'tone' => 'primary'],
-            ['label' => 'Laporan', 'url' => route('reports.index'), 'primary' => true, 'icon' => 'report', 'tone' => 'primary'],
         ];
     }
 }

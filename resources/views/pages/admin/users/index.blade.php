@@ -14,10 +14,10 @@
         data-account-old-target="{{ old('_account_target', '') }}"
         data-account-old-roles="{{ implode(',', is_array($oldAccountRoles) ? $oldAccountRoles : []) }}"
     >
-        <div class="sibk-page-header mb-4">
-            <div class="sibk-page-header__copy">
+        <div class="sibk-page-header mb-3">
+            <div class="sibk-page-header__copy mb-2">
                 <h1>Kelola Akun</h1>
-                <p>Buat akun, tetapkan peran, serta atur akses pengguna.</p>
+                <p>Buat akun, tetapkan peran, dan kelola akses pengguna.</p>
             </div>
             <button
                 class="btn btn-primary"
@@ -27,13 +27,13 @@
                 data-account-create
                 data-store-url="{{ route('admin.users.store') }}"
             >
-                Tambah akun
+                Tambah Akun
             </button>
         </div>
 
         @if(session('success') || $temporaryPasswordResult !== null)
             <x-notification-toast :title="$temporaryPasswordResult !== null ? 'Sandi sementara tersedia' : 'Perubahan berhasil'">
-                {{ $temporaryPasswordResult !== null ? 'Buka detail akun dan salin sandi sekarang.' : session('success') }}
+                {{ $temporaryPasswordResult !== null ? 'Salin sandi sementara pada informasi akun sekarang.' : session('success') }}
             </x-notification-toast>
         @endif
 
@@ -48,21 +48,32 @@
             </div>
         @endif
 
-        <section class="sibk-panel" aria-labelledby="account-list-title">
-            <div class="sibk-panel__header">
-                <div>
-                    <h2 class="sibk-panel__title" id="account-list-title">Daftar Akun</h2>
-                    <p class="sibk-panel__subtitle">Pilih peran langsung dari tabel atau buka detail akun.</p>
+        <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4">
+            <form class="row g-3 align-items-end" action="{{ route('admin.users.index') }}" method="GET" data-auto-filter data-filter-reset-url="{{ route('admin.users.index') }}">
+                <div class="col-12 col-md">
+                    <label class="visually-hidden" for="accountSearch">Cari nama atau email</label>
+                    <input class="form-control" id="accountSearch" type="search" name="q" value="{{ $filters['q'] }}" placeholder="Cari nama atau email..." maxlength="150" data-filter-field>
                 </div>
-                <span class="sibk-badge sibk-badge--primary">{{ $users->total() }} akun</span>
-            </div>
+                <div class="col-12 col-md-4">
+                    <label class="visually-hidden" for="accountRoleFilter">Peran</label>
+                    <select class="form-select" id="accountRoleFilter" name="role" data-filter-field>
+                        <option value="">Semua Peran</option>
+                        @foreach($roles as $role)
+                            <option value="{{ $role->slug }}" @selected($filters['role'] === $role->slug)>{{ $role->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-12 col-md-auto"><button class="btn btn-outline-primary" type="submit" data-filter-action>Filter</button></div>
+            </form>
+        </div></div>
+        <section class="sibk-panel" aria-label="Akun pengguna">
             <div class="table-responsive">
-                <table class="table sibk-table mb-0 sibk-account-table">
+                <table class="table sibk-table mb-0 sibk-account-management-table">
                     <thead>
                         <tr>
                             <th>Nama</th>
                             <th>Peran</th>
-                            <th>Sandi</th>
+                            <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -76,33 +87,7 @@
                                 <td>
                                     <strong>{{ $managedUser->name }}</strong>
                                     @if(auth()->user()->is($managedUser))
-                                        <span class="d-block small text-muted">Aktif · Akun Anda</span>
-                                    @else
-                                        <form
-                                            action="{{ route('admin.users.update', $managedUser) }}"
-                                            method="POST"
-                                        >
-                                            @csrf
-                                            @method('PATCH')
-                                            <input
-                                                type="hidden"
-                                                name="is_active"
-                                                value="{{ $managedUser->is_active ? '0' : '1' }}"
-                                            >
-                                            <button
-                                                class="sibk-account-switch"
-                                                type="submit"
-                                                role="switch"
-                                                aria-checked="{{ $managedUser->is_active ? 'true' : 'false' }}"
-                                                aria-label="Status akun {{ $managedUser->name }}"
-                                                title="{{ $managedUser->is_active ? 'Nonaktifkan' : 'Aktifkan' }} akun"
-                                            >
-                                                <span class="sibk-account-switch__track" aria-hidden="true">
-                                                    <span class="sibk-account-switch__thumb"></span>
-                                                </span>
-                                                {{ $managedUser->is_active ? 'Aktif' : 'Nonaktif' }}
-                                            </button>
-                                        </form>
+                                        <div><span class="sibk-badge sibk-badge--primary mt-1">Akun Anda</span></div>
                                     @endif
                                 </td>
                                 <td>
@@ -139,7 +124,7 @@
                                             data-account-name="{{ $managedUser->name }}"
                                             data-account-url="{{ route('admin.users.update', $managedUser) }}"
                                             data-account-roles="{{ $managedUser->roles->pluck('slug')->implode(',') }}"
-                                            aria-label="Tambah peran untuk {{ $managedUser->name }}"
+                                            aria-label="Tambah Peran" title="Tambah Peran"
                                             @disabled(auth()->user()->is($managedUser)
                                                 || $managedUser->hasAnyRole(['admin_it', 'waka_kesiswaan']))
                                         >
@@ -150,19 +135,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    @unless(auth()->user()->is($managedUser))
-                                        <form
-                                            action="{{ route('admin.users.reset-password', $managedUser) }}"
-                                            method="POST"
-                                        >
-                                            @csrf
-                                            <button class="btn btn-outline-primary btn-sm" type="submit">
-                                                Reset sandi
-                                            </button>
-                                        </form>
-                                    @else
-                                        <span class="small text-muted">Akun Anda</span>
-                                    @endunless
+                                    <span class="sibk-badge sibk-badge--{{ $managedUser->is_active ? 'success' : 'danger' }}">{{ $managedUser->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-1">
@@ -172,14 +145,27 @@
                                             data-account-detail-toggle
                                             aria-controls="account-detail-{{ $managedUser->id }}"
                                             aria-expanded="{{ $hasTemporaryPassword ? 'true' : 'false' }}"
-                                            aria-label="{{ $hasTemporaryPassword ? 'Tutup' : 'Tampilkan' }} detail {{ $managedUser->name }}"
-                                            title="{{ $hasTemporaryPassword ? 'Tutup' : 'Tampilkan' }} detail akun"
+                                            aria-label="{{ $hasTemporaryPassword ? 'Tutup Informasi' : 'Lihat Informasi' }}"
+                                            title="{{ $hasTemporaryPassword ? 'Tutup Informasi' : 'Lihat Informasi' }}"
                                         >
                                             <svg aria-hidden="true" viewBox="0 0 24 24">
                                                 <circle cx="10.8" cy="10.8" r="6.3" />
                                                 <path d="m15.4 15.4 4.3 4.3" />
                                             </svg>
                                         </button>
+                                        <form action="{{ route('admin.users.reset-password', $managedUser) }}" method="POST"
+                                            data-app-confirm-submit
+                                            data-confirm-title="Reset Sandi?"
+                                            data-confirm-message="Reset sandi akun"
+                                            data-confirm-subject="{{ $managedUser->name }}"
+                                            data-confirm-suffix="? Sandi sebelumnya tidak dapat digunakan lagi."
+                                            data-confirm-action="Ya, Reset Sandi"
+                                            data-confirm-tone="warning">
+                                            @csrf
+                                            <button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="submit" title="Reset Sandi" aria-label="Reset Sandi" @disabled(auth()->user()->is($managedUser))>
+                                                <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="5"/><path d="m12 12 9 9m-3-3 3-3m-6 0 3-3"/></svg>
+                                            </button>
+                                        </form>
                                         <button
                                             class="btn btn-sm p-0 sibk-icon-button sibk-report-control"
                                             type="button"
@@ -189,10 +175,11 @@
                                             data-account-id="{{ $managedUser->id }}"
                                             data-account-name="{{ $managedUser->name }}"
                                             data-account-email="{{ $managedUser->email }}"
+                                            data-account-active="{{ $managedUser->is_active ? '1' : '0' }}"
                                             data-account-url="{{ route('admin.users.update', $managedUser) }}"
                                             data-account-roles="{{ $managedUser->roles->pluck('slug')->implode(',') }}"
-                                            aria-label="Edit akun {{ $managedUser->name }}"
-                                            title="Edit akun"
+                                            aria-label="Edit Akun"
+                                            title="Edit Akun"
                                         >
                                             <svg aria-hidden="true" viewBox="0 0 24 24">
                                                 <path d="m4 20 4.5-1 10-10a2 2 0 0 0-2.8-2.8l-10 10L4 20Z" />
@@ -208,47 +195,38 @@
                             >
                                 <td colspan="4">
                                     <div class="sibk-report-detail-panel">
-                                        <div class="row g-2 small">
-                                            <div class="col-12 col-md-6">
+                                        <div class="row g-3 small">
+                                            <div class="col-12 col-md-6 col-lg-4">
                                                 <strong>Email</strong>
-                                                <span class="d-block">{{ $managedUser->email }}</span>
+                                                <a class="d-block text-break" href="mailto:{{ $managedUser->email }}">{{ $managedUser->email }}</a>
                                             </div>
-                                            <div class="col-12 col-md-6">
+                                            <div class="col-12 col-md-6 col-lg-4">
                                                 <strong>Login terakhir</strong>
-                                                <span class="d-block">
-                                                    {{ $managedUser->last_login_at?->locale('id')->translatedFormat('d M Y H.i') ?? 'Belum tercatat' }}
-                                                </span>
+                                                <span class="d-block">{{ $managedUser->last_login_at ? $managedUser->last_login_at->timezone('Asia/Jakarta')->locale('id')->translatedFormat('j F Y, H.i').' WIB' : '' }}</span>
+                                                @unless($managedUser->last_login_at)<span>Belum tercatat</span>@endunless
                                             </div>
-                                            <div class="col-12">
-                                                <strong>Sandi</strong>
-                                                @if($hasTemporaryPassword)
-                                                    <span class="d-block font-monospace user-select-all" aria-label="Sandi sementara">
-                                                        {{ $temporaryPasswordResult->plainTextPassword }}
-                                                    </span>
-                                                    <span class="d-block text-muted">
-                                                        Berlaku sampai {{ $temporaryPasswordResult->expiresAt->locale('id')->translatedFormat('d M Y H.i') }}.
-                                                        Sampaikan melalui saluran resmi; pengguna wajib menggantinya saat login.
-                                                    </span>
-                                                @elseif($managedUser->must_change_password)
-                                                    <span class="d-block">
-                                        @if($managedUser->temporary_password_expires_at?->isPast())
-                                            Sandi sementara telah kedaluwarsa.
-                                        @else
-                                            Sandi sementara aktif sampai
-                                            {{ $managedUser->temporary_password_expires_at?->locale('id')->translatedFormat('d M Y H.i') ?? 'waktu tidak tersedia' }}.
-                                        @endif
-                                                    </span>
-                                                @else
-                                                    <span class="d-block">Sandi sudah diganti.</span>
-                                                @endif
+                                            <div class="col-12 col-md-6 col-lg-4">
+                                                <strong>Status sandi</strong>
+                                                <span class="d-block">{{ $managedUser->must_change_password ? ($managedUser->temporary_password_expires_at?->isPast() ? 'Sandi sementara kedaluwarsa' : 'Masih menggunakan sandi sementara') : 'Sudah diubah pengguna' }}</span>
                                             </div>
                                         </div>
+                                        @if($hasTemporaryPassword)
+                                            <div class="mt-3" data-account-secret>
+                                                <strong class="d-block small mb-2">Sandi sementara</strong>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <code class="user-select-all" data-account-secret-value>{{ $temporaryPasswordResult->plainTextPassword }}</code>
+                                                    <button class="btn btn-outline-primary btn-sm" type="button" data-account-copy>Salin</button>
+                                                </div>
+                                                <p class="small text-muted mt-2 mb-0">Salin sekarang. Sandi hanya ditampilkan sampai informasi ditutup atau halaman ditinggalkan.</p>
+                                                <span class="small" role="status" data-account-copy-status></span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="text-center py-4 text-muted" colspan="4">Belum ada akun.</td>
+                                <td class="text-center py-4 text-muted" colspan="4">{{ $filters['q'] !== '' || $filters['role'] !== '' ? 'Tidak ada akun yang sesuai filter.' : 'Belum ada akun.' }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -269,7 +247,7 @@
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h2 class="modal-title fs-5" id="accountModalTitle">Tambah akun</h2>
+                        <h2 class="modal-title fs-5" id="accountModalTitle">Tambah Akun</h2>
                         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <form id="accountForm" action="{{ route('admin.users.store') }}" method="POST">
@@ -299,6 +277,13 @@
                                     value="{{ old('email', '') }}"
                                     required
                                 >
+                            </div>
+                            <div class="mb-3 d-none" data-account-status-field>
+                                <label class="form-label" for="accountStatus">Status</label>
+                                <select class="form-select" id="accountStatus" name="is_active" disabled>
+                                    <option value="1" @selected(old('is_active', '1') == '1')>Aktif</option>
+                                    <option value="0" @selected(old('is_active', '1') == '0')>Nonaktif</option>
+                                </select>
                             </div>
                             <div data-account-role-picker>
                                 <span class="form-label d-block">Peran</span>

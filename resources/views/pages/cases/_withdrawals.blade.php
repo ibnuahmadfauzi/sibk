@@ -3,11 +3,11 @@
 @endphp
 
 <div class="sibk-panel mb-4"><div class="sibk-panel__body p-4">
-    <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET">
+    <form class="sibk-filter-form row g-3 align-items-end" action="{{ route('cases.index') }}" method="GET" data-auto-filter data-filter-reset-url="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">
         <input type="hidden" name="tab" value="pengunduran-diri">
-        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-search">Cari Murid</label><input class="form-control" id="withdrawal-search" name="search" value="{{ request('search') }}" placeholder="Nama murid"></div>
-        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-progress-filter">Progres</label><select class="form-select" id="withdrawal-progress-filter" name="progress"><option value="">Semua progres</option>@foreach($progressLabels as $value => $label)<option value="{{ $value }}" @selected(request('progress') === $value)>{{ $label }}</option>@endforeach</select></div>
-        <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit">Filter</button></div>
+        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-search">Cari Murid</label><input class="form-control" id="withdrawal-search" name="search" value="{{ request('search') }}" placeholder="Nama murid" data-filter-field></div>
+        <div class="col-12 col-md-5"><label class="form-label" for="withdrawal-progress-filter">Progres</label><select class="form-select" id="withdrawal-progress-filter" name="progress" data-filter-field><option value="">Semua progres</option>@foreach($progressLabels as $value => $label)<option value="{{ $value }}" @selected(request('progress') === $value)>{{ $label }}</option>@endforeach</select></div>
+        <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
     </form>
 </div></div>
 
@@ -32,7 +32,7 @@
     @endphp
     <tr>
         <td><div class="fw-semibold text-dark">{{ $withdrawal->recorded_on->locale('id')->translatedFormat('l') }}</div><div class="text-muted small text-nowrap">{{ $withdrawal->recorded_on->locale('id')->translatedFormat('d M Y') }}</div></td>
-        <td><div class="fw-semibold text-dark">{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }}</div><div class="text-muted small">{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}</div></td>
+        <td><div class="fw-semibold text-dark">{{ \App\Support\StudentName::display($withdrawal->student?->name) ?: 'Murid tidak tersedia' }}</div><div class="text-muted small">{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}</div></td>
         <td>{{ $withdrawal->teacher?->name ?? 'Guru tidak tersedia' }}</td>
         <td style="min-width: 240px;">
             <div class="sibk-follow-up-dropdown w-100" data-withdrawal-id="{{ $withdrawal->id }}" style="max-width: 240px;">
@@ -48,18 +48,18 @@
                         @endforeach
                     </div>
                     @can('update', $withdrawal)
-                        <div class="sibk-follow-up-add-wrapper"><button type="button" class="btn btn-link sibk-follow-up-add-btn" data-withdrawal-follow-up-open data-withdrawal-id="{{ $withdrawal->id }}" data-student-name="{{ $withdrawal->student?->name }}" data-store-url="{{ route('withdrawals.follow-ups.store', $withdrawal) }}" data-min-date="{{ $withdrawal->recorded_on->toDateString() }}" data-current-progress="{{ $withdrawal->progress }}"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15"/></svg><span>Tambah Progres Penanganan</span></button></div>
+                        <div class="sibk-follow-up-add-wrapper"><button type="button" class="btn btn-link sibk-follow-up-add-btn" data-withdrawal-follow-up-open data-withdrawal-id="{{ $withdrawal->id }}" data-student-name="{{ \App\Support\StudentName::display($withdrawal->student?->name) }}" data-store-url="{{ route('withdrawals.follow-ups.store', $withdrawal) }}" data-min-date="{{ $withdrawal->recorded_on->toDateString() }}" data-current-progress="{{ $withdrawal->progress }}"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15"/></svg><span>Tambah Progres Penanganan</span></button></div>
                     @endcan
                 </div>
             </div>
         </td>
         <td>
             <div class="d-flex align-items-center gap-1">
-                    <button type="button" class="btn btn-icon-action btn-icon-action--info" data-withdrawal-note-toggle data-student-name="{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }}" aria-controls="withdrawal-note-{{ $withdrawal->id }}" aria-expanded="false" aria-label="Tampilkan catatan pengunduran diri {{ $withdrawal->student?->name }}" title="Tampilkan catatan">
+                    <button type="button" class="btn btn-icon-action btn-icon-action--info" data-withdrawal-note-toggle data-student-name="{{ \App\Support\StudentName::display($withdrawal->student?->name) ?: 'Murid tidak tersedia' }}" aria-controls="withdrawal-note-{{ $withdrawal->id }}" aria-expanded="false" aria-label="Tampilkan catatan pengunduran diri {{ \App\Support\StudentName::display($withdrawal->student?->name) }}" title="Tampilkan catatan">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m16 16 5 5"/></svg>
                     </button>
                     @can('update', $withdrawal)
-                        <a href="{{ route('withdrawals.edit', $withdrawal) }}" data-modal-url="{{ route('withdrawals.edit', [$withdrawal, 'modal' => 1]) }}" class="btn btn-icon-action btn-icon-action--info" aria-label="Edit pengunduran diri {{ $withdrawal->student?->name }}" title="Edit">
+                        <a href="{{ route('withdrawals.edit', $withdrawal) }}" data-modal-url="{{ route('withdrawals.edit', [$withdrawal, 'modal' => 1]) }}" class="btn btn-icon-action btn-icon-action--info" aria-label="Edit pengunduran diri {{ \App\Support\StudentName::display($withdrawal->student?->name) }}" title="Edit">
                             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
                         </a>
                     @endcan
@@ -68,13 +68,13 @@
                             data-app-confirm-submit
                             data-confirm-title="Hapus penanganan pengunduran diri?"
                             data-confirm-message="Apakah Anda yakin ingin menghapus penanganan pengunduran diri milik"
-                            data-confirm-subject="{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }}"
+                            data-confirm-subject="{{ \App\Support\StudentName::display($withdrawal->student?->name) ?: 'Murid tidak tersedia' }}"
                             data-confirm-suffix="? Seluruh riwayat progres penanganan akan ikut terhapus."
                             data-confirm-action="Hapus"
                             data-confirm-tone="danger">
                             @csrf
                             @method('DELETE')
-                            <button class="btn btn-icon-action btn-icon-action--danger" type="submit" aria-label="Hapus penanganan pengunduran diri {{ $withdrawal->student?->name }}" title="Hapus">
+                            <button class="btn btn-icon-action btn-icon-action--danger" type="submit" aria-label="Hapus penanganan pengunduran diri {{ \App\Support\StudentName::display($withdrawal->student?->name) }}" title="Hapus">
                                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                             </button>
                         </form>

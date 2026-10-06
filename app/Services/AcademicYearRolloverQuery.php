@@ -55,7 +55,7 @@ final class AcademicYearRolloverQuery
             return [
                 'student_id' => (int) $student->getKey(),
                 'nisn' => $student->nisn,
-                'student_name' => $student->name,
+                'student_name' => \App\Support\StudentName::display($student->name),
                 'source_classroom' => $membership->classroom?->name ?? '-',
             ];
         })->all();

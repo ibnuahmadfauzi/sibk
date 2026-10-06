@@ -7,7 +7,7 @@
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
                 <h1>Data Kelas</h1>
-                <p>Rombel aktif otomatis tersedia saat tahun ajaran baru dibuat.</p>
+                <p>Rombel aktif tersedia otomatis saat tahun ajaran baru dibuat.</p>
             </div>
         </div>
 
@@ -21,44 +21,46 @@
             </div>
         @endif
 
-        <section class="sibk-panel mb-4" aria-labelledby="add-classroom-title">
-            <div class="sibk-panel__body p-4">
-                <h2 class="fs-5 mb-2" id="add-classroom-title">Tambah rombel</h2>
-                <p class="text-muted mb-3">Rombel baru langsung tersedia pada tahun ajaran Persiapan dan aktif.</p>
-                <form class="row g-3 align-items-end" action="{{ route('data-master.classrooms.store') }}" method="POST">
-                    @csrf
-                    <div class="col-12 col-md-8">
-                        <label class="form-label" for="classroom-name">Nama rombel</label>
-                        <input class="form-control" id="classroom-name" name="name" value="{{ old('name') }}" maxlength="100" placeholder="Contoh: X RPL 1" required>
+        @if($jurusan === null)
+            <section class="sibk-panel mb-4" aria-label="Tambah Rombel">
+                <div class="sibk-panel__body p-3">
+                    @include('pages.data-master._classroom-create-form')
+                </div>
+            </section>
+        @else
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{{ route('data-master.classrooms.index') }}" class="btn btn-icon btn-light text-primary flex-shrink-0" aria-label="Kembali ke semua jurusan" title="Kembali ke semua jurusan">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>
+                    </a>
+                    <h2 class="fs-5 mb-0">Rombel Jurusan {{ $jurusan }}</h2>
+                </div>
+                <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createClassroomModal">Tambah Rombel</button>
+            </div>
+            <div class="modal fade" id="createClassroomModal" tabindex="-1" aria-labelledby="createClassroomTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="createClassroomTitle">Tambah Rombel</h2>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
-                    <div class="col-12 col-md-4"><button class="btn btn-primary w-100" type="submit">Tambah Rombel</button></div>
-                </form>
+                    <div class="modal-body">@include('pages.data-master._classroom-create-form')</div>
+                </div></div>
             </div>
-        </section>
+        @endif
 
-        <section class="sibk-panel" aria-labelledby="classroom-list-title">
-            <div class="sibk-panel__header">
-                <div>
-                    <h2 class="sibk-panel__title" id="classroom-list-title">{{ $jurusan === null ? 'Daftar Jurusan' : 'Rombel Jurusan '.$jurusan }}</h2>
-                    <p class="sibk-panel__subtitle">{{ $jurusan === null ? 'Lihat daftar rombel pada setiap jurusan.' : 'Klik nama untuk menggantinya. Gunakan tombol status untuk mengaktifkan atau menonaktifkan rombel.' }} {{ $activeYear ? 'Jumlah murid tahun ajaran aktif '.$activeYear->name.'.' : 'Belum ada tahun ajaran aktif; jumlah murid ditampilkan 0.' }}</p>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    @if($jurusan !== null)<a class="btn btn-outline-secondary btn-sm" href="{{ route('data-master.classrooms.index') }}">Semua Jurusan</a>@endif
-                    <span class="sibk-badge sibk-badge--primary">{{ $jurusan === null ? $classrooms->count() : $groups->get($jurusan)->count() }} rombel</span>
-                </div>
-            </div>
+        <section class="sibk-panel" aria-label="{{ $jurusan === null ? 'Jurusan' : 'Rombel Jurusan '.$jurusan }}">
             <div class="table-responsive">
                 <table class="table sibk-table sibk-classroom-table mb-0 align-middle">
                     @if($jurusan === null)
-                    <thead><tr><th scope="col">Jurusan</th><th scope="col">Jumlah Rombel</th><th scope="col">Jumlah Murid</th><th scope="col">Aksi</th></tr></thead>
+                    <thead><tr><th scope="col">Jurusan</th><th scope="col">Rombel</th><th scope="col">Murid</th><th scope="col">Aksi</th></tr></thead>
                     <tbody>
                         @forelse($groups as $name => $group)
                             <tr>
                                 <td class="fw-semibold">{{ $name }}</td>
                                 <td>{{ $group->count() }}</td>
                                 <td>{{ $group->sum(fn ($classroom) => $studentCounts->get($classroom->id, 0)) }}</td>
-                                <td><a class="btn btn-sm p-0 sibk-icon-button sibk-report-control" href="{{ route('data-master.classrooms.index', ['jurusan' => $name]) }}" aria-label="Lihat daftar rombel jurusan {{ $name }}" title="Lihat rombel jurusan {{ $name }}">
-                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg>
+                                <td><a class="btn btn-sm p-0 sibk-icon-button sibk-report-control" href="{{ route('data-master.classrooms.index', ['jurusan' => $name]) }}" aria-label="Lihat Rombel" title="Lihat Rombel">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
                                 </a></td>
                             </tr>
                         @empty
@@ -66,7 +68,7 @@
                         @endforelse
                     </tbody>
                     @else
-                    <thead><tr><th scope="col">Nama Rombel</th><th scope="col">Jumlah Murid</th><th scope="col">Status</th></tr></thead>
+                    <thead><tr><th scope="col">Nama Rombel</th><th scope="col">Murid</th><th scope="col">Status</th></tr></thead>
                     <tbody>
                         @foreach($groups->get($jurusan) as $classroom)
                             <tr>
@@ -76,23 +78,11 @@
                                         data-classroom-name="{{ $classroom->name }}"
                                         data-classroom-active="{{ $classroom->is_active ? '1' : '0' }}"
                                         data-classroom-update-url="{{ route('data-master.classrooms.update', $classroom) }}"
-                                        aria-label="Ganti nama rombel {{ $classroom->name }}">{{ $classroom->name }}</button>
+                                        aria-label="Edit rombel {{ $classroom->name }}">{{ $classroom->name }}</button>
                                 </td>
                                 <td>{{ $studentCounts->get($classroom->id, 0) }}</td>
                                 <td>
-                                    <form action="{{ route('data-master.classrooms.update', $classroom) }}" method="POST">
-                                        @csrf @method('PATCH')
-                                        <input type="hidden" name="name" value="{{ $classroom->name }}">
-                                        <input type="hidden" name="is_active" value="{{ $classroom->is_active ? '0' : '1' }}">
-                                        <input type="hidden" name="jurusan" value="{{ $jurusan }}">
-                                        <button class="sibk-account-switch sibk-classroom-switch" type="submit" role="switch"
-                                            aria-checked="{{ $classroom->is_active ? 'true' : 'false' }}"
-                                            aria-label="Status rombel {{ $classroom->name }}"
-                                            title="{{ $classroom->is_active ? 'Nonaktifkan' : 'Aktifkan' }} rombel {{ $classroom->name }}">
-                                            <span class="sibk-account-switch__track" aria-hidden="true"><span class="sibk-account-switch__thumb"></span></span>
-                                            {{ $classroom->is_active ? 'Aktif' : 'Nonaktif' }}
-                                        </button>
-                                    </form>
+                                    <span class="sibk-badge sibk-badge--{{ $classroom->is_active ? 'success' : 'danger' }}">{{ $classroom->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                                 </td>
                             </tr>
                         @endforeach
@@ -108,20 +98,25 @@
             <div class="modal-content">
                 <form method="POST" data-classroom-rename-form>
                     @csrf @method('PATCH')
-                    <input type="hidden" name="is_active" value="1">
+
                     @if($jurusan !== null)<input type="hidden" name="jurusan" value="{{ $jurusan }}">@endif
                     <div class="modal-header">
-                        <h2 class="modal-title fs-5" id="renameClassroomTitle">Ganti Nama Rombel</h2>
+                        <h2 class="modal-title fs-5" id="renameClassroomTitle">Edit Rombel</h2>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     <div class="modal-body">
                         <label class="form-label" for="rename-classroom-name">Nama Rombel</label>
                         <input class="form-control" id="rename-classroom-name" name="name" maxlength="100" required>
+                        <label class="form-label mt-3" for="classroom-status">Status</label>
+                        <select class="form-select" id="classroom-status" name="is_active">
+                            <option value="1">Aktif</option>
+                            <option value="0">Nonaktif</option>
+                        </select>
                         <p class="small text-muted mb-0 mt-2">Nama di tahun ajaran yang sudah selesai tetap tersimpan.</p>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Batal</button>
-                        <button class="btn btn-primary" type="submit">Simpan Nama</button>
+                        <button class="btn btn-primary" type="submit">Simpan</button>
                     </div>
                 </form>
             </div>

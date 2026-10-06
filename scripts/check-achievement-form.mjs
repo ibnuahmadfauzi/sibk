@@ -7,8 +7,10 @@ const state = {
     results: { classList: { add() {} } },
     selected: { textContent: '', classList: { add() {}, remove() {} } },
 };
-selectAchievementStudent(state, { id: 12, name: 'Murid Uji', nisn: '00123', classroom: 'XI RPL 2' });
+selectAchievementStudent(state, { id: 12, name: 'MURID UJI', nisn: '00123', classroom: 'XI RPL 2' });
 assert.equal(state.studentId.value, '12');
+assert.equal(state.lookup.value, 'Murid Uji');
+assert.match(state.selected.textContent, /^Murid Uji /);
 assert.match(state.selected.textContent, /00123.*XI RPL 2/);
 state.lookup.value = 'Murid lain';
 invalidateStudentSelection(state);

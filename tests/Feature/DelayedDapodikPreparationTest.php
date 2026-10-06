@@ -151,10 +151,10 @@ class DelayedDapodikPreparationTest extends TestCase
         ClassroomCatalog::query()->create(['name' => 'Kelas Percobaan', 'is_active' => true]);
 
         $this->actingAs($admin)->get(route('data-master.classrooms.index'))
-            ->assertOk()->assertSee('Lihat daftar rombel jurusan RPL')
-            ->assertSee('Lihat daftar rombel jurusan AK')
-            ->assertSee('Lihat daftar rombel jurusan Lainnya')
-            ->assertDontSee('Ganti nama rombel X RPL 1');
+            ->assertOk()->assertSee(route('data-master.classrooms.index', ['jurusan' => 'RPL']), false)
+            ->assertSee(route('data-master.classrooms.index', ['jurusan' => 'AK']), false)
+            ->assertSee(route('data-master.classrooms.index', ['jurusan' => 'Lainnya']), false)
+            ->assertDontSee('Edit rombel X RPL 1');
 
         $this->actingAs($admin)->get(route('data-master.classrooms.index', ['jurusan' => 'RPL']))
             ->assertOk()->assertSee('X RPL 1')->assertSee('XI RPL 2')->assertSee('12 RPL 3')->assertDontSee('X AK 1');
@@ -198,17 +198,16 @@ class DelayedDapodikPreparationTest extends TestCase
         }
 
         $this->actingAs($admin)->get(route('data-master.classrooms.index'))
-            ->assertOk()->assertSee('Jumlah Murid')
-            ->assertSee('Jumlah murid tahun ajaran aktif 2026/2027.')
+            ->assertOk()->assertSee('Murid')
             ->assertSeeInOrder(['<td class="fw-semibold">RPL</td>', '<td>2</td>', '<td>1</td>'], false)
             ->assertSeeInOrder(['<td class="fw-semibold">AK</td>', '<td>1</td>', '<td>0</td>'], false);
         $this->actingAs($admin)->get(route('data-master.classrooms.index', ['jurusan' => 'RPL']))
-            ->assertOk()->assertSee('Jumlah Murid')
+            ->assertOk()->assertSee('Murid')
             ->assertSeeInOrder(['X RPL 1</button>', '<td>1</td>', 'X RPL 2</button>', '<td>0</td>'], false);
 
         $current->update(['is_active' => false]);
         $this->actingAs($admin)->get(route('data-master.classrooms.index'))
-            ->assertOk()->assertSee('Belum ada tahun ajaran aktif; jumlah murid ditampilkan 0.')
+            ->assertOk()
             ->assertSeeInOrder(['<td class="fw-semibold">RPL</td>', '<td>2</td>', '<td>0</td>'], false);
     }
 

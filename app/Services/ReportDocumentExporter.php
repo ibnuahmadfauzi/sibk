@@ -68,7 +68,7 @@ final class ReportDocumentExporter
                 $index + 1,
                 $row['date']->locale('id')->translatedFormat('l')."\n"
                     .$row['date']->locale('id')->translatedFormat('d F Y'),
-                mb_strtoupper($row['name'])."\n".$row['classroom'],
+                \App\Support\StudentName::display($row['name'])."\n".$row['classroom'],
                 $row['service']."\n".$row['service_field'],
                 $row['detail_note'],
                 $row['counselor'],
@@ -138,7 +138,7 @@ final class ReportDocumentExporter
     /** @param array<string, mixed> $report */
     private function summaryText(array $report): string
     {
-        return 'Ringkasan laporan: '.$report['summary_sentence'];
+        return $report['document_section_title'];
     }
 
     private function safeSpreadsheetText(string $value): string

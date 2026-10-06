@@ -249,7 +249,7 @@ class EtatibSyncTest extends TestCase
         $this->assertSame(1001, AuditLog::query()->where('action', 'etatib.student_relinked')->count());
     }
 
-    public function test_full_and_partial_sync_are_idempotent_and_only_full_deactivates_missing_records(): void
+    public function test_full_and_partial_sync_keep_missing_history_and_remain_idempotent(): void
     {
         $admin = $this->userWithRole('admin_it');
         Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
@@ -268,9 +268,26 @@ class EtatibSyncTest extends TestCase
 
         $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $first->status);
         $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $second->status);
-        $this->assertFalse($old->refresh()->is_active);
+        $this->assertTrue($old->refresh()->is_active);
         $this->assertDatabaseCount('external_tatib_records', 2);
         $this->assertDatabaseHas('external_tatib_records', ['source_identifier' => 'tatib-1', 'student_id' => Student::query()->firstOrFail()->id, 'is_active' => true]);
+    }
+
+    public function test_empty_full_snapshot_does_not_deactivate_prior_records(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $old = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'old-semester', 'nisn' => '0012345678', 'occurred_at' => '2026-02-01 08:00:00',
+            'violation_type' => 'Data semester lalu', 'category' => 'Disiplin', 'points' => 5,
+            'is_active' => true, 'synced_at' => now()->subMonth(),
+        ]);
+
+        $this->fakeConnector(new EtatibSnapshot(true, []));
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertTrue($old->refresh()->is_active);
+        $this->assertDatabaseCount('external_tatib_records', 1);
     }
 
     public function test_duplicate_source_and_identity_mismatch_do_not_overwrite_valid_record(): void

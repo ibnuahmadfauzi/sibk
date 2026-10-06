@@ -122,7 +122,7 @@ final class EtatibIdentityMappingController extends Controller
                 return [
                     'id' => $student->getKey(),
                     'nisn' => $student->nisn,
-                    'name' => $student->name,
+                    'name' => \App\Support\StudentName::display($student->name),
                     'classroom' => $membership?->classroom?->name ?? '-',
                     'academic_year' => $membership?->academicYear?->name ?? '-',
                     'status' => $student->is_active ? 'Aktif' : 'Historis',

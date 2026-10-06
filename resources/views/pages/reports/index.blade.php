@@ -7,6 +7,7 @@
     $documentFilters = array_filter([
         'academic_year_id' => $report['filters']['academic_year_id'],
         'classroom_id' => $report['filters']['classroom_id'],
+        'classroom_search' => $report['filters']['classroom_search'],
         'service_type' => $report['filters']['service_type'],
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
@@ -87,7 +88,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h2 class="modal-title fs-5 me-auto" id="report-preview-title">Pratinjau Rekap</h2>
-                        <a class="btn btn-success text-white" href="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}">Unduh Excel</a>
+                        <a class="btn btn-success sibk-report-preview-modal__download" href="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}">Unduh Excel</a>
                         <button class="btn btn-primary" type="button" data-report-preview-print disabled>Cetak / Simpan PDF</button>
                         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>

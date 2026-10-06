@@ -1,4 +1,5 @@
 import { buildStudentOption, filterStudents } from './withdrawal-progress.js';
+import { displayStudentName } from './student-name.js';
 
 const initialisedForms = new WeakSet();
 const hideResults = (state) => {
@@ -15,9 +16,9 @@ export const invalidateStudentSelection = (state) => {
 
 export const selectAchievementStudent = (state, student) => {
     state.studentId.value = String(student.id);
-    state.lookup.value = student.name;
+    state.lookup.value = displayStudentName(student.name);
     state.lookup.setCustomValidity('');
-    state.selected.textContent = `${student.name} (${student.nisn}) · ${student.classroom}`;
+    state.selected.textContent = `${displayStudentName(student.name)} (${student.nisn}) · ${student.classroom}`;
     state.selected.classList.remove('d-none');
     hideResults(state);
 };

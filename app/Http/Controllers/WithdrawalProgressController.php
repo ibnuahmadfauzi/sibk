@@ -33,7 +33,7 @@ final class WithdrawalProgressController extends Controller
             'withdrawalLookup' => $students->map(fn (Student $student): array => [
                 'id' => $student->id,
                 'nisn' => $student->nisn,
-                'name' => $student->name,
+                'name' => \App\Support\StudentName::display($student->name),
                 'classroom' => $student->classMemberships->first()?->classroom?->name ?? 'Rombel belum tercatat',
             ])->values(),
         ]);

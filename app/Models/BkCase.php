@@ -135,7 +135,7 @@ class BkCase extends Model
 
     public function identityName(): string
     {
-        return $this->student?->name ?? $this->temporaryStudent?->input_name ?? 'Identitas tidak tersedia';
+        return \App\Support\StudentName::display($this->student?->name ?? $this->temporaryStudent?->input_name ?? 'Identitas tidak tersedia');
     }
 
     public function identityNisn(): string

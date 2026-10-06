@@ -37,6 +37,7 @@ final class OperationalReportRequest extends FormRequest
         return [
             'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
             'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
+            'classroom_search' => ['nullable', 'string', 'max:100'],
             'service_type' => ['required', Rule::in(['case', 'consultation', 'withdrawal'])],
             'per_page' => ['required', 'integer', Rule::in([10, 25, 50, 100])],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -54,6 +55,7 @@ final class OperationalReportRequest extends FormRequest
         return Arr::only($this->validated(), [
             'academic_year_id',
             'classroom_id',
+            'classroom_search',
             'service_type',
             'per_page',
             'page',

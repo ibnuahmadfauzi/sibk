@@ -151,7 +151,7 @@ class AchievementController extends Controller
             'students' => $students,
             'studentOptions' => $students->map(fn (Student $student): array => [
                 'id' => $student->getKey(),
-                'name' => $student->name,
+                'name' => \App\Support\StudentName::display($student->name),
                 'nisn' => $student->nisn,
                 'classroom' => $student->classMemberships->first()?->classroom?->name ?? 'Rombel belum tercatat',
             ])->values()->all(),

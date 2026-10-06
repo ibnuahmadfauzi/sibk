@@ -134,7 +134,6 @@ class EtatibSyncService
                 $this->applyPreviewDecisions($snapshot, $actor);
                 $syncedAt = now();
                 $processed = 0;
-                $keptIds = [];
                 $duplicateSourceIds = collect($snapshot->records)
                     ->groupBy('source_id')
                     ->filter(fn ($items): bool => $items->count() > 1)
@@ -151,16 +150,12 @@ class EtatibSyncService
                         ->first();
 
                     if ($duplicateSourceIds->contains($item['source_id'])) {
-                        if ($existing !== null) {
-                            $keptIds[] = $existing->getKey();
-                        }
                         $this->issue($run, $item, 'duplicate_source_identifier', 'Identitas data e-Tatib muncul lebih dari sekali.');
 
                         continue;
                     }
 
                     if ($existing !== null && $existing->nisn !== $item['nisn']) {
-                        $keptIds[] = $existing->getKey();
                         $this->issue($run, $item, 'source_identity_mismatch', 'Identitas record e-Tatib menunjuk ke NISN yang berbeda.');
 
                         continue;
@@ -202,7 +197,7 @@ class EtatibSyncService
                             ]);
                     }
 
-                    $record = ExternalTatibRecord::query()->updateOrCreate(
+                    ExternalTatibRecord::query()->updateOrCreate(
                         ['source_identifier' => $item['source_id']],
                         [
                             'nisn' => $item['nisn'],
@@ -223,20 +218,11 @@ class EtatibSyncService
                             'synced_at' => $syncedAt,
                         ],
                     );
-                    $keptIds[] = $record->getKey();
                     $processed++;
 
                     if ($student !== null) {
                         $this->recordClassroomWarning($run, $item, $student);
                     }
-                }
-
-                if ($snapshot->isFullSnapshot) {
-                    $missing = ExternalTatibRecord::query();
-                    if ($keptIds !== []) {
-                        $missing->whereNotIn('id', array_unique($keptIds));
-                    }
-                    $missing->update(['is_active' => false]);
                 }
 
                 $this->reconcileUnlinkedRecords($actor);

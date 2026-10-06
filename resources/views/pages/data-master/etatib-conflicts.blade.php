@@ -130,11 +130,11 @@
                             @forelse($mappings as $mapping)
                                 <tr>
                                     <td>
-                                        <strong class="d-block">{{ $mapping->source_name }}</strong>
+                                        <strong class="d-block">{{ \App\Support\StudentName::display($mapping->source_name) }}</strong>
                                         <span class="text-muted small">NISN {{ $mapping->source_nisn }}</span>
                                     </td>
                                     <td>
-                                        <strong class="d-block">{{ $mapping->student->name }}</strong>
+                                        <strong class="d-block">{{ \App\Support\StudentName::display($mapping->student->name) }}</strong>
                                         <span class="text-muted small">NISN {{ $mapping->student->nisn }}</span>
                                     </td>
                                     <td>
