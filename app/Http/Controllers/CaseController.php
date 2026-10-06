@@ -88,6 +88,7 @@ class CaseController extends Controller
         $query->when($request->integer('classroom_id'), fn ($cases, int $classroomId) => $cases->where('classroom_id', $classroomId));
         $query->when($request->integer('case_source_id'), fn ($cases, int $id) => $cases->where('case_source_id', $id));
         $query->when($request->integer('status_id'), fn ($cases, int $id) => $cases->where('status_id', $id));
+        $query->when($request->integer('follow_up_type_id'), fn ($cases, int $id) => $cases->where('follow_up_type_id', $id));
         $query->when($request->string('month')->toString(), function ($cases, string $month): void {
             if (preg_match('/^(\d{4})-(\d{2})$/', $month, $matches) === 1) {
                 $cases->whereYear('service_date', (int) $matches[1])->whereMonth('service_date', (int) $matches[2]);
@@ -158,7 +159,7 @@ class CaseController extends Controller
             return [
                 'id' => $student->id,
                 'nisn' => $student->nisn,
-                'name' => $student->name,
+                'name' => \App\Support\StudentName::display($student->name),
                 'classroom_id' => $membership?->classroom_id,
                 'classroom_name' => $membership?->classroom?->name ?? '-',
             ];
@@ -203,7 +204,7 @@ class CaseController extends Controller
             $student = $record->student;
             $activeClassroom = $student?->classMemberships?->first()?->classroom;
             $classroomName = $activeClassroom?->name ?: ($record->effective_classroom_name ?: '-');
-            $studentName = $student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib');
+            $studentName = \App\Support\StudentName::display($student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib'));
             $classroomId = $activeClassroom?->id ?? $temporaryClassrooms->firstWhere('name', $classroomName)?->id;
 
             return [

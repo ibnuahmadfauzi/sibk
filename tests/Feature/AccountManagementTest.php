@@ -225,11 +225,14 @@ class AccountManagementTest extends TestCase
             ->assertViewIs('pages.admin.users.index')
             ->assertSee('Kelola Akun')
             ->assertSee($target->email)
-            ->assertSee('Tambah akun')
-            ->assertSee('Reset sandi')
+            ->assertSee('Tambah Akun')
+            ->assertSee('Reset Sandi')
             ->assertSee('accountRolesModal')
-            ->assertSee('role="switch"', false)
-            ->assertSee('Status akun '.$target->name)
+            ->assertSee('Tambah Peran')
+            ->assertSee('Lihat Informasi')
+            ->assertSee('Akun Anda')
+            ->assertDontSee('role="switch"', false)
+            ->assertDontSee('<th>Sandi</th>', false)
             ->assertHeader('content-type', 'text/html; charset=UTF-8');
 
         $this->actingAs($admin)->patch(route('admin.users.update', $target), [
@@ -241,6 +244,52 @@ class AccountManagementTest extends TestCase
             ->assertSessionHas('success', 'Akun berhasil diperbarui.');
 
         $this->assertFalse($target->fresh()?->is_active);
+    }
+
+    public function test_account_list_filters_name_email_and_role(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $counselor = User::factory()->create(['name' => 'Budi Santoso', 'email' => 'budi@example.test']);
+        $counselor->roles()->sync(Role::query()->where('slug', 'guru_bk')->pluck('id'));
+        $coordinator = User::factory()->create(['name' => 'Citra Santoso', 'email' => 'citra@example.test']);
+        $coordinator->roles()->sync(Role::query()->where('slug', 'koordinator_bk')->pluck('id'));
+        $other = User::factory()->create(['name' => 'Dewi Anggraini', 'email' => 'dewi.santoso@example.test']);
+        $other->roles()->sync(Role::query()->where('slug', 'guru_bk')->pluck('id'));
+
+        $response = $this->actingAs($admin)->get(route('admin.users.index', ['q' => 'Santoso', 'role' => 'guru_bk']));
+        $response->assertOk()->assertSee('Budi Santoso')->assertSee('Dewi Anggraini')
+            ->assertDontSee('Citra Santoso');
+        $this->assertSame(2, $response->viewData('users')->total());
+        $this->assertSame(['q' => 'Santoso', 'role' => 'guru_bk'], $response->viewData('filters'));
+
+        $this->actingAs($admin)->getJson(route('admin.users.index', ['q' => 'citra@example.test']))
+            ->assertOk()->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $coordinator->id);
+
+        $this->actingAs($admin)->get(route('admin.users.index', ['role' => 'unknown_role']))
+            ->assertOk()->assertViewHas('filters', ['q' => '', 'role' => '']);
+    }
+
+    public function test_account_pagination_preserves_search_and_role(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $roleId = Role::query()->where('slug', 'guru_bk')->value('id');
+        for ($number = 1; $number <= 21; $number++) {
+            $user = User::factory()->create([
+                'name' => sprintf('Guru Filter %02d', $number),
+                'email' => sprintf('filter%02d@example.test', $number),
+            ]);
+            $user->roles()->attach($roleId);
+        }
+
+        $response = $this->actingAs($admin)->get(route('admin.users.index', ['q' => 'Guru Filter', 'role' => 'guru_bk']));
+        $response->assertOk();
+        $paginator = $response->viewData('users');
+        $this->assertSame(21, $paginator->total());
+        $this->assertSame(20, $paginator->count());
+        $query = [];
+        parse_str((string) parse_url($paginator->url(2), PHP_URL_QUERY), $query);
+        $this->assertSame(['q' => 'Guru Filter', 'role' => 'guru_bk', 'page' => '2'], $query);
     }
 
     public function test_admin_it_can_deactivate_and_reactivate_an_account(): void

@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\Achievement;
 use App\Models\BkCase;
+use App\Models\CaseFollowUp;
 use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
@@ -31,6 +32,21 @@ class StudentProfileTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
+    }
+
+    public function test_student_names_are_title_cased_in_list_profile_and_search_without_changing_source(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $student->update(['name' => 'NADIA PUTRI']);
+
+        $this->actingAs($teacher)->get(route('students.index', ['search' => 'NADIA']))
+            ->assertOk()->assertSee('Nadia Putri')->assertDontSee('NADIA PUTRI')
+            ->assertSeeInOrder(['<th>No</th>', '<th>Murid</th>', 'Permasalahan', 'Poin Pelanggaran', 'Konsultasi', 'Prestasi'], false)
+            ->assertSeeInOrder(['Nadia Putri', $student->nisn]);
+        $this->actingAs($teacher)->get(route('students.show', $student))
+            ->assertOk()->assertSee('Nadia Putri')->assertDontSee('NADIA PUTRI');
+
+        $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'NADIA PUTRI']);
     }
 
     public function test_teacher_list_and_profile_only_expose_professionally_accessible_students(): void
@@ -63,8 +79,8 @@ class StudentProfileTest extends TestCase
         $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()
             ->assertSee('sibk-student-hero', false)
-            ->assertSee('Permasalahan dan Layanan')
-            ->assertSee('Riwayat kelas dan aktivitas layanan')
+            ->assertSee('Layanan BK')
+            ->assertDontSee('Riwayat kelas dan aktivitas layanan')
             ->assertSee('Terakhir disinkronkan:')
             ->assertDontSee('Pelanggaran profil');
 
@@ -121,8 +137,8 @@ class StudentProfileTest extends TestCase
         $this->actingAs($coordinator)->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
             ->assertOk()
             ->assertSee('Permasalahan')
-            ->assertSee('Penanganan')
-            ->assertSee('Hasil')
+            ->assertSee('Riwayat Kelas')
+            ->assertSee('Hasil/Ringkasan')
             ->assertDontSee('<th>Kasus</th>', false)
             ->assertDontSee('<th>Status</th>', false);
         $this->actingAs($admin)->get(route('students.index'))->assertForbidden();
@@ -138,8 +154,8 @@ class StudentProfileTest extends TestCase
 
         $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()
-            ->assertSee('Kasus dicatat')
-            ->assertSee('Konsultasi dicatat')
+            ->assertDontSee('Kasus dicatat')
+            ->assertDontSee('Konsultasi dicatat')
             ->assertDontSee('K-INTERNAL-PROFILE')
             ->assertDontSee('<th>No.</th>', false);
         $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
@@ -185,7 +201,7 @@ class StudentProfileTest extends TestCase
         $this->travelTo('2027-07-15 08:00:00');
         $year->update(['is_active' => false]);
 
-        $this->actingAs($coordinator)->get(route('students.show', $student))
+        $this->actingAs($coordinator)->get(route('students.show', ['student' => $student, 'tab' => 'ringkasan']))
             ->assertOk()
             ->assertSee('Tanpa kelas aktif')
             ->assertSee('X AKL Histori')
@@ -193,11 +209,30 @@ class StudentProfileTest extends TestCase
             ->assertDontSee('s.d. sekarang');
     }
 
-    public function test_profile_renders_modal_action_triggers_and_shared_modal_shell(): void
+    public function test_profile_shows_historical_classroom_and_inline_details(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $case = $this->createCase($teacher, $student);
         $consultation = $this->createConsultation($teacher, $student);
+        $case->update(['resolution_summary' => 'Hasil penanganan profil']);
+        CaseFollowUp::query()->create([
+            'case_id' => $case->id,
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'follow_up_date' => '2026-08-21',
+            'created_by' => $teacher->id,
+        ]);
+        $newClassroom = Classroom::query()->create([
+            'academic_year_id' => $case->academic_year_id,
+            'name' => 'XI RPL 2',
+            'is_active' => true,
+        ]);
+        TeacherAssignment::query()->create([
+            'user_id' => $teacher->id,
+            'classroom_id' => $newClassroom->id,
+            'academic_year_id' => $case->academic_year_id,
+            'assigned_by' => $teacher->id,
+        ]);
+        StudentClassMembership::query()->where('student_id', $student->id)->update(['classroom_id' => $newClassroom->id]);
         $achievement = Achievement::query()->create([
             'student_id' => $student->id,
             'type_id' => $this->reference('achievement_type', 'akademik')->id,
@@ -213,19 +248,27 @@ class StudentProfileTest extends TestCase
 
         $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
             ->assertOk()
-            ->assertSee('data-service-record-modal', false)
-            ->assertSee('id="case-modal"', false)
-            ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false);
+            ->assertSeeInOrder(['Jenis Masalah', 'Riwayat Kelas', 'Guru BK', 'Hasil/Ringkasan', 'Aksi'])
+            ->assertSeeInOrder(['XI RPL 2', 'X RPL 1', 'Hasil penanganan profil', 'Tindak lanjut terakhir:'])
+            ->assertSee('Home Visit')
+            ->assertSee('aria-controls="profile-case-notes-'.$case->id.'"', false)
+            ->assertSee('Latar Belakang Masalah')
+            ->assertSee('Informasi awal profil.')
+            ->assertDontSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false);
 
         $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
             ->assertOk()
-            ->assertSee('data-service-record-modal', false)
-            ->assertSee('data-modal-url="'.route('consultations.show', [$consultation, 'modal' => 1]).'"', false);
+            ->assertSeeInOrder(['Jenis Masalah', 'Riwayat Kelas', 'Guru BK', 'Hasil/Ringkasan', 'Aksi'])
+            ->assertSeeInOrder(['XI RPL 2', 'X RPL 1', 'Hasil profil murid'])
+            ->assertSee('aria-controls="profile-consultation-notes-'.$consultation->id.'"', false)
+            ->assertSee('Penanganan profil murid')
+            ->assertDontSee('data-modal-url="'.route('consultations.show', [$consultation, 'modal' => 1]).'"', false);
 
         $this->actingAs($teacher)->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
             ->assertOk()
-            ->assertSee('data-service-record-modal', false)
-            ->assertSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false);
+            ->assertSee($achievement->activity_name)
+            ->assertDontSee('<th scope="col">Pencatat</th>', false)
+            ->assertDontSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false);
     }
 
     /** @return array{User, Student} */
@@ -286,6 +329,29 @@ class StudentProfileTest extends TestCase
             'handling' => 'Penanganan profil murid',
             'result' => 'Hasil profil murid',
         ], $teacher);
+    }
+
+    public function test_profile_keeps_archived_history_and_excludes_explicit_cancellations_from_points(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $this->etatibRecord($student, 'OLD', 'Riwayat semester lalu')->update([
+            'is_active' => false, 'occurred_at' => '2025-08-10', 'source_total_points' => 90,
+            'synced_at' => now()->subYear(),
+        ]);
+        $this->etatibRecord($student, 'NEW', 'Riwayat semester baru')->update(['source_total_points' => 10]);
+        $this->etatibRecord($student, 'CANCEL', 'Catatan dibatalkan')->update([
+            'is_active' => false, 'source_deleted_at' => now(), 'points' => 50,
+        ]);
+
+        $this->actingAs($teacher)->get(route('students.show', [$student, 'tab' => 'etatib']))
+            ->assertOk()
+            ->assertSee('Riwayat semester lalu')
+            ->assertSee('Riwayat semester baru')
+            ->assertSee('Dibatalkan sumber (tidak dihitung)')
+            ->assertViewHas('etatibRecords', fn ($records) => $records->count() === 3)
+            ->assertViewHas('stats', fn ($stats) => $stats['points'] === 20 && $stats['source_points'] === 10);
+        $this->assertSame(20, $student->tatibPoints());
+        $this->assertSame(20, $student->load('etatibRecords')->tatibPoints());
     }
 
     private function etatibRecord(Student $student, string $identifier, string $violation): ExternalTatibRecord

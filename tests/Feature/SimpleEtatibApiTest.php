@@ -362,7 +362,7 @@ class SimpleEtatibApiTest extends TestCase
         $this->assertDatabaseCount('external_tatib_records', 0);
     }
 
-    public function test_missing_previous_record_blocks_sync_and_preserves_local_data(): void
+    public function test_missing_previous_record_does_not_block_sync_and_preserves_local_data(): void
     {
         Http::fake([self::URL => Http::sequence()
             ->push($this->payload())
@@ -379,9 +379,26 @@ class SimpleEtatibApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.missing', 1);
         $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
-            ->assertSessionHasErrors('etatib_sync');
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('warning');
 
         $this->assertSame(2, ExternalTatibRecord::query()->active()->count());
+        $this->assertDatabaseCount('external_tatib_records', 2);
+    }
+
+    public function test_point_correction_without_stable_source_id_cannot_double_history(): void
+    {
+        $corrected = $this->payload();
+        $corrected[0]['poin_pelanggaran'] = 15;
+        Http::fake([self::URL => Http::sequence()
+            ->push($this->payload())->push($this->payload())
+            ->push($corrected)->push($corrected)]);
+        $this->actingAs($this->admin())->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])->assertSessionHasNoErrors();
+        $this->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])->assertOk();
+        $this->post(route('data-master.etatib.sync'), ['api_url' => self::URL])->assertSessionHasErrors('etatib_sync');
+        $this->assertDatabaseCount('external_tatib_records', 2);
+        $this->assertSame(20, (int) ExternalTatibRecord::query()->sum('points'));
     }
 
     public function test_masked_nisn_is_rejected(): void

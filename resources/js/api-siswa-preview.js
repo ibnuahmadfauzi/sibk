@@ -1,3 +1,5 @@
+import { displayStudentName } from './student-name.js';
+
 const createElement = (tag, className, text) => {
     const element = document.createElement(tag);
     if (className) element.className = className;
@@ -119,7 +121,7 @@ const renderPreview = (container, preview, onSelectionChange) => {
                     choice.type = 'radio';
                     choice.name = `duplicate-${group}`;
                     choice.checked = selected.get(group)?.row_index === entry.row_index;
-                    choice.setAttribute('aria-label', `Gunakan ${entry.name}, NISN ${entry.nisn}, ${entry.classroom}`);
+                    choice.setAttribute('aria-label', `Gunakan ${displayStudentName(entry.name)}, NISN ${entry.nisn}, ${entry.classroom}`);
                     choice.addEventListener('change', () => {
                         selected.set(group, entry);
                         const ready = preview.can_import_after_selection
@@ -135,7 +137,7 @@ const renderPreview = (container, preview, onSelectionChange) => {
                 }
                 row.append(cell);
             }
-            [entry.nisn, entry.name, entry.academic_year, entry.classroom, entry.current_classroom ?? '—', entry.status]
+            [entry.nisn, displayStudentName(entry.name), entry.academic_year, entry.classroom, entry.current_classroom ?? '—', entry.status]
                 .forEach((value) => appendCell(row, value));
             listBody.append(row);
         });

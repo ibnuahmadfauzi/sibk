@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { filterConsultationStudents, initConsultationCreateForm } from '../resources/js/consultation-create.js';
 
 const students = [
-    { id: 1, nisn: '0012345678', name: 'Ayu Pratiwi', classroom: 'X RPL 1' },
+    { id: 1, nisn: '0012345678', name: 'AYU PRATIWI', classroom: 'X RPL 1' },
     { id: 2, nisn: '0098765432', name: 'Budi Santoso', classroom: 'X RPL 2' },
 ];
 
@@ -77,6 +77,7 @@ nisn.value = 'ayu';
 nisn.dispatch('input');
 assert.equal(results.classList.contains('d-none'), false);
 assert.equal(results.querySelectorAll('button').length, 1);
+assert.equal(results.querySelector('button').children[1].textContent, 'Ayu Pratiwi');
 results.querySelector('button').dispatch('click');
 assert.equal(studentId.value, '1');
 assert.equal(nisn.value, '0012345678');

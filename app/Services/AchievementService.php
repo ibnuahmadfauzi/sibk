@@ -73,6 +73,26 @@ class AchievementService
         });
     }
 
+    public function delete(Achievement $achievement, string $expectedUpdatedAt, User $actor): void
+    {
+        DB::transaction(function () use ($achievement, $expectedUpdatedAt, $actor): void {
+            $achievement = Achievement::query()->lockForUpdate()->findOrFail($achievement->getKey());
+            abort_unless($actor->can('delete', $achievement), 403);
+            if (! $achievement->updated_at->equalTo(CarbonImmutable::parse($expectedUpdatedAt))) {
+                throw ValidationException::withMessages(['expected_updated_at' => 'Data telah berubah. Muat ulang sebelum menghapus.']);
+            }
+
+            $this->auditService->record(
+                action: 'achievement.deleted',
+                auditable: $achievement,
+                summary: sprintf('Prestasi %s dihapus.', $achievement->activity_name),
+                actor: $actor,
+                before: $this->auditSnapshot($achievement),
+            );
+            $achievement->delete();
+        });
+    }
+
     private function ensureStudentScope(Student $student, User $actor, string $date): void
     {
         if (! $actor->can('create', Achievement::class)) {

@@ -1,3 +1,5 @@
+import { displayStudentName } from './student-name.js';
+
 const escapeHtml = (value) => {
     const element = document.createElement('span');
     element.textContent = String(value ?? '');
@@ -47,7 +49,7 @@ export const initEtatibIdentityMapping = async () => {
         const rows = candidates.map((candidate) => `
             <tr data-etatib-candidate>
                 <td>
-                    <strong class="d-block">${escapeHtml(candidate.name)}</strong>
+                    <strong class="d-block">${escapeHtml(displayStudentName(candidate.name))}</strong>
                     <span class="text-muted small">NISN ${escapeHtml(candidate.nisn)}</span>
                 </td>
                 <td>
@@ -111,10 +113,10 @@ export const initEtatibIdentityMapping = async () => {
         button.addEventListener('click', () => {
             form.action = button.dataset.action;
             method.disabled = button.dataset.method !== 'patch';
-            modalElement.querySelector('[data-etatib-source-name]').textContent = button.dataset.sourceName;
+            modalElement.querySelector('[data-etatib-source-name]').textContent = displayStudentName(button.dataset.sourceName);
             modalElement.querySelector('[data-etatib-source-nisn]').textContent = `NISN ${button.dataset.sourceNisn}`;
             modalElement.querySelector('[data-etatib-source-classroom]').textContent = `Kelas ${button.dataset.sourceClassroom}`;
-            search.value = button.dataset.sourceName;
+            search.value = displayStudentName(button.dataset.sourceName);
             confirmed.checked = false;
             resetSelection();
             results.innerHTML = '<p class="text-muted text-center small p-4 mb-0">Tekan Cari untuk melihat kandidat murid.</p>';

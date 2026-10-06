@@ -115,6 +115,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'classroom_id' => isset($filters['classroom_id'])
                 ? (int) $filters['classroom_id']
                 : null,
+            'classroom_search' => trim((string) ($filters['classroom_search'] ?? '')),
             'service_type' => ! empty($filters['service_type']) ? $filters['service_type'] : 'case',
             'per_page' => (int) ($filters['per_page'] ?? 10),
         ]];
@@ -133,6 +134,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $filters['classroom_id'],
                 fn (Builder $query, int $classroomId): Builder => $query->where('cases.classroom_id', $classroomId),
             )
+            ->when($filters['classroom_search'] !== '', fn (Builder $query): Builder => $query
+                ->whereHas('classroom', fn (Builder $classrooms): Builder => $classrooms
+                    ->where('name', 'like', '%'.$filters['classroom_search'].'%')))
             ->selectRaw("'case' AS record_type")
             ->selectRaw('cases.id AS record_id')
             ->selectRaw('cases.service_date AS service_date')
@@ -145,6 +149,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $filters['classroom_id'],
                 fn (Builder $query, int $classroomId): Builder => $query->where('consultations.classroom_id', $classroomId),
             )
+            ->when($filters['classroom_search'] !== '', fn (Builder $query): Builder => $query
+                ->whereHas('classroom', fn (Builder $classrooms): Builder => $classrooms
+                    ->where('name', 'like', '%'.$filters['classroom_search'].'%')))
             ->selectRaw("'consultation' AS record_type")
             ->selectRaw('consultations.id AS record_id')
             ->selectRaw('consultations.session_date AS service_date')
@@ -159,6 +166,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $filters['classroom_id'],
                 fn (Builder $query, int $classroomId): Builder => $query->where('withdrawal_progresses.classroom_id', $classroomId),
             )
+            ->when($filters['classroom_search'] !== '', fn (Builder $query): Builder => $query
+                ->whereHas('classroom', fn (Builder $classrooms): Builder => $classrooms
+                    ->where('name', 'like', '%'.$filters['classroom_search'].'%')))
             ->selectRaw("'withdrawal' AS record_type")
             ->selectRaw('withdrawal_progresses.id AS record_id')
             ->selectRaw('withdrawal_progresses.recorded_on AS service_date')
@@ -371,7 +381,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'date' => $date,
             'day_label' => $date->locale('id')->translatedFormat('l'),
             'date_label' => $date->locale('id')->translatedFormat('d M Y'),
-            'name' => $record->identityName(),
+            'name' => \App\Support\StudentName::display($record->identityName()),
             'classroom' => $this->classroomName($record, $year),
             'service' => match (true) {
                 $isCase => 'Permasalahan',
@@ -492,6 +502,11 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'rows' => $rows,
             'summary' => $summary,
             'summary_sentence' => $this->summarySentence($summary),
+            'document_section_title' => match ($filters['service_type']) {
+                'consultation' => 'Rekap Catatan Bimbingan & Konseling',
+                'withdrawal' => 'Rekap Catatan Pengunduran Diri',
+                default => 'Rekap Catatan Permasalahan',
+            },
             'filters' => $filters,
             'filter_options' => [
                 'academic_years' => AcademicYear::query()

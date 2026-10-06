@@ -1,9 +1,3 @@
-@php
-    $hasActiveFilters = request()->query->has('academic_year_id')
-        || request()->query->has('classroom_id')
-        || request()->query->has('service_type');
-@endphp
-
 <div class="sibk-panel mb-4 sibk-filter-panel no-print">
     <div class="sibk-panel__body p-4">
         <form
@@ -11,10 +5,10 @@
             class="row g-3 align-items-end"
             action="{{ route('reports.index') }}"
             method="GET"
-            data-report-filter-form
-            data-filters-active="{{ $hasActiveFilters ? 'true' : 'false' }}"
+            data-auto-filter
+            data-filter-reset-url="{{ route('reports.index') }}"
         >
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-12 col-md-6 col-xl">
                 <label
                     class="form-label"
                     for="academic_year_id"
@@ -25,7 +19,8 @@
                     class="form-select"
                     id="academic_year_id"
                     name="academic_year_id"
-                    data-report-filter
+                    data-filter-field
+                    data-filter-default="{{ request()->has('academic_year_id') ? '' : ($report['filters']['academic_year_id'] ?? '') }}"
                     data-report-year-filter
                     @error('academic_year_id')
                         aria-invalid="true"
@@ -51,44 +46,27 @@
                 @enderror
             </div>
 
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-12 col-md-6 col-xl">
                 <label
                     class="form-label"
-                    for="classroom_id"
+                    for="classroom_search"
                 >
                     Kelas
                 </label>
-                <select
-                    class="form-select"
-                    id="classroom_id"
-                    name="classroom_id"
-                    data-report-filter
-                    @error('classroom_id')
-                        aria-invalid="true"
-                        aria-describedby="classroom_id-error"
-                    @enderror
-                >
-                    <option value="">Semua kelas</option>
-                    @foreach($report['filter_options']['classrooms'] as $classroom)
-                        <option
-                            value="{{ $classroom->id }}"
-                            @selected((int) ($report['filters']['classroom_id'] ?? 0) === $classroom->id)
-                        >
-                            {{ $classroom->name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('classroom_id')
+                <input class="form-control" type="search" id="classroom_search"
+                    name="classroom_search" value="{{ $report['filters']['classroom_search'] }}"
+                    placeholder="Cari kelas" aria-label="Cari kelas" maxlength="100" data-filter-field>
+                @error('classroom_search')
                     <div
                         class="invalid-feedback d-block"
-                        id="classroom_id-error"
+                        id="classroom_search-error"
                     >
                         {{ $message }}
                     </div>
                 @enderror
             </div>
 
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-12 col-md-6 col-xl">
                 <label
                     class="form-label"
                     for="service_type"
@@ -99,7 +77,8 @@
                     class="form-select"
                     id="service_type"
                     name="service_type"
-                    data-report-filter
+                    data-filter-field
+                    data-filter-default="case"
                     @error('service_type')
                         aria-invalid="true"
                         aria-describedby="service_type-error"
@@ -134,15 +113,13 @@
                 @enderror
             </div>
 
-            <div class="col-12 col-xl-auto ms-xl-auto d-flex gap-2">
+            <div class="col-12 col-md-6 col-xl-auto">
                 <button
-                    class="btn {{ $hasActiveFilters ? 'btn-outline-primary' : 'btn-primary' }}"
+                    class="btn btn-outline-primary"
                     type="submit"
-                    data-report-filter-action
-                    data-mode="{{ $hasActiveFilters ? 'reset' : 'apply' }}"
-                    data-reset-url="{{ route('reports.index') }}"
+                    data-filter-action
                 >
-                    {{ $hasActiveFilters ? 'Reset' : 'Terapkan' }}
+                    Filter
                 </button>
             </div>
         </form>

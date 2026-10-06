@@ -35,14 +35,14 @@
     <section class="sibk-panel mb-4" aria-labelledby="student-filter-title">
         <div class="sibk-panel__body p-4">
             <h2 class="h6 mb-3" id="student-filter-title">Filter daftar murid</h2>
-            <form class="row g-3 align-items-end" action="{{ route('waka.monitoring.students') }}" method="GET">
+            <form class="row g-3 align-items-end" action="{{ route('waka.monitoring.students') }}" method="GET" data-auto-filter data-filter-reset-url="{{ route('waka.monitoring.students') }}">
                 <div class="col-12 col-md-4">
                     <label class="form-label" for="waka_student_period">Periode</label>
-                    <input class="form-control" id="waka_student_period" name="period" type="month" value="{{ $params['period'] ?? '' }}">
+                    <input class="form-control" id="waka_student_period" name="period" type="month" value="{{ $params['period'] ?? '' }}" data-filter-field>
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label" for="waka_student_status">Status</label>
-                    <select class="form-select" id="waka_student_status" name="status">
+                    <select class="form-select" id="waka_student_status" name="status" data-filter-field>
                         <option value="">Semua status</option>
                         @foreach($statuses as $code => $label)
                             <option value="{{ $code }}" @selected(($params['status'] ?? '') === $code)>{{ $label }}</option>
@@ -51,10 +51,7 @@
                 </div>
                 <input type="hidden" name="sort" value="{{ $params['sort'] }}">
                 <input type="hidden" name="direction" value="{{ $params['direction'] }}">
-                <div class="col-12 col-md-auto"><button class="btn btn-primary w-100" type="submit">Terapkan</button></div>
-                @if($hasFilters)
-                    <div class="col-12 col-md-auto"><a class="btn btn-outline-secondary w-100" href="{{ route('waka.monitoring.students') }}">Reset filter</a></div>
-                @endif
+                <div class="col-12 col-md-auto"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
             </form>
         </div>
     </section>

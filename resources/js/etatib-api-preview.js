@@ -1,3 +1,5 @@
+import { displayStudentName } from './student-name.js';
+
 const element = (tag, className = '', text = '') => {
     const node = document.createElement(tag);
     node.className = className;
@@ -21,7 +23,7 @@ export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = 
             const card = element('article', 'border rounded-3 p-3 mb-3');
             card.append(
                 element('h3', 'fs-6 fw-semibold', `Baris ${group.rows.join(', ')}: ${group.count} salinan identik`),
-                element('strong', 'd-block', group.name),
+                element('strong', 'd-block', displayStudentName(group.name)),
                 element('span', 'd-block small', `NISN ${group.nisn} · Kelas ${group.classroom}`),
                 element('p', 'small mt-2 mb-2', 'Sembilan field sumber sama: NISN, nama, kelas, pelanggaran, kategori, poin, pencatat, tanggal, dan total poin.'),
             );
@@ -76,7 +78,7 @@ export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = 
     }
     if (preview.missing > 0) {
         container.append(element('div', 'alert alert-warning',
-            `${preview.missing} pelanggaran lama tidak dikirim API. Sinkronisasi ditahan sampai data sumber lengkap.`));
+            `${preview.missing} pelanggaran lama tidak dikirim API. Riwayat tersebut tetap disimpan di BK.`));
     } else if (identityCount > 0) {
         container.append(element('div', 'alert alert-warning',
             `${identityCount} identitas belum cocok, terkait ${preview.conflicts} pelanggaran. Pilih murid yang benar jika sudah yakin.`));
@@ -124,7 +126,7 @@ export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = 
                 row.dataset.etatibConflict = '';
                 row.append(
                     element('span', 'text-muted small d-block', 'e-Tatib'),
-                    element('strong', 'd-block', item.name),
+                    element('strong', 'd-block', displayStudentName(item.name)),
                     element('span', 'd-block small', `NISN ${item.nisn} · Kelas ${item.classroom}`),
                 );
 
@@ -143,7 +145,7 @@ export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = 
                     const copy = element('span', 'd-block');
                     copy.append(
                         element('span', 'd-block small text-muted', labelText),
-                        element('strong', 'd-block', student.name),
+                        element('strong', 'd-block', displayStudentName(student.name)),
                         element('span', 'd-block small', choiceLabel(student)),
                     );
                     label.append(radio, copy);
@@ -183,7 +185,7 @@ export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = 
 export const updateEtatibReadiness = (body, missing, confirm, automaticConfirm) => {
     const pending = [...body.querySelectorAll('[data-duplicate-choice]')].some((choice) => !choice.checked);
     body.querySelector('[data-etatib-identities]').hidden = pending;
-    confirm.disabled = automaticConfirm.disabled = missing > 0 || pending;
+    confirm.disabled = automaticConfirm.disabled = pending;
 };
 
 export const writeEtatibDecisions = (form, body) => {

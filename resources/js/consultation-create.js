@@ -1,3 +1,5 @@
+import { displayStudentName } from './student-name.js';
+
 const initialisedForms = new WeakSet();
 
 const normalise = (value) => String(value ?? '').trim().toLocaleLowerCase('id');
@@ -43,7 +45,7 @@ export const initConsultationCreateForm = (page) => {
     const select = (student, notifyDraft = true) => {
         studentId.value = String(student.id);
         nisn.value = String(student.nisn ?? '');
-        name.value = String(student.name ?? '');
+        name.value = displayStudentName(student.name);
         if (student.classroom_id && ![...classroom.options].some((option) => option.value === String(student.classroom_id))) {
             const option = new Option(student.classroom, String(student.classroom_id));
             option.dataset.lookupClassroom = 'true';
@@ -75,7 +77,7 @@ export const initConsultationCreateForm = (page) => {
                 number.textContent = student.nisn;
                 const identity = document.createElement('span');
                 identity.className = 'd-block fw-semibold text-dark';
-                identity.textContent = student.name;
+                identity.textContent = displayStudentName(student.name);
                 const className = document.createElement('span');
                 className.className = 'd-block small text-secondary';
                 className.textContent = student.classroom;

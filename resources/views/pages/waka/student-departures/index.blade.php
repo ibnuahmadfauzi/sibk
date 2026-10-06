@@ -22,7 +22,7 @@
                         @foreach($departures as $departure)
                             @php $membership = $departure->student->classMemberships->first(); @endphp
                             <tr>
-                                <td class="fw-semibold">{{ $departure->student->name }}</td>
+                                <td class="fw-semibold">{{ \App\Support\StudentName::display($departure->student->name) }}</td>
                                 <td>{{ $membership?->classroom?->name ?? '-' }}</td>
                                 <td>{{ $departure->typeLabel() }}</td>
                                 <td>{{ $departure->statusLabel() }}</td>

@@ -47,15 +47,19 @@ final class WakaDashboardTest extends TestCase
         $this->actingAs($waka)->get(route('dashboard.preview'))
             ->assertOk()
             ->assertSeeInOrder([
-                'Murid Tercatat',
+                'Murid',
                 'Sedang Ditangani',
                 'Perlu Tindak Lanjut',
                 'Baru Bulan Ini',
-                'Tren Murid Tercatat',
-                'Sebaran per Tingkat',
+                'Grafik Catatan BK',
+                'Murid per Tingkat',
+                'Kelas 10',
+                'Kelas 11',
+                'Kelas 12',
+                'Catatan Permasalahan Terbanyak',
                 'id="waka-follow-up-title"',
             ], false)
-            ->assertSee('Jumlah murid yang mendapat layanan BK setiap bulan.')
+            ->assertSee('Jumlah murid yang memiliki catatan BK setiap bulan.')
             ->assertSee('Setiap murid dihitung sekali per bulan.')
             ->assertSee('Grafik tren murid per bulan')
             ->assertSee('bulan berjalan')
@@ -178,6 +182,7 @@ final class WakaDashboardTest extends TestCase
         $this->assertSame(1, count($dashboard['follow_up_students']));
         $this->assertSame('Nama Resmi', $dashboard['follow_up_students'][0]['name']);
         $this->assertSame(2, count($dashboard['follow_up_students'][0]['services']));
+        $this->assertSame([['label' => 'X RPL 1', 'count' => 1]], $dashboard['top_case_classrooms']);
     }
 
     public function test_dashboard_service_does_not_expand_case_or_consultation_access_for_admin(): void
@@ -192,7 +197,38 @@ final class WakaDashboardTest extends TestCase
 
         $this->assertSame(['0', '0', '0', '0'], array_column($dashboard['metrics'], 'value'));
         $this->assertSame([], $dashboard['follow_up_students']);
+        $this->assertSame([], $dashboard['top_case_classrooms']);
         $this->assertStringNotContainsString('Murid Privat', json_encode($dashboard, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_top_classrooms_count_unique_case_students_only_within_period(): void
+    {
+        $waka = $this->userWithRole('waka_kesiswaan', 'Waka Ranking');
+        $owner = $this->userWithRole('guru_bk', 'Guru Ranking');
+        foreach (['X A', 'X B', 'X C', 'X D'] as $index => $name) {
+            $classroom = Classroom::query()->create(['academic_year_id' => $this->year->id, 'name' => $name, 'is_active' => true]);
+            $case = $this->createCase($owner, $classroom, '900000000'.$index, 'Murid '.$index, 'K-RANK-'.$index, 'selesai', '2026-09-01');
+            if ($index === 1) {
+                $this->createCase($owner, $classroom, '9000000010', 'Murid Tambahan', 'K-RANK-EXTRA', 'selesai', '2026-09-02');
+            }
+            if ($index === 3) {
+                foreach (range(1, 4) as $extra) {
+                    $duplicate = $case->replicate();
+                    $duplicate->registration_number = 'K-DUP-'.$extra;
+                    $duplicate->save();
+                    $student = Student::query()->create(['nisn' => '900000002'.$extra, 'name' => 'Konsultasi '.$extra, 'is_active' => true]);
+                    $this->createConsultation($owner, $classroom, $student->id, '2026-09-03');
+                    $this->createCase($owner, $classroom, '900000003'.$extra, 'Di luar periode '.$extra, 'K-OLD-'.$extra, 'selesai', '2026-06-01');
+                }
+            }
+        }
+
+        $dashboard = app(WakaDashboardService::class)->build($waka, $this->year);
+        $this->assertSame([
+            ['label' => 'X B', 'count' => 2],
+            ['label' => 'X A', 'count' => 1],
+            ['label' => 'X C', 'count' => 1],
+        ], $dashboard['top_case_classrooms']);
     }
 
     private function createConsultation(User $owner, Classroom $classroom, int $studentId, string $date, ?AcademicYear $year = null): Consultation

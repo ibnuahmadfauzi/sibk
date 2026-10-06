@@ -5,7 +5,7 @@
         return [
             'id' => $student->id,
             'nisn' => $student->nisn,
-            'name' => $student->name,
+            'name' => \App\Support\StudentName::display($student->name),
             'classroom' => $classroom?->name ?? 'Rombel belum tercatat',
             'classroom_id' => $classroom?->id,
         ];

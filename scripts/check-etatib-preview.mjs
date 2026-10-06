@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { renderEtatibPreview, updateEtatibReadiness, writeEtatibDecisions } from '../resources/js/etatib-api-preview.js';
+import { displayStudentName } from '../resources/js/student-name.js';
 
 class Node {
     constructor(tag) {
@@ -8,6 +9,7 @@ class Node {
         this.children = [];
         this.checked = false;
     }
+    addEventListener() {}
     append(...children) {
         children.forEach((child) => { child.parent = this; });
         this.children.push(...children);
@@ -56,8 +58,8 @@ assert.equal(confirm.disabled, false);
 assert.equal(automatic.disabled, false);
 assert.equal(body.querySelector('[data-etatib-identities]').hidden, false);
 refresh(1);
-assert.equal(confirm.disabled, true);
-assert.equal(automatic.disabled, true);
+assert.equal(confirm.disabled, false);
+assert.equal(automatic.disabled, false);
 choice.checked = false;
 refresh();
 assert.equal(confirm.disabled, true);
@@ -86,7 +88,7 @@ assert.equal(confirm.disabled, false);
 assert.equal(body.querySelectorAll('[data-duplicate-choice]').length, 0);
 const descendants = (node) => node.children.flatMap((child) => [child, ...descendants(child)]);
 const nodes = descendants(body);
-assert(nodes.some((node) => node.tag === 'strong' && node.textContent === group.name));
+assert(nodes.some((node) => node.tag === 'strong' && node.textContent === displayStudentName(group.name)));
 assert(!nodes.some((node) => node.tag === 'img'));
 const revoke = nodes.find((node) => node.tag === 'form');
 assert.equal(revoke.action, '/duplicates/7');
@@ -98,4 +100,23 @@ render({ ...preview, duplicate_groups: [] });
 refresh();
 assert.equal(confirm.disabled, false);
 assert.equal(body.querySelectorAll('[data-duplicate-choice]').length, 0);
+
+const sourceName = 'SITI NUR AISYAH';
+render({
+    ...preview,
+    duplicate_groups: [],
+    conflicts: 1,
+    name_mismatches: 1,
+    identity_conflicts: [{
+        kind: 'name_mismatch', nisn: '0012345678', name: sourceName, classroom: 'X RPL',
+        master: { id: 12, name: 'SITI NUR AISYAH', nisn: '0012345678', classroom: 'X RPL' },
+        suggestions: [],
+    }],
+});
+assert(descendants(body).some((node) => node.tag === 'strong' && node.textContent === 'Siti Nur Aisyah'));
+const identityChoice = body.querySelector('[data-identity-choice]');
+assert.equal(identityChoice.dataset.name, sourceName);
+identityChoice.checked = true;
+writeEtatibDecisions(form, body);
+assert(form.children.some((input) => input.name.endsWith('[name]') && input.value === sourceName));
 console.log('Pratinjau e-Tatib: keputusan, pembatalan, dan kesiapan sinkronisasi lulus.');

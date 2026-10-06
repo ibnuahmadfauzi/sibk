@@ -137,14 +137,14 @@
                 <tbody>
                     @foreach($etatibDuplicateDecisions as $decision)
                         <tr>
-                            <td>{{ $decision->source_name }}<span class="d-block small text-muted">NISN {{ $decision->source_nisn }}</span></td>
+                            <td>{{ \App\Support\StudentName::display($decision->source_name) }}<span class="d-block small text-muted">NISN {{ $decision->source_nisn }}</span></td>
                             <td>{{ $decision->copy_count }} salinan dianggap satu kejadian</td>
                             <td>{{ $decision->approved_at->locale('id')->translatedFormat('d M Y, H.i') }}</td>
                             <td>
                                 <form action="{{ route('data-master.etatib.duplicates.destroy', $decision) }}" method="POST"
                                     data-app-confirm-submit data-confirm-title="Batalkan keputusan duplikasi?"
                                     data-confirm-message="Sinkronisasi berikutnya memerlukan tinjauan ulang untuk kelompok ini. Riwayat tersimpan tidak dihapus."
-                                    data-confirm-subject="{{ $decision->source_name }}" data-confirm-action="Batalkan Keputusan" data-confirm-tone="danger">
+                                    data-confirm-subject="{{ \App\Support\StudentName::display($decision->source_name) }}" data-confirm-action="Batalkan Keputusan" data-confirm-tone="danger">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm" type="submit">Batalkan Keputusan</button>

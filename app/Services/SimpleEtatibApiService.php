@@ -241,7 +241,7 @@ final class SimpleEtatibApiService
         return [
             'id' => (int) $student->getKey(),
             'nisn' => $student->nisn,
-            'name' => $student->name,
+            'name' => \App\Support\StudentName::display($student->name),
             'classroom' => $membership?->classroom?->name ?? '-',
             'academic_year' => $membership?->academicYear?->name,
         ];
@@ -288,13 +288,7 @@ final class SimpleEtatibApiService
             }
             unset($record);
 
-            $missing = $this->missingActiveCount($records);
-            if ($missing > 0) {
-                throw new EtatibUnavailableException(sprintf(
-                    '%d pelanggaran aktif sebelumnya tidak ada dalam respons API e-Tatib. Sinkronisasi ditahan; periksa kelengkapan data di sumber.',
-                    $missing,
-                ));
-            }
+            $this->rejectAmbiguousPointCorrections($records);
 
             return new EtatibSnapshot(
                 isFullSnapshot: true,
@@ -457,6 +451,28 @@ final class SimpleEtatibApiService
             $record['points'],
             $this->normalizeText($record['recorded_by_name']),
         ], JSON_THROW_ON_ERROR));
+    }
+
+    /** @param list<array<string, int|string|null>> $records */
+    private function rejectAmbiguousPointCorrections(array $records): void
+    {
+        $previous = ExternalTatibRecord::query()
+            ->where('source_identifier', 'like', 'simple-%')
+            ->whereIn('nisn', array_column($records, 'nisn'))
+            ->whereNotIn('source_identifier', array_column($records, 'source_id'))
+            ->whereNull('source_deleted_at')
+            ->get()->groupBy('nisn');
+
+        foreach ($records as $record) {
+            foreach ($previous->get($record['nisn'], collect()) as $old) {
+                if ($old->points !== $record['points']
+                    && $old->occurred_at?->format('Y-m-d H:i:s') === $record['occurred_at']
+                    && $this->normalizeText($old->violation_type) === $this->normalizeText($record['violation_type'])
+                    && $this->normalizeText($old->recorded_by_name ?? '') === $this->normalizeText($record['recorded_by_name'])) {
+                    $this->fail('Ada dugaan koreksi poin pada riwayat e-Tatib. Sinkronisasi ditahan agar poin tidak dihitung ganda; periksa identitas kejadian di sumber.');
+                }
+            }
+        }
     }
 
     /** @param list<array<string, int|string|null>> $records @return list<array<string, int|string|null>> */

@@ -89,7 +89,7 @@
                             <tr>
                                 <td>{{ $entityLabel }}</td>
                                 <td>
-                                    <div class="fw-semibold">{{ $item->safe_fields['name'] ?? $item->safe_fields['nisn'] ?? $item->source_identifier }}</div>
+                                    <div class="fw-semibold">{{ $item->entity_type === 'student' ? \App\Support\StudentName::display($item->safe_fields['name'] ?? null) : ($item->safe_fields['name'] ?? $item->safe_fields['nisn'] ?? $item->source_identifier) }}</div>
                                     <div class="text-muted small">ID sumber: {{ $item->source_identifier }}</div>
                                 </td>
                                 <td><span class="sibk-badge sibk-badge--{{ $statusTone }}">{{ $statusLabel }}</span></td>

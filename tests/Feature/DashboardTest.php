@@ -10,6 +10,9 @@ use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
 use App\Models\Consultation;
+use App\Models\ExternalSyncIssue;
+use App\Models\ExternalSyncRun;
+use App\Models\IntegrationSetting;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
@@ -57,15 +60,21 @@ class DashboardTest extends TestCase
 
         $service = app(DashboardService::class);
         $teacherDashboard = $service->forUser($teacherA, $this->year);
-        $this->assertSame('1', $this->stat($teacherDashboard, 'Murid dalam cakupan'));
-        $this->assertSame('1', $this->stat($teacherDashboard, 'Permasalahan aktif'));
-        $this->assertSame('Kelas Ampuan', $teacherDashboard['context_panel']['title']);
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Murid Binaan'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Belum Selesai'));
+        $this->assertSame('Kelas Binaan', $teacherDashboard['context_panel']['title']);
         $this->assertSame('1 murid', $this->contextValue($teacherDashboard, 'X RPL 1'));
-        $this->assertSame('1', $this->stat($teacherDashboard, 'Permasalahan Tindak Lanjut'));
-        $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['title']);
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Perlu Tindak Lanjut'));
+        $this->assertSame('0', $this->stat($teacherDashboard, 'Pelanggaran e-Tatib'));
+        $this->assertSame('Permasalahan aktif', collect($teacherDashboard['stats'])->firstWhere('label', 'Belum Selesai')['meta']);
+        $followUpStat = collect($teacherDashboard['stats'])->firstWhere('label', 'Perlu Tindak Lanjut');
+        $this->assertSame('Menunggu tindak lanjut', $followUpStat['meta']);
+        $this->assertSame('warning', $followUpStat['tone']);
+        $this->assertSame('Permasalahan Pribadi', $teacherDashboard['tindak_lanjut'][0]['title']);
+        $this->assertSame('Home Visit', $teacherDashboard['tindak_lanjut'][0]['follow_up']);
         $this->assertSame('Layanan permasalahan', $teacherDashboard['tindak_lanjut'][0]['code']);
         $this->assertSame('Tindak Lanjut', $teacherDashboard['tindak_lanjut'][0]['status']);
-        $this->assertStringContainsString($studentA->name, $teacherDashboard['tindak_lanjut'][0]['context_label']);
+        $this->assertStringContainsString($studentA->name.' · X RPL 1', $teacherDashboard['tindak_lanjut'][0]['context_label']);
         $this->assertStringNotContainsString($studentB->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
         $this->assertStringNotContainsString($caseA->registration_number, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
 
@@ -80,7 +89,7 @@ class DashboardTest extends TestCase
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
-        $this->assertSame('2', $this->stat($wakaDashboard, 'Murid Tercatat'));
+        $this->assertSame('2', $this->stat($wakaDashboard, 'Murid'));
         $this->assertSame('2', $this->stat($wakaDashboard, 'Sedang Ditangani'));
         $this->assertStringContainsString($studentA->name, json_encode($wakaDashboard['follow_up_students'], JSON_THROW_ON_ERROR));
         $this->assertStringNotContainsString($studentB->name, json_encode($wakaDashboard['follow_up_students'], JSON_THROW_ON_ERROR));
@@ -88,9 +97,123 @@ class DashboardTest extends TestCase
         $admin = $this->userWithRole('admin_it', 'Admin IT');
         $adminDashboard = $service->forUser($admin, $this->year);
         $this->assertSame('admin', $adminDashboard['role_key']);
-        $this->assertSame('2', $this->contextValue($adminDashboard, 'Provider tanpa credential'));
+        $this->assertSame('1', $this->stat($adminDashboard, 'Integrasi Bermasalah'));
+        $this->assertSame('Perlu konfigurasi', $this->contextValue($adminDashboard, 'Dapodik'));
+        $this->assertSame('Belum ada data', $this->contextValue($adminDashboard, 'e-Tatib'));
         $this->assertStringNotContainsString($studentA->name, json_encode($adminDashboard, JSON_THROW_ON_ERROR));
         $this->assertStringNotContainsString($caseB->registration_number, json_encode($adminDashboard, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_admin_dashboard_uses_localized_sync_status_and_source_health(): void
+    {
+        $admin = $this->userWithRole('admin_it', 'Admin Dashboard');
+        IntegrationSetting::query()->create(['provider' => IntegrationSetting::PROVIDER_ETATIB]);
+        $etatibRun = ExternalSyncRun::query()->create([
+            'source' => 'etatib',
+            'status' => ExternalSyncRun::STATUS_WARNING,
+            'started_at' => now(),
+            'received_count' => 855,
+            'processed_count' => 855,
+            'conflict_count' => 1,
+            'summary' => 'IDENTITAS-TEKNIS-RAHASIA',
+        ]);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $etatibRun->id,
+            'entity_type' => 'student',
+            'issue_code' => 'identity_conflict',
+            'summary' => 'DETAIL-KONFLIK-RAHASIA',
+        ]);
+        ExternalSyncRun::query()->create([
+            'source' => 'api_siswa',
+            'status' => ExternalSyncRun::STATUS_SUCCEEDED,
+            'started_at' => now()->subMinute(),
+            'received_count' => 2529,
+            'processed_count' => 2526,
+            'conflict_count' => 0,
+            'summary' => 'IDENTIFIER-IMPOR-RAHASIA',
+        ]);
+
+        $dashboard = app(DashboardService::class)->forUser($admin, $this->year);
+        $this->assertSame(['Akun Aktif', 'Akun Nonaktif', 'Konflik Sinkronisasi', 'Integrasi Bermasalah'], array_column($dashboard['stats'], 'label'));
+        $this->assertSame('1', $this->stat($dashboard, 'Konflik Sinkronisasi'));
+        $this->assertSame('2', $this->stat($dashboard, 'Integrasi Bermasalah'));
+        $this->assertSame('warning', collect($dashboard['stats'])->firstWhere('label', 'Konflik Sinkronisasi')['tone']);
+        $this->assertSame(route('data-master.index', ['tab' => 'sinkronisasi']), collect($dashboard['stats'])->firstWhere('label', 'Konflik Sinkronisasi')['url']);
+        $this->assertSame('Status Integrasi', $dashboard['context_panel']['title']);
+        $this->assertSame(['Dapodik', 'e-Tatib', 'API Siswa'], array_column($dashboard['context_panel']['items'], 'label'));
+        $this->assertSame('Perhatian', $this->contextValue($dashboard, 'e-Tatib'));
+        $this->assertSame('Normal', $this->contextValue($dashboard, 'API Siswa'));
+        $this->assertSame('1 konflik perlu ditinjau', collect($dashboard['context_panel']['items'])->firstWhere('label', 'e-Tatib')['meta']);
+        $this->assertSame('e-Tatib', $dashboard['tindak_lanjut'][0]['code']);
+        $this->assertSame('Peringatan', $dashboard['tindak_lanjut'][0]['status']);
+        $this->assertSame('855 diproses, 1 konflik', $dashboard['tindak_lanjut'][0]['context_label']);
+        $this->assertSame('Data Siswa', $dashboard['tindak_lanjut'][1]['code']);
+        $this->assertSame('Berhasil', $dashboard['tindak_lanjut'][1]['status']);
+        $this->assertSame(['Tambah Akun'], array_column($dashboard['quick_actions'], 'label'));
+        $this->assertSame(route('admin.users.index', ['action' => 'create']), $dashboard['quick_actions'][0]['url']);
+        $this->assertStringNotContainsString('RAHASIA', json_encode($dashboard, JSON_THROW_ON_ERROR));
+
+        $this->actingAs($admin)->get(route('dashboard.preview'))
+            ->assertOk()
+            ->assertSee('Status Integrasi')
+            ->assertSee('Integrasi Bermasalah')
+            ->assertSee('Tambah Akun')
+            ->assertSee('Peringatan')
+            ->assertSee('Berhasil')
+            ->assertSee(route('admin.users.index', ['action' => 'create']))
+            ->assertDontSee('IDENTITAS-TEKNIS-RAHASIA')
+            ->assertDontSee('IDENTIFIER-IMPOR-RAHASIA');
+    }
+
+    public function test_admin_dashboard_recognizes_successful_manual_etatib_sync_without_stored_url(): void
+    {
+        $admin = $this->userWithRole('admin_it', 'Admin Sinkronisasi');
+        IntegrationSetting::query()->create(['provider' => IntegrationSetting::PROVIDER_ETATIB]);
+        ExternalSyncRun::query()->create([
+            'source' => 'etatib',
+            'status' => ExternalSyncRun::STATUS_SUCCEEDED,
+            'started_at' => now(),
+            'processed_count' => 25,
+        ]);
+        ExternalSyncRun::query()->create([
+            'source' => 'dapodik',
+            'status' => ExternalSyncRun::STATUS_SUCCEEDED,
+            'started_at' => now()->subMinute(),
+            'processed_count' => 25,
+        ]);
+
+        $dashboard = app(DashboardService::class)->forUser($admin, $this->year);
+        $this->assertSame('Normal', $this->contextValue($dashboard, 'e-Tatib'));
+        $this->assertSame('Sinkronisasi berhasil', collect($dashboard['context_panel']['items'])->firstWhere('label', 'e-Tatib')['meta']);
+        $this->assertSame('Perlu konfigurasi', $this->contextValue($dashboard, 'Dapodik'));
+        $this->assertSame('1', $this->stat($dashboard, 'Integrasi Bermasalah'));
+    }
+
+    public function test_admin_dashboard_keeps_automatic_etatib_failure_visible_after_manual_success(): void
+    {
+        $admin = $this->userWithRole('admin_it', 'Admin Otomatis');
+        IntegrationSetting::query()->create([
+            'provider' => IntegrationSetting::PROVIDER_ETATIB,
+            'automatic_sync_enabled' => true,
+        ]);
+        ExternalSyncRun::query()->create([
+            'source' => 'etatib',
+            'status' => ExternalSyncRun::STATUS_FAILED,
+            'started_at' => now()->subHour(),
+        ]);
+        ExternalSyncRun::query()->create([
+            'source' => 'etatib',
+            'status' => ExternalSyncRun::STATUS_SUCCEEDED,
+            'triggered_by' => $admin->id,
+            'started_at' => now(),
+        ]);
+
+        $dashboard = app(DashboardService::class)->forUser($admin, $this->year);
+        $etatib = collect($dashboard['context_panel']['items'])->firstWhere('label', 'e-Tatib');
+        $this->assertSame('Perhatian', $etatib['value']);
+        $this->assertSame('Pembaruan otomatis gagal', $etatib['meta']);
+        $this->assertSame('2', $this->stat($dashboard, 'Integrasi Bermasalah'));
+        $this->assertSame('Pembaruan otomatis e-Tatib gagal', $dashboard['alerts'][0]['title']);
     }
 
     public function test_dashboard_route_does_not_leak_another_teachers_student_or_private_case_text(): void
@@ -125,8 +248,8 @@ class DashboardTest extends TestCase
 
         $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('Kelas Ampuan')
-            ->assertSee('Belum ada kelas ampuan')
+            ->assertSee('Kelas Binaan')
+            ->assertSee('Belum ada kelas binaan pada tingkat ini.')
             ->assertDontSee('Aktivitas terbaru')
             ->assertDontSee('NARASI-AUDIT-RAHASIA');
     }
@@ -137,7 +260,7 @@ class DashboardTest extends TestCase
 
         $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('Belum ada aktivitas terbaru dari kelas yang Anda ampu.')
+            ->assertSee('Belum ada aktivitas terbaru dari kelas binaan Anda.')
             ->assertDontSee('Tidak ada jadwal tindak lanjut dalam waktu dekat.');
     }
 
@@ -159,8 +282,8 @@ class DashboardTest extends TestCase
 
         $dashboard = app(DashboardService::class)->forUser($teacher, $this->year);
 
-        $this->assertSame('0', $this->stat($dashboard, 'Murid dalam cakupan'));
-        $this->assertSame('1', $this->stat($dashboard, 'Permasalahan aktif'));
+        $this->assertSame('0', $this->stat($dashboard, 'Murid Binaan'));
+        $this->assertSame('1', $this->stat($dashboard, 'Belum Selesai'));
     }
 
     public function test_teacher_quick_actions_provide_an_allowed_icon_and_tone(): void
@@ -168,8 +291,8 @@ class DashboardTest extends TestCase
         $teacher = $this->userWithRole('guru_bk', 'Guru Ikon');
         $actions = app(DashboardService::class)->forUser($teacher, $this->year)['quick_actions'];
 
-        $this->assertSame(['case', 'consultation', 'report'], array_column($actions, 'icon'));
-        $this->assertSame(['primary', 'primary', 'primary'], array_column($actions, 'tone'));
+        $this->assertSame(['case', 'consultation'], array_column($actions, 'icon'));
+        $this->assertSame(['primary', 'primary'], array_column($actions, 'tone'));
     }
 
     public function test_coordinator_quick_actions_exclude_case_and_consultation_creation(): void
@@ -208,8 +331,7 @@ class DashboardTest extends TestCase
         ]);
         $classB = Classroom::query()->create([
             'academic_year_id' => $this->year->id,
-            'name' => 'XI RPL 2',
-            'grade_level' => 11,
+            'name' => 'Kelas XI - RPL 2',
             'major' => 'Rekayasa Perangkat Lunak',
             'is_active' => true,
         ]);
@@ -257,17 +379,24 @@ class DashboardTest extends TestCase
 
         $this->actingAs($teacher)->get(route('dashboard.preview'))
             ->assertOk()
-            ->assertSee('Kelas Ampuan')
+            ->assertSee('Kelas Binaan')
             ->assertSee('X RPL 1')
             ->assertSee('2 murid')
-            ->assertSee('XI RPL 2')
+            ->assertSee('Kelas XI - RPL 2')
             ->assertSee('0 murid')
             ->assertDontSee('XII TKJ 1')
             ->assertDontSee('Cakupan layanan Anda')
             ->assertDontSee('Permasalahan khusus aktif');
+
+        $groups = app(DashboardService::class)->forUser($teacher, $this->year)['context_panel']['groups'];
+        $this->assertSame([10, 11, 12], array_keys($groups));
+        $this->assertSame(['class_count' => 1, 'student_count' => 2], array_intersect_key($groups[10], array_flip(['class_count', 'student_count'])));
+        $this->assertSame('X RPL 1', $groups[10]['items'][0]['label']);
+        $this->assertSame('Kelas XI - RPL 2', $groups[11]['items'][0]['label']);
+        $this->assertSame([], $groups[12]['items']);
     }
 
-    public function test_teacher_dashboard_activity_cards_are_display_only_and_capped_at_four(): void
+    public function test_teacher_dashboard_activity_cards_are_display_only_and_capped_at_five(): void
     {
         $teacher = $this->userWithRole('guru_bk', 'Guru Aktivitas');
         $classroom = Classroom::query()->create([
@@ -307,6 +436,9 @@ class DashboardTest extends TestCase
                 'created_by' => $teacher->id,
                 'created_at' => now()->addMinutes($i),
             ]);
+            if ($i === 3) {
+                $case->update(['follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id]);
+            }
             CaseAssignment::query()->create([
                 'case_id' => $case->id,
                 'user_id' => $teacher->id,
@@ -342,8 +474,15 @@ class DashboardTest extends TestCase
         }
 
         $dashboard = app(DashboardService::class)->forUser($teacher, $this->year);
-        $this->assertCount(4, $dashboard['tindak_lanjut']);
+        $this->assertCount(5, $dashboard['tindak_lanjut']);
         $this->assertNull($dashboard['schedule_url']);
+        $caseActivity = collect($dashboard['tindak_lanjut'])->firstWhere('code', 'Layanan permasalahan');
+        $consultationActivity = collect($dashboard['tindak_lanjut'])->firstWhere('code', 'Layanan konsultasi');
+        $this->assertSame('Permasalahan Pribadi', $caseActivity['title']);
+        $this->assertSame('Home Visit', $caseActivity['follow_up']);
+        $this->assertSame('Murid Kasus 3 · X RPL 1', $caseActivity['context_label']);
+        $this->assertSame('Konsultasi Belajar', $consultationActivity['title']);
+        $this->assertNull($consultationActivity['follow_up']);
         foreach ($dashboard['tindak_lanjut'] as $activity) {
             $this->assertArrayNotHasKey('url', $activity);
             $this->assertNotEmpty($activity['date']);
@@ -353,13 +492,14 @@ class DashboardTest extends TestCase
             $this->assertNotEmpty($activity['title']);
             $this->assertNotEmpty($activity['context_label']);
             $this->assertNotEmpty($activity['status']);
+            $this->assertArrayNotHasKey('url', $activity);
         }
 
         $response = $this->actingAs($teacher)->get(route('dashboard.preview'));
         $response->assertOk();
         $response->assertSee('Aktivitas Terbaru');
         $response->assertDontSee('Lihat semua');
-        $response->assertSee('article class="sibk-list-item"', false);
+        $response->assertSee('li class="sibk-teacher-activities__row"', false);
         $response->assertDontSee('sibk-list-item__chevron', false);
         $response->assertDontSee(route('cases.show', BkCase::firstOrFail()));
         $response->assertDontSee(route('consultations.show', Consultation::firstOrFail()));

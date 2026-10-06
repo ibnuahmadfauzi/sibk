@@ -31,7 +31,7 @@
                         @foreach($rolloverSummary->needsConfirmation as $row)
                             <tr>
                                 <td>{{ $row['nisn'] }}</td>
-                                <td class="fw-semibold">{{ $row['student_name'] }}</td>
+                                <td class="fw-semibold">{{ \App\Support\StudentName::display($row['student_name']) }}</td>
                                 <td>{{ $row['source_classroom'] }}</td>
                             </tr>
                         @endforeach

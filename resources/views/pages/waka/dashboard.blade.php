@@ -2,12 +2,12 @@
     <header class="sibk-page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div class="sibk-page-header__copy"><h1 id="dashboard-title">Dashboard Waka Kesiswaan</h1></div>
         @if($years->isNotEmpty())
-            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-center gap-2">
+            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-center gap-2" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview') }}">
                 <label for="academic_year_id" class="form-label text-nowrap mb-0">Tahun Ajaran</label>
-                <select class="form-select" id="academic_year_id" name="academic_year_id" data-waka-year-filter>
+                <select class="form-select" id="academic_year_id" name="academic_year_id" data-filter-field data-filter-default="{{ request()->has('academic_year_id') ? '' : $activeYear?->id }}">
                     @foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach
                 </select>
-                <noscript><button class="btn btn-outline-primary" type="submit">Terapkan</button></noscript>
+                <button class="btn btn-outline-primary text-nowrap" type="submit" data-filter-action>Filter</button>
             </form>
         @endif
     </header>
@@ -38,7 +38,7 @@
     <div class="row g-3 mt-1">
         <div class="col-12 col-xl-8">
             <section class="sibk-panel h-100" aria-labelledby="waka-trend-title">
-                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-trend-title">Tren Murid Tercatat</h2></div></header>
+                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-trend-title">Grafik Catatan BK</h2></div></header>
                 <div class="p-3 p-md-4">
                     <p class="small text-muted">Jumlah murid yang memiliki catatan BK setiap bulan.</p>
                     @php
@@ -76,15 +76,30 @@
                 </div>
             </section>
         </div>
-        <div class="col-12 col-xl-4">
-            <section class="sibk-panel h-100" aria-labelledby="waka-grades-title">
-                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-grades-title">Sebaran per Tingkat</h2></div></header>
-                <div class="p-3 p-md-4">
+        <div class="col-12 col-xl-4 d-flex flex-column gap-3">
+            <section class="sibk-panel" aria-labelledby="waka-grades-title">
+                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-grades-title">Murid per Tingkat</h2></div></header>
+                <div class="px-3 px-md-4 py-2">
                     @foreach($dashboard['grades'] as $grade)
-                        <div class="d-flex justify-content-between gap-3 py-3 border-bottom border-secondary-subtle">
-                            <span>{{ $grade['label'] }}</span><strong>{{ $grade['count'] }} murid</strong>
+                        <div class="d-flex justify-content-between gap-3 py-2">
+                            <span>Kelas {{ ['X' => 10, 'XI' => 11, 'XII' => 12][$grade['label']] }}</span><strong>{{ $grade['count'] }} murid</strong>
                         </div>
                     @endforeach
+                </div>
+            </section>
+            <section class="sibk-panel" aria-labelledby="waka-top-classrooms-title">
+                <header class="sibk-panel__header"><div class="sibk-panel__title-group"><h2 id="waka-top-classrooms-title">Catatan Permasalahan Terbanyak</h2></div></header>
+                <div class="px-3 px-md-4 py-2">
+                        <ul class="list-unstyled mb-0">
+                            @forelse($dashboard['top_case_classrooms'] as $classroom)
+                                <li class="d-flex align-items-baseline justify-content-between gap-3 py-2">
+                                    <span>{{ $classroom['label'] }}</span>
+                                    <strong class="text-nowrap">{{ $classroom['count'] }} murid</strong>
+                                </li>
+                            @empty
+                                <li class="small text-muted py-2">Belum ada catatan permasalahan pada periode ini.</li>
+                            @endforelse
+                        </ul>
                 </div>
             </section>
         </div>

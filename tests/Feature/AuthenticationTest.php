@@ -185,6 +185,32 @@ class AuthenticationTest extends TestCase
         $this->assertStringNotContainsString('PasswordBaru123', $auditJson);
     }
 
+    public function test_regular_password_change_uses_account_modal_and_returns_to_account(): void
+    {
+        $user = User::factory()->create(['password' => 'Lama12345', 'must_change_password' => false]);
+        $this->actingAs($user)->get(route('account.password.edit'))
+            ->assertRedirect(route('account.index', ['password' => 1]));
+
+        $this->from(route('account.index'))->patch(route('account.password.update'), [
+            'current_password' => 'Salah12345',
+            'password' => 'Baru12345',
+            'password_confirmation' => 'Baru12345',
+        ])->assertRedirect(route('account.index'))->assertSessionHasErrors('current_password');
+        $response = $this->withCookie(config('session.cookie'), session()->getId())->get(route('account.index'));
+        $response->assertOk()->assertSee('id="account-password-modal"', false)
+            ->assertSee('Kata sandi saat ini tidak sesuai.')
+            ->assertSee("getOrCreateInstance(document.getElementById('account-password-modal')).show()", false)
+            ->assertDontSee('Salah12345');
+        $this->assertTrue(Hash::check('Lama12345', $user->fresh()->password));
+
+        $this->patch(route('account.password.update'), [
+            'current_password' => 'Lama12345',
+            'password' => 'Baru12345',
+            'password_confirmation' => 'Baru12345',
+        ])->assertRedirect(route('account.index'))->assertSessionHas('success');
+        $this->assertTrue(Hash::check('Baru12345', $user->fresh()->password));
+    }
+
     public function test_new_password_requires_confirmation_letters_and_numbers(): void
     {
         $user = User::factory()->create([

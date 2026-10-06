@@ -42,8 +42,14 @@ class AchievementManagementTest extends TestCase
         $admin = $this->userWithRole('admin_it');
 
         $this->actingAs($waka)->get(route('achievements.index'))->assertOk()->assertSee('Impor Prestasi');
-        $this->get(route('achievements.create'))->assertOk()->assertSee($student->name);
-        $this->post(route('achievements.store'), $this->payload($student))->assertRedirect();
+        $this->get(route('achievements.create', ['modal' => 1]))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertViewHas('studentOptions', fn (array $options): bool =>
+                $options[0]['id'] === $student->id
+                && $options[0]['nisn'] === $student->nisn
+                && $options[0]['classroom'] === 'X RPL 1');
+        $this->post(route('achievements.store'), $this->payload($student))->assertRedirect(route('achievements.index'));
         $achievement = Achievement::query()->firstOrFail();
         $this->assertSame($waka->id, $achievement->recorded_by);
         $this->assertSame('Juara II', $achievement->result);
@@ -54,12 +60,12 @@ class AchievementManagementTest extends TestCase
         $this->get(route('achievements.index'))->assertDontSee('Prestasi Ditolak Lama');
         $this->get(route('achievements.show', $rejected))->assertForbidden();
         $this->get(route('achievements.edit', $rejected))->assertForbidden();
-        $this->get(route('achievements.show', $achievement))->assertOk()->assertSee('Edit Prestasi')->assertDontSee('Verifikasi Prestasi');
+        $this->get(route('achievements.show', $achievement))->assertRedirect(route('achievements.index'));
         $originalVersion = $achievement->updated_at->toJSON();
         $this->travel(1)->seconds();
         $this->patch(route('achievements.update', $achievement), [
             ...$this->payload($student), 'result' => 'Juara I', 'expected_updated_at' => $originalVersion,
-        ])->assertRedirect();
+        ])->assertRedirect(route('achievements.index'));
         $this->assertSame('Juara I', $achievement->refresh()->result);
         $this->patch(route('achievements.update', $achievement), [
             ...$this->payload($student), 'result' => 'Juara III', 'expected_updated_at' => $originalVersion,
@@ -68,7 +74,7 @@ class AchievementManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('achievements.index'))->assertOk()->assertDontSee('Catat Prestasi');
         $this->get(route('achievements.index'))->assertDontSee('Prestasi Ditolak Lama');
-        $this->get(route('achievements.show', $achievement))->assertOk()->assertDontSee('Edit Prestasi');
+        $this->get(route('achievements.show', $achievement))->assertRedirect(route('achievements.index'));
         $this->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))->assertOk()->assertSee('Juara I')->assertDontSee('Catat Prestasi');
         $this->get(route('achievements.create'))->assertForbidden();
         $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
@@ -103,7 +109,7 @@ class AchievementManagementTest extends TestCase
                 ->assertViewHas('stats', fn (array $stats): bool => $stats['achievements'] === 1)
                 ->assertViewHas('canUseProfessionalActions', false);
             $this->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Impor');
-            $this->get(route('achievements.show', $achievement))->assertOk();
+            $this->get(route('achievements.show', $achievement))->assertRedirect(route('achievements.index'));
             $this->get(route('achievements.edit', $achievement))->assertForbidden();
             $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
             $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
@@ -200,7 +206,7 @@ class AchievementManagementTest extends TestCase
 
     }
 
-    public function test_achievement_list_uses_search_and_level_filters_with_modal_detail(): void
+    public function test_achievement_list_uses_search_and_level_filters_with_form_modals(): void
     {
         [, $student] = $this->assignedStudent();
         $waka = $this->userWithRole('waka_kesiswaan');
@@ -211,26 +217,26 @@ class AchievementManagementTest extends TestCase
             ->assertOk()
             ->assertSee('name="search"', false)
             ->assertDontSee('name="classroom_id"', false)
-            ->assertSee('>Terapkan<', false)
+            ->assertSee('data-auto-filter', false)
+            ->assertSee('data-filter-action>Filter<', false)
             ->assertDontSee('>Reset<', false)
             ->assertDontSee('name="student_id"', false)
             ->assertDontSee('name="type_id"', false)
             ->assertSee('name="level_id"', false)
             ->assertDontSee('name="date_start"', false)
             ->assertDontSee('name="date_end"', false)
-            ->assertSee('data-modal-url="'.route('achievements.show', [$achievement, 'modal' => 1]).'"', false)
+            ->assertSee('data-modal-url="'.route('achievements.create', ['modal' => 1]).'"', false)
             ->assertSee('data-modal-url="'.route('achievements.edit', [$achievement, 'modal' => 1]).'"', false)
-            ->assertSee('title="Lihat selengkapnya"', false)
             ->assertSee('title="Edit prestasi"', false)
-            ->assertSee('class="btn btn-sm btn-link d-inline-flex p-2" title="Edit prestasi"', false)
+            ->assertSee('title="Hapus prestasi"', false)
             ->assertDontSee('>Detail<', false)
             ->assertDontSee('>Edit<', false)
             ->assertSee('data-service-record-modal', false);
 
         $this->get(route('achievements.index', ['search' => 'Murid Prestasi']))
             ->assertOk()
-            ->assertSee('>Reset<', false)
-            ->assertSee('>Terapkan<', false);
+            ->assertSee('data-filter-reset-url="'.route('achievements.index').'"', false)
+            ->assertSee('data-filter-action>Filter<', false);
 
         $otherLevel = ReferenceValue::query()->forCategory('achievement_level')->where('id', '!=', $achievement->level_id)->firstOrFail();
         $this->get(route('achievements.index', ['level_id' => $achievement->level_id]))
@@ -241,10 +247,11 @@ class AchievementManagementTest extends TestCase
             ->assertSessionHasErrors('level_id');
 
         $this->get(route('achievements.show', [$achievement, 'modal' => 1]))
+            ->assertRedirect(route('achievements.index'));
+
+        $this->get(route('achievements.create', ['modal' => 1]))
             ->assertOk()
-            ->assertSee('Detail Prestasi')
-            ->assertSee($achievement->activity_name)
-            ->assertSee('data-modal-url="'.route('achievements.edit', [$achievement, 'modal' => 1]).'"', false)
+            ->assertSee('Catat Prestasi')
             ->assertDontSee('<html', false);
 
         $this->get(route('achievements.edit', [$achievement, 'modal' => 1]))
@@ -255,6 +262,11 @@ class AchievementManagementTest extends TestCase
             ->assertDontSee('data-autosave-form', false)
             ->assertDontSee('<html', false);
 
+        $this->get(route('achievements.create'))
+            ->assertRedirect(route('achievements.index', ['create' => 1]));
+        $this->get(route('achievements.edit', $achievement))
+            ->assertRedirect(route('achievements.index', ['edit' => $achievement->id]));
+
         $this->travel(1)->seconds();
         $this->patchJson(route('achievements.update', $achievement), [
             ...$this->payload($student),
@@ -262,6 +274,51 @@ class AchievementManagementTest extends TestCase
             'expected_updated_at' => $achievement->updated_at->toJSON(),
         ])->assertOk()->assertJsonPath('redirect', route('achievements.index'));
         $this->assertSame('Juara I', $achievement->refresh()->result);
+    }
+
+    public function test_waka_can_delete_achievement_with_audit_and_stale_version_is_rejected(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $admin = $this->userWithRole('admin_it');
+        $this->actingAs($waka)->post(route('achievements.store'), $this->payload($student))
+            ->assertRedirect(route('achievements.index'));
+        $achievement = Achievement::query()->firstOrFail();
+        $version = $achievement->updated_at->toJSON();
+
+        foreach ([$teacher, $coordinator, $admin] as $user) {
+            $this->actingAs($user)->delete(route('achievements.destroy', $achievement), [
+                'expected_updated_at' => $version,
+            ])->assertForbidden();
+        }
+
+        $this->actingAs($waka)->delete(route('achievements.destroy', $achievement), [
+            'expected_updated_at' => '2026-01-01T00:00:00.000000Z',
+        ])->assertSessionHasErrors('expected_updated_at');
+        $this->assertModelExists($achievement);
+
+        $this->deleteJson(route('achievements.destroy', $achievement), [
+            'expected_updated_at' => $version,
+        ])->assertOk()->assertJsonPath('redirect', route('achievements.index'));
+        $this->assertSoftDeleted($achievement);
+        $this->assertDatabaseHas('audit_logs', [
+            'auditable_type' => $achievement->getMorphClass(),
+            'auditable_id' => $achievement->id,
+            'action' => 'achievement.deleted',
+            'actor_id' => $waka->id,
+        ]);
+    }
+
+    public function test_modal_submission_returns_index_redirect_for_new_achievement(): void
+    {
+        [, $student] = $this->assignedStudent();
+        $this->actingAs($this->userWithRole('waka_kesiswaan'))
+            ->postJson(route('achievements.store'), $this->payload($student))
+            ->assertOk()
+            ->assertJsonPath('redirect', route('achievements.index'));
+
+        $this->assertDatabaseCount('achievements', 1);
     }
 
     /** @return array{User, Student} */

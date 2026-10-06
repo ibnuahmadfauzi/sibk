@@ -72,7 +72,7 @@ final class WakaMonitoringService
         $owner = $case->assignments->first()?->teacher;
 
         return [
-            'nama_murid' => $case->identityName(),
+            'nama_murid' => \App\Support\StudentName::display($case->identityName()),
             'kelas' => $case->classroom?->name ?? '-',
             'bidang' => $case->serviceField?->label ?? '-',
             'status' => $case->status?->label ?? '-',

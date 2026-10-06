@@ -126,10 +126,10 @@ class Consultation extends Model
 
     public function identityName(): string
     {
-        return $this->student?->name
+        return \App\Support\StudentName::display($this->student?->name
             ?? $this->temporaryStudent?->reconciledStudent?->name
             ?? $this->temporaryStudent?->input_name
-            ?? 'Identitas tidak tersedia';
+            ?? 'Identitas tidak tersedia');
     }
 
     public function identityNisn(): string

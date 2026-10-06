@@ -639,7 +639,7 @@
                                 <input class="form-check-input mt-0 fs-5" type="radio" name="etatib_radio_selector" value="${item.id}" ${isSelected ? 'checked' : ''} style="cursor: pointer;">
                             </div>
                             <div>
-                                <div class="fw-bold text-dark fs-6 text-uppercase">${escapeHtml(item.student_name)}</div>
+                                <div class="fw-bold text-dark fs-6">${escapeHtml(item.student_name)}</div>
                                 <div class="text-secondary small mt-1">NISN: ${escapeHtml(item.nisn)} &nbsp;|&nbsp; Kelas: ${escapeHtml(item.classroom_name)}</div>
                             </div>
                         </div>

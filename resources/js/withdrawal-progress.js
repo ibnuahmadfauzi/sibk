@@ -1,3 +1,5 @@
+import { displayStudentName } from './student-name.js';
+
 const initialisedRoots = new WeakSet();
 
 const normalise = (value) => String(value ?? '').trim().toLocaleLowerCase('id');
@@ -29,14 +31,14 @@ export const filterStudents = (students, term, limit = 6) => {
 export const applyStudentSelection = (state, student) => {
     if (state.studentId) state.studentId.value = String(student.id);
     if (state.lookup) {
-        state.lookup.value = `${student.nisn} — ${student.name}`;
+        state.lookup.value = `${student.nisn} — ${displayStudentName(student.name)}`;
         state.lookup.setAttribute('aria-expanded', 'false');
         state.lookup.setCustomValidity?.('');
     }
-    if (state.studentName) state.studentName.value = student.name;
+    if (state.studentName) state.studentName.value = displayStudentName(student.name);
     if (state.studentClassroom) state.studentClassroom.value = student.classroom;
     if (state.selected) {
-        state.selected.querySelector('[data-withdrawal-selected-name]').textContent = `${student.name} (${student.nisn})`;
+        state.selected.querySelector('[data-withdrawal-selected-name]').textContent = `${displayStudentName(student.name)} (${student.nisn})`;
         state.selected.querySelector('[data-withdrawal-selected-classroom]').textContent = student.classroom;
         state.selected.classList.remove('d-none');
     }
@@ -61,7 +63,7 @@ export const buildStudentOption = (student, onSelect, create = document.createEl
     nisn.textContent = student.nisn;
     const name = create('span');
     name.className = 'd-block fw-semibold text-dark';
-    name.textContent = student.name;
+    name.textContent = displayStudentName(student.name);
     const classroom = create('span');
     classroom.className = 'd-block small text-secondary';
     classroom.textContent = student.classroom;
@@ -227,7 +229,7 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             detail.classList.toggle('d-none', expanded);
             noteTrigger.setAttribute('aria-expanded', String(!expanded));
             noteTrigger.title = expanded ? 'Tampilkan catatan' : 'Tutup catatan';
-            noteTrigger.setAttribute('aria-label', `${noteTrigger.title} pengunduran diri ${noteTrigger.dataset.studentName}`);
+            noteTrigger.setAttribute('aria-label', `${noteTrigger.title} pengunduran diri ${displayStudentName(noteTrigger.dataset.studentName)}`);
             return;
         }
 
@@ -258,7 +260,7 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             };
             followUpForm.reset();
             followUpForm.action = followUpTarget.url;
-            followUpModal.querySelector('[data-follow-up-student]').textContent = followUpTrigger.dataset.studentName ?? '';
+            followUpModal.querySelector('[data-follow-up-student]').textContent = displayStudentName(followUpTrigger.dataset.studentName);
             const date = followUpForm.querySelector('[name="follow_up_date"]');
             date.min = followUpTrigger.dataset.minDate ?? '';
             followUpForm.querySelector('[name="progress"]').value = followUpTrigger.dataset.currentProgress;

@@ -61,13 +61,9 @@ class Student extends Model
     {
         $records = $this->relationLoaded('etatibRecords')
             ? $this->etatibRecords
-            : $this->etatibRecords()->active()->latest('occurred_at')->get();
+            : $this->etatibRecords()->whereNull('source_deleted_at')->get();
 
-        $officialTotal = $records
-            ->first(fn (ExternalTatibRecord $record): bool => $record->source_total_points !== null)
-            ?->source_total_points;
-
-        return (int) ($officialTotal ?? $records->sum('points'));
+        return (int) $records->whereNull('source_deleted_at')->sum('points');
     }
 
     /** @return HasOne<StudentDeparture, $this> */

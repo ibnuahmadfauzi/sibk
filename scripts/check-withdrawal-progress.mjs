@@ -12,7 +12,7 @@ import {
 } from '../resources/js/withdrawal-progress.js';
 
 const students = [
-    { id: 1, nisn: '0012345678', name: 'Murid Scope', classroom: 'X RPL 1' },
+    { id: 1, nisn: '0012345678', name: 'MURID SCOPE', classroom: 'X RPL 1' },
     { id: 2, nisn: '0098765432', name: 'Murid Lain', classroom: 'X RPL 2' },
 ];
 
@@ -50,6 +50,7 @@ const state = {
 applyStudentSelection(state, students[0]);
 assert.equal(state.studentId.value, '1');
 assert.equal(state.lookup.value, '0012345678 — Murid Scope');
+assert.equal(state.studentName.value, 'Murid Scope');
 assert.equal(state.studentClassroom.value, 'X RPL 1');
 
 let reported = '';

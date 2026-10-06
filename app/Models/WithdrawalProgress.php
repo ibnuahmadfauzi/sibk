@@ -38,7 +38,7 @@ final class WithdrawalProgress extends Model
 
     public function identityName(): string
     {
-        return $this->student?->name ?? 'Identitas tidak tersedia';
+        return \App\Support\StudentName::display($this->student?->name ?? 'Identitas tidak tersedia');
     }
 
     /** @return BelongsTo<Student, $this> */

@@ -29,6 +29,7 @@ class StudentController extends Controller
         $query = Student::query()
             ->availableForService()
             ->accessibleTo($user)
+            ->withCount(['achievements' => fn ($achievements) => $achievements->accessibleTo($user)])
             ->with([
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
@@ -39,7 +40,7 @@ class StudentController extends Controller
                 'consultations' => fn ($consultations) => $consultations
                     ->accessibleTo($user),
                 'etatibRecords' => fn ($etatib) => $etatib
-                    ->active()
+                    ->whereNull('source_deleted_at')
                     ->latest('occurred_at'),
             ]);
         $search = $request->string('search')->trim()->toString();
@@ -99,10 +100,10 @@ class StudentController extends Controller
         $cases = BkCase::query()
             ->accessibleTo($user)
             ->where('student_id', $student->getKey())
-            ->with(['source', 'serviceField', 'status', 'assignments.teacher'])
+            ->with(['source', 'serviceField', 'status', 'classroom', 'assignments.teacher', 'followUps.followUpType', 'followUpType'])
             ->latest('service_date')
             ->get();
-        $etatibQuery = ExternalTatibRecord::query()->active()
+        $etatibQuery = ExternalTatibRecord::query()
             ->with(['latestClassroomIssue', 'student.classMemberships' => fn ($memberships) => $memberships
                 ->active()->with(['academicYear:id,starts_on,ends_on', 'classroom:id,name'])])
             ->where('student_id', $student->getKey());
@@ -111,6 +112,8 @@ class StudentController extends Controller
         }
         $etatibRecords = $etatibQuery->latest('occurred_at')->get();
         $officialEtatibTotal = $etatibRecords
+            ->whereNull('source_deleted_at')
+            ->sortByDesc('id')->sortByDesc('synced_at')
             ->first(fn (ExternalTatibRecord $record): bool => $record->source_total_points !== null)
             ?->source_total_points;
 
@@ -123,7 +126,7 @@ class StudentController extends Controller
                         ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
                             ->where('reconciled_student_id', $student->getKey()));
                 })
-                ->with(['serviceField', 'counselor'])
+                ->with(['serviceField', 'counselor', 'classroom'])
                 ->latest('session_date')
                 ->get();
         }
@@ -131,7 +134,7 @@ class StudentController extends Controller
         $achievements = Achievement::query()
             ->accessibleTo($user)
             ->where('student_id', $student->getKey())
-            ->with(['type', 'level', 'recorder'])
+            ->with(['type', 'level'])
             ->latest('achievement_date')
             ->get();
 
@@ -152,7 +155,8 @@ class StudentController extends Controller
             'stats' => [
                 'cases' => $cases->count(),
                 'consultations' => $consultations->count(),
-                'points' => $officialEtatibTotal ?? $etatibRecords->sum('points'),
+                'points' => $etatibRecords->whereNull('source_deleted_at')->sum('points'),
+                'source_points' => $officialEtatibTotal,
                 'last_synced_at' => $etatibRecords->max('synced_at'),
                 'achievements' => $achievements->count(),
             ],

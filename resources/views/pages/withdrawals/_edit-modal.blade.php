@@ -14,7 +14,7 @@
         <div class="row g-3">
             <div class="col-12 col-md-7">
                 <label class="form-label" for="withdrawal-modal-student">Nama / NISN murid</label>
-                <input class="form-control" id="withdrawal-modal-student" value="{{ $withdrawal->student?->name ?? 'Murid tidak tersedia' }} ({{ $withdrawal->student?->nisn ?? 'NISN belum tercatat' }})" readonly aria-describedby="withdrawal-modal-classroom">
+                <input class="form-control" id="withdrawal-modal-student" value="{{ \App\Support\StudentName::display($withdrawal->student?->name) ?: 'Murid tidak tersedia' }} ({{ $withdrawal->student?->nisn ?? 'NISN belum tercatat' }})" readonly aria-describedby="withdrawal-modal-classroom">
                 <div class="form-text" id="withdrawal-modal-classroom">{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}</div>
             </div>
             <div class="col-12 col-md-5">

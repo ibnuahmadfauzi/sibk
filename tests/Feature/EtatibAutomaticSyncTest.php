@@ -180,13 +180,14 @@ final class EtatibAutomaticSyncTest extends TestCase
         ]);
         Http::fake([self::URL => Http::response($this->payload())]);
 
-        $this->artisan('sibk:sync-etatib')->assertFailed();
+        $this->artisan('sibk:sync-etatib')->assertSuccessful();
 
         $this->assertDatabaseHas('external_tatib_records', [
             'source_identifier' => 'existing-record',
             'is_active' => true,
         ]);
-        $this->assertDatabaseCount('external_tatib_records', 1);
+        $this->assertDatabaseCount('external_tatib_records', 2);
+        $this->assertDatabaseHas('external_sync_runs', ['status' => ExternalSyncRun::STATUS_WARNING]);
     }
 
     public function test_scheduled_sync_saves_a_changing_timestamp_without_a_date(): void

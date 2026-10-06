@@ -32,6 +32,18 @@ class OperationalReportRecapTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
+    public function test_classroom_text_filter_applies_to_report_and_document(): void
+    {
+        [$year, $classroom, $student, $owner] = $this->caseFixture();
+        $this->actingAs($owner);
+        foreach (['reports.index', 'reports.preview'] as $route) {
+            $this->get(route($route, ['classroom_search' => $classroom->name]))
+                ->assertOk()->assertSee($student->name);
+            $this->get(route($route, ['classroom_search' => 'Kelas Tidak Ada']))
+                ->assertOk()->assertDontSee($student->name);
+        }
+    }
+
     public function test_coordinator_reads_out_of_scope_records_only_through_reports_and_withdrawals(): void
     {
         [$year, $classroom, $student, $owner, $case] = $this->caseFixture();
@@ -144,6 +156,25 @@ class OperationalReportRecapTest extends TestCase
             ->get(route('reports.preview', [...$filters, 'embedded' => 1]))->assertForbidden();
         $this->actingAs($this->userWithRole('admin_it'))
             ->get(route('reports.preview', [...$filters, 'embedded' => 1]))->assertForbidden();
+    }
+
+    public function test_recap_document_heading_follows_the_selected_service(): void
+    {
+        [$year, , , $owner] = $this->caseFixture();
+
+        foreach ([
+            'case' => 'Rekap Catatan Permasalahan',
+            'consultation' => 'Rekap Catatan Bimbingan & Konseling',
+            'withdrawal' => 'Rekap Catatan Pengunduran Diri',
+        ] as $type => $heading) {
+            $this->actingAs($owner)->get(route('reports.preview', [
+                'academic_year_id' => $year->id,
+                'service_type' => $type,
+                'embedded' => 1,
+            ]))->assertOk()
+                ->assertSee($heading)
+                ->assertDontSee('Ringkasan laporan:');
+        }
     }
 
     public function test_bk_report_detail_spans_all_columns_without_archive_action(): void

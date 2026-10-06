@@ -26,9 +26,10 @@ class UserManagementController extends Controller
     public function index(Request $request): JsonResponse|Response
     {
         $this->authorizeRequest($request);
+        $filters = $this->filters($request);
 
         if ($request->expectsJson()) {
-            return response()->json($this->users());
+            return response()->json($this->users($filters));
         }
 
         $encrypted = $request->session()->pull('account_password_result');
@@ -45,7 +46,7 @@ class UserManagementController extends Controller
             }
         }
 
-        $response = response()->view('pages.admin.users.index', $this->pageData($result));
+        $response = response()->view('pages.admin.users.index', $this->pageData($filters, $result));
 
         return $result === null
             ? $response
@@ -120,23 +121,49 @@ class UserManagementController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function pageData(?TemporaryPasswordResult $result = null): array
+    private function pageData(array $filters, ?TemporaryPasswordResult $result = null): array
     {
         return [
-            'users' => $this->users($result?->user->getKey()),
+            'users' => $this->users($filters, $result?->user->getKey()),
             'roles' => Role::query()->active()->orderBy('name')->get(),
+            'filters' => $filters,
             'temporaryPasswordResult' => $result,
         ];
     }
 
-    private function users(?int $featuredId = null): LengthAwarePaginator
+    /** @return array{q: string, role: string} */
+    private function filters(Request $request): array
+    {
+        $search = $request->query('q');
+        $role = $request->query('role');
+        $role = is_string($role) && Role::query()->active()->where('slug', $role)->exists()
+            ? $role
+            : '';
+
+        return [
+            'q' => is_string($search) ? trim($search) : '',
+            'role' => $role,
+        ];
+    }
+
+    /** @param array{q: string, role: string} $filters */
+    private function users(array $filters, ?int $featuredId = null): LengthAwarePaginator
     {
         $query = User::query()->with('roles:id,slug,name');
+        if ($filters['q'] !== '') {
+            $query->where(function ($users) use ($filters): void {
+                $users->where('name', 'like', '%'.$filters['q'].'%')
+                    ->orWhere('email', 'like', '%'.$filters['q'].'%');
+            });
+        }
+        if ($filters['role'] !== '') {
+            $query->whereHas('roles', fn ($roles) => $roles->where('slug', $filters['role']));
+        }
         if ($featuredId !== null) {
             $query->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$featuredId]);
         }
 
-        return $query->orderBy('name')->paginate(20);
+        return $query->orderBy('name')->paginate(20)->appends(array_filter($filters));
     }
 
     private function flashPassword(Request $request, TemporaryPasswordResult $result): void
