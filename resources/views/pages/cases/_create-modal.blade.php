@@ -43,7 +43,7 @@
                             <span class="d-block fw-semibold text-break" data-case-selected-identity></span>
                             <span class="d-block small text-secondary" data-case-selected-details></span>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-case-change-etatib>Ganti</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary border border-primary-subtle flex-shrink-0" data-case-change-etatib>Ganti</button>
                     </div>
                 </div>
                 <div class="col-12 col-md-4 {{ $selectedSourceCode !== 'rujukan' ? 'd-none' : '' }}" data-case-referrer>

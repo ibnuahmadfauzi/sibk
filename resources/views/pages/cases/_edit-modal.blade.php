@@ -10,7 +10,7 @@
         @if($errors->any())<div class="alert alert-danger" role="alert"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         <section class="mb-4" aria-labelledby="case-edit-student-title">
             <h3 class="h6 fw-bold mb-3" id="case-edit-student-title">Data Murid</h3>
-            <dl class="row g-2 mb-0 small">
+            <dl class="row g-2 mb-0 small sibk-case-readonly">
                 <div class="col-12 col-md-4"><dt class="text-secondary fw-normal">Nama Murid</dt><dd class="fw-semibold mb-0 text-break">{{ $case->identityName() }}</dd></div>
                 <div class="col-6 col-md-3"><dt class="text-secondary fw-normal">NISN</dt><dd class="fw-semibold mb-0">{{ $case->identityNisn() ?: '—' }}</dd></div>
                 <div class="col-6 col-md-3"><dt class="text-secondary fw-normal">Rombel</dt><dd class="fw-semibold mb-0">{{ $case->classroom?->name ?? '—' }}</dd></div>

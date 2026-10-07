@@ -42,7 +42,24 @@
   min-height: 3rem;
   font-size: .875rem;
 
-  &__identity { min-width: 0; }
+  &__identity {
+    min-width: 0;
+    flex: 1;
+    padding: .5rem .75rem;
+    border: 1px solid var(--bs-primary-border-subtle);
+    border-radius: var(--bs-border-radius-lg);
+  }
+}
+
+.sibk-case-readonly {
+  dt { margin-bottom: .375rem; }
+
+  dd {
+    min-height: 2.75rem;
+    padding: .625rem .75rem;
+    border: 1px solid var(--bs-primary-border-subtle);
+    border-radius: var(--bs-border-radius-lg);
+  }
 }
 
 .sibk-case-suggestions {
