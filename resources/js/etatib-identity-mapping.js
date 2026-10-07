@@ -7,13 +7,12 @@ const escapeHtml = (value) => {
     return element.innerHTML;
 };
 
-export const initEtatibIdentityMapping = async () => {
-    const page = document.querySelector('[data-etatib-mapping-page]');
-    const modalElement = document.getElementById('etatib-mapping-modal');
+export const initEtatibIdentityMapping = async (root = document, { Modal } = {}) => {
+    const page = root.querySelector('[data-etatib-mapping-page]');
+    const modalElement = root.getElementById('etatib-mapping-modal');
 
     if (!page || !modalElement) return;
 
-    const { default: Modal } = await import('bootstrap/js/dist/modal.js');
     const modal = Modal.getOrCreateInstance(modalElement);
     const form = modalElement.querySelector('[data-etatib-map-form]');
     const method = modalElement.querySelector('[data-etatib-map-method]');
@@ -109,7 +108,7 @@ export const initEtatibIdentityMapping = async () => {
         }
     };
 
-    document.querySelectorAll('[data-etatib-map-open]').forEach((button) => {
+    root.querySelectorAll('[data-etatib-map-open]').forEach((button) => {
         button.addEventListener('click', () => {
             form.action = button.dataset.action;
             method.disabled = button.dataset.method !== 'patch';

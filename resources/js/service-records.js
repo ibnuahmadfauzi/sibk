@@ -193,7 +193,7 @@ export const toggleServiceNotes = async (button, root = document, request = fetc
     }
 };
 
-export const initServiceRecords = async (root = document) => {
+export const initServiceRecords = async (root = document, { Modal, Toast } = {}) => {
     if (initialisedRoots.has(root)) return;
     initialisedRoots.add(root);
 
@@ -207,7 +207,6 @@ export const initServiceRecords = async (root = document) => {
     let trigger;
 
     if (modalElement) {
-        const { default: Modal } = await import('bootstrap/js/dist/modal.js');
         const modal = Modal.getOrCreateInstance(modalElement);
         modalElement.addEventListener('sibk:form-cleared', (event) => {
             if (event.target.matches('[data-confirm-unsaved]')) {
@@ -279,7 +278,6 @@ export const initServiceRecords = async (root = document) => {
                 const toast = modalElement.querySelector('[data-modal-submit-error] [data-notification-toast]');
                 if (!toast) return;
                 toast.querySelector('[data-modal-submit-error-message]').textContent = message;
-                const { default: Toast } = await import('bootstrap/js/dist/toast.js');
                 Toast.getOrCreateInstance(toast, { delay: 8000 }).show();
             },
         }); });

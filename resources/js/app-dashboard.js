@@ -23,12 +23,12 @@ import { displayStudentName } from './student-name';
 import { initAutoFilters } from './auto-filter';
 
 initFormDrafts();
-initServiceRecords();
+initServiceRecords(document, { Modal, Toast });
 initConsultationCreate();
-initApiSiswaPreview();
-initEtatibApiPreview();
-initEtatibIdentityMapping();
-initWithdrawalProgress();
+initApiSiswaPreview(document, { Modal });
+initEtatibApiPreview(document, { Modal });
+initEtatibIdentityMapping(document, { Modal });
+initWithdrawalProgress(document, { Modal });
 initReportPreview(Modal);
 document.querySelectorAll('[data-password-visibility]').forEach((toggle) => {
     const input = document.getElementById(toggle.dataset.passwordVisibility);
