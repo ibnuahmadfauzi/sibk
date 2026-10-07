@@ -19,10 +19,12 @@ use App\Models\User;
 use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
 use App\Services\SimpleEtatibApiService;
+use App\Support\StudentName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class DataMasterController extends Controller
@@ -54,9 +56,15 @@ class DataMasterController extends Controller
 
             return $query->orderBy($defaultColumn, $defaultDirection)->orderBy('id', $defaultDirection);
         };
+        $reviewStatusColumn = (new ExternalSyncIssue)->getConnection()->getQueryGrammar()->wrap('details->review->status');
+        $issueSortColumns = [
+            'data' => 'input_name',
+            'sumber' => ExternalSyncRun::query()->select('source')->whereColumn('external_sync_runs.id', 'external_sync_issues.external_sync_run_id'),
+            'pemeriksaan' => DB::raw("CASE {$reviewStatusColumn} WHEN 'source_correction' THEN 1 WHEN 'reviewed' THEN 2 ELSE 0 END"),
+        ];
         $syncIssues = $activeTab === 'sinkronisasi' ? $sortQuery(ExternalSyncIssue::query()
             ->whereNull('resolved_at')
-            ->with('syncRun:id,source,started_at'), 'issue_sort', 'issue_direction', ['data' => 'input_name'], 'id')
+            ->with('syncRun:id,source,started_at'), 'issue_sort', 'issue_direction', $issueSortColumns, 'id')
             ->paginate(10, ['*'], 'issue_page')
             ->withQueryString() : null;
         $localTargets = [];
@@ -71,7 +79,7 @@ class DataMasterController extends Controller
                 $localTargets['academic_year:'.$year->id] = 'Tahun ajaran '.$year->name;
             }
             foreach (Student::query()->whereKey($localIds('student'))->get(['id', 'name', 'nisn']) as $student) {
-                $localTargets['student:'.$student->id] = \App\Support\StudentName::display($student->name).' (NISN '.$student->nisn.')';
+                $localTargets['student:'.$student->id] = StudentName::display($student->name).' (NISN '.$student->nisn.')';
             }
             foreach (Classroom::query()->whereKey($localIds('classroom'))->with('academicYear:id,name')->get(['id', 'name', 'academic_year_id']) as $classroom) {
                 $localTargets['classroom:'.$classroom->id] = $classroom->name.' ('.$classroom->academicYear?->name.')';
@@ -79,7 +87,7 @@ class DataMasterController extends Controller
             foreach (StudentClassMembership::query()->whereKey($localIds('membership'))
                 ->with(['student:id,name', 'classroom:id,name', 'academicYear:id,name'])
                 ->get(['id', 'student_id', 'classroom_id', 'academic_year_id']) as $membership) {
-                $localTargets['membership:'.$membership->id] = \App\Support\StudentName::display($membership->student?->name ?? 'Murid').' — '.($membership->classroom?->name ?? 'Kelas').' ('.$membership->academicYear?->name.')';
+                $localTargets['membership:'.$membership->id] = StudentName::display($membership->student?->name ?? 'Murid').' — '.($membership->classroom?->name ?? 'Kelas').' ('.$membership->academicYear?->name.')';
             }
         }
 
@@ -99,7 +107,7 @@ class DataMasterController extends Controller
                 ->withQueryString(),
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
             'etatibDuplicateDecisions' => $activeTab === 'etatib'
-                ? $sortQuery(EtatibDuplicateDecision::query()->where('is_active', true), 'duplicate_sort', 'duplicate_direction', ['murid' => 'source_name', 'jumlah' => 'copy_count', 'waktu' => 'approved_at'], 'approved_at')
+                ? $sortQuery(EtatibDuplicateDecision::query()->where('is_active', true), 'duplicate_sort', 'duplicate_direction', ['murid' => 'source_name', 'waktu' => 'approved_at'], 'approved_at')
                     ->paginate(10, ['id', 'source_nisn', 'source_name', 'copy_count', 'approved_at'], 'duplicate_page')->withQueryString()
                 : null,
             'latestDapodikPreview' => ExternalSyncRun::query()

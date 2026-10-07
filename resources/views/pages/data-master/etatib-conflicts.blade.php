@@ -17,23 +17,20 @@
             <x-notification-toast tone="error">{{ $errors->first() }}</x-notification-toast>
         @endif
 
-        <div class="sibk-page-header d-flex flex-wrap justify-content-between gap-3 mb-4">
-            <div class="sibk-page-header__copy">
-                <a
-                    href="{{ route('data-master.index') }}"
-                    class="text-decoration-none small"
-                >
-                    &larr; Data Master
-                </a>
+        <div class="sibk-page-header d-flex align-items-start gap-3 mb-4">
+            <a href="{{ route('data-master.index') }}" class="btn btn-icon btn-light text-primary flex-shrink-0" aria-label="Kembali ke Data Master" title="Kembali ke Data Master">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>
+            </a>
+            <div class="sibk-page-header__copy m-0">
                 <h1>Konflik e-Tatib</h1>
                 <p>Cocokkan data e-Tatib dengan daftar murid sekolah.</p>
             </div>
         </div>
 
-        <nav class="nav nav-tabs mb-4" aria-label="Pengelolaan konflik e-Tatib">
+        <nav class="nav nav-pills gap-2 mb-4" aria-label="Pengelolaan konflik e-Tatib">
             <a
                 class="nav-link @if($tab === 'conflicts') active @endif"
-                href="{{ route('data-master.etatib.conflicts.index') }}"
+                href="{{ route('data-master.etatib.conflicts.index', request()->only('search')) }}"
                 @if($tab === 'conflicts') aria-current="page" @endif
             >
                 Belum Cocok
@@ -41,7 +38,7 @@
             </a>
             <a
                 class="nav-link @if($tab === 'mappings') active @endif"
-                href="{{ route('data-master.etatib.conflicts.index', ['tab' => 'mappings']) }}"
+                href="{{ route('data-master.etatib.conflicts.index', array_merge(request()->only('search'), ['tab' => 'mappings'])) }}"
                 @if($tab === 'mappings') aria-current="page" @endif
             >
                 Pencocokan Manual
@@ -49,20 +46,23 @@
             </a>
         </nav>
 
+        <form class="mb-3" method="GET" action="{{ route('data-master.etatib.conflicts.index') }}" role="search">
+            @if($tab === 'mappings')<input type="hidden" name="tab" value="mappings">@endif
+            <label class="visually-hidden" for="etatib-conflict-search">Cari nama atau NISN</label>
+            <div class="input-group">
+                <input class="form-control" id="etatib-conflict-search" name="search" type="search" value="{{ request('search') }}" placeholder="Cari nama atau NISN...">
+                <button class="btn btn-outline-primary" type="submit">Cari</button>
+            </div>
+        </form>
+
         @if($tab === 'conflicts')
-            <section class="sibk-panel" aria-labelledby="unmatched-etatib-title">
-                <div class="sibk-panel__header p-4 pb-2">
-                    <h2 class="fs-6 fw-bold mb-1" id="unmatched-etatib-title">Identitas Belum Cocok</h2>
-                    <p class="text-muted small mb-0">
-                        Pencocokan otomatis dilakukan jika NISN dan nama sama.
-                    </p>
-                </div>
+            <section class="sibk-panel" aria-label="Belum Cocok">
                 <div class="table-responsive">
                     <table class="table sibk-table mb-0">
                         <thead>
                             <tr>
                                 <x-sort-header name="name" label="Identitas Sumber" />
-                                <x-sort-header name="classroom" label="Kelas Contoh" />
+                                <x-sort-header name="classroom" label="Rombel Sumber" />
                                 <th>Alasan</th>
                                 <x-sort-header name="record_count" label="Pelanggaran" />
                                 <th class="text-end">Aksi</th>
@@ -80,8 +80,10 @@
                                     <td>{{ number_format($conflict['record_count'], 0, ',', '.') }}</td>
                                     <td class="text-end">
                                         <button
-                                            class="btn btn-primary btn-sm"
+                                            class="btn btn-sm p-0 sibk-icon-button sibk-report-control"
                                             type="button"
+                                            aria-label="Cocokkan"
+                                            title="Cocokkan"
                                             data-etatib-map-open
                                             data-action="{{ route('data-master.etatib.mappings.store', $conflict['issue_id']) }}"
                                             data-method="post"
@@ -89,7 +91,7 @@
                                             data-source-name="{{ $conflict['name'] }}"
                                             data-source-classroom="{{ $conflict['classroom'] ?? '-' }}"
                                         >
-                                            Cocokkan
+                                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>
                                         </button>
                                     </td>
                                 </tr>
@@ -106,16 +108,10 @@
             </section>
 
             @if($conflicts->hasPages())
-                <div class="mt-3">{{ $conflicts->links() }}</div>
+                <div class="mt-3">{{ $conflicts->links('pagination.data-master') }}</div>
             @endif
         @else
-            <section class="sibk-panel" aria-labelledby="etatib-mappings-title">
-                <div class="sibk-panel__header p-4 pb-2">
-                    <h2 class="fs-6 fw-bold mb-1" id="etatib-mappings-title">Pencocokan Manual Aktif</h2>
-                    <p class="text-muted small mb-0">
-                        Keputusan ini dipakai kembali untuk pelanggaran dengan pasangan NISN dan nama sumber yang sama.
-                    </p>
-                </div>
+            <section class="sibk-panel" aria-label="Pencocokan Manual">
                 <div class="table-responsive">
                     <table class="table sibk-table mb-0">
                         <thead>
@@ -144,10 +140,12 @@
                                         </span>
                                     </td>
                                     <td class="text-end">
-                                        <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+                                        <div class="d-inline-flex justify-content-end gap-2">
                                             <button
-                                                class="btn btn-outline-primary btn-sm"
+                                                class="btn btn-sm p-0 sibk-icon-button sibk-report-control"
                                                 type="button"
+                                                aria-label="Ubah Pencocokan"
+                                                title="Ubah Pencocokan"
                                                 data-etatib-map-open
                                                 data-action="{{ route('data-master.etatib.mappings.update', $mapping) }}"
                                                 data-method="patch"
@@ -155,7 +153,7 @@
                                                 data-source-name="{{ $mapping->source_name }}"
                                                 data-source-classroom="-"
                                             >
-                                                Ubah
+                                                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20ZM14 7l3 3"/></svg>
                                             </button>
                                             <form
                                                 action="{{ route('data-master.etatib.mappings.destroy', $mapping) }}"
@@ -166,8 +164,8 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <input type="hidden" name="confirmed" value="1">
-                                                <button class="btn btn-outline-danger btn-sm" type="submit">
-                                                    Batalkan
+                                                <button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="submit" aria-label="Batalkan Pencocokan" title="Batalkan Pencocokan">
+                                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1M4 4l16 16"/></svg>
                                                 </button>
                                             </form>
                                         </div>
@@ -186,7 +184,7 @@
             </section>
 
             @if($mappings->hasPages())
-                <div class="mt-3">{{ $mappings->links() }}</div>
+                <div class="mt-3">{{ $mappings->links('pagination.data-master') }}</div>
             @endif
         @endif
     </div>
@@ -245,7 +243,7 @@
                             </div>
                         </div>
 
-                        <div class="border rounded" data-etatib-candidate-results>
+                        <div data-etatib-candidate-results>
                             <p class="text-muted text-center small p-4 mb-0">
                                 Masukkan minimal dua karakter untuk mencari murid.
                             </p>

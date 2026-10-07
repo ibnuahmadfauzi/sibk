@@ -95,7 +95,7 @@ class EtatibSyncTest extends TestCase
         $this->assertCount(0, DB::getQueryLog());
         DB::disableQueryLog();
         $this->get(route('data-master.index', ['tab' => 'sinkronisasi', 'history_decisions' => 1]))->assertOk()
-            ->assertSee('0 data memiliki masalah.')
+            ->assertSee('0 belum selesai')
             ->assertSee('Keputusan Kelas')
             ->assertSee('11 DKV 2')
             ->assertSee('Data sekolah')

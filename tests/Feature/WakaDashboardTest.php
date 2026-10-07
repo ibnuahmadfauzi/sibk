@@ -47,7 +47,7 @@ final class WakaDashboardTest extends TestCase
         $this->actingAs($waka)->get(route('dashboard.preview'))
             ->assertOk()
             ->assertSeeInOrder([
-                'Murid',
+                'Murid Tercatat',
                 'Sedang Ditangani',
                 'Perlu Tindak Lanjut',
                 'Baru Bulan Ini',

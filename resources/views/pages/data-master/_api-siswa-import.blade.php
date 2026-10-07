@@ -1,12 +1,4 @@
 <div aria-labelledby="api-siswa-import-title">
-    <div class="sibk-panel__header p-4 border-0 pb-0">
-        <div>
-            <h2 class="sibk-panel__title mb-1" id="api-siswa-import-title">Impor Murid dari API Siswa</h2>
-            <p class="sibk-panel__subtitle text-muted small mb-0">
-                Masukkan tautan, tinjau datanya, lalu impor.
-            </p>
-        </div>
-    </div>
     <div class="sibk-panel__body p-4">
         @if(! $importableYearExists)
             <div class="alert alert-info">
@@ -38,9 +30,9 @@
                     autocomplete="off"
                     required
                 >
-                <div class="form-text">
+                <!-- <div class="form-text">
                     Tautan digunakan sekali dan tidak disimpan.
-                </div>
+                </div> -->
             </div>
             <div class="d-flex justify-content-end">
                 <button

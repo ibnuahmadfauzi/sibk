@@ -17,24 +17,25 @@
         <div class="sibk-page-header mb-4">
             <div class="sibk-page-header__copy m-0">
                 <h1 class="mb-1">Data Master</h1>
-                <p class="mb-0">Siapkan tahun ajaran, impor murid, dan tinjau data dari sumber sekolah.</p>
             </div>
-            <a class="btn btn-outline-primary" href="{{ route('data-master.etatib.conflicts.index') }}">Yang Perlu Ditinjau @if($unresolvedIssueCount > 0)({{ $unresolvedIssueCount }})@endif</a>
         </div>
 
-        <nav class="nav nav-pills gap-2 mb-4" aria-label="Bagian Data Master">
-            @foreach([
-                'dapodik' => 'Dapodik',
-                'etatib' => 'e-Tatib',
-                'sinkronisasi' => 'Sinkronisasi',
-            ] as $tab => $label)
-                <a
-                    class="nav-link {{ $activeTab === $tab ? 'active' : '' }}"
-                    href="{{ route('data-master.index', ['tab' => $tab]) }}"
-                    @if($activeTab === $tab) aria-current="page" @endif
-                >{{ $label }}</a>
-            @endforeach
-        </nav>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+            <nav class="nav nav-pills gap-2" aria-label="Bagian Data Master">
+                @foreach([
+                    'dapodik' => 'Dapodik',
+                    'etatib' => 'e-Tatib',
+                    'sinkronisasi' => 'Sinkronisasi',
+                ] as $tab => $label)
+                    <a
+                        class="nav-link {{ $activeTab === $tab ? 'active' : '' }}"
+                        href="{{ route('data-master.index', ['tab' => $tab]) }}"
+                        @if($activeTab === $tab) aria-current="page" @endif
+                    >{{ $label }}</a>
+                @endforeach
+            </nav>
+            <a class="btn btn-outline-primary d-inline-flex align-items-center gap-2" href="{{ route('data-master.etatib.conflicts.index') }}">Perlu Ditinjau <span class="badge text-bg-secondary">{{ $unresolvedIssueCount }}</span></a>
+        </div>
 
         @if($activeTab === 'dapodik')
             <section id="data-master-dapodik" aria-label="Dapodik">

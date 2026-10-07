@@ -68,10 +68,10 @@ class FrontendPreviewTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertDontSee('Hanya untuk dilihat')
-            ->assertSee('Tren Murid Tercatat')
-            ->assertSee('Sebaran per Tingkat')
+            ->assertSee('Grafik Catatan BK')
+            ->assertSee('Murid per Tingkat')
             ->assertSee('id="waka-follow-up-title"', false)
-            ->assertSee('data-waka-year-filter', false)
+            ->assertSee('name="academic_year_id"', false)
             ->assertSee('Murid Tercatat')
             ->assertSee('Sedang Ditangani')
             ->assertSee('Perlu Tindak Lanjut')
@@ -188,7 +188,7 @@ class FrontendPreviewTest extends TestCase
             ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
         $this->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
-            ->assertSee('Kesiapan Aktivasi')
+            ->assertSee('Tahun Ajaran')
             ->assertSee('Persiapan')
             ->assertSee('disabled>Aktifkan Tahun Ajaran', false);
     }
@@ -239,7 +239,7 @@ class FrontendPreviewTest extends TestCase
         $url = route('data-master.index', ['tab' => 'sinkronisasi']);
         $this->get('/dashboard')->assertOk()->assertSee($url);
         $this->get($url)->assertOk()
-            ->assertSee('4 data memiliki masalah')
+            ->assertSee('4 belum selesai')
             ->assertSee('Identitas belum cocok.')
             ->assertSee('Kelas sumber berbeda.')
             ->assertSee('Data sekolah belum cocok dengan Dapodik.')
@@ -266,11 +266,14 @@ class FrontendPreviewTest extends TestCase
 
         $this->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
-            ->assertSee('Keputusan Duplikasi Aktif')
+            ->assertSee('Keputusan Duplikasi')
+            ->assertSee('Keputusan aktif dapat dibatalkan tanpa menghapus riwayat.')
             ->assertSee('Murid Duplikat Uji')
             ->assertSee('2 salinan dianggap satu kejadian')
             ->assertSee(route('data-master.etatib.duplicates.destroy', $decision))
             ->assertSee('data-app-confirm-submit', false)
+            ->assertSee('title="Batalkan Keputusan" aria-label="Batalkan Keputusan"', false)
+            ->assertDontSee('>Batalkan Keputusan</button>', false)
             ->assertDontSee($decision->url_hash)
             ->assertDontSee($decision->group_key);
     }
@@ -351,8 +354,8 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('name="api_url"', false)
             ->assertDontSee('Periksa hasil impor')
             ->assertDontSee('Kelola Konflik e-Tatib')
-            ->assertSee('Yang Perlu Ditinjau')
-            ->assertSee('nav nav-pills gap-2 mb-4', false)
+            ->assertSee('Perlu Ditinjau')
+            ->assertSee('nav nav-pills gap-2', false)
             ->assertDontSee('Belum ada data yang perlu ditinjau.')
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertDontSee('Belum ada riwayat sinkronisasi')
@@ -376,7 +379,7 @@ class FrontendPreviewTest extends TestCase
         $this->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
             ->assertSee('Tautan API e-Tatib')
-            ->assertSee('Yang Perlu Ditinjau')
+            ->assertSee('Perlu Ditinjau')
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertSee('data-etatib-api-form', false)
             ->assertSee('data-etatib-preview-modal', false)
@@ -454,7 +457,7 @@ class FrontendPreviewTest extends TestCase
     public static function dashboardRoleProvider(): array
     {
         return [
-            'guru' => ['guru_bk', 'Murid dalam cakupan'],
+            'guru' => ['guru_bk', 'Murid Binaan'],
             'coordinator' => ['koordinator_bk', 'Guru BK aktif'],
             'waka' => ['waka_kesiswaan', 'Dashboard Waka Kesiswaan'],
         ];

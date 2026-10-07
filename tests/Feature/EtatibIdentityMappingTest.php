@@ -214,6 +214,51 @@ final class EtatibIdentityMappingTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
+    public function test_conflict_search_filters_name_and_nisn_before_ten_row_pagination(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        for ($number = 1; $number <= 11; $number++) {
+            $this->conflict(sprintf('%010d', $number), 'Sumber Pencarian '.$number, 'source-search-'.$number);
+        }
+        $this->conflict('0099999999', 'Nama Lain', 'source-search-other');
+
+        $firstPage = $this->actingAs($admin)->get(route('data-master.etatib.conflicts.index', [
+            'search' => 'Sumber Pencarian',
+        ]))->assertOk()
+            ->assertSee('Sumber Pencarian 1')
+            ->assertDontSee('Nama Lain')
+            ->assertSee('search=Sumber%20Pencarian&amp;page=2', false);
+        $this->assertSame(10, substr_count($firstPage->getContent(), 'data-etatib-map-open'));
+
+        $this->actingAs($admin)->get(route('data-master.etatib.conflicts.index', [
+            'search' => '0099999999',
+        ]))->assertOk()
+            ->assertSee('Nama Lain')
+            ->assertDontSee('Sumber Pencarian 1');
+    }
+
+    public function test_manual_mapping_search_includes_source_and_master_identity(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Tujuan Khusus']);
+        [$issue] = $this->conflict('0093200788', 'Sumber Khas', 'source-mapping-search');
+        $this->actingAs($admin)->post(route('data-master.etatib.mappings.store', $issue), [
+            'student_id' => $student->getKey(),
+            'confirmed' => '1',
+        ]);
+
+        foreach (['Sumber Khas', '0093200788', 'Tujuan Khusus', '0011111111'] as $search) {
+            $this->actingAs($admin)->get(route('data-master.etatib.conflicts.index', [
+                'tab' => 'mappings',
+                'search' => $search,
+            ]))->assertOk()->assertSee('Sumber Khas')->assertSee('Tujuan Khusus');
+        }
+        $this->actingAs($admin)->get(route('data-master.etatib.conflicts.index', [
+            'tab' => 'mappings',
+            'search' => 'Tidak Ada',
+        ]))->assertOk()->assertDontSee('Sumber Khas');
+    }
+
     /** @return array{ExternalSyncIssue, ExternalTatibRecord} */
     private function conflict(string $nisn, string $name, string $sourceIdentifier): array
     {

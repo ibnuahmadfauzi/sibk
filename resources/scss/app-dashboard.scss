@@ -3185,6 +3185,19 @@ small, .small {
   }
 }
 
+#etatib-mapping-modal .table {
+  --bs-table-bg: transparent !important;
+
+  thead th,
+  tbody tr:not(:hover):not(.table-primary) td {
+    background-color: transparent !important;
+  }
+
+  tbody tr.table-primary td {
+    background-color: var(--bs-primary-bg-subtle) !important;
+  }
+}
+
 .sibk-etatib-choice {
   cursor: pointer;
 

@@ -48,7 +48,7 @@ final class WakaDashboardService
             'scope' => $year?->name ?? 'Periode kalender berjalan',
             'read_only' => true,
             'metrics' => [
-                ['label' => 'Murid', 'value' => (string) $studentKeys->count(), 'meta' => 'Memiliki Catatan', 'tone' => 'primary', 'kind' => 'students'],
+                ['label' => 'Murid Tercatat', 'value' => (string) $studentKeys->count(), 'meta' => 'Memiliki Catatan', 'tone' => 'primary', 'kind' => 'students'],
                 ['label' => 'Sedang Ditangani', 'value' => (string) $active->map(fn (BkCase $case): string => $this->studentKey($case))->unique()->count(), 'meta' => 'Masih aktif', 'tone' => 'info', 'kind' => 'cases'],
                 ['label' => 'Perlu Tindak Lanjut', 'value' => (string) $followUps->map(fn (BkCase $case): string => $this->studentKey($case))->unique()->count(), 'meta' => 'Belum selesai', 'tone' => 'warning', 'kind' => 'schedule'],
                 ['label' => 'Baru Bulan Ini', 'value' => (string) $studentKeys->filter(static fn (string $key): bool => str_starts_with($firstDates[$key] ?? '', $month) && ($firstDates[$key] ?? '') >= $start->toDateString() && ($firstDates[$key] ?? '') <= $end->toDateString())->count(), 'meta' => 'Bulan berjalan', 'tone' => 'success', 'kind' => 'students'],

@@ -4,6 +4,7 @@ import 'bootstrap/js/dist/tab';
 import Toast from 'bootstrap/js/dist/toast';
 import 'bootstrap/js/dist/offcanvas';
 import Modal from 'bootstrap/js/dist/modal';
+import Collapse from 'bootstrap/js/dist/collapse';
 
 window.bootstrap = window.bootstrap || {};
 window.bootstrap.Modal = Modal;
@@ -89,28 +90,97 @@ document.querySelectorAll('[data-report-detail-toggle]').forEach((button) => {
     });
 });
 
-document.querySelectorAll('[data-sync-issue-toggle]').forEach((button) => {
-    const subject = button.dataset.syncIssueName;
-    button.addEventListener('click', async () => {
-        const detail = document.getElementById(button.getAttribute('aria-controls'));
-        const expanded = button.getAttribute('aria-expanded') === 'true';
-        detail.classList.toggle('d-none', expanded);
-        button.setAttribute('aria-expanded', String(!expanded));
-        button.title = expanded ? 'Tampilkan rincian' : 'Tutup rincian';
-        button.setAttribute('aria-label', `${button.title} ${subject}`);
-        if (expanded || detail.dataset.loaded) return;
+const loadSyncHistory = async (button, panel) => {
+    if (panel.dataset.loaded || panel.dataset.loading) return;
+    panel.dataset.loading = 'true';
+    panel.innerHTML = '<p class="sibk-panel__subtitle px-3 pt-3" role="status">Memuat riwayat...</p>';
 
-        try {
-            const response = await fetch(button.dataset.detailUrl, { headers: { Accept: 'text/html' } });
-            if (!response.ok) throw new Error('Gagal memuat rincian.');
-            detail.querySelector('[data-sync-issue-content]').innerHTML = await response.text();
-            detail.dataset.loaded = 'true';
-        } catch {
-            detail.querySelector('[data-sync-issue-content]').textContent = 'Rincian belum dapat dimuat. Tutup lalu buka kembali untuk mencoba lagi.';
-        }
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', 'sinkronisasi');
+        url.searchParams.delete(button.dataset.historyParam === 'history_decisions' ? 'history_runs' : 'history_decisions');
+        url.searchParams.set(button.dataset.historyParam, '1');
+        const response = await fetch(url, { headers: { Accept: 'text/html' } });
+        if (!response.ok) throw new Error('Gagal memuat riwayat.');
+        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const content = page.getElementById(panel.id);
+        if (!content || !content.querySelector('table')) throw new Error('Riwayat tidak tersedia.');
+        panel.innerHTML = content.innerHTML;
+        panel.dataset.loaded = 'true';
+    } catch {
+        panel.innerHTML = '<div class="p-3" role="alert">Riwayat belum dapat dimuat. <button class="btn btn-link p-0" type="button" data-sync-history-retry>Coba lagi</button></div>';
+    } finally {
+        delete panel.dataset.loading;
+    }
+};
+
+document.querySelectorAll('[data-sync-history-toggle]').forEach((button) => {
+    const panel = document.getElementById(button.getAttribute('aria-controls'));
+    const collapse = Collapse.getOrCreateInstance(panel, { toggle: false });
+    button.addEventListener('click', () => {
+        if (panel.classList.contains('collapsing')) return;
+        const open = button.getAttribute('aria-expanded') !== 'true';
+        button.setAttribute('aria-expanded', String(open));
+        button.title = open ? 'Tutup Riwayat' : 'Tampilkan Riwayat';
+        button.setAttribute('aria-label', button.title);
+        button.querySelector('path').setAttribute('d', open ? 'm6 14 6-6 6 6' : 'm6 10 6 6 6-6');
+        const url = new URL(window.location.href);
+        if (open) url.searchParams.set(button.dataset.historyParam, '1');
+        else url.searchParams.delete(button.dataset.historyParam);
+        window.history.replaceState(window.history.state, '', url);
+        if (open) {
+            collapse.show();
+            loadSyncHistory(button, panel);
+        } else collapse.hide();
     });
-    if (button.hasAttribute('data-auto-open')) button.click();
 });
+
+document.addEventListener('click', (event) => {
+    const retry = event.target.closest('[data-sync-history-retry]');
+    if (retry) {
+        const panel = retry.closest('[data-sync-history-content]');
+        const button = document.querySelector(`[data-sync-history-toggle][aria-controls="${panel.id}"]`);
+        loadSyncHistory(button, panel);
+        return;
+    }
+
+    const button = event.target.closest('[data-sync-issue-toggle]');
+    if (!button) return;
+    const detail = document.getElementById(button.getAttribute('aria-controls'));
+    const expanded = button.getAttribute('aria-expanded') === 'true';
+    detail.classList.toggle('d-none', expanded);
+    button.setAttribute('aria-expanded', String(!expanded));
+    button.title = expanded ? 'Tinjau' : 'Tutup rincian';
+    button.setAttribute('aria-label', `${button.title} ${button.dataset.syncIssueName}`);
+    if (expanded || detail.dataset.loaded || detail.dataset.loading) return;
+    detail.dataset.loading = 'true';
+    fetch(button.dataset.detailUrl, { headers: { Accept: 'text/html' } })
+        .then((response) => {
+            if (!response.ok) throw new Error('Gagal memuat rincian.');
+            return response.text();
+        })
+        .then((html) => {
+            detail.querySelector('[data-sync-issue-content]').innerHTML = html;
+            detail.dataset.loaded = 'true';
+        })
+        .catch(() => {
+            detail.querySelector('[data-sync-issue-content]').textContent = 'Rincian belum dapat dimuat. Tutup lalu buka kembali untuk mencoba lagi.';
+        })
+        .finally(() => { delete detail.dataset.loading; });
+});
+document.querySelectorAll('[data-sync-issue-toggle][data-auto-open]').forEach((button) => button.click());
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href]');
+    if (!link || !link.closest('[data-sync-history-content], [data-page-id="PG-501"]')) return;
+    const url = new URL(link.href, window.location.href);
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return;
+    document.querySelectorAll('[data-sync-history-toggle]').forEach((button) => {
+        if (button.getAttribute('aria-expanded') === 'true') url.searchParams.set(button.dataset.historyParam, '1');
+        else url.searchParams.delete(button.dataset.historyParam);
+    });
+    link.href = url;
+}, true);
 
 document.addEventListener('submit', (event) => {
     const input = event.target.querySelector('[data-sync-membership-input]');
