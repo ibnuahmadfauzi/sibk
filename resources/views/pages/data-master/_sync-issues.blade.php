@@ -46,9 +46,12 @@
     <div class="sibk-panel__header">
         <div>
             <h2 class="sibk-panel__title" id="sync-decisions-title">Riwayat Keputusan Kelas</h2>
-            <p class="sibk-panel__subtitle">Pilihan Admin saat setiap kejadian diperiksa.</p>
         </div>
+        <a class="btn btn-outline-primary btn-sm" href="{{ route('data-master.index', array_merge(request()->except('history_decisions', 'decision_page', 'decision_sort', 'decision_direction'), $showDecisionHistory ? [] : ['history_decisions' => 1])) }}#sync-decisions-title" aria-controls="sync-decisions-content" aria-expanded="{{ $showDecisionHistory ? 'true' : 'false' }}">{{ $showDecisionHistory ? 'Tutup riwayat' : 'Tampilkan riwayat' }}</a>
     </div>
+    <div id="sync-decisions-content" @unless($showDecisionHistory) hidden @endunless>
+    @if($showDecisionHistory)
+    <p class="sibk-panel__subtitle px-3 pt-3 mb-0">Pilihan Admin saat setiap kejadian diperiksa.</p>
     <div class="table-responsive">
         <table class="table sibk-table mb-0">
             <thead><tr><x-sort-header name="data" label="Data" sort-param="decision_sort" direction-param="decision_direction" page-param="decision_page" /><th scope="col">Kelas yang dipilih saat itu</th><th scope="col">Hasil saat diperiksa</th><x-sort-header name="waktu" label="Waktu" sort-param="decision_sort" direction-param="decision_direction" page-param="decision_page" /><th scope="col">Aksi</th></tr></thead>
@@ -70,18 +73,23 @@
             </tbody>
         </table>
     </div>
+    @if($classroomDecisions->hasPages())
+        <div class="p-3">{{ $classroomDecisions->fragment('sync-decisions-title')->links() }}</div>
+    @endif
+    @endif
+    </div>
 </section>
-@if($classroomDecisions->hasPages())
-    <div class="mt-3">{{ $classroomDecisions->links() }}</div>
-@endif
 
 <section class="sibk-panel mt-4" aria-labelledby="sync-runs-title">
     <div class="sibk-panel__header">
         <div>
             <h2 class="sibk-panel__title" id="sync-runs-title">Riwayat Sinkronisasi</h2>
-            <p class="sibk-panel__subtitle">Hasil sinkronisasi sebelumnya.</p>
         </div>
+        <a class="btn btn-outline-primary btn-sm" href="{{ route('data-master.index', array_merge(request()->except('history_runs', 'run_page', 'run_sort', 'run_direction'), $showRunHistory ? [] : ['history_runs' => 1])) }}#sync-runs-title" aria-controls="sync-runs-content" aria-expanded="{{ $showRunHistory ? 'true' : 'false' }}">{{ $showRunHistory ? 'Tutup riwayat' : 'Tampilkan riwayat' }}</a>
     </div>
+    <div id="sync-runs-content" @unless($showRunHistory) hidden @endunless>
+    @if($showRunHistory)
+    <p class="sibk-panel__subtitle px-3 pt-3 mb-0">Hasil sinkronisasi sebelumnya.</p>
     <div class="table-responsive">
         <table class="table sibk-table mb-0">
             <thead><tr><x-sort-header name="waktu" label="Waktu" sort-param="run_sort" direction-param="run_direction" page-param="run_page" /><x-sort-header name="sumber" label="Sumber" sort-param="run_sort" direction-param="run_direction" page-param="run_page" /><x-sort-header name="status" label="Status" sort-param="run_sort" direction-param="run_direction" page-param="run_page" /><th scope="col">Hasil</th></tr></thead>
@@ -99,7 +107,9 @@
             </tbody>
         </table>
     </div>
+    @if($syncRuns->hasPages())
+        <div class="p-3">{{ $syncRuns->fragment('sync-runs-title')->links() }}</div>
+    @endif
+    @endif
+    </div>
 </section>
-@if($syncRuns->hasPages())
-    <div class="mt-3">{{ $syncRuns->links() }}</div>
-@endif

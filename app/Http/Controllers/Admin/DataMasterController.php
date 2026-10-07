@@ -43,6 +43,8 @@ class DataMasterController extends Controller
             'sinkronisasi' => 'sinkronisasi',
             default => 'dapodik',
         };
+        $showDecisionHistory = $activeTab === 'sinkronisasi' && $request->query('history_decisions') === '1';
+        $showRunHistory = $activeTab === 'sinkronisasi' && $request->query('history_runs') === '1';
         $sortQuery = static function ($query, string $sortParam, string $directionParam, array $columns, string $defaultColumn, string $defaultDirection = 'desc') use ($request) {
             $sort = $request->query($sortParam);
             $direction = $request->query($directionParam);
@@ -55,7 +57,7 @@ class DataMasterController extends Controller
         $syncIssues = $activeTab === 'sinkronisasi' ? $sortQuery(ExternalSyncIssue::query()
             ->whereNull('resolved_at')
             ->with('syncRun:id,source,started_at'), 'issue_sort', 'issue_direction', ['data' => 'input_name'], 'id')
-            ->paginate(20, ['*'], 'issue_page')
+            ->paginate(10, ['*'], 'issue_page')
             ->withQueryString() : null;
         $localTargets = [];
         if ($syncIssues !== null) {
@@ -83,15 +85,17 @@ class DataMasterController extends Controller
 
         return response()->view('pages.data-master.index', [
             'activeTab' => $activeTab,
+            'showDecisionHistory' => $showDecisionHistory,
+            'showRunHistory' => $showRunHistory,
             'syncIssues' => $syncIssues,
-            'classroomDecisions' => $syncIssues === null ? null : $sortQuery(ExternalSyncIssue::query()
+            'classroomDecisions' => ! $showDecisionHistory ? null : $sortQuery(ExternalSyncIssue::query()
                 ->where('issue_code', 'student_classroom_mismatch')
                 ->whereNotNull('resolved_at')
                 ->whereIn('details->review->action', ['use_school', 'use_etatib']), 'decision_sort', 'decision_direction', ['data' => 'input_name', 'waktu' => 'resolved_at'], 'resolved_at')
                 ->paginate(10, ['*'], 'decision_page')->withQueryString(),
             'localTargets' => $localTargets,
-            'syncRuns' => $syncIssues === null ? null : $sortQuery(ExternalSyncRun::query(), 'run_sort', 'run_direction', ['waktu' => 'started_at', 'sumber' => 'source', 'status' => 'status'], 'started_at')
-                ->paginate(20, ['id', 'source', 'status', 'started_at', 'processed_count', 'conflict_count', 'summary'], 'run_page')
+            'syncRuns' => ! $showRunHistory ? null : $sortQuery(ExternalSyncRun::query(), 'run_sort', 'run_direction', ['waktu' => 'started_at', 'sumber' => 'source', 'status' => 'status'], 'started_at')
+                ->paginate(10, ['id', 'source', 'status', 'started_at', 'processed_count', 'conflict_count', 'summary'], 'run_page')
                 ->withQueryString(),
             'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
             'etatibDuplicateDecisions' => $activeTab === 'etatib'

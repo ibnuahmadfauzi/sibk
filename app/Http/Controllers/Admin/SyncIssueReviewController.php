@@ -68,7 +68,9 @@ final class SyncIssueReviewController extends Controller
 
         $resolved = $action !== 'source_correction';
 
-        return redirect()->to(route('data-master.index', ['tab' => 'sinkronisasi']).($resolved ? '#sync-decisions-title' : '#sync-issues-title'))
+        return redirect()->to(route('data-master.index', $resolved
+            ? ['tab' => 'sinkronisasi', 'history_decisions' => 1]
+            : ['tab' => 'sinkronisasi']).($resolved ? '#sync-decisions-title' : '#sync-issues-title'))
             ->with('success', $resolved ? 'Pilihan kelas tersimpan. Masalah selesai.' : 'Koreksi sumber dicatat. Masalah tetap terbuka.');
     }
 }

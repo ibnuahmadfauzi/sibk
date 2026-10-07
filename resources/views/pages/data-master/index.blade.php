@@ -19,9 +19,10 @@
                 <h1 class="mb-1">Data Master</h1>
                 <p class="mb-0">Siapkan tahun ajaran, impor murid, dan tinjau data dari sumber sekolah.</p>
             </div>
+            <a class="btn btn-outline-primary" href="{{ route('data-master.etatib.conflicts.index') }}">Yang Perlu Ditinjau @if($unresolvedIssueCount > 0)({{ $unresolvedIssueCount }})@endif</a>
         </div>
 
-        <nav class="nav nav-tabs sibk-data-master-tabs" aria-label="Bagian Data Master">
+        <nav class="nav nav-pills gap-2 mb-4" aria-label="Bagian Data Master">
             @foreach([
                 'dapodik' => 'Dapodik',
                 'etatib' => 'e-Tatib',
@@ -56,18 +57,15 @@
             @include('pages.data-master._sync-issues')
         @endif
 
-        @if($rolloverSummary?->needsConfirmationCount() > 0 || $unresolvedIssueCount > 0 || $latestDapodikPreview)
+        @if($rolloverSummary?->needsConfirmationCount() > 0 || $latestDapodikPreview)
             <section class="sibk-panel mb-4" aria-labelledby="data-master-review-title">
                 <div class="sibk-panel__body p-4">
-                    <h2 class="fs-6 fw-bold text-dark mb-2" id="data-master-review-title">Yang Perlu Ditinjau</h2>
+                    <h2 class="fs-6 fw-bold text-dark mb-2" id="data-master-review-title">Tinjauan Lainnya</h2>
                     <div class="d-flex flex-wrap align-items-center gap-3 small">
                         @if($rolloverSummary?->needsConfirmationCount() > 0)
                             <a href="{{ route('data-master.index', ['tab' => 'dapodik']) }}#academic-year-rollover-title">
                                 {{ $rolloverSummary->needsConfirmationCount() }} murid tahun sebelumnya belum tercantum di {{ $rolloverTargetYear->name }}
                             </a>
-                        @endif
-                        @if($unresolvedIssueCount > 0)
-                            <a href="{{ route('data-master.etatib.conflicts.index') }}">{{ $unresolvedIssueCount }} data e-Tatib belum cocok</a>
                         @endif
                         @if($latestDapodikPreview)
                             <a href="{{ route('data-master.dapodik.previews.show', $latestDapodikPreview) }}">Tinjau data Dapodik sebelum diterapkan</a>

@@ -42,6 +42,18 @@ final class ClassroomCatalogController extends Controller
             'classrooms' => $classrooms,
             'groups' => $groups,
             'jurusan' => $jurusan,
+            'majorNames' => [
+                'AK' => 'Akuntansi',
+                'BD' => 'Bisnis Digital',
+                'BDP' => 'Bisnis Daring dan Pemasaran',
+                'MP' => 'Manajemen Perkantoran',
+                'ML' => 'Manajemen Logistik',
+                'RPL' => 'Rekayasa Perangkat Lunak',
+                'TKJ' => 'Teknik Komputer dan Jaringan',
+                'DKV' => 'Desain Komunikasi Visual',
+                'PSPT' => 'Produksi Siaran Program Pertelevisian',
+                'PH' => 'Perhotelan',
+            ],
             'activeYear' => $activeYear,
             'studentCounts' => $studentCounts,
         ]);

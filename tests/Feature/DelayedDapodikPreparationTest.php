@@ -148,11 +148,13 @@ class DelayedDapodikPreparationTest extends TestCase
         ClassroomCatalog::query()->create(['name' => 'XI RPL 2', 'is_active' => false]);
         ClassroomCatalog::query()->create(['name' => '12 RPL 3', 'is_active' => true]);
         ClassroomCatalog::query()->create(['name' => 'X AK 1', 'is_active' => true]);
+        ClassroomCatalog::query()->create(['name' => 'X BD 1', 'is_active' => true]);
         ClassroomCatalog::query()->create(['name' => 'Kelas Percobaan', 'is_active' => true]);
 
         $this->actingAs($admin)->get(route('data-master.classrooms.index'))
             ->assertOk()->assertSee(route('data-master.classrooms.index', ['jurusan' => 'RPL']), false)
             ->assertSee(route('data-master.classrooms.index', ['jurusan' => 'AK']), false)
+            ->assertSee('BD (Bisnis Digital)')
             ->assertSee(route('data-master.classrooms.index', ['jurusan' => 'Lainnya']), false)
             ->assertDontSee('Edit rombel X RPL 1');
 
@@ -199,8 +201,8 @@ class DelayedDapodikPreparationTest extends TestCase
 
         $this->actingAs($admin)->get(route('data-master.classrooms.index'))
             ->assertOk()->assertSee('Murid')
-            ->assertSeeInOrder(['<td class="fw-semibold">RPL</td>', '<td>2</td>', '<td>1</td>'], false)
-            ->assertSeeInOrder(['<td class="fw-semibold">AK</td>', '<td>1</td>', '<td>0</td>'], false);
+            ->assertSeeInOrder(['<td class="fw-semibold">RPL (Rekayasa Perangkat Lunak)</td>', '<td>2</td>', '<td>1</td>'], false)
+            ->assertSeeInOrder(['<td class="fw-semibold">AK (Akuntansi)</td>', '<td>1</td>', '<td>0</td>'], false);
         $this->actingAs($admin)->get(route('data-master.classrooms.index', ['jurusan' => 'RPL']))
             ->assertOk()->assertSee('Murid')
             ->assertSeeInOrder(['X RPL 1</button>', '<td>1</td>', 'X RPL 2</button>', '<td>0</td>'], false);
@@ -208,7 +210,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $current->update(['is_active' => false]);
         $this->actingAs($admin)->get(route('data-master.classrooms.index'))
             ->assertOk()
-            ->assertSeeInOrder(['<td class="fw-semibold">RPL</td>', '<td>2</td>', '<td>0</td>'], false);
+            ->assertSeeInOrder(['<td class="fw-semibold">RPL (Rekayasa Perangkat Lunak)</td>', '<td>2</td>', '<td>0</td>'], false);
     }
 
     #[Test]
