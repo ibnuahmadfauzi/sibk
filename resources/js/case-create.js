@@ -85,6 +85,7 @@ export const initCaseCreate = (form, request = fetch) => {
 
     const renderSelection = () => {
         const active = isEtatib() && !!selected;
+        find('[data-case-identity-label]').textContent = active ? 'Murid terpilih' : 'Cari NISN atau nama';
         find('[data-case-etatib-query]').classList.toggle('d-none', active);
         find('[data-case-etatib-selected]').classList.toggle('d-none', !active);
         find('[data-case-etatib-results]').classList.toggle('d-none', active);
@@ -101,7 +102,8 @@ export const initCaseCreate = (form, request = fetch) => {
         etatibClassroom.disabled = !needsClassroom;
         if (selected.classroom_id) classroomValue.value = selected.classroom_id;
         etatibClassroom.value = needsClassroom ? classroomValue.value : '';
-        find('[data-case-selected-identity]').textContent = `${selected.student_name ?? '-'} · ${selected.nisn ?? '-'} · ${selected.classroom_name ?? '-'}`;
+        find('[data-case-selected-identity]').textContent = selected.student_name ?? '-';
+        find('[data-case-selected-details]').textContent = `${selected.nisn ?? '-'} · ${selected.classroom_name ?? '-'}`;
         find('[data-case-etatib-summary]').querySelectorAll('[data-case-field]').forEach((field) => {
             field.textContent = selected[field.dataset.caseField] ?? '-';
         });

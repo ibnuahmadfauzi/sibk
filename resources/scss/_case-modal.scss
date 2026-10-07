@@ -16,11 +16,33 @@
   }
 }
 
-.sibk-case-etatib {
+.sibk-case-etatib-summary {
   padding: 1rem;
   border-radius: var(--bs-border-radius-lg);
   background: var(--bs-primary-bg-subtle);
   border: 1px solid var(--bs-primary-border-subtle);
+}
+
+.sibk-case-etatib-results {
+  --bs-list-group-bg: var(--bs-primary-bg-subtle);
+  --bs-list-group-border-color: var(--bs-primary-border-subtle);
+  --bs-list-group-action-hover-bg: var(--bs-primary-border-subtle);
+  --bs-list-group-action-active-bg: var(--bs-primary-border-subtle);
+
+  .list-group-item {
+    background-color: var(--bs-list-group-bg);
+
+    &:hover, &:focus-visible {
+      background-color: var(--bs-list-group-action-hover-bg);
+    }
+  }
+}
+
+.sibk-case-selected {
+  min-height: 3rem;
+  font-size: .875rem;
+
+  &__identity { min-width: 0; }
 }
 
 .sibk-case-suggestions {

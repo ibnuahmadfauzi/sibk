@@ -34,12 +34,15 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-4 {{ $selectedSourceCode !== 'e_tatib' ? 'd-none' : '' }}" data-case-etatib-search>
-                    <label for="etatib_search_input" class="form-label small fw-semibold">Cari NISN atau nama</label>
+                    <label for="etatib_search_input" class="form-label small fw-semibold" data-case-identity-label>Cari NISN atau nama</label>
                     <div data-case-etatib-query>
                         <input type="search" class="form-control border-secondary-subtle rounded-3" id="etatib_search_input" value="{{ $search }}" placeholder="Cari NISN atau nama murid" autocomplete="off" aria-controls="etatib_results_container">
                     </div>
-                    <div class="d-none d-flex align-items-center gap-2" data-case-etatib-selected>
-                        <span class="small fw-semibold text-break" data-case-selected-identity></span>
+                    <div class="d-none d-flex align-items-center justify-content-between gap-2 sibk-case-selected" data-case-etatib-selected>
+                        <div class="sibk-case-selected__identity">
+                            <span class="d-block fw-semibold text-break" data-case-selected-identity></span>
+                            <span class="d-block small text-secondary" data-case-selected-details></span>
+                        </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-case-change-etatib>Ganti</button>
                     </div>
                 </div>
@@ -61,14 +64,14 @@
             </div>
         </section>
 
-        <section class="sibk-case-etatib mb-4 {{ $selectedSourceCode !== 'e_tatib' ? 'd-none' : '' }}" data-case-etatib-section aria-labelledby="case-create-etatib-title">
+        <section class="mb-4 {{ $selectedSourceCode !== 'e_tatib' ? 'd-none' : '' }}" data-case-etatib-section aria-labelledby="case-create-etatib-title">
             <h3 class="h6 fw-bold mb-3" id="case-create-etatib-title">Data e-Tatib</h3>
             <div data-case-etatib-results>
-                <div id="etatib_results_container" class="list-group mb-2" aria-live="polite"></div>
+                <div id="etatib_results_container" class="list-group mb-2 sibk-case-etatib-results" aria-live="polite"></div>
                 <p class="small text-secondary d-none" data-case-etatib-empty>Tidak ditemukan data e-Tatib yang sesuai.</p>
                 <div class="d-flex align-items-center justify-content-between gap-2 small text-secondary" data-case-etatib-pagination><span data-case-etatib-count></span><div class="d-flex gap-1" data-case-etatib-pages></div></div>
             </div>
-            <dl class="row g-2 mb-0 small d-none border-top pt-3" data-case-etatib-summary>
+            <dl class="row g-2 m-0 small d-none sibk-case-etatib-summary" data-case-etatib-summary>
                 <div class="col-12 col-md-6"><dt class="text-secondary fw-normal">Pelanggaran</dt><dd class="fw-semibold mb-0" data-case-field="violation_type"></dd></div>
                 <div class="col-6 col-md-3"><dt class="text-secondary fw-normal">Tanggal Pelanggaran</dt><dd class="fw-semibold mb-0" data-case-field="occurred_at"></dd></div>
                 <div class="col-6 col-md-3"><dt class="text-secondary fw-normal">Poin</dt><dd class="fw-semibold mb-0" data-case-field="points"></dd></div>
