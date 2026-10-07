@@ -210,12 +210,11 @@ export const writeEtatibDecisions = (form, body) => {
     });
 };
 
-export const initEtatibApiPreview = async (root = document) => {
+export const initEtatibApiPreview = async (root = document, { Modal } = {}) => {
     const form = root.querySelector('[data-etatib-api-form]');
     const modalNode = root.querySelector('[data-etatib-preview-modal]');
     if (!form || !modalNode) return;
 
-    const { default: Modal } = await import('bootstrap/js/dist/modal.js');
     const modal = Modal.getOrCreateInstance(modalNode);
     const body = modalNode.querySelector('[data-etatib-preview-body]');
     const confirm = modalNode.querySelector('[data-etatib-confirm]');

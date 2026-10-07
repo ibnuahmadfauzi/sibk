@@ -204,8 +204,7 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
     });
 
     const followUpModal = root.querySelector?.('[data-withdrawal-follow-up-modal]');
-    const Modal = environment.Modal
-        ?? (followUpModal ? (await import('bootstrap/js/dist/modal.js')).default : null);
+    const Modal = environment.Modal;
     const followUpModalInstance = followUpModal ? Modal.getOrCreateInstance(followUpModal) : null;
     const followUpForm = followUpModal?.querySelector('[data-withdrawal-follow-up-form]');
     let followUpTarget = null;

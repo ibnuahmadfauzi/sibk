@@ -165,12 +165,11 @@ const renderFailure = (container, message) => {
     container.replaceChildren(createElement('div', 'alert alert-danger mb-0', message));
 };
 
-export const initApiSiswaPreview = async (root = document) => {
+export const initApiSiswaPreview = async (root = document, { Modal } = {}) => {
     const form = root.querySelector('[data-api-siswa-import-form]');
     const modalElement = root.querySelector('[data-api-siswa-preview-modal]');
     if (!form || !modalElement) return;
 
-    const { default: Modal } = await import('bootstrap/js/dist/modal.js');
     const modal = Modal.getOrCreateInstance(modalElement);
     const body = modalElement.querySelector('[data-api-siswa-preview-body]');
     const confirmButton = modalElement.querySelector('[data-api-siswa-confirm-import]');
