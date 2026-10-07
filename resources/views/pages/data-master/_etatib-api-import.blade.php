@@ -1,12 +1,5 @@
 <section class="sibk-panel sibk-data-master-tab-panel mb-4" aria-labelledby="etatib-api-title">
-    <div class="sibk-panel__header p-4 border-0 pb-0">
-        <div>
-            <h2 class="sibk-panel__title mb-1" id="etatib-api-title">Sinkronkan Data e-Tatib</h2>
-            <p class="sibk-panel__subtitle text-muted small mb-0">
-                Masukkan tautan API, tinjau pelanggaran, lalu sinkronkan.
-            </p>
-        </div>
-    </div>
+
     <div class="sibk-panel__body p-4">
         @if($etatibAutomaticSetting['enabled'])
             <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
@@ -66,9 +59,9 @@
                     </button>
                 </div>
             </div>
-            <div class="form-text mt-0">
+            <!-- <div class="form-text mt-0">
                 Tautan tidak ditampilkan lagi; jadwal otomatis menyimpannya terenkripsi.
-            </div>
+            </div> -->
         </form>
     </div>
 </section>
@@ -127,13 +120,16 @@
     <section class="sibk-panel mb-4" aria-labelledby="etatib-duplicate-decisions-title">
         <div class="sibk-panel__header">
             <div>
-                <h2 class="sibk-panel__title" id="etatib-duplicate-decisions-title">Keputusan Duplikasi Aktif</h2>
-                <p class="sibk-panel__subtitle">Keputusan tetap dapat dibatalkan meskipun kelompoknya tidak lagi dikirim API. Riwayat tersimpan tidak dihapus.</p>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <h2 class="sibk-panel__title fs-6 fw-semibold mb-0" id="etatib-duplicate-decisions-title">Keputusan Duplikasi</h2>
+                    <span class="badge text-bg-secondary">{{ $etatibDuplicateDecisions->total() }} aktif</span>
+                </div>
+                <p class="sibk-panel__subtitle text-muted">Keputusan aktif dapat dibatalkan tanpa menghapus riwayat.</p>
             </div>
         </div>
         <div class="table-responsive">
             <table class="table sibk-table mb-0">
-                <thead><tr><x-sort-header name="murid" label="Murid" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><x-sort-header name="jumlah" label="Keputusan" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><x-sort-header name="waktu" label="Disetujui" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><th scope="col">Tindakan</th></tr></thead>
+                <thead><tr><x-sort-header name="murid" label="Murid" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><th scope="col">Keputusan</th><x-sort-header name="waktu" label="Disetujui" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><th scope="col">Aksi</th></tr></thead>
                 <tbody>
                     @foreach($etatibDuplicateDecisions as $decision)
                         <tr>
@@ -147,7 +143,7 @@
                                     data-confirm-subject="{{ \App\Support\StudentName::display($decision->source_name) }}" data-confirm-action="Batalkan Keputusan" data-confirm-tone="danger">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm" type="submit">Batalkan Keputusan</button>
+                                    <button class="btn btn-sm p-0 sibk-icon-button sibk-report-control text-danger" type="submit" title="Batalkan Keputusan" aria-label="Batalkan Keputusan"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h11a6 6 0 0 1 0 12M7 3 3 7l4 4"/></svg></button>
                                 </form>
                             </td>
                         </tr>
@@ -156,7 +152,7 @@
             </table>
         </div>
         @if($etatibDuplicateDecisions->hasPages())
-            <div class="p-3">{{ $etatibDuplicateDecisions->links() }}</div>
+            <div class="p-3">{{ $etatibDuplicateDecisions->links('pagination.data-master') }}</div>
         @endif
     </section>
 @endif

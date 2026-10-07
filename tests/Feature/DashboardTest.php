@@ -89,7 +89,7 @@ class DashboardTest extends TestCase
 
         $wakaDashboard = $service->forUser($waka, $this->year);
         $this->assertTrue($wakaDashboard['read_only']);
-        $this->assertSame('2', $this->stat($wakaDashboard, 'Murid'));
+        $this->assertSame('2', $this->stat($wakaDashboard, 'Murid Tercatat'));
         $this->assertSame('2', $this->stat($wakaDashboard, 'Sedang Ditangani'));
         $this->assertStringContainsString($studentA->name, json_encode($wakaDashboard['follow_up_students'], JSON_THROW_ON_ERROR));
         $this->assertStringNotContainsString($studentB->name, json_encode($wakaDashboard['follow_up_students'], JSON_THROW_ON_ERROR));

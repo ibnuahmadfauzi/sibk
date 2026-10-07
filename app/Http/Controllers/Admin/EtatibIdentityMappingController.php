@@ -14,6 +14,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\EtatibIdentityMappingService;
 use App\Services\EtatibIdentityNormalizer;
+use App\Support\StudentName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,17 +70,31 @@ final class EtatibIdentityMappingController extends Controller
             ];
         }
 
+        $search = $request->string('search')->trim()->toString();
         $page = max(1, $request->integer('page', 1));
-        $perPage = 20;
+        $perPage = 10;
         $conflictSort = $request->string('sort')->toString();
         $conflictDirection = $request->string('direction')->toString();
-        $groupCollection = collect($groups)->sortBy([
-            [in_array($conflictSort, ['name', 'classroom', 'record_count'], true) && in_array($conflictDirection, ['asc', 'desc'], true) ? $conflictSort : 'name', $conflictDirection === 'desc' ? 'desc' : 'asc'],
-            ['nisn', 'asc'],
-        ])->values();
+        $groupCollection = collect($groups)
+            ->filter(fn (array $group): bool => $search === ''
+                || mb_stripos($group['name'], $search) !== false
+                || mb_stripos($group['nisn'], $search) !== false)
+            ->sortBy([
+                [in_array($conflictSort, ['name', 'classroom', 'record_count'], true) && in_array($conflictDirection, ['asc', 'desc'], true) ? $conflictSort : 'name', $conflictDirection === 'desc' ? 'desc' : 'asc'],
+                ['nisn', 'asc'],
+            ])->values();
         $mappingSort = $request->string('mapping_sort')->toString();
         $mappingDirection = $request->string('mapping_direction')->toString();
         $mappingQuery = EtatibIdentityMapping::query()->active()->with(['student', 'mapper']);
+        if ($search !== '') {
+            $mappingQuery->where(function ($query) use ($search): void {
+                $query->where('source_name', 'like', '%'.$search.'%')
+                    ->orWhere('source_nisn', 'like', '%'.$search.'%')
+                    ->orWhereHas('student', fn ($students) => $students
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('nisn', 'like', '%'.$search.'%'));
+            });
+        }
         if (in_array($mappingSort, ['source_name', 'student_name', 'mapped_at'], true) && in_array($mappingDirection, ['asc', 'desc'], true)) {
             $mappingColumn = $mappingSort === 'student_name'
                 ? Student::query()->select('name')->whereColumn('students.id', 'etatib_identity_mappings.student_id')->limit(1)
@@ -100,7 +115,7 @@ final class EtatibIdentityMappingController extends Controller
             'tab' => $request->string('tab')->toString() === 'mappings' ? 'mappings' : 'conflicts',
             'conflicts' => $conflicts,
             'mappings' => $mappingQuery
-                ->paginate(20, ['*'], 'mapping_page')
+                ->paginate($perPage, ['*'], 'mapping_page')
                 ->withQueryString(),
         ])->header('Cache-Control', 'no-store');
     }
@@ -132,7 +147,7 @@ final class EtatibIdentityMappingController extends Controller
                 return [
                     'id' => $student->getKey(),
                     'nisn' => $student->nisn,
-                    'name' => \App\Support\StudentName::display($student->name),
+                    'name' => StudentName::display($student->name),
                     'classroom' => $membership?->classroom?->name ?? '-',
                     'academic_year' => $membership?->academicYear?->name ?? '-',
                     'status' => $student->is_active ? 'Aktif' : 'Historis',

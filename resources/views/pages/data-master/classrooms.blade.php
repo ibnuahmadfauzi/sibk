@@ -33,7 +33,7 @@
                     <a href="{{ route('data-master.classrooms.index') }}" class="btn btn-icon btn-light text-primary flex-shrink-0" aria-label="Kembali ke semua jurusan" title="Kembali ke semua jurusan">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg>
                     </a>
-                    <h2 class="fs-5 mb-0">Rombel Jurusan {{ $jurusan }}</h2>
+                    <h2 class="fs-5 mb-0">Rombel Jurusan {{ $jurusan }} @if(isset($majorNames[$jurusan]))({{ $majorNames[$jurusan] }})@endif</h2>
                 </div>
                 <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#createClassroomModal">Tambah Rombel</button>
             </div>
@@ -56,7 +56,7 @@
                     <tbody>
                         @forelse($groups as $name => $group)
                             <tr>
-                                <td class="fw-semibold">{{ $name }}</td>
+                                <td class="fw-semibold">{{ $name }} @if(isset($majorNames[$name]))({{ $majorNames[$name] }})@endif</td>
                                 <td>{{ $group->count() }}</td>
                                 <td>{{ $group->sum(fn ($classroom) => $studentCounts->get($classroom->id, 0)) }}</td>
                                 <td><a class="btn btn-sm p-0 sibk-icon-button sibk-report-control" href="{{ route('data-master.classrooms.index', ['jurusan' => $name]) }}" aria-label="Lihat Rombel" title="Lihat Rombel">

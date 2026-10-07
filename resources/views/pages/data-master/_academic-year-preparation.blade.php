@@ -1,12 +1,5 @@
 <div aria-labelledby="academic-year-preparation-title">
-    <div class="sibk-panel__header p-4 border-0 pb-0">
-        <div>
-            <h2 class="sibk-panel__title mb-1" id="academic-year-preparation-title">Persiapan Tahun Ajaran</h2>
-            <p class="sibk-panel__subtitle text-muted small mb-0">
-                {{ $academicYears->isEmpty() ? 'Buat tahun ajaran. Rombel aktif dari Data Kelas disiapkan otomatis.' : 'Tinjau tahun ajaran aktif dan yang sedang disiapkan.' }}
-            </p>
-        </div>
-    </div>
+
     <div class="sibk-panel__body p-4">
         @error('academic_year')<div class="alert alert-danger" role="alert">{{ $message }}</div>@enderror
         <div class="row g-4">
@@ -16,7 +9,7 @@
 
                 <div class="d-flex flex-column gap-3">
                     @foreach($academicYears as $year)
-                        <div class="border rounded-3 p-3">
+                        <div class="border rounded-3 p-3 {{ $year->is_active ? 'border-primary bg-primary-subtle' : '' }}">
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                                 <strong>{{ $year->name }}</strong>
                                 <div class="d-flex flex-wrap gap-2">
@@ -59,7 +52,7 @@
                                 </div>
                             @endif
                             @if($year->is_active)
-                                <p class="small text-success mb-0">Tahun ajaran aktif. Murid susulan tetap dapat diimpor.</p>
+                                <p class="small text-success mb-0">Murid tambahan masih bisa diimpor.</p>
                             @else
                                 <p class="small text-muted mb-0">Koordinator BK mengaktifkannya setelah setiap rombel memiliki Guru BK.</p>
                             @endif

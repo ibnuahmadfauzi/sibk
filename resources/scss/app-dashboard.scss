@@ -3176,42 +3176,25 @@ small, .small {
   border-top: 1px solid var(--sibk-color-border-light);
 }
 
-.sibk-data-master-tabs {
-  margin-bottom: 0;
-  border-bottom: 0;
-  position: relative;
-  z-index: 1;
-
-  .nav-link {
-    min-height: 3rem;
-    padding: 0.75rem 1rem;
-    color: var(--sibk-color-text);
-    background: var(--sibk-color-page);
-    border: 1px solid var(--sibk-color-border-light);
-    border-bottom: 0;
-    border-radius: var(--sibk-radius-md) var(--sibk-radius-md) 0 0;
-    box-shadow: none;
-
-    &.active {
-      color: var(--sibk-color-text);
-      background: var(--sibk-color-surface-raised);
-      border-color: rgba(255, 255, 255, 0.95);
-      border-bottom: 0;
-      box-shadow: none;
-    }
-  }
-}
-
-.sibk-data-master-tab-panel {
-  border-top-left-radius: 0;
-}
-
 .sibk-etatib-conflict {
   border: 1px solid var(--sibk-color-border);
 
   &:hover,
   &:has([data-identity-choice]:checked) {
     box-shadow: inset 0 0 0 2px var(--bs-primary);
+  }
+}
+
+#etatib-mapping-modal .table {
+  --bs-table-bg: transparent !important;
+
+  thead th,
+  tbody tr:not(:hover):not(.table-primary) td {
+    background-color: transparent !important;
+  }
+
+  tbody tr.table-primary td {
+    background-color: var(--bs-primary-bg-subtle) !important;
   }
 }
 

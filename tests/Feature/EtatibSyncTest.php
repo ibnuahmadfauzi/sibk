@@ -77,7 +77,7 @@ class EtatibSyncTest extends TestCase
             ->assertSee('11 DKV 1')->assertSee('sesuai data e-Tatib')
             ->assertSee('Keputusan ini hanya berlaku untuk pelanggaran ini.');
         $this->patch(route('data-master.sync-issues.update', $issue), ['action' => 'use_school', 'membership_id' => $membership->id])
-            ->assertRedirect(route('data-master.index', ['tab' => 'sinkronisasi']).'#sync-decisions-title');
+            ->assertRedirect(route('data-master.index', ['tab' => 'sinkronisasi', 'history_decisions' => 1]).'#sync-decisions-title');
         $issue->refresh();
         $this->assertNotNull($issue->resolved_at);
         $this->assertSame('resolved', $issue->details['review']['status']);
@@ -94,8 +94,8 @@ class EtatibSyncTest extends TestCase
         $this->assertSame('11 DKV 2', $eagerRecord->effective_classroom_name);
         $this->assertCount(0, DB::getQueryLog());
         DB::disableQueryLog();
-        $this->get(route('data-master.index', ['tab' => 'sinkronisasi']))->assertOk()
-            ->assertSee('0 data memiliki masalah.')
+        $this->get(route('data-master.index', ['tab' => 'sinkronisasi', 'history_decisions' => 1]))->assertOk()
+            ->assertSee('0 belum selesai')
             ->assertSee('Keputusan Kelas')
             ->assertSee('11 DKV 2')
             ->assertSee('Data sekolah')

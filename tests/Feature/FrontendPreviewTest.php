@@ -68,10 +68,10 @@ class FrontendPreviewTest extends TestCase
         $this->get('/dashboard')
             ->assertOk()
             ->assertDontSee('Hanya untuk dilihat')
-            ->assertSee('Tren Murid Tercatat')
-            ->assertSee('Sebaran per Tingkat')
+            ->assertSee('Grafik Catatan BK')
+            ->assertSee('Murid per Tingkat')
             ->assertSee('id="waka-follow-up-title"', false)
-            ->assertSee('data-waka-year-filter', false)
+            ->assertSee('name="academic_year_id"', false)
             ->assertSee('Murid Tercatat')
             ->assertSee('Sedang Ditangani')
             ->assertSee('Perlu Tindak Lanjut')
@@ -162,18 +162,18 @@ class FrontendPreviewTest extends TestCase
         $admin = $this->authenticateAs('admin_it');
         $this->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Persiapan Tahun Ajaran')
+            ->assertSee('Buat Tahun Ajaran')
             ->assertSee('Buat tahun ajaran lain')
             ->assertSee('Koordinator BK mengaktifkannya')
             ->assertDontSee('Periksa hasil impor')
             ->assertSee('name="name"', false)
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSeeInOrder([
-                'Persiapan Tahun Ajaran',
                 'Buat tahun ajaran lain',
-                'Impor Murid dari API Siswa',
+                'Buat Tahun Ajaran',
+                'Tautan API Siswa',
             ])
-            ->assertSee('Impor CSV jika API belum tersedia')
+            ->assertSee('Impor CSV')
             ->assertDontSee('Langkah 1 dari 3');
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
@@ -188,7 +188,7 @@ class FrontendPreviewTest extends TestCase
             ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
         $this->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
-            ->assertSee('Kesiapan Aktivasi')
+            ->assertSee('Tahun Ajaran')
             ->assertSee('Persiapan')
             ->assertSee('disabled>Aktifkan Tahun Ajaran', false);
     }
@@ -239,7 +239,7 @@ class FrontendPreviewTest extends TestCase
         $url = route('data-master.index', ['tab' => 'sinkronisasi']);
         $this->get('/dashboard')->assertOk()->assertSee($url);
         $this->get($url)->assertOk()
-            ->assertSee('4 data memiliki masalah')
+            ->assertSee('4 belum selesai')
             ->assertSee('Identitas belum cocok.')
             ->assertSee('Kelas sumber berbeda.')
             ->assertSee('Data sekolah belum cocok dengan Dapodik.')
@@ -266,13 +266,76 @@ class FrontendPreviewTest extends TestCase
 
         $this->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
-            ->assertSee('Keputusan Duplikasi Aktif')
+            ->assertSee('Keputusan Duplikasi')
+            ->assertSee('Keputusan aktif dapat dibatalkan tanpa menghapus riwayat.')
             ->assertSee('Murid Duplikat Uji')
             ->assertSee('2 salinan dianggap satu kejadian')
             ->assertSee(route('data-master.etatib.duplicates.destroy', $decision))
             ->assertSee('data-app-confirm-submit', false)
+            ->assertSee('title="Batalkan Keputusan" aria-label="Batalkan Keputusan"', false)
+            ->assertDontSee('>Batalkan Keputusan</button>', false)
             ->assertDontSee($decision->url_hash)
             ->assertDontSee($decision->group_key);
+    }
+
+    public function test_sync_histories_load_independently_and_limit_each_page_to_ten(): void
+    {
+        $this->authenticateAs('admin_it');
+        for ($number = 1; $number <= 12; $number++) {
+            $label = sprintf('%02d', $number);
+            $run = ExternalSyncRun::query()->create([
+                'source' => 'etatib', 'status' => 'succeeded',
+                'started_at' => now()->subMinutes($number),
+                'summary' => 'Sinkronisasi nomor '.$label,
+            ]);
+            ExternalSyncIssue::query()->create([
+                'external_sync_run_id' => $run->id,
+                'entity_type' => 'student',
+                'source_identifier' => 'murid-'.$number,
+                'issue_code' => 'student_classroom_mismatch',
+                'input_name' => 'Keputusan nomor '.$label,
+                'summary' => 'Pilihan kelas',
+                'resolved_at' => now()->subMinutes($number),
+                'details' => ['review' => ['action' => 'use_school']],
+            ]);
+            ExternalSyncIssue::query()->create([
+                'external_sync_run_id' => $run->id,
+                'entity_type' => 'student',
+                'source_identifier' => 'konflik-'.$number,
+                'issue_code' => 'student_not_found',
+                'input_name' => 'Konflik nomor '.$label,
+                'summary' => 'Belum cocok',
+            ]);
+        }
+
+        $base = ['tab' => 'sinkronisasi'];
+        $this->get(route('data-master.index', $base))
+            ->assertOk()
+            ->assertViewHas('classroomDecisions', null)
+            ->assertViewHas('syncRuns', null)
+            ->assertSee('Konflik Nomor 12')
+            ->assertDontSee('Konflik Nomor 01')
+            ->assertDontSee('Keputusan Nomor 01')
+            ->assertDontSee('Sinkronisasi nomor 01')
+            ->assertSee('aria-controls="sync-decisions-content" aria-expanded="false"', false)
+            ->assertSee('aria-controls="sync-runs-content" aria-expanded="false"', false);
+
+        $this->get(route('data-master.index', [...$base, 'history_decisions' => 1]))
+            ->assertOk()
+            ->assertViewHas('syncRuns', null)
+            ->assertSee('Keputusan Nomor 01')
+            ->assertDontSee('Keputusan Nomor 12')
+            ->assertDontSee('Sinkronisasi nomor 01')
+            ->assertSee('id="sync-decisions-content"', false)
+            ->assertSee('aria-controls="sync-runs-content" aria-expanded="false"', false);
+
+        $this->get(route('data-master.index', [...$base, 'history_runs' => 1, 'run_page' => 2]))
+            ->assertOk()
+            ->assertViewHas('classroomDecisions', null)
+            ->assertSee('Sinkronisasi nomor 12')
+            ->assertDontSee('Sinkronisasi nomor 01')
+            ->assertSee('id="sync-runs-content"', false)
+            ->assertSee('aria-controls="sync-decisions-content" aria-expanded="false"', false);
     }
 
     public function test_data_master_shows_preparation_and_import_in_one_dapodik_tab(): void
@@ -286,13 +349,13 @@ class FrontendPreviewTest extends TestCase
             ->assertSee('href="'.route('data-master.index', ['tab' => 'etatib']).'"', false)
             ->assertDontSee('Tahun Ajaran &amp; Murid', false)
             ->assertSee('e-Tatib')
-            ->assertSee('Persiapan Tahun Ajaran')
             ->assertSee('Buat Tahun Ajaran')
             ->assertDontSee('name="preparation_reference"', false)
             ->assertSee('name="api_url"', false)
             ->assertDontSee('Periksa hasil impor')
             ->assertDontSee('Kelola Konflik e-Tatib')
-            ->assertDontSee('Yang Perlu Ditinjau')
+            ->assertSee('Perlu Ditinjau')
+            ->assertSee('nav nav-pills gap-2', false)
             ->assertDontSee('Belum ada data yang perlu ditinjau.')
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertDontSee('Belum ada riwayat sinkronisasi')
@@ -300,23 +363,23 @@ class FrontendPreviewTest extends TestCase
 
         $this->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
-            ->assertSee('Persiapan Tahun Ajaran')
+            ->assertSee('Buat Tahun Ajaran')
             ->assertSee('col-12 col-xl-5 sibk-data-master-year', false)
             ->assertSee('col-12 col-xl-7 sibk-data-master-api', false)
-            ->assertSee('Impor Murid dari API Siswa')
+            ->assertSee('Tautan API Siswa')
             ->assertSee('name="api_url"', false)
             ->assertSee('Tinjau Data')
             ->assertSee('data-api-siswa-preview-modal', false)
             ->assertSee('Pratinjau API Siswa')
             ->assertSee('Impor CSV')
-            ->assertSeeInOrder(['Persiapan Tahun Ajaran', 'Impor Murid dari API Siswa', 'Impor CSV jika API belum tersedia'])
+            ->assertSeeInOrder(['Buat Tahun Ajaran', 'Tautan API Siswa', 'Impor CSV'])
             ->assertDontSee('data-integration-panel="dapodik"', false)
             ->assertDontSee('data-etatib-api-form', false);
 
         $this->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
-            ->assertSee('Sinkronkan Data e-Tatib')
-            ->assertDontSee('Yang Perlu Ditinjau')
+            ->assertSee('Tautan API e-Tatib')
+            ->assertSee('Perlu Ditinjau')
             ->assertDontSee('Status dan riwayat sinkronisasi')
             ->assertSee('data-etatib-api-form', false)
             ->assertSee('data-etatib-preview-modal', false)
@@ -394,7 +457,7 @@ class FrontendPreviewTest extends TestCase
     public static function dashboardRoleProvider(): array
     {
         return [
-            'guru' => ['guru_bk', 'Murid dalam cakupan'],
+            'guru' => ['guru_bk', 'Murid Binaan'],
             'coordinator' => ['koordinator_bk', 'Guru BK aktif'],
             'waka' => ['waka_kesiswaan', 'Dashboard Waka Kesiswaan'],
         ];

@@ -115,7 +115,7 @@ export const initEtatibIdentityMapping = async () => {
             method.disabled = button.dataset.method !== 'patch';
             modalElement.querySelector('[data-etatib-source-name]').textContent = displayStudentName(button.dataset.sourceName);
             modalElement.querySelector('[data-etatib-source-nisn]').textContent = `NISN ${button.dataset.sourceNisn}`;
-            modalElement.querySelector('[data-etatib-source-classroom]').textContent = `Kelas ${button.dataset.sourceClassroom}`;
+            modalElement.querySelector('[data-etatib-source-classroom]').textContent = `Rombel ${button.dataset.sourceClassroom}`;
             search.value = displayStudentName(button.dataset.sourceName);
             confirmed.checked = false;
             resetSelection();
