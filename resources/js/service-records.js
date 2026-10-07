@@ -1,4 +1,12 @@
-import { draftKey, flushFormDrafts, initFormDrafts, removeDraft } from './form-draft.js';
+import { collectSafeValues, draftKey, flushFormDrafts, initFormDrafts, removeDraft } from './form-draft.js';
+import { confirmFormAction } from './confirm-form-action.js';
+
+const formSnapshots = new WeakMap();
+const savingForms = new WeakSet();
+const snapshotForm = (form) => JSON.stringify(collectSafeValues(form.elements));
+
+export const hasUnsavedModalChanges = (form) => Boolean(form && formSnapshots.has(form)
+    && formSnapshots.get(form) !== snapshotForm(form));
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
     ?? document.querySelector('input[name="_token"]')?.value;
@@ -43,6 +51,9 @@ export const handleModalClick = (event, openModal) => {
 export const renderModalContent = (modalElement, html, initialiseDrafts = initFormDrafts) => {
     flushFormDrafts(modalElement);
     modalElement.querySelector('.modal-content').innerHTML = html;
+    modalElement.querySelectorAll('[data-confirm-unsaved]').forEach((form) => {
+        formSnapshots.set(form, snapshotForm(form));
+    });
     initialiseDrafts(modalElement);
 };
 
@@ -51,6 +62,7 @@ export const handleModalSubmit = async (event, environment = {}) => {
     if (!(form instanceof HTMLFormElement)) return false;
 
     event.preventDefault();
+    if (savingForms.has(form)) return false;
     const confirm = environment.confirm ?? window.confirm;
     if ('confirmSubmit' in form.dataset && form.dataset.confirmMessage && !confirm(form.dataset.confirmMessage)) {
         event.stopImmediatePropagation?.();
@@ -64,11 +76,15 @@ export const handleModalSubmit = async (event, environment = {}) => {
     const notify = environment.notify ?? (() => {});
     let response;
     let payload;
+    const body = formData(form, event.submitter);
+    savingForms.add(form);
+    const submitter = event.submitter;
+    if (submitter) submitter.disabled = true;
     try {
         response = await request(form.getAttribute('action'), {
             method: form.method || 'POST',
             headers: { Accept: 'application/json', 'X-CSRF-TOKEN': environment.csrfToken ?? csrfToken() },
-            body: formData(form, event.submitter),
+            body,
         });
         if (response.status === 422) {
             const errors = (await response.json()).errors ?? {};
@@ -84,8 +100,12 @@ export const handleModalSubmit = async (event, environment = {}) => {
     } catch {
         notify('Gagal menyimpan perubahan. Silakan coba lagi.');
         return false;
+    } finally {
+        savingForms.delete(form);
+        if (submitter) submitter.disabled = false;
     }
 
+    formSnapshots.set(form, snapshotForm(form));
     (environment.clearDraft ?? clearModalDraft)(form);
     const redirect = payload?.redirect ?? window.location.href;
     (environment.redirect ?? ((url) => window.location.assign(url)))(redirect);
@@ -189,7 +209,30 @@ export const initServiceRecords = async (root = document) => {
     if (modalElement) {
         const { default: Modal } = await import('bootstrap/js/dist/modal.js');
         const modal = Modal.getOrCreateInstance(modalElement);
+        modalElement.addEventListener('sibk:form-cleared', (event) => {
+            if (event.target.matches('[data-confirm-unsaved]')) {
+                formSnapshots.set(event.target, snapshotForm(event.target));
+            }
+        });
+        modalElement.addEventListener('hide.bs.modal', (event) => {
+            if (modalElement.dataset.confirmationSuspended === 'true') return;
+            const form = modalElement.querySelector('[data-confirm-unsaved]');
+            if (savingForms.has(form)) {
+                event.preventDefault();
+                return;
+            }
+            if (hasUnsavedModalChanges(form)) {
+                event.preventDefault();
+                confirmFormAction(form, 'close', () => {
+                    flushFormDrafts(modalElement);
+                    requestController?.abort();
+                    trigger?.focus();
+                    trigger = undefined;
+                });
+            }
+        });
         modalElement.addEventListener('hidden.bs.modal', () => {
+            if (modalElement.dataset.confirmationSuspended === 'true') return;
             flushFormDrafts(modalElement);
             requestController?.abort();
             trigger?.focus();
@@ -199,16 +242,30 @@ export const initServiceRecords = async (root = document) => {
             trigger = button;
             requestController?.abort();
             requestController = new AbortController();
+            const currentRequest = requestController;
             const url = new URL(button.dataset.modalUrl, window.location.origin);
             url.searchParams.set('modal', '1');
+            renderModalContent(modalElement, '<div class="modal-header"><h2 class="modal-title fs-5" id="case-modal-title">Layanan BK</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div><div class="modal-body" role="status">Memuat data...</div>');
             modal.show();
             try {
-                const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: requestController.signal });
-                if (!response.ok) throw new Error('Gagal memuat data.');
-                renderModalContent(modalElement, await response.text());
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: currentRequest.signal });
+                if (!response.ok || response.redirected) throw new Error('Gagal memuat data.');
+                const html = await response.text();
+                if (currentRequest.signal.aborted || requestController !== currentRequest) return;
+                renderModalContent(modalElement, html);
+                const wide = Boolean(modalElement.querySelector('[data-modal-size="xl"]'));
+                modalElement.querySelector('.modal-dialog').classList.toggle('modal-xl', wide);
+                modalElement.querySelector('.modal-dialog').classList.toggle('modal-lg', !wide);
                 modalElement.dispatchEvent(new CustomEvent('sibk:modal-loaded', { bubbles: true }));
+                const form = modalElement.querySelector('[data-confirm-unsaved]');
+                const restored = form?.querySelector('[data-draft-restored]:not(.d-none)');
+                if (form && !restored) formSnapshots.set(form, snapshotForm(form));
             } catch (error) {
-                if (error.name !== 'AbortError') modalElement.querySelector('.modal-content').textContent = error.message;
+                if (error.name !== 'AbortError' && requestController === currentRequest && !currentRequest.signal.aborted) {
+                    const body = modalElement.querySelector('.modal-body');
+                    body.setAttribute('role', 'alert');
+                    body.textContent = 'Form gagal dimuat. Tutup lalu buka kembali untuk mencoba lagi.';
+                }
             }
         }));
         root.addEventListener('keydown', (event) => {

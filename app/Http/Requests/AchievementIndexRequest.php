@@ -21,6 +21,8 @@ class AchievementIndexRequest extends FormRequest
         return [
             'search' => ['nullable', 'string', 'max:200'],
             'level_id' => ['nullable', 'integer', Rule::exists('references', 'id')->where('category', 'achievement_level')->where('is_active', true)],
+            'sort' => ['nullable', Rule::in(['murid', 'kegiatan', 'tanggal'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'page' => ['nullable', 'integer', 'min:1'],
         ];
     }

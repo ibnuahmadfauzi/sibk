@@ -65,7 +65,8 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
 ### Buat Kasus Baru
-- **Halaman:** `GET /cases/create` memuat kandidat murid aktif dalam scope penugasan Guru BK untuk pencarian lokal melalui field NISN atau nama; pilihan mengisi identitas dan rombel, sedangkan nilai yang tidak ditemukan tetap diproses sebagai identitas sementara.
+- **Form (CASE-01, CASE-07):** `GET /cases/create?modal=1` mengembalikan partial modal dan kandidat murid dalam scope. Tanpa `modal=1`, route mengalihkan ke `GET /cases?tab=kasus&create=1` untuk membuka modal; parameter konteks `student_id`, `temporary_nisn`, `case_source_id`, dan `search` dipertahankan.
+- **Pencarian e-Tatib:** `GET /cases/create?modal=1&etatib_search=1` menerima `q` (nama/NISN), `page`, serta `record_id` untuk pemulihan pilihan (mengabaikan `q`). `temporary_nisn` mempertahankan konteks record yang belum terpetakan. Respons JSON berisi `data`, `current_page`, `last_page`, dan `total`; halaman berisi maksimal 10 record, setelah filter dan scope, terurut `occurred_at DESC, id DESC`.
 - **Endpoint:** `POST /cases`
 - **Controller:** `CaseController@store`
 - **Form Request:** `StoreCaseRequest`
@@ -85,7 +86,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
   - Buat tepat satu `CaseAssignment` bertipe `owner` untuk Guru BK pencatat,
     tanpa periode tanggal; relasi ini tidak dapat diganti melalui aplikasi.
   - Catat jejak audit otomatis.
-- **Response:** redirect ke daftar Layanan BK tab Catat Permasalahan dengan pemberitahuan berhasil.
+- **Response:** redirect ke daftar Layanan BK tab Catat Permasalahan dengan pemberitahuan berhasil; permintaan JSON menerima `{message, redirect}` untuk navigasi setelah modal berhasil disimpan.
 
 ### Ubah dan Arsip Kasus
 - **Endpoint:** `GET /cases/{case}/edit`, `PATCH /cases/{case}`.

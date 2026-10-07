@@ -12,9 +12,9 @@
 </div></div>
 
 <div class="table-responsive"><table class="table sibk-table mb-0 align-middle" style="min-width: 900px;"><thead><tr>
-    <th scope="col" style="width: 16%; min-width: 145px;">Hari/Tanggal</th>
-    <th scope="col" style="width: 28%; min-width: 220px;">Nama/Kelas</th>
-    <th scope="col" style="width: 19%; min-width: 150px;">Guru</th>
+    <x-sort-header name="tanggal" label="Hari/Tanggal" style="width: 16%; min-width: 145px;" />
+    <x-sort-header name="nama" label="Nama/Kelas" style="width: 28%; min-width: 220px;" />
+    <x-sort-header name="guru" label="Guru" style="width: 19%; min-width: 150px;" />
     <th scope="col" style="width: 25%; min-width: 225px;">Progres</th>
     <th scope="col" style="width: 12%; min-width: 130px;">Aksi</th>
 </tr></thead><tbody>

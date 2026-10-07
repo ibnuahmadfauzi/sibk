@@ -17,7 +17,7 @@
         @else
             <div class="table-responsive">
                 <table class="table sibk-table align-middle mb-0">
-                    <thead><tr><th>Murid</th><th>Kelas</th><th>Jenis</th><th>Status</th><th>Dilaporkan</th><th>Efektif</th><th>Rekomendasi</th><th>Keputusan</th><th>Pencatat</th><th>Pemutus</th></tr></thead>
+                    <thead><tr><x-sort-header name="murid" label="Murid" /><th>Kelas</th><th>Jenis</th><th>Status</th><x-sort-header name="tanggal" label="Dilaporkan" /><x-sort-header name="efektif" label="Efektif" /><th>Rekomendasi</th><th>Keputusan</th><th>Pencatat</th><th>Pemutus</th></tr></thead>
                     <tbody>
                         @foreach($departures as $departure)
                             @php $membership = $departure->student->classMemberships->first(); @endphp

@@ -133,7 +133,7 @@
         </div>
         <div class="table-responsive">
             <table class="table sibk-table mb-0">
-                <thead><tr><th scope="col">Murid</th><th scope="col">Keputusan</th><th scope="col">Disetujui</th><th scope="col">Tindakan</th></tr></thead>
+                <thead><tr><x-sort-header name="murid" label="Murid" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><x-sort-header name="jumlah" label="Keputusan" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><x-sort-header name="waktu" label="Disetujui" sort-param="duplicate_sort" direction-param="duplicate_direction" page-param="duplicate_page" /><th scope="col">Tindakan</th></tr></thead>
                 <tbody>
                     @foreach($etatibDuplicateDecisions as $decision)
                         <tr>

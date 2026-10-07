@@ -71,10 +71,23 @@ final class EtatibIdentityMappingController extends Controller
 
         $page = max(1, $request->integer('page', 1));
         $perPage = 20;
+        $conflictSort = $request->string('sort')->toString();
+        $conflictDirection = $request->string('direction')->toString();
         $groupCollection = collect($groups)->sortBy([
-            ['name', 'asc'],
+            [in_array($conflictSort, ['name', 'classroom', 'record_count'], true) && in_array($conflictDirection, ['asc', 'desc'], true) ? $conflictSort : 'name', $conflictDirection === 'desc' ? 'desc' : 'asc'],
             ['nisn', 'asc'],
         ])->values();
+        $mappingSort = $request->string('mapping_sort')->toString();
+        $mappingDirection = $request->string('mapping_direction')->toString();
+        $mappingQuery = EtatibIdentityMapping::query()->active()->with(['student', 'mapper']);
+        if (in_array($mappingSort, ['source_name', 'student_name', 'mapped_at'], true) && in_array($mappingDirection, ['asc', 'desc'], true)) {
+            $mappingColumn = $mappingSort === 'student_name'
+                ? Student::query()->select('name')->whereColumn('students.id', 'etatib_identity_mappings.student_id')->limit(1)
+                : $mappingSort;
+            $mappingQuery->orderBy($mappingColumn, $mappingDirection)->orderBy('etatib_identity_mappings.id');
+        } else {
+            $mappingQuery->latest('mapped_at')->latest('id');
+        }
         $conflicts = new LengthAwarePaginator(
             $groupCollection->forPage($page, $perPage)->values(),
             $groupCollection->count(),
@@ -86,10 +99,7 @@ final class EtatibIdentityMappingController extends Controller
         return response()->view('pages.data-master.etatib-conflicts', [
             'tab' => $request->string('tab')->toString() === 'mappings' ? 'mappings' : 'conflicts',
             'conflicts' => $conflicts,
-            'mappings' => EtatibIdentityMapping::query()
-                ->active()
-                ->with(['student', 'mapper'])
-                ->latest('mapped_at')
+            'mappings' => $mappingQuery
                 ->paginate(20, ['*'], 'mapping_page')
                 ->withQueryString(),
         ])->header('Cache-Control', 'no-store');

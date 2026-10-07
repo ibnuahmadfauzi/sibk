@@ -189,20 +189,20 @@
 
         
         <div class="table-responsive">
-            <table class="table sibk-table mb-0">
+            <table class="table sibk-table mb-0" data-client-sort>
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Nama Guru</th>
+                        <x-client-sort-header label="Nama Guru" />
                         <th>Kelas</th>
-                        <th>Jumlah Murid</th>
+                        <x-client-sort-header label="Jumlah Murid" type="number" />
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($rows as $row)
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
+                            <td data-row-number>{{ $loop->iteration }}</td>
                             <td class="fw-bold">{{ $row['teacher']->name }}</td>
                             <td>
                                 <div class="d-flex flex-wrap align-items-center gap-2">

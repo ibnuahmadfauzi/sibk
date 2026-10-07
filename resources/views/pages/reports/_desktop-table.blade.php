@@ -3,7 +3,7 @@
         <thead>
             <tr>
                 @foreach($report['columns'] as $column)
-                    <th scope="col">{{ $column }}</th>
+                    @if($loop->index === 1)<x-sort-header name="tanggal" :label="$column" />@else<th scope="col">{{ $column }}</th>@endif
                 @endforeach
             </tr>
         </thead>

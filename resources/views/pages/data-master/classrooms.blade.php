@@ -50,9 +50,9 @@
 
         <section class="sibk-panel" aria-label="{{ $jurusan === null ? 'Jurusan' : 'Rombel Jurusan '.$jurusan }}">
             <div class="table-responsive">
-                <table class="table sibk-table sibk-classroom-table mb-0 align-middle">
+                <table class="table sibk-table sibk-classroom-table mb-0 align-middle" data-client-sort>
                     @if($jurusan === null)
-                    <thead><tr><th scope="col">Jurusan</th><th scope="col">Rombel</th><th scope="col">Murid</th><th scope="col">Aksi</th></tr></thead>
+                    <thead><tr><x-client-sort-header label="Jurusan" /><x-client-sort-header label="Rombel" type="number" /><x-client-sort-header label="Murid" type="number" /><th scope="col">Aksi</th></tr></thead>
                     <tbody>
                         @forelse($groups as $name => $group)
                             <tr>
@@ -68,7 +68,7 @@
                         @endforelse
                     </tbody>
                     @else
-                    <thead><tr><th scope="col">Nama Rombel</th><th scope="col">Murid</th><th scope="col">Status</th></tr></thead>
+                    <thead><tr><x-client-sort-header label="Nama Rombel" /><x-client-sort-header label="Murid" type="number" /><th scope="col">Status</th></tr></thead>
                     <tbody>
                         @foreach($groups->get($jurusan) as $classroom)
                             <tr>

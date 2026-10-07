@@ -16,7 +16,7 @@
                 @can('viewAny', \App\Models\Consultation::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'konsultasi' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'konsultasi']) }}">Sesi Bimbingan & Konsultasi</a></li>@endcan
                 @can('viewAny', \App\Models\WithdrawalProgress::class)<li class="nav-item"><a class="nav-link {{ $activeTab === 'pengunduran-diri' ? 'active' : '' }}" href="{{ route('cases.index', ['tab' => 'pengunduran-diri']) }}">Pengunduran Diri</a></li>@endcan
             </ul>
-            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" data-modal-url="{{ route('consultations.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.create') }}" class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<a href="{{ route('withdrawals.create') }}" data-modal-url="{{ route('withdrawals.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Pengunduran Diri</a>@endif
+            @if($activeTab === 'konsultasi' && $canCreateConsultation)<a href="{{ route('consultations.create') }}" data-modal-url="{{ route('consultations.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Konsultasi</a>@elseif($activeTab === 'kasus' && $canCreateCase)<a href="{{ route('cases.index', ['tab' => 'kasus', 'create' => 1]) }}" data-modal-url="{{ route('cases.create', ['modal' => 1, ...request()->only(['student_id', 'temporary_nisn', 'case_source_id', 'search'])]) }}" @if(request()->boolean('create')) data-modal-auto-open @endif class="btn btn-primary">Catat Permasalahan</a>@elseif($activeTab === 'pengunduran-diri' && $canCreateWithdrawal)<a href="{{ route('withdrawals.create') }}" data-modal-url="{{ route('withdrawals.create', ['modal' => 1]) }}" class="btn btn-primary">Catat Pengunduran Diri</a>@endif
         </div>
 
         @if($activeTab === 'kasus')
@@ -33,9 +33,9 @@
                 ]));
             @endphp
             <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr>
-                <th>Hari/Tanggal</th>
-                <th>Nama & Kelas</th>
-                <th>Jenis Masalah</th>
+                <x-sort-header name="tanggal" label="Hari/Tanggal" />
+                <x-sort-header name="nama" label="Nama & Kelas" />
+                <x-sort-header name="bidang" label="Jenis Masalah" />
                 <th>Tindak Lanjut</th>
                 <th>Hasil</th>
                 <th>Aksi</th>
@@ -249,7 +249,7 @@
             </form></div></div>
             <div class="table-responsive">
                 <table class="table sibk-table mb-0 align-middle">
-                    <thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Nama & Kelas</th><th scope="col">Jenis Masalah</th>@unless($isWakaOnly)<th scope="col">Hasil / Ringkasan</th>@endunless<th scope="col">Aksi</th></tr></thead>
+                    <thead><tr><x-sort-header name="tanggal" label="Hari/Tanggal" /><x-sort-header name="nama" label="Nama & Kelas" /><x-sort-header name="jenis_layanan" label="Jenis Masalah" />@unless($isWakaOnly)<th scope="col">Hasil / Ringkasan</th>@endunless<th scope="col">Aksi</th></tr></thead>
                     <tbody>
                             @forelse($consultations as $session)
                                 <tr>

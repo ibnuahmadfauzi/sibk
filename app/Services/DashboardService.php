@@ -547,7 +547,7 @@ class DashboardService
         }
 
         return [
-            ['label' => 'Catat Permasalahan', 'url' => route('cases.create'), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
+            ['label' => 'Catat Permasalahan', 'url' => route('cases.index', ['tab' => 'kasus', 'create' => 1]), 'primary' => true, 'icon' => 'case', 'tone' => 'primary'],
             ['label' => 'Catat Konsultasi', 'url' => route('consultations.create'), 'primary' => true, 'icon' => 'consultation', 'tone' => 'primary'],
         ];
     }

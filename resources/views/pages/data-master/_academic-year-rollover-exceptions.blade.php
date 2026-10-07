@@ -19,12 +19,12 @@
             <details>
                 <summary class="fw-semibold text-primary py-3">Lihat daftar {{ $rolloverSummary->needsConfirmationCount() }} murid</summary>
             <div class="table-responsive mt-3">
-                <table class="table sibk-table mb-0">
+                <table class="table sibk-table mb-0" data-client-sort>
                     <thead>
                         <tr>
                             <th>NISN</th>
-                            <th>Murid</th>
-                            <th>Rombel Sebelumnya</th>
+                            <x-client-sort-header label="Murid" />
+                            <x-client-sort-header label="Rombel Sebelumnya" />
                         </tr>
                     </thead>
                     <tbody>

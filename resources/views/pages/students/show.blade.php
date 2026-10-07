@@ -52,12 +52,12 @@
             </div>
         @elseif($activeTab === 'kasus')
             <div class="table-responsive">
-                <table class="table sibk-table mb-0 align-middle">
-                    <thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Jenis Masalah</th><th scope="col">Riwayat Kelas</th><th scope="col">Guru BK</th><th scope="col">Hasil/Ringkasan</th><th scope="col">Aksi</th></tr></thead>
+                <table class="table sibk-table mb-0 align-middle" data-client-sort>
+                    <thead><tr><x-client-sort-header label="Hari/Tanggal" type="date" /><x-client-sort-header label="Jenis Masalah" /><x-client-sort-header label="Riwayat Kelas" /><x-client-sort-header label="Guru BK" /><th scope="col">Hasil/Ringkasan</th><th scope="col">Aksi</th></tr></thead>
                     <tbody>
                         @forelse($cases as $case)
                             <tr>
-                                <td><div class="fw-semibold text-dark">{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $case->service_date->locale('id')->translatedFormat('l') }})</div></td>
+                                <td data-sort-value="{{ $case->service_date->toDateString() }}"><div class="fw-semibold text-dark">{{ $case->service_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $case->service_date->locale('id')->translatedFormat('l') }})</div></td>
                                 <td>{{ $case->serviceField?->label ?? '—' }}</td>
                                 <td>{{ $case->classroom?->name ?? '—' }}</td>
                                 <td>{{ $case->assignments->first()?->teacher?->name ?? '—' }}</td>
@@ -83,13 +83,13 @@
             </div>
         @elseif($activeTab === 'etatib')
             <div class="table-responsive">
-                <table class="table sibk-table mb-0 align-middle">
+                <table class="table sibk-table mb-0 align-middle" data-client-sort>
                     <thead>
                         <tr>
-                            <th scope="col">Waktu/Tanggal</th>
+                            <x-client-sort-header label="Waktu/Tanggal" type="date" />
                             <th scope="col">Pelanggaran</th>
-                            <th scope="col">Kategori</th>
-                            <th scope="col">Poin</th>
+                            <x-client-sort-header label="Kategori" />
+                            <x-client-sort-header label="Poin" type="number" />
                             <!-- <th scope="col">Total Resmi</th> -->
                             <th scope="col">Riwayat Kelas</th>
                             <th scope="col">Pencatat</th>
@@ -98,7 +98,7 @@
                     <tbody>
                         @forelse($etatibRecords as $record)
                             <tr>
-                                <td>
+                                <td data-sort-value="{{ $record->occurred_at?->toISOString() ?? '' }}">
                                     <div class="fw-semibold text-dark">{{ $record->occurred_at?->locale('id')->translatedFormat('d M Y') ?? 'Tanggal belum tersedia' }}</div>
                                     @if($record->occurred_at)
                                         <div class="text-muted small">{{ $record->occurred_at->format('H:i') }} ({{ $record->occurred_at->locale('id')->translatedFormat('l') }})</div>
@@ -106,7 +106,7 @@
                                 </td>
                                 <td><div class="fw-semibold text-dark">{{ $record->violation_type }}</div>@if($record->source_deleted_at)<small class="text-muted">Dibatalkan sumber (tidak dihitung)</small>@elseif(!$record->is_active)<small class="text-muted">Arsip</small>@endif</td>
                                 <td>{{ $record->category }}</td>
-                                <td><span class="sibk-badge sibk-badge--danger">+{{ $record->points }}</span></td>
+                                <td data-sort-value="{{ $record->points }}"><span class="sibk-badge sibk-badge--danger">+{{ $record->points }}</span></td>
                                 <!-- <td>{{ $record->source_total_points ?? '—' }}</td> -->
                                 <td>{{ $record->effective_classroom_name ?: '—' }}</td>
                                 <td>{{ $record->recorded_by_name ?: '—' }}</td>
@@ -121,12 +121,12 @@
             </div>
         @elseif($activeTab === 'konsultasi' && $canViewConsultations)
             <div class="table-responsive">
-                <table class="table sibk-table mb-0 align-middle">
-                    <thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Jenis Masalah</th><th scope="col">Riwayat Kelas</th><th scope="col">Guru BK</th><th scope="col">Hasil/Ringkasan</th><th scope="col">Aksi</th></tr></thead>
+                <table class="table sibk-table mb-0 align-middle" data-client-sort>
+                    <thead><tr><x-client-sort-header label="Hari/Tanggal" type="date" /><x-client-sort-header label="Jenis Masalah" /><x-client-sort-header label="Riwayat Kelas" /><x-client-sort-header label="Guru BK" /><th scope="col">Hasil/Ringkasan</th><th scope="col">Aksi</th></tr></thead>
                     <tbody>
                         @forelse($consultations as $session)
                             <tr>
-                                <td><div class="fw-semibold text-dark">{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $session->session_date->locale('id')->translatedFormat('l') }})</div></td>
+                                <td data-sort-value="{{ $session->session_date->toDateString() }}"><div class="fw-semibold text-dark">{{ $session->session_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $session->session_date->locale('id')->translatedFormat('l') }})</div></td>
                                 <td>{{ $session->serviceField?->label ?? '—' }}</td>
                                 <td>{{ $session->classroom?->name ?? '—' }}</td>
                                 <td>{{ $session->counselor?->name ?? '—' }}</td>
@@ -146,7 +146,7 @@
                 </table>
             </div>
         @else
-            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th scope="col">Hari/Tanggal</th><th scope="col">Kegiatan</th><th scope="col">Jenis / Tingkat</th><th scope="col">Hasil</th></tr></thead><tbody>@forelse($achievements as $achievement)<tr><td><div class="fw-semibold text-dark">{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $achievement->achievement_date->locale('id')->translatedFormat('l') }})</div></td><td><div class="fw-semibold text-dark">{{ $achievement->activity_name }}</div><div class="text-muted small">{{ $achievement->organizer }}</div></td><td>{{ $achievement->type->label }} / {{ $achievement->level->label }}</td><td><span class="sibk-badge sibk-badge--success">{{ $achievement->result }}</span></td></tr>@empty<tr><td colspan="4" class="text-center text-muted py-4">Belum ada prestasi yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
+            <div class="table-responsive"><table class="table sibk-table mb-0 align-middle" data-client-sort><thead><tr><x-client-sort-header label="Hari/Tanggal" type="date" /><x-client-sort-header label="Kegiatan" /><th scope="col">Jenis / Tingkat</th><th scope="col">Hasil</th></tr></thead><tbody>@forelse($achievements as $achievement)<tr><td data-sort-value="{{ $achievement->achievement_date->toDateString() }}"><div class="fw-semibold text-dark">{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $achievement->achievement_date->locale('id')->translatedFormat('l') }})</div></td><td><div class="fw-semibold text-dark">{{ $achievement->activity_name }}</div><div class="text-muted small">{{ $achievement->organizer }}</div></td><td>{{ $achievement->type->label }} / {{ $achievement->level->label }}</td><td><span class="sibk-badge sibk-badge--success">{{ $achievement->result }}</span></td></tr>@empty<tr><td colspan="4" class="text-center text-muted py-4">Belum ada prestasi yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
         @endif
     </div>
 @endsection

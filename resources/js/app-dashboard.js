@@ -12,6 +12,8 @@ import { initEtatibApiPreview } from './etatib-api-preview';
 import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
 import { initServiceRecords } from './service-records';
+import './case-create.js';
+import './table-sort.js';
 import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
 import { initReportPreview } from './report-preview';
@@ -127,6 +129,9 @@ if (appConfirmationElement) {
     let pendingForm;
     let pendingSubmitter;
     let pendingTrigger;
+    let pendingFormAction;
+    let formActionAccepted = false;
+    let suspendedModal;
 
     const setupConfirmation = (target) => {
         title.textContent = target.dataset.confirmTitle || 'Konfirmasi';
@@ -134,6 +139,7 @@ if (appConfirmationElement) {
         subject.textContent = target.dataset.confirmSubject ? ` ${target.dataset.confirmSubject}` : '';
         suffix.textContent = target.dataset.confirmSuffix || '';
         action.textContent = target.dataset.confirmAction || 'Ya, lanjutkan';
+        cancel.textContent = target.dataset.confirmCancel || 'Batal';
         const tone = target.dataset.confirmTone || 'primary';
         appConfirmationElement.dataset.tone = tone;
         action.classList.toggle('btn-danger', tone === 'danger');
@@ -142,6 +148,18 @@ if (appConfirmationElement) {
         action.classList.toggle('btn-primary', !['danger', 'success', 'warning'].includes(tone));
         appConfirmation.show();
     };
+
+    document.addEventListener('sibk:confirm-form-action', (event) => {
+        if (pendingFormAction) return;
+        pendingFormAction = event.detail;
+        formActionAccepted = false;
+        suspendedModal = event.detail.form.closest('.modal');
+        if (suspendedModal) {
+            suspendedModal.dataset.confirmationSuspended = 'true';
+            suspendedModal.addEventListener('hidden.bs.modal', () => setupConfirmation(event.detail), { once: true });
+            Modal.getOrCreateInstance(suspendedModal).hide();
+        } else setupConfirmation(event.detail);
+    });
 
     document.addEventListener('submit', (event) => {
         const form = event.target;
@@ -173,6 +191,17 @@ if (appConfirmationElement) {
 
     appConfirmationElement.addEventListener('shown.bs.modal', () => cancel.focus());
     appConfirmationElement.addEventListener('hidden.bs.modal', () => {
+        if (pendingFormAction) {
+            const pending = pendingFormAction;
+            const accepted = formActionAccepted;
+            pendingFormAction = undefined;
+            if (suspendedModal) {
+                delete suspendedModal.dataset.confirmationSuspended;
+                if (!accepted || !pending.closeAfterConfirm) Modal.getOrCreateInstance(suspendedModal).show();
+            }
+            if (accepted) pending.onConfirm();
+            suspendedModal = undefined;
+        }
         pendingSubmitter?.focus();
         pendingTrigger?.focus();
         pendingForm = undefined;
@@ -181,6 +210,12 @@ if (appConfirmationElement) {
         action.disabled = false;
     });
     action.addEventListener('click', () => {
+        if (pendingFormAction) {
+            action.disabled = true;
+            formActionAccepted = true;
+            appConfirmation.hide();
+            return;
+        }
         if (pendingForm) {
             action.disabled = true;
             pendingForm.dataset.confirmed = 'true';

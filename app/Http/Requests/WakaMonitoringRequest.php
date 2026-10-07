@@ -16,7 +16,7 @@ class WakaMonitoringRequest extends FormRequest
      *
      * @var list<string>
      */
-    public const array STUDENT_SORT_ALLOWLIST = ['murid', 'kelas', 'status', 'guru_bk'];
+    public const array STUDENT_SORT_ALLOWLIST = ['murid', 'kelas', 'status', 'guru_bk', 'jumlah_kasus', 'jumlah_aktif'];
 
     public function authorize(): bool
     {
@@ -62,8 +62,8 @@ class WakaMonitoringRequest extends FormRequest
         return [
             'period' => $this->input('period'),
             'status' => $this->input('status'),
-            'sort' => $this->input('sort', 'murid'),
-            'direction' => $this->input('direction', 'desc'),
+            'sort' => $this->input('sort'),
+            'direction' => $this->input('direction'),
             'page' => (string) $this->input('page', 1),
         ];
     }

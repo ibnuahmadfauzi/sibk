@@ -59,12 +59,12 @@
 
         <div class="sibk-panel border-0 mb-4">
             <div class="table-responsive">
-                <table class="table sibk-table mb-0">
+                <table class="table sibk-table mb-0" data-client-sort>
                     <thead>
                         <tr>
-                            <th>Jenis</th>
-                            <th>Data sumber</th>
-                            <th>Hasil</th>
+                            <x-client-sort-header label="Jenis" />
+                            <x-client-sort-header label="Data sumber" />
+                            <x-client-sort-header label="Hasil" />
                             <th>Keputusan</th>
                         </tr>
                     </thead>

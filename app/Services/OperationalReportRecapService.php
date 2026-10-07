@@ -32,7 +32,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         $eventQuery = $this->eventQuery($actor, $filters, $year);
         $summary = $this->summary($eventQuery, $filters['service_type']);
         $events = $eventQuery
-            ->orderByDesc('service_date')
+            ->orderBy('service_date', ($filters['sort'] ?? null) === 'tanggal' && ($filters['direction'] ?? null) === 'asc' ? 'asc' : 'desc')
             ->orderBy('record_type')
             ->orderByDesc('record_id')
             ->paginate((int) $filters['per_page'])
@@ -118,6 +118,8 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'classroom_search' => trim((string) ($filters['classroom_search'] ?? '')),
             'service_type' => ! empty($filters['service_type']) ? $filters['service_type'] : 'case',
             'per_page' => (int) ($filters['per_page'] ?? 10),
+            'sort' => $filters['sort'] ?? null,
+            'direction' => $filters['direction'] ?? null,
         ]];
     }
 

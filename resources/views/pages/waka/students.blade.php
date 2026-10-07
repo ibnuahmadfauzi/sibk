@@ -49,8 +49,7 @@
                         @endforeach
                     </select>
                 </div>
-                <input type="hidden" name="sort" value="{{ $params['sort'] }}">
-                <input type="hidden" name="direction" value="{{ $params['direction'] }}">
+                @if($params['sort'] && $params['direction'])<input type="hidden" name="sort" value="{{ $params['sort'] }}"><input type="hidden" name="direction" value="{{ $params['direction'] }}">@endif
                 <div class="col-12 col-md-auto"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
             </form>
         </div>
@@ -68,17 +67,8 @@
             <div class="table-responsive sibk-waka-table--desktop">
                 <table class="table sibk-table align-middle">
                     <thead><tr>
-                        @foreach($columns as $key => $label)
-                            @php $activeSort = ($params['sort'] ?? 'murid') === $key; @endphp
-                            <th scope="col" @if($activeSort) aria-sort="{{ ($params['direction'] ?? 'asc') === 'asc' ? 'ascending' : 'descending' }}" @endif>
-                                <a class="text-decoration-none text-reset"
-                                    @if($activeSort) aria-label="{{ $label }}, diurutkan {{ ($params['direction'] ?? 'asc') === 'asc' ? 'naik' : 'turun' }}" @endif
-                                    href="{{ route('waka.monitoring.students', array_merge($params, ['sort' => $key, 'direction' => $activeSort && ($params['direction'] ?? 'asc') === 'asc' ? 'desc' : 'asc', 'page' => 1])) }}">
-                                    {{ $label }}
-                                </a>
-                            </th>
-                        @endforeach
-                        <th scope="col">Permasalahan</th><th scope="col">Aktif</th><th scope="col">Akses</th>
+                        @foreach($columns as $key => $label)<x-sort-header :name="$key" :label="$label" />@endforeach
+                        <x-sort-header name="jumlah_kasus" label="Permasalahan" /><x-sort-header name="jumlah_aktif" label="Aktif" /><th scope="col">Akses</th>
                     </tr></thead>
                     <tbody>
                         @foreach($rows as $row)

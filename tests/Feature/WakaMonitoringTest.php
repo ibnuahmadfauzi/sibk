@@ -15,6 +15,7 @@ use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\WakaCaseProjectionQuery;
 use App\Services\WakaMonitoringService;
+use App\Services\WakaStudentCaseService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +72,40 @@ class WakaMonitoringTest extends TestCase
         $this->assertArrayNotHasKey('registration_number', $row);
         $this->actingAs($waka)->get(route('waka.monitoring.students'))->assertOk();
         $this->actingAs($owner)->get(route('waka.monitoring.students'))->assertForbidden();
+    }
+
+    public function test_waka_student_count_sort_is_numeric_before_pagination(): void
+    {
+        $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $owner = $this->userWithRole('guru_bk');
+        $year = AcademicYear::query()->create(['name' => '2026/2027', 'is_active' => true]);
+        $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 1']);
+        foreach ([2, 10, 3] as $index => $count) {
+            $student = Student::query()->create(['nisn' => sprintf('%010d', $index + 1), 'name' => 'Murid '.$count, 'is_active' => true]);
+            for ($number = 0; $number < $count; $number++) {
+                BkCase::query()->create([
+                    'student_id' => $student->id,
+                    'academic_year_id' => $year->id,
+                    'classroom_id' => $classroom->id,
+                    'case_source_id' => ReferenceValue::query()->forCategory('case_source')->firstOrFail()->id,
+                    'service_field_id' => ReferenceValue::query()->forCategory('service_field')->firstOrFail()->id,
+                    'status_id' => ReferenceValue::query()->forCategory('case_status')->firstOrFail()->id,
+                    'service_date' => '2026-09-01',
+                    'initial_info' => 'Catatan uji sorting.',
+                    'initial_action' => 'Penanganan uji sorting.',
+                    'created_by' => $owner->id,
+                ]);
+            }
+        }
+
+        $service = app(WakaStudentCaseService::class);
+        $first = $service->paginateSafe($waka, ['sort' => 'jumlah_kasus', 'direction' => 'asc', 'page' => '1'], 1);
+        $second = $service->paginateSafe($waka, ['sort' => 'jumlah_kasus', 'direction' => 'asc', 'page' => '2'], 1);
+        $last = $service->paginateSafe($waka, ['sort' => 'jumlah_kasus', 'direction' => 'asc', 'page' => '3'], 1);
+        $this->assertSame([2, 3, 10], [$first->first()['jumlah_kasus'], $second->first()['jumlah_kasus'], $last->first()['jumlah_kasus']]);
+        $this->actingAs($waka)->get(route('waka.monitoring.students', ['sort' => 'jumlah_aktif', 'direction' => 'asc']))
+            ->assertOk()->assertSee('aria-sort="ascending"', false);
     }
 
     private function userWithRole(string $slug): User

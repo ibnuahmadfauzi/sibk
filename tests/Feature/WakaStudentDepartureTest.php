@@ -125,6 +125,35 @@ final class WakaStudentDepartureTest extends TestCase
             ->assertSeeInOrder(['Murid Resmi', 'Resmi keluar']);
     }
 
+    public function test_sorting_precedes_pagination_and_default_restores_original_order(): void
+    {
+        $waka = $this->userWithRole('waka_kesiswaan', 'Waka Sorting');
+        $teacher = $this->userWithRole('guru_bk', 'Guru Sorting');
+        for ($number = 1; $number <= 22; $number++) {
+            $student = Student::query()->create([
+                'nisn' => sprintf('%010d', $number),
+                'name' => sprintf('Murid %02d', 23 - $number),
+                'is_active' => true,
+            ]);
+            StudentDeparture::query()->create([
+                'student_id' => $student->id,
+                'departure_type' => StudentDeparture::TYPE_TRANSFER,
+                'status' => StudentDeparture::STATUS_IN_PROGRESS,
+                'reported_at' => sprintf('2026-09-%02d', $number),
+                'recorded_by' => $teacher->id,
+            ]);
+        }
+
+        $this->actingAs($waka)->get(route('waka.student-departures.index', ['sort' => 'murid', 'direction' => 'asc']))
+            ->assertOk()->assertViewHas('departures', fn ($items): bool => $items->total() === 22
+                && $items->first()->student->name === 'Murid 01'
+                && $items->last()->student->name === 'Murid 20');
+        $this->get(route('waka.student-departures.index', ['sort' => 'murid', 'direction' => 'asc', 'page' => 2]))
+            ->assertOk()->assertViewHas('departures', fn ($items): bool => $items->first()->student->name === 'Murid 21');
+        $this->get(route('waka.student-departures.index'))
+            ->assertOk()->assertViewHas('departures', fn ($items): bool => $items->first()->student->name === 'Murid 01');
+    }
+
     /** @return array{Student, Classroom} */
     private function studentFixture(): array
     {

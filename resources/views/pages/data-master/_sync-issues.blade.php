@@ -8,7 +8,7 @@
     </div>
     <div class="table-responsive">
         <table class="table sibk-table mb-0">
-            <thead><tr><th scope="col">Sumber</th><th scope="col">Data</th><th scope="col">Masalah</th><th scope="col">Pemeriksaan</th><th scope="col">Aksi</th></tr></thead>
+            <thead><tr><th scope="col">Sumber</th><x-sort-header name="data" label="Data" sort-param="issue_sort" direction-param="issue_direction" page-param="issue_page" /><th scope="col">Masalah</th><th scope="col">Pemeriksaan</th><th scope="col">Aksi</th></tr></thead>
             <tbody>
                 @forelse($syncIssues as $issue)
                     @php($dataLabel = match ($issue->entity_type) { 'academic_year' => 'Tahun ajaran', 'student' => 'Murid', 'classroom' => 'Kelas', 'membership' => 'Keanggotaan kelas', 'etatib_record' => 'Pelanggaran e-Tatib', default => 'Data sumber' })
@@ -51,7 +51,7 @@
     </div>
     <div class="table-responsive">
         <table class="table sibk-table mb-0">
-            <thead><tr><th scope="col">Data</th><th scope="col">Kelas yang dipilih saat itu</th><th scope="col">Hasil saat diperiksa</th><th scope="col">Waktu</th><th scope="col">Aksi</th></tr></thead>
+            <thead><tr><x-sort-header name="data" label="Data" sort-param="decision_sort" direction-param="decision_direction" page-param="decision_page" /><th scope="col">Kelas yang dipilih saat itu</th><th scope="col">Hasil saat diperiksa</th><x-sort-header name="waktu" label="Waktu" sort-param="decision_sort" direction-param="decision_direction" page-param="decision_page" /><th scope="col">Aksi</th></tr></thead>
             <tbody>
                 @forelse($classroomDecisions as $decision)
                     <tr>
@@ -84,7 +84,7 @@
     </div>
     <div class="table-responsive">
         <table class="table sibk-table mb-0">
-            <thead><tr><th scope="col">Waktu</th><th scope="col">Sumber</th><th scope="col">Status</th><th scope="col">Hasil</th></tr></thead>
+            <thead><tr><x-sort-header name="waktu" label="Waktu" sort-param="run_sort" direction-param="run_direction" page-param="run_page" /><x-sort-header name="sumber" label="Sumber" sort-param="run_sort" direction-param="run_direction" page-param="run_page" /><x-sort-header name="status" label="Status" sort-param="run_sort" direction-param="run_direction" page-param="run_page" /><th scope="col">Hasil</th></tr></thead>
             <tbody>
                 @forelse($syncRuns as $run)
                     <tr>

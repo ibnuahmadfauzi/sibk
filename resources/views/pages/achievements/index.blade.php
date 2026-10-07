@@ -26,7 +26,7 @@
             <div class="col-12 col-md-6 col-lg-3"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
         </form>
     </div></div>
-    <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><th scope="col">Murid</th><th scope="col">Kegiatan</th><th scope="col">Jenis / Tingkat</th><th scope="col">Tanggal</th><th scope="col">Hasil</th><th scope="col">Aksi</th></tr></thead><tbody>
+    <div class="table-responsive"><table class="table sibk-table mb-0"><thead><tr><x-sort-header name="murid" label="Murid" /><x-sort-header name="kegiatan" label="Kegiatan" /><th scope="col">Jenis / Tingkat</th><x-sort-header name="tanggal" label="Tanggal" /><th scope="col">Hasil</th><th scope="col">Aksi</th></tr></thead><tbody>
         @forelse($achievements as $achievement)
             <tr>
                 <td><strong>{{ \App\Support\StudentName::display($achievement->student->name) }}</strong><span class="small text-muted d-block">{{ $achievement->student->nisn }}</span></td>

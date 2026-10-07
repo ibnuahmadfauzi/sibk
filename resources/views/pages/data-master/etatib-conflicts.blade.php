@@ -61,10 +61,10 @@
                     <table class="table sibk-table mb-0">
                         <thead>
                             <tr>
-                                <th>Identitas Sumber</th>
-                                <th>Kelas Contoh</th>
+                                <x-sort-header name="name" label="Identitas Sumber" />
+                                <x-sort-header name="classroom" label="Kelas Contoh" />
                                 <th>Alasan</th>
-                                <th>Pelanggaran</th>
+                                <x-sort-header name="record_count" label="Pelanggaran" />
                                 <th class="text-end">Aksi</th>
                             </tr>
                         </thead>
@@ -120,8 +120,8 @@
                     <table class="table sibk-table mb-0">
                         <thead>
                             <tr>
-                                <th>Identitas Sumber</th>
-                                <th>Murid Master</th>
+                                <x-sort-header name="source_name" label="Identitas Sumber" sort-param="mapping_sort" direction-param="mapping_direction" page-param="mapping_page" />
+                                <x-sort-header name="student_name" label="Murid Master" sort-param="mapping_sort" direction-param="mapping_direction" page-param="mapping_page" />
                                 <th>Dicocokkan Oleh</th>
                                 <th class="text-end">Aksi</th>
                             </tr>

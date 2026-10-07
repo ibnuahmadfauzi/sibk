@@ -111,8 +111,8 @@
             <x-empty-state title="Tidak ada murid perlu tindak lanjut" description="Murid dengan status permasalahan Tindak Lanjut pada tahun ajaran terpilih akan tampil di sini." />
         @else
             <div class="table-responsive">
-                <table class="table sibk-table align-middle sibk-waka-follow-ups mb-0">
-                    <thead><tr><th scope="col">Murid/Kelas</th><th scope="col">Jenis Layanan</th><th scope="col">Guru BK</th><th scope="col">Ringkasan</th><th scope="col">Tindak Lanjut</th></tr></thead>
+                <table class="table sibk-table align-middle sibk-waka-follow-ups mb-0" data-client-sort-groups>
+                    <thead><tr><x-client-sort-header label="Murid/Kelas" /><th scope="col">Jenis Layanan</th><th scope="col">Guru BK</th><th scope="col">Ringkasan</th><th scope="col">Tindak Lanjut</th></tr></thead>
                     @foreach($dashboard['follow_up_students'] as $student)
                         <tbody>
                             @foreach($student['services'] as $service)
