@@ -71,9 +71,9 @@
                 <table class="table sibk-table mb-0 sibk-account-management-table">
                     <thead>
                         <tr>
-                            <th>Nama</th>
+                            <x-sort-header name="nama" label="Nama" />
                             <th>Peran</th>
-                            <th>Status</th>
+                            <x-sort-header name="status" label="Status" />
                             <th>Aksi</th>
                         </tr>
                     </thead>

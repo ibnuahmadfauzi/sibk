@@ -89,12 +89,10 @@ class CaseManagementTest extends TestCase
         $student = $this->scopedStudent($teacher, 'Murid Dalam Scope', '0011111111');
         $this->scopedStudent($otherTeacher, 'Murid Luar Scope', '0022222222', 'XI RPL 2');
 
-        $this->actingAs($teacher)->get(route('cases.create'))
+        $this->actingAs($teacher)->get(route('cases.create', ['modal' => 1]))
             ->assertOk()
-            ->assertSee('href="'.route('cases.index').'"', false)
-            ->assertSee('btn-icon btn-light', false)
-            ->assertSee('aria-label="Kembali ke daftar kasus"', false)
-            ->assertSee('polyline points="12 19 5 12 12 5"', false)
+            ->assertViewIs('pages.cases._create-modal')
+            ->assertDontSee('Kembali ke daftar kasus')
             ->assertSee('aria-controls="student_lookup_results"', false)
             ->assertSee('id="student_lookup_results"', false)
             ->assertSee('Murid Dalam Scope')
@@ -102,6 +100,74 @@ class CaseManagementTest extends TestCase
             ->assertSee('X RPL 1')
             ->assertDontSee('Murid Luar Scope')
             ->assertDontSee('0022222222');
+    }
+
+    public function test_legacy_create_route_redirects_to_modal_context(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher);
+        $this->actingAs($teacher)->get(route('cases.create', ['student_id' => $student->id]))
+            ->assertRedirect(route('cases.index', ['student_id' => $student->id, 'tab' => 'kasus', 'create' => 1]));
+        $this->get(route('cases.index', ['create' => 1]))
+            ->assertSee('data-modal-auto-open', false)
+            ->assertSee('data-modal-url="'.route('cases.create', ['modal' => 1]).'"', false)
+            ->assertDontSee('href="'.route('cases.create').'"', false);
+        $this->get(route('dashboard.preview'))
+            ->assertSee('data-modal-url="'.route('cases.create', ['modal' => 1]).'"', false)
+            ->assertDontSee('href="'.route('cases.create').'"', false);
+    }
+
+    public function test_etatib_modal_search_filters_before_pagination_and_enforces_scope(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher, 'Murid Pencarian', '0011111111');
+        $first = $this->etatibRecord($student);
+        foreach (range(1, 11) as $number) {
+            $record = $first->replicate();
+            $record->source_identifier = 'ET-PAGE-'.$number;
+            $record->occurred_at = $first->occurred_at->addDays($number);
+            $record->save();
+        }
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $outside = $this->etatibRecord($this->scopedStudent($otherTeacher, 'Murid Terlarang', '0022222222', 'XI RPL 2'));
+        $params = ['modal' => 1, 'etatib_search' => 1];
+        $this->actingAs($teacher)->getJson(route('cases.create', $params))
+            ->assertOk()->assertJsonCount(10, 'data')->assertJsonPath('total', 12)->assertJsonPath('last_page', 2);
+        $this->getJson(route('cases.create', [...$params, 'q' => '0011111111', 'page' => 2]))
+            ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('total', 12);
+        $this->getJson(route('cases.create', [...$params, 'q' => 'Murid Pencarian']))
+            ->assertOk()->assertJsonPath('total', 12);
+        $this->getJson(route('cases.create', [...$params, 'record_id' => $outside->id]))
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson(route('cases.create', [...$params, 'record_id' => $first->id, 'q' => 'Pencarian sebelumnya']))
+            ->assertOk()->assertJsonPath('data.0.id', $first->id);
+    }
+
+    public function test_modal_create_returns_json_redirect_after_saving(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher);
+        $this->actingAs($teacher)->postJson(route('cases.store'), [
+            ...$this->casePayload(), 'student_id' => $student->id,
+        ])->assertOk()->assertJsonPath('redirect', route('cases.index', ['tab' => 'kasus']));
+        $this->assertDatabaseCount('cases', 1);
+    }
+
+    public function test_unmapped_etatib_modal_keeps_explicit_nisn_context_and_requires_assigned_classroom(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher);
+        $classroomId = $student->classMemberships()->firstOrFail()->classroom_id;
+        $record = $this->etatibRecord($student);
+        $record->update(['student_id' => null, 'nisn' => '0099999999', 'source_student_name' => 'Murid Belum Terpetakan']);
+        $this->actingAs($teacher)->getJson(route('cases.create', [
+            'modal' => 1, 'etatib_search' => 1, 'temporary_nisn' => $record->nisn, 'record_id' => $record->id,
+        ]))->assertOk()->assertJsonPath('data.0.id', $record->id)->assertJsonPath('data.0.classroom_id', null);
+
+        $payload = [...$this->casePayload('e_tatib'), 'etatib_record_id' => $record->id];
+        $this->postJson(route('cases.store'), $payload)->assertUnprocessable()->assertJsonValidationErrors('temporary_classroom_id');
+        $this->postJson(route('cases.store'), [...$payload, 'temporary_classroom_id' => $classroomId])->assertOk();
+        $this->assertDatabaseHas('cases', ['classroom_id' => $classroomId, 'student_id' => null]);
     }
 
     public function test_non_etatib_lookup_selection_accepts_autofilled_identity_fields(): void
@@ -537,7 +603,7 @@ class CaseManagementTest extends TestCase
             ->assertOk()->assertViewIs('pages.cases.edit')->assertSee('Ubah Permasalahan');
         $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
             ->assertOk()->assertViewIs('pages.cases._edit-modal')
-            ->assertSeeInOrder(['Edit Kasus BK', 'Data Murid', 'Sumber:', $case->source->label, 'NISN', 'Nama Murid', 'Rombel', 'Jenis Masalah', 'Tanggal Layanan', 'Catatan Permasalahan', 'Latar Belakang', 'Penanganan', 'Ringkasan', 'Batal', 'Simpan Perubahan'])
+            ->assertSeeInOrder(['Edit Permasalahan', 'Data Murid', 'Nama Murid', 'NISN', 'Rombel', 'Sumber', 'Jenis Masalah', 'Tanggal Layanan', 'Catatan Permasalahan', 'Latar Belakang', 'Penanganan', 'Ringkasan', 'Batal', 'Simpan'])
             ->assertSee('name="expected_updated_at"', false)
             ->assertSee('name="action" value="save"', false)
             ->assertSee('name="service_field_id"', false)
@@ -551,7 +617,7 @@ class CaseManagementTest extends TestCase
             ->assertDontSee('data-clear-draft', false);
     }
 
-    public function test_etatib_edit_modal_shows_locked_student_identity(): void
+    public function test_etatib_edit_modal_shows_read_only_student_identity(): void
     {
         $teacher = $this->userWithRole('guru_bk');
         $student = $this->scopedStudent($teacher);
@@ -559,10 +625,11 @@ class CaseManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('cases.edit', [$case, 'modal' => 1]))
             ->assertOk()
-            ->assertSee('Data murid diisi otomatis dari e-Tatib dan tidak dapat diubah.')
-            ->assertSee('id="case-edit-nisn" value="'.$student->nisn.'" disabled', false)
-            ->assertSee('id="case-edit-name" value="'.$student->name.'" disabled', false)
-            ->assertSee('id="case-edit-classroom" value="'.$case->classroom->name.'" disabled', false)
+            ->assertSee($student->nisn)
+            ->assertSee($student->name)
+            ->assertSee($case->classroom->name)
+            ->assertDontSee(' disabled', false)
+            ->assertDontSee('sibk-panel', false)
             ->assertDontSee('name="student_id"', false)
             ->assertDontSee('name="case_source_id"', false);
     }

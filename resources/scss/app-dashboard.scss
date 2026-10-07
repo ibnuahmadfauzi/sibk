@@ -2,6 +2,7 @@
 @import 'bootstrap/scss/bootstrap';
 @import 'tokens';
 @import 'shared';
+@import 'case-modal';
 
 body {
   min-width: 20rem;
@@ -2543,6 +2544,41 @@ small, .small {
   margin-bottom: 0;
   width: 100%;
   min-width: 820px;
+
+  .sibk-sort-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &::before { content: ''; position: absolute; inset: 0; }
+
+    &:hover,
+    &:focus-visible,
+    &.is-active { color: var(--sibk-color-primary); }
+
+    &:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  }
+
+  .sibk-sort-header__icon {
+    font-size: 0.8em;
+    line-height: 1;
+    color: var(--sibk-color-text-muted);
+  }
+
+  .sibk-sort-header.is-active .sibk-sort-header__icon { color: currentColor; }
+
+  .sibk-sort-header--button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+  }
+
+  th[aria-sort] { position: relative; }
 
   thead th,
   th {

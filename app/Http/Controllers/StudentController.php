@@ -30,6 +30,11 @@ class StudentController extends Controller
             ->availableForService()
             ->accessibleTo($user)
             ->withCount(['achievements' => fn ($achievements) => $achievements->accessibleTo($user)])
+            ->withCount([
+                'cases as active_cases_count' => fn ($cases) => $cases->accessibleTo($user)->whereNull('closed_at'),
+                'consultations as consultations_count' => fn ($consultations) => $consultations->accessibleTo($user),
+            ])
+            ->withSum(['etatibRecords as tatib_points_sum' => fn ($etatib) => $etatib->whereNull('source_deleted_at')], 'points')
             ->with([
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
@@ -70,8 +75,17 @@ class StudentController extends Controller
                 ->orderBy('name');
         }
 
+        $sort = $request->string('sort')->toString();
+        $direction = $request->string('direction')->toString();
+        $columns = ['murid' => 'name', 'permasalahan' => 'active_cases_count', 'poin' => 'tatib_points_sum', 'konsultasi' => 'consultations_count', 'prestasi' => 'achievements_count'];
+        if (isset($columns[$sort]) && in_array($direction, ['asc', 'desc'], true)) {
+            $query->orderBy($columns[$sort], $direction)->orderBy('students.id');
+        } else {
+            $query->orderBy('name')->orderBy('students.id');
+        }
+
         return view('pages.students.index', [
-            'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
+            'students' => $query->paginate(20)->withQueryString(),
             'classrooms' => $classroomQuery->get(),
         ]);
     }

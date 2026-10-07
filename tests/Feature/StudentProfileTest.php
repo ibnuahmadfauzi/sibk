@@ -98,7 +98,7 @@ class StudentProfileTest extends TestCase
             ->get(route('students.show', ['student' => $student, 'tab' => 'etatib']))
             ->assertOk()
             ->assertSee('Tanggal belum tersedia');
-        $this->get(route('cases.create'))
+        $this->get(route('cases.create', ['modal' => 1]))
             ->assertOk()
             ->assertSee('Tanggal belum tersedia');
     }
@@ -352,6 +352,29 @@ class StudentProfileTest extends TestCase
             ->assertViewHas('stats', fn ($stats) => $stats['points'] === 20 && $stats['source_points'] === 10);
         $this->assertSame(20, $student->tatibPoints());
         $this->assertSame(20, $student->load('etatibRecords')->tatibPoints());
+    }
+
+    public function test_student_point_sort_uses_all_filtered_rows_before_pagination(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk');
+        for ($number = 1; $number <= 22; $number++) {
+            $student = Student::query()->create([
+                'nisn' => sprintf('%010d', $number),
+                'name' => sprintf('Murid %02d', 23 - $number),
+                'is_active' => true,
+            ]);
+            $this->etatibRecord($student, 'sort-'.$number, 'Pelanggaran')->update(['points' => $number]);
+        }
+
+        $this->actingAs($coordinator)->get(route('students.index', ['sort' => 'poin', 'direction' => 'asc']))
+            ->assertOk()->assertViewHas('students', fn ($items): bool => $items->total() === 22
+                && $items->first()->tatib_points_sum == 1
+                && $items->last()->tatib_points_sum == 20);
+        $this->get(route('students.index', ['sort' => 'poin', 'direction' => 'asc', 'page' => 2]))
+            ->assertOk()->assertViewHas('students', fn ($items): bool => $items->first()->tatib_points_sum == 21);
+        $this->get(route('students.index'))
+            ->assertOk()->assertViewHas('students', fn ($items): bool => $items->first()->name === 'Murid 01'
+                && $items->first()->tatib_points_sum == 22);
     }
 
     private function etatibRecord(Student $student, string $identifier, string $violation): ExternalTatibRecord

@@ -36,8 +36,21 @@ class AchievementController extends Controller
         }));
         $query->when($filters['level_id'] ?? null, fn (Builder $items, int $id): Builder => $items->where('level_id', $id));
 
+        $sort = $filters['sort'] ?? null;
+        $direction = $filters['direction'] ?? null;
+        if ($sort !== null && $direction !== null) {
+            $column = match ($sort) {
+                'murid' => Student::query()->select('name')->whereColumn('students.id', 'achievements.student_id')->limit(1),
+                'kegiatan' => 'activity_name',
+                default => 'achievement_date',
+            };
+            $query->orderBy($column, $direction)->orderBy('achievements.id');
+        } else {
+            $query->latest('achievement_date')->latest('achievements.id');
+        }
+
         return view('pages.achievements.index', [
-            'achievements' => $query->latest('achievement_date')->latest('id')->paginate(20)->withQueryString(),
+            'achievements' => $query->paginate(20)->withQueryString(),
             ...$this->options(),
             'canCreateAchievement' => $user->can('create', Achievement::class),
         ]);

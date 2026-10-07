@@ -41,6 +41,8 @@ final class OperationalReportRequest extends FormRequest
             'service_type' => ['required', Rule::in(['case', 'consultation', 'withdrawal'])],
             'per_page' => ['required', 'integer', Rule::in([10, 25, 50, 100])],
             'page' => ['nullable', 'integer', 'min:1'],
+            'sort' => ['nullable', Rule::in(['tanggal'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'format' => [
                 Rule::requiredIf($this->routeIs('reports.export')),
                 'nullable',
@@ -59,6 +61,8 @@ final class OperationalReportRequest extends FormRequest
             'service_type',
             'per_page',
             'page',
+            'sort',
+            'direction',
         ]);
     }
 

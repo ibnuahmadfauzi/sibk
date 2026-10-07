@@ -29,7 +29,7 @@ class UserManagementController extends Controller
         $filters = $this->filters($request);
 
         if ($request->expectsJson()) {
-            return response()->json($this->users($filters));
+            return response()->json($this->users($filters, request: $request));
         }
 
         $encrypted = $request->session()->pull('account_password_result');
@@ -46,7 +46,7 @@ class UserManagementController extends Controller
             }
         }
 
-        $response = response()->view('pages.admin.users.index', $this->pageData($filters, $result));
+        $response = response()->view('pages.admin.users.index', $this->pageData($filters, $result, $request));
 
         return $result === null
             ? $response
@@ -121,10 +121,10 @@ class UserManagementController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function pageData(array $filters, ?TemporaryPasswordResult $result = null): array
+    private function pageData(array $filters, ?TemporaryPasswordResult $result = null, ?Request $request = null): array
     {
         return [
-            'users' => $this->users($filters, $result?->user->getKey()),
+            'users' => $this->users($filters, $result?->user->getKey(), $request),
             'roles' => Role::query()->active()->orderBy('name')->get(),
             'filters' => $filters,
             'temporaryPasswordResult' => $result,
@@ -147,7 +147,7 @@ class UserManagementController extends Controller
     }
 
     /** @param array{q: string, role: string} $filters */
-    private function users(array $filters, ?int $featuredId = null): LengthAwarePaginator
+    private function users(array $filters, ?int $featuredId = null, ?Request $request = null): LengthAwarePaginator
     {
         $query = User::query()->with('roles:id,slug,name');
         if ($filters['q'] !== '') {
@@ -163,7 +163,20 @@ class UserManagementController extends Controller
             $query->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$featuredId]);
         }
 
-        return $query->orderBy('name')->paginate(20)->appends(array_filter($filters));
+        $sort = $request?->query('sort');
+        $direction = $request?->query('direction');
+        if (in_array($sort, ['nama', 'status'], true) && in_array($direction, ['asc', 'desc'], true)) {
+            $column = $sort === 'status' ? 'is_active' : 'name';
+            $query->orderBy($column, $direction)->orderBy('users.id');
+        } else {
+            $query->orderBy('name')->orderBy('users.id');
+        }
+
+        return $query->paginate(20)->appends(array_filter([
+            ...$filters,
+            'sort' => in_array($sort, ['nama', 'status'], true) ? $sort : null,
+            'direction' => in_array($direction, ['asc', 'desc'], true) ? $direction : null,
+        ]));
     }
 
     private function flashPassword(Request $request, TemporaryPasswordResult $result): void

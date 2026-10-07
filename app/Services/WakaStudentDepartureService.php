@@ -13,7 +13,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 final class WakaStudentDepartureService
 {
     /** @return LengthAwarePaginator<StudentDeparture> */
-    public function paginate(int $perPage = 20): LengthAwarePaginator
+    public function paginate(int $perPage = 20, string $sort = '', string $direction = ''): LengthAwarePaginator
     {
         return StudentDeparture::query()
             ->with([
@@ -24,8 +24,14 @@ final class WakaStudentDepartureService
                 'recorder:id,name',
                 'finalizer:id,name',
             ])
-            ->latest('reported_at')
-            ->latest('id')
+            ->when(in_array($sort, ['murid', 'tanggal', 'efektif'], true) && in_array($direction, ['asc', 'desc'], true),
+                fn ($query) => $query->orderBy(match ($sort) {
+                    'murid' => \App\Models\Student::query()->select('name')->whereColumn('students.id', 'student_departures.student_id')->limit(1),
+                    'efektif' => 'effective_date',
+                    default => 'reported_at',
+                }, $direction),
+                fn ($query) => $query->latest('reported_at'))
+            ->orderBy('student_departures.id', $direction === 'asc' ? 'asc' : 'desc')
             ->paginate($perPage);
     }
 

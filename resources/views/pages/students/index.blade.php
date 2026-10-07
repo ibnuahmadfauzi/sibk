@@ -11,7 +11,7 @@
             <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" type="submit" data-filter-action>Filter</button></div>
         </form></div></div>
 
-        <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>No</th><th>Murid</th><th class="text-center">Permasalahan</th><th class="text-center">Poin Pelanggaran</th><th class="text-center">Konsultasi</th><th class="text-center">Prestasi</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table sibk-table mb-0 align-middle"><thead><tr><th>No</th><x-sort-header name="murid" label="Murid" /><x-sort-header name="permasalahan" label="Permasalahan" class="text-center" /><x-sort-header name="poin" label="Poin Pelanggaran" class="text-center" /><x-sort-header name="konsultasi" label="Konsultasi" class="text-center" /><x-sort-header name="prestasi" label="Prestasi" class="text-center" /></tr></thead><tbody>
             @forelse($students as $student)
                 @php
                     $membership = $student->classMemberships->first();

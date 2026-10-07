@@ -9,7 +9,8 @@ const files = {
     operationalReportService: 'app/Services/OperationalReportRecapService.php',
     reportPreview: 'resources/views/pages/reports/preview.blade.php',
     casesIndex: 'resources/views/pages/cases/index.blade.php',
-    casesCreate: 'resources/views/pages/cases/create.blade.php',
+    casesCreate: 'resources/views/pages/cases/_create-modal.blade.php',
+    caseCreateJs: 'resources/js/case-create.js',
     caseEditModal: 'resources/views/pages/cases/_edit-modal.blade.php',
     casesShow: 'resources/views/pages/cases/show.blade.php',
     consultationCreate: 'resources/views/pages/consultations/create.blade.php',
@@ -152,11 +153,11 @@ const sharedModalIndex = contents.casesIndex.indexOf('data-service-record-modal'
 assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.lastIndexOf('@endif'), 'Tab konsultasi belum berbagi shell modal yang dirender setelah kedua tab.');
 assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
 assert(contents.casesCreate.includes('id="student_lookup_results"'), 'Form kasus belum menyediakan hasil pencarian murid.');
-assert(contents.casesCreate.match(/aria-controls="student_lookup_results"/g)?.length === 2, 'Pencarian murid harus tersedia dari field NISN dan nama.');
-assert(contents.casesCreate.includes('student.nisn') && contents.casesCreate.includes('student.name'), 'Pencarian murid belum mencocokkan NISN dan nama.');
-assert(contents.casesCreate.includes('lanjutkan isi data secara manual'), 'Fallback input murid manual belum dijelaskan.');
-assert(contents.casesCreate.includes('const visiblePageCount = 5;'), 'Pagination e-Tatib belum membatasi jumlah nomor halaman.');
-assert(!contents.casesCreate.includes('for (let i = 1; i <= totalPages; i++)'), 'Pagination e-Tatib masih merender seluruh nomor halaman.');
+assert(contents.casesCreate.includes('aria-controls="student_lookup_results"'), 'Pencarian murid harus tersedia dari field NISN.');
+assert(contents.caseCreateJs.includes('student.nisn') && contents.caseCreateJs.includes('student.name'), 'Pencarian murid belum mencocokkan NISN dan nama.');
+assert(contents.casesCreate.includes('isi manual jika belum tersedia'), 'Fallback input murid manual belum dijelaskan.');
+assert(contents.caseCreateJs.includes('pagination.last_page'), 'Pagination e-Tatib belum membaca halaman dari server.');
+assert(contents.casesCreate.includes('data-case-etatib-summary'), 'Ringkasan pelanggaran e-Tatib belum tersedia.');
 for (const [key, form, record] of [
     ['casesCreate', 'case', 'new'],
     ['consultationCreateModal', 'consultation', 'new'],

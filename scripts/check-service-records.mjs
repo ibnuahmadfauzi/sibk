@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
     handleModalClick,
     handleModalSubmit,
+    hasUnsavedModalChanges,
     initServiceRecords,
     renderModalContent,
     toggleServiceNotes,
@@ -104,6 +105,7 @@ class FakeForm {
         this.dataset = dataset;
         this.action = '/consultations/1';
         this.method = 'PATCH';
+        this.elements = [];
     }
 
     getAttribute(name) {
@@ -112,6 +114,18 @@ class FakeForm {
 }
 
 globalThis.HTMLFormElement = FakeForm;
+const dirtyForm = new FakeForm({ confirmUnsaved: '' });
+dirtyForm.elements = [{ name: 'initial_info', value: '', type: 'textarea' }];
+const dirtyModal = {
+    querySelector: () => modalContent,
+    querySelectorAll: (selector) => selector === '[data-confirm-unsaved]' ? [dirtyForm] : [],
+};
+renderModalContent(dirtyModal, '', () => {});
+assert.equal(hasUnsavedModalChanges(dirtyForm), false);
+dirtyForm.elements[0].value = 'Catatan belum disimpan';
+assert.equal(hasUnsavedModalChanges(dirtyForm), true);
+dirtyForm.elements[0].value = '';
+assert.equal(hasUnsavedModalChanges(dirtyForm), false);
 const submitEventFor = (target) => ({
     target,
     prevented: false,

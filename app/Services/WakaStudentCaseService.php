@@ -26,7 +26,7 @@ final class WakaStudentCaseService
     public function paginateSafe(User $waka, array $filters, int $perPage = 20): LengthAwarePaginator
     {
         $sort = $filters['sort'] ?? 'murid';
-        $direction = $filters['direction'] ?? 'asc';
+        $direction = $filters['direction'] ?? 'desc';
         if (! in_array($sort, WakaMonitoringRequest::STUDENT_SORT_ALLOWLIST, true)) {
             throw new InvalidArgumentException('Pilihan urutan daftar murid Waka tidak valid.');
         }
@@ -50,10 +50,14 @@ final class WakaStudentCaseService
             'kelas' => 'kelas',
             'status' => 'status_terbaru',
             'guru_bk' => 'guru_bk',
+            'jumlah_kasus' => 'jumlah_kasus',
+            'jumlah_aktif' => 'jumlah_aktif',
             default => 'nama_murid',
         };
         $rows = $rows->sort(function (array $left, array $right) use ($sortColumn, $direction): int {
-            $comparison = strnatcasecmp((string) $left[$sortColumn], (string) $right[$sortColumn]);
+            $comparison = in_array($sortColumn, ['jumlah_kasus', 'jumlah_aktif'], true)
+                ? (int) $left[$sortColumn] <=> (int) $right[$sortColumn]
+                : strnatcasecmp((string) $left[$sortColumn], (string) $right[$sortColumn]);
             if ($comparison === 0) {
                 $comparison = strcmp($left['_identity_key'], $right['_identity_key']);
             }

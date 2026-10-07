@@ -28,8 +28,6 @@ use Illuminate\Support\Facades\DB;
 
 class CaseController extends Controller
 {
-    private const ETATIB_RECORD_LIMIT = 200;
-
     public function index(Request $request): View
     {
         /** @var User $user */
@@ -127,7 +125,7 @@ class CaseController extends Controller
         ]);
     }
 
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse|JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -142,6 +140,13 @@ class CaseController extends Controller
                 && ! (clone $accessibleStudents)->whereKey($preselectedStudentId)->exists(),
             403,
         );
+        if (! $request->boolean('modal')) {
+            return redirect()->route('cases.index', [
+                ...$request->only(['student_id', 'temporary_nisn', 'case_source_id', 'search']),
+                'tab' => 'kasus',
+                'create' => 1,
+            ]);
+        }
         $temporaryNisnCandidate = $request->string('temporary_nisn')->trim()->toString();
         $temporaryNisnFilter = preg_match('/^[0-9]{1,20}$/D', $temporaryNisnCandidate) === 1
             ? $temporaryNisnCandidate
@@ -164,7 +169,7 @@ class CaseController extends Controller
                 'classroom_name' => $membership?->classroom?->name ?? '-',
             ];
         })->values();
-        $search = $request->string('search')->trim()->toString();
+        $search = $request->string('q', $request->string('search')->toString())->trim()->toString();
         $etatibRecordsQuery = ExternalTatibRecord::query()
             ->active()
             ->with(['latestClassroomIssue', 'student.classMemberships' => fn ($memberships) => $memberships
@@ -179,7 +184,8 @@ class CaseController extends Controller
                 }
             })
             ->when($temporaryNisnFilter !== null, fn ($records) => $records->where('nisn', $temporaryNisnFilter))
-            ->when($search !== '', function ($records) use ($search): void {
+            ->when($request->integer('record_id'), fn ($records, $recordId) => $records->whereKey($recordId))
+            ->when($search !== '' && ! $request->integer('record_id'), function ($records) use ($search): void {
                 $records->where(function ($query) use ($search): void {
                     $query->where('nisn', 'like', '%'.$search.'%')
                         ->orWhere('source_student_name', 'like', '%'.$search.'%')
@@ -189,11 +195,8 @@ class CaseController extends Controller
             ->latest('occurred_at')
             ->latest('id');
 
-        $etatibRecords = $etatibRecordsQuery
-            ->limit(self::ETATIB_RECORD_LIMIT + 1)
-            ->get();
-        $etatibRecordsCapped = $etatibRecords->count() > self::ETATIB_RECORD_LIMIT;
-        $etatibRecords = $etatibRecords->take(self::ETATIB_RECORD_LIMIT);
+        $etatibPage = $etatibRecordsQuery->paginate(10);
+        $etatibRecords = $etatibPage->getCollection();
 
         $temporaryClassrooms = Classroom::query()->active()
             ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
@@ -224,25 +227,48 @@ class CaseController extends Controller
             ];
         });
 
-        return view('pages.cases.create', [
+        if ($request->boolean('etatib_search')) {
+            return response()->json([
+                'data' => $formattedEtatibRecords->values(),
+                'current_page' => $etatibPage->currentPage(),
+                'last_page' => $etatibPage->lastPage(),
+                'total' => $etatibPage->total(),
+            ]);
+        }
+
+        return view('pages.cases._create-modal', [
             'studentLookupData' => $studentLookupData,
             'temporaryClassrooms' => $temporaryClassrooms,
             'caseSources' => ReferenceValue::query()->active()->forCategory('case_source')->orderBy('sort_order')->get(),
             'serviceFields' => ReferenceValue::query()->active()->forCategory('service_field')->orderBy('sort_order')->get(),
             'etatibRecords' => $etatibRecords,
             'formattedEtatibRecords' => $formattedEtatibRecords,
-            'etatibRecordsCapped' => $etatibRecordsCapped,
+            'etatibRecordsCapped' => false,
+            'etatibPagination' => [
+                'current_page' => $etatibPage->currentPage(),
+                'last_page' => $etatibPage->lastPage(),
+                'total' => $etatibPage->total(),
+            ],
             'temporaryNisnFilter' => $temporaryNisnFilter,
             'search' => $search,
             'preselectedStudentId' => $preselectedStudentId,
         ]);
     }
 
-    public function store(StoreCaseRequest $request, CaseService $caseService): RedirectResponse
+    public function store(StoreCaseRequest $request, CaseService $caseService): RedirectResponse|JsonResponse
     {
         /** @var User $actor */
         $actor = $request->user();
         $caseService->createCase($request->validated(), $actor);
+
+        if ($request->expectsJson()) {
+            $request->session()->flash('success', 'Permasalahan berhasil dicatat.');
+
+            return response()->json([
+                'message' => 'Permasalahan berhasil dicatat.',
+                'redirect' => route('cases.index', ['tab' => 'kasus']),
+            ]);
+        }
 
         return redirect()->route('cases.index', ['tab' => 'kasus'])->with('success', 'Kasus berhasil dibuat.');
     }
@@ -457,8 +483,25 @@ class CaseController extends Controller
 
         return view('pages.cases.index', [
             'activeTab' => 'pengunduran-diri',
-            'withdrawals' => $query->orderByDesc('recorded_on')->orderByDesc('id')->paginate(20)->withQueryString(),
+            'withdrawals' => $this->orderWithdrawals($query, $request)->paginate(20)->withQueryString(),
             'canCreateWithdrawal' => $user->can('create', WithdrawalProgress::class),
         ]);
+    }
+
+    private function orderWithdrawals(\Illuminate\Database\Eloquent\Builder $query, Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        $sort = $request->string('sort')->toString();
+        $direction = $request->string('direction')->toString();
+        if (! in_array($sort, ['tanggal', 'nama', 'guru'], true) || ! in_array($direction, ['asc', 'desc'], true)) {
+            return $query->orderByDesc('recorded_on')->orderByDesc('id');
+        }
+
+        $column = match ($sort) {
+            'nama' => Student::query()->select('name')->whereColumn('students.id', 'withdrawal_progresses.student_id')->limit(1),
+            'guru' => User::query()->select('name')->whereColumn('users.id', 'withdrawal_progresses.teacher_id')->limit(1),
+            default => 'recorded_on',
+        };
+
+        return $query->orderBy($column, $direction)->orderBy('withdrawal_progresses.id');
     }
 }

@@ -2366,7 +2366,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $this->actingAs($assignedTeacher)->get(route('students.show', $student))
             ->assertOk()
             ->assertDontSee('>Sementara</span>', false);
-        $this->actingAs($assignedTeacher)->get(route('cases.create'))
+        $this->actingAs($assignedTeacher)->get(route('cases.create', ['modal' => 1]))
             ->assertOk()
             ->assertSee('Murid Terverifikasi Utama')
             ->assertSee('Catat Permasalahan');
