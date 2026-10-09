@@ -230,55 +230,7 @@ class CaseService
         });
     }
 
-    public function updateFollowUp(
-        BkCase $case,
-        ?int $typeId,
-        string $expectedUpdatedAt,
-        User $actor,
-    ): BkCase {
-        return DB::transaction(function () use ($case, $typeId, $expectedUpdatedAt, $actor): BkCase {
-            $case = BkCase::query()->with('status')->lockForUpdate()->findOrFail($case->getKey());
-            $this->assertActiveYear($case);
-            if (! $case->isOwnedBy($actor)) {
-                throw ValidationException::withMessages(['case' => 'Anda bukan penanggung jawab aktif kasus ini.']);
-            }
-            if (ServiceRecordStatus::isTerminal($case->status?->code)) {
-                throw ValidationException::withMessages(['case' => 'Tindak lanjut kasus selesai tidak dapat diubah.']);
-            }
-
-            $this->assertFresh($case, $expectedUpdatedAt);
-            $type = $typeId === null ? null : $this->reference('follow_up_type', $typeId);
-            $status = $this->referenceByCode(
-                'case_status',
-                $type === null ? ServiceRecordStatus::IN_PROGRESS : ServiceRecordStatus::NEEDS_FOLLOW_UP,
-            );
-            $before = ['follow_up_type_id' => $case->follow_up_type_id, 'status_id' => $case->status_id];
-            $case->update(['follow_up_type_id' => $type?->getKey(), 'status_id' => $status->getKey()]);
-            if ($type !== null) {
-                CaseFollowUp::query()->create([
-                    'case_id' => $case->getKey(),
-                    'follow_up_type_id' => $type->getKey(),
-                    'follow_up_date' => now()->toDateString(),
-                    'created_by' => $actor->getKey(),
-                ]);
-            }
-            $case->refresh();
-            $this->auditService->recordChanges(
-                action: 'case.follow_up_updated',
-                auditable: $case,
-                summary: sprintf('Tindak lanjut kasus untuk %s diperbarui.', $case->identityName()),
-                actor: $actor,
-                before: $before,
-                after: ['follow_up_type_id' => $case->follow_up_type_id, 'status_id' => $case->status_id],
-            );
-
-            return $case->load(['status', 'followUpType']);
-        });
-    }
-
-    /**
-     * @param  array{follow_up_type_id: int|string, follow_up_date: string, notes?: string|null}  $data
-     */
+    /** @param array{follow_up_type_id: int|string, expected_updated_at: string, notes?: string|null} $data */
     public function addFollowUp(BkCase $case, array $data, User $actor): CaseFollowUp
     {
         return DB::transaction(function () use ($case, $data, $actor): CaseFollowUp {
@@ -291,24 +243,26 @@ class CaseService
                 throw ValidationException::withMessages(['case' => 'Tindak lanjut kasus selesai tidak dapat diubah.']);
             }
 
+            $this->assertFresh($case, $data['expected_updated_at']);
             $type = $this->reference('follow_up_type', (int) $data['follow_up_type_id']);
+            if (CaseFollowUp::withTrashed()->where('case_id', $case->getKey())
+                ->where('follow_up_type_id', $type->getKey())->exists()) {
+                throw ValidationException::withMessages(['follow_up_type_id' => 'Jenis tindak lanjut sudah dipakai pada kasus ini.']);
+            }
             $status = $this->referenceByCode('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP);
+            $performedAt = now();
 
             $followUp = CaseFollowUp::query()->create([
                 'case_id' => $case->getKey(),
                 'follow_up_type_id' => $type->getKey(),
-                'follow_up_date' => $data['follow_up_date'],
+                'follow_up_date' => $performedAt->copy()->timezone('Asia/Jakarta')->toDateString(),
+                'performed_at' => $performedAt,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor->getKey(),
             ]);
 
-            $latestFollowUp = $case->followUps()
-                ->orderByDesc('follow_up_date')
-                ->orderByDesc('id')
-                ->first();
-
             $case->update([
-                'follow_up_type_id' => $latestFollowUp?->follow_up_type_id ?? $type->getKey(),
+                'follow_up_type_id' => $type->getKey(),
                 'status_id' => $status->getKey(),
             ]);
             $case->refresh();
@@ -321,7 +275,7 @@ class CaseService
                 after: [
                     'follow_up_id' => $followUp->getKey(),
                     'follow_up_type_id' => $type->getKey(),
-                    'follow_up_date' => $followUp->follow_up_date->toDateString(),
+                    'performed_at' => $followUp->performed_at->toIso8601String(),
                 ],
             );
 

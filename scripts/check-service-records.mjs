@@ -7,7 +7,6 @@ import {
     initServiceRecords,
     renderModalContent,
     toggleServiceNotes,
-    updateFollowUp,
 } from '../resources/js/service-records.js';
 
 const notesButton = {
@@ -231,81 +230,6 @@ const rootWithoutModal = {
 };
 await initServiceRecords(rootWithoutModal);
 await initServiceRecords(rootWithoutModal);
-assert.equal(rootListeners.get('change').length, 1);
-
-const elements = {
-    '#follow-up-label': { textContent: 'Tidak ada' },
-    '#case-status': { textContent: 'Sedang Proses' },
-    '#case-updated': { textContent: '10.00' },
-};
-const root = { querySelector: (selector) => elements[selector] ?? null };
-const select = {
-    value: '30',
-    disabled: false,
-    dataset: {
-        followUpUrl: '/cases/1/follow-up',
-        expectedUpdatedAt: '2026-09-18T10:00:00.000000Z',
-        previousValue: '',
-        followUpLabelTarget: '#follow-up-label',
-        followUpStatusTarget: '#case-status',
-        followUpTimestampTarget: '#case-updated',
-    },
-    parentElement: {
-        querySelector: (selector) => selector === '[data-save-status]' ? elements['#save-status'] : null,
-    },
-};
-elements['#save-status'] = {
-    textContent: '',
-    classList: { toggle: () => {} },
-};
-let sent;
-await updateFollowUp(select, {
-    root,
-    csrfToken: 'csrf',
-    request: async (url, options) => {
-        assert.equal(elements['#save-status'].textContent, 'Menyimpan...');
-        sent = { url, options };
-        return {
-            ok: true,
-            json: async () => ({
-                message: 'Tersimpan.',
-                data: {
-                    follow_up_type_id: 30,
-                    follow_up_type_label: 'Home Visit',
-                    status_label: 'Tindak Lanjut',
-                    updated_at: '2026-09-18T10:05:00.000000Z',
-                },
-            }),
-        };
-    },
-});
-assert.equal(sent.url, '/cases/1/follow-up');
-assert.deepEqual(JSON.parse(sent.options.body), {
-    follow_up_type_id: '30',
-    expected_updated_at: '2026-09-18T10:00:00.000000Z',
-});
-assert.equal(elements['#follow-up-label'].textContent, 'Home Visit');
-assert.equal(elements['#case-status'].textContent, 'Tindak Lanjut');
-assert.equal(elements['#case-updated'].textContent, '2026-09-18T10:05:00.000000Z');
-assert.equal(select.dataset.expectedUpdatedAt, '2026-09-18T10:05:00.000000Z');
-assert.equal(select.dataset.previousValue, '30');
-assert.equal(elements['#save-status'].textContent, 'Tersimpan');
-
-select.value = '';
-elements['#follow-up-label'].textContent = 'Home Visit';
-elements['#case-status'].textContent = 'Tindak Lanjut';
-elements['#case-updated'].textContent = '2026-09-18T10:05:00.000000Z';
-await updateFollowUp(select, {
-    root,
-    csrfToken: 'csrf',
-    request: async () => ({ ok: false }),
-});
-assert.equal(select.value, '30');
-assert.equal(select.dataset.expectedUpdatedAt, '2026-09-18T10:05:00.000000Z');
-assert.equal(elements['#follow-up-label'].textContent, 'Home Visit');
-assert.equal(elements['#case-status'].textContent, 'Tindak Lanjut');
-assert.equal(elements['#case-updated'].textContent, '2026-09-18T10:05:00.000000Z');
-assert.equal(select.disabled, false);
-assert.equal(elements['#save-status'].textContent, 'Gagal menyimpan');
+assert.equal(rootListeners.get('click').length, 1);
 
 console.log('Service record checks passed.');

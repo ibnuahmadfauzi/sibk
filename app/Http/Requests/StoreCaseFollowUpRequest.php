@@ -37,10 +37,7 @@ class StoreCaseFollowUpRequest extends FormRequest
                     ->where('category', 'follow_up_type')
                     ->where('is_active', true),
             ],
-            'follow_up_date' => [
-                'required',
-                'date',
-            ],
+            'expected_updated_at' => ['required', 'date'],
             'notes' => [
                 'nullable',
                 'string',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\StudentName;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -70,7 +71,11 @@ class BkCase extends Model
     /** @return HasMany<CaseFollowUp, $this> */
     public function followUps(): HasMany
     {
-        return $this->hasMany(CaseFollowUp::class, 'case_id')->orderByDesc('follow_up_date')->orderByDesc('id');
+        return $this->hasMany(CaseFollowUp::class, 'case_id')
+            ->orderByRaw('CASE WHEN performed_at IS NULL THEN 0 ELSE 1 END DESC')
+            ->orderByDesc('performed_at')
+            ->orderByDesc('follow_up_date')
+            ->orderByDesc('id');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -135,7 +140,7 @@ class BkCase extends Model
 
     public function identityName(): string
     {
-        return \App\Support\StudentName::display($this->student?->name ?? $this->temporaryStudent?->input_name ?? 'Identitas tidak tersedia');
+        return StudentName::display($this->student?->name ?? $this->temporaryStudent?->input_name ?? 'Identitas tidak tersedia');
     }
 
     public function identityNisn(): string

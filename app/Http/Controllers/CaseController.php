@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ArchiveCaseRequest;
 use App\Http\Requests\CompleteCaseRequest;
 use App\Http\Requests\StoreCaseRequest;
-use App\Http\Requests\UpdateCaseFollowUpRequest;
 use App\Http\Requests\UpdateCaseRequest;
 use App\Models\BkCase;
 use App\Models\Classroom;
@@ -20,7 +19,9 @@ use App\Models\WithdrawalProgress;
 use App\Services\AuditService;
 use App\Services\CaseService;
 use App\Services\WakaMonitoringService;
+use App\Support\StudentName;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -164,7 +165,7 @@ class CaseController extends Controller
             return [
                 'id' => $student->id,
                 'nisn' => $student->nisn,
-                'name' => \App\Support\StudentName::display($student->name),
+                'name' => StudentName::display($student->name),
                 'classroom_id' => $membership?->classroom_id,
                 'classroom_name' => $membership?->classroom?->name ?? '-',
             ];
@@ -207,7 +208,7 @@ class CaseController extends Controller
             $student = $record->student;
             $activeClassroom = $student?->classMemberships?->first()?->classroom;
             $classroomName = $activeClassroom?->name ?: ($record->effective_classroom_name ?: '-');
-            $studentName = \App\Support\StudentName::display($student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib'));
+            $studentName = StudentName::display($student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib'));
             $classroomId = $activeClassroom?->id ?? $temporaryClassrooms->firstWhere('name', $classroomName)?->id;
 
             return [
@@ -377,33 +378,6 @@ class CaseController extends Controller
         return redirect()->route('cases.index')->with('success', 'Permasalahan berhasil diselesaikan.');
     }
 
-    public function updateFollowUp(
-        UpdateCaseFollowUpRequest $request,
-        BkCase $case,
-        CaseService $caseService,
-    ): JsonResponse {
-        /** @var User $actor */
-        $actor = $request->user();
-        $validated = $request->validated();
-        $case = $caseService->updateFollowUp(
-            $case,
-            isset($validated['follow_up_type_id']) ? (int) $validated['follow_up_type_id'] : null,
-            $validated['expected_updated_at'],
-            $actor,
-        );
-
-        return response()->json([
-            'message' => 'Tindak lanjut berhasil diperbarui.',
-            'data' => [
-                'status_code' => $case->status?->code,
-                'status_label' => $case->status?->label,
-                'follow_up_type_id' => $case->follow_up_type_id,
-                'follow_up_type_label' => $case->followUpType?->label,
-                'updated_at' => $case->updated_at?->toJSON(),
-            ],
-        ]);
-    }
-
     public function destroy(ArchiveCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse
     {
         /** @var User $actor */
@@ -488,7 +462,7 @@ class CaseController extends Controller
         ]);
     }
 
-    private function orderWithdrawals(\Illuminate\Database\Eloquent\Builder $query, Request $request): \Illuminate\Database\Eloquent\Builder
+    private function orderWithdrawals(Builder $query, Request $request): Builder
     {
         $sort = $request->string('sort')->toString();
         $direction = $request->string('direction')->toString();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Requests\StoreCaseRequest;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
@@ -395,33 +396,39 @@ class CaseManagementTest extends TestCase
         $this->assertSame('Perubahan dari tab lain.', $case->refresh()->initial_info);
     }
 
-    public function test_follow_up_can_be_set_replaced_and_cleared(): void
+    public function test_follow_up_is_unique_per_case_and_uses_server_time(): void
     {
         $teacher = $this->userWithRole('guru_bk');
         $case = $this->createCase($teacher, $this->scopedStudent($teacher));
         $homeVisit = $this->reference('follow_up_type', 'home_visit');
         $statement = $this->reference('follow_up_type', 'surat_pernyataan');
+        Carbon::setTestNow('2026-10-09 10:30:00');
 
-        $response = $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+        $response = $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
             'follow_up_type_id' => $homeVisit->id,
             'expected_updated_at' => $case->updated_at->toJSON(),
         ])->assertOk()->assertJsonPath('data.status_code', ServiceRecordStatus::NEEDS_FOLLOW_UP)
             ->assertJsonPath('data.follow_up_type_label', 'Home Visit');
+        $this->assertDatabaseHas('case_follow_ups', [
+            'case_id' => $case->id,
+            'follow_up_type_id' => $homeVisit->id,
+            'performed_at' => '2026-10-09 10:30:00',
+        ]);
 
-        $response = $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
+            'follow_up_type_id' => $homeVisit->id,
+            'expected_updated_at' => $response->json('data.updated_at'),
+        ])->assertUnprocessable()->assertJsonValidationErrors('follow_up_type_id');
+
+        Carbon::setTestNow('2026-10-09 10:31:00');
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
             'follow_up_type_id' => $statement->id,
             'expected_updated_at' => $response->json('data.updated_at'),
         ])->assertOk()->assertJsonPath('data.follow_up_type_id', $statement->id);
 
-        $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
-            'follow_up_type_id' => null,
-            'expected_updated_at' => $response->json('data.updated_at'),
-        ])->assertOk()->assertJsonPath('data.status_code', ServiceRecordStatus::IN_PROGRESS)
-            ->assertJsonPath('data.follow_up_type_id', null);
-
         $case->refresh();
-        $this->assertNull($case->follow_up_type_id);
-        $this->assertSame(ServiceRecordStatus::IN_PROGRESS, $case->status->code);
+        $this->assertSame($statement->id, $case->follow_up_type_id);
+        $this->assertSame(2, $case->followUps()->count());
     }
 
     public function test_follow_up_rejects_completed_case_forbidden_role_and_inactive_reference(): void
@@ -432,23 +439,102 @@ class CaseManagementTest extends TestCase
         $inactive = $this->reference('follow_up_type', 'surat_pernyataan');
         $inactive->update(['is_active' => false]);
 
-        $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
             'follow_up_type_id' => $inactive->id,
             'expected_updated_at' => $case->updated_at->toJSON(),
         ])->assertUnprocessable()->assertJsonValidationErrors('follow_up_type_id');
 
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $this->actingAs($otherTeacher)->postJson(route('cases.follow-ups.store', $case), [
+            'follow_up_type_id' => $homeVisit->id,
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertForbidden();
+
         foreach (['koordinator_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
-            $this->actingAs($this->userWithRole($role))->patchJson($this->followUpUrl($case), [
+            $this->actingAs($this->userWithRole($role))->postJson(route('cases.follow-ups.store', $case), [
                 'follow_up_type_id' => $homeVisit->id,
                 'expected_updated_at' => $case->updated_at->toJSON(),
             ])->assertForbidden();
         }
 
         $this->completeCase($teacher, $case->refresh());
-        $this->actingAs($teacher)->patchJson($this->followUpUrl($case), [
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
             'follow_up_type_id' => $homeVisit->id,
             'expected_updated_at' => $case->refresh()->updated_at->toJSON(),
-        ])->assertUnprocessable()->assertJsonValidationErrors('case');
+        ])->assertForbidden();
+    }
+
+    public function test_follow_up_rejects_stale_case_without_changing_history(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $staleTimestamp = $case->updated_at->toJSON();
+        $case->forceFill(['updated_at' => $case->updated_at->addMinute()])->save();
+
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'expected_updated_at' => $staleTimestamp,
+        ])->assertUnprocessable()->assertJsonValidationErrors('expected_updated_at');
+
+        $this->assertDatabaseCount('case_follow_ups', 0);
+    }
+
+    public function test_new_follow_up_stays_latest_when_legacy_date_is_in_the_future(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $legacyType = $this->reference('follow_up_type', 'home_visit');
+        $newType = $this->reference('follow_up_type', 'surat_pernyataan');
+        $case->followUps()->create([
+            'follow_up_type_id' => $legacyType->id,
+            'follow_up_date' => '2027-01-01',
+            'created_by' => $teacher->id,
+        ]);
+        $case->update(['follow_up_type_id' => $legacyType->id]);
+        Carbon::setTestNow('2026-10-09 10:30:00');
+
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
+            'follow_up_type_id' => $newType->id,
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertOk()->assertJsonPath('data.latest_follow_up_label', $newType->label);
+
+        $this->assertSame($newType->id, $case->refresh()->follow_up_type_id);
+        $this->assertSame($newType->id, $case->followUps()->firstOrFail()->follow_up_type_id);
+    }
+
+    public function test_follow_up_date_uses_school_calendar_at_midnight(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        Carbon::setTestNow('2026-10-08 17:30:00 UTC');
+
+        $this->actingAs($teacher)->postJson(route('cases.follow-ups.store', $case), [
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'expected_updated_at' => $case->updated_at->toJSON(),
+        ])->assertOk()->assertJsonPath('data.follow_up_date', '2026-10-09');
+
+        $this->assertDatabaseHas('case_follow_ups', [
+            'case_id' => $case->id,
+            'performed_at' => '2026-10-08 17:30:00',
+            'follow_up_date' => '2026-10-09 00:00:00',
+        ]);
+    }
+
+    public function test_migration_rejects_legacy_case_with_cleared_follow_up_summary(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $case = $this->createCase($teacher, $this->scopedStudent($teacher));
+        $case->followUps()->create([
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
+            'follow_up_date' => '2026-10-09',
+            'created_by' => $teacher->id,
+        ]);
+
+        $migration = require database_path('migrations/2026_10_09_000100_enforce_case_follow_up_type_unique.php');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Ringkasan tindak lanjut kasus tidak sesuai dengan riwayat');
+        $migration->up();
     }
 
     public function test_case_list_has_final_columns_and_progressive_modal_contract(): void
@@ -467,8 +553,8 @@ class CaseManagementTest extends TestCase
             ->assertSee('href="'.route('cases.show', $case).'"', false)
             ->assertSee('title="Lihat selengkapnya" aria-label="Lihat selengkapnya"', false)
             ->assertSee('data-modal-url="'.route('cases.show', [$case, 'modal' => 1]).'"', false)
-            ->assertSee('data-follow-up-url="'.$this->followUpUrl($case).'"', false)
-            ->assertSee('data-save-status', false)
+            ->assertSee('data-store-url="'.route('cases.follow-ups.store', $case).'"', false)
+            ->assertSee('name="expected_updated_at"', false)
             ->assertSee('action="'.route('cases.complete', $case).'"', false)
             ->assertSee('id="case-complete-updated-at-'.$case->id.'"', false)
             ->assertSee('data-confirm-title="Selesaikan Kasus BK?"', false)
@@ -666,8 +752,8 @@ class CaseManagementTest extends TestCase
         $waka = $this->userWithRole('waka_kesiswaan');
         $this->actingAs($waka)->patchJson(route('cases.update', $case), $this->updatePayload($case))
             ->assertForbidden();
-        $this->actingAs($waka)->patchJson($this->followUpUrl($case), [
-            'follow_up_type_id' => null,
+        $this->actingAs($waka)->postJson(route('cases.follow-ups.store', $case), [
+            'follow_up_type_id' => $this->reference('follow_up_type', 'home_visit')->id,
             'expected_updated_at' => $case->updated_at->toJSON(),
         ])->assertForbidden();
         $this->actingAs($waka)->delete(route('cases.destroy', $case))->assertForbidden();
@@ -770,11 +856,6 @@ class CaseManagementTest extends TestCase
         return $case;
     }
 
-    private function followUpUrl(BkCase $case): string
-    {
-        return url('/cases/'.$case->id.'/follow-up');
-    }
-
     private function scopedStudent(
         User $teacher,
         string $name = 'Murid Scope',
@@ -812,7 +893,8 @@ class CaseManagementTest extends TestCase
         $teacher = $this->userWithRole('guru_bk');
         $record = $this->etatibRecord($this->scopedStudent($teacher));
         $record->update(['student_id' => null, 'source_student_name' => 'NADIA PUTRI']);
-        $request = new class extends \App\Http\Requests\StoreCaseRequest {
+        $request = new class extends StoreCaseRequest
+        {
             public function prepare(): void
             {
                 $this->prepareForValidation();

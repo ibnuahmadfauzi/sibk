@@ -138,12 +138,9 @@ assert(contents.routes.includes('EtatibIdentityMappingController::class'), 'Rout
 assert(contents.serviceRecords.includes('Modal'), 'service-records belum memakai modal Bootstrap.');
 assert(contents.serviceRecords.includes('AbortController'), 'service-records belum membatalkan request modal.');
 assert(contents.serviceRecords.includes('Accept: \'application/json\''), 'service-records belum meminta response JSON.');
-assert(contents.serviceRecords.includes('previousValue'), 'service-records belum menyimpan nilai sebelumnya untuk rollback.');
 assert(contents.package.includes('node scripts/check-form-draft.mjs'), 'check:frontend belum menjalankan pemeriksa draft.');
-assert(contents.casesIndex.includes('data-follow-up-url'), 'Dropdown tindak lanjut belum memiliki endpoint inline.');
-for (const target of ['data-expected-updated-at', 'data-follow-up-label-target', 'data-follow-up-status-target', 'data-follow-up-timestamp-target']) {
-    assert(contents.casesIndex.includes(target), `Dropdown tindak lanjut belum memiliki ${target}.`);
-}
+assert(contents.casesIndex.includes('data-store-url'), 'Tombol tindak lanjut belum memiliki endpoint tambah.');
+assert(contents.casesIndex.includes('data-used-follow-up-types'), 'Jenis tindak lanjut yang sudah dipakai belum ditandai.');
 assert(contents.casesIndex.includes('aria-labelledby="case-modal-title"'), 'Modal layanan belum memiliki aria-labelledby.');
 assert(contents.casesIndex.includes('modal-dialog-scrollable'), 'Modal layanan belum dapat di-scroll.');
 assert(contents.casesIndex.includes('data-service-record-modal'), 'Modal layanan belum terhubung ke JavaScript shared.');

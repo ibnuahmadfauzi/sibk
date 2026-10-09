@@ -29,6 +29,7 @@ class CaseFollowUpController extends Controller
                 'follow_up_type_label' => $item->followUpType?->label,
                 'follow_up_date' => $item->follow_up_date->toDateString(),
                 'follow_up_date_formatted' => $item->follow_up_date->locale('id')->translatedFormat('d M Y'),
+                'performed_at' => $item->performed_at?->toIso8601String(),
                 'notes' => $item->notes,
                 'created_at' => $item->created_at?->toIso8601String(),
             ]);
@@ -59,6 +60,7 @@ class CaseFollowUpController extends Controller
                     'follow_up_type_label' => $item->followUpType?->label,
                     'follow_up_date' => $item->follow_up_date->toDateString(),
                     'follow_up_date_formatted' => $item->follow_up_date->locale('id')->translatedFormat('d M Y'),
+                    'performed_at' => $item->performed_at?->toIso8601String(),
                     'notes' => $item->notes,
                     'created_at' => $item->created_at?->toIso8601String(),
                 ]);
@@ -72,6 +74,7 @@ class CaseFollowUpController extends Controller
                     'latest_follow_up_label' => $latestFollowUp?->followUpType?->label ?? $followUp->followUpType?->label,
                     'follow_up_date' => $followUp->follow_up_date->toDateString(),
                     'follow_up_date_formatted' => $followUp->follow_up_date->locale('id')->translatedFormat('d M Y'),
+                    'performed_at' => $followUp->performed_at?->toIso8601String(),
                     'notes' => $followUp->notes,
                     'status_code' => $case->status?->code,
                     'status_label' => $case->status?->label,

@@ -113,61 +113,6 @@ export const handleModalSubmit = async (event, environment = {}) => {
     return true;
 };
 
-const targetElement = (root, selector) => selector ? root.querySelector(selector) : null;
-
-export const updateFollowUp = async (select, environment = {}) => {
-    const root = environment.root ?? document;
-    const request = environment.request ?? fetch;
-    const token = environment.csrfToken ?? csrfToken();
-    const previousValue = select.dataset.previousValue ?? select.value;
-    const previousExpectedUpdatedAt = select.dataset.expectedUpdatedAt;
-    const label = targetElement(root, select.dataset.followUpLabelTarget);
-    const status = targetElement(root, select.dataset.followUpStatusTarget);
-    const timestamp = targetElement(root, select.dataset.followUpTimestampTarget);
-    const saveStatus = select.parentElement?.querySelector('[data-save-status]');
-    const previousLabel = label?.textContent;
-    const previousStatus = status?.textContent;
-    const previousTimestamp = timestamp?.textContent;
-    select.disabled = true;
-    if (saveStatus) {
-        saveStatus.textContent = 'Menyimpan...';
-        saveStatus.classList.toggle('text-danger', false);
-    }
-
-    try {
-        const response = await request(select.dataset.followUpUrl, {
-            method: 'PATCH',
-            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                follow_up_type_id: select.value,
-                expected_updated_at: select.dataset.expectedUpdatedAt,
-            }),
-        });
-        if (!response.ok) throw new Error('Gagal memperbarui tindak lanjut.');
-
-        const payload = (await response.json()).data ?? {};
-        select.dataset.previousValue = select.value;
-        if (payload.updated_at) select.dataset.expectedUpdatedAt = payload.updated_at;
-        if (label) label.textContent = payload.follow_up_type_label ?? label.textContent;
-        if (status) status.textContent = payload.status_label ?? status.textContent;
-        if (timestamp) timestamp.textContent = payload.updated_at ?? timestamp.textContent;
-        if (saveStatus) saveStatus.textContent = 'Tersimpan';
-    } catch {
-        select.value = previousValue;
-        if (previousExpectedUpdatedAt === undefined) delete select.dataset.expectedUpdatedAt;
-        else select.dataset.expectedUpdatedAt = previousExpectedUpdatedAt;
-        if (label) label.textContent = previousLabel;
-        if (status) status.textContent = previousStatus;
-        if (timestamp) timestamp.textContent = previousTimestamp;
-        if (saveStatus) {
-            saveStatus.textContent = 'Gagal menyimpan';
-            saveStatus.classList.toggle('text-danger', true);
-        }
-    } finally {
-        select.disabled = false;
-    }
-};
-
 const initialisedRoots = new WeakSet();
 
 export const toggleServiceNotes = async (button, root = document, request = fetch) => {
@@ -283,7 +228,4 @@ export const initServiceRecords = async (root = document, { Modal, Toast } = {})
         }); });
     }
 
-    root.addEventListener('change', (event) => {
-        if (event.target.matches?.('[data-follow-up-url]')) updateFollowUp(event.target);
-    });
 };
