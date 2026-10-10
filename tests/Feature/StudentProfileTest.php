@@ -41,7 +41,7 @@ class StudentProfileTest extends TestCase
 
         $this->actingAs($teacher)->get(route('students.index', ['search' => 'NADIA']))
             ->assertOk()->assertSee('Nadia Putri')->assertDontSee('NADIA PUTRI')
-            ->assertSeeInOrder(['<th>No</th>', '<th>Murid</th>', 'Permasalahan', 'Poin Pelanggaran', 'Konsultasi', 'Prestasi'], false)
+            ->assertSeeInOrder(['<th>No</th>', '<span>Murid</span>', 'Permasalahan', 'Poin Pelanggaran', 'Konsultasi', 'Prestasi'], false)
             ->assertSeeInOrder(['Nadia Putri', $student->nisn]);
         $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()->assertSee('Nadia Putri')->assertDontSee('NADIA PUTRI');

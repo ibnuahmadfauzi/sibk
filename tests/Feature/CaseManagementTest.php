@@ -10,13 +10,17 @@ use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\CaseAssignment;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\StudentIdentityService;
+use App\Services\WakaStudentCaseService;
 use App\Support\ServiceRecordStatus;
 use Carbon\Carbon;
 use Database\Seeders\ReferenceSeeder;
@@ -227,6 +231,79 @@ class CaseManagementTest extends TestCase
         $this->assertSame('Murid Belum Sinkron', $case->temporaryStudent?->input_name);
         $this->assertNotNull($case->classroom_id);
         $this->assertNotNull($case->academic_year_id);
+    }
+
+    public function test_reconciled_case_follows_master_name_teacher_scope_and_departure(): void
+    {
+        $owner = $this->userWithRole('guru_bk');
+        $newTeacher = $this->userWithRole('guru_bk');
+        $outsider = $this->userWithRole('guru_bk');
+        $existing = $this->scopedStudent($owner);
+        $temporary = app(StudentIdentityService::class)->createTemporary('0099999999', 'Nama Saat Layanan', $owner);
+        $case = $this->createCase($owner, $existing, [
+            'student_id' => null,
+            'temporary_student_id' => $temporary->id,
+        ]);
+        $membership = $existing->classMemberships()->firstOrFail();
+        $student = Student::query()->create([
+            'nisn' => $temporary->nisn,
+            'name' => 'Nama dari Sekolah',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $student->id,
+            'classroom_id' => $membership->classroom_id,
+            'academic_year_id' => $membership->academic_year_id,
+            'is_active' => true,
+        ]);
+        app(StudentIdentityService::class)->reconcile($temporary, $owner);
+        TeacherAssignment::query()->where('user_id', $owner->id)->update(['user_id' => $newTeacher->id]);
+        Consultation::query()->create([
+            'temporary_student_id' => $temporary->id,
+            'academic_year_id' => $membership->academic_year_id,
+            'classroom_id' => $membership->classroom_id,
+            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
+            'session_date' => '2026-08-01',
+            'problem' => 'Permasalahan sementara.',
+            'handling' => 'Ditangani.',
+            'result' => 'Dipantau.',
+            'counselor_id' => $owner->id,
+        ]);
+
+        $this->assertNull($case->refresh()->student_id);
+        $this->assertSame($student->id, $temporary->refresh()->reconciled_student_id);
+        $this->assertSame('Nama Dari Sekolah', $case->identityName());
+        $this->assertTrue(BkCase::query()->accessibleTo($newTeacher)->whereKey($case->id)->exists());
+        $this->actingAs($newTeacher)->get(route('cases.index', ['search' => 'Nama dari Sekolah']))
+            ->assertOk()->assertSee('Nama Dari Sekolah');
+        $this->get(route('cases.show', $case))->assertOk();
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+            ->assertOk()->assertSee('Informasi awal layanan.');
+        $studentRows = $this->get(route('students.index', ['search' => 'Nama dari Sekolah', 'sort' => 'permasalahan', 'direction' => 'desc']))
+            ->assertOk()->viewData('students');
+        $this->assertSame(1, (int) $studentRows->items()[0]->active_cases_count);
+        $this->assertSame(1, (int) $studentRows->items()[0]->consultations_count);
+        $this->actingAs($owner)->get(route('students.show', $student))->assertOk();
+        $this->actingAs($outsider)->get(route('cases.show', $case))->assertForbidden();
+        $this->get(route('students.show', $student))->assertForbidden();
+
+        $this->createCase($owner, $student);
+        $wakaRows = app(WakaStudentCaseService::class)->paginateSafe($this->userWithRole('waka_kesiswaan'), []);
+        $this->assertSame(1, $wakaRows->total());
+        $this->assertSame(2, $wakaRows->items()[0]['jumlah_kasus']);
+
+        StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_OFFICIAL,
+            'reported_at' => '2026-07-31',
+            'effective_date' => '2026-08-01',
+            'recorded_by' => $owner->id,
+            'finalized_by' => $this->userWithRole('koordinator_bk')->id,
+            'finalized_at' => now(),
+        ]);
+        $this->assertFalse(BkCase::query()->accessibleTo($newTeacher)->whereKey($case->id)->exists());
+        $this->actingAs($newTeacher)->get(route('cases.show', $case))->assertForbidden();
     }
 
     public function test_temporary_case_cannot_use_another_teachers_classroom(): void

@@ -27,23 +27,31 @@ class StudentController extends Controller
         abort_unless($user->can('viewAny', Student::class), 403);
 
         $query = Student::query()
+            ->select('students.*')
             ->availableForService()
             ->accessibleTo($user)
             ->withCount(['achievements' => fn ($achievements) => $achievements->accessibleTo($user)])
-            ->withCount([
-                'cases as active_cases_count' => fn ($cases) => $cases->accessibleTo($user)->whereNull('closed_at'),
-                'consultations as consultations_count' => fn ($consultations) => $consultations->accessibleTo($user),
-            ])
+            ->selectSub(BkCase::query()->selectRaw('COUNT(*)')
+                ->accessibleTo($user)
+                ->whereNull('closed_at')
+                ->where(function ($identity): void {
+                    $identity->whereColumn('cases.student_id', 'students.id')
+                        ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
+                            ->whereColumn('temporary_students.reconciled_student_id', 'students.id'));
+                }), 'active_cases_count')
+            ->selectSub(Consultation::query()->selectRaw('COUNT(*)')
+                ->accessibleTo($user)
+                ->where(function ($identity): void {
+                    $identity->whereColumn('consultations.student_id', 'students.id')
+                        ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
+                            ->whereColumn('temporary_students.reconciled_student_id', 'students.id'));
+                }), 'consultations_count')
             ->withSum(['etatibRecords as tatib_points_sum' => fn ($etatib) => $etatib->whereNull('source_deleted_at')], 'points')
             ->with([
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
                     ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom.academicYear'),
-                'cases' => fn ($cases) => $cases
-                    ->accessibleTo($user),
-                'consultations' => fn ($consultations) => $consultations
-                    ->accessibleTo($user),
                 'etatibRecords' => fn ($etatib) => $etatib
                     ->whereNull('source_deleted_at')
                     ->latest('occurred_at'),
@@ -113,8 +121,12 @@ class StudentController extends Controller
 
         $cases = BkCase::query()
             ->accessibleTo($user)
-            ->where('student_id', $student->getKey())
-            ->with(['source', 'serviceField', 'status', 'classroom', 'assignments.teacher', 'followUps.followUpType', 'followUpType'])
+            ->where(function ($identity) use ($student): void {
+                $identity->where('student_id', $student->getKey())
+                    ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
+                        ->where('reconciled_student_id', $student->getKey()));
+            })
+            ->with(['source', 'serviceField', 'status', 'classroom', 'temporaryStudent.reconciledStudent', 'assignments.teacher', 'followUps.followUpType', 'followUpType'])
             ->latest('service_date')
             ->get();
         $etatibQuery = ExternalTatibRecord::query()

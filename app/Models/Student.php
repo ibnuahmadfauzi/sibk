@@ -121,6 +121,9 @@ class Student extends Model
                 ->select('students.id'))
                 ->orWhereHas('cases.assignments', fn (Builder $assignments): Builder => $assignments
                     ->where('user_id', $teacher->getKey())
+                )
+                ->orWhereHas('temporaryIdentities.cases.assignments', fn (Builder $assignments): Builder => $assignments
+                    ->where('user_id', $teacher->getKey())
                 );
         });
     }

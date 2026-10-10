@@ -106,9 +106,13 @@ class BkCase extends Model
     /** @param Builder<BkCase> $query */
     public function scopeWithinStudentServicePeriod(Builder $query): Builder
     {
-        return $query->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
-            ->where('status', StudentDeparture::STATUS_OFFICIAL)
-            ->whereColumn('student_departures.effective_date', '<=', 'cases.service_date'));
+        return $query
+            ->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'cases.service_date'))
+            ->whereDoesntHave('temporaryStudent.reconciledStudent.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'cases.service_date'));
     }
 
     /** @param Builder<BkCase> $query */
@@ -130,7 +134,11 @@ class BkCase extends Model
                     ->where('user_id', $user->getKey()))
                     ->orWhereIn('student_id', Student::query()
                         ->forActiveTeacherAssignment($user)
-                        ->select('students.id'));
+                        ->select('students.id'))
+                    ->orWhereHas('temporaryStudent', fn (Builder $temporary): Builder => $temporary
+                        ->whereIn('reconciled_student_id', Student::query()
+                            ->forActiveTeacherAssignment($user)
+                            ->select('students.id')));
             }
 
         });
@@ -138,7 +146,10 @@ class BkCase extends Model
 
     public function identityName(): string
     {
-        return StudentName::display($this->student?->name ?? $this->temporaryStudent?->input_name ?? 'Identitas tidak tersedia');
+        return StudentName::display($this->student?->name
+            ?? $this->temporaryStudent?->reconciledStudent?->name
+            ?? $this->temporaryStudent?->input_name
+            ?? 'Identitas tidak tersedia');
     }
 
     public function identityNisn(): string

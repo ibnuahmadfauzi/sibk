@@ -65,14 +65,15 @@ class CaseController extends Controller
             ->with([
                 'student:id,name',
                 'classroom:id,name',
-                'temporaryStudent:id,input_name',
+                'temporaryStudent:id,input_name,reconciled_student_id',
+                'temporaryStudent.reconciledStudent:id,name',
                 'serviceField:id,label',
                 'status:id,label,code',
                 'followUpType:id,label',
                 'followUps.followUpType',
             ]), fn ($cases) => $cases->with([
                 'classroom',
-                'temporaryStudent',
+                'temporaryStudent.reconciledStudent',
                 'source',
                 'serviceField',
                 'status',
@@ -83,7 +84,9 @@ class CaseController extends Controller
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($cases) => $cases->where(function ($filter) use ($search): void {
             $filter->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
-                ->orWhereHas('temporaryStudent', fn ($students) => $students->where('input_name', 'like', '%'.$search.'%'));
+                ->orWhereHas('temporaryStudent', fn ($students) => $students
+                    ->where('input_name', 'like', '%'.$search.'%')
+                    ->orWhereHas('reconciledStudent', fn ($reconciled) => $reconciled->where('name', 'like', '%'.$search.'%')));
         }));
         $query->when($request->integer('classroom_id'), fn ($cases, int $classroomId) => $cases->where('classroom_id', $classroomId));
         $query->when($request->integer('case_source_id'), fn ($cases, int $id) => $cases->where('case_source_id', $id));
@@ -109,7 +112,7 @@ class CaseController extends Controller
             $direction = 'desc';
         }
         $sortExpression = match ($sort) {
-            'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT input_name FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id)))'),
+            'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT COALESCE((SELECT name FROM students WHERE students.id = temporary_students.reconciled_student_id), input_name) FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id)))'),
             'kelas' => Classroom::query()->selectRaw('LOWER(classrooms.name)')
                 ->whereColumn('classrooms.id', 'cases.classroom_id')->limit(1),
             'sumber' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'cases.case_source_id'),
@@ -310,7 +313,7 @@ class CaseController extends Controller
         $case->load([
             'student',
             'classroom',
-            'temporaryStudent',
+            'temporaryStudent.reconciledStudent',
             'source',
             'serviceField',
             'status',
@@ -336,7 +339,7 @@ class CaseController extends Controller
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('update', $case), 403);
-        $case->load(['student', 'temporaryStudent', 'source', 'serviceField', 'status']);
+        $case->load(['student', 'temporaryStudent.reconciledStudent', 'source', 'serviceField', 'status']);
         $data = [
             'case' => $case,
             'serviceFields' => ReferenceValue::query()
