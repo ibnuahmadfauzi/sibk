@@ -339,6 +339,11 @@
                                 </select>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-dark small mb-1" for="modal_follow_up_date">Tanggal Tindak Lanjut</label>
+                                <input type="date" name="follow_up_date" id="modal_follow_up_date" class="form-control py-2 border-secondary-subtle rounded-3" required>
+                            </div>
+
                         </div>
                         <div class="modal-footer border-top-0 px-4 pt-2 pb-4 d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light border border-secondary-subtle px-4 py-2 rounded-3 text-secondary fw-medium" data-bs-dismiss="modal">Batal</button>
@@ -812,6 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(form);
             const payload = {
                 follow_up_type_id: formData.get('follow_up_type_id'),
+                follow_up_date: formData.get('follow_up_date'),
                 expected_updated_at: formData.get('expected_updated_at'),
             };
 

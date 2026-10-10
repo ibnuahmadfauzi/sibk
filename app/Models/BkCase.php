@@ -72,8 +72,6 @@ class BkCase extends Model
     public function followUps(): HasMany
     {
         return $this->hasMany(CaseFollowUp::class, 'case_id')
-            ->orderByRaw('CASE WHEN performed_at IS NULL THEN 0 ELSE 1 END DESC')
-            ->orderByDesc('performed_at')
             ->orderByDesc('follow_up_date')
             ->orderByDesc('id');
     }

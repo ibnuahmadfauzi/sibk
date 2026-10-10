@@ -230,7 +230,7 @@ class CaseService
         });
     }
 
-    /** @param array{follow_up_type_id: int|string, expected_updated_at: string, notes?: string|null} $data */
+    /** @param array{follow_up_type_id: int|string, follow_up_date: string, expected_updated_at: string, notes?: string|null} $data */
     public function addFollowUp(BkCase $case, array $data, User $actor): CaseFollowUp
     {
         return DB::transaction(function () use ($case, $data, $actor): CaseFollowUp {
@@ -255,14 +255,14 @@ class CaseService
             $followUp = CaseFollowUp::query()->create([
                 'case_id' => $case->getKey(),
                 'follow_up_type_id' => $type->getKey(),
-                'follow_up_date' => $performedAt->copy()->timezone('Asia/Jakarta')->toDateString(),
+                'follow_up_date' => $data['follow_up_date'],
                 'performed_at' => $performedAt,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor->getKey(),
             ]);
 
             $case->update([
-                'follow_up_type_id' => $type->getKey(),
+                'follow_up_type_id' => $case->followUps()->firstOrFail()->follow_up_type_id,
                 'status_id' => $status->getKey(),
             ]);
             $case->refresh();
@@ -275,6 +275,7 @@ class CaseService
                 after: [
                     'follow_up_id' => $followUp->getKey(),
                     'follow_up_type_id' => $type->getKey(),
+                    'follow_up_date' => $followUp->follow_up_date->toDateString(),
                     'performed_at' => $followUp->performed_at->toIso8601String(),
                 ],
             );

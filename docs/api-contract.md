@@ -127,9 +127,9 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Endpoint:** `POST /cases/{case}/follow-ups`.
 - **Controller:** `CaseFollowUpController@store`.
 - **Form Request:** `StoreCaseFollowUpRequest`.
-- **Request:** `follow_up_type_id` (required; reference aktif kategori `follow_up_type`), `expected_updated_at` (required), dan `notes` (opsional). Tanggal tindak lanjut tidak diterima dari klien.
+- **Request:** `follow_up_type_id` (required; reference aktif kategori `follow_up_type`), `follow_up_date` (tanggal pilihan pengguna, required), `expected_updated_at` (required), dan `notes` (opsional).
 - **Authorization:** hanya Guru BK pemilik kasus aktif; kasus `selesai` ditolak.
-- **Service:** `CaseService::addFollowUp()` membuat record anak dengan `performed_at` waktu server, memperbarui ringkasan jenis dan status kasus dalam transaksi, serta menolak `expected_updated_at` yang sudah usang.
+- **Service:** `CaseService::addFollowUp()` membuat record anak dengan `follow_up_date` dari pengguna dan `performed_at` waktu server, memperbarui ringkasan jenis menurut tanggal tindak lanjut terbaru dan status kasus dalam transaksi, serta menolak `expected_updated_at` yang sudah usang.
 - **Response/detail:** JSON mengembalikan tindak lanjut baru, waktu `performed_at`, ringkasan kasus, dan daftar tindak lanjut terurut. Untuk baris lama, `performed_at` dapat kosong dan tanggal historis tetap tersedia sebagai `follow_up_date`.
 
 ---
