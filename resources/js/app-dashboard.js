@@ -8,7 +8,7 @@ import Collapse from 'bootstrap/js/dist/collapse';
 
 window.bootstrap = window.bootstrap || {};
 window.bootstrap.Modal = Modal;
-import { initApiSiswaPreview } from './api-siswa-preview';
+import { initApiSiswaPreview, initRosterExcelPreview } from './api-siswa-preview';
 import { initEtatibApiPreview } from './etatib-api-preview';
 import { initEtatibIdentityMapping } from './etatib-identity-mapping';
 import { initFormDrafts } from './form-draft';
@@ -26,6 +26,7 @@ initFormDrafts();
 initServiceRecords(document, { Modal, Toast });
 initConsultationCreate();
 initApiSiswaPreview(document, { Modal });
+initRosterExcelPreview(document, { Modal });
 initEtatibApiPreview(document, { Modal });
 initEtatibIdentityMapping(document, { Modal });
 initWithdrawalProgress(document, { Modal });

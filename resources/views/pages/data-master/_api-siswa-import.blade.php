@@ -47,23 +47,39 @@
         </form>
 
         <details class="border-top mt-4 pt-3" @if($errors->has('file')) open @endif>
-            <summary class="fw-semibold text-primary py-2">Impor CSV jika API belum tersedia</summary>
+            <summary class="fw-semibold text-primary py-2">Impor CSV atau Excel jika API belum tersedia</summary>
             <p class="text-muted small mt-2 mb-3">
-                Cadangan saat API Siswa belum tersedia. CSV UTF-8 maksimal 2 MiB dan 5.000 baris,
-                dengan header <code>nisn,nama,rombel,tahun_pelajaran</code>.
+                Cadangan saat API Siswa belum tersedia. CSV UTF-8 atau Excel .xlsx maksimal 2 MiB dan 5.000 baris,
+                dengan kolom <code>nisn,nama,rombel,tahun_pelajaran</code>. Simpan NISN sebagai teks agar nol di depan tidak hilang.
             </p>
-            <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="d-grid gap-3">
+            <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="d-grid gap-3" data-roster-file-form data-preview-url="{{ route('data-master.roster-imports.preview-excel') }}">
                 @csrf
                 <div>
-                    <label class="form-label small" for="roster_file">Pilih berkas CSV</label>
-                    <input class="form-control" type="file" accept=".csv,text/csv" id="roster_file" name="file" required>
+                    <label class="form-label small" for="roster_file">Pilih berkas CSV atau Excel</label>
+                    <input class="form-control" type="file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" id="roster_file" name="file" required>
                 </div>
                 <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-outline-primary" @disabled(! $importableYearExists)>Impor CSV</button>
+                    <button type="submit" class="btn btn-outline-primary" @disabled(! $importableYearExists)>Tinjau / Impor Berkas</button>
                 </div>
             </form>
         </details>
 
+    </div>
+</div>
+
+<div class="modal fade" id="roster-excel-preview-modal" tabindex="-1" aria-labelledby="roster-excel-preview-title" aria-hidden="true" data-roster-excel-preview-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="roster-excel-preview-title">Pratinjau Excel Daftar Murid</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body" data-roster-excel-preview-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" data-roster-excel-confirm disabled>Impor Data</button>
+            </div>
+        </div>
     </div>
 </div>
 

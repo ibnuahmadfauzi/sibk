@@ -129,6 +129,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/data-master/roster-imports/preview', [AcademicYearPreparationController::class, 'previewApiSiswa'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.roster-imports.preview');
+        Route::post('/data-master/roster-imports/preview-excel', [AcademicYearPreparationController::class, 'previewExcel'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.roster-imports.preview-excel');
         Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
             ->name('data-master.academic-years.roster-imports.store');
         Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');

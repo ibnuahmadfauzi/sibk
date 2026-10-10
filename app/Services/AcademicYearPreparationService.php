@@ -32,6 +32,7 @@ class AcademicYearPreparationService
 {
     public function __construct(
         private readonly ProvisionalRosterCsvParser $csvParser,
+        private readonly ProvisionalRosterXlsxParser $xlsxParser,
         private readonly ProvisionalRosterPayloadParser $payloadParser,
         private readonly AuditService $auditService,
         private readonly AcademicYearRolloverQuery $rolloverQuery,
@@ -184,18 +185,19 @@ class AcademicYearPreparationService
         AcademicYear $academicYear,
         UploadedFile $file,
         User $actor,
+        ?string $previewHash = null,
     ): ProvisionalRosterImportResult {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
         try {
             $currentYear = AcademicYear::query()->findOrFail($academicYear->getKey());
             $this->assertImportable($currentYear);
-            $rows = $this->csvParser->parse($file);
+            $rows = $this->parseRosterFile($file, $previewHash);
             if (collect($rows)->contains(
                 fn (array $row): bool => $row['academic_year_name'] !== $currentYear->name,
             )) {
                 throw ValidationException::withMessages([
-                    'academic_year' => 'Tahun pelajaran pada CSV harus sama dengan tahun ajaran tujuan.',
+                    'academic_year' => 'Tahun pelajaran pada berkas harus sama dengan tahun ajaran tujuan.',
                 ]);
             }
 
@@ -220,14 +222,14 @@ class AcademicYearPreparationService
         }
     }
 
-    public function importRosters(UploadedFile $file, User $actor): ProvisionalRosterImportResult
+    public function importRosters(UploadedFile $file, User $actor, ?string $previewHash = null): ProvisionalRosterImportResult
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
         try {
-            $rows = $this->csvParser->parse($file);
+            $rows = $this->parseRosterFile($file, $previewHash);
 
-            return $this->importRosterRows($rows, $actor, 'CSV');
+            return $this->importRosterRows($rows, $actor, 'berkas');
         } catch (ValidationException $exception) {
             $this->recordGlobalRosterImportFailure($actor, $this->safeFailureCode($exception));
 
@@ -237,6 +239,24 @@ class AcademicYearPreparationService
 
             throw $exception;
         }
+    }
+
+    /** @return list<array{nisn: string, name: string, classroom: string, academic_year_name: string}> */
+    private function parseRosterFile(UploadedFile $file, ?string $previewHash): array
+    {
+        if (strtolower($file->getClientOriginalExtension()) !== 'xlsx') {
+            return $this->csvParser->parse($file);
+        }
+
+        $rows = $this->xlsxParser->parse($file);
+        $actualHash = hash('sha256', json_encode($rows, JSON_THROW_ON_ERROR));
+        if ($previewHash === null || ! hash_equals($actualHash, $previewHash)) {
+            throw ValidationException::withMessages([
+                'file' => 'Berkas Excel berubah atau belum ditinjau. Jalankan pratinjau kembali sebelum mengimpor.',
+            ]);
+        }
+
+        return $rows;
     }
 
     /** @param array<string, mixed> $payload */
