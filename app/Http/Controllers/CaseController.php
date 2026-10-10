@@ -20,6 +20,7 @@ use App\Services\AuditService;
 use App\Services\CaseService;
 use App\Services\WakaMonitoringService;
 use App\Support\StudentName;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -90,7 +91,15 @@ class CaseController extends Controller
         $query->when($request->integer('follow_up_type_id'), fn ($cases, int $id) => $cases->where('follow_up_type_id', $id));
         $query->when($request->string('month')->toString(), function ($cases, string $month): void {
             if (preg_match('/^(\d{4})-(\d{2})$/', $month, $matches) === 1) {
-                $cases->whereYear('service_date', (int) $matches[1])->whereMonth('service_date', (int) $matches[2]);
+                if ((int) $matches[2] < 1 || (int) $matches[2] > 12) {
+                    $cases->whereRaw('1 = 0');
+
+                    return;
+                }
+
+                $start = CarbonImmutable::create((int) $matches[1], (int) $matches[2], 1);
+                $cases->where('service_date', '>=', $start->toDateString())
+                    ->where('service_date', '<', $start->addMonth()->toDateString());
             }
         });
 

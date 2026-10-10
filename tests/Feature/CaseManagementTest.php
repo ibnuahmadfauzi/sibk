@@ -647,6 +647,21 @@ class CaseManagementTest extends TestCase
         $this->assertNotSame($alpha->id, $beta->id);
     }
 
+    public function test_case_month_filter_keeps_year_boundary_and_rejects_invalid_month(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $this->createCase($teacher, $this->scopedStudent($teacher, 'November Murid', '0011111111'), ['service_date' => '2026-11-30']);
+        $this->createCase($teacher, $this->scopedStudent($teacher, 'Desember Murid', '0022222222'), ['service_date' => '2026-12-31']);
+        $this->createCase($teacher, $this->scopedStudent($teacher, 'Januari Murid', '0033333333'), ['service_date' => '2027-01-01']);
+
+        $this->actingAs($teacher)->get(route('cases.index', ['month' => '2026-12']))
+            ->assertOk()->assertSee('Desember Murid')->assertDontSee('November Murid')->assertDontSee('Januari Murid');
+        $this->actingAs($teacher)->get(route('cases.index', ['month' => '2027-01']))
+            ->assertOk()->assertSee('Januari Murid')->assertDontSee('Desember Murid');
+        $this->actingAs($teacher)->get(route('cases.index', ['month' => '2026-13']))
+            ->assertOk()->assertDontSee('November Murid')->assertDontSee('Desember Murid')->assertDontSee('Januari Murid');
+    }
+
     public function test_case_sorting_uses_allowlist_and_invalid_sort_falls_back_to_date(): void
     {
         $teacher = $this->userWithRole('guru_bk');
