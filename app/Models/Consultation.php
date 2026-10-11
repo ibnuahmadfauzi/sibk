@@ -88,6 +88,16 @@ class Consultation extends Model
             return $query->whereRaw('1 = 0');
         }
 
+        return $query->professionallyAccessibleTo($user);
+    }
+
+    /** @param Builder<Consultation> $query */
+    public function scopeProfessionallyAccessibleTo(Builder $query, User $user): Builder
+    {
+        if (! $user->hasRole('guru_bk')) {
+            return $query->whereRaw('1 = 0');
+        }
+
         $studentIds = Student::query()->professionallyAccessibleTo($user)->select('students.id');
 
         return $query->where(function (Builder $access) use ($user, $studentIds): void {

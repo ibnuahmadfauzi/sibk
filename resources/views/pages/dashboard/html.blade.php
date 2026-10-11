@@ -6,6 +6,12 @@
     <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
         <div class="sibk-page-header__copy">
             <h1 id="dashboard-title">Dashboard</h1>
+            @if($canSwitchDashboard)
+                <nav class="d-flex flex-wrap gap-2 mt-3" aria-label="Tampilan dashboard">
+                    <a class="btn btn-sm {{ $dashboard['role_key'] === 'coordinator' ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $activeYear?->id]) }}" @if($dashboard['role_key'] === 'coordinator') aria-current="page" @endif>Koordinator BK</a>
+                    <a class="btn btn-sm {{ $dashboard['role_key'] === 'teacher' ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $activeYear?->id]) }}" @if($dashboard['role_key'] === 'teacher') aria-current="page" @endif>Guru BK</a>
+                </nav>
+            @endif
             <span class="visually-hidden">{{ $dashboard['scope'] }}</span>
             @if(!empty($dashboard['quick_actions']))
                 <div class="sibk-quick-actions mt-3">
@@ -34,7 +40,8 @@
             @endif
         </div>
         @if($years->isNotEmpty())
-            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview') }}">
+            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview', $canSwitchDashboard ? ['dashboard_view' => $dashboard['role_key']] : []) }}">
+                @if($canSwitchDashboard)<input type="hidden" name="dashboard_view" value="{{ $dashboard['role_key'] }}">@endif
                 <div class="flex-grow-1"><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id" data-filter-field data-filter-default="{{ request()->has('academic_year_id') ? '' : $activeYear?->id }}">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
                 <button class="btn btn-outline-primary text-nowrap" type="submit" data-filter-action>Filter</button>
             </form>

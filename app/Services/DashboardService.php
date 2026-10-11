@@ -17,6 +17,7 @@ use App\Models\Student;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Support\ServiceRecordStatus;
+use App\Support\StudentName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -25,10 +26,10 @@ class DashboardService
     public function __construct(private readonly WakaDashboardService $wakaDashboard) {}
 
     /** @return array<string, mixed> */
-    public function forUser(User $user, ?AcademicYear $academicYear): array
+    public function forUser(User $user, ?AcademicYear $academicYear, string $dashboardView = 'coordinator'): array
     {
         if ($user->hasRole('koordinator_bk')) {
-            return $this->operational($user, $academicYear, 'coordinator');
+            return $this->operational($user, $academicYear, $dashboardView === 'teacher' && $user->hasRole('guru_bk') ? 'teacher' : 'coordinator');
         }
         if ($user->hasRole('guru_bk')) {
             return $this->operational($user, $academicYear, 'teacher');
@@ -52,7 +53,7 @@ class DashboardService
                     ->whereHas('classMemberships', fn (Builder $memberships): Builder => $memberships
                         ->where('academic_year_id', $selected->getKey())));
         } elseif ($mode === 'teacher') {
-            $cases->accessibleTo($user);
+            $cases->professionallyAccessibleTo($user);
             $students = Student::query()->availableForService($end)->professionallyAccessibleTo($user)
                 ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                     ->where(function (Builder $scope) use ($user, $selected): void {
@@ -256,8 +257,8 @@ class DashboardService
                         fn (Builder $m, AcademicYear $selected): Builder => $m->where('academic_year_id', $selected->getKey()),
                         fn (Builder $m): Builder => $m->inActiveYear()
                     )
-                    ->whereHas('student', fn (Builder $students): Builder => $students->active())
-                ])
+                    ->whereHas('student', fn (Builder $students): Builder => $students->active()),
+                ]),
             ])
             ->get();
 
@@ -336,7 +337,8 @@ class DashboardService
         }
 
         $cases = BkCase::query()
-            ->accessibleTo($user)
+            ->withinStudentServicePeriod()
+            ->professionallyAccessibleTo($user)
             ->whereIn('classroom_id', $assignedClassroomIds)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('academic_year_id', $selected->getKey()))
@@ -347,7 +349,8 @@ class DashboardService
             ->get();
 
         $consultations = Consultation::query()
-            ->accessibleTo($user)
+            ->withinStudentServicePeriod()
+            ->professionallyAccessibleTo($user)
             ->whereIn('classroom_id', $assignedClassroomIds)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
                 ->where('academic_year_id', $selected->getKey()))
@@ -375,7 +378,7 @@ class DashboardService
                     ? 'Permasalahan '.$case->serviceField->label
                     : 'Permasalahan layanan BK',
                 'follow_up' => $case->followUpType?->label,
-                'context_label' => sprintf('%s · %s', \App\Support\StudentName::display($case->identityName()), $case->classroom?->name ?? 'Tanpa kelas'),
+                'context_label' => sprintf('%s · %s', StudentName::display($case->identityName()), $case->classroom?->name ?? 'Tanpa kelas'),
                 'status' => $case->status?->label ?? 'Aktif',
                 'status_tone' => $statusTone,
             ];
@@ -392,7 +395,7 @@ class DashboardService
                 'code' => 'Layanan konsultasi',
                 'title' => $consultation->serviceField?->label ? 'Konsultasi '.$consultation->serviceField->label : 'Sesi konsultasi',
                 'follow_up' => null,
-                'context_label' => sprintf('%s · %s', \App\Support\StudentName::display($consultation->identityName()), $consultation->classroom?->name ?? 'Tanpa kelas'),
+                'context_label' => sprintf('%s · %s', StudentName::display($consultation->identityName()), $consultation->classroom?->name ?? 'Tanpa kelas'),
                 'status' => 'Konsultasi',
                 'status_tone' => 'info',
             ];
@@ -504,7 +507,7 @@ class DashboardService
                 'year' => $case->service_date->format('Y'),
                 'code' => 'Layanan permasalahan',
                 'title' => $case->followUpType?->label ?? 'Tindak Lanjut',
-                'context_label' => sprintf('%s (%s)', \App\Support\StudentName::display($case->identityName()), $case->classroom?->name ?? 'tanpa kelas'),
+                'context_label' => sprintf('%s (%s)', StudentName::display($case->identityName()), $case->classroom?->name ?? 'tanpa kelas'),
                 'status' => $case->status->label,
                 'status_tone' => 'warning',
                 'url' => route('cases.show', $case),
@@ -522,7 +525,7 @@ class DashboardService
                 'year' => $case->service_date->format('Y'),
                 'code' => 'Layanan permasalahan',
                 'title' => 'Permasalahan layanan BK',
-                'context_label' => \App\Support\StudentName::display($case->identityName()),
+                'context_label' => StudentName::display($case->identityName()),
                 'status' => $case->status->label,
                 'status_tone' => $case->closed_at === null ? 'warning' : 'success',
                 'url' => route('cases.show', $case),

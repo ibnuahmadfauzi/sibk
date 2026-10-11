@@ -128,19 +128,26 @@ class BkCase extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function (Builder $access) use ($user): void {
-            if ($user->hasRole('guru_bk')) {
-                $access->whereHas('assignments', fn (Builder $assignments): Builder => $assignments
-                    ->where('user_id', $user->getKey()))
-                    ->orWhereIn('student_id', Student::query()
-                        ->forActiveTeacherAssignment($user)
-                        ->select('students.id'))
-                    ->orWhereHas('temporaryStudent', fn (Builder $temporary): Builder => $temporary
-                        ->whereIn('reconciled_student_id', Student::query()
-                            ->forActiveTeacherAssignment($user)
-                            ->select('students.id')));
-            }
+        return $query->professionallyAccessibleTo($user);
+    }
 
+    /** @param Builder<BkCase> $query */
+    public function scopeProfessionallyAccessibleTo(Builder $query, User $user): Builder
+    {
+        if (! $user->hasRole('guru_bk')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $access) use ($user): void {
+            $access->whereHas('assignments', fn (Builder $assignments): Builder => $assignments
+                ->where('user_id', $user->getKey()))
+                ->orWhereIn('student_id', Student::query()
+                    ->forActiveTeacherAssignment($user)
+                    ->select('students.id'))
+                ->orWhereHas('temporaryStudent', fn (Builder $temporary): Builder => $temporary
+                    ->whereIn('reconciled_student_id', Student::query()
+                        ->forActiveTeacherAssignment($user)
+                        ->select('students.id')));
         });
     }
 

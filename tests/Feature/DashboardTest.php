@@ -12,6 +12,7 @@ use App\Models\Classroom;
 use App\Models\Consultation;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
+use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -102,6 +103,101 @@ class DashboardTest extends TestCase
         $this->assertSame('Belum ada data', $this->contextValue($adminDashboard, 'e-Tatib'));
         $this->assertStringNotContainsString($studentA->name, json_encode($adminDashboard, JSON_THROW_ON_ERROR));
         $this->assertStringNotContainsString($caseB->registration_number, json_encode($adminDashboard, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_dual_role_can_switch_to_own_teacher_dashboard_and_keep_year_filter(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Merangkap Guru');
+        $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $otherTeacher = $this->userWithRole('guru_bk', 'Guru Lain');
+        [$ownStudent] = $this->createScopedCase($coordinator, 'X RPL 1', '0011111111', 'Murid Binaan Sendiri');
+        [$otherStudent, $otherCase] = $this->createScopedCase($otherTeacher, 'X RPL 2', '0022222222', 'Murid Binaan Lain');
+        $otherCase->update(['status_id' => $this->reference('case_status', ServiceRecordStatus::NEEDS_FOLLOW_UP)->id]);
+        foreach ([[$ownStudent, $coordinator], [$otherStudent, $otherTeacher]] as [$student, $counselor]) {
+            Consultation::query()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $this->year->id,
+                'classroom_id' => $student->classMemberships()->firstOrFail()->classroom_id,
+                'service_field_id' => $this->reference('service_field', 'belajar')->id,
+                'counselor_id' => $counselor->id,
+                'session_date' => '2026-08-21',
+                'problem' => 'Konsultasi uji',
+                'handling' => 'Pendampingan uji',
+                'result' => 'Hasil uji',
+            ]);
+        }
+        foreach ([$ownStudent, $otherStudent] as $student) {
+            ExternalTatibRecord::query()->create([
+                'source_identifier' => 'etatib-'.$student->id,
+                'nisn' => $student->nisn,
+                'student_id' => $student->id,
+                'occurred_at' => '2026-08-10 08:00:00',
+                'violation_type' => 'Pelanggaran Uji',
+                'category' => 'Kedisiplinan',
+                'points' => 10,
+                'source_status' => 'Aktif',
+                'is_active' => true,
+                'synced_at' => now(),
+            ]);
+        }
+
+        $service = app(DashboardService::class);
+        $coordinatorDashboard = $service->forUser($coordinator, $this->year);
+        $teacherDashboard = $service->forUser($coordinator, $this->year, 'teacher');
+        $this->assertSame('coordinator', $coordinatorDashboard['role_key']);
+        $this->assertSame('2', $this->stat($coordinatorDashboard, 'Murid dalam cakupan'));
+        $this->assertSame('teacher', $teacherDashboard['role_key']);
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Murid Binaan'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Belum Selesai'));
+        $this->assertSame('0', $this->stat($teacherDashboard, 'Perlu Tindak Lanjut'));
+        $this->assertSame('1', $this->stat($teacherDashboard, 'Pelanggaran e-Tatib'));
+        $this->assertSame('X RPL 1', $teacherDashboard['context_panel']['groups'][10]['items'][0]['label']);
+        $this->assertStringContainsString($ownStudent->name, json_encode($teacherDashboard['tindak_lanjut'], JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString($otherStudent->name, json_encode($teacherDashboard, JSON_THROW_ON_ERROR));
+        $this->assertEqualsCanonicalizing(['Layanan konsultasi', 'Layanan permasalahan'], array_column($teacherDashboard['tindak_lanjut'], 'code'));
+
+        $this->actingAs($coordinator)->get(route('dashboard.preview', [
+            'dashboard_view' => 'teacher',
+            'academic_year_id' => $this->year->id,
+        ]))->assertOk()
+            ->assertSee('data-dashboard-role="teacher"', false)
+            ->assertSee('name="dashboard_view" value="teacher"', false)
+            ->assertSee(route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $this->year->id]))
+            ->assertSee(route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $this->year->id]))
+            ->assertSee('Guru BK')
+            ->assertSee($ownStudent->name)
+            ->assertDontSee($otherStudent->name);
+
+        $this->actingAs($coordinator)->get(route('dashboard.preview', [
+            'dashboard_view' => 'coordinator',
+            'academic_year_id' => $this->year->id,
+        ]))->assertOk()->assertSee('data-dashboard-role="coordinator"', false);
+    }
+
+    public function test_only_dual_role_can_switch_dashboard(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk', 'Koordinator Saja');
+        $teacher = $this->userWithRole('guru_bk', 'Guru Saja');
+        $waka = $this->userWithRole('waka_kesiswaan', 'Waka Saja');
+        $admin = $this->userWithRole('admin_it', 'Admin Saja');
+
+        foreach ([
+            [$coordinator, 'teacher', 'coordinator'],
+            [$teacher, 'coordinator', 'teacher'],
+            [$waka, 'teacher', 'waka'],
+            [$admin, 'teacher', 'admin'],
+        ] as [$user, $requested, $expected]) {
+            $response = $this->actingAs($user)->get(route('dashboard.preview', ['dashboard_view' => $requested]));
+            $response->assertOk();
+            if ($expected !== 'waka') {
+                $response->assertSee('data-dashboard-role="'.$expected.'"', false);
+            }
+            $response->assertDontSee('aria-label="Tampilan dashboard"', false);
+        }
+
+        $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+        $this->actingAs($coordinator)->get(route('dashboard.preview', ['dashboard_view' => 'invalid']))
+            ->assertOk()->assertSee('data-dashboard-role="coordinator"', false);
     }
 
     public function test_admin_dashboard_uses_localized_sync_status_and_source_health(): void
