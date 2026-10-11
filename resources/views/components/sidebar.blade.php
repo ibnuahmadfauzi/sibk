@@ -76,7 +76,7 @@
             <a class="sibk-nav-link {{ request()->routeIs('assignments.classes.*') ? 'is-active' : '' }}" href="{{ route('assignments.classes.index') }}"
                 aria-current="{{ request()->routeIs('assignments.classes.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>
-                <span>Penugasan Kelas</span>
+                <span>Pembagian Kelas Binaan</span>
             </a>
             @endcan
 

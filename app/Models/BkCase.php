@@ -120,7 +120,7 @@ class BkCase extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('waka_kesiswaan')) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return $query;
         }
 

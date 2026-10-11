@@ -910,7 +910,7 @@ class CaseManagementTest extends TestCase
         $this->assertDatabaseHas('cases', ['id' => $case->id, 'deleted_at' => null]);
     }
 
-    public function test_coordinator_case_access_follows_active_teacher_classes_and_case_ownership(): void
+    public function test_coordinator_can_read_all_cases_without_gaining_ownership(): void
     {
         $coordinator = $this->userWithRole('koordinator_bk');
         $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
@@ -925,18 +925,21 @@ class CaseManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Murid Kelas Ampuan')
             ->assertSee('Murid Kelas Lain')
-            ->assertDontSee('href="'.route('cases.show', $hiddenCase).'"', false);
+            ->assertSee('href="'.route('cases.show', $hiddenCase).'"', false);
         $this->get(route('cases.show', $ownCase))->assertOk();
         $this->get(route('cases.show', $classCase))->assertOk();
-        $this->get(route('cases.show', $hiddenCase))->assertForbidden();
-        $this->get(route('cases.show', [$hiddenCase, 'modal' => 1]))->assertForbidden();
+        $this->get(route('cases.show', $hiddenCase))->assertOk();
+        $this->get(route('cases.show', [$hiddenCase, 'modal' => 1]))->assertOk();
+        $this->assertFalse($coordinator->can('update', $hiddenCase));
+        $this->assertFalse($coordinator->can('viewInternal', $hiddenCase));
 
         $coordinatorOnly = $this->userWithRole('koordinator_bk');
         $this->actingAs($coordinatorOnly)->get(route('cases.index', ['tab' => 'kasus']))
             ->assertOk()
-            ->assertDontSee('href="'.route('cases.show', $ownCase).'"', false)
-            ->assertDontSee('href="'.route('cases.show', $classCase).'"', false);
-        $this->get(route('cases.show', $ownCase))->assertForbidden();
+            ->assertSee('href="'.route('cases.show', $ownCase).'"', false)
+            ->assertSee('href="'.route('cases.show', $classCase).'"', false);
+        $this->get(route('cases.show', $ownCase))->assertOk();
+        $this->assertFalse($coordinatorOnly->can('create', BkCase::class));
     }
 
     private function completeCase(User $teacher, BkCase $case): void

@@ -28,7 +28,7 @@ class StudentController extends Controller
 
         $query = Student::query()
             ->select('students.*')
-            ->availableForService()
+            ->when(! $user->hasRole('koordinator_bk'), fn ($students) => $students->availableForService())
             ->accessibleTo($user)
             ->withCount(['achievements' => fn ($achievements) => $achievements->accessibleTo($user)])
             ->selectSub(BkCase::query()->selectRaw('COUNT(*)')
@@ -164,8 +164,9 @@ class StudentController extends Controller
             ->latest('achievement_date')
             ->get();
 
-        $canUseProfessionalActions = $user->can('viewSensitive', $student)
-            && Student::query()->availableForService()->whereKey($student->getKey())->exists();
+        $canUseProfessionalActions = $user->hasRole('guru_bk')
+            && Student::query()->availableForService()->forActiveTeacherAssignment($user)
+                ->whereKey($student->getKey())->exists();
         $departure = $student->departure;
 
         return view('pages.students.show', [

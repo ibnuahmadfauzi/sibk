@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\StudentName;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -79,7 +80,7 @@ class Consultation extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('waka_kesiswaan')) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return $query;
         }
 
@@ -126,7 +127,7 @@ class Consultation extends Model
 
     public function identityName(): string
     {
-        return \App\Support\StudentName::display($this->student?->name
+        return StudentName::display($this->student?->name
             ?? $this->temporaryStudent?->reconciledStudent?->name
             ?? $this->temporaryStudent?->input_name
             ?? 'Identitas tidak tersedia');

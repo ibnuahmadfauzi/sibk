@@ -95,6 +95,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/assignments/classes', [AssignmentController::class, 'storeClassAssignment'])->name('assignments.classes.store');
         Route::post('/assignments/classes/batch', [AssignmentController::class, 'storeClassAssignments'])
             ->name('assignments.classes.batch');
+        Route::post('/assignments/academic-years/{academicYear}/teachers/{teacher}/copy-previous',
+            [AssignmentController::class, 'copyPreviousYearClasses'])
+            ->withoutScopedBindings()->name('assignments.classes.copy-previous');
         Route::delete('/assignments/classes/{classroom}', [AssignmentController::class, 'destroyClassAssignment'])
             ->name('assignments.classes.destroy');
         Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])

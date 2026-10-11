@@ -114,7 +114,7 @@ class AssignmentManagementTest extends TestCase
         $this->actingAs($coordinator)->get(route('assignments.classes.index'))
             ->assertOk()
             ->assertViewHas('selectedYear', fn ($year) => $year->is($activeYear))
-            ->assertSee('Penugasan Kelas')
+            ->assertSee('Pembagian Kelas Binaan')
             ->assertSee('data-auto-filter', false)
             ->assertDontSee('id="academic_year_id"', false);
 
@@ -122,7 +122,7 @@ class AssignmentManagementTest extends TestCase
             'academic_year_id' => $preparationYear->id,
         ]))->assertOk()
             ->assertViewHas('selectedYear', fn ($year) => $year->is($preparationYear))
-            ->assertSee('Penugasan Kelas')
+            ->assertSee('Pembagian Kelas Binaan')
             ->assertSee('type="hidden" name="academic_year_id" value="'.$preparationYear->id.'"', false)
             ->assertSee('XI RPL 1');
 
@@ -147,7 +147,7 @@ class AssignmentManagementTest extends TestCase
             'academic_year_id' => $preparationYear->id,
         ]))->assertOk()
             ->assertViewHas('selectedYear', fn ($year) => $year->is($preparationYear))
-            ->assertSee('Penugasan Kelas');
+            ->assertSee('Pembagian Kelas Binaan');
     }
 
     public function test_batch_assignment_saves_selected_classes_together(): void
@@ -169,6 +169,75 @@ class AssignmentManagementTest extends TestCase
         $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $firstClass->id, 'user_id' => $teacher->id]);
         $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $secondClass->id, 'user_id' => $teacher->id]);
         $this->assertDatabaseCount('audit_logs', 2);
+    }
+
+    public function test_copy_previous_classes_matches_year_and_name_without_replacing_current_assignments(): void
+    {
+        [$targetYear, $firstTarget] = $this->masterContext();
+        $secondTarget = Classroom::query()->create(['academic_year_id' => $targetYear->id, 'name' => 'X RPL 2']);
+        $takenTarget = Classroom::query()->create(['academic_year_id' => $targetYear->id, 'name' => 'X RPL 3']);
+        $previousYear = AcademicYear::query()->create(['name' => '2025/2026', 'is_active' => false]);
+        $wrongYear = AcademicYear::query()->create(['name' => '2024/2025', 'is_active' => false]);
+        $teacher = $this->userWithRole('guru_bk');
+        $otherTeacher = $this->userWithRole('guru_bk');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $waka = $this->userWithRole('waka_kesiswaan');
+        foreach (['X RPL 1', 'X RPL 2', 'X RPL 3', 'X RPL 4'] as $name) {
+            $oldClass = Classroom::query()->create(['academic_year_id' => $previousYear->id, 'name' => $name]);
+            app(AssignmentService::class)->assignClass(['classroom_id' => $oldClass->id, 'user_id' => $teacher->id], $coordinator);
+        }
+        $olderClass = Classroom::query()->create(['academic_year_id' => $wrongYear->id, 'name' => 'X RPL 5']);
+        app(AssignmentService::class)->assignClass(['classroom_id' => $olderClass->id, 'user_id' => $teacher->id], $coordinator);
+        app(AssignmentService::class)->assignClass(['classroom_id' => $secondTarget->id, 'user_id' => $teacher->id], $coordinator);
+        app(AssignmentService::class)->assignClass(['classroom_id' => $takenTarget->id, 'user_id' => $otherTeacher->id], $coordinator);
+        $previousYear->update(['activated_at' => now()]);
+
+        $url = route('assignments.classes.copy-previous', [$targetYear, $teacher]);
+        $this->actingAs($waka)->post($url)->assertForbidden();
+        $this->actingAs($coordinator)->get(route('assignments.classes.index'))
+            ->assertSee('Salin kelas binaan tahun sebelumnya untuk '.$teacher->name);
+        $this->actingAs($coordinator)->post($url)
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $targetYear->id]))
+            ->assertSessionHas('success', "1 kelas ditambahkan untuk {$teacher->name} dari 2025/2026. 2 sudah dibagikan; 1 kelas tidak tersedia pada tahun ini.");
+        $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $firstTarget->id, 'user_id' => $teacher->id]);
+        $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $takenTarget->id, 'user_id' => $otherTeacher->id]);
+        $this->actingAs($coordinator)->post($url)->assertSessionHas('success', "0 kelas ditambahkan untuk {$teacher->name} dari 2025/2026. 3 sudah dibagikan; 1 kelas tidak tersedia pada tahun ini.");
+        $this->assertDatabaseCount('teacher_assignments', 8);
+    }
+
+    public function test_copy_previous_classes_rejects_missing_prior_year_archived_target_and_inactive_teacher(): void
+    {
+        [$targetYear, $classroom] = $this->masterContext();
+        $teacher = $this->userWithRole('guru_bk');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $url = route('assignments.classes.copy-previous', [$targetYear, $teacher]);
+
+        $this->actingAs($coordinator)->post($url)->assertSessionHasErrors('academic_year_id');
+        AcademicYear::query()->create(['name' => '2025/2026', 'is_active' => false]);
+        $this->actingAs($coordinator)->post($url)->assertSessionHasErrors('user_id');
+        $teacher->update(['is_active' => false]);
+        $this->actingAs($coordinator)->post($url)->assertSessionHasErrors('academic_year_id');
+        $teacher->update(['is_active' => true]);
+        $targetYear->update(['is_active' => false, 'activated_at' => now()]);
+        $this->actingAs($coordinator)->post($url)->assertSessionHasErrors('academic_year_id');
+        $this->assertDatabaseMissing('teacher_assignments', ['classroom_id' => $classroom->id]);
+    }
+
+    public function test_copy_previous_classes_can_prepare_next_year_without_changing_active_year(): void
+    {
+        [$activeYear, $oldClass] = $this->masterContext();
+        $preparationYear = AcademicYear::query()->create(['name' => '2027/2028', 'is_active' => false]);
+        $newClass = Classroom::query()->create(['academic_year_id' => $preparationYear->id, 'name' => $oldClass->name]);
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $teacher = $this->userWithRole('guru_bk');
+        app(AssignmentService::class)->assignClass(['classroom_id' => $oldClass->id, 'user_id' => $teacher->id], $coordinator);
+
+        $this->actingAs($coordinator)->post(route('assignments.classes.copy-previous', [$preparationYear, $teacher]))
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $preparationYear->id]))
+            ->assertSessionHas('success', "1 kelas ditambahkan untuk {$teacher->name} dari 2026/2027. 0 sudah dibagikan; 0 kelas tidak tersedia pada tahun ini.");
+        $this->assertDatabaseHas('teacher_assignments', ['classroom_id' => $newClass->id, 'user_id' => $teacher->id]);
+        $this->assertTrue($activeYear->fresh()->is_active);
+        $this->assertFalse($preparationYear->fresh()->is_active);
     }
 
     public function test_batch_assignment_rolls_back_when_a_selected_class_is_taken(): void

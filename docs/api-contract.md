@@ -60,7 +60,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 ### Daftar dan Form Kasus
 - **Endpoint:** `GET /cases`, `GET /cases/create`
 - **Controller:** `CaseController@index`
-- **Authorization:** `Guru BK` (scope profesional yang diizinkan), `Koordinator BK` (scope Guru BK yang sah, AUTH-02/AUTH-04), dan Waka aktif (proyeksi hanya-baca seluruh kasus).
+- **Authorization:** `Guru BK` sesuai AUTH-02, `Koordinator BK` sesuai akses baca global AUTH-04/AUTH-07, dan Waka aktif melalui proyeksi hanya-baca seluruh kasus.
 - **Query Params:** `search` (nama), `follow_up_type_id` (jenis tindak lanjut pada kasus), `status_id` (kompatibilitas pemanggil lama, tidak ditampilkan sebagai filter UI), `sort`, `direction`, `tab`, dan `page`; sort memakai allowlist dan ID sebagai tie-breaker.
 - **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
@@ -104,7 +104,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 - **Controller:** `CaseController@show`
 - **Authorization:** `CasePolicy@view`
   - Waka Kesiswaan membaca proyeksi hanya-baca seluruh kasus tanpa catatan internal atau payload e-Tatib mentah.
-  - Koordinator membaca detail kasus dalam scope Guru BK; catatan internal hanya terlihat jika juga berperan sebagai Guru BK dan merupakan owner aktif kasus tersebut.
+  - Koordinator membaca detail kasus sesuai AUTH-04/AUTH-07; catatan internal hanya terlihat jika juga berperan sebagai Guru BK dan merupakan owner aktif kasus tersebut.
   - Admin IT tidak memiliki akses daftar/detail kasus hanya karena role teknis.
 
 ### Riwayat koordinasi Waka (dipensiunkan Revisi 3.2)
@@ -142,7 +142,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Form modal (CONS-01):** `GET /consultations/create?modal=1` mengembalikan fragmen HTML form. `POST /consultations` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke tab konsultasi; validasi gagal mengembalikan HTTP 422 beserta `errors`.
 - **Detail dalam baris (CONS-06):** `GET /consultations/{consultation}?inline=1` mengembalikan fragmen HTML `problem` dan `handling` untuk ditampilkan di bawah baris tabel; policy dan audit pembacaan sama dengan endpoint detail.
 - **Filter daftar:** `search` (nama), `service_field_id`, `sort`, `direction`, dan `page`; sort hanya `tanggal`, `nama`, `kelas`, atau `jenis_layanan` dengan ID sebagai tie-breaker.
-- **Authorization:** Guru BK membaca histori dalam scope profesional, Koordinator mengikuti scope Guru BK pada daftar/detail layanan (AUTH-02/AUTH-04), Waka aktif membaca proyeksi detail hanya-baca, dan Admin IT ditolak.
+- **Authorization:** Guru BK membaca histori sesuai AUTH-02, Koordinator memakai akses baca global AUTH-04/AUTH-07, Waka aktif membaca proyeksi detail hanya-baca, dan Admin IT ditolak.
 
 ### Catat, ubah, dan arsip konsultasi
 - **Endpoint:** `POST /consultations`; `PATCH /consultations/{consultation}`; `DELETE /consultations/{consultation}`.
@@ -158,7 +158,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ### Daftar dan profil murid
 - **Endpoint:** `GET /students`; `GET /students/{student}`. URL kompatibilitas `GET /students/show?nisn=...` mengalihkan ke profil database setelah policy disetujui.
 - **Controller:** `StudentController@index`, `StudentController@show`, `StudentController@legacy`.
-- **Authorization:** Guru BK melihat murid dari penugasan kelas atau kasus yang menjadi tanggung jawabnya; Koordinator melihat ringkasan; Waka memakai proyeksi portalnya dan Admin IT diarahkan menggunakan Data Master.
+- **Authorization:** Guru BK sesuai AUTH-02; Koordinator membaca daftar, jumlah layanan, dan histori profil sesuai AUTH-04/AUTH-07; Waka memakai proyeksi portalnya dan Admin IT diarahkan menggunakan Data Master.
 - **Response View:** identitas dan histori kelas, kasus/tindak lanjut, mirror e-Tatib, konsultasi serta prestasi yang diizinkan, dan statistik berbasis scope. Proyeksi Waka tidak memuat payload e-Tatib mentah atau catatan internal.
 
 ### Pengelolaan prestasi oleh Waka
@@ -194,7 +194,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 
 ## 5. Modul Pengelolaan Penugasan (`ASN`, `GOV`)
 
-### Daftar dan Form Penugasan Kelas
+### Daftar dan Form Pembagian Kelas Binaan
 - **Endpoint:** `GET /assignments/classes`, `GET /assignments/classes/manage`.
 - **Controller:** `AssignmentController@index`, `AssignmentController@manage`.
 - **Authorization daftar:** Guru BK melihat penugasannya; Koordinator, Waka, dan Admin IT memperoleh ringkasan sesuai fungsi masing-masing.
@@ -222,6 +222,12 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Authorization:** hanya Koordinator BK aktif.
 - **Request:** `user_id` dan `classroom_ids[]` (1–100 ID kelas berbeda). Modal menampung pilihan sementara; satu klik Tambah mengirim seluruh pilihan.
 - **Business Logic:** `AssignmentService::assignClasses()` memakai aturan penugasan kelas kosong yang sama untuk setiap kelas dalam satu transaksi. Semua kelas harus berasal dari tahun ajaran yang sama. Bila ada kelas yang sudah ditugaskan atau tidak sah, seluruh perubahan dan audit pada request itu dibatalkan.
+
+### Salin Pembagian Tahun Sebelumnya
+- **Endpoint:** `POST /assignments/academic-years/{academicYear}/teachers/{teacher}/copy-previous`.
+- **Controller/service:** `AssignmentController::copyPreviousYearClasses()` dan `AssignmentService::copyPreviousYearClasses()`.
+- **Authorization dan perilaku:** ASN-04, AUTH-03. Parameter route menentukan tahun target dan Guru BK; tidak menerima daftar kelas dari klien.
+- **Response:** redirect ke `assignments.classes.index` dengan `academic_year_id` target dan pesan jumlah ditambahkan, sudah dibagikan, serta tidak tersedia. Validasi tahun/guru/sumber memakai error bag Laravel; penolakan policy menghasilkan 403.
 
 ### Aktivasi Operasional Tahun Ajaran
 - **Endpoint:** `POST /assignments/academic-years/{academicYear}/activate`.

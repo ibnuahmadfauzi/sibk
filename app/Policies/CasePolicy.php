@@ -21,7 +21,7 @@ class CasePolicy
             return false;
         }
 
-        if ($user->hasRole('waka_kesiswaan')) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return true;
         }
 
