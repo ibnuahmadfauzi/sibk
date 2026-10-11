@@ -5,13 +5,21 @@
 
     <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
         <div class="sibk-page-header__copy">
-            <h1 id="dashboard-title">Dashboard</h1>
-            @if($canSwitchDashboard)
-                <nav class="d-flex flex-wrap gap-2 mt-3" aria-label="Tampilan dashboard">
-                    <a class="btn btn-sm {{ $dashboard['role_key'] === 'coordinator' ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $activeYear?->id]) }}" @if($dashboard['role_key'] === 'coordinator') aria-current="page" @endif>Koordinator BK</a>
-                    <a class="btn btn-sm {{ $dashboard['role_key'] === 'teacher' ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $activeYear?->id]) }}" @if($dashboard['role_key'] === 'teacher') aria-current="page" @endif>Guru BK</a>
-                </nav>
-            @endif
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <h1 id="dashboard-title" class="mb-0">Dashboard</h1>
+                @if($canSwitchDashboard)
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="dashboard-view-switch"
+                            data-dashboard-view-switch
+                            data-teacher-url="{{ route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $activeYear?->id]) }}"
+                            data-coordinator-url="{{ route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $activeYear?->id]) }}"
+                            title="Geser untuk menampilkan dashboard {{ $dashboard['role_key'] === 'teacher' ? 'Koordinator BK' : 'Guru BK' }}"
+                            aria-describedby="dashboard-view-help" @checked($dashboard['role_key'] === 'teacher')>
+                        <label class="form-check-label" for="dashboard-view-switch">Tampilan Guru BK</label>
+                        <span class="visually-hidden" id="dashboard-view-help">Menyala: dashboard Guru BK. Padam: dashboard Koordinator BK. Tidak mengubah peran akun.</span>
+                    </div>
+                @endif
+            </div>
             <span class="visually-hidden">{{ $dashboard['scope'] }}</span>
             @if(!empty($dashboard['quick_actions']))
                 <div class="sibk-quick-actions mt-3">

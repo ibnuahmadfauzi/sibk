@@ -21,7 +21,11 @@ import { initReportPreview } from './report-preview';
 import { initAchievementForms } from './achievement-form';
 import { displayStudentName } from './student-name';
 import { initAutoFilters } from './auto-filter';
+import { initActionTooltips } from './action-tooltips';
+import { initDashboardViewSwitch } from './dashboard-view-switch';
 
+initActionTooltips();
+initDashboardViewSwitch();
 initFormDrafts();
 initServiceRecords(document, { Modal, Toast });
 initConsultationCreate();

@@ -162,6 +162,9 @@ class DashboardTest extends TestCase
         ]))->assertOk()
             ->assertSee('data-dashboard-role="teacher"', false)
             ->assertSee('name="dashboard_view" value="teacher"', false)
+            ->assertSee('role="switch"', false)
+            ->assertSee('data-dashboard-view-switch', false)
+            ->assertSee('aria-describedby="dashboard-view-help" checked', false)
             ->assertSee(route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $this->year->id]))
             ->assertSee(route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $this->year->id]))
             ->assertSee('Guru BK')
@@ -171,7 +174,8 @@ class DashboardTest extends TestCase
         $this->actingAs($coordinator)->get(route('dashboard.preview', [
             'dashboard_view' => 'coordinator',
             'academic_year_id' => $this->year->id,
-        ]))->assertOk()->assertSee('data-dashboard-role="coordinator"', false);
+        ]))->assertOk()->assertSee('data-dashboard-role="coordinator"', false)
+            ->assertDontSee('aria-describedby="dashboard-view-help" checked', false);
     }
 
     public function test_only_dual_role_can_switch_dashboard(): void
@@ -192,12 +196,13 @@ class DashboardTest extends TestCase
             if ($expected !== 'waka') {
                 $response->assertSee('data-dashboard-role="'.$expected.'"', false);
             }
-            $response->assertDontSee('aria-label="Tampilan dashboard"', false);
+            $response->assertDontSee('data-dashboard-view-switch', false);
         }
 
         $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
         $this->actingAs($coordinator)->get(route('dashboard.preview', ['dashboard_view' => 'invalid']))
-            ->assertOk()->assertSee('data-dashboard-role="coordinator"', false);
+            ->assertOk()->assertSee('data-dashboard-role="coordinator"', false)
+            ->assertDontSee('aria-describedby="dashboard-view-help" checked', false);
     }
 
     public function test_admin_dashboard_uses_localized_sync_status_and_source_health(): void
