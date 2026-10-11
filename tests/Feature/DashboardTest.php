@@ -141,11 +141,29 @@ class DashboardTest extends TestCase
             ]);
         }
 
+        $record = ExternalTatibRecord::query()->where('student_id', $ownStudent->id)->firstOrFail();
+        foreach ([
+            ['source_identifier' => 'duplicate-student'],
+            ['source_identifier' => 'unmatched-identity', 'student_id' => null],
+            ['source_identifier' => 'inactive-record', 'student_id' => null, 'is_active' => false],
+        ] as $attributes) {
+            $record->replicate()->fill($attributes)->save();
+        }
+        $outsidePeriodStudent = Student::query()->create(['nisn' => '0033333333', 'name' => 'Murid Catatan Tahun Lalu']);
+        $record->replicate()->fill([
+            'source_identifier' => 'outside-period',
+            'student_id' => $outsidePeriodStudent->id,
+            'nisn' => $outsidePeriodStudent->nisn,
+            'occurred_at' => '2025-08-10 08:00:00',
+        ])->save();
+
         $service = app(DashboardService::class);
         $coordinatorDashboard = $service->forUser($coordinator, $this->year);
         $teacherDashboard = $service->forUser($coordinator, $this->year, 'teacher');
         $this->assertSame('coordinator', $coordinatorDashboard['role_key']);
         $this->assertSame('2', $this->stat($coordinatorDashboard, 'Murid dalam cakupan'));
+        $this->assertSame('2', $this->stat($coordinatorDashboard, 'Data e-Tatib terkait'));
+        $this->assertSame('Murid memiliki catatan', collect($coordinatorDashboard['stats'])->firstWhere('kind', 'etatib')['meta']);
         $this->assertSame('teacher', $teacherDashboard['role_key']);
         $this->assertSame('1', $this->stat($teacherDashboard, 'Murid Binaan'));
         $this->assertSame('1', $this->stat($teacherDashboard, 'Belum Selesai'));

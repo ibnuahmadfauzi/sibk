@@ -102,7 +102,7 @@ class DashboardService
             ['label' => $mode === 'teacher' ? 'Murid Binaan' : ($mode === 'waka' ? 'Murid dalam pemantauan' : 'Murid dalam cakupan'), 'value' => (string) $students->distinct()->count('students.id'), 'meta' => $mode === 'waka' ? 'Seluruh murid dengan permasalahan aktif' : 'Sesuai tahun ajaran dan kewenangan', 'tone' => 'primary', 'kind' => 'students'],
             ['label' => $mode === 'teacher' ? 'Belum Selesai' : ($mode === 'waka' ? 'Seluruh permasalahan aktif' : 'Permasalahan aktif'), 'value' => (string) $activeCases, 'meta' => $mode === 'teacher' ? 'Permasalahan aktif' : ($mode === 'waka' ? 'Hanya-baca, ringkasan aman' : 'Belum diselesaikan'), 'tone' => 'warning', 'kind' => 'cases'],
             ['label' => $mode === 'teacher' ? 'Perlu Tindak Lanjut' : 'Permasalahan Tindak Lanjut', 'value' => (string) $followUpCount, 'meta' => $mode === 'teacher' ? 'Menunggu tindak lanjut' : 'Perlu ditindaklanjuti', 'tone' => $mode === 'teacher' ? 'warning' : 'success', 'kind' => 'schedule'],
-            ['label' => $mode === 'teacher' ? 'Pelanggaran e-Tatib' : 'Data e-Tatib terkait', 'value' => (string) $etatib->count(), 'meta' => 'Sesuai akses Anda', 'tone' => 'info', 'kind' => 'etatib'],
+            ['label' => $mode === 'teacher' ? 'Pelanggaran e-Tatib' : 'Data e-Tatib terkait', 'value' => (string) $etatib->distinct()->count('student_id'), 'meta' => 'Murid memiliki catatan', 'tone' => 'info', 'kind' => 'etatib'],
         ];
         $assignedClasses = $mode === 'teacher' ? $this->teacherAssignedClasses($user, $year) : [];
 
