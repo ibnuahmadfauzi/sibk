@@ -130,4 +130,51 @@ export const initEtatibIdentityMapping = async (root = document, { Modal } = {})
             findCandidates();
         }
     });
+
+    const autoModalElement = root.getElementById('etatib-auto-modal');
+    const autoModal = Modal.getOrCreateInstance(autoModalElement);
+    const autoMode = autoModalElement.querySelector('[data-etatib-auto-mode]');
+    const autoFingerprint = autoModalElement.querySelector('[data-etatib-auto-fingerprint]');
+    const autoResults = autoModalElement.querySelector('[data-etatib-auto-results]');
+    const autoApply = autoModalElement.querySelector('[data-etatib-auto-apply]');
+    const autoConfirmed = autoModalElement.querySelector('[data-etatib-auto-confirmed]');
+
+    root.querySelectorAll('[data-etatib-auto-open]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const mode = button.dataset.etatibAutoOpen;
+            autoMode.value = mode;
+            autoFingerprint.value = '';
+            autoConfirmed.checked = false;
+            autoApply.disabled = true;
+            autoResults.innerHTML = '<p class="text-muted mb-0">Memeriksa konflik dan murid master...</p>';
+            autoModal.show();
+
+            try {
+                const url = new URL(page.dataset.automaticPreviewUrl, window.location.origin);
+                url.searchParams.set('mode', mode);
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                if (!response.ok) throw new Error('preview_failed');
+                const preview = await response.json();
+                if (autoMode.value !== mode) return;
+
+                const method = mode === 'nisn' ? 'NISN yang sama' : 'nama yang sama setelah huruf dan spasi dinormalkan';
+                const rows = preview.proposals.map((proposal) => `
+                    <tr>
+                        <td><strong class="d-block">${escapeHtml(displayStudentName(proposal.source_name))}</strong><span class="text-muted small">NISN ${escapeHtml(proposal.source_nisn)}</span></td>
+                        <td><strong class="d-block">${escapeHtml(displayStudentName(proposal.student_name))}</strong><span class="text-muted small">NISN ${escapeHtml(proposal.student_nisn)}</span></td>
+                    </tr>
+                `).join('');
+                const skipped = preview.skipped.map((item) => `<li>${escapeHtml(displayStudentName(item.source_name))} (NISN ${escapeHtml(item.source_nisn)}): ${escapeHtml(item.reason)}</li>`).join('');
+                autoResults.innerHTML = `
+                    <p class="small mb-2">Metode: ${method}. <strong>${preview.proposals.length}</strong> identitas cocok; <strong>${preview.skipped.length}</strong> tetap perlu ditinjau.</p>
+                    ${rows ? `<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Data e-Tatib</th><th>Murid master</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="text-muted mb-0">Tidak ada kecocokan tunggal yang dapat diterapkan.</p>'}
+                    ${skipped ? `<details class="mt-3"><summary>Identitas yang tetap perlu dicocokkan manual</summary><ul class="small mt-2 mb-0">${skipped}</ul></details>` : ''}
+                `;
+                autoFingerprint.value = preview.fingerprint;
+                autoApply.disabled = preview.proposals.length === 0;
+            } catch {
+                autoResults.innerHTML = '<p class="text-danger mb-0">Pratinjau gagal dimuat. Coba kembali.</p>';
+            }
+        });
+    });
 };

@@ -168,6 +168,12 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/data-master/etatib/conflicts', [EtatibIdentityMappingController::class, 'index'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.conflicts.index');
+        Route::get('/data-master/etatib/conflicts/automatic/preview', [EtatibIdentityMappingController::class, 'previewAutomatic'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.conflicts.automatic.preview');
+        Route::post('/data-master/etatib/conflicts/automatic', [EtatibIdentityMappingController::class, 'applyAutomatic'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.conflicts.automatic.apply');
         Route::get('/data-master/etatib/candidates', [EtatibIdentityMappingController::class, 'candidates'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.candidates');
