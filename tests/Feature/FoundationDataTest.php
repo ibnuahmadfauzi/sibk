@@ -32,7 +32,7 @@ class FoundationDataTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
 
         $this->assertSame(4, Role::query()->count());
-        $this->assertSame(48, ReferenceValue::query()->count());
+        $this->assertSame(42, ReferenceValue::query()->count());
         $this->assertSame([
             'sedang_diproses' => 'Sedang Proses',
             'membutuhkan_tindak_lanjut' => 'Tindak Lanjut',
@@ -61,6 +61,7 @@ class FoundationDataTest extends TestCase
         $this->assertSame(6, ReferenceValue::query()->forCategory('achievement_type')->count());
         $this->assertSame(5, ReferenceValue::query()->forCategory('achievement_level')->count());
         $this->assertSame(3, ReferenceValue::query()->forCategory('achievement_verification_status')->count());
+        $this->assertSame(0, ReferenceValue::query()->forCategory('correction_status')->count());
     }
 
     public function test_final_migration_removes_legacy_schema_and_preserves_active_foundation(): void
@@ -75,6 +76,8 @@ class FoundationDataTest extends TestCase
         $this->assertFalse(Schema::hasTable('follow_ups'));
         $this->assertFalse(Schema::hasTable('case_coordinations'));
         $this->assertFalse(Schema::hasTable('consultation_private_notes'));
+        $this->assertFalse(Schema::hasTable('corrections'));
+        $this->assertFalse(Schema::hasTable('user_notifications'));
 
         foreach (['waka_summary', 'final_result', 'continued_plan'] as $columnName) {
             $this->assertFalse(Schema::hasColumn('cases', $columnName));
@@ -102,6 +105,27 @@ class FoundationDataTest extends TestCase
         $this->assertTrue(collect(Schema::getIndexes('consultations'))->contains(
             static fn (array $index): bool => $index['columns'] === ['student_id', 'session_date'],
         ));
+    }
+
+    public function test_workflow_cleanup_stops_before_dropping_tables_with_data(): void
+    {
+        Schema::create('corrections', static fn (Blueprint $table) => $table->id());
+        Schema::create('user_notifications', static fn (Blueprint $table) => $table->id());
+        DB::table('user_notifications')->insert(['id' => 1]);
+
+        $migration = require database_path('migrations/2026_10_10_000100_remove_unimplemented_workflow_tables.php');
+
+        try {
+            $migration->up();
+            $this->fail('Migrasi harus menolak tabel yang masih berisi data.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('user_notifications berisi data', $exception->getMessage());
+            $this->assertTrue(Schema::hasTable('corrections'));
+            $this->assertTrue(Schema::hasTable('user_notifications'));
+        } finally {
+            Schema::dropIfExists('user_notifications');
+            Schema::dropIfExists('corrections');
+        }
     }
 
     public function test_final_migration_rollback_restores_hardening_consultation_index(): void

@@ -17,7 +17,7 @@
                     method="POST"
                 >
                     @csrf
-                    <button class="btn btn-success btn-sm" type="submit">Sinkronkan Sekarang</button>
+                    <button class="btn btn-success btn-sm" type="submit" data-action-tooltip="Perbarui catatan pelanggaran dari tautan e-Tatib yang tersimpan.">Sinkronkan Sekarang</button>
                 </form>
             </div>
         @endif
@@ -53,6 +53,7 @@
                     <button
                         type="submit"
                         class="btn btn-primary w-100 h-100"
+                        data-action-tooltip="Periksa data dari tautan e-Tatib sebelum menyimpannya ke aplikasi."
                         data-etatib-preview-button
                     >
                         Tinjau Data

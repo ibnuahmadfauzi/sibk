@@ -95,6 +95,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/assignments/classes', [AssignmentController::class, 'storeClassAssignment'])->name('assignments.classes.store');
         Route::post('/assignments/classes/batch', [AssignmentController::class, 'storeClassAssignments'])
             ->name('assignments.classes.batch');
+        Route::post('/assignments/academic-years/{academicYear}/teachers/{teacher}/copy-previous',
+            [AssignmentController::class, 'copyPreviousYearClasses'])
+            ->withoutScopedBindings()->name('assignments.classes.copy-previous');
         Route::delete('/assignments/classes/{classroom}', [AssignmentController::class, 'destroyClassAssignment'])
             ->name('assignments.classes.destroy');
         Route::post('/assignments/academic-years/{academicYear}/activate', [AcademicYearActivationController::class, 'store'])
@@ -129,6 +132,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/data-master/roster-imports/preview', [AcademicYearPreparationController::class, 'previewApiSiswa'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.roster-imports.preview');
+        Route::post('/data-master/roster-imports/preview-excel', [AcademicYearPreparationController::class, 'previewExcel'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.roster-imports.preview-excel');
         Route::post('/data-master/academic-years/{academicYear}/roster-imports', [AcademicYearPreparationController::class, 'storeRoster'])
             ->name('data-master.academic-years.roster-imports.store');
         Route::post('/data-master/dapodik/sync', [DataMasterController::class, 'synchronize'])->name('data-master.dapodik.sync');
@@ -162,6 +168,12 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/data-master/etatib/conflicts', [EtatibIdentityMappingController::class, 'index'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.conflicts.index');
+        Route::get('/data-master/etatib/conflicts/automatic/preview', [EtatibIdentityMappingController::class, 'previewAutomatic'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.conflicts.automatic.preview');
+        Route::post('/data-master/etatib/conflicts/automatic', [EtatibIdentityMappingController::class, 'applyAutomatic'])
+            ->middleware('cache.headers:no_store')
+            ->name('data-master.etatib.conflicts.automatic.apply');
         Route::get('/data-master/etatib/candidates', [EtatibIdentityMappingController::class, 'candidates'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.candidates');

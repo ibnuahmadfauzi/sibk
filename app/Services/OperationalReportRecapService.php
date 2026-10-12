@@ -322,6 +322,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 'serviceField',
                 'status',
                 'followUpType',
+                'temporaryStudent.reconciledStudent',
                 'assignments.teacher',
             ]);
     }

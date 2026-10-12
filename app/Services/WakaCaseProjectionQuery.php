@@ -46,7 +46,8 @@ final class WakaCaseProjectionQuery
             ])
             ->with([
                 'student:id,name',
-                'temporaryStudent:id,input_name',
+                'temporaryStudent:id,input_name,reconciled_student_id',
+                'temporaryStudent.reconciledStudent:id,name',
                 'classroom:id,name',
                 'serviceField:id,label',
                 'status:id,label,code',
@@ -81,7 +82,8 @@ final class WakaCaseProjectionQuery
             ])
             ->with([
                 'student:id,name',
-                'temporaryStudent:id,input_name',
+                'temporaryStudent:id,input_name,reconciled_student_id',
+                'temporaryStudent.reconciledStudent:id,name',
                 'classroom:id,name',
                 'serviceField:id,label', 'status:id,label,code', 'followUpType:id,label',
                 'assignments' => static fn ($assignments) => $assignments
@@ -142,7 +144,7 @@ final class WakaCaseProjectionQuery
 
         match ($sort) {
             'murid' => $query->orderByRaw(
-                "COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT input_name FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id), '') {$direction}",
+                "COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT COALESCE((SELECT name FROM students WHERE students.id = temporary_students.reconciled_student_id), input_name) FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id), '') {$direction}",
             ),
             'kelas' => $query->orderBy($this->historicalClassroomName(), $direction),
             'bidang' => $query->orderBy($this->referenceLabel('service_field_id'), $direction),

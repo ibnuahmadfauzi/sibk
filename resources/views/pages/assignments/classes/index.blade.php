@@ -1,12 +1,12 @@
 @extends('layouts.app-2')
 
-@section('page-title', 'Penugasan Kelas - Ruang BK')
+@section('page-title', 'Pembagian Kelas Binaan - Ruang BK')
 
 @section('body')
     <div class="sibk-dashboard" data-page-id="PG-401">
         <div class="sibk-page-header">
             <div class="sibk-page-header__copy">
-                <h1>Penugasan Kelas</h1>
+                <h1>Pembagian Kelas Binaan</h1>
                 <br>
             </div>
         </div>
@@ -251,6 +251,20 @@
                                                 <path d="M12 5v14M5 12h14" />
                                             </svg>
                                         </button>
+                                        <form action="{{ route('assignments.classes.copy-previous', [$selectedYear, $row['teacher']]) }}" method="POST">
+                                            @csrf
+                                            <button
+                                                class="btn btn-sm p-0 sibk-icon-button sibk-report-control sibk-class-add"
+                                                type="submit"
+                                                title="Tambahkan kelas yang sama dari tahun ajaran sebelumnya untuk {{ $row['teacher']->name }}"
+                                                aria-label="Salin kelas binaan tahun sebelumnya untuk {{ $row['teacher']->name }}"
+                                            >
+                                                <svg aria-hidden="true" viewBox="0 0 24 24">
+                                                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                                                    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                                                </svg>
+                                            </button>
+                                        </form>
                                     @endif
                                 </div>
                             </td>

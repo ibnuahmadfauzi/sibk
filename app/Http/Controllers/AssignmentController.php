@@ -140,6 +140,27 @@ class AssignmentController extends Controller
             ));
     }
 
+    public function copyPreviousYearClasses(
+        Request $request,
+        AcademicYear $academicYear,
+        User $teacher,
+        AssignmentService $assignmentService,
+    ): RedirectResponse {
+        $result = $assignmentService->copyPreviousYearClasses($academicYear, $teacher, $request->user());
+
+        return redirect()
+            ->route('assignments.classes.index', ['academic_year_id' => $academicYear->getKey()])
+            ->with('success_title', 'Pembagian kelas binaan diperbarui')
+            ->with('success', sprintf(
+                '%d kelas ditambahkan untuk %s dari %s. %d sudah dibagikan; %d kelas tidak tersedia pada tahun ini.',
+                $result['added'],
+                $teacher->name,
+                $result['previous_year'],
+                $result['already_assigned'],
+                $result['unavailable'],
+            ));
+    }
+
     public function destroyClassAssignment(
         UnassignClassRequest $request,
         Classroom $classroom,

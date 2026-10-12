@@ -44,7 +44,7 @@ class OperationalReportRecapTest extends TestCase
         }
     }
 
-    public function test_coordinator_reads_out_of_scope_records_only_through_reports_and_withdrawals(): void
+    public function test_coordinator_reads_out_of_scope_records_across_reports_and_student_services(): void
     {
         [$year, $classroom, $student, $owner, $case] = $this->caseFixture();
         $consultation = Consultation::query()->create([
@@ -69,15 +69,15 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($coordinator);
 
         foreach (['kasus', 'konsultasi'] as $tab) {
-            $this->get(route('cases.index', ['tab' => $tab]))->assertOk()->assertDontSee($student->name);
+            $this->get(route('cases.index', ['tab' => $tab]))->assertOk()->assertSee($student->name);
         }
         $this->get(route('cases.index', ['tab' => 'pengunduran-diri']))->assertOk()->assertSee($student->name);
-        $this->get(route('cases.show', $case))->assertForbidden();
-        $this->get(route('consultations.show', [$consultation, 'inline' => 1]))->assertForbidden();
+        $this->get(route('cases.show', $case))->assertOk();
+        $this->get(route('consultations.show', [$consultation, 'inline' => 1]))->assertOk();
         $this->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
-            ->assertOk()->assertDontSee($consultation->problem)->assertDontSee($consultation->result);
+            ->assertOk()->assertSee($consultation->problem)->assertSee($consultation->result);
         $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
-            ->assertOk()->assertDontSee($case->initial_info);
+            ->assertOk()->assertSee($case->initial_info);
 
         foreach (['case' => $case, 'consultation' => $consultation] as $type => $record) {
             $filters = ['academic_year_id' => $year->id, 'service_type' => $type];
@@ -90,6 +90,8 @@ class OperationalReportRecapTest extends TestCase
         $coordinator->unsetRelation('roles');
         $this->get(route('reports.index', ['academic_year_id' => $year->id]))
             ->assertOk()->assertSee($student->name);
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+            ->assertOk()->assertSee($case->initial_info);
     }
 
     public function test_report_uses_service_class_snapshot_after_membership_moves(): void

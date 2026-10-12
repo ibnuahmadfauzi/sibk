@@ -192,6 +192,10 @@ const validationMessage = (payload) => {
     return Object.values(errors).flat()[0] ?? payload?.message ?? 'Progres penanganan belum dapat disimpan.';
 };
 
+export const olderFollowUpMessage = (data) => data.follow_ups[0]?.id !== data.id
+    ? `Catatan tersimpan di riwayat. Progres terkini tetap ${data.current_progress_label} karena ada catatan bertanggal lebih baru.`
+    : '';
+
 export const initWithdrawalProgress = async (root = document, environment = {}) => {
     if (initialisedRoots.has(root)) return false;
     initialisedRoots.add(root);
@@ -255,14 +259,12 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             followUpTarget = {
                 id: followUpTrigger.dataset.withdrawalId,
                 url: followUpTrigger.dataset.storeUrl,
-                trigger: followUpTrigger,
             };
             followUpForm.reset();
             followUpForm.action = followUpTarget.url;
             followUpModal.querySelector('[data-follow-up-student]').textContent = displayStudentName(followUpTrigger.dataset.studentName);
             const date = followUpForm.querySelector('[name="follow_up_date"]');
             date.min = followUpTrigger.dataset.minDate ?? '';
-            followUpForm.querySelector('[name="progress"]').value = followUpTrigger.dataset.currentProgress;
             followUpModal.querySelector('[data-follow-up-error]').classList.add('d-none');
             followUpModalInstance.show();
             return;
@@ -309,7 +311,11 @@ export const initWithdrawalProgress = async (root = document, environment = {}) 
             if (count) count.textContent = data.follow_ups[0]?.progress_label ?? data.current_progress_label;
             const badge = wrapper?.querySelector('[data-withdrawal-popover-trigger]');
             if (badge) badge.dataset.withdrawalProgress = data.follow_ups[0]?.progress ?? data.current_progress;
-            followUpTarget.trigger.dataset.currentProgress = data.current_progress;
+            const status = wrapper?.querySelector('[data-withdrawal-save-status]');
+            if (status) {
+                status.textContent = olderFollowUpMessage(data);
+                status.classList.toggle('d-none', !status.textContent);
+            }
             followUpModalInstance.hide();
         } catch (caught) {
             error.textContent = caught.message;

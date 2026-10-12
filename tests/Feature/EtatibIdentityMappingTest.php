@@ -18,6 +18,7 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
+use App\Services\EtatibIdentityNormalizer;
 use App\Services\EtatibSyncService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -257,6 +258,146 @@ final class EtatibIdentityMappingTest extends TestCase
             'tab' => 'mappings',
             'search' => 'Tidak Ada',
         ]))->assertOk()->assertDontSee('Sumber Khas');
+    }
+
+    public function test_admin_can_preview_and_apply_unique_nisn_matches_without_changing_master_identity(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Resmi Sekolah']);
+        [$issue, $record] = $this->conflict('0011111111', 'Nama e-Tatib Berbeda', 'source-auto-nisn');
+        $this->conflict('0022222222', 'Belum Ada Murid', 'source-auto-skip');
+
+        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
+            ->assertOk()
+            ->assertJsonCount(1, 'proposals')
+            ->assertJsonCount(1, 'skipped')
+            ->assertJsonPath('proposals.0.student_id', $student->getKey());
+        $this->assertNull($record->refresh()->student_id);
+
+        $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
+            'mode' => 'nisn',
+            'fingerprint' => $preview->json('fingerprint'),
+            'confirmed' => '1',
+        ])->assertRedirect(route('data-master.etatib.conflicts.index'));
+
+        $this->assertSame($student->getKey(), $record->refresh()->student_id);
+        $this->assertSame('Nama Resmi Sekolah', $student->refresh()->name);
+        $this->assertNotNull($issue->refresh()->resolved_at);
+        $this->assertSame(1, EtatibIdentityMapping::query()->active()->count());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'etatib.identity_auto_mapped']);
+        $this->assertDatabaseHas('external_sync_issues', ['source_identifier' => 'source-auto-skip', 'resolved_at' => null]);
+    }
+
+    public function test_name_preview_only_proposes_unique_normalized_exact_match_and_rejects_stale_batch(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Nama Sama']);
+        Student::query()->create(['nisn' => '0022222222', 'name' => 'Nama Duplikat']);
+        Student::query()->create(['nisn' => '0033333333', 'name' => 'NAMA DUPLIKAT']);
+        [$issue, $record] = $this->conflict('0099999991', '  murid   nama SAMA ', 'source-auto-name');
+        $this->conflict('0099999992', 'Nama Duplikat', 'source-auto-ambiguous');
+
+        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
+            ->assertOk()
+            ->assertJsonCount(1, 'proposals')
+            ->assertJsonCount(1, 'skipped')
+            ->assertJsonPath('proposals.0.student_id', $student->getKey());
+
+        $student->update(['name' => 'Nama Sekolah Berubah']);
+        $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
+            'mode' => 'name', 'fingerprint' => $preview->json('fingerprint'), 'confirmed' => '1',
+        ])->assertSessionHasErrors('mode');
+        $this->assertNull($record->refresh()->student_id);
+        $this->assertNull($issue->refresh()->resolved_at);
+        $this->assertSame(0, EtatibIdentityMapping::query()->count());
+    }
+
+    public function test_name_matching_maps_all_records_of_one_source_identity_once(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Nama Sama']);
+        [$firstIssue, $firstRecord] = $this->conflict('0099999991', 'MURID  NAMA SAMA', 'source-name-one');
+        [$secondIssue, $secondRecord] = $this->conflict('0099999991', 'murid nama sama', 'source-name-two');
+
+        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
+            ->assertOk()->assertJsonCount(1, 'proposals');
+        $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
+            'mode' => 'name', 'fingerprint' => $preview->json('fingerprint'), 'confirmed' => '1',
+        ])->assertRedirect(route('data-master.etatib.conflicts.index'));
+
+        $this->assertSame($student->getKey(), $firstRecord->refresh()->student_id);
+        $this->assertSame($student->getKey(), $secondRecord->refresh()->student_id);
+        $this->assertNotNull($firstIssue->refresh()->resolved_at);
+        $this->assertNotNull($secondIssue->refresh()->resolved_at);
+        $this->assertSame(1, EtatibIdentityMapping::query()->active()->count());
+    }
+
+    public function test_name_matching_skips_two_source_identities_pointing_to_one_master_student(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Sama']);
+        $this->conflict('0099999991', 'Nama Sama', 'source-same-one');
+        $this->conflict('0099999992', 'NAMA SAMA', 'source-same-two');
+
+        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
+            ->assertOk()
+            ->assertJsonCount(0, 'proposals')
+            ->assertJsonCount(2, 'skipped');
+    }
+
+    public function test_nisn_matching_skips_two_source_names_pointing_to_one_master_student(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Sekolah']);
+        $this->conflict('0011111111', 'Nama e-Tatib Satu', 'source-nisn-one');
+        $this->conflict('0011111111', 'Nama e-Tatib Dua', 'source-nisn-two');
+
+        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
+            ->assertOk()
+            ->assertJsonCount(0, 'proposals')
+            ->assertJsonCount(2, 'skipped');
+    }
+
+    public function test_automatic_preview_preserves_existing_active_mapping(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Sekolah']);
+        [$issue, $record] = $this->conflict('0011111111', 'Nama e-Tatib', 'source-existing-map');
+        EtatibIdentityMapping::query()->create([
+            'source_nisn' => '0011111111',
+            'source_name' => 'Nama e-Tatib',
+            'source_name_hash' => app(EtatibIdentityNormalizer::class)->nameHash('Nama e-Tatib'),
+            'student_id' => $student->getKey(),
+            'is_active' => true,
+            'mapped_by' => $admin->getKey(),
+            'mapped_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
+            ->assertOk()
+            ->assertJsonCount(0, 'proposals')
+            ->assertJsonCount(1, 'skipped');
+        $this->assertNull($record->refresh()->student_id);
+        $this->assertNull($issue->refresh()->resolved_at);
+    }
+
+    public function test_automatic_matching_requires_admin_and_confirmation(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $teacher = $this->userWithRole('guru_bk');
+        Student::query()->create(['nisn' => '0011111111', 'name' => 'Master']);
+        $this->conflict('0011111111', 'Sumber', 'source-auto-auth');
+
+        $this->actingAs($teacher)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
+            ->assertForbidden();
+        $this->actingAs($teacher)->post(route('data-master.etatib.conflicts.automatic.apply'), [
+            'mode' => 'nisn', 'fingerprint' => str_repeat('0', 64), 'confirmed' => '1',
+        ])->assertForbidden();
+        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))->assertOk();
+        $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
+            'mode' => 'nisn', 'fingerprint' => $preview->json('fingerprint'),
+        ])->assertSessionHasErrors('confirmed');
+        $this->assertSame(0, EtatibIdentityMapping::query()->count());
     }
 
     /** @return array{ExternalSyncIssue, ExternalTatibRecord} */

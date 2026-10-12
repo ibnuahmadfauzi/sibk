@@ -16,6 +16,7 @@ use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\TemporaryStudent;
 use App\Models\User;
+use App\Services\CaseService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -429,7 +430,7 @@ class ConsultationManagementTest extends TestCase
         }
 
         $this->actingAs($this->userWithRole('koordinator_bk'))
-            ->get(route('consultations.show', $consultation))->assertForbidden();
+            ->get(route('consultations.show', $consultation))->assertOk();
         $this->actingAs($this->userWithRole('waka_kesiswaan'))
             ->get(route('consultations.show', $consultation))->assertOk();
 
@@ -594,12 +595,12 @@ class ConsultationManagementTest extends TestCase
         $coordinator = $this->userWithRole('koordinator_bk');
         $this->actingAs($coordinator)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertDontSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
+            ->assertSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee('aria-label="Edit konsultasi '.$consultation->identityName().'"', false)
             ->assertDontSee('aria-label="Arsipkan konsultasi '.$consultation->identityName().'"', false);
     }
 
-    public function test_coordinator_consultation_access_follows_own_teacher_scope_only(): void
+    public function test_coordinator_consultation_access_covers_all_students_without_edit_rights(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $teacher->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
@@ -629,17 +630,51 @@ class ConsultationManagementTest extends TestCase
         $this->actingAs($teacher)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
             ->assertSee($visible->identityName())
-            ->assertDontSee($hidden->identityName());
+            ->assertSee($hidden->identityName());
         $this->get(route('consultations.show', $visible))->assertOk();
         foreach ([[], ['modal' => 1], ['inline' => 1]] as $parameters) {
-            $this->get(route('consultations.show', [$hidden, ...$parameters]))->assertForbidden();
+            $this->get(route('consultations.show', [$hidden, ...$parameters]))->assertOk();
         }
+        $this->assertFalse($teacher->can('update', $hidden));
 
         $coordinatorOnly = $this->userWithRole('koordinator_bk');
         $this->actingAs($coordinatorOnly)->get(route('cases.index', ['tab' => 'konsultasi']))
             ->assertOk()
-            ->assertDontSee($visible->identityName())
-            ->assertDontSee($hidden->identityName());
+            ->assertSee($visible->identityName())
+            ->assertSee($hidden->identityName());
+        $this->get(route('consultations.show', $hidden))->assertOk();
+        $this->assertFalse($coordinatorOnly->can('update', $hidden));
+    }
+
+    public function test_dual_role_cannot_create_consultation_for_old_case_after_class_reassignment(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $teacher->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
+        $case = app(CaseService::class)->createCase([
+            'student_id' => $student->id,
+            'case_source_id' => ReferenceValue::query()->where('category', 'case_source')->where('code', 'temuan_guru_bk')->firstOrFail()->id,
+            'service_field_id' => $this->payload()['service_field_id'],
+            'service_date' => '2026-09-18',
+            'initial_info' => 'Riwayat kasus sebelum kelas dialihkan.',
+            'initial_action' => 'Asesmen awal.',
+        ], $teacher);
+        $temporary = $this->reconciledTemporary($teacher, $student);
+        TeacherAssignment::query()->where('user_id', $teacher->id)->update(['user_id' => $this->userWithRole('guru_bk')->id]);
+
+        $this->actingAs($teacher)->get(route('consultations.create'))
+            ->assertOk()
+            ->assertViewHas('students', fn ($students): bool => ! $students->contains('id', $student->id));
+        $this->get(route('students.show', $student))->assertOk()
+            ->assertViewHas('canCreateConsultation', false);
+        $this->get(route('cases.show', $case))->assertOk();
+        $this->post(route('consultations.store'), [
+            ...$this->payload(), 'student_id' => $student->id,
+        ])->assertSessionHasErrors('student_id');
+        $this->post(route('consultations.store'), [
+            ...$this->payload(), 'temporary_student_id' => $temporary->id,
+            'temporary_classroom_id' => $student->classMemberships()->firstOrFail()->classroom_id,
+        ])->assertSessionHasErrors('temporary_student_id');
+        $this->assertDatabaseCount('consultations', 0);
     }
 
     public function test_waka_list_keeps_four_columns_and_detail_only_without_exposing_result(): void

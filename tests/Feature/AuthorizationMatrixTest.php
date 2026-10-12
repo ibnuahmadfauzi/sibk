@@ -130,7 +130,7 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
             ->assertDontSee('Laporan')
-            ->assertDontSee('Penugasan Kelas')
+            ->assertDontSee('Pembagian Kelas Binaan')
             ->assertDontSee('Pengalihan Kasus')
             ->assertSee('PENGELOLAAN')
             ->assertSee('Data Master');
@@ -144,7 +144,7 @@ class AuthorizationMatrixTest extends TestCase
 
         $this->actingAs($teacher)->get('/dashboard')->assertOk()
             ->assertDontSee('PENGELOLAAN')
-            ->assertDontSee('Penugasan Kelas');
+            ->assertDontSee('Pembagian Kelas Binaan');
         $this->actingAs($teacher)->get(route('assignments.classes.index'))->assertOk();
     }
 
@@ -153,7 +153,7 @@ class AuthorizationMatrixTest extends TestCase
         $coordinator = $this->userWithRole('koordinator_bk');
         $this->actingAs($coordinator)->get('/dashboard')->assertOk()
             ->assertSee('PENGELOLAAN')
-            ->assertSee('Penugasan Kelas');
+            ->assertSee('Pembagian Kelas Binaan');
     }
 
     public function test_admin_cannot_open_student_service_profiles(): void
@@ -197,7 +197,8 @@ class AuthorizationMatrixTest extends TestCase
 
         $this->actingAs($admin)->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Persiapan Tahun Ajaran');
+            ->assertSee('id="provisional_year_name"', false)
+            ->assertSee('Buat Tahun Ajaran');
         $this->actingAs($coordinator)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
             ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))

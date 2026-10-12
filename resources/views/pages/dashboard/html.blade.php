@@ -5,7 +5,21 @@
 
     <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
         <div class="sibk-page-header__copy">
-            <h1 id="dashboard-title">Dashboard</h1>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <h1 id="dashboard-title" class="mb-0">Dashboard</h1>
+                @if($canSwitchDashboard)
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="dashboard-view-switch"
+                            data-dashboard-view-switch
+                            data-teacher-url="{{ route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $activeYear?->id]) }}"
+                            data-coordinator-url="{{ route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $activeYear?->id]) }}"
+                            title="Geser untuk menampilkan dashboard {{ $dashboard['role_key'] === 'teacher' ? 'Koordinator BK' : 'Guru BK' }}"
+                            aria-describedby="dashboard-view-help" @checked($dashboard['role_key'] === 'teacher')>
+                        <label class="form-check-label" for="dashboard-view-switch">Tampilan Guru BK</label>
+                        <span class="visually-hidden" id="dashboard-view-help">Menyala: dashboard Guru BK. Padam: dashboard Koordinator BK. Tidak mengubah peran akun.</span>
+                    </div>
+                @endif
+            </div>
             <span class="visually-hidden">{{ $dashboard['scope'] }}</span>
             @if(!empty($dashboard['quick_actions']))
                 <div class="sibk-quick-actions mt-3">
@@ -34,7 +48,8 @@
             @endif
         </div>
         @if($years->isNotEmpty())
-            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview') }}">
+            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview', $canSwitchDashboard ? ['dashboard_view' => $dashboard['role_key']] : []) }}">
+                @if($canSwitchDashboard)<input type="hidden" name="dashboard_view" value="{{ $dashboard['role_key'] }}">@endif
                 <div class="flex-grow-1"><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id" data-filter-field data-filter-default="{{ request()->has('academic_year_id') ? '' : $activeYear?->id }}">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
                 <button class="btn btn-outline-primary text-nowrap" type="submit" data-filter-action>Filter</button>
             </form>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ApplyAutomaticEtatibMappingRequest;
 use App\Http\Requests\Admin\MapEtatibIdentityRequest;
 use App\Http\Requests\Admin\RevokeEtatibIdentityMappingRequest;
 use App\Models\EtatibIdentityMapping;
@@ -156,6 +157,26 @@ final class EtatibIdentityMappingController extends Controller
             });
 
         return response()->json(['data' => $students])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function previewAutomatic(Request $request, EtatibIdentityMappingService $service): JsonResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        return response()->json($service->previewAutomatic($request->string('mode')->toString(), $actor))
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    public function applyAutomatic(ApplyAutomaticEtatibMappingRequest $request, EtatibIdentityMappingService $service): RedirectResponse
+    {
+        /** @var User $actor */
+        $actor = $request->user();
+        $count = $service->applyAutomatic($request->string('mode')->toString(), $request->string('fingerprint')->toString(), $actor);
+
+        return redirect()
+            ->route('data-master.etatib.conflicts.index')
+            ->with('success', $count.' identitas e-Tatib berhasil dicocokkan.');
     }
 
     public function store(

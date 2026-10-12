@@ -7,8 +7,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ArchiveConsultationRequest;
 use App\Http\Requests\StoreConsultationRequest;
 use App\Http\Requests\UpdateConsultationRequest;
-use App\Models\Consultation;
 use App\Models\Classroom;
+use App\Models\Consultation;
 use App\Models\ReferenceValue;
 use App\Models\Student;
 use App\Models\User;
@@ -178,7 +178,11 @@ class ConsultationController extends Controller
     {
         $students = Student::query()
             ->availableForService()
-            ->professionallyAccessibleTo($user)
+            ->when(
+                $consultation === null,
+                fn ($students) => $students->forActiveTeacherAssignment($user),
+                fn ($students) => $students->professionallyAccessibleTo($user),
+            )
             ->with(['classMemberships' => fn ($memberships) => $memberships
                 ->active()
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))

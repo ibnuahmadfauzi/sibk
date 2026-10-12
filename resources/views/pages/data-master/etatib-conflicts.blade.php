@@ -8,6 +8,7 @@
         data-page-id="PG-501-ETATIB-CONFLICTS"
         data-etatib-mapping-page
         data-candidate-url="{{ route('data-master.etatib.candidates') }}"
+        data-automatic-preview-url="{{ route('data-master.etatib.conflicts.automatic.preview') }}"
     >
         @if(session('success'))
             <x-notification-toast>{{ session('success') }}</x-notification-toast>
@@ -56,6 +57,11 @@
         </form>
 
         @if($tab === 'conflicts')
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <span class="text-muted small me-1">Pratinjau pencocokan otomatis:</span>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-etatib-auto-open="nisn" data-action-tooltip="Cari pasangan dengan NISN yang sama untuk diperiksa sebelum diterapkan.">Berdasarkan NISN</button>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-etatib-auto-open="name" data-action-tooltip="Cari pasangan dengan nama yang sama persis. Nama dengan beberapa kandidat tetap perlu diperiksa manual.">Berdasarkan Nama</button>
+            </div>
             <section class="sibk-panel" aria-label="Belum Cocok">
                 <div class="table-responsive">
                     <table class="table sibk-table mb-0">
@@ -187,6 +193,34 @@
                 <div class="mt-3">{{ $mappings->links('pagination.data-master') }}</div>
             @endif
         @endif
+    </div>
+
+    <div class="modal fade" id="etatib-auto-modal" tabindex="-1" aria-labelledby="etatib-auto-title" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <form class="modal-content" action="{{ route('data-master.etatib.conflicts.automatic.apply') }}" method="POST" data-etatib-auto-form>
+                @csrf
+                <input type="hidden" name="mode" data-etatib-auto-mode>
+                <input type="hidden" name="fingerprint" data-etatib-auto-fingerprint>
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title fs-5" id="etatib-auto-title">Pratinjau Pencocokan e-Tatib</h2>
+                        <p class="text-muted small mb-0">Hanya kecocokan tunggal yang akan diterapkan. Periksa pasangan identitas sebelum melanjutkan.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div data-etatib-auto-results aria-live="polite"></div>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" id="etatib_auto_confirmed" name="confirmed" type="checkbox" value="1" required data-etatib-auto-confirmed>
+                        <label class="form-check-label" for="etatib_auto_confirmed">Saya sudah memeriksa pasangan identitas yang akan dicocokkan.</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button class="btn btn-primary" type="submit" disabled data-etatib-auto-apply>Terapkan Pencocokan</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div

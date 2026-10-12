@@ -65,6 +65,14 @@ final class ApiSiswaRosterImportService
         }
     }
 
+    /** @param list<array{nisn: string, name: string, classroom: string, academic_year_name: string}> $rows */
+    public function previewRows(array $rows, User $actor): array
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+
+        return $this->buildPreview($rows);
+    }
+
     /** @param list<int> $selectedRows */
     public function import(string $url, User $actor, array $selectedRows = [], ?string $previewHash = null): ProvisionalRosterImportResult
     {
@@ -263,9 +271,16 @@ final class ApiSiswaRosterImportService
             $placeholders = implode(',', array_fill(0, count($nisns), '?'));
             $students = $students->concat(Student::query()
                 ->whereRaw("TRIM(nisn) IN ($placeholders)", $nisns)
-                ->get(['id', 'nisn']));
+                ->get(['id', 'nisn', 'name']));
         }
         $studentsByNisn = $students->groupBy(fn (Student $student): string => trim($student->nisn));
+        $differentNames = [];
+        foreach ($rows as $row) {
+            $student = $studentsByNisn->get($row['nisn'])?->first();
+            if ($student !== null && trim($student->name) !== $row['name']) {
+                $differentNames[$row['nisn']] = true;
+            }
+        }
 
         $memberships = collect();
         foreach ($students->pluck('id')->chunk(500) as $studentIds) {
@@ -342,6 +357,13 @@ final class ApiSiswaRosterImportService
         return [
             'rows' => count($rows),
             'students' => collect($rows)->pluck('nisn')->unique()->count(),
+            'new_count' => collect($rows)->pluck('nisn')->unique()->filter(
+                fn (string $nisn): bool => ! $studentsByNisn->has($nisn),
+            )->count(),
+            'matched_count' => collect($rows)->pluck('nisn')->unique()->filter(
+                fn (string $nisn): bool => $studentsByNisn->has($nisn),
+            )->count(),
+            'different_name_count' => count($differentNames),
             'academic_years' => $academicYears,
             'entries' => $entries,
             'conflict_count' => $conflictCount,

@@ -12,6 +12,7 @@ use App\Models\AcademicYear;
 use App\Models\User;
 use App\Services\AcademicYearPreparationService;
 use App\Services\ApiSiswaRosterImportService;
+use App\Services\ProvisionalRosterXlsxParser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,6 +48,20 @@ class AcademicYearPreparationController extends Controller
             ->header('Cache-Control', 'no-store, private');
     }
 
+    public function previewExcel(
+        ImportProvisionalRosterRequest $request,
+        ProvisionalRosterXlsxParser $parser,
+        ApiSiswaRosterImportService $service,
+    ): JsonResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+
+        return response()->json([
+            'success' => true,
+            'data' => $service->previewRows($parser->parse($request->rosterFile()), $actor),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
     public function store(
         StoreProvisionalAcademicYearRequest $request,
         AcademicYearPreparationService $service,
@@ -68,7 +83,7 @@ class AcademicYearPreparationController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $result = $service->importRoster($academicYear, $request->rosterFile(), $actor);
+        $result = $service->importRoster($academicYear, $request->rosterFile(), $actor, $request->previewHash());
 
         return redirect()
             ->route('data-master.index')
@@ -95,7 +110,7 @@ class AcademicYearPreparationController extends Controller
                 $request->apiUrl(), $actor, $request->selectedRows(), $request->previewHash(),
             ),
             $request->hasRosterPayload() => $service->importRosterPayload($request->rosterPayload(), $actor),
-            default => $service->importRosters($request->rosterFile(), $actor),
+            default => $service->importRosters($request->rosterFile(), $actor, $request->previewHash()),
         };
 
         $message = sprintf(

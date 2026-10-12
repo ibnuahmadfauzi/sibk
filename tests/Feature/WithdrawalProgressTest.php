@@ -209,6 +209,10 @@ final class WithdrawalProgressTest extends TestCase
             ->assertDontSee('id="withdrawal-detail-modal"', false)
             ->assertSee('Riwayat Progres Penanganan')
             ->assertSee('Tambah Progres Penanganan')
+            ->assertSee('Pilih progres penanganan')
+            ->assertSee('Pilih tanggal sejak pencatatan awal sampai hari ini.')
+            ->assertSee('data-withdrawal-save-status', false)
+            ->assertDontSee('name="follow_up_date" type="date" value=', false)
             ->assertDontSee('Riwayat Tindak Lanjut')
             ->assertDontSee('name="notes"', false)
             ->assertSee('<span data-withdrawal-follow-up-label>'.WithdrawalProgress::labels()[WithdrawalProgress::PROGRESS_IN_PROGRESS].'</span>', false)
@@ -449,6 +453,7 @@ final class WithdrawalProgressTest extends TestCase
     {
         $user = User::factory()->create();
         $user->roles()->attach(Role::query()->where('slug', $slug)->firstOrFail());
+
         return $user;
     }
 }
