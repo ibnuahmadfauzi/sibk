@@ -32,6 +32,9 @@ const renderPreview = (container, preview, onSelectionChange) => {
     summary.append(
         createElement('span', 'fw-semibold', `${preview.rows} baris`),
         createElement('span', 'fw-semibold', `${preview.students} murid unik`),
+        createElement('span', 'fw-semibold', `${preview.new_count} murid baru`),
+        createElement('span', 'fw-semibold', `${preview.matched_count} murid cocok`),
+        createElement('span', 'fw-semibold', `${preview.different_name_count} nama berbeda (master tetap)`),
         createElement('span', 'fw-semibold', `${preview.academic_years.length} tahun pelajaran`),
         createElement('span', 'fw-semibold', `${preview.conflict_count} konflik`),
     );
@@ -263,4 +266,85 @@ export const initApiSiswaPreview = async (root = document, { Modal } = {}) => {
         requestController?.abort();
         previewButton.focus();
     });
+};
+
+export const initRosterExcelPreview = (root = document, { Modal } = {}) => {
+    const form = root.querySelector('[data-roster-file-form]');
+    const modalElement = root.querySelector('[data-roster-excel-preview-modal]');
+    if (!form || !modalElement) return;
+
+    const modal = Modal.getOrCreateInstance(modalElement);
+    const body = modalElement.querySelector('[data-roster-excel-preview-body]');
+    const confirmButton = modalElement.querySelector('[data-roster-excel-confirm]');
+    const fileInput = form.elements.namedItem('file');
+    const submitButton = form.querySelector('[type="submit"]');
+    let previewedFile;
+    let previewHash = '';
+
+    form.addEventListener('submit', async (event) => {
+        if (form.dataset.importConfirmed === 'true') {
+            delete form.dataset.importConfirmed;
+            return;
+        }
+        if (fileInput.files[0]?.name.toLowerCase().endsWith('.csv')) return;
+
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        const submittedFile = fileInput.files[0];
+        previewedFile = undefined;
+        confirmButton.disabled = true;
+        submitButton.disabled = true;
+        body.replaceChildren(createElement('p', 'text-muted mb-0', 'Membaca berkas Excel...'));
+        modal.show();
+
+        try {
+            const response = await fetch(form.dataset.previewUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                },
+                body: new FormData(form),
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                renderFailure(body, Object.values(payload.errors ?? {}).flat()[0]
+                    ?? payload.message ?? 'Pratinjau Excel gagal dimuat.');
+                return;
+            }
+            if (fileInput.files[0] !== submittedFile) {
+                renderFailure(body, 'Berkas berubah. Jalankan pratinjau kembali.');
+                return;
+            }
+            renderPreview(body, payload.data, (_rows, ready) => {
+                confirmButton.disabled = !ready;
+            });
+            previewedFile = submittedFile;
+            previewHash = payload.data.preview_hash;
+        } catch {
+            renderFailure(body, 'Pratinjau Excel tidak dapat dimuat. Coba lagi.');
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
+    confirmButton.addEventListener('click', () => {
+        if (!previewedFile || previewedFile !== fileInput.files[0]) {
+            renderFailure(body, 'Berkas berubah. Jalankan pratinjau kembali sebelum mengimpor.');
+            confirmButton.disabled = true;
+            return;
+        }
+        form.querySelector('[name="preview_hash"]')?.remove();
+        const hashInput = createElement('input');
+        hashInput.type = 'hidden';
+        hashInput.name = 'preview_hash';
+        hashInput.value = previewHash;
+        form.append(hashInput);
+        form.dataset.importConfirmed = 'true';
+        confirmButton.disabled = true;
+        modal.hide();
+        form.requestSubmit();
+    });
+
+    modalElement.addEventListener('hidden.bs.modal', () => submitButton.focus());
 };

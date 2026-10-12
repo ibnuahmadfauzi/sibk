@@ -40,6 +40,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -2493,6 +2495,121 @@ class DelayedDapodikPreparationTest extends TestCase
     private function validCsv(): UploadedFile
     {
         return $this->csv("nisn,nama,rombel,tahun_pelajaran\n0012345678,Nama Murid,X RPL 1,2027/2028");
+    }
+
+    #[Test]
+    public function excel_roster_uses_the_same_master_and_membership_as_csv(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $year = $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+
+        $firstFile = $this->xlsx([
+            ['nisn', 'nama', 'rombel', 'tahun_pelajaran'],
+            ['0012345678', 'Murid Excel', 'X RPL 1', '2027/2028'],
+        ]);
+        $preview = $this->actingAs($admin)->withHeaders(['Accept' => 'application/json'])
+            ->post(route('data-master.roster-imports.preview-excel'), ['file' => $firstFile])
+            ->assertOk()->json('data');
+        $this->assertTrue($preview['can_import']);
+        $this->assertDatabaseCount('students', 0);
+        $this->withHeaders(['Accept' => 'text/html'])->post(route('data-master.roster-imports.store'), [
+            'file' => $firstFile,
+            'preview_hash' => $preview['preview_hash'],
+        ])->assertRedirect(route('data-master.index'));
+
+        $student = Student::query()->where('nisn', '0012345678')->firstOrFail();
+        $this->assertSame(Student::MASTER_SOURCE_SCHOOL_PROVISIONAL, $student->master_source);
+        $this->assertDatabaseHas('student_class_memberships', [
+            'student_id' => $student->id,
+            'academic_year_id' => $year->id,
+        ]);
+        $namePreview = $this->withHeaders(['Accept' => 'application/json'])
+            ->post(route('data-master.roster-imports.preview-excel'), ['file' => $this->xlsx([
+                ['nisn', 'nama', 'rombel', 'tahun_pelajaran'],
+                ['0012345678', 'Nama Berbeda', 'X RPL 1', '2027/2028'],
+            ])])->assertOk()->json('data');
+        $this->assertSame(1, $namePreview['matched_count']);
+        $this->assertSame(1, $namePreview['different_name_count']);
+        $this->assertSame('Murid Excel', $student->fresh()->name);
+
+        $secondFile = $this->xlsx([
+            ['nisn', 'nama', 'rombel', 'tahun_pelajaran'],
+            ['0098765432', 'Murid Excel Lain', 'X RPL 1', '2027/2028'],
+        ]);
+        $secondPreview = $this->withHeaders(['Accept' => 'application/json'])
+            ->post(route('data-master.roster-imports.preview-excel'), ['file' => $secondFile])
+            ->assertOk()->json('data');
+        $this->withHeaders(['Accept' => 'text/html'])->post(route('data-master.academic-years.roster-imports.store', $year), [
+            'file' => $secondFile,
+            'preview_hash' => $secondPreview['preview_hash'],
+        ])->assertRedirect(route('data-master.index'));
+        $this->assertDatabaseCount('students', 2);
+    }
+
+    #[Test]
+    public function excel_roster_rejects_formulas_and_duplicate_nisn_without_saving_students(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+
+        $this->actingAs($admin)->post(route('data-master.roster-imports.store'), [
+            'file' => $this->xlsx([
+                ['nisn', 'nama', 'rombel', 'tahun_pelajaran'],
+                ['0012345678', '=1+1', 'X RPL 1', '2027/2028'],
+            ]),
+        ])->assertSessionHasErrors('file');
+
+        $this->post(route('data-master.roster-imports.store'), [
+            'file' => $this->xlsx([
+                ['nisn', 'nama', 'rombel', 'tahun_pelajaran'],
+                ['0012345678', 'Murid Satu', 'X RPL 1', '2027/2028'],
+                ['0012345678', 'Murid Dua', 'X RPL 2', '2027/2028'],
+            ]),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    #[Test]
+    public function excel_roster_requires_matching_preview_and_admin_access(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->prepareYear(app(AcademicYearPreparationService::class), $admin);
+        $file = $this->xlsx([
+            ['nisn', 'nama', 'rombel', 'tahun_pelajaran'],
+            ['0012345678', 'Murid Excel', 'X RPL 1', '2027/2028'],
+        ]);
+
+        $this->actingAs($admin)->post(route('data-master.roster-imports.store'), [
+            'file' => $file,
+        ])->assertSessionHasErrors('file');
+        $this->post(route('data-master.roster-imports.store'), [
+            'file' => $file,
+            'preview_hash' => str_repeat('0', 64),
+        ])->assertSessionHasErrors('file');
+
+        $teacher = $this->userWithRole('guru_bk');
+        $this->actingAs($teacher)->withHeaders(['Accept' => 'application/json'])
+            ->post(route('data-master.roster-imports.preview-excel'), ['file' => $file])
+            ->assertForbidden();
+        $this->actingAs($admin)->postJson(route('data-master.roster-imports.preview-excel'), [
+            'api_url' => 'https://example.org/siswa',
+        ])->assertUnprocessable()->assertJsonValidationErrors('file');
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    /** @param list<list<string>> $rows */
+    private function xlsx(array $rows): UploadedFile
+    {
+        $book = new Spreadsheet;
+        $book->getActiveSheet()->fromArray($rows);
+        $path = tempnam(sys_get_temp_dir(), 'roster-xlsx-');
+        (new Xlsx($book))->save($path);
+        $book->disconnectWorksheets();
+        $file = UploadedFile::fake()->createWithContent('roster.xlsx', file_get_contents($path));
+        unlink($path);
+
+        return $file;
     }
 
     private function resetHttpFactory(): void

@@ -99,7 +99,7 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('href="'.route('waka.monitoring.students').'"', false)
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
-            ->assertDontSee('Penugasan Kelas')
+            ->assertDontSee('Pembagian Kelas Binaan')
             ->assertDontSee('Pengalihan Kasus')
             ->assertDontSee('Laporan Penanganan');
     }
@@ -112,7 +112,7 @@ class FrontendPreviewTest extends TestCase
         $this->get(route('dashboard.preview'))
             ->assertOk()
             ->assertSee('Layanan BK')
-            ->assertSee('Penugasan Kelas')
+            ->assertSee('Pembagian Kelas Binaan')
             ->assertDontSee('Murid dengan Permasalahan')
             ->assertDontSee('href="'.route('waka.monitoring.students').'"', false)
             ->assertSee('href="'.route('reports.index').'"', false);

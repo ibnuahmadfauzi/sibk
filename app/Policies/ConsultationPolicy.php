@@ -16,7 +16,8 @@ class ConsultationPolicy
 
     public function view(User $user, Consultation $consultation): bool
     {
-        return $user->hasRole('waka_kesiswaan')
+        return ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])
+                && Consultation::query()->withinStudentServicePeriod()->whereKey($consultation->getKey())->exists())
             || $consultation->isProfessionallyAccessibleTo($user);
     }
 

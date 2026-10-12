@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ArchiveCaseRequest;
 use App\Http\Requests\CompleteCaseRequest;
 use App\Http\Requests\StoreCaseRequest;
-use App\Http\Requests\UpdateCaseFollowUpRequest;
 use App\Http\Requests\UpdateCaseRequest;
 use App\Models\BkCase;
 use App\Models\Classroom;
@@ -20,7 +19,10 @@ use App\Models\WithdrawalProgress;
 use App\Services\AuditService;
 use App\Services\CaseService;
 use App\Services\WakaMonitoringService;
+use App\Support\StudentName;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,14 +65,15 @@ class CaseController extends Controller
             ->with([
                 'student:id,name',
                 'classroom:id,name',
-                'temporaryStudent:id,input_name',
+                'temporaryStudent:id,input_name,reconciled_student_id',
+                'temporaryStudent.reconciledStudent:id,name',
                 'serviceField:id,label',
                 'status:id,label,code',
                 'followUpType:id,label',
                 'followUps.followUpType',
             ]), fn ($cases) => $cases->with([
                 'classroom',
-                'temporaryStudent',
+                'temporaryStudent.reconciledStudent',
                 'source',
                 'serviceField',
                 'status',
@@ -81,7 +84,9 @@ class CaseController extends Controller
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($cases) => $cases->where(function ($filter) use ($search): void {
             $filter->whereHas('student', fn ($students) => $students->where('name', 'like', '%'.$search.'%'))
-                ->orWhereHas('temporaryStudent', fn ($students) => $students->where('input_name', 'like', '%'.$search.'%'));
+                ->orWhereHas('temporaryStudent', fn ($students) => $students
+                    ->where('input_name', 'like', '%'.$search.'%')
+                    ->orWhereHas('reconciledStudent', fn ($reconciled) => $reconciled->where('name', 'like', '%'.$search.'%')));
         }));
         $query->when($request->integer('classroom_id'), fn ($cases, int $classroomId) => $cases->where('classroom_id', $classroomId));
         $query->when($request->integer('case_source_id'), fn ($cases, int $id) => $cases->where('case_source_id', $id));
@@ -89,7 +94,15 @@ class CaseController extends Controller
         $query->when($request->integer('follow_up_type_id'), fn ($cases, int $id) => $cases->where('follow_up_type_id', $id));
         $query->when($request->string('month')->toString(), function ($cases, string $month): void {
             if (preg_match('/^(\d{4})-(\d{2})$/', $month, $matches) === 1) {
-                $cases->whereYear('service_date', (int) $matches[1])->whereMonth('service_date', (int) $matches[2]);
+                if ((int) $matches[2] < 1 || (int) $matches[2] > 12) {
+                    $cases->whereRaw('1 = 0');
+
+                    return;
+                }
+
+                $start = CarbonImmutable::create((int) $matches[1], (int) $matches[2], 1);
+                $cases->where('service_date', '>=', $start->toDateString())
+                    ->where('service_date', '<', $start->addMonth()->toDateString());
             }
         });
 
@@ -99,7 +112,7 @@ class CaseController extends Controller
             $direction = 'desc';
         }
         $sortExpression = match ($sort) {
-            'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT input_name FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id)))'),
+            'nama' => DB::raw('LOWER(COALESCE((SELECT name FROM students WHERE students.id = cases.student_id), (SELECT COALESCE((SELECT name FROM students WHERE students.id = temporary_students.reconciled_student_id), input_name) FROM temporary_students WHERE temporary_students.id = cases.temporary_student_id)))'),
             'kelas' => Classroom::query()->selectRaw('LOWER(classrooms.name)')
                 ->whereColumn('classrooms.id', 'cases.classroom_id')->limit(1),
             'sumber' => ReferenceValue::query()->selectRaw('LOWER(label)')->whereColumn('references.id', 'cases.case_source_id'),
@@ -164,7 +177,7 @@ class CaseController extends Controller
             return [
                 'id' => $student->id,
                 'nisn' => $student->nisn,
-                'name' => \App\Support\StudentName::display($student->name),
+                'name' => StudentName::display($student->name),
                 'classroom_id' => $membership?->classroom_id,
                 'classroom_name' => $membership?->classroom?->name ?? '-',
             ];
@@ -207,7 +220,7 @@ class CaseController extends Controller
             $student = $record->student;
             $activeClassroom = $student?->classMemberships?->first()?->classroom;
             $classroomName = $activeClassroom?->name ?: ($record->effective_classroom_name ?: '-');
-            $studentName = \App\Support\StudentName::display($student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib'));
+            $studentName = StudentName::display($student?->name ?: ($record->source_student_name ?: 'Murid e-Tatib'));
             $classroomId = $activeClassroom?->id ?? $temporaryClassrooms->firstWhere('name', $classroomName)?->id;
 
             return [
@@ -300,7 +313,7 @@ class CaseController extends Controller
         $case->load([
             'student',
             'classroom',
-            'temporaryStudent',
+            'temporaryStudent.reconciledStudent',
             'source',
             'serviceField',
             'status',
@@ -326,7 +339,7 @@ class CaseController extends Controller
         /** @var User $user */
         $user = $request->user();
         abort_unless($user->can('update', $case), 403);
-        $case->load(['student', 'temporaryStudent', 'source', 'serviceField', 'status']);
+        $case->load(['student', 'temporaryStudent.reconciledStudent', 'source', 'serviceField', 'status']);
         $data = [
             'case' => $case,
             'serviceFields' => ReferenceValue::query()
@@ -375,33 +388,6 @@ class CaseController extends Controller
         }
 
         return redirect()->route('cases.index')->with('success', 'Permasalahan berhasil diselesaikan.');
-    }
-
-    public function updateFollowUp(
-        UpdateCaseFollowUpRequest $request,
-        BkCase $case,
-        CaseService $caseService,
-    ): JsonResponse {
-        /** @var User $actor */
-        $actor = $request->user();
-        $validated = $request->validated();
-        $case = $caseService->updateFollowUp(
-            $case,
-            isset($validated['follow_up_type_id']) ? (int) $validated['follow_up_type_id'] : null,
-            $validated['expected_updated_at'],
-            $actor,
-        );
-
-        return response()->json([
-            'message' => 'Tindak lanjut berhasil diperbarui.',
-            'data' => [
-                'status_code' => $case->status?->code,
-                'status_label' => $case->status?->label,
-                'follow_up_type_id' => $case->follow_up_type_id,
-                'follow_up_type_label' => $case->followUpType?->label,
-                'updated_at' => $case->updated_at?->toJSON(),
-            ],
-        ]);
     }
 
     public function destroy(ArchiveCaseRequest $request, BkCase $case, CaseService $caseService): RedirectResponse
@@ -488,7 +474,7 @@ class CaseController extends Controller
         ]);
     }
 
-    private function orderWithdrawals(\Illuminate\Database\Eloquent\Builder $query, Request $request): \Illuminate\Database\Eloquent\Builder
+    private function orderWithdrawals(Builder $query, Request $request): Builder
     {
         $sort = $request->string('sort')->toString();
         $direction = $request->string('direction')->toString();

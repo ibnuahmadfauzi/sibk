@@ -41,9 +41,13 @@ final class WakaStudentCaseService
 
         $rows = $this->projection->build($waka, $queryFilters)
             ->get()
-            ->groupBy(static fn (BkCase $case): string => $case->student_id !== null
-                ? 'student:'.$case->student_id
-                : 'temporary:'.$case->temporary_student_id)
+            ->groupBy(static function (BkCase $case): string {
+                $studentId = $case->student_id ?? $case->temporaryStudent?->reconciled_student_id;
+
+                return $studentId !== null
+                    ? 'student:'.$studentId
+                    : 'temporary:'.$case->temporary_student_id;
+            })
             ->map(fn (Collection $cases, string $identityKey): array => $this->toStudentRow($cases, $identityKey));
 
         $sortColumn = match ($sort) {

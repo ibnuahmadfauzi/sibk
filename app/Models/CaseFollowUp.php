@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['case_id', 'follow_up_type_id', 'follow_up_date', 'notes', 'created_by'])]
+#[Fillable(['case_id', 'follow_up_type_id', 'follow_up_date', 'performed_at', 'notes', 'created_by'])]
 class CaseFollowUp extends Model
 {
     use SoftDeletes;
@@ -22,6 +21,7 @@ class CaseFollowUp extends Model
     {
         return [
             'follow_up_date' => 'date',
+            'performed_at' => 'datetime',
         ];
     }
 

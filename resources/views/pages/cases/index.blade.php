@@ -92,7 +92,7 @@
                                     </div>
 
                                     @can('update', $case)
-                                        @unless($completed)
+                                        @if(! $completed && $case->followUps->pluck('follow_up_type_id')->intersect($followUpTypes->pluck('id'))->unique()->count() < $followUpTypes->count())
                                             <div class="sibk-follow-up-add-wrapper">
                                                 <button type="button"
                                                     class="btn btn-link sibk-follow-up-add-btn btn-open-add-follow-up"
@@ -100,26 +100,20 @@
                                                     data-bs-target="#modal-tambah-tindak-lanjut"
                                                     data-case-id="{{ $case->id }}"
                                                     data-case-name="{{ $case->identityName() }}"
-                                                    data-store-url="{{ route('cases.follow-ups.store', $case) }}">
+                                                    data-store-url="{{ route('cases.follow-ups.store', $case) }}"
+                                                    data-used-follow-up-types="{{ $case->followUps->pluck('follow_up_type_id')->implode(',') }}">
                                                     <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
                                                     </svg>
                                                     <span>Tambah Tindak Lanjut</span>
                                                 </button>
                                             </div>
-                                        @endunless
+                                        @endif
                                     @endcan
                                 </div>
                             </div>
 
                             @can('update', $case)
-                            <span class="visually-hidden"
-                                data-follow-up-url="{{ route('cases.follow-up.update', $case) }}"
-                                data-follow-up-label-target="#case-follow-up-{{ $case->id }}"
-                                data-follow-up-timestamp-target="#case-updated-at-{{ $case->id }}"
-                                data-expected-updated-at="{{ $case->updated_at->toJSON() }}"
-                                data-previous-value="{{ $case->follow_up_type_id }}"
-                                data-save-status></span>
                             <span id="case-follow-up-{{ $case->id }}" class="visually-hidden">{{ $case->followUpType?->label ?? 'Belum ada' }}</span>
                             <span id="case-updated-at-{{ $case->id }}" class="visually-hidden">{{ $case->updated_at->toJSON() }}</span>
                             @endcan
@@ -331,6 +325,7 @@
                     </div>
                     <form id="form-tambah-tindak-lanjut" method="POST">
                         @csrf
+                        <input type="hidden" name="expected_updated_at" id="modal-follow-up-updated-at">
                         <div class="modal-body px-4 pt-3 pb-2">
                             <div class="alert alert-danger d-none py-2 small" id="modal-follow-up-error"></div>
 
@@ -345,9 +340,10 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-semibold text-dark small mb-1" for="modal_follow_up_date">Tanggal</label>
-                                <input type="date" name="follow_up_date" id="modal_follow_up_date" class="form-control py-2 border-secondary-subtle rounded-3" value="{{ now()->toDateString() }}" required>
+                                <label class="form-label fw-semibold text-dark small mb-1" for="modal_follow_up_date">Tanggal Tindak Lanjut</label>
+                                <input type="date" name="follow_up_date" id="modal_follow_up_date" class="form-control py-2 border-secondary-subtle rounded-3" required>
                             </div>
+
                         </div>
                         <div class="modal-footer border-top-0 px-4 pt-2 pb-4 d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light border border-secondary-subtle px-4 py-2 rounded-3 text-secondary fw-medium" data-bs-dismiss="modal">Batal</button>
@@ -770,6 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCaseId  = trigger.dataset.caseId;
         targetStoreUrl = trigger.dataset.storeUrl;
         const caseName = trigger.dataset.caseName || '';
+        const usedTypes = new Set((trigger.dataset.usedFollowUpTypes || '').split(',').filter(Boolean));
 
         closePopover();
 
@@ -782,8 +779,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('form-tambah-tindak-lanjut');
         if (form) {
             form.reset();
-            const dateInput = form.querySelector('[name="follow_up_date"]');
-            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            form.querySelector('[name="expected_updated_at"]').value = document.getElementById(`case-updated-at-${targetCaseId}`)?.textContent || '';
+            form.querySelectorAll('[name="follow_up_type_id"] option').forEach(option => {
+                option.disabled = usedTypes.has(option.value);
+                option.hidden = usedTypes.has(option.value);
+            });
         }
     }
 
@@ -817,7 +817,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(form);
             const payload = {
                 follow_up_type_id: formData.get('follow_up_type_id'),
-                follow_up_date:    formData.get('follow_up_date'),
+                follow_up_date: formData.get('follow_up_date'),
+                expected_updated_at: formData.get('expected_updated_at'),
             };
 
             const token = document.querySelector('meta[name="csrf-token"]')?.content
@@ -840,14 +841,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (!response.ok) {
-                    const message = result.message || (result.errors
-                        ? Object.values(result.errors).flat().join('<br>')
-                        : 'Terjadi kesalahan.');
-                    if (errorBox) { errorBox.innerHTML = message; errorBox.classList.remove('d-none'); }
+                    const message = result.errors
+                        ? Object.values(result.errors).flat().join(' ')
+                        : (result.message || 'Terjadi kesalahan.');
+                    if (errorBox) { errorBox.textContent = message; errorBox.classList.remove('d-none'); }
                     return;
                 }
 
                 const data = result.data;
+                const trigger = document.querySelector(`.btn-open-add-follow-up[data-case-id="${targetCaseId}"]`);
+                if (trigger) {
+                    const usedTypes = new Set((trigger.dataset.usedFollowUpTypes || '').split(',').filter(Boolean));
+                    usedTypes.add(String(data.follow_up_type_id));
+                    trigger.dataset.usedFollowUpTypes = [...usedTypes].join(',');
+                    if ([...document.querySelectorAll('#modal_follow_up_type_id option[value]')]
+                        .filter(option => option.value && !option.disabled).every(option => usedTypes.has(option.value))) {
+                        trigger.remove();
+                    }
+                }
 
                 // 1. Update pill label & style
                 const labelDisplay = document.getElementById(`case-follow-up-label-display-${targetCaseId}`);

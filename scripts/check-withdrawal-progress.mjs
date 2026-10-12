@@ -5,6 +5,7 @@ import {
     buildStudentOption,
     filterStudents,
     initWithdrawalProgress,
+    olderFollowUpMessage,
     renderLookupResults,
     renderPopoverHistory,
     positionPopover,
@@ -84,6 +85,10 @@ renderPopoverHistory(popover, [
 assert.equal(popover.children.length, 2);
 assert.match(popover.children[0].className, /latest/);
 assert.equal(popover.children[0].children[1].children[1].textContent, 'Masuk TU');
+
+assert.equal(olderFollowUpMessage({ id: 2, current_progress_label: 'Berkas sudah masuk TU', follow_ups: [{ id: 3 }] }),
+    'Catatan tersimpan di riwayat. Progres terkini tetap Berkas sudah masuk TU karena ada catatan bertanggal lebih baru.');
+assert.equal(olderFollowUpMessage({ id: 3, current_progress_label: 'Berkas sudah masuk TU', follow_ups: [{ id: 3 }] }), '');
 
 // Popover positioning: normal (below button) vs flipped (above button when near bottom)
 const popoverEl = {

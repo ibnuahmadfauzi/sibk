@@ -17,7 +17,11 @@ class CasePolicy
 
     public function view(User $user, BkCase $case): bool
     {
-        if ($user->hasRole('waka_kesiswaan')) {
+        if (! BkCase::query()->withinStudentServicePeriod()->whereKey($case->getKey())->exists()) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return true;
         }
 
@@ -29,9 +33,11 @@ class CasePolicy
             return true;
         }
 
-        return $case->student_id !== null && Student::query()
+        $studentId = $case->student_id ?? $case->temporaryStudent()->value('reconciled_student_id');
+
+        return $studentId !== null && Student::query()
             ->forActiveTeacherAssignment($user)
-            ->whereKey($case->student_id)
+            ->whereKey($studentId)
             ->exists();
     }
 

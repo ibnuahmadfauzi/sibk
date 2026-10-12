@@ -17,6 +17,83 @@ class AssignmentService
 {
     public function __construct(private readonly AuditService $auditService) {}
 
+    /** @return array{added: int, already_assigned: int, unavailable: int, previous_year: string} */
+    public function copyPreviousYearClasses(AcademicYear $targetYear, User $teacher, User $actor): array
+    {
+        Gate::forUser($actor)->authorize('create', TeacherAssignment::class);
+
+        return DB::transaction(function () use ($targetYear, $teacher, $actor): array {
+            $targetYear = AcademicYear::query()->lockForUpdate()->findOrFail($targetYear->getKey());
+            $teacher = User::query()->with('roles')->lockForUpdate()->findOrFail($teacher->getKey());
+            if ((! $targetYear->is_active && $targetYear->activated_at !== null)
+                || ! $teacher->is_active || ! $teacher->hasRole('guru_bk')) {
+                throw ValidationException::withMessages([
+                    'academic_year_id' => 'Tahun ajaran atau Guru BK tidak tersedia untuk pembagian kelas.',
+                ]);
+            }
+
+            if (! preg_match('/^(\d{4})\/(\d{4})$/', $targetYear->name, $matches)
+                || (int) $matches[2] !== (int) $matches[1] + 1) {
+                throw ValidationException::withMessages([
+                    'academic_year_id' => 'Tahun ajaran sebelumnya tidak dapat dipastikan.',
+                ]);
+            }
+            $previousName = sprintf('%04d/%04d', (int) $matches[1] - 1, (int) $matches[1]);
+            $previousYear = AcademicYear::query()->where('name', $previousName)->first();
+            if ($previousYear === null) {
+                throw ValidationException::withMessages([
+                    'academic_year_id' => 'Tahun ajaran sebelumnya belum tersedia.',
+                ]);
+            }
+
+            $previousNames = TeacherAssignment::query()
+                ->where('academic_year_id', $previousYear->getKey())
+                ->where('user_id', $teacher->getKey())
+                ->with('classroom:id,name')
+                ->get()
+                ->pluck('classroom.name')
+                ->filter()
+                ->all();
+            if ($previousNames === []) {
+                throw ValidationException::withMessages([
+                    'user_id' => sprintf('%s belum memiliki kelas binaan pada %s.', $teacher->name, $previousName),
+                ]);
+            }
+            $targetClasses = Classroom::query()->active()
+                ->where('academic_year_id', $targetYear->getKey())
+                ->whereIn('name', $previousNames)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $assignedClassIds = TeacherAssignment::query()
+                ->where('academic_year_id', $targetYear->getKey())
+                ->whereIn('classroom_id', $targetClasses->modelKeys())
+                ->lockForUpdate()
+                ->pluck('classroom_id')
+                ->all();
+
+            $added = 0;
+            foreach ($targetClasses as $classroom) {
+                if (in_array($classroom->getKey(), $assignedClassIds, true)) {
+                    continue;
+                }
+                $this->assignClass([
+                    'classroom_id' => $classroom->getKey(),
+                    'user_id' => $teacher->getKey(),
+                    'only_if_unassigned' => true,
+                ], $actor);
+                $added++;
+            }
+
+            return [
+                'added' => $added,
+                'already_assigned' => count($assignedClassIds),
+                'unavailable' => count($previousNames) - $targetClasses->count(),
+                'previous_year' => $previousName,
+            ];
+        }, 3);
+    }
+
     /**
      * @param  array{user_id: int, classroom_ids: list<int>}  $data
      * @return Collection<int, TeacherAssignment>
@@ -47,7 +124,7 @@ class AssignmentService
             }
 
             return $assignments;
-        });
+        }, 3);
     }
 
     /**
@@ -107,7 +184,7 @@ class AssignmentService
             );
 
             return $assignment->load(['teacher.roles', 'classroom', 'academicYear']);
-        });
+        }, 3);
     }
 
     public function unassignClass(Classroom $classroom, int $expectedUserId, User $actor): void
@@ -142,7 +219,7 @@ class AssignmentService
                 after: [...$before, 'user_id' => null],
             );
             $assignment->delete();
-        });
+        }, 3);
     }
 
     /** @return array<string, mixed> */

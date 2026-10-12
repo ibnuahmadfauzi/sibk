@@ -129,7 +129,7 @@ class ConsultationService
             $student = Student::query()->lockForUpdate()->findOrFail($data['student_id']);
             if (! Student::query()
                 ->availableForService((string) $data['session_date'])
-                ->professionallyAccessibleTo($actor)
+                ->forActiveTeacherAssignment($actor)
                 ->whereKey($student->getKey())
                 ->exists()) {
                 throw ValidationException::withMessages([
@@ -149,7 +149,7 @@ class ConsultationService
             if ($temporary->reconciled_student_id !== null) {
                 $student = $temporary->reconciledStudent;
                 if ($student === null || ! Student::query()
-                    ->professionallyAccessibleTo($actor)
+                    ->forActiveTeacherAssignment($actor)
                     ->whereKey($student?->getKey())
                     ->exists()) {
                     throw ValidationException::withMessages([

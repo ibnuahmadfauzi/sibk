@@ -15,6 +15,7 @@ use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
+use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\CaseService;
@@ -41,7 +42,7 @@ class StudentProfileTest extends TestCase
 
         $this->actingAs($teacher)->get(route('students.index', ['search' => 'NADIA']))
             ->assertOk()->assertSee('Nadia Putri')->assertDontSee('NADIA PUTRI')
-            ->assertSeeInOrder(['<th>No</th>', '<th>Murid</th>', 'Permasalahan', 'Poin Pelanggaran', 'Konsultasi', 'Prestasi'], false)
+            ->assertSeeInOrder(['<th>No</th>', '<span>Murid</span>', 'Permasalahan', 'Poin Pelanggaran', 'Konsultasi', 'Prestasi'], false)
             ->assertSeeInOrder(['Nadia Putri', $student->nisn]);
         $this->actingAs($teacher)->get(route('students.show', $student))
             ->assertOk()->assertSee('Nadia Putri')->assertDontSee('NADIA PUTRI');
@@ -143,6 +144,81 @@ class StudentProfileTest extends TestCase
             ->assertDontSee('<th>Status</th>', false);
         $this->actingAs($admin)->get(route('students.index'))->assertForbidden();
         $this->actingAs($admin)->get(route('students.show', $student))->assertForbidden();
+    }
+
+    public function test_coordinator_reads_all_student_service_history_without_receiving_teacher_write_access(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $consultation = $this->createConsultation($teacher, $student);
+        $coordinator = $this->userWithRole('koordinator_bk');
+
+        foreach ([$coordinator, $this->userWithRole('guru_bk')] as $viewer) {
+            if ($viewer !== $coordinator) {
+                $viewer->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
+            }
+
+            $this->actingAs($viewer)->get(route('students.index', ['search' => $student->name]))
+                ->assertOk()
+                ->assertViewHas('students', fn ($students): bool => $students->total() === 1
+                    && (int) $students->first()->active_cases_count === 1
+                    && (int) $students->first()->consultations_count === 1);
+            $this->get(route('students.show', ['student' => $student, 'tab' => 'kasus']))
+                ->assertOk()
+                ->assertViewHas('stats', fn ($stats): bool => $stats['cases'] === 1 && $stats['consultations'] === 1)
+                ->assertSee($case->initial_info)
+                ->assertViewHas('canCreateCase', false)
+                ->assertViewHas('canCreateConsultation', false);
+            $this->get(route('students.show', ['student' => $student, 'tab' => 'konsultasi']))
+                ->assertOk()->assertSee($consultation->problem);
+            $this->get(route('cases.index', ['tab' => 'kasus']))->assertOk()->assertSee($student->name);
+            $this->get(route('cases.index', ['tab' => 'konsultasi']))->assertOk()->assertSee($student->name);
+            $this->get(route('cases.show', $case))->assertOk();
+            $this->get(route('consultations.show', $consultation))->assertOk();
+            if (! $viewer->hasRole('guru_bk')) {
+                $this->get(route('cases.create'))->assertForbidden();
+                $this->get(route('consultations.create'))->assertForbidden();
+            }
+        }
+    }
+
+    public function test_coordinator_finds_departed_inactive_student_with_only_predeparture_service_history(): void
+    {
+        [$teacher, $student] = $this->teacherAndScopedStudent();
+        $case = $this->createCase($teacher, $student);
+        $consultation = $this->createConsultation($teacher, $student);
+        $postDepartureCase = $case->replicate();
+        $postDepartureCase->registration_number = 'K-SESUDAH-KELUAR';
+        $postDepartureCase->service_date = '2026-09-02';
+        $postDepartureCase->save();
+        $postDepartureConsultation = $consultation->replicate();
+        $postDepartureConsultation->session_date = '2026-09-02';
+        $postDepartureConsultation->save();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        StudentDeparture::query()->create([
+            'student_id' => $student->id,
+            'departure_type' => StudentDeparture::TYPE_TRANSFER,
+            'status' => StudentDeparture::STATUS_OFFICIAL,
+            'reported_at' => '2026-08-25',
+            'effective_date' => '2026-09-01',
+            'recorded_by' => $teacher->id,
+            'finalized_by' => $coordinator->id,
+            'finalized_at' => now(),
+        ]);
+        $student->update(['is_active' => false]);
+
+        $this->actingAs($coordinator)->get(route('students.index', ['search' => $student->nisn]))
+            ->assertOk()
+            ->assertViewHas('students', fn ($students): bool => $students->total() === 1
+                && (int) $students->first()->active_cases_count === 1
+                && (int) $students->first()->consultations_count === 1);
+        $this->get(route('students.show', $student))
+            ->assertOk()
+            ->assertViewHas('stats', fn ($stats): bool => $stats['cases'] === 1 && $stats['consultations'] === 1)
+            ->assertViewHas('canCreateCase', false)
+            ->assertViewHas('canCreateConsultation', false);
+        $this->actingAs($teacher)->get(route('students.index', ['search' => $student->nisn]))
+            ->assertOk()->assertViewHas('students', fn ($students): bool => $students->total() === 0);
     }
 
     public function test_profile_uses_neutral_service_labels_without_internal_numbers(): void

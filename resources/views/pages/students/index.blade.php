@@ -15,8 +15,8 @@
             @forelse($students as $student)
                 @php
                     $membership = $student->classMemberships->first();
-                    $activeCases = $student->cases->whereNull('closed_at');
-                    $totalConsultations = $student->consultations->count();
+                    $activeCases = (int) $student->active_cases_count;
+                    $totalConsultations = (int) $student->consultations_count;
                     $totalTatibPoints = $student->tatibPoints();
                 @endphp
                 <tr class="sibk-table__row--clickable" style="cursor:pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
@@ -25,7 +25,7 @@
                         <a class="d-block fw-bold text-dark text-decoration-none" href="{{ route('students.show', $student) }}">{{ \App\Support\StudentName::display($student->name) }}</a>
                         <div class="small fw-normal text-muted">{{ $student->nisn }} · {{ $membership?->classroom?->name ?? '—' }}</div>
                     </td>
-                    <td class="text-center"><span class="fw-semibold {{ $activeCases->isNotEmpty() ? 'text-primary' : 'text-muted' }}">{{ $activeCases->count() }}</span></td>
+                    <td class="text-center"><span class="fw-semibold {{ $activeCases > 0 ? 'text-primary' : 'text-muted' }}">{{ $activeCases }}</span></td>
                     <td class="text-center"><span class="fw-semibold {{ $totalTatibPoints > 0 ? 'text-danger' : 'text-muted' }}">{{ $totalTatibPoints }}</span></td>
                     <td class="text-center"><span class="fw-semibold {{ $totalConsultations > 0 ? 'text-info' : 'text-muted' }}">{{ $totalConsultations }}</span></td>
                     <td class="text-center"><span class="fw-semibold {{ $student->achievements_count > 0 ? 'text-success' : 'text-muted' }}">{{ $student->achievements_count }}</span></td>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\StudentName;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -70,7 +71,9 @@ class BkCase extends Model
     /** @return HasMany<CaseFollowUp, $this> */
     public function followUps(): HasMany
     {
-        return $this->hasMany(CaseFollowUp::class, 'case_id')->orderByDesc('follow_up_date')->orderByDesc('id');
+        return $this->hasMany(CaseFollowUp::class, 'case_id')
+            ->orderByDesc('follow_up_date')
+            ->orderByDesc('id');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -103,9 +106,13 @@ class BkCase extends Model
     /** @param Builder<BkCase> $query */
     public function scopeWithinStudentServicePeriod(Builder $query): Builder
     {
-        return $query->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
-            ->where('status', StudentDeparture::STATUS_OFFICIAL)
-            ->whereColumn('student_departures.effective_date', '<=', 'cases.service_date'));
+        return $query
+            ->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'cases.service_date'))
+            ->whereDoesntHave('temporaryStudent.reconciledStudent.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'cases.service_date'));
     }
 
     /** @param Builder<BkCase> $query */
@@ -113,7 +120,7 @@ class BkCase extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('waka_kesiswaan')) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return $query;
         }
 
@@ -121,21 +128,35 @@ class BkCase extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function (Builder $access) use ($user): void {
-            if ($user->hasRole('guru_bk')) {
-                $access->whereHas('assignments', fn (Builder $assignments): Builder => $assignments
-                    ->where('user_id', $user->getKey()))
-                    ->orWhereIn('student_id', Student::query()
-                        ->forActiveTeacherAssignment($user)
-                        ->select('students.id'));
-            }
+        return $query->professionallyAccessibleTo($user);
+    }
 
+    /** @param Builder<BkCase> $query */
+    public function scopeProfessionallyAccessibleTo(Builder $query, User $user): Builder
+    {
+        if (! $user->hasRole('guru_bk')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $access) use ($user): void {
+            $access->whereHas('assignments', fn (Builder $assignments): Builder => $assignments
+                ->where('user_id', $user->getKey()))
+                ->orWhereIn('student_id', Student::query()
+                    ->forActiveTeacherAssignment($user)
+                    ->select('students.id'))
+                ->orWhereHas('temporaryStudent', fn (Builder $temporary): Builder => $temporary
+                    ->whereIn('reconciled_student_id', Student::query()
+                        ->forActiveTeacherAssignment($user)
+                        ->select('students.id')));
         });
     }
 
     public function identityName(): string
     {
-        return \App\Support\StudentName::display($this->student?->name ?? $this->temporaryStudent?->input_name ?? 'Identitas tidak tersedia');
+        return StudentName::display($this->student?->name
+            ?? $this->temporaryStudent?->reconciledStudent?->name
+            ?? $this->temporaryStudent?->input_name
+            ?? 'Identitas tidak tersedia');
     }
 
     public function identityNisn(): string
