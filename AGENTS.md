@@ -13,7 +13,8 @@ Aplikasi layanan Bimbingan dan Konseling SMK Negeri 1 Surabaya.
   aktif; jangan membaca historical docs kecuali memang diperlukan.
 - Gunakan Git commit sebagai checkpoint dan histori.
 - Tulis pesan commit, judul, dan deskripsi PR GitHub dalam Bahasa Indonesia yang sederhana, lugas, dan sesuai perubahan yang dikerjakan.
-- `cobasidebar` adalah baseline pengembangan; `main` versi stabil produksi.
+- `cobasidebar` adalah baseline pengembangan; `devlopment` tahap validasi sebelum produksi; `main` versi stabil produksi.
+- Promosikan perubahan melalui PR `cobasidebar` -> `devlopment` -> `main`. Jangan melewati tahap `devlopment` untuk rilis ke `main`.
 - Kerjakan di feature branch/worktree, PR ke `cobasidebar`; jangan force push atau menghapus branch yang belum di-merge.
 
 ## Documentation

@@ -4,9 +4,13 @@ Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 
 ## Branch dan status
 
+Source untuk klien diekspor dari `origin/main` dengan riwayat Git baru. Repo klien menerima rilis resmi, bukan pekerjaan harian. Sebelum ekspor, jalankan `git fetch origin main`, lalu `python scripts/export-client-release.py --version 1.0.0 --output outputs/client-release/1.0.0` dan `python scripts/check-client-release.py outputs/client-release/1.0.0`. Ganti versi/direktori untuk setiap rilis; direktori yang sudah ada tidak ditimpa. Template instalasi berada di `scripts/client-release/`. Pemeriksaan dilakukan sebelum `git init` pada hasil ekspor. Untuk rilis berikutnya, hasil yang sudah diperiksa diterapkan sebagai commit baru pada checkout bersih repo klien; jangan mengganti riwayat atau force push. `RELEASE.json` mencatat commit sumber dan checksum file. Ekspor ini tidak menggantikan pengujian instalasi pada server tujuan.
+
 - `cobasidebar`: baseline pengembangan aktif.
+- `devlopment`: tahap validasi hasil dari `cobasidebar` sebelum masuk produksi.
 - `main`: versi stabil untuk produksi; tidak dipakai untuk pekerjaan harian.
 - Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
+- Alur promosi melalui Pull Request: `cobasidebar` -> `devlopment` -> `main`. Merge setiap tahap setelah pemeriksaan dan pengujian yang sesuai; perpindahan tidak otomatis.
 - Jangan force push, menghapus `main`, atau reset database bersama/produksi.
 
 Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung.
