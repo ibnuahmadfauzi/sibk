@@ -5,8 +5,10 @@ Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 ## Branch dan status
 
 - `cobasidebar`: baseline pengembangan aktif.
+- `devlopment`: tahap validasi hasil dari `cobasidebar` sebelum masuk produksi.
 - `main`: versi stabil untuk produksi; tidak dipakai untuk pekerjaan harian.
 - Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
+- Alur promosi melalui Pull Request: `cobasidebar` -> `devlopment` -> `main`. Merge setiap tahap setelah pemeriksaan dan pengujian yang sesuai; perpindahan tidak otomatis.
 - Jangan force push, menghapus `main`, atau reset database bersama/produksi.
 
 Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung.
