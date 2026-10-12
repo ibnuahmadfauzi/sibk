@@ -1,3 +1,7 @@
+import { initActionTooltips } from './action-tooltips';
+
+initActionTooltips();
+
 const form = document.querySelector('#loginForm');
 const identifier = document.querySelector('#identifier');
 const password = document.querySelector('#password');

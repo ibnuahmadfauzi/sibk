@@ -27,9 +27,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'last_tested_at',
     'last_tested_by',
     'is_enabled',
+    'automatic_sync_url',
+    'automatic_sync_enabled',
+    'automatic_sync_enabled_at',
+    'automatic_sync_updated_by',
+    'sync_watermark',
+    'last_full_synced_at',
+    'last_successful_sync_at',
+    'last_probe_summary',
     'updated_by',
 ])]
-#[Hidden(['credentials'])]
+#[Hidden(['credentials', 'automatic_sync_url'])]
 class IntegrationSetting extends Model
 {
     public const string PROVIDER_DAPODIK = 'dapodik';
@@ -60,6 +68,12 @@ class IntegrationSetting extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function automaticSyncUpdatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'automatic_sync_updated_by');
+    }
+
     /**
      * @return array<string, string>
      */
@@ -73,6 +87,12 @@ class IntegrationSetting extends Model
             'verified_configuration_version' => 'integer',
             'last_tested_at' => 'datetime',
             'is_enabled' => 'boolean',
+            'automatic_sync_url' => 'encrypted',
+            'automatic_sync_enabled' => 'boolean',
+            'automatic_sync_enabled_at' => 'datetime',
+            'last_full_synced_at' => 'datetime',
+            'last_successful_sync_at' => 'datetime',
+            'last_probe_summary' => 'array',
         ];
     }
 }

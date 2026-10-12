@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('page-title')</title>
 
@@ -18,7 +19,7 @@
     @yield('extra-css')
 </head>
 
-<body class="sibk-app-body">
+<body class="sibk-app-body" data-draft-user="{{ auth()->id() }}" @if(session()->has('success')) data-save-succeeded="true" @endif>
     <a class="sibk-skip-link" href="#main-content">Lewati ke konten utama</a>
 
     {{-- Include Sidebar Component --}}
@@ -39,6 +40,29 @@
         </section>
 
     </main>
+
+    <div class="modal fade sibk-confirmation-modal" id="app-confirmation-modal" tabindex="-1" aria-labelledby="app-confirmation-title" aria-describedby="app-confirmation-message" aria-hidden="true" data-app-confirmation-modal>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <button type="button" class="btn-close sibk-confirmation-modal__close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                <div class="modal-body text-center">
+                    <span class="sibk-confirmation-modal__icon" aria-hidden="true">
+                        <svg data-app-confirmation-success viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                        <svg data-app-confirmation-danger viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/></svg>
+                        <svg data-app-confirmation-warning viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                    </span>
+                    <h2 class="modal-title sibk-confirmation-modal__title" id="app-confirmation-title" data-app-confirmation-title>Konfirmasi</h2>
+                    <p class="sibk-confirmation-modal__message" id="app-confirmation-message">
+                        <span data-app-confirmation-message></span><strong data-app-confirmation-subject></strong><span data-app-confirmation-suffix></span>
+                    </p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal" data-app-confirmation-cancel>Batal</button>
+                    <button type="button" class="btn btn-primary" data-app-confirmation-action>Ya, lanjutkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @yield('extra-javascript')
 

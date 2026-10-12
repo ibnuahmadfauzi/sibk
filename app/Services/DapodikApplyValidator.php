@@ -71,7 +71,7 @@ final class DapodikApplyValidator
             $hashes[] = $item->item_hash;
 
             if ($item->match_status === DapodikSyncPreviewItem::MATCH_CONFLICT) {
-                $this->validationError('preview', 'Konflik pratinjau harus diselesaikan melalui snapshot yang sah.');
+                $this->validationError('preview', 'Konflik data masih ada. Periksa daftar dan buat pratinjau baru.');
             }
             if ($item->match_status === DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING
                 && ! in_array($item->decision, [
@@ -109,7 +109,7 @@ final class DapodikApplyValidator
         if (! is_string($run->snapshot_fingerprint)
             || ! hash_equals($run->snapshot_fingerprint, $fingerprint)
         ) {
-            $this->validationError('preview', 'Fingerprint snapshot Dapodik tidak konsisten.');
+            $this->validationError('preview', 'Pratinjau Dapodik sudah berubah. Buat pratinjau baru.');
         }
     }
 
@@ -191,7 +191,6 @@ final class DapodikApplyValidator
                 || $classroomId === null
                 || $yearId === null
                 || $target->student_id !== $studentId
-                || $target->classroom_id !== $classroomId
                 || $target->academic_year_id !== $yearId
             ) {
                 $this->validationError('preview', 'Keanggotaan tidak lagi sesuai dengan keputusan murid, rombel, dan tahun ajaran.');
@@ -265,20 +264,25 @@ final class DapodikApplyValidator
         $classroomItem = $byEntityAndSource->get(
             DapodikSyncPreviewItem::ENTITY_CLASSROOM.':'.$item->safe_fields['classroom_source_id'],
         );
+        $yearItem = $byEntityAndSource->get(
+            DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR.':'.$item->safe_fields['academic_year_source_id'],
+        );
         $studentId = $studentItem instanceof DapodikSyncPreviewItem
             ? $this->matches->selectedCandidateId($studentItem)
             : null;
         $classroomId = $classroomItem instanceof DapodikSyncPreviewItem
             ? $this->matches->selectedCandidateId($classroomItem)
             : null;
-        if ($studentId === null || $classroomId === null) {
+        $yearId = $yearItem instanceof DapodikSyncPreviewItem
+            ? $this->matches->selectedCandidateId($yearItem)
+            : null;
+        if ($studentId === null || $classroomId === null || $yearId === null) {
             return null;
         }
 
         return StudentClassMembership::query()
             ->where('student_id', $studentId)
-            ->where('classroom_id', $classroomId)
-            ->whereDate('effective_from', $item->safe_fields['effective_from']);
+            ->where('academic_year_id', $yearId);
     }
 
     private function validationError(string $field, string $message): never

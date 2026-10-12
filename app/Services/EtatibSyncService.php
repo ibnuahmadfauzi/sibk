@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Integrations\Etatib\EtatibConnector;
+use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\Etatib\EtatibUnavailableException;
 use App\Integrations\IntegrationConfigurationException;
 use App\Integrations\IntegrationOperationContext;
 use App\Integrations\IntegrationOperationLock;
+use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
 use App\Models\Student;
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Throwable;
@@ -25,6 +28,9 @@ class EtatibSyncService
         private readonly EtatibConnector $connector,
         private readonly AuditService $auditService,
         private readonly IntegrationOperationLock $operationLock,
+        private readonly EtatibIdentityNormalizer $identityNormalizer,
+        private readonly array $previewDecisions = [],
+        private readonly ?Closure $beforeApply = null,
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
@@ -33,6 +39,41 @@ class EtatibSyncService
             IntegrationSetting::PROVIDER_ETATIB,
             fn (IntegrationOperationContext $context): ExternalSyncRun => $this->synchronizeLocked($context, $actor),
         );
+    }
+
+    public function synchronizeSnapshot(EtatibSnapshot $snapshot, ?User $actor = null): ExternalSyncRun
+    {
+        return $this->synchronizeUsing(
+            static fn (IntegrationOperationContext $context): EtatibSnapshot => $snapshot,
+            $actor,
+        );
+    }
+
+    /** @param Closure(IntegrationOperationContext): EtatibSnapshot $snapshotLoader */
+    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null, array $decisions = [], ?Closure $beforeApply = null): ExternalSyncRun
+    {
+        $connector = new class($snapshotLoader) implements EtatibConnector
+        {
+            /** @param Closure(IntegrationOperationContext): EtatibSnapshot $snapshotLoader */
+            public function __construct(private readonly Closure $snapshotLoader) {}
+
+            public function fetchSnapshot(IntegrationOperationContext $context): EtatibSnapshot
+            {
+                $context->assertWithinDeadline();
+
+                return ($this->snapshotLoader)($context);
+            }
+        };
+
+        return (new self(
+            $connector,
+            $this->auditService,
+            $this->operationLock,
+            $this->identityNormalizer,
+            $decisions,
+            $beforeApply,
+        ))
+            ->synchronize($actor);
     }
 
     public function reconcileStudentLinks(?User $actor = null): int
@@ -52,40 +93,7 @@ class EtatibSyncService
                 ->firstOrFail();
             $this->operationLock->assertCurrent($context, $setting);
 
-            $linked = 0;
-            ExternalTatibRecord::query()
-                ->whereNull('student_id')
-                ->eachById(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
-                    $students = Student::query()
-                        ->where('nisn', $record->nisn)
-                        ->where('master_source', Student::MASTER_SOURCE_DAPODIK)
-                        ->whereNotNull('dapodik_id')
-                        ->whereNotNull('source_confirmed_at')
-                        ->get();
-                    if ($students->count() !== 1) {
-                        return;
-                    }
-
-                    $student = $students->firstOrFail();
-                    $record->update(['student_id' => $student->getKey()]);
-                    ExternalSyncIssue::query()
-                        ->where('entity_type', 'etatib_record')
-                        ->where('source_identifier', $record->source_identifier)
-                        ->whereNull('resolved_at')
-                        ->update([
-                            'resolved_student_id' => $student->getKey(),
-                            'resolved_by' => $actor?->getKey(),
-                            'resolved_at' => now(),
-                        ]);
-                    $this->auditService->record(
-                        action: 'etatib.student_relinked',
-                        auditable: $record,
-                        summary: 'Record e-Tatib ditautkan kembali melalui NISN exact tanpa write-back.',
-                        actor: $actor,
-                        after: ['student_id' => $student->getKey()],
-                    );
-                    $linked++;
-                }, 1000);
+            $linked = $this->reconcileUnlinkedRecords($actor);
 
             $setting->refresh();
             $this->operationLock->assertCurrent($context, $setting);
@@ -108,16 +116,33 @@ class EtatibSyncService
             $this->mutate($context, fn () => $run->update([
                 'is_full_snapshot' => $snapshot->isFullSnapshot,
                 'received_count' => count($snapshot->records),
+                'snapshot_evidence' => $snapshot->evidence === null ? null : [
+                    'source_id' => $snapshot->evidence->reportedSourceIdentifier,
+                    'contract_version' => $snapshot->evidence->contractMarker,
+                    'mode' => $snapshot->evidence->completenessMarker,
+                    'page_count' => $snapshot->evidence->pageCount,
+                    'record_count' => $snapshot->evidence->recordCount,
+                    'processed_bytes' => $snapshot->evidence->processedBytes,
+                    'snapshot_id' => $snapshot->snapshotId,
+                ],
             ]));
 
             $this->mutate($context, function () use ($snapshot, $run, $actor): void {
+                if ($this->beforeApply !== null) {
+                    ($this->beforeApply)();
+                }
+                $this->applyPreviewDecisions($snapshot, $actor);
                 $syncedAt = now();
                 $processed = 0;
-                $keptIds = [];
                 $duplicateSourceIds = collect($snapshot->records)
                     ->groupBy('source_id')
                     ->filter(fn ($items): bool => $items->count() > 1)
                     ->keys();
+                $manualMappings = EtatibIdentityMapping::query()
+                    ->active()
+                    ->with('student')
+                    ->get()
+                    ->keyBy(fn (EtatibIdentityMapping $mapping): string => $mapping->source_nisn.'|'.$mapping->source_name_hash);
 
                 foreach ($snapshot->records as $item) {
                     $existing = ExternalTatibRecord::query()
@@ -125,28 +150,45 @@ class EtatibSyncService
                         ->first();
 
                     if ($duplicateSourceIds->contains($item['source_id'])) {
-                        if ($existing !== null) {
-                            $keptIds[] = $existing->getKey();
-                        }
-                        $this->issue($run, $item, 'duplicate_source_identifier', 'Identitas record e-Tatib muncul lebih dari sekali pada payload.');
+                        $this->issue($run, $item, 'duplicate_source_identifier', 'Identitas data e-Tatib muncul lebih dari sekali.');
 
                         continue;
                     }
 
                     if ($existing !== null && $existing->nisn !== $item['nisn']) {
-                        $keptIds[] = $existing->getKey();
                         $this->issue($run, $item, 'source_identity_mismatch', 'Identitas record e-Tatib menunjuk ke NISN yang berbeda.');
 
                         continue;
                     }
 
-                    $student = Student::query()->where('nisn', $item['nisn'])->first();
-                    if ($student === null) {
-                        $this->issue($run, $item, 'student_not_found', 'NISN e-Tatib belum ditemukan pada master Dapodik.');
-                    } else {
+                    $sourceName = $item['source_student_name'] ?? null;
+                    $manualMapping = is_string($sourceName)
+                        ? $manualMappings->get($this->identityNormalizer->key($item['nisn'], $sourceName))
+                        : null;
+                    $student = $manualMapping?->student;
+
+                    if ($student === null && $manualMapping === null) {
+                        $student = Student::query()->where('nisn', $item['nisn'])->first();
+                        if ($student === null) {
+                            $this->issue($run, $item, 'student_not_found', 'NISN e-Tatib belum ditemukan pada master murid.');
+                        } elseif (is_string($sourceName)
+                            && ! $this->namesMatch($sourceName, $student->name)
+                        ) {
+                            $this->issue(
+                                $run,
+                                $item,
+                                'student_name_mismatch',
+                                'Nama e-Tatib berbeda dengan nama pada master murid. Record ditahan tanpa penautan.',
+                            );
+                            $student = null;
+                        }
+                    }
+
+                    if ($student !== null) {
                         ExternalSyncIssue::query()
                             ->where('entity_type', 'etatib_record')
                             ->where('source_identifier', $item['source_id'])
+                            ->whereIn('issue_code', ['student_not_found', 'student_name_mismatch'])
                             ->whereNull('resolved_at')
                             ->update([
                                 'resolved_student_id' => $student->getKey(),
@@ -155,44 +197,74 @@ class EtatibSyncService
                             ]);
                     }
 
-                    $record = ExternalTatibRecord::query()->updateOrCreate(
+                    ExternalTatibRecord::query()->updateOrCreate(
                         ['source_identifier' => $item['source_id']],
                         [
                             'nisn' => $item['nisn'],
+                            'source_nisn' => $item['source_nisn'] ?? $item['nisn'],
                             'student_id' => $student?->getKey(),
+                            'source_student_name' => $item['source_student_name'] ?? null,
+                            'source_classroom_name' => $item['source_classroom_name'] ?? null,
                             'occurred_at' => $item['occurred_at'],
                             'violation_type' => $item['violation_type'],
                             'category' => $item['category'],
+                            'recorded_by_name' => $item['recorded_by_name'] ?? null,
                             'points' => $item['points'],
+                            'source_total_points' => $item['source_total_points'] ?? null,
                             'source_status' => $item['source_status'] ?? null,
-                            'is_active' => true,
+                            'is_active' => ($item['source_deleted_at'] ?? null) === null,
                             'source_synced_at' => $item['source_synced_at'] ?? null,
+                            'source_deleted_at' => $item['source_deleted_at'] ?? null,
                             'synced_at' => $syncedAt,
                         ],
                     );
-                    $keptIds[] = $record->getKey();
                     $processed++;
-                }
 
-                if ($snapshot->isFullSnapshot) {
-                    $missing = ExternalTatibRecord::query();
-                    if ($keptIds !== []) {
-                        $missing->whereNotIn('id', array_unique($keptIds));
+                    if ($student !== null) {
+                        $this->recordClassroomWarning($run, $item, $student);
                     }
-                    $missing->update(['is_active' => false]);
                 }
 
-                $conflicts = $run->issues()->whereNull('resolved_at')->count();
+                $this->reconcileUnlinkedRecords($actor);
+
+                $conflicts = ExternalSyncIssue::query()
+                    ->where('entity_type', 'etatib_record')
+                    ->whereNull('resolved_at')
+                    ->whereIn('source_identifier', array_column($snapshot->records, 'source_id'))
+                    ->distinct()
+                    ->count('source_identifier');
                 $this->finalizeRun(
                     $run,
-                    $conflicts > 0 ? ExternalSyncRun::STATUS_WARNING : ExternalSyncRun::STATUS_SUCCEEDED,
-                    $conflicts > 0
-                        ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
-                        : 'Sinkronisasi e-Tatib berhasil.',
+                    $conflicts > 0 || $snapshot->undatedCount > 0
+                        ? ExternalSyncRun::STATUS_WARNING
+                        : ExternalSyncRun::STATUS_SUCCEEDED,
+                    $snapshot->undatedCount > 0
+                        ? sprintf(
+                            'Sinkronisasi e-Tatib selesai. %d pelanggaran disimpan tanpa tanggal karena tanggal dari API berubah.%s',
+                            $snapshot->undatedCount,
+                            $conflicts > 0 ? sprintf(' %d identitas perlu diperiksa.', $conflicts) : '',
+                        )
+                        : ($conflicts > 0
+                            ? sprintf('Sinkronisasi e-Tatib selesai dengan %d data yang perlu diperiksa.', $conflicts)
+                            : 'Sinkronisasi e-Tatib berhasil.'),
                     $actor,
                     $processed,
                     $conflicts,
                 );
+
+                if ($snapshot->watermark !== null) {
+                    $checkpoint = [
+                        'sync_watermark' => $snapshot->watermark,
+                        'last_successful_sync_at' => $syncedAt,
+                    ];
+                    if ($snapshot->isFullSnapshot) {
+                        $checkpoint['last_full_synced_at'] = $syncedAt;
+                    }
+
+                    IntegrationSetting::query()
+                        ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
+                        ->update($checkpoint);
+                }
             });
         } catch (Throwable $exception) {
             if (! $exception instanceof EtatibUnavailableException
@@ -210,6 +282,71 @@ class EtatibSyncService
         }
 
         return $run->refresh();
+    }
+
+    private function applyPreviewDecisions(EtatibSnapshot $snapshot, ?User $actor): void
+    {
+        if ($this->previewDecisions === []) {
+            return;
+        }
+        if ($actor === null) {
+            throw new EtatibUnavailableException('Pilihan identitas memerlukan Admin IT.');
+        }
+
+        $sourceIdentities = collect($snapshot->records)
+            ->keyBy(fn (array $item): string => $this->identityNormalizer->key($item['nisn'], $item['source_student_name']));
+        $seen = [];
+        foreach ($this->previewDecisions as $decision) {
+            $nisn = $decision['nisn'];
+            $name = $decision['name'];
+            $key = $this->identityNormalizer->key($nisn, $name);
+            $source = $sourceIdentities->get($key);
+            if (isset($seen[$key]) || $source === null) {
+                throw new EtatibUnavailableException('Pilihan identitas tidak sesuai dengan pratinjau. Tinjau data kembali.');
+            }
+            $seen[$key] = true;
+            $student = Student::query()->find($decision['student_id']);
+            if ($student === null) {
+                throw new EtatibUnavailableException('Murid pilihan tidak tersedia. Tinjau data kembali.');
+            }
+            $sameNisn = Student::query()->where('nisn', $nisn)->first();
+            if ($sameNisn !== null && $this->identityNormalizer->name($sameNisn->name) === $this->identityNormalizer->name($name)) {
+                throw new EtatibUnavailableException('Identitas tersebut sudah cocok otomatis. Tinjau data kembali.');
+            }
+            $mapping = EtatibIdentityMapping::query()
+                ->where('source_nisn', $nisn)
+                ->where('source_name_hash', $this->identityNormalizer->nameHash($name))
+                ->lockForUpdate()
+                ->first();
+            if ($mapping?->is_active) {
+                throw new EtatibUnavailableException('Identitas tersebut sudah dipetakan. Tinjau data kembali.');
+            }
+            $values = [
+                'source_name' => $source['source_student_name'],
+                'student_id' => $student->getKey(),
+                'is_active' => true,
+                'mapped_by' => $actor->getKey(),
+                'mapped_at' => now(),
+                'revoked_by' => null,
+                'revoked_at' => null,
+            ];
+            if ($mapping === null) {
+                $mapping = EtatibIdentityMapping::query()->create([
+                    'source_nisn' => $nisn,
+                    'source_name_hash' => $this->identityNormalizer->nameHash($name),
+                    ...$values,
+                ]);
+            } else {
+                $mapping->update($values);
+            }
+            $this->auditService->record(
+                action: 'etatib.identity_mapped',
+                auditable: $mapping,
+                summary: 'Identitas e-Tatib dipilih saat pratinjau sinkronisasi.',
+                actor: $actor,
+                after: ['student_id' => $student->getKey()],
+            );
+        }
     }
 
     private function settleFailure(
@@ -278,7 +415,7 @@ class EtatibSyncService
     }
 
     /** @template TResult @param \Closure(): TResult $mutation @return TResult */
-    private function mutate(IntegrationOperationContext $context, \Closure $mutation): mixed
+    private function mutate(IntegrationOperationContext $context, Closure $mutation): mixed
     {
         return DB::transaction(function () use ($context, $mutation): mixed {
             $setting = IntegrationSetting::query()
@@ -295,16 +432,144 @@ class EtatibSyncService
         });
     }
 
-    /** @param array{source_id: string, nisn: string, occurred_at: string, violation_type: string, category: string, points: int, source_status?: string|null, source_synced_at?: string|null} $item */
+    /** @param array<string, mixed> $item */
     private function issue(ExternalSyncRun $run, array $item, string $code, string $summary): ExternalSyncIssue
     {
-        return ExternalSyncIssue::query()->create([
-            'external_sync_run_id' => $run->getKey(),
+        return ExternalSyncIssue::query()->firstOrCreate([
             'entity_type' => 'etatib_record',
             'source_identifier' => $item['source_id'],
-            'nisn' => $item['nisn'],
             'issue_code' => $code,
+            'resolved_at' => null,
+        ], [
+            'external_sync_run_id' => $run->getKey(),
+            'nisn' => $item['nisn'],
             'summary' => $summary,
+            'input_name' => $item['source_student_name'] ?? null,
+        ]);
+    }
+
+    private function namesMatch(string $sourceName, string $masterName): bool
+    {
+        return $this->identityNormalizer->name($sourceName) === $this->identityNormalizer->name($masterName);
+    }
+
+    private function reconcileUnlinkedRecords(?User $actor): int
+    {
+        $linked = 0;
+        ExternalTatibRecord::query()
+            ->whereNull('student_id')
+            ->eachById(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
+                $mapping = $record->source_student_name === null
+                    ? null
+                    : EtatibIdentityMapping::query()
+                        ->active()
+                        ->where('source_nisn', $record->nisn)
+                        ->where('source_name_hash', $this->identityNormalizer->nameHash($record->source_student_name))
+                        ->with('student')
+                        ->first();
+                $student = $mapping?->student;
+
+                if ($student === null) {
+                    $students = Student::query()->where('nisn', $record->nisn)->get();
+                    if ($students->count() !== 1) {
+                        return;
+                    }
+
+                    $student = $students->firstOrFail();
+                    if ($record->source_student_name !== null
+                        && ! $this->namesMatch($record->source_student_name, $student->name)
+                    ) {
+                        return;
+                    }
+                }
+
+                $record->update(['student_id' => $student->getKey()]);
+                ExternalSyncIssue::query()
+                    ->where('entity_type', 'etatib_record')
+                    ->where('source_identifier', $record->source_identifier)
+                    ->whereIn('issue_code', ['student_not_found', 'student_name_mismatch'])
+                    ->whereNull('resolved_at')
+                    ->update([
+                        'resolved_student_id' => $student->getKey(),
+                        'resolved_by' => $actor?->getKey(),
+                        'resolved_at' => now(),
+                    ]);
+                $this->auditService->record(
+                    action: 'etatib.student_relinked',
+                    auditable: $record,
+                    summary: 'Record e-Tatib ditautkan kembali melalui NISN exact tanpa write-back.',
+                    actor: $actor,
+                    after: ['student_id' => $student->getKey()],
+                );
+                $linked++;
+            }, 1000);
+
+        return $linked;
+    }
+
+    private function normalizeText(string $value): string
+    {
+        return $this->identityNormalizer->name($value);
+    }
+
+    /** @param array<string, mixed> $item */
+    private function recordClassroomWarning(ExternalSyncRun $run, array $item, Student $student): void
+    {
+        $sourceClassroom = $item['source_classroom_name'] ?? null;
+        if (! is_string($sourceClassroom) || $sourceClassroom === '' || $item['occurred_at'] === null) {
+            return;
+        }
+
+        $occurredAt = substr((string) $item['occurred_at'], 0, 10);
+        $classroomNames = $student->classMemberships()
+            ->active()
+            ->whereHas('academicYear', fn ($years) => $years
+                ->whereDate('starts_on', '<=', $occurredAt)
+                ->whereDate('ends_on', '>=', $occurredAt))
+            ->with('classroom:id,name')
+            ->get()
+            ->pluck('classroom.name')
+            ->filter();
+        $normalizedClassroomNames = $classroomNames->map(fn (string $name): string => $this->normalizeText($name));
+
+        $unresolvedWarning = ExternalSyncIssue::query()
+            ->where('entity_type', 'etatib_record')
+            ->where('source_identifier', $item['source_id'])
+            ->where('issue_code', 'student_classroom_mismatch')
+            ->whereNull('resolved_at');
+
+        if ($normalizedClassroomNames->isNotEmpty()
+            && ! $normalizedClassroomNames->contains($this->normalizeText($sourceClassroom))
+        ) {
+            if (! $unresolvedWarning->exists()) {
+                $lastDecision = ExternalSyncIssue::query()
+                    ->where('entity_type', 'etatib_record')
+                    ->where('source_identifier', $item['source_id'])
+                    ->where('issue_code', 'student_classroom_mismatch')
+                    ->whereNotNull('resolved_at')
+                    ->latest('id')->first();
+                $signature = SyncIssueReviewService::classroomSignature(
+                    $student->getKey(), $occurredAt, $sourceClassroom,
+                    $classroomNames->all(),
+                );
+                if (data_get($lastDecision?->details, 'review.choice.signature') === $signature) {
+                    return;
+                }
+                $this->issue(
+                    $run,
+                    $item,
+                    'student_classroom_mismatch',
+                    'Kelas pada e-Tatib berbeda dengan histori kelas murid; penautan NISN tetap dipertahankan.',
+                );
+            }
+
+            return;
+        }
+
+        $unresolvedWarning->update([
+            'resolved_student_id' => $student->getKey(),
+            'resolved_by' => $run->triggered_by,
+            'resolved_at' => now(),
         ]);
     }
 }

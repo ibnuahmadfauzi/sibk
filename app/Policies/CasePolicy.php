@@ -7,42 +7,43 @@ namespace App\Policies;
 use App\Models\BkCase;
 use App\Models\Student;
 use App\Models\User;
-use App\Support\ServiceRecordStatus;
 
 class CasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
+        return $user->hasAnyRole(['guru_bk', 'koordinator_bk', 'waka_kesiswaan']);
     }
 
     public function view(User $user, BkCase $case): bool
     {
-        if ($user->hasRole('koordinator_bk')) {
-            return true;
-        }
-
-        if ($user->hasRole('waka_kesiswaan') && $case->coordinations()->where('waka_user_id', $user->getKey())->exists()) {
-            return true;
-        }
-
-        if (! $user->hasRole('guru_bk')) {
+        if (! BkCase::query()->withinStudentServicePeriod()->whereKey($case->getKey())->exists()) {
             return false;
         }
 
-        if ($case->hasActiveAssignmentFor($user)) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return true;
         }
 
-        return $case->student_id !== null && Student::query()
-            ->forActiveTeacherAssignment($user, now())
-            ->whereKey($case->student_id)
+        if ($user->hasRole('guru_bk') === false) {
+            return false;
+        }
+
+        if ($case->isOwnedBy($user)) {
+            return true;
+        }
+
+        $studentId = $case->student_id ?? $case->temporaryStudent()->value('reconciled_student_id');
+
+        return $studentId !== null && Student::query()
+            ->forActiveTeacherAssignment($user)
+            ->whereKey($studentId)
             ->exists();
     }
 
     public function viewInternal(User $user, BkCase $case): bool
     {
-        return $user->hasRole('guru_bk') && $case->hasActiveOwnerFor($user);
+        return $user->hasRole('guru_bk') && $case->isOwnedBy($user);
     }
 
     public function create(User $user): bool
@@ -53,29 +54,12 @@ class CasePolicy
     public function update(User $user, BkCase $case): bool
     {
         return $user->hasRole('guru_bk')
-            && $case->hasActiveOwnerFor($user);
+            && $case->academicYear?->is_active === true
+            && $case->isOwnedBy($user);
     }
 
     public function archive(User $user, BkCase $case): bool
     {
         return $this->update($user, $case);
-    }
-
-    public function resolve(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && $this->update($user, $case);
-    }
-
-    public function assign(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && $user->hasRole('koordinator_bk');
-    }
-
-    public function coordinate(User $user, BkCase $case): bool
-    {
-        return ! ServiceRecordStatus::isTerminal($case->status?->code)
-            && ($user->hasRole('koordinator_bk') || $this->update($user, $case));
     }
 }

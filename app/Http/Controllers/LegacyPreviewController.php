@@ -13,7 +13,6 @@ class LegacyPreviewController extends Controller
     private const ALLOWED_QUERY = [
         'cases.index' => ['tab'],
         'students.legacy' => ['nisn', 'tab'],
-        'assignments.cases.index' => ['case_no'],
     ];
 
     public function __invoke(Request $request): RedirectResponse

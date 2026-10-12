@@ -23,11 +23,9 @@ use App\Models\Achievement;
 use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\Classroom;
-use App\Models\Consultation;
 use App\Models\DapodikSyncPreviewItem;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
-use App\Models\FollowUp;
 use App\Models\IntegrationSetting;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -37,6 +35,7 @@ use App\Models\StudentDeparture;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\ConsultationService;
 use App\Services\DapodikReconciliationService;
 use App\Services\DapodikSyncService;
 use App\Services\IntegrationSettingService;
@@ -449,11 +448,12 @@ class DapodikSyncTest extends TestCase
         $this->assertNull($yearItem->refresh()->decision);
         $this->actingAs($admin)->get(route('data-master.dapodik.previews.show', $run))
             ->assertOk()
-            ->assertSee('Pratinjau Pencocokan Dapodik')
+            ->assertSee('Tinjau Data Dapodik')
             ->assertSee('Belum terverifikasi Dapodik');
-        $this->actingAs($admin)->get(route('data-master.index'))
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'dapodik']))
             ->assertOk()
-            ->assertSee('Pratinjau Dapodik menunggu penerapan')
+            ->assertSeeInOrder(['Perlu Ditinjau', 'Tautan API Siswa'])
+            ->assertSee('Tinjau data Dapodik sebelum diterapkan')
             ->assertSee(route('data-master.dapodik.previews.show', $run), false);
 
         $this->actingAs($admin)->patch(
@@ -537,14 +537,12 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $historicalClassroom->id,
             'academic_year_id' => $historicalYear->id,
-            'effective_from' => '2025-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $membership = StudentClassMembership::query()->create([
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
@@ -617,7 +615,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $historicalClassroom->id,
             'academic_year_id' => $historicalYear->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
@@ -690,7 +687,6 @@ class DapodikSyncTest extends TestCase
                 'student_id' => $student->id,
                 'classroom_id' => $classroom->id,
                 'academic_year_id' => $year->id,
-                'effective_from' => '2026-07-15',
                 'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
             ]);
         }
@@ -779,7 +775,7 @@ class DapodikSyncTest extends TestCase
             'candidate_id' => $fixture['classrooms']['A']->id,
             'decision_revision' => 0,
         ], $admin);
-        $fixture['memberships']['A']->update(['effective_until' => '2026-12-31']);
+        $fixture['memberships']['A']->update(['is_active' => false]);
         $run->refresh();
 
         $this->assertValidationFailure(
@@ -850,7 +846,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $snapshot = new DapodikSnapshot(
@@ -876,7 +871,6 @@ class DapodikSyncTest extends TestCase
                 'student_source_id' => 'student-1',
                 'classroom_source_id' => 'class-1',
                 'academic_year_source_id' => 'year-2026',
-                'effective_from' => '2026-07-15',
             ]],
             evidence: new IntegrationSnapshotEvidence('school-01', 'contract-v1', 'partial', 1, 4, 512),
         );
@@ -911,14 +905,13 @@ class DapodikSyncTest extends TestCase
         $admin = $this->userWithRole('admin_it');
         $fixture = $this->selectableMembershipGraphs([]);
         Schema::table('student_class_memberships', function (Blueprint $table): void {
-            $table->dropUnique('student_class_membership_period_unique');
+            $table->dropUnique('student_membership_student_year_unique');
         });
         foreach ([1, 2] as $number) {
             StudentClassMembership::query()->create([
                 'student_id' => $fixture['student']->id,
                 'classroom_id' => $fixture['classrooms']['A']->id,
                 'academic_year_id' => $fixture['years']['A']->id,
-                'effective_from' => '2026-07-15',
                 'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
             ]);
         }
@@ -946,7 +939,7 @@ class DapodikSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.dapodik.previews.show', $run))
             ->assertOk()
-            ->assertSee('Konflik turunan pada keanggotaan murid')
+            ->assertSee('Penempatan murid belum cocok')
             ->assertSee('type="submit" class="btn btn-primary" disabled', false);
         $this->assertValidationFailure(
             fn () => app(DapodikReconciliationService::class)
@@ -1078,7 +1071,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
@@ -1086,8 +1078,6 @@ class DapodikSyncTest extends TestCase
             'user_id' => $teacher->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-01',
-            'decision_number' => 'SK-PENUGASAN-001',
             'assigned_by' => $coordinator->id,
         ]);
         $case = BkCase::query()->create([
@@ -1096,28 +1086,20 @@ class DapodikSyncTest extends TestCase
             'case_source_id' => $this->reference('case_source')->id,
             'service_field_id' => $this->reference('service_field')->id,
             'status_id' => $this->reference('case_status')->id,
+            'follow_up_type_id' => $this->reference('follow_up_type')->id,
             'service_date' => '2026-09-01',
             'initial_info' => 'Informasi awal.',
             'initial_action' => 'Tindakan awal.',
             'created_by' => $teacher->id,
         ]);
-        $followUp = FollowUp::query()->create([
-            'case_id' => $case->id,
-            'follow_up_type_id' => $this->reference('follow_up_type')->id,
-            'status_id' => $this->reference('follow_up_status')->id,
-            'planned_date' => '2026-09-02',
-            'recorded_by' => $teacher->id,
-        ]);
-        $consultation = Consultation::query()->create([
-            'registration_number' => 'KS-KEEP-001',
+        $consultation = app(ConsultationService::class)->create([
             'student_id' => $student->id,
-            'case_id' => $case->id,
             'service_field_id' => $this->reference('service_field')->id,
-            'status_id' => $this->reference('consultation_status')->id,
-            'topic' => 'Pendampingan',
             'session_date' => '2026-09-02',
-            'counselor_id' => $teacher->id,
-        ]);
+            'problem' => 'Pendampingan',
+            'handling' => 'Penanganan pendampingan',
+            'result' => 'Hasil pendampingan',
+        ], $teacher);
         $achievement = Achievement::query()->create([
             'student_id' => $student->id,
             'type_id' => $this->reference('achievement_type')->id,
@@ -1165,7 +1147,6 @@ class DapodikSyncTest extends TestCase
 
         $this->assertSame($student->id, $case->refresh()->student_id);
         $this->assertSame($student->id, $consultation->refresh()->student_id);
-        $this->assertSame($case->id, $followUp->refresh()->case_id);
         $this->assertSame($student->id, $achievement->refresh()->student_id);
         $this->assertSame($classroom->id, $assignment->refresh()->classroom_id);
         $this->assertSame($year->id, $assignment->academic_year_id);
@@ -1396,7 +1377,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
 
@@ -1510,7 +1490,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $oldStudent->id,
             'classroom_id' => $oldClassroom->id,
             'academic_year_id' => $oldYear->id,
-            'effective_from' => '2025-07-01',
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
             'source_confirmed_at' => now()->subYear(),
@@ -1542,7 +1521,6 @@ class DapodikSyncTest extends TestCase
             'student_id' => $provisionalStudent->id,
             'classroom_id' => $provisionalClassroom->id,
             'academic_year_id' => $provisionalYear->id,
-            'effective_from' => '2028-07-01',
             'is_active' => true,
             'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
@@ -1651,7 +1629,7 @@ class DapodikSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.dapodik.previews.show', $run))
             ->assertOk()
-            ->assertSee('Snapshot penuh')
+            ->assertSee('Data lengkap')
             ->assertSee('Murid internal #'.$missingStudent->id)
             ->assertSee(substr($planned['target_fingerprint'], 0, 12));
 
@@ -2080,8 +2058,6 @@ class DapodikSyncTest extends TestCase
                 'student_source_id' => 'student-1',
                 'classroom_source_id' => 'class-1',
                 'academic_year_source_id' => 'year-2026',
-                'effective_from' => '2026-07-15',
-                'effective_until' => null,
                 'is_active' => true,
             ]],
         );
@@ -2182,7 +2158,6 @@ class DapodikSyncTest extends TestCase
                     'student_id' => $student->id,
                     'classroom_id' => $classrooms[$label]->id,
                     'academic_year_id' => $years[$label]->id,
-                    'effective_from' => '2026-07-15',
                     'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
                 ]);
             }

@@ -1,6 +1,6 @@
 # Admission Kontrak Provider dan Panduan Penerapan Integrasi
 
-Dokumen ini adalah gate wajib sebelum driver production Dapodik atau e-Tatib selain `unavailable` boleh dirancang, diregistrasikan, diuji terhadap jaringan nyata, atau diaktifkan. Fase A sengaja dirilis dengan kedua driver tetap `unavailable`; konfigurasi dapat disimpan, tetapi tidak ada adapter HTTP production dan tidak ada request outbound.
+Dokumen ini adalah gate wajib sebelum driver production Dapodik atau e-Tatib selain `unavailable` boleh diuji terhadap jaringan nyata atau diaktifkan. Driver HTTP e-Tatib boleh tersedia sebagai implementasi terkarantina, tetapi registry wajib mengembalikan `unavailable` selama admission flag belum disahkan. Konfigurasi dapat disimpan tanpa request outbound.
 
 Lembar bukti per provider harus diisi tanpa credential atau raw payload:
 
@@ -75,8 +75,10 @@ SIBK_DAPODIK_DRIVER=unavailable
 SIBK_DAPODIK_ALLOWED_ORIGINS=https://origin-dapodik-resmi.example:443
 SIBK_DAPODIK_ALLOW_PRIVATE_NETWORKS=false
 SIBK_ETATIB_DRIVER=unavailable
+SIBK_ETATIB_ADMISSION_APPROVED=false
 SIBK_ETATIB_ALLOWED_ORIGINS=https://origin-etatib-resmi.example:443
 SIBK_ETATIB_ALLOW_PRIVATE_NETWORKS=false
+SIBK_ETATIB_SCHEDULE_ENABLED=true
 ```
 
 Ganti origin contoh dengan origin resmi termasuk scheme dan effective port. Satu provider dapat memiliki beberapa origin yang dipisahkan koma. Jangan menambahkan path, query, fragment, wildcard, user-info, atau origin cadangan yang belum disahkan. Aktifkan `ALLOW_PRIVATE_NETWORKS=true` hanya bila origin exact itu memang berada di jaringan privat, kebutuhan telah disahkan, dan jalur firewall keluar dibatasi ke tujuan tersebut.

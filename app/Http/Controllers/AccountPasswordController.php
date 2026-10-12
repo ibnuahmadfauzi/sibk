@@ -13,8 +13,12 @@ use Illuminate\Http\Request;
 
 final class AccountPasswordController extends Controller
 {
-    public function edit(Request $request): View
+    public function edit(Request $request): View|RedirectResponse
     {
+        if (! $request->user()?->must_change_password) {
+            return redirect()->route('account.index', ['password' => 1]);
+        }
+
         return view('pages.account.change-password', [
             'required' => (bool) $request->user()?->must_change_password,
         ]);
@@ -24,9 +28,10 @@ final class AccountPasswordController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
+        $required = (bool) $user->must_change_password;
         $service->changePassword($user, $request->validated(), $request->session()->getId());
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.preview')->with('success', 'Kata sandi berhasil diperbarui.');
+        return redirect()->route($required ? 'dashboard.preview' : 'account.index')->with('success', 'Kata sandi berhasil diperbarui.');
     }
 }

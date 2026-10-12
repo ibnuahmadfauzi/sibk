@@ -21,27 +21,24 @@ final class ServiceRecordStatusMigrationTest extends TestCase
     {
         $this->seed(ReferenceSeeder::class);
 
-        foreach (['case_status', 'consultation_status'] as $category) {
-            $statuses = ReferenceValue::query()
-                ->forCategory($category)
-                ->active()
-                ->orderBy('sort_order')
-                ->get(['code', 'label']);
+        $statuses = ReferenceValue::query()
+            ->forCategory('case_status')
+            ->active()
+            ->orderBy('sort_order')
+            ->get(['code', 'label']);
 
-            $this->assertSame(ServiceRecordStatus::codes(), $statuses->pluck('code')->all());
-            $this->assertSame(
-                array_values(ServiceRecordStatus::labels()),
-                $statuses->pluck('label')->all(),
-            );
-        }
-
-        foreach (['follow_up_status', 'coordination_status'] as $category) {
-            $this->assertDatabaseHas('references', [
-                'category' => $category,
-                'code' => 'dibatalkan',
-                'is_active' => true,
-            ]);
-        }
+        $this->assertSame(ServiceRecordStatus::codes(), $statuses->pluck('code')->all());
+        $this->assertSame(array_values(ServiceRecordStatus::labels()), $statuses->pluck('label')->all());
+        $this->assertSame(ServiceRecordStatus::IN_PROGRESS, ServiceRecordStatus::initialCode());
+        $this->assertSame(0, ReferenceValue::query()
+            ->forCategory('case_status')
+            ->where('code', 'baru')
+            ->active()
+            ->count());
+        $this->assertSame(0, ReferenceValue::query()
+            ->whereIn('category', ['consultation_status', 'follow_up_status', 'coordination_status'])
+            ->active()
+            ->count());
     }
 
     public function test_migration_archives_legacy_cancelled_service_records(): void
@@ -63,6 +60,10 @@ final class ServiceRecordStatusMigrationTest extends TestCase
                 'migrations/2026_09_14_000050_retire_cancelled_service_records.php',
             );
             $retirement->up();
+            $foundation = require database_path(
+                'migrations/2026_09_17_000100_add_revisi_sibk_3_2_foundation.php',
+            );
+            $foundation->up();
 
             $this->assertSame(4, DB::table('cases')->count());
             $this->assertSame(4, DB::table('consultations')->count());
@@ -75,18 +76,30 @@ final class ServiceRecordStatusMigrationTest extends TestCase
                     ->pluck('code')
                     ->all(),
             );
-            $this->assertSame(
-                ServiceRecordStatus::codes(),
-                DB::table('references')
-                    ->where('category', 'consultation_status')
-                    ->where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->pluck('code')
-                    ->all(),
-            );
+            $this->assertSame(0, DB::table('references')
+                ->where('category', 'case_status')
+                ->where('code', ServiceRecordStatus::NEW)
+                ->where('is_active', true)
+                ->count());
+            $this->assertSame([
+                'surat_panggilan_orang_tua' => 'Surat Panggilan Orang Tua',
+                'surat_pernyataan' => 'Surat Pernyataan',
+                'home_visit' => 'Home Visit',
+                'pengunduran_diri' => 'Pengunduran Diri',
+            ], DB::table('references')
+                ->where('category', 'follow_up_type')
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->pluck('label', 'code')
+                ->all());
+            $this->assertSame([], DB::table('references')
+                ->where('category', 'consultation_status')
+                ->where('is_active', true)
+                ->pluck('code')
+                ->all());
             $this->assertSame(
                 [
-                    ServiceRecordStatus::NEW,
+                    ServiceRecordStatus::IN_PROGRESS,
                     ServiceRecordStatus::IN_PROGRESS,
                     ServiceRecordStatus::COMPLETED,
                     'dibatalkan',
@@ -105,8 +118,7 @@ final class ServiceRecordStatusMigrationTest extends TestCase
             $this->assertNotNull(DB::table('cases')->where('id', 104)->value('deleted_at'));
             $this->assertNotNull(DB::table('consultations')->where('id', 204)->value('deleted_at'));
             $this->assertSame(0, DB::table('references')
-                ->whereIn('category', ['case_status', 'consultation_status'])
-                ->where('code', 'dibatalkan')
+                ->whereIn('category', ['consultation_status', 'follow_up_status', 'coordination_status'])
                 ->where('is_active', true)
                 ->count());
         } finally {

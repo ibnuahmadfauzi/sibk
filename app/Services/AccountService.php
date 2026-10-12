@@ -24,7 +24,9 @@ class AccountService
      */
     public function create(array $data, User $actor): TemporaryPasswordResult
     {
-        return DB::transaction(function () use ($data, $actor): TemporaryPasswordResult {
+        $roleIds = $this->validatedRoleIds($data['roles']);
+
+        return DB::transaction(function () use ($data, $actor, $roleIds): TemporaryPasswordResult {
             $user = User::query()->create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -34,7 +36,6 @@ class AccountService
                 'updated_by' => $actor->getKey(),
             ]);
 
-            $roleIds = Role::query()->whereIn('slug', $data['roles'])->pluck('id');
             $user->roles()->sync($roleIds);
             $user->load('roles');
 
@@ -55,7 +56,22 @@ class AccountService
      */
     public function update(User $user, array $data, User $actor): User
     {
-        return DB::transaction(function () use ($user, $data, $actor): User {
+        if (array_key_exists('roles', $data) && $user->is($actor)) {
+            throw ValidationException::withMessages(['roles' => 'Peran akun sendiri tidak dapat diubah.']);
+        }
+
+        if (array_key_exists('is_active', $data)
+            && filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN) === false
+            && $user->is($actor)
+        ) {
+            throw ValidationException::withMessages(['is_active' => 'Akun sendiri tidak dapat dinonaktifkan.']);
+        }
+
+        $roleIds = array_key_exists('roles', $data)
+            ? $this->validatedRoleIds($data['roles'])
+            : null;
+
+        return DB::transaction(function () use ($user, $data, $actor, $roleIds): User {
             $user->loadMissing('roles');
             $before = $this->snapshot($user);
             $attributes = Arr::only($data, ['name', 'email', 'is_active']);
@@ -67,8 +83,7 @@ class AccountService
             $user->fill([...$attributes, 'updated_by' => $actor->getKey()]);
             $user->save();
 
-            if (array_key_exists('roles', $data)) {
-                $roleIds = Role::query()->whereIn('slug', $data['roles'])->pluck('id');
+            if ($roleIds !== null) {
                 $user->roles()->sync($roleIds);
             }
 
@@ -84,6 +99,35 @@ class AccountService
 
             return $user;
         });
+    }
+
+    /**
+     * @param  list<string>  $slugs
+     * @return list<int>
+     */
+    private function validatedRoleIds(array $slugs): array
+    {
+        $selected = array_values(array_unique($slugs));
+        sort($selected);
+        $allowed = [
+            ['admin_it'],
+            ['guru_bk'],
+            ['koordinator_bk'],
+            ['waka_kesiswaan'],
+            ['guru_bk', 'koordinator_bk'],
+        ];
+        $roles = Role::query()->active()->whereIn('slug', $selected)->get(['id', 'slug']);
+
+        if (count($selected) !== count($slugs)
+            || ! in_array($selected, $allowed, true)
+            || $roles->count() !== count($selected)
+        ) {
+            throw ValidationException::withMessages([
+                'roles' => 'Pilih Admin IT atau Waka Kesiswaan saja, atau Guru BK dan Koordinator BK.',
+            ]);
+        }
+
+        return $roles->pluck('id')->all();
     }
 
     /** @param array{password: string} $data */

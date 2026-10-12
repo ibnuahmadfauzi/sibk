@@ -6,9 +6,6 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Achievement;
-use App\Models\AuditLog;
-use App\Models\BkCase;
-use App\Models\CaseCoordination;
 use App\Models\Classroom;
 use App\Models\ReferenceValue;
 use App\Models\Role;
@@ -16,12 +13,14 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
 use App\Models\User;
-use App\Services\AchievementService;
-use App\Services\CaseService;
-use App\Services\ReportService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 class AchievementManagementTest extends TestCase
@@ -31,182 +30,338 @@ class AchievementManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->travelTo('2026-08-20 10:00:00');
+        $this->travelTo('2026-09-27 10:00:00');
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
-    public function test_teacher_can_create_scoped_achievement_with_metadata_evidence_and_safe_audit(): void
+    public function test_waka_creates_and_updates_achievement_while_bk_only_reads_within_scope(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent('Murid Prestasi Utama', '0012345678');
-        $response = $this->actingAs($teacher)->post(route('achievements.store'), $this->payload($student));
-        $achievement = Achievement::query()->firstOrFail();
+        [$teacher, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $admin = $this->userWithRole('admin_it');
 
-        $response->assertRedirect(route('achievements.show', $achievement));
-        $this->assertSame('menunggu', $achievement->verificationStatus->code);
-        $this->assertSame($teacher->id, $achievement->recorded_by);
-        $audit = AuditLog::query()->where('action', 'achievement.created')->firstOrFail();
-        $this->assertStringNotContainsString('ARSIP/RAHASIA/001', json_encode($audit->after_values, JSON_THROW_ON_ERROR));
-        $this->actingAs($teacher)->get(route('achievements.show', $achievement))
-            ->assertOk()->assertSee('ARSIP/RAHASIA/001')->assertSee('Menunggu Verifikasi');
+        $this->actingAs($waka)->get(route('achievements.index'))->assertOk()->assertSee('Impor Prestasi');
+        $this->get(route('achievements.create', ['modal' => 1]))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertViewHas('studentOptions', fn (array $options): bool =>
+                $options[0]['id'] === $student->id
+                && $options[0]['nisn'] === $student->nisn
+                && $options[0]['classroom'] === 'X RPL 1');
+        $this->post(route('achievements.store'), $this->payload($student))->assertRedirect(route('achievements.index'));
+        $achievement = Achievement::query()->firstOrFail();
+        $this->assertSame($waka->id, $achievement->recorded_by);
+        $this->assertSame('Juara II', $achievement->result);
+        $rejected = $achievement->replicate();
+        $rejected->activity_name = 'Prestasi Ditolak Lama';
+        $rejected->verification_status_id = ReferenceValue::query()->forCategory('achievement_verification_status')->where('code', 'ditolak')->valueOrFail('id');
+        $rejected->save();
+        $this->get(route('achievements.index'))->assertDontSee('Prestasi Ditolak Lama');
+        $this->get(route('achievements.show', $rejected))->assertForbidden();
+        $this->get(route('achievements.edit', $rejected))->assertForbidden();
+        $this->get(route('achievements.show', $achievement))->assertRedirect(route('achievements.index'));
+        $originalVersion = $achievement->updated_at->toJSON();
+        $this->travel(1)->seconds();
+        $this->patch(route('achievements.update', $achievement), [
+            ...$this->payload($student), 'result' => 'Juara I', 'expected_updated_at' => $originalVersion,
+        ])->assertRedirect(route('achievements.index'));
+        $this->assertSame('Juara I', $achievement->refresh()->result);
+        $this->patch(route('achievements.update', $achievement), [
+            ...$this->payload($student), 'result' => 'Juara III', 'expected_updated_at' => $originalVersion,
+        ])->assertSessionHasErrors('expected_updated_at');
+        $this->assertSame('Juara I', $achievement->refresh()->result);
+
+        $this->actingAs($teacher)->get(route('achievements.index'))->assertOk()->assertDontSee('Catat Prestasi');
+        $this->get(route('achievements.index'))->assertDontSee('Prestasi Ditolak Lama');
+        $this->get(route('achievements.show', $achievement))->assertRedirect(route('achievements.index'));
+        $this->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))->assertOk()->assertSee('Juara I')->assertDontSee('Catat Prestasi');
+        $this->get(route('achievements.create'))->assertForbidden();
+        $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+        $this->get(route('achievements.edit', $achievement))->assertForbidden();
+        $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
+
+        foreach ([$coordinator, $admin] as $user) {
+            $this->actingAs($user)->get(route('achievements.index'))->assertStatus($user->is($coordinator) ? 200 : 403);
+            $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+        }
     }
 
-    public function test_creation_rejects_out_of_scope_inactive_future_and_missing_evidence(): void
+    public function test_coordinator_and_dual_role_read_all_achievements_without_write_access(): void
     {
-        [$teacher] = $this->teacherAndScopedStudent('Murid Dalam Scope', '0011111111');
-        [, $outside] = $this->teacherAndScopedStudent('Murid Luar Scope', '0022222222');
+        [, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->post(route('achievements.import'), ['file' => $this->excel([
+            ['nisn', 'jenis', 'tingkat', 'kegiatan', 'penyelenggara', 'tanggal', 'hasil'],
+            [$student->nisn, 'akademik', 'nasional', 'Prestasi Impor', 'Sekolah', '2026-08-10', 'Juara I'],
+        ])])->assertSessionHasNoErrors();
+        $achievement = Achievement::query()->firstOrFail();
+        $coordinator = $this->userWithRole('koordinator_bk');
+        foreach ([false, true] as $dualRole) {
+            if ($dualRole) {
+                $coordinator->roles()->attach(Role::query()->where('slug', 'guru_bk')->firstOrFail());
+                $coordinator->unsetRelation('roles');
+            }
+            $this->actingAs($coordinator)->get(route('students.index'))
+                ->assertOk()->assertSee($student->name)->assertViewHas('classrooms', fn ($classes): bool => $classes->count() === 1);
+            $this->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+                ->assertOk()->assertSee('Prestasi Impor')
+                ->assertViewHas('stats', fn (array $stats): bool => $stats['achievements'] === 1)
+                ->assertViewHas('canUseProfessionalActions', false);
+            $this->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Impor');
+            $this->get(route('achievements.show', $achievement))->assertRedirect(route('achievements.index'));
+            $this->get(route('achievements.edit', $achievement))->assertForbidden();
+            $this->post(route('achievements.store'), $this->payload($student))->assertForbidden();
+            $this->patch(route('achievements.update', $achievement), $this->payload($student))->assertForbidden();
+            $this->assertFalse(Student::query()->professionallyAccessibleTo($coordinator)->whereKey($student->id)->exists());
+            if ($dualRole) {
+                $this->post(route('consultations.store'), [
+                    'student_id' => $student->id,
+                    'service_field_id' => ReferenceValue::query()->forCategory('service_field')->firstOrFail()->id,
+                    'session_date' => '2026-09-01',
+                    'problem' => 'Permasalahan',
+                    'handling' => 'Penanganan',
+                    'result' => 'Hasil',
+                ])->assertSessionHasErrors('student_id');
+                $this->assertDatabaseCount('consultations', 0);
+            }
+        }
+    }
 
-        $this->actingAs($teacher)->post(route('achievements.store'), $this->payload($outside))
-            ->assertSessionHasErrors('student_id');
-        $outside->update(['is_active' => false]);
-        $this->actingAs($teacher)->post(route('achievements.store'), $this->payload($outside))
-            ->assertSessionHasErrors('student_id');
-        $payload = $this->payload(Student::query()->where('nisn', '0011111111')->firstOrFail());
-        $payload['achievement_date'] = '2026-08-21';
-        $payload['evidence_reference'] = '';
-        $this->actingAs($teacher)->post(route('achievements.store'), $payload)
-            ->assertSessionHasErrors(['achievement_date', 'evidence_reference']);
+    public function test_excel_import_is_atomic_and_bk_cannot_import(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $rows = [
+            ['nisn', 'jenis', 'tingkat', 'kegiatan', 'penyelenggara', 'tanggal', 'hasil'],
+            [$student->nisn, 'akademik', 'nasional', 'Lomba Sains', 'Sekolah', '2026-08-10', 'Juara I'],
+        ];
+
+        $this->actingAs($teacher)->post(route('achievements.import'), ['file' => $this->excel($rows)])->assertForbidden();
+        $this->actingAs($waka)->post(route('achievements.import'), ['file' => $this->excel([
+            ...$rows, ['9999999999', 'akademik', 'nasional', 'Lomba Lain', 'Sekolah', '2026-08-10', 'Juara II'],
+        ])])->assertSessionHasErrors('file');
+        $this->assertDatabaseCount('achievements', 0);
+
+        $this->post(route('achievements.import'), ['file' => $this->excel([
+            $rows[0], [$student->nisn, 'akademik', 'nasional', 'Lomba Sains', 'Sekolah', '08/10/2026', 'Juara I'],
+        ])])->assertSessionHasErrors('file');
+        $this->assertDatabaseCount('achievements', 0);
+
+        $this->post(route('achievements.import'), ['file' => $this->excel([
+            $rows[0],
+            [$student->nisn, 'akademik', 'nasional', '=1+1', 'Sekolah', '2026-08-10', 'Juara I'],
+        ])])->assertSessionHasErrors('file');
+        $this->assertDatabaseCount('achievements', 0);
+
+        $this->post(route('achievements.import'), ['file' => $this->excel($rows)])->assertRedirect(route('achievements.index'));
+        $this->assertDatabaseCount('achievements', 1);
+        $this->assertSame('Lomba Sains', Achievement::query()->firstOrFail()->activity_name);
+
+        $this->post(route('achievements.import'), ['file' => $this->excel($rows, true)])->assertRedirect(route('achievements.index'));
+        $this->assertDatabaseCount('achievements', 2);
+        $this->actingAs($teacher)
+            ->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))
+            ->assertOk()
+            ->assertSee('Lomba Sains')
+            ->assertSee('Juara I')
+            ->assertViewHas('achievements', fn ($achievements): bool => $achievements->count() === 2);
+    }
+
+    public function test_waka_cannot_record_future_or_inactive_student_achievement(): void
+    {
+        [, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->post(route('achievements.store'), [
+            ...$this->payload($student), 'achievement_date' => '2026-09-28',
+        ])->assertSessionHasErrors('achievement_date');
+        $student->update(['is_active' => false]);
+        $this->post(route('achievements.store'), $this->payload($student))->assertSessionHasErrors('student_id');
         $this->assertDatabaseCount('achievements', 0);
     }
 
-    public function test_only_original_teacher_can_edit_pending_record_and_review_is_final(): void
+    public function test_excel_import_requirements_are_revealed_by_an_accessible_info_button(): void
     {
-        [$teacher, $student] = $this->teacherAndScopedStudent('Murid Edit Prestasi', '0033333333');
-        $successor = $this->userWithRole('guru_bk');
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $achievement = app(AchievementService::class)->create($this->payload($student), $teacher);
-        $update = $this->payload($student);
-        unset($update['student_id']);
-        $update['result'] = 'Juara I';
-
-        $this->actingAs($successor)->patch(route('achievements.update', $achievement), $update)->assertForbidden();
-        $this->actingAs($teacher)->patch(route('achievements.update', $achievement), $update)->assertRedirect();
-        $this->assertSame('Juara I', $achievement->refresh()->result);
-        $this->actingAs($coordinator)->post(route('achievements.verify', $achievement), ['decision' => 'ditolak'])
-            ->assertSessionHasErrors('verification_notes');
-        $this->actingAs($coordinator)->post(route('achievements.verify', $achievement), [
-            'decision' => 'terverifikasi', 'verification_notes' => 'Bukti telah diperiksa.',
-        ])->assertRedirect();
-        $this->assertSame('terverifikasi', $achievement->refresh()->verificationStatus->code);
-        $this->actingAs($teacher)->patch(route('achievements.update', $achievement), $update)->assertForbidden();
-        $this->actingAs($coordinator)->post(route('achievements.verify', $achievement), ['decision' => 'ditolak', 'verification_notes' => 'Ulang'])
-            ->assertForbidden();
-    }
-
-    public function test_role_matrix_keeps_generic_achievement_workspace_closed_for_waka(): void
-    {
-        [$teacher, $student] = $this->teacherAndScopedStudent('Murid Koordinasi Prestasi', '0044444444');
-        $coordinator = $this->userWithRole('koordinator_bk');
         $waka = $this->userWithRole('waka_kesiswaan');
-        $admin = $this->userWithRole('admin_it');
-        $case = $this->caseFor($teacher, $student);
-        CaseCoordination::query()->create([
-            'case_id' => $case->id, 'waka_user_id' => $waka->id,
-            'status_id' => $this->reference('coordination_status', 'menunggu')->id,
-            'coordination_need' => 'Koordinasi prestasi murid.', 'recorded_by' => $teacher->id, 'coordinated_at' => now(),
-        ]);
-        $pending = app(AchievementService::class)->create($this->payload($student, 'Prestasi Menunggu'), $teacher);
 
-        $this->actingAs($waka)->get(route('achievements.show', $pending))->assertForbidden();
-        app(AchievementService::class)->verify($pending, ['decision' => 'terverifikasi'], $coordinator);
-        $this->actingAs($waka)->get(route('students.show', ['student' => $student, 'tab' => 'prestasi']))->assertForbidden();
-        $this->actingAs($waka)->get(route('achievements.index'))->assertForbidden();
-        $this->actingAs($waka)->get(route('achievements.show', $pending))->assertForbidden();
-        $this->actingAs($admin)->get(route('achievements.index'))->assertForbidden();
-        $this->actingAs($admin)->get(route('achievements.show', $pending))->assertForbidden();
-        $this->actingAs($coordinator)->get(route('achievements.index'))->assertOk()->assertSee('Prestasi Menunggu');
-        app(AchievementService::class)->create($this->payload($student, 'Prestasi Belum Disahkan'), $teacher);
-        $this->actingAs($waka)->get(route('reports.preview', ['type' => ReportService::TYPE_ACHIEVEMENTS]))->assertForbidden();
+        $this->actingAs($waka)->get(route('achievements.index'))
+            ->assertOk()
+            ->assertSee('<details', false)
+            ->assertSee('<summary', false)
+            ->assertSee('title="Lihat syarat file Excel"', false)
+            ->assertDontSee('data-bs-toggle="collapse"', false)
+            ->assertSee('Maksimal 1.000 baris dan 2 MB')
+            ->assertSee('data-bs-target="#achievement-import-modal"', false);
+        $this->from(route('achievements.index'))->post(route('achievements.import'), [])->assertSessionHasErrors('file');
     }
 
-    public function test_multi_role_uses_teacher_scope_for_creation_and_coordinator_function_for_review(): void
+    public function test_excel_import_validation_error_is_displayed_inside_the_modal(): void
     {
-        [$multiRole, $student] = $this->teacherAndScopedStudent('Murid Multi Role', '0066666666');
-        $multiRole->roles()->attach(Role::query()->where('slug', 'koordinator_bk')->firstOrFail());
+        $this->actingAs($this->userWithRole('waka_kesiswaan'));
+        $response = $this->get(route('achievements.index'))->assertOk();
+        $this->withViewErrors(['file' => 'Berkas Excel wajib dipilih.'])
+            ->view('pages.achievements.index', $response->original->getData())
+            ->assertSee('Perbaiki berkas, lalu pilih kembali untuk mengimpor.')
+            ->assertSee("getElementById('achievement-import-modal')", false);
 
-        $this->actingAs($multiRole)->post(route('achievements.store'), $this->payload($student, 'Prestasi Multi Role'))->assertRedirect();
-        $achievement = Achievement::query()->where('activity_name', 'Prestasi Multi Role')->firstOrFail();
-        $this->actingAs($multiRole)->post(route('achievements.verify', $achievement), [
-            'decision' => 'terverifikasi',
-        ])->assertRedirect();
-        $this->assertSame('terverifikasi', $achievement->refresh()->verificationStatus->code);
-        $this->assertSame($multiRole->id, $achievement->reviewer_id);
     }
 
-    public function test_verified_achievement_report_is_redacted(): void
+    public function test_achievement_list_uses_search_and_level_filters_with_form_modals(): void
     {
-        [$teacher, $student, $classroom] = $this->teacherAndScopedStudent('Nama Lengkap Prestasi Rahasia', '0055555555');
+        [, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
+        $this->actingAs($waka)->post(route('achievements.store'), $this->payload($student))->assertRedirect();
+        $achievement = Achievement::query()->firstOrFail();
+
+        $this->get(route('achievements.index', ['type_id' => 'retired']))
+            ->assertOk()
+            ->assertSee('name="search"', false)
+            ->assertDontSee('name="classroom_id"', false)
+            ->assertSee('data-auto-filter', false)
+            ->assertSee('data-filter-action>Filter<', false)
+            ->assertDontSee('>Reset<', false)
+            ->assertDontSee('name="student_id"', false)
+            ->assertDontSee('name="type_id"', false)
+            ->assertSee('name="level_id"', false)
+            ->assertDontSee('name="date_start"', false)
+            ->assertDontSee('name="date_end"', false)
+            ->assertSee('data-modal-url="'.route('achievements.create', ['modal' => 1]).'"', false)
+            ->assertSee('data-modal-url="'.route('achievements.edit', [$achievement, 'modal' => 1]).'"', false)
+            ->assertSee('title="Edit prestasi"', false)
+            ->assertSee('title="Hapus prestasi"', false)
+            ->assertDontSee('>Detail<', false)
+            ->assertDontSee('>Edit<', false)
+            ->assertSee('data-service-record-modal', false);
+
+        $this->get(route('achievements.index', ['search' => 'Murid Prestasi']))
+            ->assertOk()
+            ->assertSee('data-filter-reset-url="'.route('achievements.index').'"', false)
+            ->assertSee('data-filter-action>Filter<', false);
+
+        $otherLevel = ReferenceValue::query()->forCategory('achievement_level')->where('id', '!=', $achievement->level_id)->firstOrFail();
+        $this->get(route('achievements.index', ['level_id' => $achievement->level_id]))
+            ->assertOk()->assertViewHas('achievements', fn ($rows): bool => $rows->total() === 1);
+        $this->get(route('achievements.index', ['level_id' => $otherLevel->id]))
+            ->assertOk()->assertViewHas('achievements', fn ($rows): bool => $rows->total() === 0);
+        $this->get(route('achievements.index', ['level_id' => $achievement->type_id]))
+            ->assertSessionHasErrors('level_id');
+
+        $this->get(route('achievements.show', [$achievement, 'modal' => 1]))
+            ->assertRedirect(route('achievements.index'));
+
+        $this->get(route('achievements.create', ['modal' => 1]))
+            ->assertOk()
+            ->assertSee('Catat Prestasi')
+            ->assertDontSee('<html', false);
+
+        $this->get(route('achievements.edit', [$achievement, 'modal' => 1]))
+            ->assertOk()
+            ->assertSee('Edit Prestasi')
+            ->assertSee('name="expected_updated_at"', false)
+            ->assertSee('name="activity_name"', false)
+            ->assertDontSee('data-autosave-form', false)
+            ->assertDontSee('<html', false);
+
+        $this->get(route('achievements.create'))
+            ->assertRedirect(route('achievements.index', ['create' => 1]));
+        $this->get(route('achievements.edit', $achievement))
+            ->assertRedirect(route('achievements.index', ['edit' => $achievement->id]));
+
+        $this->travel(1)->seconds();
+        $this->patchJson(route('achievements.update', $achievement), [
+            ...$this->payload($student),
+            'result' => 'Juara I',
+            'expected_updated_at' => $achievement->updated_at->toJSON(),
+        ])->assertOk()->assertJsonPath('redirect', route('achievements.index'));
+        $this->assertSame('Juara I', $achievement->refresh()->result);
+    }
+
+    public function test_waka_can_delete_achievement_with_audit_and_stale_version_is_rejected(): void
+    {
+        [$teacher, $student] = $this->assignedStudent();
+        $waka = $this->userWithRole('waka_kesiswaan');
         $coordinator = $this->userWithRole('koordinator_bk');
-        $achievement = app(AchievementService::class)->create($this->payload($student, '=Prestasi Formula'), $teacher);
-        app(AchievementService::class)->verify($achievement, ['decision' => 'terverifikasi'], $coordinator);
-        $this->assertSame('terverifikasi', $achievement->refresh()->verificationStatus->code);
+        $admin = $this->userWithRole('admin_it');
+        $this->actingAs($waka)->post(route('achievements.store'), $this->payload($student))
+            ->assertRedirect(route('achievements.index'));
+        $achievement = Achievement::query()->firstOrFail();
+        $version = $achievement->updated_at->toJSON();
 
-        $report = app(ReportService::class)->build($teacher, [
-            'type' => ReportService::TYPE_ACHIEVEMENTS,
-            'classroom_id' => $classroom->id,
-            'achievement_type_id' => $achievement->type_id,
-            'achievement_level_id' => $achievement->level_id,
-            'status_id' => $achievement->verification_status_id,
-        ], false);
-        $this->assertCount(1, $report['rows']);
-        $values = collect($report['rows']->first()['cells'])->pluck('value')->join('|');
-        $this->assertStringContainsString('N.L.P.R.', $values);
-        $this->assertStringNotContainsString($student->name, $values);
-        $this->assertStringNotContainsString($student->nisn, $values);
-        $this->assertStringNotContainsString('ARSIP/RAHASIA/001', $values);
+        foreach ([$teacher, $coordinator, $admin] as $user) {
+            $this->actingAs($user)->delete(route('achievements.destroy', $achievement), [
+                'expected_updated_at' => $version,
+            ])->assertForbidden();
+        }
 
-        $csv = $this->actingAs($teacher)->get(route('reports.export', ['type' => ReportService::TYPE_ACHIEVEMENTS, 'format' => 'csv']))
-            ->assertOk()->assertDownload()->streamedContent();
-        $this->assertStringContainsString("'=Prestasi Formula", $csv);
-        $this->assertStringNotContainsString($student->name, $csv);
-        $this->assertStringNotContainsString('ARSIP/RAHASIA/001', $csv);
+        $this->actingAs($waka)->delete(route('achievements.destroy', $achievement), [
+            'expected_updated_at' => '2026-01-01T00:00:00.000000Z',
+        ])->assertSessionHasErrors('expected_updated_at');
+        $this->assertModelExists($achievement);
+
+        $this->deleteJson(route('achievements.destroy', $achievement), [
+            'expected_updated_at' => $version,
+        ])->assertOk()->assertJsonPath('redirect', route('achievements.index'));
+        $this->assertSoftDeleted($achievement);
+        $this->assertDatabaseHas('audit_logs', [
+            'auditable_type' => $achievement->getMorphClass(),
+            'auditable_id' => $achievement->id,
+            'action' => 'achievement.deleted',
+            'actor_id' => $waka->id,
+        ]);
     }
 
-    /** @return array{User, Student, Classroom} */
-    private function teacherAndScopedStudent(string $name, string $nisn): array
+    public function test_modal_submission_returns_index_redirect_for_new_achievement(): void
+    {
+        [, $student] = $this->assignedStudent();
+        $this->actingAs($this->userWithRole('waka_kesiswaan'))
+            ->postJson(route('achievements.store'), $this->payload($student))
+            ->assertOk()
+            ->assertJsonPath('redirect', route('achievements.index'));
+
+        $this->assertDatabaseCount('achievements', 1);
+    }
+
+    /** @return array{User, Student} */
+    private function assignedStudent(): array
     {
         $teacher = $this->userWithRole('guru_bk');
-        $year = AcademicYear::query()->firstOrCreate(
-            ['name' => '2026/2027'],
-            ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true],
-        );
-        $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'Kelas Prestasi '.(Student::query()->count() + 1), 'is_active' => true]);
-        $student = Student::query()->create(['nisn' => $nisn, 'name' => $name, 'is_active' => true]);
-        StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-01', 'is_active' => true]);
-        TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'effective_from' => '2026-07-01', 'decision_number' => 'SK-'.$nisn, 'assigned_by' => $teacher->id]);
+        $year = AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
+        $classroom = Classroom::query()->create(['academic_year_id' => $year->id, 'name' => 'X RPL 1', 'is_active' => true]);
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Prestasi', 'is_active' => true]);
+        StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'is_active' => true]);
+        TeacherAssignment::query()->create(['user_id' => $teacher->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'assigned_by' => $teacher->id]);
 
-        return [$teacher, $student, $classroom];
+        return [$teacher, $student];
     }
 
     /** @return array<string, mixed> */
-    private function payload(Student $student, string $activity = 'Olimpiade Kompetensi Murid'): array
+    private function payload(Student $student): array
     {
         return [
             'student_id' => $student->id,
-            'type_id' => $this->reference('achievement_type', 'akademik')->id,
-            'level_id' => $this->reference('achievement_level', 'nasional')->id,
-            'activity_name' => $activity,
+            'type_id' => ReferenceValue::query()->forCategory('achievement_type')->where('code', 'akademik')->firstOrFail()->id,
+            'level_id' => ReferenceValue::query()->forCategory('achievement_level')->where('code', 'nasional')->firstOrFail()->id,
+            'activity_name' => 'Olimpiade Kompetensi Murid',
             'organizer' => 'Pusat Prestasi Nasional',
             'achievement_date' => '2026-08-10',
             'result' => 'Juara II',
-            'evidence_reference' => 'ARSIP/RAHASIA/001',
-            'evidence_description' => 'Referensi dokumen fisik.',
-            'notes' => 'Catatan internal prestasi.',
         ];
     }
 
-    private function caseFor(User $teacher, Student $student): BkCase
+    /** @param list<list<string>> $rows */
+    private function excel(array $rows, bool $excelDate = false): UploadedFile
     {
-        return app(CaseService::class)->createCase([
-            'student_id' => $student->id,
-            'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
-            'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'service_date' => '2026-08-01', 'initial_info' => 'Informasi awal.', 'initial_action' => 'Asesmen awal.',
-        ], $teacher);
-    }
+        $book = new Spreadsheet;
+        $book->getActiveSheet()->fromArray($rows);
+        if ($excelDate) {
+            $book->getActiveSheet()->setCellValue('F2', Date::PHPToExcel(new \DateTimeImmutable('2026-08-10')));
+            $book->getActiveSheet()->getStyle('F2')->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_DATE_YYYYMMDD);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'prestasi-').'.xlsx';
+        (new Xlsx($book))->save($path);
+        $book->disconnectWorksheets();
 
-    private function reference(string $category, string $code): ReferenceValue
-    {
-        return ReferenceValue::query()->where('category', $category)->where('code', $code)->firstOrFail();
+        return new UploadedFile($path, 'prestasi.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
     }
 
     private function userWithRole(string $slug): User

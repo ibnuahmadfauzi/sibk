@@ -19,6 +19,6 @@ class UpdateAchievementRequest extends StoreAchievementRequest
     /** @return array<string, list<mixed>> */
     public function rules(): array
     {
-        return $this->achievementRules();
+        return [...$this->achievementRules(), 'expected_updated_at' => ['required', 'date']];
     }
 }

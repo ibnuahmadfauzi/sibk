@@ -146,8 +146,6 @@ final class DapodikSnapshotRegressionImporter
                     'student_id' => $studentId,
                     'classroom_id' => $classroomId,
                     'academic_year_id' => $yearId,
-                    'effective_from' => $item['effective_from'],
-                    'effective_until' => $item['effective_until'] ?? null,
                     'is_active' => $item['is_active'] ?? true,
                     'synced_at' => $syncedAt,
                     'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,

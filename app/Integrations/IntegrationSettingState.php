@@ -43,5 +43,9 @@ final readonly class IntegrationSettingState
         public bool $canTest,
         public bool $canActivate,
         public bool $canDeactivate,
+        /** @var array<string, mixed>|null */
+        public ?array $lastProbeSummary = null,
+        public ?CarbonImmutable $lastFullSyncedAt = null,
+        public ?CarbonImmutable $lastSuccessfulSyncAt = null,
     ) {}
 }

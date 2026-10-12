@@ -1,6 +1,6 @@
 @php
     $connectionPresentation = static fn (string $state): array => match ($state) {
-        \App\Integrations\IntegrationSettingState::STATE_ACTIVE => ['Aktif', 'success', 'Koneksi siap dipakai saat sinkronisasi tersedia.'],
+        \App\Integrations\IntegrationSettingState::STATE_ACTIVE => ['Aktif', 'success', 'Koneksi siap digunakan.'],
         \App\Integrations\IntegrationSettingState::STATE_READY => ['Siap diaktifkan', 'info', 'Uji koneksi berhasil. Aktifkan bila pengaturan sudah diperiksa.'],
         \App\Integrations\IntegrationSettingState::STATE_DRAFT => ['Belum diuji', 'neutral', 'Pengaturan sudah lengkap dan perlu diuji.'],
         \App\Integrations\IntegrationSettingState::STATE_TEST_FAILED => ['Uji gagal', 'danger', 'Periksa pengaturan, lalu uji kembali.'],
@@ -13,7 +13,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
             <h2 class="fs-5 fw-bold mb-1" id="integration-settings-title">Pengaturan Koneksi Sumber Data</h2>
-            <p class="text-muted small mb-0">Atur setiap sumber secara terpisah dengan urutan Simpan, Uji, lalu Aktifkan.</p>
+            <p class="text-muted small mb-0">Simpan pengaturan, uji koneksi, lalu aktifkan.</p>
         </div>
         <span class="sibk-badge sibk-badge--neutral">Khusus Admin IT</span>
     </div>
@@ -40,7 +40,7 @@
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
                                 <div>
                                     <h3 class="sibk-panel__title mb-1" id="{{ $provider }}-integration-title">{{ $state->label }}</h3>
-                                    <p class="sibk-panel__subtitle text-muted small mb-0">Ringkasan koneksi</p>
+                                    <p class="sibk-panel__subtitle text-muted small mb-0">Pengaturan dan status koneksi</p>
                                 </div>
                                 <div class="text-end">
                                     <span class="text-muted small d-block mb-1">Status koneksi</span>
@@ -54,8 +54,8 @@
                     <div class="sibk-panel__body p-4">
                         @if(! $state->adapterAvailable)
                             <div class="alert alert-danger py-2" role="status">
-                                <strong>Adapter belum tersedia.</strong>
-                                Pengaturan dapat disimpan, tetapi belum dapat diuji, diaktifkan, atau dipakai untuk sinkronisasi.
+                                <strong>Koneksi belum tersedia.</strong>
+                                Pengaturan dapat disimpan, tetapi belum bisa diuji atau diaktifkan.
                             </div>
                         @endif
 
@@ -282,12 +282,12 @@
                         </div>
 
                         <div class="integration-setting__freshness border-top pt-4 mt-4">
-                            <h4 class="fs-6 fw-bold mb-1">Keadaan data terakhir</h4>
+                            <h4 class="fs-6 fw-bold mb-1">Pembaruan Data Terakhir</h4>
                             @if($freshRun?->finished_at)
                                 <p class="mb-1">Terakhir berhasil diperbarui {{ $freshRun->finished_at->locale('id')->translatedFormat('d M Y, H.i') }}.</p>
-                                <p class="text-muted small mb-0">{{ $freshRun->processed_count }} data diproses. Ini adalah waktu pembaruan data, bukan status koneksi.</p>
+                                <p class="text-muted small mb-0">{{ $freshRun->processed_count }} data diproses.</p>
                             @else
-                                <p class="text-muted small mb-0">Belum ada data yang berhasil diperbarui dari {{ $state->label }}. Ini terpisah dari status koneksi di atas.</p>
+                                <p class="text-muted small mb-0">Belum ada pembaruan data dari {{ $state->label }}.</p>
                             @endif
                         </div>
                     </div>

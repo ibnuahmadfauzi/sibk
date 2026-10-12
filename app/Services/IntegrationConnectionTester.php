@@ -67,6 +67,7 @@ final class IntegrationConnectionTester
                     $context,
                     $captured,
                     $safeCode,
+                    $result,
                 ): IntegrationSettingState {
                     $current = IntegrationSetting::query()
                         ->where('provider', $provider)
@@ -78,6 +79,15 @@ final class IntegrationConnectionTester
                     $before = $this->states->auditSnapshot($current, false);
                     $success = $safeCode === IntegrationProbeResult::CODE_SUCCESS;
                     if ($success) {
+                        $verifiedContractChanged = $current->verified_driver_id !== $captured['driver_id']
+                            || $current->verified_adapter_version !== $captured['adapter_version']
+                            || $current->verified_contract_version !== $captured['contract_version']
+                            || $current->verified_endpoint_policy_digest !== $captured['endpoint_policy_digest'];
+                        if ($verifiedContractChanged) {
+                            $current->sync_watermark = null;
+                            $current->last_full_synced_at = null;
+                            $current->last_successful_sync_at = null;
+                        }
                         $current->verified_configuration_version = $captured['configuration_version'];
                         $current->verified_driver_id = $captured['driver_id'];
                         $current->verified_adapter_version = $captured['adapter_version'];
@@ -93,6 +103,7 @@ final class IntegrationConnectionTester
                     $current->last_test_code = $safeCode;
                     $current->last_tested_at = now();
                     $current->last_tested_by = $actor->getKey();
+                    $current->last_probe_summary = $success ? $result->preview : null;
                     $current->save();
 
                     $this->auditService->record(

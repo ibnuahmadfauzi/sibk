@@ -21,14 +21,18 @@ class DashboardController extends Controller
         $activeYear = $request->integer('academic_year_id')
             ? $years->firstWhere('id', $request->integer('academic_year_id'))
             : ($years->firstWhere('is_active', true) ?? $years->first());
-        $dashboard = $service->forUser($user, $activeYear);
+        $canSwitchDashboard = $user->hasRole('koordinator_bk') && $user->hasRole('guru_bk');
+        $dashboardView = $canSwitchDashboard && $request->query('dashboard_view') === 'teacher'
+            ? 'teacher'
+            : 'coordinator';
+        $dashboard = $service->forUser($user, $activeYear, $dashboardView);
 
         if ($dashboard['role_key'] === 'waka') {
             $wakaMonitoring->auditViewed(
                 $user,
                 'dashboard',
                 ['academic_year_id' => $activeYear?->getKey() !== null ? (string) $activeYear->getKey() : null],
-                count($dashboard['attention']) + count($dashboard['latest']),
+                count($dashboard['follow_up_students']),
                 $request,
             );
         }
@@ -37,6 +41,7 @@ class DashboardController extends Controller
             'dashboard' => $dashboard,
             'years' => $years,
             'activeYear' => $activeYear,
+            'canSwitchDashboard' => $canSwitchDashboard,
         ]);
     }
 }

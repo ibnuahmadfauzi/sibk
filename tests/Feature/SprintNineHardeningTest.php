@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\BkCase;
-use App\Models\FollowUp;
 use App\Models\ReferenceValue;
 use App\Models\Role;
 use App\Models\User;
@@ -60,7 +59,7 @@ class SprintNineHardeningTest extends TestCase
             'is_active' => true,
         ]);
         $admin = $this->userWithRole('admin_it', 'Admin Nyata');
-        $admin->update(['last_login_at' => '2026-08-20 08:30:00']);
+        $admin->forceFill(['last_login_at' => '2026-08-20 08:30:00'])->save();
 
         $this->actingAs($admin)->get(route('account.index'))
             ->assertOk()
@@ -68,10 +67,21 @@ class SprintNineHardeningTest extends TestCase
             ->assertSee($admin->email)
             ->assertSee('Admin IT')
             ->assertSee('2026/2027')
+            ->assertSee('20 Agustus 2026, 15.30 WIB')
             ->assertDontSee('Ubah Kata Sandi')
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
             ->assertSee('Data Master');
+    }
+
+    public function test_account_without_login_history_shows_fallback(): void
+    {
+        $user = $this->userWithRole('guru_bk', 'Guru Baru');
+        $user->forceFill(['last_login_at' => null])->save();
+
+        $this->actingAs($user)->get(route('account.index'))
+            ->assertOk()
+            ->assertSee('Belum tercatat');
     }
 
     public function test_production_database_seeder_never_creates_demo_accounts(): void
@@ -88,23 +98,6 @@ class SprintNineHardeningTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'rbac.admin@ruangbk.test']);
         $this->assertDatabaseHas('roles', ['slug' => 'admin_it']);
         $this->assertDatabaseHas('references', ['category' => 'case_status']);
-    }
-
-    public function test_scoped_bindings_reject_follow_up_from_another_case(): void
-    {
-        $coordinator = $this->userWithRole('koordinator_bk');
-        $creator = $this->userWithRole('guru_bk');
-        $caseA = $this->case($creator, 'K-2026-9001');
-        $caseB = $this->case($creator, 'K-2026-9002');
-        $followUp = FollowUp::query()->create([
-            'case_id' => $caseB->id,
-            'follow_up_type_id' => $this->reference('follow_up_type', 'konsultasi_individual')->id,
-            'status_id' => $this->reference('follow_up_status', 'terjadwal')->id,
-            'planned_date' => now()->toDateString(),
-            'recorded_by' => $creator->id,
-        ]);
-
-        $this->actingAs($coordinator)->get(route('cases.follow-ups.edit', [$caseA, $followUp]))->assertNotFound();
     }
 
     public function test_every_mutation_route_uses_web_csrf_middleware(): void
@@ -145,7 +138,7 @@ class SprintNineHardeningTest extends TestCase
             'registration_number' => $number,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
-            'status_id' => $this->reference('case_status', 'baru')->id,
+            'status_id' => $this->reference('case_status', 'sedang_diproses')->id,
             'service_date' => now()->toDateString(),
             'initial_info' => 'Data pengujian.',
             'initial_action' => 'Asesmen awal.',

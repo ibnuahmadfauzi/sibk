@@ -5,13 +5,16 @@ Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 ## Branch dan status
 
 - `cobasidebar`: baseline pengembangan aktif.
+- `devlopment`: tahap validasi hasil dari `cobasidebar` sebelum masuk produksi.
 - `main`: versi stabil untuk produksi; tidak dipakai untuk pekerjaan harian.
 - Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
+- Alur promosi melalui Pull Request: `cobasidebar` -> `devlopment` -> `main`. Merge setiap tahap setelah pemeriksaan dan pengujian yang sesuai; perpindahan tidak otomatis.
 - Jangan force push, menghapus `main`, atau reset database bersama/produksi.
 
-Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung; periksa
-[pekerjaan aktif](docs/current-work.md) sebelum mulai. Fondasi integrasi Dapodik
-dan e-Tatib sudah selesai, tetapi adapter production belum tersedia.
+Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung.
+Pekerjaan aktif ditentukan dari instruksi/issue, branch/worktree, dan plan/spec
+yang relevan. Fondasi integrasi Dapodik dan e-Tatib sudah selesai, tetapi adapter
+production belum tersedia.
 
 ## Persyaratan
 
@@ -52,16 +55,19 @@ Buka `http://127.0.0.1:8000`. Untuk mengubah frontend, jalankan `npm run dev`
 di terminal kedua. Di Windows, gunakan `npm.cmd` bila PowerShell memblokir
 `npm.ps1`.
 
-Seeder akun sintetis hanya untuk local/testing dan memerlukan
-`SIBK_SEED_ACCOUNT_PASSWORD` pada `.env`. Bila dibutuhkan, jalankan
-`php artisan db:seed` pada database lokal yang telah diperiksa. Jangan
-menjalankan `migrate:fresh` atau reset pada database bersama.
+Seeder uji API hanya untuk local/testing dan memerlukan
+`SIBK_SEED_ACCOUNT_PASSWORD` pada `.env`. `php artisan db:seed` membuat
+1 Admin IT (`admin.api@ruangbk.test`), 6 Guru BK, 1 Koordinator BK, dan
+1 Waka Kesiswaan. Murid, rombel, tahun ajaran, dan layanan tidak diisi;
+Admin IT membuat tahun ajaran dan memasukkan tautan API Siswa di Data Master.
+Jalankan pada database lokal yang telah diperiksa. Jangan menjalankan
+`migrate:fresh` atau reset pada database bersama.
 
 ## Alur kerja tim
 
-Sebelum mulai, baca [AGENTS](AGENTS.md), [pekerjaan aktif](docs/current-work.md),
-dan bagian plan yang relevan. Bila bekerja di worktree yang sudah ada, periksa
-branch dan statusnya; jangan berpindah branch ketika ada perubahan belum disimpan.
+Sebelum mulai, baca [AGENTS](AGENTS.md), periksa branch dan status repository,
+serta pertahankan perubahan yang sudah ada. Jika pekerjaan memiliki plan/spec
+aktif, baca hanya bagian yang relevan dengan task yang sedang dikerjakan.
 
 Contoh untuk checkout biasa yang bersih:
 
@@ -127,11 +133,11 @@ credential dijelaskan dalam admission gate; jangan mengganti key tanpa prosedur.
 
 ## Dokumentasi
 
-- [Indeks kebutuhan aktif PRD/SRS v1.1](docs/requirements-index.md)
+- [PRD aktif](docs/requirements/PRD_Aplikasi_BK_v1.1.md)
+- [SRS aktif](docs/requirements/SRS_Aplikasi_BK_v1.1.md)
 - [Kontrak endpoint dan service](docs/api-contract.md)
-- [Istilah data](CONTEXT.md)
-- [Riwayat pengembangan ringkas](docs/development-log.md)
+- [Admission integrasi provider](docs/integrations/provider-contract-admission.md)
 - [Arsip historis privat](https://github.com/Aflahul/sibk-docs-archive)
 
-PRD/SRS v1.0, plan selesai, dan UAT lama berada di repository arsip terpisah.
-Akses arsip memerlukan izin; histori asli juga tetap tersedia di Git aplikasi.
+Plan/spec pekerjaan berada di `docs/superpowers/` dan dibaca hanya bila relevan.
+Histori implementasi tersedia melalui Git.

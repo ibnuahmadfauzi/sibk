@@ -168,8 +168,8 @@ final class DapodikSnapshotValidator
         foreach ($items as $item) {
             $this->assertShape($item, [
                 'source_id' => 'string', 'student_source_id' => 'string', 'classroom_source_id' => 'string',
-                'academic_year_source_id' => 'string', 'effective_from' => 'string',
-            ], ['effective_until' => 'nullable_string', 'is_active' => 'bool']);
+                'academic_year_source_id' => 'string',
+            ], ['is_active' => 'bool']);
             if (! isset($studentIds[$item['student_source_id']], $classroomYears[$item['classroom_source_id']], $yearIds[$item['academic_year_source_id']])
                 || $classroomYears[$item['classroom_source_id']] !== $item['academic_year_source_id']
             ) {

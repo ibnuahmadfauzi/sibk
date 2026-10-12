@@ -4,14 +4,25 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\StudentName;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['registration_number', 'student_id', 'temporary_student_id', 'case_id', 'service_field_id', 'status_id', 'topic', 'referral_source', 'session_date', 'starts_at', 'ends_at', 'follow_up_date', 'general_summary', 'counselor_id'])]
+#[Fillable([
+    'student_id',
+    'temporary_student_id',
+    'academic_year_id',
+    'classroom_id',
+    'service_field_id',
+    'session_date',
+    'problem',
+    'handling',
+    'result',
+    'counselor_id',
+])]
 class Consultation extends Model
 {
     use SoftDeletes;
@@ -22,16 +33,22 @@ class Consultation extends Model
         return $this->belongsTo(Student::class);
     }
 
+    /** @return BelongsTo<Classroom, $this> */
+    public function classroom(): BelongsTo
+    {
+        return $this->belongsTo(Classroom::class);
+    }
+
+    /** @return BelongsTo<AcademicYear, $this> */
+    public function academicYear(): BelongsTo
+    {
+        return $this->belongsTo(AcademicYear::class);
+    }
+
     /** @return BelongsTo<TemporaryStudent, $this> */
     public function temporaryStudent(): BelongsTo
     {
         return $this->belongsTo(TemporaryStudent::class);
-    }
-
-    /** @return BelongsTo<BkCase, $this> */
-    public function case(): BelongsTo
-    {
-        return $this->belongsTo(BkCase::class, 'case_id');
     }
 
     /** @return BelongsTo<ReferenceValue, $this> */
@@ -40,30 +57,22 @@ class Consultation extends Model
         return $this->belongsTo(ReferenceValue::class, 'service_field_id');
     }
 
-    /** @return BelongsTo<ReferenceValue, $this> */
-    public function status(): BelongsTo
-    {
-        return $this->belongsTo(ReferenceValue::class, 'status_id');
-    }
-
     /** @return BelongsTo<User, $this> */
     public function counselor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'counselor_id');
     }
 
-    /** @return HasOne<ConsultationPrivateNote, $this> */
-    public function privateNote(): HasOne
-    {
-        return $this->hasOne(ConsultationPrivateNote::class);
-    }
-
     /** @param Builder<Consultation> $query */
     public function scopeWithinStudentServicePeriod(Builder $query): Builder
     {
-        return $query->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
-            ->where('status', StudentDeparture::STATUS_OFFICIAL)
-            ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'));
+        return $query
+            ->whereDoesntHave('student.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'))
+            ->whereDoesntHave('temporaryStudent.reconciledStudent.departure', fn (Builder $departures): Builder => $departures
+                ->where('status', StudentDeparture::STATUS_OFFICIAL)
+                ->whereColumn('student_departures.effective_date', '<=', 'consultations.session_date'));
     }
 
     /** @param Builder<Consultation> $query */
@@ -71,10 +80,20 @@ class Consultation extends Model
     {
         $query->withinStudentServicePeriod();
 
-        if ($user->hasRole('koordinator_bk')) {
+        if ($user->hasAnyRole(['waka_kesiswaan', 'koordinator_bk'])) {
             return $query;
         }
 
+        if (! $user->hasRole('guru_bk')) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->professionallyAccessibleTo($user);
+    }
+
+    /** @param Builder<Consultation> $query */
+    public function scopeProfessionallyAccessibleTo(Builder $query, User $user): Builder
+    {
         if (! $user->hasRole('guru_bk')) {
             return $query->whereRaw('1 = 0');
         }
@@ -87,9 +106,6 @@ class Consultation extends Model
                     ->whereIn('reconciled_student_id', Student::query()
                         ->professionallyAccessibleTo($user)
                         ->select('students.id')))
-                ->orWhereHas('case.assignments', fn (Builder $assignments): Builder => $assignments
-                    ->where('user_id', $user->getKey())
-                    ->effectiveOn(now()))
                 ->orWhere(function (Builder $pending) use ($user): void {
                     $pending->where('counselor_id', $user->getKey())
                         ->whereHas('temporaryStudent', fn (Builder $temporary): Builder => $temporary
@@ -108,10 +124,6 @@ class Consultation extends Model
             return Student::query()->professionallyAccessibleTo($user)->whereKey($this->student_id)->exists();
         }
 
-        if ($this->case_id !== null && $this->case?->hasActiveAssignmentFor($user)) {
-            return true;
-        }
-
         $temporary = $this->temporaryStudent()->first();
         if ($temporary?->reconciled_student_id !== null) {
             return Student::query()
@@ -125,10 +137,10 @@ class Consultation extends Model
 
     public function identityName(): string
     {
-        return $this->student?->name
+        return StudentName::display($this->student?->name
             ?? $this->temporaryStudent?->reconciledStudent?->name
             ?? $this->temporaryStudent?->input_name
-            ?? 'Identitas tidak tersedia';
+            ?? 'Identitas tidak tersedia');
     }
 
     public function identityNisn(): string
@@ -141,7 +153,6 @@ class Consultation extends Model
     {
         return [
             'session_date' => 'date',
-            'follow_up_date' => 'date',
         ];
     }
 }

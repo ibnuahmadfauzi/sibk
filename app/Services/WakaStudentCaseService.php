@@ -26,7 +26,7 @@ final class WakaStudentCaseService
     public function paginateSafe(User $waka, array $filters, int $perPage = 20): LengthAwarePaginator
     {
         $sort = $filters['sort'] ?? 'murid';
-        $direction = $filters['direction'] ?? 'asc';
+        $direction = $filters['direction'] ?? 'desc';
         if (! in_array($sort, WakaMonitoringRequest::STUDENT_SORT_ALLOWLIST, true)) {
             throw new InvalidArgumentException('Pilihan urutan daftar murid Waka tidak valid.');
         }
@@ -41,19 +41,27 @@ final class WakaStudentCaseService
 
         $rows = $this->projection->build($waka, $queryFilters)
             ->get()
-            ->groupBy(static fn (BkCase $case): string => $case->student_id !== null
-                ? 'student:'.$case->student_id
-                : 'temporary:'.$case->temporary_student_id)
+            ->groupBy(static function (BkCase $case): string {
+                $studentId = $case->student_id ?? $case->temporaryStudent?->reconciled_student_id;
+
+                return $studentId !== null
+                    ? 'student:'.$studentId
+                    : 'temporary:'.$case->temporary_student_id;
+            })
             ->map(fn (Collection $cases, string $identityKey): array => $this->toStudentRow($cases, $identityKey));
 
         $sortColumn = match ($sort) {
             'kelas' => 'kelas',
             'status' => 'status_terbaru',
             'guru_bk' => 'guru_bk',
+            'jumlah_kasus' => 'jumlah_kasus',
+            'jumlah_aktif' => 'jumlah_aktif',
             default => 'nama_murid',
         };
         $rows = $rows->sort(function (array $left, array $right) use ($sortColumn, $direction): int {
-            $comparison = strnatcasecmp((string) $left[$sortColumn], (string) $right[$sortColumn]);
+            $comparison = in_array($sortColumn, ['jumlah_kasus', 'jumlah_aktif'], true)
+                ? (int) $left[$sortColumn] <=> (int) $right[$sortColumn]
+                : strnatcasecmp((string) $left[$sortColumn], (string) $right[$sortColumn]);
             if ($comparison === 0) {
                 $comparison = strcmp($left['_identity_key'], $right['_identity_key']);
             }
@@ -91,9 +99,9 @@ final class WakaStudentCaseService
         $active = $ordered->filter(static fn (BkCase $case): bool => ! ServiceRecordStatus::isTerminal($case->status?->code));
         $ownerCase = $active->first() ?? $latest;
         $ownerSafe = $this->monitoring->toSafeRow($ownerCase);
-        $coordinationUrl = $ordered
-            ->map(fn (BkCase $case): ?string => $this->monitoring->toSafeRow($case)['coordination_url'])
-            ->first(static fn (?string $url): bool => $url !== null);
+        $detailUrl = $ordered
+            ->map(fn (BkCase $case): string => $this->monitoring->toSafeRow($case)['detail_url'])
+            ->first();
 
         return [
             '_identity_key' => $identityKey,
@@ -104,7 +112,7 @@ final class WakaStudentCaseService
             'status_terbaru' => $latestSafe['status'],
             'status_code' => $latestSafe['status_code'],
             'guru_bk' => $ownerSafe['guru_bk'],
-            'coordination_url' => $coordinationUrl,
+            'detail_url' => $detailUrl,
         ];
     }
 }

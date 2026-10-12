@@ -14,6 +14,7 @@
 /.phpunit.cache
 /.vscode
 /.zed
+/.kilo
 /auth.json
 /node_modules
 /public/build
@@ -25,6 +26,7 @@
 /storage/app/testing
 /storage/framework/views-codex-*/
 /vendor
+/graphify-out
 _ide_helper.php
 Homestead.json
 Homestead.yaml

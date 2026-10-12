@@ -12,10 +12,9 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
-use Database\Seeders\AccountSeeder;
+use App\Services\AuditService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
-use Database\Seeders\StudentSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -33,36 +32,153 @@ class FoundationDataTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
 
         $this->assertSame(4, Role::query()->count());
-        $this->assertSame(53, ReferenceValue::query()->count());
-        $this->assertSame(4, ReferenceValue::query()->forCategory('case_status')->count());
-        $this->assertSame(4, ReferenceValue::query()->forCategory('consultation_status')->count());
+        $this->assertSame(42, ReferenceValue::query()->count());
+        $this->assertSame([
+            'sedang_diproses' => 'Sedang Proses',
+            'membutuhkan_tindak_lanjut' => 'Tindak Lanjut',
+            'selesai' => 'Selesai',
+        ], ReferenceValue::query()
+            ->forCategory('case_status')
+            ->active()
+            ->orderBy('sort_order')
+            ->pluck('label', 'code')
+            ->all());
+        $this->assertSame([
+            'surat_panggilan_orang_tua' => 'Surat Panggilan Orang Tua',
+            'surat_pernyataan' => 'Surat Pernyataan',
+            'home_visit' => 'Home Visit',
+            'pengunduran_diri' => 'Pengunduran Diri',
+        ], ReferenceValue::query()
+            ->forCategory('follow_up_type')
+            ->active()
+            ->orderBy('sort_order')
+            ->pluck('label', 'code')
+            ->all());
+        $this->assertSame(0, ReferenceValue::query()
+            ->whereIn('category', ['consultation_status', 'follow_up_status', 'coordination_status'])
+            ->active()
+            ->count());
         $this->assertSame(6, ReferenceValue::query()->forCategory('achievement_type')->count());
         $this->assertSame(5, ReferenceValue::query()->forCategory('achievement_level')->count());
         $this->assertSame(3, ReferenceValue::query()->forCategory('achievement_verification_status')->count());
+        $this->assertSame(0, ReferenceValue::query()->forCategory('correction_status')->count());
     }
 
-    public function test_role_accounts_seeder_is_idempotent_and_assigns_one_expected_role(): void
+    public function test_final_migration_removes_legacy_schema_and_preserves_active_foundation(): void
     {
-        $this->seed([RoleSeeder::class, AccountSeeder::class]);
-        $this->seed([RoleSeeder::class, AccountSeeder::class]);
+        $this->assertDatabaseHas('migrations', [
+            'migration' => '2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema',
+        ]);
+        $this->assertTrue(Schema::hasColumn('cases', 'follow_up_type_id'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'problem'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'handling'));
+        $this->assertTrue(Schema::hasColumn('consultations', 'result'));
+        $this->assertFalse(Schema::hasTable('follow_ups'));
+        $this->assertFalse(Schema::hasTable('case_coordinations'));
+        $this->assertFalse(Schema::hasTable('consultation_private_notes'));
+        $this->assertFalse(Schema::hasTable('corrections'));
+        $this->assertFalse(Schema::hasTable('user_notifications'));
 
-        $expectedAccounts = [
-            'guru.bk@ruangbk.test' => 'guru_bk',
-            'koordinator.bk@ruangbk.test' => 'koordinator_bk',
-            'waka.kesiswaan@ruangbk.test' => 'waka_kesiswaan',
-            'admin.it@ruangbk.test' => 'admin_it',
-        ];
+        foreach (['waka_summary', 'final_result', 'continued_plan'] as $columnName) {
+            $this->assertFalse(Schema::hasColumn('cases', $columnName));
+        }
 
-        $this->assertSame(4, User::query()->whereIn('email', array_keys($expectedAccounts))->count());
-        foreach ($expectedAccounts as $email => $role) {
-            $user = User::query()->where('email', $email)->with('roles')->firstOrFail();
-            $this->assertTrue($user->is_active);
-            $this->assertSame([$role], $user->roles->pluck('slug')->all());
-            $this->assertTrue(password_verify('RuangBK123!', $user->password));
+        foreach (['registration_number', 'case_id', 'status_id', 'topic', 'referral_source', 'starts_at', 'ends_at', 'follow_up_date', 'general_summary'] as $columnName) {
+            $this->assertFalse(Schema::hasColumn('consultations', $columnName));
+        }
+
+        foreach (['problem', 'handling', 'result'] as $columnName) {
+            $column = collect(Schema::getColumns('consultations'))->firstWhere('name', $columnName);
+
+            $this->assertNotNull($column);
+            $this->assertTrue((bool) $column['nullable']);
+        }
+
+        $foreignKeys = Schema::getForeignKeys('cases');
+        $this->assertTrue(collect($foreignKeys)->contains(
+            static fn (array $foreignKey): bool => $foreignKey['columns'] === ['follow_up_type_id']
+                && $foreignKey['foreign_table'] === 'references',
+        ));
+        $this->assertTrue(collect(Schema::getIndexes('cases'))->contains(
+            static fn (array $index): bool => $index['columns'] === ['follow_up_type_id'],
+        ));
+        $this->assertTrue(collect(Schema::getIndexes('consultations'))->contains(
+            static fn (array $index): bool => $index['columns'] === ['student_id', 'session_date'],
+        ));
+    }
+
+    public function test_workflow_cleanup_stops_before_dropping_tables_with_data(): void
+    {
+        Schema::create('corrections', static fn (Blueprint $table) => $table->id());
+        Schema::create('user_notifications', static fn (Blueprint $table) => $table->id());
+        DB::table('user_notifications')->insert(['id' => 1]);
+
+        $migration = require database_path('migrations/2026_10_10_000100_remove_unimplemented_workflow_tables.php');
+
+        try {
+            $migration->up();
+            $this->fail('Migrasi harus menolak tabel yang masih berisi data.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('user_notifications berisi data', $exception->getMessage());
+            $this->assertTrue(Schema::hasTable('corrections'));
+            $this->assertTrue(Schema::hasTable('user_notifications'));
+        } finally {
+            Schema::dropIfExists('user_notifications');
+            Schema::dropIfExists('corrections');
         }
     }
 
-    public function test_master_cache_keeps_class_membership_history(): void
+    public function test_final_migration_rollback_restores_hardening_consultation_index(): void
+    {
+        $migration = require database_path(
+            'migrations/2026_09_17_000200_remove_revisi_sibk_3_2_legacy_schema.php',
+        );
+
+        $migration->down();
+
+        try {
+            $this->assertTrue($this->hasMigrationIndex(
+                'consultations',
+                'consultation_date_status_field_user_index',
+            ));
+        } finally {
+            $migration->up();
+        }
+    }
+
+    public function test_audit_service_records_only_strictly_changed_keys(): void
+    {
+        $actor = User::factory()->create();
+        $audit = app(AuditService::class)->recordChanges(
+            action: 'case.updated',
+            auditable: $actor,
+            summary: 'Kasus diperbarui.',
+            actor: $actor,
+            before: ['status' => 'sedang_diproses', 'catatan' => 'Lama', 'dihapus' => 'Ada', 'urutan' => 1],
+            after: ['status' => 'sedang_diproses', 'catatan' => 'Baru', 'ditambah' => 'Ada', 'urutan' => '1'],
+        );
+
+        $this->assertNotNull($audit);
+        $this->assertSame(
+            ['catatan' => 'Lama', 'dihapus' => 'Ada', 'urutan' => 1, 'ditambah' => null],
+            $audit->before_values,
+        );
+        $this->assertSame(
+            ['catatan' => 'Baru', 'dihapus' => null, 'urutan' => '1', 'ditambah' => 'Ada'],
+            $audit->after_values,
+        );
+        $this->assertNull(app(AuditService::class)->recordChanges(
+            action: 'case.updated',
+            auditable: $actor,
+            summary: 'Kasus tidak berubah.',
+            actor: $actor,
+            before: ['status' => 'sedang_diproses'],
+            after: ['status' => 'sedang_diproses'],
+        ));
+        $this->assertSame(1, AuditLog::query()->count());
+    }
+
+    public function test_master_cache_keeps_one_class_membership_per_year(): void
     {
         $year = AcademicYear::query()->create(['name' => '2026/2027', 'is_active' => true]);
         $classroom = Classroom::query()->create([
@@ -75,66 +191,9 @@ class FoundationDataTest extends TestCase
             'student_id' => $student->id,
             'classroom_id' => $classroom->id,
             'academic_year_id' => $year->id,
-            'effective_from' => '2026-07-15',
-            'effective_until' => '2026-12-31',
         ]);
 
-        $this->assertSame(1, $student->classMemberships()->effectiveOn('2026-08-20')->count());
-        $this->assertSame(0, $student->classMemberships()->effectiveOn('2027-01-01')->count());
-    }
-
-    public function test_demo_student_seeder_is_idempotent(): void
-    {
-        $this->seed(StudentSeeder::class);
-        $firstStudentIds = Student::query()
-            ->where('dapodik_id', 'like', 'SEED-STUDENT-%')
-            ->orderBy('dapodik_id')
-            ->pluck('id')
-            ->all();
-        $firstMembershipIds = StudentClassMembership::query()
-            ->where('dapodik_id', 'like', 'SEED-MEMBERSHIP-%')
-            ->orderBy('dapodik_id')
-            ->pluck('id')
-            ->all();
-
-        $this->seed(StudentSeeder::class);
-
-        $this->assertCount(35, $firstStudentIds);
-        $this->assertCount(35, $firstMembershipIds);
-        $this->assertSame(
-            $firstStudentIds,
-            Student::query()
-                ->where('dapodik_id', 'like', 'SEED-STUDENT-%')
-                ->orderBy('dapodik_id')
-                ->pluck('id')
-                ->all(),
-        );
-        $this->assertSame(
-            $firstMembershipIds,
-            StudentClassMembership::query()
-                ->where('dapodik_id', 'like', 'SEED-MEMBERSHIP-%')
-                ->orderBy('dapodik_id')
-                ->pluck('id')
-                ->all(),
-        );
-        $this->assertSame(6, Classroom::query()->where('dapodik_id', 'like', 'SEED-CLASS-%')->count());
-        $this->assertSame(1, AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->count());
-    }
-
-    public function test_demo_year_does_not_replace_an_official_active_year(): void
-    {
-        $official = AcademicYear::query()->create([
-            'dapodik_id' => 'OFFICIAL-2026',
-            'name' => '2026/2027',
-            'is_active' => true,
-        ]);
-
-        $this->seed(StudentSeeder::class);
-
-        $this->assertTrue($official->fresh()?->is_active);
-        $this->assertFalse(
-            AcademicYear::query()->where('dapodik_id', 'SEED-ACADEMIC-YEAR')->firstOrFail()->is_active,
-        );
+        $this->assertSame(1, $student->classMemberships()->where('academic_year_id', $year->id)->count());
     }
 
     public function test_historical_case_and_etatib_migration_preserves_the_original_timestamp_contract(): void

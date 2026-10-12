@@ -12,11 +12,10 @@ Route::get('/waka/students-with-cases', [WakaMonitoringController::class, 'stude
 Route::get('/waka/student-departures', WakaStudentDepartureController::class)
     ->name('waka.student-departures.index');
 
-Route::get('/waka/reports', [WakaMonitoringController::class, 'reports'])
+Route::redirect('/waka/reports', '/reports')
+    ->middleware('can:viewWakaMonitoring')
     ->name('waka.reports');
 
-Route::get('/waka/handling-reports', [WakaMonitoringController::class, 'legacyHandling'])
+Route::redirect('/waka/handling-reports', '/reports')
+    ->middleware('can:viewWakaMonitoring')
     ->name('waka.monitoring.handling');
-
-Route::get('/waka/handling-reports/export', [WakaMonitoringController::class, 'export'])
-    ->name('waka.monitoring.export');

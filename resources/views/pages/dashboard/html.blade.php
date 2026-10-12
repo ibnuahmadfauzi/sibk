@@ -5,40 +5,86 @@
 
     <header class="sibk-page-header d-flex flex-wrap justify-content-between gap-3">
         <div class="sibk-page-header__copy">
-            <h1 id="dashboard-title">Dashboard</h1>
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <h1 id="dashboard-title" class="mb-0">Dashboard</h1>
+                @if($canSwitchDashboard)
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="dashboard-view-switch"
+                            data-dashboard-view-switch
+                            data-teacher-url="{{ route('dashboard.preview', ['dashboard_view' => 'teacher', 'academic_year_id' => $activeYear?->id]) }}"
+                            data-coordinator-url="{{ route('dashboard.preview', ['dashboard_view' => 'coordinator', 'academic_year_id' => $activeYear?->id]) }}"
+                            title="Geser untuk menampilkan dashboard {{ $dashboard['role_key'] === 'teacher' ? 'Koordinator BK' : 'Guru BK' }}"
+                            aria-describedby="dashboard-view-help" @checked($dashboard['role_key'] === 'teacher')>
+                        <label class="form-check-label" for="dashboard-view-switch">Tampilan Guru BK</label>
+                        <span class="visually-hidden" id="dashboard-view-help">Menyala: dashboard Guru BK. Padam: dashboard Koordinator BK. Tidak mengubah peran akun.</span>
+                    </div>
+                @endif
+            </div>
             <span class="visually-hidden">{{ $dashboard['scope'] }}</span>
             @if(!empty($dashboard['quick_actions']))
                 <div class="sibk-quick-actions mt-3">
                     @foreach($dashboard['quick_actions'] as $action)
-                        <a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ $action['url'] }}">{{ $action['label'] }}</a>
+                        <a class="btn {{ $action['primary'] ? 'btn-primary' : 'btn-outline-primary' }} sibk-quick-action sibk-quick-action--{{ $action['tone'] }}" href="{{ $action['url'] }}" @if($action['icon'] === 'consultation') data-modal-url="{{ route('consultations.create', ['modal' => 1]) }}" @elseif($action['icon'] === 'case') data-modal-url="{{ route('cases.create', ['modal' => 1]) }}" @endif>
+                            @switch($action['icon'])
+                                @case('case')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    @break
+                                @case('consultation')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.5 9.5 0 0 1-4.8-1.3L3 20l1.4-3.8A8.5 8.5 0 1 1 21 11.5Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+                                    @break
+                                @case('report')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-4 3 2 5-6"/></svg>
+                                    @break
+                                @case('account')
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                                    @break
+                                @default
+                                    <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v7c0 1.7 3.1 3 7 3s7-1.3 7-3V5M5 12v7c0 1.7 3.1 3 7 3s7-1.3 7-3v-7"/></svg>
+                            @endswitch
+                            {{ $action['label'] }}
+                        </a>
                     @endforeach
                 </div>
             @endif
         </div>
         @if($years->isNotEmpty())
-            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter">
-                <div class="flex-grow-1"><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
-                <button class="btn btn-outline-primary text-nowrap">Terapkan</button>
+            <form method="GET" action="{{ route('dashboard.preview') }}" class="d-flex align-items-end gap-2 sibk-header-filter" data-auto-filter data-filter-reset-url="{{ route('dashboard.preview', $canSwitchDashboard ? ['dashboard_view' => $dashboard['role_key']] : []) }}">
+                @if($canSwitchDashboard)<input type="hidden" name="dashboard_view" value="{{ $dashboard['role_key'] }}">@endif
+                <div class="flex-grow-1"><label for="academic_year_id" class="form-label small">Tahun Ajaran</label><select class="form-select" id="academic_year_id" name="academic_year_id" data-filter-field data-filter-default="{{ request()->has('academic_year_id') ? '' : $activeYear?->id }}">@foreach($years as $year)<option value="{{ $year->id }}" @selected($activeYear?->id === $year->id)>{{ $year->name }}</option>@endforeach</select></div>
+                <button class="btn btn-outline-primary text-nowrap" type="submit" data-filter-action>Filter</button>
             </form>
         @endif
 
         @if ($dashboard['read_only'])
             <div class="alert sibk-read-only-notice" role="status">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.6 2.9 8.5 7 10 4.1-1.5 7-5.4 7-10V6l-7-3Z"/><path d="M12 8v4M12 16h.01"/></svg>
-                <div><strong>Tampilan koordinasi hanya-baca</strong><p>Anda hanya melihat agregat yang diizinkan dan kasus yang secara eksplisit dikoordinasikan. Isi konsultasi sensitif serta aksi perubahan tidak ditampilkan.</p></div>
+                <div><strong>Hanya untuk dilihat</strong><p>Anda dapat melihat ringkasan dan permasalahan yang diizinkan. Isi konsultasi pribadi tidak ditampilkan.</p></div>
             </div>
         @endif
     </header>
+
+        @foreach($dashboard['alerts'] ?? [] as $alert)
+            <div class="alert alert-{{ $alert['tone'] }} d-flex flex-wrap justify-content-between align-items-center gap-3" role="alert">
+                <div>
+                    <strong class="d-block">{{ $alert['title'] }}</strong>
+                    <span>{{ $alert['message'] }}</span>
+                </div>
+                <a class="btn btn-sm btn-outline-danger" href="{{ $alert['url'] }}">Buka Data Master</a>
+            </div>
+        @endforeach
 
         <section aria-label="Statistik utama">
             <div class="row g-3 sibk-stat-row">
                 @foreach ($dashboard['stats'] as $stat)
                     <div class="col-12 col-sm-6 col-xl-3">
-                        <article class="sibk-stat-card sibk-tone--{{ $stat['tone'] }}">
+                        <article class="sibk-stat-card position-relative sibk-tone--{{ $dashboard['role_key'] === 'teacher' ? match ($stat['kind']) { 'students' => 'success', 'cases' => 'primary', default => $stat['tone'] } : $stat['tone'] }}">
                             <div class="sibk-stat-card__inner">
                                 <div class="sibk-stat-card__icon-col">
                                     <div class="sibk-stat-card__icon" aria-hidden="true">
                                         @switch($stat['kind'])
+                                            @case('attention')
+                                                <svg viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg>
+                                                @break
                                             @case('students')
                                                 <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-4 2.7-7 6-7s6 3 6 7"/><circle cx="17" cy="9" r="2"/><path d="M15 15c3.6 0 6 2.2 6 5"/></svg>
                                                 @break
@@ -54,7 +100,13 @@
                                     </div>
                                 </div>
                                 <div class="sibk-stat-card__content-col">
-                                    <h2 class="sibk-stat-card__label">{{ $stat['label'] }}</h2>
+                                    <h2 class="sibk-stat-card__label">
+                                        @if(isset($stat['url']))
+                                            <a class="stretched-link text-reset text-decoration-none" href="{{ $stat['url'] }}">{{ $stat['label'] }}</a>
+                                        @else
+                                            {{ $stat['label'] }}
+                                        @endif
+                                    </h2>
                                     <strong class="sibk-stat-card__value">{{ $stat['value'] }}</strong>
 
                                     @if (isset($stat['delta']))
@@ -86,31 +138,72 @@
                             <svg class="sibk-panel__icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <h2 id="tindak-lanjut-title">{{ $dashboard['schedule_title'] }}</h2>
                         </div>
-                        <a href="{{ $dashboard['schedule_url'] }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
-                            Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-                        </a>
+                        @if (!empty($dashboard['schedule_url']))
+                            <a href="{{ $dashboard['schedule_url'] }}" class="btn btn-sm btn-outline-primary sibk-panel__action">
+                                Lihat semua <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                            </a>
+                        @endif
                     </header>
 
                     @if (empty($dashboard['tindak_lanjut']))
-                        <x-empty-state title="Tidak ada tindak lanjut" description="Tidak ada jadwal tindak lanjut dalam waktu dekat." />
-                    @else
-                        <div class="sibk-list-group">
-                            @foreach ($dashboard['tindak_lanjut'] as $item)
-                                <a href="{{ $item['url'] }}" class="sibk-list-item text-decoration-none">
+                        <x-empty-state
+                            title="{{ $dashboard['schedule_empty_title'] ?? 'Tidak ada tindak lanjut' }}"
+                            description="{{ $dashboard['schedule_empty_description'] ?? 'Tidak ada permasalahan berstatus Tindak Lanjut.' }}"
+                        />
+                    @elseif($dashboard['role_key'] === 'teacher')
+                        <ul class="sibk-teacher-activities list-unstyled mb-0">
+                            @foreach($dashboard['tindak_lanjut'] as $item)
+                                <li class="sibk-teacher-activities__row">
                                     <div class="sibk-list-item__date-box">
                                         <strong>{{ $item['date'] }}</strong>
                                         <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
                                     </div>
                                     <div class="sibk-list-item__content">
-                                        <strong>{{ $item['code'] }}</strong>
-                                        <span>{{ $item['title'] }}</span>
-                                        <small>{{ $item['context_label'] }}</small>
+                                        <strong>{{ $item['title'] }}</strong>
+                                        <span>{{ $item['context_label'] }}</span>
+                                        @if(!empty($item['follow_up']))
+                                            <small>Tindak Lanjut: {{ $item['follow_up'] }}</small>
+                                        @endif
                                     </div>
-                                    <div class="sibk-list-item__trailing">
-                                        <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
-                                        <svg class="sibk-list-item__chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-                                    </div>
-                                </a>
+                                    <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="sibk-list-group">
+                            @foreach ($dashboard['tindak_lanjut'] as $item)
+                                @if (!empty($item['url']))
+                                    <a href="{{ $item['url'] }}" class="sibk-list-item text-decoration-none">
+                                        <div class="sibk-list-item__date-box">
+                                            <strong>{{ $item['date'] }}</strong>
+                                            <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
+                                        </div>
+                                        <div class="sibk-list-item__content">
+                                            <strong>{{ $item['code'] }}</strong>
+                                            <span>{{ $item['title'] }}</span>
+                                            <small>{{ $item['context_label'] }}</small>
+                                        </div>
+                                        <div class="sibk-list-item__trailing">
+                                            <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                            <svg class="sibk-list-item__chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                                        </div>
+                                    </a>
+                                @else
+                                    <article class="sibk-list-item">
+                                        <div class="sibk-list-item__date-box">
+                                            <strong>{{ $item['date'] }}</strong>
+                                            <span>{{ $item['month'] }}<br>{{ $item['year'] }}</span>
+                                        </div>
+                                        <div class="sibk-list-item__content">
+                                            <strong>{{ $item['code'] }}</strong>
+                                            <span>{{ $item['title'] }}</span>
+                                            <small>{{ $item['context_label'] }}</small>
+                                        </div>
+                                        <div class="sibk-list-item__trailing">
+                                            <span class="badge sibk-icon-tone--{{ $item['status_tone'] }}">{{ $item['status'] }}</span>
+                                        </div>
+                                    </article>
+                                @endif
                             @endforeach
                         </div>
                     @endif
@@ -126,17 +219,44 @@
                             <h2 id="context-panel-title">{{ $dashboard['context_panel']['title'] }}</h2>
                         </div>
                     </header>
-                    <div class="sibk-activity-list">
-                        @foreach ($dashboard['context_panel']['items'] as $item)
-                            <article class="sibk-activity-row">
-                                <div class="sibk-activity-row__content">
-                                    <strong>{{ $item['label'] }}</strong>
-                                    <span>{{ $item['meta'] }}</span>
-                                </div>
-                                <strong>{{ $item['value'] }}</strong>
-                            </article>
-                        @endforeach
-                    </div>
+                    @if($dashboard['role_key'] === 'teacher')
+                        @include('pages.dashboard._teacher-classes')
+                    @elseif (empty($dashboard['context_panel']['items']))
+                        <x-empty-state
+                            title="{{ $dashboard['context_panel']['empty_title'] ?? 'Belum ada data' }}"
+                            description="{{ $dashboard['context_panel']['empty_description'] ?? 'Tidak ada data untuk ditampilkan.' }}"
+                        />
+                    @else
+                        <div class="sibk-activity-list">
+                            @foreach ($dashboard['context_panel']['items'] as $item)
+                                @if (!empty($item['url']))
+                                    <a href="{{ $item['url'] }}" class="sibk-activity-row text-decoration-none">
+                                        <div class="sibk-activity-row__content">
+                                            <strong>{{ $item['label'] }}</strong>
+                                            <span>{{ $item['meta'] }}</span>
+                                        </div>
+                                        @if(isset($item['tone']))
+                                            <span class="badge sibk-icon-tone--{{ $item['tone'] }}">{{ $item['value'] }}</span>
+                                        @else
+                                            <strong class="text-body">{{ $item['value'] }}</strong>
+                                        @endif
+                                    </a>
+                                @else
+                                    <article class="sibk-activity-row">
+                                        <div class="sibk-activity-row__content">
+                                            <strong>{{ $item['label'] }}</strong>
+                                            <span>{{ $item['meta'] }}</span>
+                                        </div>
+                                        @if(isset($item['tone']))
+                                            <span class="badge sibk-icon-tone--{{ $item['tone'] }}">{{ $item['value'] }}</span>
+                                        @else
+                                            <strong>{{ $item['value'] }}</strong>
+                                        @endif
+                                    </article>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
                 </section>
             </div>
         </div>

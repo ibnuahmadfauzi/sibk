@@ -11,6 +11,7 @@ use App\Models\Consultation;
 use App\Models\ExternalTatibRecord;
 use App\Models\Student;
 use App\Models\StudentDeparture;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -26,17 +27,34 @@ class StudentController extends Controller
         abort_unless($user->can('viewAny', Student::class), 403);
 
         $query = Student::query()
-            ->availableForService()
+            ->select('students.*')
+            ->when(! $user->hasRole('koordinator_bk'), fn ($students) => $students->availableForService())
             ->accessibleTo($user)
+            ->withCount(['achievements' => fn ($achievements) => $achievements->accessibleTo($user)])
+            ->selectSub(BkCase::query()->selectRaw('COUNT(*)')
+                ->accessibleTo($user)
+                ->whereNull('closed_at')
+                ->where(function ($identity): void {
+                    $identity->whereColumn('cases.student_id', 'students.id')
+                        ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
+                            ->whereColumn('temporary_students.reconciled_student_id', 'students.id'));
+                }), 'active_cases_count')
+            ->selectSub(Consultation::query()->selectRaw('COUNT(*)')
+                ->accessibleTo($user)
+                ->where(function ($identity): void {
+                    $identity->whereColumn('consultations.student_id', 'students.id')
+                        ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
+                            ->whereColumn('temporary_students.reconciled_student_id', 'students.id'));
+                }), 'consultations_count')
+            ->withSum(['etatibRecords as tatib_points_sum' => fn ($etatib) => $etatib->whereNull('source_deleted_at')], 'points')
             ->with([
                 'classMemberships' => fn ($memberships) => $memberships
                     ->active()
-                    ->effectiveOn(now()->toDateString())
                     ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
                     ->with('classroom.academicYear'),
-                'cases' => fn ($cases) => $cases
-                    ->accessibleTo($user)
-                    ->with(['followUps.status']),
+                'etatibRecords' => fn ($etatib) => $etatib
+                    ->whereNull('source_deleted_at')
+                    ->latest('occurred_at'),
             ]);
         $search = $request->string('search')->trim()->toString();
         $query->when($search, fn ($students) => $students->where(function ($filter) use ($search): void {
@@ -46,16 +64,37 @@ class StudentController extends Controller
             ->whereHas('classMemberships', fn ($memberships) => $memberships
                 ->where('classroom_id', $classroomId)
                 ->active()
-                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
-                ->effectiveOn(now()->toDateString())));
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))));
 
-        return view('pages.students.index', [
-            'students' => $query->orderBy('name')->paginate(20)->withQueryString(),
-            'classrooms' => Classroom::query()
+        if ($user->hasRole('guru_bk') && ! $user->hasRole('koordinator_bk')) {
+            $assignedClassroomIds = TeacherAssignment::query()
+                ->where('user_id', $user->getKey())
+                ->inActiveYear()
+                ->pluck('classroom_id');
+            $classroomQuery = Classroom::query()
                 ->active()
                 ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
-                ->orderBy('name')
-                ->get(),
+                ->whereIn('id', $assignedClassroomIds)
+                ->orderBy('name');
+        } else {
+            $classroomQuery = Classroom::query()
+                ->active()
+                ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
+                ->orderBy('name');
+        }
+
+        $sort = $request->string('sort')->toString();
+        $direction = $request->string('direction')->toString();
+        $columns = ['murid' => 'name', 'permasalahan' => 'active_cases_count', 'poin' => 'tatib_points_sum', 'konsultasi' => 'consultations_count', 'prestasi' => 'achievements_count'];
+        if (isset($columns[$sort]) && in_array($direction, ['asc', 'desc'], true)) {
+            $query->orderBy($columns[$sort], $direction)->orderBy('students.id');
+        } else {
+            $query->orderBy('name')->orderBy('students.id');
+        }
+
+        return view('pages.students.index', [
+            'students' => $query->paginate(20)->withQueryString(),
+            'classrooms' => $classroomQuery->get(),
         ]);
     }
 
@@ -66,33 +105,43 @@ class StudentController extends Controller
         abort_unless($user->can('view', $student), 403);
         $student->load(['classMemberships.classroom.academicYear', 'departure.recorder', 'departure.finalizer']);
         $currentMembership = $student->classMemberships()
-            ->activeOn(now()->toDateString())
+            ->inActiveYear()
             ->whereHas('academicYear', fn ($years) => $years->where('is_active', true))
             ->with(['classroom', 'academicYear'])
-            ->latest('effective_from')
             ->first();
 
-        $activeTab = $request->string('tab', 'ringkasan')->toString();
+        $activeTab = $request->string('tab', 'kasus')->toString();
         $allowedTabs = ['ringkasan', 'kasus', 'etatib', 'konsultasi', 'prestasi'];
-        if (! in_array($activeTab, $allowedTabs, true)) {
-            $activeTab = 'ringkasan';
+        if (in_array($activeTab, $allowedTabs, true) === false) {
+            $activeTab = 'kasus';
         }
-        if ($user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']) && $activeTab === 'konsultasi') {
-            $activeTab = 'ringkasan';
+        if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false && $activeTab === 'konsultasi') {
+            $activeTab = 'kasus';
         }
 
         $cases = BkCase::query()
             ->accessibleTo($user)
-            ->where('student_id', $student->getKey())
-            ->with(['source', 'serviceField', 'status', 'assignments.teacher', 'followUps.status'])
+            ->where(function ($identity) use ($student): void {
+                $identity->where('student_id', $student->getKey())
+                    ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
+                        ->where('reconciled_student_id', $student->getKey()));
+            })
+            ->with(['source', 'serviceField', 'status', 'classroom', 'temporaryStudent.reconciledStudent', 'assignments.teacher', 'followUps.followUpType', 'followUpType'])
             ->latest('service_date')
             ->get();
-        $etatibQuery = ExternalTatibRecord::query()->active()->where('student_id', $student->getKey());
-        if ($user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk'])) {
-            $etatibQuery->whereHas('cases.coordinations', fn ($coordinations) => $coordinations
-                ->where('waka_user_id', $user->getKey()));
+        $etatibQuery = ExternalTatibRecord::query()
+            ->with(['latestClassroomIssue', 'student.classMemberships' => fn ($memberships) => $memberships
+                ->active()->with(['academicYear:id,starts_on,ends_on', 'classroom:id,name'])])
+            ->where('student_id', $student->getKey());
+        if ($user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false) {
+            $etatibQuery->whereHas('cases', fn ($cases) => $cases->accessibleTo($user));
         }
         $etatibRecords = $etatibQuery->latest('occurred_at')->get();
+        $officialEtatibTotal = $etatibRecords
+            ->whereNull('source_deleted_at')
+            ->sortByDesc('id')->sortByDesc('synced_at')
+            ->first(fn (ExternalTatibRecord $record): bool => $record->source_total_points !== null)
+            ?->source_total_points;
 
         $consultations = collect();
         if ($user->can('viewAny', Consultation::class)) {
@@ -103,7 +152,7 @@ class StudentController extends Controller
                         ->orWhereHas('temporaryStudent', fn ($temporary) => $temporary
                             ->where('reconciled_student_id', $student->getKey()));
                 })
-                ->with(['case', 'serviceField', 'status', 'counselor'])
+                ->with(['serviceField', 'counselor', 'classroom'])
                 ->latest('session_date')
                 ->get();
         }
@@ -111,12 +160,13 @@ class StudentController extends Controller
         $achievements = Achievement::query()
             ->accessibleTo($user)
             ->where('student_id', $student->getKey())
-            ->with(['type', 'level', 'verificationStatus', 'recorder', 'reviewer'])
+            ->with(['type', 'level'])
             ->latest('achievement_date')
             ->get();
 
-        $canUseProfessionalActions = $user->can('viewSensitive', $student)
-            && Student::query()->availableForService()->whereKey($student->getKey())->exists();
+        $canUseProfessionalActions = $user->hasRole('guru_bk')
+            && Student::query()->availableForService()->forActiveTeacherAssignment($user)
+                ->whereKey($student->getKey())->exists();
         $departure = $student->departure;
 
         return view('pages.students.show', [
@@ -125,14 +175,16 @@ class StudentController extends Controller
             'cases' => $cases,
             'etatibRecords' => $etatibRecords,
             'consultations' => $consultations,
-            'memberships' => $student->classMemberships->sortByDesc('effective_from'),
+            'memberships' => $student->classMemberships->sortByDesc(
+                fn ($membership) => $membership->academicYear?->name ?? '',
+            ),
             'currentMembership' => $currentMembership,
             'stats' => [
-                'active_cases' => $cases->whereNull('closed_at')->count(),
-                'points' => $etatibRecords->sum('points'),
-                'follow_ups' => $cases->flatMap->followUps
-                    ->filter(fn ($followUp): bool => $followUp->planned_date->gte(today()) && $followUp->status?->code !== 'dibatalkan')
-                    ->count(),
+                'cases' => $cases->count(),
+                'consultations' => $consultations->count(),
+                'points' => $etatibRecords->whereNull('source_deleted_at')->sum('points'),
+                'source_points' => $officialEtatibTotal,
+                'last_synced_at' => $etatibRecords->max('synced_at'),
                 'achievements' => $achievements->count(),
             ],
             'recentActivities' => $this->recentActivities($cases, $consultations, $etatibRecords, $achievements),
@@ -140,7 +192,6 @@ class StudentController extends Controller
             'canViewConsultations' => $user->can('viewAny', Consultation::class),
             'canCreateConsultation' => $canUseProfessionalActions && $user->can('create', Consultation::class),
             'canCreateCase' => $canUseProfessionalActions && $user->can('create', BkCase::class),
-            'canCreateAchievement' => $canUseProfessionalActions && $user->can('create', Achievement::class),
             'departure' => $departure,
             'canCreateDeparture' => ($departure === null || $departure->status === StudentDeparture::STATUS_CANCELLED)
                 && $user->can('create', [StudentDeparture::class, $student]),
@@ -148,7 +199,7 @@ class StudentController extends Controller
             'canFinalizeDeparture' => $departure !== null
                 && $departure->status === StudentDeparture::STATUS_IN_PROGRESS
                 && $user->can('finalize', $departure),
-            'isWakaSummary' => $user->hasRole('waka_kesiswaan') && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']),
+            'isWakaSummary' => $user->hasRole('waka_kesiswaan') && $user->hasAnyRole(['guru_bk', 'koordinator_bk']) === false,
         ]);
     }
 
@@ -165,10 +216,10 @@ class StudentController extends Controller
     {
         return $cases->map(fn (BkCase $case): array => [
             'date' => $case->created_at,
-            'label' => sprintf('Kasus %s dicatat', $case->registration_number),
+            'label' => 'Kasus dicatat',
         ])->concat($consultations->map(fn (Consultation $consultation): array => [
             'date' => $consultation->created_at,
-            'label' => sprintf('Konsultasi %s dicatat', $consultation->registration_number),
+            'label' => 'Konsultasi dicatat',
         ]))->concat($etatibRecords->map(fn (ExternalTatibRecord $record): array => [
             'date' => $record->occurred_at,
             'label' => 'Data e-Tatib diperbarui',

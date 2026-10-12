@@ -7,7 +7,7 @@
     <div class="sibk-page-header mb-4">
         <div class="sibk-page-header__copy">
             <h1>Proses Keluar Murid</h1>
-            <p>Daftar operasional read-only untuk pemantauan Waka Kesiswaan.</p>
+            <p>Pantau proses keluar murid tanpa mengubah datanya.</p>
         </div>
     </div>
 
@@ -17,12 +17,12 @@
         @else
             <div class="table-responsive">
                 <table class="table sibk-table align-middle mb-0">
-                    <thead><tr><th>Murid</th><th>Kelas</th><th>Jenis</th><th>Status</th><th>Dilaporkan</th><th>Efektif</th><th>Rekomendasi</th><th>Keputusan</th><th>Pencatat</th><th>Pemutus</th></tr></thead>
+                    <thead><tr><x-sort-header name="murid" label="Murid" /><th>Kelas</th><th>Jenis</th><th>Status</th><x-sort-header name="tanggal" label="Dilaporkan" /><x-sort-header name="efektif" label="Efektif" /><th>Rekomendasi</th><th>Keputusan</th><th>Pencatat</th><th>Pemutus</th></tr></thead>
                     <tbody>
                         @foreach($departures as $departure)
                             @php $membership = $departure->student->classMemberships->first(); @endphp
                             <tr>
-                                <td class="fw-semibold">{{ $departure->student->name }}</td>
+                                <td class="fw-semibold">{{ \App\Support\StudentName::display($departure->student->name) }}</td>
                                 <td>{{ $membership?->classroom?->name ?? '-' }}</td>
                                 <td>{{ $departure->typeLabel() }}</td>
                                 <td>{{ $departure->statusLabel() }}</td>

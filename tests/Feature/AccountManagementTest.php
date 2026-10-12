@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -57,18 +58,19 @@ class AccountManagementTest extends TestCase
     {
         $admin = $this->userWithRoles(['admin_it']);
 
-        $response = $this->actingAs($admin)->post(route('admin.users.store'), [
+        $this->actingAs($admin)->post(route('admin.users.store'), [
             'name' => 'Guru Baru',
             'email' => 'guru.baru@example.test',
             'roles' => ['guru_bk'],
             'is_active' => '1',
-        ]);
-
+        ])->assertRedirect(route('admin.users.index'));
+        $response = $this->actingAs($admin)->get(route('admin.users.index'));
         $response->assertOk()
             ->assertHeader('cache-control', 'no-store, private')
-            ->assertSee('Kata sandi sementara');
+            ->assertSee('Sandi sementara');
         $user = User::query()->where('email', 'guru.baru@example.test')->firstOrFail();
-        $result = $response->viewData('result');
+        $response->assertViewIs('pages.admin.users.index');
+        $result = $response->viewData('temporaryPasswordResult');
         $this->assertInstanceOf(TemporaryPasswordResult::class, $result);
         $this->assertTrue($user->must_change_password);
         $this->assertNotNull($user->temporary_password_expires_at);
@@ -77,6 +79,8 @@ class AccountManagementTest extends TestCase
         $auditJson = DB::table('audit_logs')->where('auditable_id', $user->id)->get()->toJson();
         $this->assertStringNotContainsString($user->password, $auditJson);
         $this->assertStringNotContainsString($result->plainTextPassword, $auditJson);
+        $this->actingAs($admin)->get(route('admin.users.index'))
+            ->assertDontSee($result->plainTextPassword);
     }
 
     public function test_admin_resets_another_account_password_and_revokes_its_sessions(): void
@@ -106,6 +110,43 @@ class AccountManagementTest extends TestCase
         $this->actingAs($admin)->postJson(route('admin.users.reset-password', $admin))->assertForbidden();
     }
 
+    public function test_reset_password_appears_once_in_the_target_account_row(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $target = $this->userWithRoles(['guru_bk']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.reset-password', $target))
+            ->assertRedirect(route('admin.users.index'));
+        $response = $this->actingAs($admin)->get(route('admin.users.index'));
+        $response->assertOk()
+            ->assertViewIs('pages.admin.users.index')
+            ->assertHeader('cache-control', 'no-store, private');
+
+        $result = $response->viewData('temporaryPasswordResult');
+        $this->assertInstanceOf(TemporaryPasswordResult::class, $result);
+        $response->assertSee($result->plainTextPassword);
+        $this->actingAs($admin)->get(route('admin.users.index'))
+            ->assertDontSee($result->plainTextPassword);
+    }
+
+    public function test_browser_reset_uses_an_encrypted_one_request_result(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $target = $this->userWithRoles(['guru_bk']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.reset-password', $target))
+            ->assertRedirect(route('admin.users.index'));
+
+        $encrypted = session('account_password_result');
+        $this->assertIsString($encrypted);
+        $payload = Crypt::decrypt($encrypted);
+        $this->assertSame($target->id, $payload['user_id']);
+        $this->assertTrue(Hash::check($payload['value'], $target->fresh()->password));
+        $this->assertStringNotContainsString($payload['value'], $encrypted);
+    }
+
     public function test_update_account_ignores_forged_password_fields(): void
     {
         $admin = $this->userWithRoles(['admin_it']);
@@ -121,6 +162,59 @@ class AccountManagementTest extends TestCase
         $this->assertSame($originalHash, $target->refresh()->password);
     }
 
+    public function test_quick_role_change_replaces_only_the_target_roles_and_rejects_empty_selection(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $target = $this->userWithRoles(['guru_bk']);
+        $other = $this->userWithRoles(['guru_bk']);
+
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $target), [
+            'roles' => ['koordinator_bk', 'guru_bk'],
+        ])->assertOk();
+        $this->assertTrue($target->fresh()->hasRole('koordinator_bk'));
+        $this->assertTrue($other->fresh()->hasRole('guru_bk'));
+
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $target), [
+            'roles' => [],
+        ])->assertUnprocessable();
+        $this->assertTrue($target->fresh()->hasRole('koordinator_bk'));
+    }
+
+    public function test_exclusive_roles_cannot_be_combined_and_own_roles_cannot_be_changed(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $target = $this->userWithRoles(['guru_bk']);
+
+        foreach (['admin_it', 'waka_kesiswaan'] as $exclusive) {
+            $this->actingAs($admin)->postJson(route('admin.users.store'), [
+                'name' => 'Peran Ganda',
+                'email' => $exclusive.'@example.test',
+                'roles' => [$exclusive, 'guru_bk'],
+            ])->assertUnprocessable()->assertJsonValidationErrors('roles');
+
+            $this->actingAs($admin)->patchJson(route('admin.users.update', $target), [
+                'roles' => [$exclusive, 'koordinator_bk'],
+            ])->assertUnprocessable()->assertJsonValidationErrors('roles');
+        }
+
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $admin), [
+            'roles' => ['guru_bk'],
+        ])->assertUnprocessable()->assertJsonValidationErrors('roles');
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $admin), [
+            'is_active' => false,
+        ])->assertUnprocessable()->assertJsonValidationErrors('is_active');
+        $this->actingAs($admin)->patch(route('admin.users.update', $admin), [
+            'is_active' => '0',
+        ])->assertSessionHasErrors('is_active');
+        $this->assertTrue($admin->fresh()->hasRole('admin_it'));
+        $this->assertTrue($target->fresh()->hasRole('guru_bk'));
+
+        $this->actingAs($admin)->patchJson(route('admin.users.update', $admin), [
+            'name' => 'Admin Baru',
+        ])->assertOk();
+        $this->assertSame('Admin Baru', $admin->fresh()->name);
+    }
+
     public function test_admin_it_receives_web_interface_and_browser_forms_redirect_back(): void
     {
         $admin = $this->userWithRoles(['admin_it']);
@@ -131,7 +225,14 @@ class AccountManagementTest extends TestCase
             ->assertViewIs('pages.admin.users.index')
             ->assertSee('Kelola Akun')
             ->assertSee($target->email)
-            ->assertSee('Buat Akun')
+            ->assertSee('Tambah Akun')
+            ->assertSee('Reset Sandi')
+            ->assertSee('accountRolesModal')
+            ->assertSee('Tambah Peran')
+            ->assertSee('Lihat Informasi')
+            ->assertSee('Akun Anda')
+            ->assertDontSee('role="switch"', false)
+            ->assertDontSee('<th>Sandi</th>', false)
             ->assertHeader('content-type', 'text/html; charset=UTF-8');
 
         $this->actingAs($admin)->patch(route('admin.users.update', $target), [
@@ -143,6 +244,52 @@ class AccountManagementTest extends TestCase
             ->assertSessionHas('success', 'Akun berhasil diperbarui.');
 
         $this->assertFalse($target->fresh()?->is_active);
+    }
+
+    public function test_account_list_filters_name_email_and_role(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $counselor = User::factory()->create(['name' => 'Budi Santoso', 'email' => 'budi@example.test']);
+        $counselor->roles()->sync(Role::query()->where('slug', 'guru_bk')->pluck('id'));
+        $coordinator = User::factory()->create(['name' => 'Citra Santoso', 'email' => 'citra@example.test']);
+        $coordinator->roles()->sync(Role::query()->where('slug', 'koordinator_bk')->pluck('id'));
+        $other = User::factory()->create(['name' => 'Dewi Anggraini', 'email' => 'dewi.santoso@example.test']);
+        $other->roles()->sync(Role::query()->where('slug', 'guru_bk')->pluck('id'));
+
+        $response = $this->actingAs($admin)->get(route('admin.users.index', ['q' => 'Santoso', 'role' => 'guru_bk']));
+        $response->assertOk()->assertSee('Budi Santoso')->assertSee('Dewi Anggraini')
+            ->assertDontSee('Citra Santoso');
+        $this->assertSame(2, $response->viewData('users')->total());
+        $this->assertSame(['q' => 'Santoso', 'role' => 'guru_bk'], $response->viewData('filters'));
+
+        $this->actingAs($admin)->getJson(route('admin.users.index', ['q' => 'citra@example.test']))
+            ->assertOk()->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $coordinator->id);
+
+        $this->actingAs($admin)->get(route('admin.users.index', ['role' => 'unknown_role']))
+            ->assertOk()->assertViewHas('filters', ['q' => '', 'role' => '']);
+    }
+
+    public function test_account_pagination_preserves_search_and_role(): void
+    {
+        $admin = $this->userWithRoles(['admin_it']);
+        $roleId = Role::query()->where('slug', 'guru_bk')->value('id');
+        for ($number = 1; $number <= 21; $number++) {
+            $user = User::factory()->create([
+                'name' => sprintf('Guru Filter %02d', $number),
+                'email' => sprintf('filter%02d@example.test', $number),
+            ]);
+            $user->roles()->attach($roleId);
+        }
+
+        $response = $this->actingAs($admin)->get(route('admin.users.index', ['q' => 'Guru Filter', 'role' => 'guru_bk']));
+        $response->assertOk();
+        $paginator = $response->viewData('users');
+        $this->assertSame(21, $paginator->total());
+        $this->assertSame(20, $paginator->count());
+        $query = [];
+        parse_str((string) parse_url($paginator->url(2), PHP_URL_QUERY), $query);
+        $this->assertSame(['q' => 'Guru Filter', 'role' => 'guru_bk', 'page' => '2'], $query);
     }
 
     public function test_admin_it_can_deactivate_and_reactivate_an_account(): void

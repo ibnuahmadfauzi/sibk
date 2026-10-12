@@ -225,8 +225,6 @@ final class DapodikApplyService
                 'student_id' => $studentId,
                 'classroom_id' => $classroomId,
                 'academic_year_id' => $yearId,
-                'effective_from' => $fields['effective_from'],
-                'effective_until' => $fields['effective_until'],
                 'is_active' => $fields['is_active'],
                 'synced_at' => $syncedAt,
                 'master_source' => StudentClassMembership::MASTER_SOURCE_DAPODIK,
@@ -259,7 +257,7 @@ final class DapodikApplyService
                     'entity_type' => $entityType,
                     'source_identifier' => 'local:'.$target->getKey(),
                     'issue_code' => 'unmatched_local_record',
-                    'summary' => 'Data lokal belum cocok dengan snapshot Dapodik dan tetap dipertahankan.',
+                    'summary' => 'Data sekolah belum cocok dengan Dapodik dan tetap disimpan.',
                 ]);
             }
         }
@@ -277,8 +275,6 @@ final class DapodikApplyService
             'classroom_id',
             'grade_level',
             'major',
-            'effective_from',
-            'effective_until',
             'is_active',
             'master_source',
             'source_confirmed_at',

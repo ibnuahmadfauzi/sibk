@@ -6,6 +6,8 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\Role;
+use App\Models\Student;
+use App\Models\TeacherAssignment;
 use App\Models\User;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
@@ -29,7 +31,7 @@ class AuthorizationMatrixTest extends TestCase
     {
         yield 'Guru BK' => ['guru_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/assignments/classes' => 200,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 200,
@@ -37,24 +39,24 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Koordinator BK' => ['koordinator_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 200, '/assignments/cases' => 200,
+            '/assignments/classes' => 200,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 200,
+            '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
-            '/assignments/classes/manage' => 200, '/waka/reports?tab=penanganan' => 403,
+            '/assignments/classes/manage' => 302, '/waka/reports?tab=penanganan' => 403,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
-            '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403, '/assignments/cases' => 403,
-            '/achievements' => 403, '/consultations/create' => 403,
+            '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 200,
+            '/assignments/classes' => 200,
+            '/achievements' => 200, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
-            '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 200,
+            '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 302,
             '/consultations' => 302, '/assignments/classes/manage' => 403,
-            '/waka/reports?tab=penanganan' => 200,
+            '/waka/reports?tab=penanganan' => 302,
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 403, '/assignments/cases' => 403,
+            '/assignments/classes' => 200,
             '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
@@ -68,7 +70,14 @@ class AuthorizationMatrixTest extends TestCase
         $user = $this->userWithRole($role);
 
         foreach ($matrix as $uri => $status) {
-            $response = $this->actingAs($user)->get($uri)->assertStatus($status);
+            $response = $this->actingAs($user)->get($uri);
+            $this->assertSame($status, $response->status(), $uri);
+            if (str_starts_with($uri, '/waka/reports') && $status === 302) {
+                $response->assertRedirect(route('reports.index'));
+            }
+            if ($uri === '/assignments/classes/manage' && $status === 302) {
+                $response->assertRedirect(route('assignments.classes.index'));
+            }
             if ($uri === '/consultations') {
                 $response->assertRedirect(route('cases.index', ['tab' => 'konsultasi']));
                 $this->get(route('cases.index', ['tab' => 'konsultasi']))->assertStatus($matrix['/cases']);
@@ -98,7 +107,7 @@ class AuthorizationMatrixTest extends TestCase
             '/corrections', '/notifications', '/history',
             '/_preview/notifications', '/_preview/corrections',
             '/_preview/corrections/create', '/_preview/corrections/show',
-            '/_preview/history',
+            '/_preview/history', '/data-master/students',
         ] as $uri) {
             $this->actingAs($user)->get($uri)->assertNotFound();
         }
@@ -121,9 +130,45 @@ class AuthorizationMatrixTest extends TestCase
             ->assertDontSee('Layanan BK')
             ->assertDontSee('Data Murid')
             ->assertDontSee('Laporan')
-            ->assertDontSee('Penugasan Kelas')
+            ->assertDontSee('Pembagian Kelas Binaan')
             ->assertDontSee('Pengalihan Kasus')
+            ->assertSee('PENGELOLAAN')
             ->assertSee('Data Master');
+    }
+
+    public function test_teacher_sidebar_hides_management_without_hiding_read_only_assignments(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $this->assertFalse($teacher->can('create', TeacherAssignment::class));
+        $this->assertFalse($teacher->can('manageDataMaster'));
+
+        $this->actingAs($teacher)->get('/dashboard')->assertOk()
+            ->assertDontSee('PENGELOLAAN')
+            ->assertDontSee('Pembagian Kelas Binaan');
+        $this->actingAs($teacher)->get(route('assignments.classes.index'))->assertOk();
+    }
+
+    public function test_coordinator_sidebar_shows_management(): void
+    {
+        $coordinator = $this->userWithRole('koordinator_bk');
+        $this->actingAs($coordinator)->get('/dashboard')->assertOk()
+            ->assertSee('PENGELOLAAN')
+            ->assertSee('Pembagian Kelas Binaan');
+    }
+
+    public function test_admin_cannot_open_student_service_profiles(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create([
+            'nisn' => '0012345678',
+            'name' => 'Murid Persiapan',
+            'is_active' => true,
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('students.show', $student))
+            ->assertForbidden();
     }
 
     public function test_waka_multi_role_keeps_authority_from_the_non_waka_role(): void
@@ -152,10 +197,13 @@ class AuthorizationMatrixTest extends TestCase
 
         $this->actingAs($admin)->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Persiapan Tahun Ajaran');
+            ->assertSee('id="provisional_year_name"', false)
+            ->assertSee('Buat Tahun Ajaran');
         $this->actingAs($coordinator)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
+            ->assertRedirect(route('assignments.classes.index', ['academic_year_id' => $year->id]));
+        $this->actingAs($coordinator)->get(route('assignments.classes.index', ['academic_year_id' => $year->id]))
             ->assertOk()
-            ->assertSee('Kesiapan Aktivasi');
+            ->assertSee('id="activation-readiness-title"', false);
         $this->actingAs($teacher)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))
             ->assertForbidden();
         $this->actingAs($waka)->get(route('assignments.classes.manage', ['academic_year_id' => $year->id]))

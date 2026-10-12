@@ -13,11 +13,6 @@ class WakaMonitoringPolicy
         return $user->is_active && $user->hasRole('waka_kesiswaan');
     }
 
-    public function exportMonitoring(User $user): bool
-    {
-        return $this->viewMonitoring($user);
-    }
-
     public function viewReportTab(User $user, string $tab): bool
     {
         if (! $user->is_active || ! in_array($tab, ['penanganan', 'rekap', 'laporan-akhir'], true)) {

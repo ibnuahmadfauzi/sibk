@@ -14,7 +14,7 @@ final class ProvisionalRosterCsvParser
     private const MAX_ROWS = 5000;
 
     /**
-     * @return list<array{nisn: string, name: string, classroom: string}>
+     * @return list<array{nisn: string, name: string, classroom: string, academic_year_name: string}>
      */
     public function parse(UploadedFile $file): array
     {
@@ -55,8 +55,8 @@ final class ProvisionalRosterCsvParser
 
         try {
             $header = fgetcsv($stream, separator: ',', enclosure: '"', escape: '');
-            if ($header !== ['nisn', 'nama', 'rombel']) {
-                $this->fail('Header CSV harus tepat: nisn,nama,rombel.');
+            if ($header !== ['nisn', 'nama', 'rombel', 'tahun_pelajaran']) {
+                $this->fail('Header CSV harus tepat: nisn,nama,rombel,tahun_pelajaran.');
             }
 
             $rows = [];
@@ -67,37 +67,53 @@ final class ProvisionalRosterCsvParser
                     continue;
                 }
 
-                if (count($row) !== 3 || ! is_string($row[0]) || ! is_string($row[1]) || ! is_string($row[2])) {
-                    $this->fail('Setiap baris CSV harus memiliki tepat tiga kolom.');
+                if (count($row) !== 4
+                    || ! is_string($row[0])
+                    || ! is_string($row[1])
+                    || ! is_string($row[2])
+                    || ! is_string($row[3])) {
+                    $this->fail('Setiap baris CSV harus memiliki tepat empat kolom.');
                 }
 
                 if ($this->containsControlCharacter($row[0])
                     || $this->containsControlCharacter($row[1])
-                    || $this->containsControlCharacter($row[2])) {
+                    || $this->containsControlCharacter($row[2])
+                    || $this->containsControlCharacter($row[3])) {
                     $this->fail('Data CSV mengandung karakter kontrol yang tidak aman.');
                 }
 
                 $nisn = $row[0];
                 $name = trim($row[1]);
                 $classroom = trim($row[2]);
+                $academicYearName = trim($row[3]);
                 if (preg_match('/^\d{10}$/D', $nisn) !== 1) {
                     $this->fail('NISN wajib berisi tepat 10 angka.');
                 }
-                if ($name === '' || $classroom === '') {
-                    $this->fail('Nama dan rombel wajib diisi.');
+                if ($name === '' || $classroom === '' || $academicYearName === '') {
+                    $this->fail('Nama, rombel, dan tahun pelajaran wajib diisi.');
                 }
-                if (mb_strlen($name) > 150 || mb_strlen($classroom) > 100) {
-                    $this->fail('Nama atau rombel melebihi batas panjang yang diizinkan.');
+                if (mb_strlen($name) > 150
+                    || mb_strlen($classroom) > 100
+                    || mb_strlen($academicYearName) > 20) {
+                    $this->fail('Nama, rombel, atau tahun pelajaran melebihi batas panjang yang diizinkan.');
                 }
-                if ($this->containsUnsafeText($name) || $this->containsUnsafeText($classroom)) {
-                    $this->fail('Nama dan rombel mengandung karakter yang tidak aman.');
+                if ($this->containsUnsafeText($name)
+                    || $this->containsUnsafeText($classroom)
+                    || $this->containsUnsafeText($academicYearName)) {
+                    $this->fail('Nama, rombel, atau tahun pelajaran mengandung karakter yang tidak aman.');
                 }
-                if (isset($seenNisn[$nisn])) {
-                    $this->fail('Satu NISN hanya boleh muncul sekali dalam satu berkas.');
+                $rosterKey = $academicYearName.'|'.$nisn;
+                if (isset($seenNisn[$rosterKey])) {
+                    $this->fail('Satu NISN hanya boleh muncul sekali pada tahun pelajaran yang sama.');
                 }
 
-                $seenNisn[$nisn] = true;
-                $rows[] = ['nisn' => $nisn, 'name' => $name, 'classroom' => $classroom];
+                $seenNisn[$rosterKey] = true;
+                $rows[] = [
+                    'nisn' => $nisn,
+                    'name' => $name,
+                    'classroom' => $classroom,
+                    'academic_year_name' => $academicYearName,
+                ];
 
                 if (count($rows) > self::MAX_ROWS) {
                     $this->fail('Jumlah baris CSV maksimum 5.000.');

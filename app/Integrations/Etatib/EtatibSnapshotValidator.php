@@ -13,6 +13,13 @@ final class EtatibSnapshotValidator
 {
     private const array FIELDS = [
         'source_id', 'nisn', 'occurred_at', 'violation_type', 'category', 'points',
+        'source_status', 'source_synced_at', 'source_nisn', 'source_student_name',
+        'source_classroom_name', 'recorded_by_name', 'source_total_points',
+        'source_deleted_at',
+    ];
+
+    private const array REQUIRED_FIELDS = [
+        'source_id', 'nisn', 'occurred_at', 'violation_type', 'category', 'points',
         'source_status', 'source_synced_at',
     ];
 
@@ -100,7 +107,7 @@ final class EtatibSnapshotValidator
             || ! in_array('nisn', $this->immutableFields, true)
             || ! is_array($this->mutableFields)
             || array_intersect($this->immutableFields, $this->mutableFields) !== []
-            || array_diff(self::FIELDS, $fields) !== []
+            || array_diff(self::REQUIRED_FIELDS, $fields) !== []
             || array_diff($fields, self::FIELDS) !== []
             || $this->revisionStrategy !== 'source_synced_at_timestamp'
             || ! in_array('source_synced_at', $this->mutableFields, true)
@@ -153,7 +160,7 @@ final class EtatibSnapshotValidator
                 && $storedTimestamp !== null
                 && $incomingTimestamp->getTimestamp() === $storedTimestamp->getTimestamp();
         }
-        if ($field === 'points') {
+        if (in_array($field, ['points', 'source_total_points'], true)) {
             return is_int($incoming) && $incoming === (int) $stored;
         }
 
@@ -199,6 +206,17 @@ final class EtatibSnapshotValidator
             if (array_key_exists($field, $item) && $item[$field] !== null && ! is_string($item[$field])) {
                 throw new IntegrationConfigurationException('contract_invalid');
             }
+        }
+        foreach (['source_nisn', 'source_student_name', 'source_classroom_name', 'recorded_by_name', 'source_deleted_at'] as $field) {
+            if (array_key_exists($field, $item) && $item[$field] !== null && ! is_string($item[$field])) {
+                throw new IntegrationConfigurationException('contract_invalid');
+            }
+        }
+        if (array_key_exists('source_total_points', $item)
+            && $item['source_total_points'] !== null
+            && ! is_int($item['source_total_points'])
+        ) {
+            throw new IntegrationConfigurationException('contract_invalid');
         }
     }
 }

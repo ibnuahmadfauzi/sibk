@@ -57,6 +57,15 @@ class Student extends Model
         return $this->hasMany(ExternalTatibRecord::class);
     }
 
+    public function tatibPoints(): int
+    {
+        $records = $this->relationLoaded('etatibRecords')
+            ? $this->etatibRecords
+            : $this->etatibRecords()->whereNull('source_deleted_at')->get();
+
+        return (int) $records->whereNull('source_deleted_at')->sum('points');
+    }
+
     /** @return HasOne<StudentDeparture, $this> */
     public function departure(): HasOne
     {
@@ -83,9 +92,8 @@ class Student extends Model
     public function scopeForActiveTeacherAssignment(
         Builder $query,
         User $teacher,
-        CarbonInterface|string $date,
     ): Builder {
-        return $query->whereExists(function ($scope) use ($teacher, $date): void {
+        return $query->whereExists(function ($scope) use ($teacher): void {
             $scope->selectRaw('1')
                 ->from('student_class_memberships as memberships')
                 ->join('teacher_assignments as assignments', function ($join): void {
@@ -96,26 +104,7 @@ class Student extends Model
                 ->whereColumn('memberships.student_id', 'students.id')
                 ->where('memberships.is_active', true)
                 ->where('years.is_active', true)
-                ->where('assignments.user_id', $teacher->getKey())
-                ->whereNull('assignments.deleted_at')
-                ->whereDate('memberships.effective_from', '<=', $date)
-                ->where(function ($period) use ($date): void {
-                    $period->whereNull('memberships.effective_until')
-                        ->orWhereDate('memberships.effective_until', '>=', $date);
-                })
-                ->whereDate('assignments.effective_from', '<=', $date)
-                ->where(function ($period) use ($date): void {
-                    $period->whereNull('assignments.effective_until')
-                        ->orWhereDate('assignments.effective_until', '>=', $date);
-                })
-                ->where(function ($period) use ($date): void {
-                    $period->whereNull('years.starts_on')
-                        ->orWhereDate('years.starts_on', '<=', $date);
-                })
-                ->where(function ($period) use ($date): void {
-                    $period->whereNull('years.ends_on')
-                        ->orWhereDate('years.ends_on', '>=', $date);
-                });
+                ->where('assignments.user_id', $teacher->getKey());
         });
     }
 
@@ -128,11 +117,14 @@ class Student extends Model
 
         return $query->where(function (Builder $access) use ($teacher): void {
             $access->whereIn('students.id', Student::query()
-                ->forActiveTeacherAssignment($teacher, now())
+                ->forActiveTeacherAssignment($teacher)
                 ->select('students.id'))
                 ->orWhereHas('cases.assignments', fn (Builder $assignments): Builder => $assignments
                     ->where('user_id', $teacher->getKey())
-                    ->effectiveOn(now()));
+                )
+                ->orWhereHas('temporaryIdentities.cases.assignments', fn (Builder $assignments): Builder => $assignments
+                    ->where('user_id', $teacher->getKey())
+                );
         });
     }
 
@@ -148,8 +140,7 @@ class Student extends Model
         }
 
         if ($user->hasRole('waka_kesiswaan')) {
-            return $query->whereHas('cases.coordinations', fn (Builder $coordinations): Builder => $coordinations
-                ->where('waka_user_id', $user->getKey()));
+            return $query->whereHas('cases', fn (Builder $cases): Builder => $cases->accessibleTo($user));
         }
 
         return $query->whereRaw('1 = 0');

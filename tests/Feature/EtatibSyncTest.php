@@ -19,11 +19,15 @@ use App\Integrations\IntegrationProbeResult;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use App\Integrations\IntegrationSnapshotEvidence;
 use App\Models\AuditLog;
+use App\Models\AcademicYear;
+use App\Models\Classroom;
+use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
 use App\Models\Role;
 use App\Models\Student;
+use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\EtatibSyncService;
@@ -35,6 +39,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use RuntimeException;
 use Tests\TestCase;
@@ -49,7 +54,84 @@ class EtatibSyncTest extends TestCase
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
     }
 
-    public function test_reconciliation_links_only_a_unique_verified_dapodik_nisn_without_fetching_etatib(): void
+    public function test_classroom_choice_stays_resolved_until_comparison_changes(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->actingAs($admin);
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $year = AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
+        $classroom = Classroom::query()->create(['name' => '11 DKV 2', 'academic_year_id' => $year->id, 'is_active' => true]);
+        $membership = StudentClassMembership::query()->create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'is_active' => true]);
+        $item = [
+            'source_id' => 'etatib-kelas-1', 'nisn' => $student->nisn, 'source_student_name' => $student->name,
+            'source_classroom_name' => '11 DKV 1', 'occurred_at' => '2026-08-13 08:00:00',
+            'violation_type' => 'Terlambat', 'category' => 'ringan', 'points' => 5,
+        ];
+        $this->fakeConnector(new EtatibSnapshot(false, [$item]));
+        app(EtatibSyncService::class)->synchronize($admin);
+        $issue = ExternalSyncIssue::query()->where('issue_code', 'student_classroom_mismatch')->sole();
+
+        $this->get(route('data-master.sync-issues.show', ['issue' => $issue, 'inline' => 1]))
+            ->assertOk()->assertSee('Kelas Murid Resmi pada tanggal kejadian')
+            ->assertSee('11 DKV 2')->assertSee('sesuai data sekolah')
+            ->assertSee('11 DKV 1')->assertSee('sesuai data e-Tatib')
+            ->assertSee('Keputusan ini hanya berlaku untuk pelanggaran ini.');
+        $this->patch(route('data-master.sync-issues.update', $issue), ['action' => 'use_school', 'membership_id' => $membership->id])
+            ->assertRedirect(route('data-master.index', ['tab' => 'sinkronisasi', 'history_decisions' => 1]).'#sync-decisions-title');
+        $issue->refresh();
+        $this->assertNotNull($issue->resolved_at);
+        $this->assertSame('resolved', $issue->details['review']['status']);
+        $this->assertSame($classroom->id, $issue->details['review']['choice']['classroom_id']);
+        $this->assertSame($year->id, $issue->details['review']['choice']['academic_year_id']);
+        $this->assertSame('11 DKV 2', ExternalTatibRecord::query()->where('source_identifier', 'etatib-kelas-1')->firstOrFail()->effective_classroom_name);
+        $eagerRecord = ExternalTatibRecord::query()->with([
+            'latestClassroomIssue',
+            'student.classMemberships' => fn ($memberships) => $memberships->active()
+                ->with(['academicYear:id,starts_on,ends_on', 'classroom:id,name']),
+        ])->where('source_identifier', 'etatib-kelas-1')->firstOrFail();
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->assertSame('11 DKV 2', $eagerRecord->effective_classroom_name);
+        $this->assertCount(0, DB::getQueryLog());
+        DB::disableQueryLog();
+        $this->get(route('data-master.index', ['tab' => 'sinkronisasi', 'history_decisions' => 1]))->assertOk()
+            ->assertSee('0 belum selesai')
+            ->assertSee('Keputusan Kelas')
+            ->assertSee('11 DKV 2')
+            ->assertSee('Data sekolah')
+            ->assertSee('sync-issue-detail-'.$issue->id);
+        ExternalSyncIssue::query()->create([
+            'external_sync_run_id' => $issue->external_sync_run_id, 'entity_type' => 'etatib_record',
+            'source_identifier' => 'etatib-kelas-1', 'issue_code' => 'source_identity_mismatch',
+            'summary' => 'Identitas berbeda.',
+        ]);
+        $this->assertSame('11 DKV 2', ExternalTatibRecord::query()->where('source_identifier', 'etatib-kelas-1')->firstOrFail()->effective_classroom_name);
+
+        $matchingClass = Classroom::query()->create(['name' => '11 DKV 1', 'academic_year_id' => $year->id, 'is_active' => true]);
+        $membership->update(['classroom_id' => $matchingClass->id]);
+        $this->assertSame('11 DKV 1', ExternalTatibRecord::query()->where('source_identifier', 'etatib-kelas-1')->firstOrFail()->effective_classroom_name);
+        app(EtatibSyncService::class)->synchronize($admin);
+        $this->assertSame(0, ExternalSyncIssue::query()->where('issue_code', 'student_classroom_mismatch')->whereNull('resolved_at')->count());
+        $membership->update(['classroom_id' => $classroom->id]);
+
+        app(EtatibSyncService::class)->synchronize($admin);
+        $this->assertSame(0, ExternalSyncIssue::query()->where('issue_code', 'student_classroom_mismatch')->whereNull('resolved_at')->count());
+
+        $item['source_classroom_name'] = '11 DKV 3';
+        $this->fakeConnector(new EtatibSnapshot(false, [$item]));
+        app(EtatibSyncService::class)->synchronize($admin);
+        $this->assertSame(1, ExternalSyncIssue::query()->where('issue_code', 'student_classroom_mismatch')->whereNull('resolved_at')->count());
+        $record = ExternalTatibRecord::query()->where('source_identifier', 'etatib-kelas-1')->firstOrFail();
+        $this->assertSame('11 DKV 3', $record->effective_classroom_name);
+        $newIssue = ExternalSyncIssue::query()->where('issue_code', 'student_classroom_mismatch')->whereNull('resolved_at')->sole();
+        $this->patch(route('data-master.sync-issues.update', $newIssue), ['action' => 'use_etatib'])->assertRedirect();
+        $this->assertSame('11 DKV 3', $record->fresh()->effective_classroom_name);
+        $this->assertSame('use_etatib', $newIssue->fresh()->details['review']['action']);
+        $record->update(['source_classroom_name' => '11 DKV 2']);
+        $this->assertSame('11 DKV 2', $record->fresh()->effective_classroom_name);
+    }
+
+    public function test_reconciliation_links_unique_master_nisn_including_api_siswa_without_fetching_etatib(): void
     {
         $connector = new class implements EtatibConnector
         {
@@ -95,9 +177,9 @@ class EtatibSyncTest extends TestCase
 
         $linked = app(EtatibSyncService::class)->reconcileStudentLinks();
 
-        $this->assertSame(1, $linked);
+        $this->assertSame(2, $linked);
         $this->assertSame($verified->id, $verifiedRecord->refresh()->student_id);
-        $this->assertNull($provisionalRecord->refresh()->student_id);
+        $this->assertSame($provisional->id, $provisionalRecord->refresh()->student_id);
         $this->assertSame(0, $connector->fetchCalls);
     }
 
@@ -167,7 +249,7 @@ class EtatibSyncTest extends TestCase
         $this->assertSame(1001, AuditLog::query()->where('action', 'etatib.student_relinked')->count());
     }
 
-    public function test_full_and_partial_sync_are_idempotent_and_only_full_deactivates_missing_records(): void
+    public function test_full_and_partial_sync_keep_missing_history_and_remain_idempotent(): void
     {
         $admin = $this->userWithRole('admin_it');
         Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
@@ -186,9 +268,26 @@ class EtatibSyncTest extends TestCase
 
         $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $first->status);
         $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $second->status);
-        $this->assertFalse($old->refresh()->is_active);
+        $this->assertTrue($old->refresh()->is_active);
         $this->assertDatabaseCount('external_tatib_records', 2);
         $this->assertDatabaseHas('external_tatib_records', ['source_identifier' => 'tatib-1', 'student_id' => Student::query()->firstOrFail()->id, 'is_active' => true]);
+    }
+
+    public function test_empty_full_snapshot_does_not_deactivate_prior_records(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $old = ExternalTatibRecord::query()->create([
+            'source_identifier' => 'old-semester', 'nisn' => '0012345678', 'occurred_at' => '2026-02-01 08:00:00',
+            'violation_type' => 'Data semester lalu', 'category' => 'Disiplin', 'points' => 5,
+            'is_active' => true, 'synced_at' => now()->subMonth(),
+        ]);
+
+        $this->fakeConnector(new EtatibSnapshot(true, []));
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertTrue($old->refresh()->is_active);
+        $this->assertDatabaseCount('external_tatib_records', 1);
     }
 
     public function test_duplicate_source_and_identity_mismatch_do_not_overwrite_valid_record(): void
@@ -211,14 +310,143 @@ class EtatibSyncTest extends TestCase
         $this->assertDatabaseHas('external_sync_issues', ['issue_code' => 'source_identity_mismatch', 'source_identifier' => 'tatib-1']);
     }
 
-    public function test_unconfigured_connector_fails_safely_and_endpoint_is_admin_only(): void
+    public function test_name_mismatch_is_not_used_as_identity_fallback(): void
     {
         $admin = $this->userWithRole('admin_it');
-        $teacher = $this->userWithRole('guru_bk');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Nama Master', 'is_active' => true]);
+        $this->fakeConnector(new EtatibSnapshot(false, [[
+            'source_id' => 'tatib-name-mismatch',
+            'nisn' => '0012345678',
+            'source_student_name' => 'NAMA BERBEDA',
+            'occurred_at' => '2026-08-19 08:00:00',
+            'violation_type' => 'Terlambat',
+            'category' => 'ringan',
+            'points' => 10,
+        ]]));
 
-        $this->actingAs($teacher)->post(route('data-master.etatib.sync'))->assertForbidden();
-        $this->actingAs($admin)->post(route('data-master.etatib.sync'))->assertSessionHasErrors('etatib_sync');
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_WARNING, $run->status);
+        $this->assertDatabaseHas('external_tatib_records', [
+            'source_identifier' => 'tatib-name-mismatch',
+            'student_id' => null,
+        ]);
+        $this->assertDatabaseHas('external_sync_issues', [
+            'source_identifier' => 'tatib-name-mismatch',
+            'issue_code' => 'student_name_mismatch',
+        ]);
+    }
+
+    public function test_repeated_unmatched_identity_keeps_one_record_and_one_open_issue(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $this->fakeConnector(new EtatibSnapshot(false, [[
+            'source_id' => 'tatib-belum-cocok',
+            'nisn' => '0012345678',
+            'source_student_name' => 'Murid Belum Ada',
+            'occurred_at' => '2026-08-19 08:00:00',
+            'violation_type' => 'Terlambat',
+            'category' => 'ringan',
+            'points' => 10,
+        ]]));
+
+        app(EtatibSyncService::class)->synchronize($admin);
+        $second = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_WARNING, $second->status);
+        $this->assertSame(1, $second->conflict_count);
+        $this->assertDatabaseCount('external_tatib_records', 1);
+        $this->assertDatabaseCount('external_sync_issues', 1);
+    }
+
+    public function test_delta_tombstone_deactivates_record_without_deleting_history(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Resmi', 'is_active' => true]);
+        $active = $this->snapshot(false)->records[0];
+        $active['source_deleted_at'] = null;
+        $this->fakeConnector(new EtatibSnapshot(false, [$active]));
+        app(EtatibSyncService::class)->synchronize($admin);
+
+        $active['source_synced_at'] = '2026-08-21 08:00:00';
+        $active['source_deleted_at'] = '2026-08-21 08:00:00';
+        $this->fakeConnector(new EtatibSnapshot(false, [$active]));
+        app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertDatabaseHas('external_tatib_records', [
+            'source_identifier' => 'tatib-1',
+            'violation_type' => 'Terlambat',
+            'is_active' => false,
+            'source_deleted_at' => '2026-08-21 08:00:00',
+        ]);
+    }
+
+    public function test_unconfigured_connector_fails_safely(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
         $this->assertDatabaseHas('external_sync_runs', ['source' => 'etatib', 'status' => ExternalSyncRun::STATUS_FAILED]);
+    }
+
+    public function test_sync_persists_official_snapshot_fields_and_checkpoint_atomically(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $student = Student::query()->create([
+            'nisn' => '0095000088',
+            'name' => 'Ferryscha Putri',
+            'master_source' => Student::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+        ]);
+        IntegrationSetting::query()->create(['provider' => IntegrationSetting::PROVIDER_ETATIB]);
+        $snapshot = new EtatibSnapshot(
+            isFullSnapshot: true,
+            records: [[
+                'source_id' => 'evt-production-1',
+                'nisn' => '0095000088',
+                'source_nisn' => '95000088',
+                'source_student_name' => 'FERRYSCHA PUTRI',
+                'source_classroom_name' => '12 PH 2',
+                'occurred_at' => '2026-07-20 10:17:00',
+                'violation_type' => 'Datang Terlambat',
+                'category' => 'ringan',
+                'recorded_by_name' => 'ANIS',
+                'points' => 10,
+                'source_total_points' => 20,
+                'source_status' => 'active',
+                'source_synced_at' => '2026-07-20 10:18:00',
+                'source_deleted_at' => null,
+            ]],
+            watermark: '2026-09-24T18:00:00+07:00',
+            snapshotId: 'snapshot-production-1',
+        );
+        $this->app->instance(EtatibConnector::class, new class($snapshot) implements EtatibConnector
+        {
+            public function __construct(private readonly EtatibSnapshot $snapshot) {}
+
+            public function fetchSnapshot(IntegrationOperationContext $context): EtatibSnapshot
+            {
+                return $this->snapshot;
+            }
+        });
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertDatabaseHas('external_tatib_records', [
+            'source_identifier' => 'evt-production-1',
+            'student_id' => $student->id,
+            'source_nisn' => '95000088',
+            'source_student_name' => 'FERRYSCHA PUTRI',
+            'source_classroom_name' => '12 PH 2',
+            'recorded_by_name' => 'ANIS',
+            'source_total_points' => 20,
+        ]);
+        $setting = IntegrationSetting::query()->where('provider', 'etatib')->sole();
+        $this->assertSame('2026-09-24T18:00:00+07:00', $setting->sync_watermark);
+        $this->assertNotNull($setting->last_full_synced_at);
+        $this->assertNotNull($setting->last_successful_sync_at);
     }
 
     public function test_unavailable_driver_fails_safely_without_outbound_or_data_change(): void
@@ -578,11 +806,13 @@ class EtatibSyncTest extends TestCase
         $this->assertTrue($lock->get());
 
         try {
-            $this->actingAs($admin)->post(route('data-master.etatib.sync'))
-                ->assertRedirect()
-                ->assertSessionHasErrors('etatib_sync');
-            $this->assertDatabaseCount('external_sync_runs', 0);
-            $this->assertDatabaseCount('audit_logs', 0);
+            try {
+                app(EtatibSyncService::class)->synchronize($admin);
+                $this->fail('Sinkronisasi berjalan walaupun operation lock sedang dipakai.');
+            } catch (IntegrationBusyException) {
+                $this->assertDatabaseCount('external_sync_runs', 0);
+                $this->assertDatabaseCount('audit_logs', 0);
+            }
         } finally {
             $lock->release();
         }

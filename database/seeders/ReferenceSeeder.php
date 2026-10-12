@@ -22,13 +22,10 @@ class ReferenceSeeder extends Seeder
             ['category' => 'service_field', 'code' => 'belajar', 'label' => 'Belajar', 'sort_order' => 20],
             ['category' => 'service_field', 'code' => 'sosial', 'label' => 'Sosial', 'sort_order' => 30],
             ['category' => 'service_field', 'code' => 'karier', 'label' => 'Karier', 'sort_order' => 40],
-            ['category' => 'follow_up_type', 'code' => 'konsultasi_individual', 'label' => 'Konsultasi Individual', 'sort_order' => 10],
-            ['category' => 'follow_up_type', 'code' => 'panggilan_orang_tua', 'label' => 'Panggilan Orang Tua', 'sort_order' => 20],
-            ['category' => 'follow_up_type', 'code' => 'bimbingan_kelompok', 'label' => 'Bimbingan Kelompok', 'sort_order' => 30],
-            ['category' => 'follow_up_type', 'code' => 'kunjungan_rumah', 'label' => 'Kunjungan Rumah (Home Visit)', 'sort_order' => 40],
-            ['category' => 'follow_up_type', 'code' => 'koordinasi_guru', 'label' => 'Koordinasi Wali Kelas / Guru Mapel', 'sort_order' => 50],
-            ['category' => 'follow_up_type', 'code' => 'konferensi_kasus', 'label' => 'Konferensi Kasus', 'sort_order' => 60],
-            ['category' => 'follow_up_type', 'code' => 'alih_tangan_kasus', 'label' => 'Alih Tangan Kasus (Referral)', 'sort_order' => 70],
+            ['category' => 'follow_up_type', 'code' => 'surat_panggilan_orang_tua', 'label' => 'Surat Panggilan Orang Tua', 'sort_order' => 10],
+            ['category' => 'follow_up_type', 'code' => 'surat_pernyataan', 'label' => 'Surat Pernyataan', 'sort_order' => 20],
+            ['category' => 'follow_up_type', 'code' => 'home_visit', 'label' => 'Home Visit', 'sort_order' => 30],
+            ['category' => 'follow_up_type', 'code' => 'pengunduran_diri', 'label' => 'Pengunduran Diri', 'sort_order' => 40],
             ['category' => 'follow_up_status', 'code' => 'terjadwal', 'label' => 'Rencana / Terjadwal', 'sort_order' => 10],
             ['category' => 'follow_up_status', 'code' => 'terlaksana', 'label' => 'Terlaksana', 'sort_order' => 20],
             ['category' => 'follow_up_status', 'code' => 'ditunda', 'label' => 'Ditunda', 'sort_order' => 30],
@@ -36,12 +33,6 @@ class ReferenceSeeder extends Seeder
             ['category' => 'coordination_status', 'code' => 'menunggu', 'label' => 'Menunggu', 'sort_order' => 10],
             ['category' => 'coordination_status', 'code' => 'selesai', 'label' => 'Selesai', 'sort_order' => 20],
             ['category' => 'coordination_status', 'code' => 'dibatalkan', 'label' => 'Dibatalkan', 'sort_order' => 30],
-            ['category' => 'correction_status', 'code' => 'menunggu', 'label' => 'Menunggu', 'sort_order' => 10],
-            ['category' => 'correction_status', 'code' => 'diproses', 'label' => 'Diproses', 'sort_order' => 20],
-            ['category' => 'correction_status', 'code' => 'disetujui', 'label' => 'Disetujui', 'sort_order' => 30],
-            ['category' => 'correction_status', 'code' => 'ditolak', 'label' => 'Ditolak', 'sort_order' => 40],
-            ['category' => 'correction_status', 'code' => 'perlu_perbaikan', 'label' => 'Perlu Perbaikan', 'sort_order' => 50],
-            ['category' => 'correction_status', 'code' => 'selesai', 'label' => 'Selesai', 'sort_order' => 60],
             ['category' => 'reconciliation_status', 'code' => 'menunggu_rekonsiliasi', 'label' => 'Menunggu Rekonsiliasi', 'sort_order' => 10],
             ['category' => 'reconciliation_status', 'code' => 'terekonsiliasi', 'label' => 'Terekonsiliasi', 'sort_order' => 20],
             ['category' => 'reconciliation_status', 'code' => 'ditahan_konflik', 'label' => 'Ditahan karena Konflik', 'sort_order' => 30],
@@ -69,8 +60,22 @@ class ReferenceSeeder extends Seeder
         }
 
         ReferenceValue::query()
-            ->whereIn('category', ['case_status', 'consultation_status'])
-            ->where('code', 'dibatalkan')
+            ->whereIn('category', ['consultation_status', 'follow_up_status', 'coordination_status'])
+            ->update(['is_active' => false]);
+
+        ReferenceValue::query()
+            ->forCategory('case_status')
+            ->whereNotIn('code', ServiceRecordStatus::codes())
+            ->update(['is_active' => false]);
+
+        ReferenceValue::query()
+            ->forCategory('follow_up_type')
+            ->whereNotIn('code', [
+                'surat_panggilan_orang_tua',
+                'surat_pernyataan',
+                'home_visit',
+                'pengunduran_diri',
+            ])
             ->update(['is_active' => false]);
     }
 

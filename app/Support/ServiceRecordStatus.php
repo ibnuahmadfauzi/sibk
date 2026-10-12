@@ -16,7 +16,6 @@ final class ServiceRecordStatus
 
     /** @var list<string> */
     private const array CODES = [
-        self::NEW,
         self::IN_PROGRESS,
         self::NEEDS_FOLLOW_UP,
         self::COMPLETED,
@@ -24,9 +23,8 @@ final class ServiceRecordStatus
 
     /** @var array<string, string> */
     private const array LABELS = [
-        self::NEW => 'Baru dicatat',
-        self::IN_PROGRESS => 'Sedang diproses',
-        self::NEEDS_FOLLOW_UP => 'Membutuhkan tindak lanjut',
+        self::IN_PROGRESS => 'Sedang Proses',
+        self::NEEDS_FOLLOW_UP => 'Tindak Lanjut',
         self::COMPLETED => 'Selesai',
     ];
 
@@ -47,7 +45,7 @@ final class ServiceRecordStatus
 
     public static function initialCode(): string
     {
-        return self::NEW;
+        return self::IN_PROGRESS;
     }
 
     /** @return list<string> */

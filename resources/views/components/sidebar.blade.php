@@ -29,14 +29,18 @@
 
             @if($isWakaOnly)
                 <p class="sibk-sidebar__section">PEMANTAUAN WAKA</p>
-                <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.students') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.students') }}"
-                    aria-current="{{ request()->routeIs('waka.monitoring.students') ? 'page' : 'false' }}">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-                    <span>Murid dengan Kasus</span>
-                </a>
-                <a class="sibk-nav-link {{ request()->routeIs('waka.reports') || request()->routeIs('cases.show') ? 'is-active' : '' }}" href="{{ route('waka.reports') }}"
-                    aria-current="{{ request()->routeIs('waka.reports') || request()->routeIs('cases.show') ? 'page' : 'false' }}">
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                <a
+                    class="sibk-nav-link {{ request()->routeIs('reports.*') ? 'is-active' : '' }}"
+                    href="{{ route('reports.index') }}"
+                    aria-current="{{ request()->routeIs('reports.*') ? 'page' : 'false' }}"
+                >
+                    <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M6 3h12a2 2 0 0 1 2 2v16H4V5a2 2 0 0 1 2-2Z" />
+                        <path d="M8 8h8M8 12h8M8 16h5" />
+                    </svg>
                     <span>Laporan</span>
                 </a>
             @else
@@ -64,21 +68,15 @@
                 </a>
             @endcan
 
-            <p class="sibk-sidebar__section">PENGELOLAAN</p>
+            @if($sidebarUser?->can('create', App\Models\TeacherAssignment::class) || $sidebarUser?->can('manageDataMaster'))
+                <p class="sibk-sidebar__section">PENGELOLAAN</p>
+            @endif
 
-            @can('viewAny', App\Models\TeacherAssignment::class)
+            @can('create', App\Models\TeacherAssignment::class)
             <a class="sibk-nav-link {{ request()->routeIs('assignments.classes.*') ? 'is-active' : '' }}" href="{{ route('assignments.classes.index') }}"
                 aria-current="{{ request()->routeIs('assignments.classes.*') ? 'page' : 'false' }}">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>
-                <span>Penugasan Kelas</span>
-            </a>
-            @endcan
-
-            @can('manageCaseAssignments')
-            <a class="sibk-nav-link {{ request()->routeIs('assignments.cases.*') ? 'is-active' : '' }}" href="{{ route('assignments.cases.index') }}"
-                aria-current="{{ request()->routeIs('assignments.cases.*') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-                <span>Pengalihan Kasus</span>
+                <span>Pembagian Kelas Binaan</span>
             </a>
             @endcan
 
@@ -88,27 +86,28 @@
                     <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>
                     <span>Kelola Akun</span>
                 </a>
-                <a class="sibk-nav-link {{ request()->routeIs('data-master.*') ? 'is-active' : '' }}" href="{{ route('data-master.index') }}"
-                    aria-current="{{ request()->routeIs('data-master.*') ? 'page' : 'false' }}">
+                <a class="sibk-nav-link {{ request()->routeIs('data-master.*') && ! request()->routeIs('data-master.classrooms.*') ? 'is-active' : '' }}" href="{{ route('data-master.index') }}"
+                    aria-current="{{ request()->routeIs('data-master.*') && ! request()->routeIs('data-master.classrooms.*') ? 'page' : 'false' }}">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
                     <span>Data Master</span>
                 </a>
+                <a class="sibk-nav-link {{ request()->routeIs('data-master.classrooms.*') ? 'is-active' : '' }}" href="{{ route('data-master.classrooms.index') }}"
+                    aria-current="{{ request()->routeIs('data-master.classrooms.*') ? 'page' : 'false' }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg>
+                    <span>Data Kelas</span>
+                </a>
             @endcan
 
-            @can('viewWakaMonitoring')
-            <p class="sibk-sidebar__section">PEMANTAUAN WAKA</p>
-            <a class="sibk-nav-link {{ request()->routeIs('waka.monitoring.students') ? 'is-active' : '' }}" href="{{ route('waka.monitoring.students') }}"
-                aria-current="{{ request()->routeIs('waka.monitoring.students') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-                <span>Murid dengan Kasus</span>
-            </a>
-            <a class="sibk-nav-link {{ request()->routeIs('waka.reports') ? 'is-active' : '' }}" href="{{ route('waka.reports') }}"
-                aria-current="{{ request()->routeIs('waka.reports') ? 'page' : 'false' }}">
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"/></svg>
-                <span>Laporan</span>
-            </a>
-            @endcan
             @endif
+
+            @can('create', App\Models\Achievement::class)
+                <p class="sibk-sidebar__section">PENGELOLAAN PRESTASI</p>
+                <a class="sibk-nav-link {{ request()->routeIs('achievements.*') ? 'is-active' : '' }}" href="{{ route('achievements.index') }}"
+                    aria-current="{{ request()->routeIs('achievements.*') ? 'page' : 'false' }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 4h8v3a4 4 0 0 1-8 0V4Z"/><path d="M8 5H5v2a4 4 0 0 0 4 4M16 5h3v2a4 4 0 0 1-4 4M12 11v5M8 20h8M9 16h6v4H9z"/></svg>
+                    <span>Prestasi</span>
+                </a>
+            @endcan
 
             <p class="sibk-sidebar__section">UTILITAS</p>
 

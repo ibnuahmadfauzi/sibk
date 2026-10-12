@@ -1,0 +1,123 @@
+<div aria-labelledby="api-siswa-import-title">
+    <div class="sibk-panel__body p-4">
+        @if(! $importableYearExists)
+            <div class="alert alert-info">
+                <a href="#academic-year-preparation-title">Buat tahun ajaran</a> agar impor dapat dimulai.
+            </div>
+        @endif
+        @error('academic_year')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
+        @error('api_url')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
+        @error('data')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
+        @error('file')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
+
+        <form
+            action="{{ route('data-master.roster-imports.store') }}"
+            method="POST"
+            class="d-grid gap-3"
+            data-api-siswa-import-form
+            data-preview-url="{{ route('data-master.roster-imports.preview') }}"
+        >
+            @csrf
+            <div>
+                <label class="form-label small" for="api_siswa_url">Tautan API Siswa</label>
+                <input
+                    class="form-control"
+                    type="url"
+                    id="api_siswa_url"
+                    name="api_url"
+                    maxlength="2048"
+                    placeholder="https://api-sekolah.example/data-siswa"
+                    autocomplete="off"
+                    required
+                >
+                <!-- <div class="form-text">
+                    Tautan digunakan sekali dan tidak disimpan.
+                </div> -->
+            </div>
+            <div class="d-flex justify-content-end">
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    data-api-siswa-preview-button
+                    @disabled(! $importableYearExists)
+                >
+                    Tinjau Data
+                </button>
+            </div>
+        </form>
+
+        <details class="border-top mt-4 pt-3" @if($errors->has('file')) open @endif>
+            <summary class="fw-semibold text-primary py-2">Impor CSV atau Excel jika API belum tersedia</summary>
+            <p class="text-muted small mt-2 mb-3">
+                Cadangan saat API Siswa belum tersedia. CSV UTF-8 atau Excel .xlsx maksimal 2 MiB dan 5.000 baris,
+                dengan kolom <code>nisn,nama,rombel,tahun_pelajaran</code>. Simpan NISN sebagai teks agar nol di depan tidak hilang.
+            </p>
+            <form action="{{ route('data-master.roster-imports.store') }}" method="POST" enctype="multipart/form-data" class="d-grid gap-3" data-roster-file-form data-preview-url="{{ route('data-master.roster-imports.preview-excel') }}">
+                @csrf
+                <div>
+                    <label class="form-label small" for="roster_file">Pilih berkas CSV atau Excel</label>
+                    <input class="form-control" type="file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" id="roster_file" name="file" required>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-outline-primary" @disabled(! $importableYearExists)>Tinjau / Impor Berkas</button>
+                </div>
+            </form>
+        </details>
+
+    </div>
+</div>
+
+<div class="modal fade" id="roster-excel-preview-modal" tabindex="-1" aria-labelledby="roster-excel-preview-title" aria-hidden="true" data-roster-excel-preview-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="roster-excel-preview-title">Pratinjau Excel Daftar Murid</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body" data-roster-excel-preview-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" data-roster-excel-confirm disabled>Impor Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div
+    class="modal fade"
+    id="api-siswa-preview-modal"
+    tabindex="-1"
+    aria-labelledby="api-siswa-preview-title"
+    aria-hidden="true"
+    data-api-siswa-preview-modal
+>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="api-siswa-preview-title">Pratinjau API Siswa</h2>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Tutup"
+                ></button>
+            </div>
+            <div class="modal-body" data-api-siswa-preview-body>
+                <p class="text-muted mb-0">Masukkan link API Siswa untuk melihat pratinjau.</p>
+            </div>
+            <div class="modal-footer">
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    data-bs-dismiss="modal"
+                >Batal</button>
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    data-api-siswa-confirm-import
+                    disabled
+                >Impor Data</button>
+            </div>
+        </div>
+    </div>
+</div>

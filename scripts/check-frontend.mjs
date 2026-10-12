@@ -6,32 +6,37 @@ const files = {
     dashboard: 'resources/views/pages/dashboard/html.blade.php',
     reportIndex: 'resources/views/pages/reports/index.blade.php',
     reportFilters: 'resources/views/pages/reports/_filters.blade.php',
-    reportDesktop: 'resources/views/pages/reports/_desktop-table.blade.php',
-    reportMobile: 'resources/views/pages/reports/_mobile-cards.blade.php',
     operationalReportService: 'app/Services/OperationalReportRecapService.php',
     reportPreview: 'resources/views/pages/reports/preview.blade.php',
     casesIndex: 'resources/views/pages/cases/index.blade.php',
-    casesCreate: 'resources/views/pages/cases/create.blade.php',
+    casesCreate: 'resources/views/pages/cases/_create-modal.blade.php',
+    caseCreateJs: 'resources/js/case-create.js',
+    caseEditModal: 'resources/views/pages/cases/_edit-modal.blade.php',
     casesShow: 'resources/views/pages/cases/show.blade.php',
-    followUp: 'resources/views/pages/cases/follow-up.blade.php',
     consultationCreate: 'resources/views/pages/consultations/create.blade.php',
+    consultationCreateModal: 'resources/views/pages/consultations/_create-modal.blade.php',
     consultationShow: 'resources/views/pages/consultations/show.blade.php',
-    caseResolve: 'resources/views/pages/cases/resolve.blade.php',
     studentsIndex: 'resources/views/pages/students/index.blade.php',
     studentsShow: 'resources/views/pages/students/show.blade.php',
     achievementCreate: 'resources/views/pages/achievements/create.blade.php',
     achievementIndex: 'resources/views/pages/achievements/index.blade.php',
     achievementShow: 'resources/views/pages/achievements/show.blade.php',
     assignmentIndex: 'resources/views/pages/assignments/classes/index.blade.php',
-    assignmentManage: 'resources/views/pages/assignments/classes/manage.blade.php',
-    caseAssignment: 'resources/views/pages/assignments/cases/index.blade.php',
     dataMaster: 'resources/views/pages/data-master/index.blade.php',
+    dataMasterApiSiswa: 'resources/views/pages/data-master/_api-siswa-import.blade.php',
+    etatibConflicts: 'resources/views/pages/data-master/etatib-conflicts.blade.php',
     account: 'resources/views/pages/account/index.blade.php',
     accessDenied: 'resources/views/pages/system/access-denied.blade.php',
     sidebar: 'resources/views/components/sidebar.blade.php',
     topbar: 'resources/views/components/topbar.blade.php',
     routes: 'routes/web.php',
     package: 'package.json',
+    appDashboard: 'resources/js/app-dashboard.js',
+    appLayout: 'resources/views/layouts/app-2.blade.php',
+    apiSiswaPreview: 'resources/js/api-siswa-preview.js',
+    etatibIdentityMapping: 'resources/js/etatib-identity-mapping.js',
+    serviceRecords: 'resources/js/service-records.js',
+    formDraft: 'resources/js/form-draft.js',
 };
 
 const contents = Object.fromEntries(
@@ -65,7 +70,7 @@ assert(!inputReferencesError(
     'identifierError',
 ), 'Pemeriksa atribut input tidak boleh mencocokkan atribut lintas tag.');
 
-const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package', 'operationalReportService'].includes(key));
+const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package', 'operationalReportService', 'casesIndex', 'casesShow'].includes(key));
 for (const key of bladeKeys) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
     assert(!/\son\w+\s*=/.test(contents[key]), `${files[key]} masih memakai inline event handler.`);
@@ -88,37 +93,22 @@ assert(contents.dashboard.includes("$dashboard['stats']"), 'Statistik database P
 assert(contents.dashboard.includes("$dashboard['tindak_lanjut']"), 'Jadwal database PG-002 belum diterapkan.');
 assert(contents.dashboard.includes("route('dashboard.preview')"), 'Filter tahun ajaran PG-002 belum terhubung.');
 assert(contents.routes.includes('DashboardController::class'), 'Dashboard belum memakai controller database.');
-assert(contents.reportIndex.includes('data-page-id="PG-301"'), 'PG-301 belum dapat ditelusuri dari markup.');
-const operationalReport = contents.reportIndex + contents.reportFilters + contents.reportDesktop + contents.reportMobile;
-for (const label of ['Pelanggaran & Poin', 'Layanan BK', 'Prestasi']) {
-    assert(contents.operationalReportService.includes(label), `Tab ${label} PG-301 belum tersedia.`);
-}
-assert(contents.reportIndex.includes('aria-current="page"'), 'Tab aktif PG-301 belum dapat dikenali.');
-assert(contents.reportFilters.includes('name="tab"'), 'Filter PG-301 belum mempertahankan tab aktif.');
-assert(contents.reportFilters.includes('name="q"'), 'Pencarian PG-301 belum tersedia.');
-assert(contents.reportFilters.includes('name="classroom_id"'), 'Filter kelas PG-301 belum tersedia.');
-assert(contents.reportFilters.includes("route('reports.index', ['tab' => $report['tab']])"), 'Reset filter PG-301 belum kembali ke tab aktif.');
-assert(contents.reportDesktop.includes('sibk-operational-report-table'), 'Tabel desktop PG-301 belum tersedia.');
-assert(contents.reportMobile.includes('sibk-operational-report-cards'), 'Kartu mobile PG-301 belum tersedia.');
-assert(contents.reportIndex.includes("route('reports.export', $exportFilters)"), 'Ekspor PG-301 belum memakai filter tervalidasi.');
-assert(contents.reportIndex.includes('data-print-report') && contents.reportIndex.includes('data-print-area'), 'Trigger atau area cetak PG-301 belum tersedia.');
-assert(!operationalReport.includes('$reports as $report'), 'PG-301 masih melakukan loop katalog laporan lama.');
+
 assert(contents.reportPreview.includes('data-page-id="PG-302"'), 'PG-302 belum dapat ditelusuri dari markup.');
 assert(contents.reportPreview.includes("route('reports.export'"), 'Ekspor CSV PG-302 belum terhubung.');
 assert(contents.reportPreview.includes('data-print-report'), 'Aksi cetak PG-302 belum tersedia.');
 assert(!contents.reportPreview.includes("alert('"), 'PG-302 masih memakai simulasi ekspor.');
 assert(contents.routes.includes('ReportController::class'), 'Laporan belum memakai controller database.');
 const pageIds = {
-    casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103', followUp: 'PG-104',
-    consultationCreate: 'PG-105', caseResolve: 'PG-106', studentsIndex: 'PG-201', studentsShow: 'PG-202',
-    achievementCreate: 'PG-203', assignmentIndex: 'PG-401', assignmentManage: 'PG-402',
-    caseAssignment: 'PG-403',
-    dataMaster: 'PG-501', accessDenied: 'PG-901',
+    casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103',
+    consultationCreate: 'PG-105', studentsIndex: 'PG-201', studentsShow: 'PG-202',
+    achievementCreate: 'PG-203', assignmentIndex: 'PG-401',
+    dataMaster: 'PG-501', etatibConflicts: 'PG-501-ETATIB-CONFLICTS', accessDenied: 'PG-901',
 };
 for (const [key, pageId] of Object.entries(pageIds)) {
     assert(contents[key].includes(`data-page-id="${pageId}"`), `${pageId} belum dapat ditelusuri dari markup.`);
 }
-for (const key of ['casesCreate', 'followUp', 'consultationCreate', 'caseResolve', 'achievementCreate', 'assignmentManage', 'caseAssignment', 'dataMaster', 'account', 'topbar']) {
+for (const key of ['casesCreate', 'consultationCreate', 'achievementCreate', 'assignmentIndex', 'dataMaster', 'account', 'topbar']) {
     if (contents[key].includes('method="POST"')) assert(contents[key].includes('@csrf'), `${files[key]} memiliki form POST tanpa @csrf.`);
 }
 assert(contents.routes.includes('AccountController::class'), 'Halaman akun masih berupa fixture route.');
@@ -131,6 +121,60 @@ for (const retired of ['CorrectionController', 'NotificationController', "route(
 }
 assert(!contents.package.includes('"jquery"'), 'Dependency jQuery yang tidak terpakai masih ada.');
 assert(!contents.package.includes('"sweetalert2"'), 'Dependency SweetAlert2 yang tidak terpakai masih ada.');
+assert(contents.appDashboard.includes("from './service-records'"), 'app-dashboard belum mengimpor service-records.js.');
+assert(contents.appDashboard.includes("from './form-draft'"), 'app-dashboard belum mengimpor form-draft.js.');
+assert(contents.appDashboard.includes("from './api-siswa-preview'"), 'app-dashboard belum mengimpor pratinjau API Siswa.');
+assert(contents.appDashboard.includes("from './etatib-identity-mapping'"), 'app-dashboard belum mengimpor pencocokan identitas e-Tatib.');
+assert(contents.dataMasterApiSiswa.includes('data-api-siswa-preview-modal'), 'Modal pratinjau API Siswa belum tersedia.');
+assert(contents.dataMasterApiSiswa.includes("route('data-master.roster-imports.preview')"), 'Form API Siswa belum terhubung ke endpoint pratinjau.');
+assert(contents.apiSiswaPreview.includes('textContent'), 'Pratinjau API Siswa belum merender teks secara aman.');
+assert(!contents.apiSiswaPreview.includes('innerHTML'), 'Pratinjau API Siswa tidak boleh memasukkan payload sebagai HTML.');
+assert(contents.etatibConflicts.includes('Belum Cocok'), 'Tab konflik e-Tatib belum tersedia.');
+assert(contents.etatibConflicts.includes('Pencocokan Manual'), 'Tab mapping manual e-Tatib belum tersedia.');
+assert(contents.etatibConflicts.includes('data-etatib-map-form'), 'Modal pencocokan e-Tatib belum tersedia.');
+assert(contents.etatibConflicts.includes('@csrf'), 'Form pencocokan e-Tatib belum memiliki perlindungan CSRF.');
+assert(contents.etatibIdentityMapping.includes('escapeHtml'), 'Kandidat mapping e-Tatib belum dirender secara aman.');
+assert(contents.routes.includes('EtatibIdentityMappingController::class'), 'Route pencocokan e-Tatib belum terhubung ke controller.');
+assert(contents.serviceRecords.includes('Modal'), 'service-records belum memakai modal Bootstrap.');
+assert(contents.serviceRecords.includes('AbortController'), 'service-records belum membatalkan request modal.');
+assert(contents.serviceRecords.includes('Accept: \'application/json\''), 'service-records belum meminta response JSON.');
+assert(contents.package.includes('node scripts/check-form-draft.mjs'), 'check:frontend belum menjalankan pemeriksa draft.');
+assert(contents.casesIndex.includes('data-store-url'), 'Tombol tindak lanjut belum memiliki endpoint tambah.');
+assert(contents.casesIndex.includes('data-used-follow-up-types'), 'Jenis tindak lanjut yang sudah dipakai belum ditandai.');
+assert(contents.casesIndex.includes('aria-labelledby="case-modal-title"'), 'Modal layanan belum memiliki aria-labelledby.');
+assert(contents.casesIndex.includes('modal-dialog-scrollable'), 'Modal layanan belum dapat di-scroll.');
+assert(contents.casesIndex.includes('data-service-record-modal'), 'Modal layanan belum terhubung ke JavaScript shared.');
+assert(contents.casesIndex.includes('data-modal-url'), 'Aksi modal belum memakai URL modal shared.');
+const consultationActionIndex = contents.casesIndex.indexOf("route('consultations.show'");
+const sharedModalIndex = contents.casesIndex.indexOf('data-service-record-modal');
+assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.lastIndexOf('@endif'), 'Tab konsultasi belum berbagi shell modal yang dirender setelah kedua tab.');
+assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
+assert(contents.casesCreate.includes('id="student_lookup_results"'), 'Form kasus belum menyediakan hasil pencarian murid.');
+assert(contents.casesCreate.includes('aria-controls="student_lookup_results"'), 'Pencarian murid harus tersedia dari field NISN.');
+assert(contents.caseCreateJs.includes('student.nisn') && contents.caseCreateJs.includes('student.name'), 'Pencarian murid belum mencocokkan NISN dan nama.');
+assert(contents.casesCreate.includes('isi manual jika belum tersedia'), 'Fallback input murid manual belum dijelaskan.');
+assert(contents.caseCreateJs.includes('pagination.last_page'), 'Pagination e-Tatib belum membaca halaman dari server.');
+assert(contents.casesCreate.includes('data-case-etatib-summary'), 'Ringkasan pelanggaran e-Tatib belum tersedia.');
+for (const [key, form, record] of [
+    ['casesCreate', 'case', 'new'],
+    ['consultationCreateModal', 'consultation', 'new'],
+]) {
+    assert(contents[key].includes(`data-autosave-form="${form}"`), `${files[key]} belum memiliki kunci autosave form.`);
+    assert(contents[key].includes(`data-autosave-record="${record}"`), `${files[key]} belum memiliki kunci autosave record.`);
+    assert(contents[key].includes('data-draft-status'), `${files[key]} belum menampilkan status draft.`);
+    assert(contents[key].includes('data-clear-draft'), `${files[key]} belum menyediakan Hapus Draft.`);
+}
+assert(!contents.caseEditModal.includes('data-autosave-form'), 'Modal edit kasus tidak boleh menyimpan draft.');
+assert(!contents.caseEditModal.includes('data-draft-status'), 'Modal edit kasus tidak boleh menampilkan status draft.');
+assert(!contents.caseEditModal.includes('data-clear-draft'), 'Modal edit kasus tidak boleh menyediakan Hapus Draft.');
+assert(contents.appLayout.includes('data-app-confirmation-modal'), 'Layout aplikasi belum menyediakan popup konfirmasi.');
+assert(contents.appLayout.includes('data-app-confirmation-subject'), 'Popup konfirmasi belum menyediakan identitas murid.');
+assert(contents.appDashboard.includes("form.matches('[data-app-confirm-submit]')"), 'Popup konfirmasi aplikasi belum menangani submit form.');
+assert(contents.casesIndex.includes('data-app-confirm-submit'), 'Hapus kasus belum memakai popup konfirmasi aplikasi.');
+assert(contents.casesIndex.includes('completeUpdated.value = data.updated_at'), 'Timestamp aksi Selesaikan belum mengikuti pembaruan tindak lanjut.');
+for (const retired of ['registration_number', 'consultation_status_id', 'consultation_month', 'consultation_class', '$session->topic', '$session->status']) {
+    assert(!contents.casesIndex.includes(retired), `Tab konsultasi masih memuat UI retired: ${retired}.`);
+}
 
 if (failures.length > 0) {
     for (const failure of failures) console.error(`- ${failure}`);

@@ -15,7 +15,7 @@
         @endif
 
         @if($canCreateDeparture || $canUpdateDeparture)
-            <form method="post" action="{{ $canUpdateDeparture ? route('students.departure.update', $student) : route('students.departure.store', $student) }}" class="row g-3 mb-4">
+            <form method="post" action="{{ $canUpdateDeparture ? route('students.departure.update', $student) : route('students.departure.store', $student) }}" class="row g-3 mb-4" data-autosave-form="student-departure" data-autosave-record="{{ $student->id }}">
                 @csrf
                 @if($canUpdateDeparture) @method('PATCH') @endif
                 <div class="col-md-6">
@@ -41,7 +41,7 @@
                     <label class="form-label" for="recommendation_summary">Ringkasan rekomendasi</label>
                     <textarea class="form-control" id="recommendation_summary" name="recommendation_summary" maxlength="500" rows="3">{{ old('recommendation_summary', $departure?->recommendation_summary) }}</textarea>
                 </div>
-                <div class="col-12"><button class="btn btn-primary" type="submit">{{ $canUpdateDeparture ? 'Perbarui proses' : ($departure ? 'Buka kembali proses' : 'Catat proses') }}</button></div>
+                <div class="col-12 d-flex align-items-center gap-2"><span class="small text-muted me-auto" data-draft-status aria-live="polite"></span><button class="btn btn-light" type="button" data-clear-draft>Hapus Draft</button><button class="btn btn-primary" type="submit">{{ $canUpdateDeparture ? 'Perbarui proses' : ($departure ? 'Buka kembali proses' : 'Catat proses') }}</button></div>
             </form>
         @endif
 
