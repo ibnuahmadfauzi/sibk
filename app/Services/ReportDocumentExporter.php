@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\StudentName;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -68,7 +69,7 @@ final class ReportDocumentExporter
                 $index + 1,
                 $row['date']->locale('id')->translatedFormat('l')."\n"
                     .$row['date']->locale('id')->translatedFormat('d F Y'),
-                \App\Support\StudentName::display($row['name'])."\n".$row['classroom'],
+                StudentName::display($row['name'])."\n".$row['classroom'],
                 $row['service']."\n".$row['service_field'],
                 $row['detail_note'],
                 $row['counselor'],
@@ -130,8 +131,9 @@ final class ReportDocumentExporter
     private function filterSummary(array $report): string
     {
         return sprintf(
-            'Tahun Ajaran %s',
+            'Tahun Ajaran %s · %s',
             $report['academic_year']?->name ?? '—',
+            $report['period']['label'],
         );
     }
 

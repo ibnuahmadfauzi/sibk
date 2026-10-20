@@ -52,6 +52,8 @@ Sampaikan kata sandi sementara melalui saluran privat. Pengguna menggantinya saa
 
 Jadwalkan `php artisan schedule:run` setiap menit. Konfigurasikan integrasi melalui aplikasi; adapter yang belum disahkan tetap `unavailable`. Uji login, hak akses, tahun ajaran, impor murid, layanan, laporan, dan scheduler sebelum dipakai sekolah.
 
+Pratinjau, cetak, dan Excel memerlukan satu semester: Juli–Desember atau Januari–Juni pada tahun ajaran terpilih. Rentang tanggal opsional harus berada di semester itu. Batas jumlah catatan diatur melalui `SIBK_REPORT_MAX_DOCUMENT_ROWS`; hasil yang melebihi batas meminta pengguna mempersempit periode atau kelas. Sesuaikan nilainya setelah menguji ukuran catatan dan memori PHP, lalu perbarui cache konfigurasi. Pembatasan dokumen tidak menghapus data yang tersimpan.
+
 Sebelum pembaruan, cadangkan database, `.env` termasuk `APP_KEY`, dan unggahan. Uji rilis pada lingkungan validasi dahulu. Pasang dependensi sesuai lockfile, bangun aset, jalankan migrasi dan perbarui cache. Pertahankan `.env`, `APP_KEY`, dan unggahan lama; jangan mengulang `key:generate`. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai.
 
 Lisensi dependensi tetap berlaku; pertahankan pemberitahuan lisensi paket Composer/npm yang dipasang. Ketentuan penyerahan aplikasi mengikuti perjanjian dengan pemilik aplikasi.

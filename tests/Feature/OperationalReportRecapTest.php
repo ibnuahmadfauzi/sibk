@@ -22,6 +22,7 @@ use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class OperationalReportRecapTest extends TestCase
@@ -39,9 +40,9 @@ class OperationalReportRecapTest extends TestCase
         [$year, $classroom, $student, $owner] = $this->caseFixture();
         $this->actingAs($owner);
         foreach (['reports.index', 'reports.preview'] as $route) {
-            $this->get(route($route, ['classroom_search' => $classroom->name]))
+            $this->get(route($route, ['classroom_search' => $classroom->name, 'semester' => '1']))
                 ->assertOk()->assertSee($student->name);
-            $this->get(route($route, ['classroom_search' => 'Kelas Tidak Ada']))
+            $this->get(route($route, ['classroom_search' => 'Kelas Tidak Ada', 'semester' => '1']))
                 ->assertOk()->assertDontSee($student->name);
         }
     }
@@ -82,7 +83,7 @@ class OperationalReportRecapTest extends TestCase
             ->assertOk()->assertSee($case->initial_info);
 
         foreach (['case' => $case, 'consultation' => $consultation] as $type => $record) {
-            $filters = ['academic_year_id' => $year->id, 'service_type' => $type];
+            $filters = ['academic_year_id' => $year->id, 'service_type' => $type, 'semester' => '1'];
             $this->get(route('reports.index', $filters))->assertOk()->assertSee($student->name);
             $this->get(route('reports.preview', $filters))->assertOk()->assertSee($student->name);
             $this->get(route('reports.records.preview', ['type' => $type, 'id' => $record->id]))
@@ -169,6 +170,7 @@ class OperationalReportRecapTest extends TestCase
             $report = app(OperationalReportRecapService::class)->allForDocument($owner, [
                 'academic_year_id' => $year->id,
                 'service_type' => $type,
+                'semester' => '1',
             ]);
 
             $this->assertCount(2, $report['rows']);
@@ -207,6 +209,7 @@ class OperationalReportRecapTest extends TestCase
         $report = app(OperationalReportRecapService::class)->allForDocument($owner, [
             'academic_year_id' => $year->id,
             'service_type' => 'consultation',
+            'semester' => '1',
         ]);
         $this->assertCount(4, $report['rows']);
         $this->assertEqualsCanonicalizing(
@@ -220,6 +223,348 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($this->userWithRole('waka_kesiswaan'))
             ->get(route('reports.preview', ['academic_year_id' => $year->id]))
             ->assertForbidden();
+    }
+
+    public function test_document_limit_checks_filtered_count_before_loading_records(): void
+    {
+        config()->set('sibk.report_max_document_rows', 2);
+        [$year, $classroom, , $owner, $case] = $this->caseFixture();
+        $otherClassroom = Classroom::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'X RPL 2',
+        ]);
+        $nextYear = AcademicYear::query()->create([
+            'name' => '2027/2028',
+            'starts_on' => '2027-07-01',
+            'ends_on' => '2028-06-30',
+            'is_active' => false,
+        ]);
+        $nextClassroom = Classroom::query()->create([
+            'academic_year_id' => $nextYear->id,
+            'name' => 'XI RPL 1',
+        ]);
+
+        $firstClassIds = [$case->id];
+        foreach ([
+            ['K-2026-0002', $year, $classroom],
+            ['K-2026-0003', $year, $otherClassroom],
+            ['K-2027-0001', $nextYear, $nextClassroom],
+        ] as [$number, $recordYear, $recordClassroom]) {
+            $record = $case->replicate();
+            $record->registration_number = $number;
+            $record->academic_year_id = $recordYear->id;
+            $record->classroom_id = $recordClassroom->id;
+            $record->service_date = $recordYear->id === $nextYear->id ? '2027-09-01' : '2026-09-01';
+            $record->save();
+            if ($recordClassroom->id === $classroom->id) {
+                $firstClassIds[] = $record->id;
+            }
+            CaseAssignment::query()->create([
+                'case_id' => $record->id,
+                'user_id' => $owner->id,
+                'reason' => 'Pemilik saat pencatatan.',
+                'assigned_by' => $owner->id,
+            ]);
+        }
+
+        $queries = [];
+        DB::listen(static function ($query) use (&$queries): void {
+            $queries[] = $query->sql;
+        });
+
+        try {
+            app(OperationalReportRecapService::class)->allForDocument($owner, [
+                'academic_year_id' => $year->id,
+                'service_type' => 'case',
+                'semester' => '1',
+            ]);
+            $this->fail('Dokumen di atas batas harus ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('classroom_search', $exception->errors());
+        }
+        $this->assertCount(1, array_filter($queries, static fn (string $sql): bool => str_contains($sql, 'total_count')));
+        $this->assertCount(1, array_filter($queries, static fn (string $sql): bool => str_contains($sql, 'report_records')));
+        $this->assertCount(0, array_filter($queries, static fn (string $sql): bool => (bool) preg_match(
+            '/^\s*select\b(?:(?!\bfrom\b).)*\bfrom\s+[`"]?(?:cases|consultations|students)[`"]?(?:\s|$)/is',
+            $sql,
+        )));
+
+        $filters = ['academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '1', 'classroom_id' => $classroom->id];
+        $report = app(OperationalReportRecapService::class)->allForDocument($owner, $filters);
+        $this->assertSame(2, $report['rows']->count());
+        $this->assertEqualsCanonicalizing($firstClassIds, $report['rows']->pluck('record_id')->all());
+
+        $report = app(OperationalReportRecapService::class)->allForDocument($owner, [
+            ...$filters,
+            'classroom_id' => $otherClassroom->id,
+        ]);
+        $this->assertSame(1, $report['rows']->count());
+        $this->assertSame($otherClassroom->name, $report['rows']->first()['classroom']);
+
+        $report = app(OperationalReportRecapService::class)->allForDocument($owner, [
+            'academic_year_id' => $nextYear->id,
+            'service_type' => 'case',
+            'semester' => '1',
+        ]);
+        $this->assertSame(1, $report['rows']->count());
+        $this->assertSame($nextClassroom->name, $report['rows']->first()['classroom']);
+
+        $page = app(OperationalReportRecapService::class)->paginateForUi($owner, [
+            'academic_year_id' => $year->id,
+            'service_type' => 'case',
+        ]);
+        $this->assertSame(3, $page['rows']->total());
+        $this->assertSame(3, $page['rows']->count());
+        $this->actingAs($this->userWithRole('waka_kesiswaan'))
+            ->get(route('reports.preview', ['academic_year_id' => $year->id]))
+            ->assertForbidden();
+    }
+
+    public function test_document_without_any_academic_year_is_rejected(): void
+    {
+        config()->set('sibk.report_max_document_rows', 2);
+        $owner = $this->userWithRole('guru_bk');
+
+        try {
+            app(OperationalReportRecapService::class)->allForDocument($owner, ['service_type' => 'case', 'semester' => '1']);
+            $this->fail('Dokumen tanpa tahun ajaran harus ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('academic_year_id', $exception->errors());
+        }
+    }
+
+    public function test_document_rejects_records_added_after_its_count_before_hydration(): void
+    {
+        config()->set('sibk.report_max_document_rows', 2);
+        [$year, , , $owner, $case] = $this->caseFixture();
+        $second = $case->replicate();
+        $second->registration_number = 'K-2026-0002';
+        $second->save();
+        CaseAssignment::query()->create([
+            'case_id' => $second->id,
+            'user_id' => $owner->id,
+            'reason' => 'Pemilik saat pencatatan.',
+            'assigned_by' => $owner->id,
+        ]);
+
+        $lateInsertDone = false;
+        $queries = [];
+        DB::listen(static function ($query) use (&$lateInsertDone, &$queries, $case, $owner): void {
+            $queries[] = $query->sql;
+            if (! $lateInsertDone && str_contains($query->sql, 'total_count')) {
+                $lateInsertDone = true;
+                $third = $case->replicate();
+                $third->registration_number = 'K-2026-0003';
+                $third->save();
+                CaseAssignment::query()->create([
+                    'case_id' => $third->id,
+                    'user_id' => $owner->id,
+                    'reason' => 'Pemilik saat pencatatan.',
+                    'assigned_by' => $owner->id,
+                ]);
+            }
+        });
+
+        try {
+            app(OperationalReportRecapService::class)->allForDocument($owner, [
+                'academic_year_id' => $year->id,
+                'service_type' => 'case',
+                'semester' => '1',
+            ]);
+            $this->fail('Record baru setelah hitungan harus menolak dokumen.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('classroom_search', $exception->errors());
+        }
+
+        $this->assertTrue($lateInsertDone);
+        $this->assertCount(0, array_filter($queries, static fn (string $sql): bool => (bool) preg_match(
+            '/^\s*select\b(?:(?!\bfrom\b).)*\bfrom\s+[`"]?(?:cases|consultations|students)[`"]?(?:\s|$)/is',
+            $sql,
+        )));
+    }
+
+    public function test_semester_boundaries_and_custom_dates_filter_all_report_services(): void
+    {
+        [$year, $classroom, $student, $owner, $case] = $this->caseFixture();
+        $caseIds = ['2026-09-01' => $case->id];
+        foreach (['2026-07-01', '2026-12-31', '2027-01-01', '2027-06-30', '2027-07-01'] as $index => $date) {
+            $record = $case->replicate();
+            $record->registration_number = sprintf('K-2026-00%02d', $index + 2);
+            $record->service_date = $date;
+            $record->save();
+            CaseAssignment::query()->create([
+                'case_id' => $record->id,
+                'user_id' => $owner->id,
+                'reason' => 'Pemilik saat pencatatan.',
+                'assigned_by' => $owner->id,
+            ]);
+            $caseIds[$date] = $record->id;
+        }
+        foreach (['2026-12-31', '2027-01-01'] as $index => $date) {
+            Consultation::query()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $year->id,
+                'classroom_id' => $classroom->id,
+                'service_field_id' => $case->service_field_id,
+                'session_date' => $date,
+                'problem' => 'Konsultasi batas semester.',
+                'handling' => 'Penanganan.',
+                'result' => 'Selesai.',
+                'counselor_id' => $owner->id,
+            ]);
+            $withdrawalStudent = Student::query()->create([
+                'nisn' => sprintf('008765432%d', $index),
+                'name' => 'Murid Pengunduran '.$index,
+                'is_active' => true,
+            ]);
+            StudentClassMembership::query()->create([
+                'student_id' => $withdrawalStudent->id,
+                'classroom_id' => $classroom->id,
+                'academic_year_id' => $year->id,
+                'is_active' => true,
+            ]);
+            WithdrawalProgress::query()->create([
+                'student_id' => $withdrawalStudent->id,
+                'teacher_id' => $owner->id,
+                'classroom_id' => $classroom->id,
+                'recorded_on' => $date,
+                'progress' => WithdrawalProgress::PROGRESS_IN_PROGRESS,
+                'reason' => 'Pindah sekolah.',
+                'note' => 'Catatan batas semester.',
+            ]);
+        }
+
+        $service = app(OperationalReportRecapService::class);
+        $page = $service->paginateForUi($owner, ['academic_year_id' => $year->id, 'service_type' => 'case']);
+        $this->assertSame(6, $page['rows']->total());
+        $this->assertNull($page['period']);
+        $semesterPage = $service->paginateForUi($owner, [
+            'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '1',
+        ]);
+        $this->assertSame(3, $semesterPage['rows']->total());
+        $this->assertSame('2026-07-01', $semesterPage['period']['semester_start']);
+
+        foreach (['1' => 3, '2' => 2] as $semester => $caseCount) {
+            $report = $service->allForDocument($owner, [
+                'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => (string) $semester,
+            ]);
+            $this->assertSame($caseCount, $report['rows']->count());
+        }
+        $this->assertEqualsCanonicalizing(
+            [$caseIds['2026-07-01'], $caseIds['2026-09-01'], $caseIds['2026-12-31']],
+            $service->allForDocument($owner, [
+                'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '1',
+            ])['rows']->pluck('record_id')->all(),
+        );
+        $this->assertEqualsCanonicalizing(
+            [$caseIds['2027-01-01'], $caseIds['2027-06-30']],
+            $service->allForDocument($owner, [
+                'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '2',
+            ])['rows']->pluck('record_id')->all(),
+        );
+
+        foreach (['consultation', 'withdrawal'] as $type) {
+            foreach (['1', '2'] as $semester) {
+                $report = $service->allForDocument($owner, [
+                    'academic_year_id' => $year->id, 'service_type' => $type, 'semester' => $semester,
+                ]);
+                $this->assertSame(1, $report['rows']->count());
+                $this->assertSame($semester === '1' ? '2026-12-31' : '2027-01-01', $report['rows']->first()['date']->toDateString());
+            }
+        }
+
+        $custom = $service->allForDocument($owner, [
+            'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '1',
+            'date_from' => '2026-09-01', 'date_to' => '2026-12-31',
+        ]);
+        $this->assertEqualsCanonicalizing(
+            [$caseIds['2026-09-01'], $caseIds['2026-12-31']],
+            $custom['rows']->pluck('record_id')->all(),
+        );
+        $this->assertSame([
+            'semester' => 1,
+            'start' => '2026-09-01',
+            'end' => '2026-12-31',
+            'semester_start' => '2026-07-01',
+            'semester_end' => '2026-12-31',
+            'label' => 'Semester 1 · 1 September 2026–31 Desember 2026',
+        ], $custom['period']);
+        $this->assertSame(2, $service->allForDocument($owner, [
+            'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '1',
+            'date_to' => '2026-09-01',
+        ])['rows']->count());
+        $this->assertSame(1, $service->allForDocument($owner, [
+            'academic_year_id' => $year->id, 'service_type' => 'case', 'semester' => '1',
+            'date_from' => '2026-12-31',
+        ])['rows']->count());
+    }
+
+    public function test_report_period_rejects_missing_or_invalid_semester_dates_and_metadata(): void
+    {
+        [$year, , , $owner] = $this->caseFixture();
+        $service = app(OperationalReportRecapService::class);
+        $base = ['academic_year_id' => $year->id, 'service_type' => 'case'];
+
+        foreach ([
+            [$base, 'semester'],
+            [$base + ['date_from' => '2026-09-01'], 'semester'],
+            [$base + ['semester' => '3'], 'semester'],
+            [$base + ['semester' => '1', 'date_from' => '2026-02-30'], 'date_from'],
+            [$base + ['semester' => '1', 'date_from' => '2026-12-31', 'date_to' => '2026-09-01'], 'date_to'],
+            [$base + ['semester' => '1', 'date_to' => '2027-01-01'], 'date_to'],
+            [$base + ['semester' => '2', 'date_from' => '2026-12-31'], 'date_from'],
+            [$base + ['semester' => '2', 'date_to' => '2028-01-01'], 'date_to'],
+        ] as [$filters, $key]) {
+            try {
+                $service->allForDocument($owner, $filters);
+                $this->fail('Periode dokumen tidak valid harus ditolak.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey($key, $exception->errors());
+            }
+        }
+
+        $this->actingAs($owner)->get(route('reports.index', $base + ['semester' => '3']))
+            ->assertSessionHasErrors('semester');
+        $this->actingAs($owner)->get(route('reports.index', $base + ['date_from' => '2026/09/01']))
+            ->assertSessionHasErrors('date_from');
+        $invalidRange = $this->actingAs($owner)->get(route('reports.index', $base + [
+            'semester' => '1', 'date_from' => '2026-12-31', 'date_to' => '2026-09-01',
+        ]));
+        $invalidRange->assertSessionHasErrors('date_to');
+        $this->get($invalidRange->headers->get('Location'))->assertOk();
+
+        $year->update(['starts_on' => null, 'ends_on' => null]);
+        $report = $service->allForDocument($owner, $base + ['semester' => '1']);
+        $this->assertSame(1, $report['rows']->count());
+        $this->assertSame('2026-07-01', $report['period']['semester_start']);
+
+        $year->update(['starts_on' => '2026-09-01', 'ends_on' => '2027-06-30']);
+        try {
+            $service->allForDocument($owner, $base + ['semester' => '1']);
+            $this->fail('Semester di luar tanggal tahun ajaran harus ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('academic_year_id', $exception->errors());
+        }
+        $report = $service->allForDocument($owner, $base + [
+            'semester' => '1', 'date_from' => '2026-09-01',
+        ]);
+        $this->assertSame(1, $report['rows']->count());
+
+        $year->update(['name' => 'Tahun Tidak Pasti', 'starts_on' => null, 'ends_on' => null]);
+        try {
+            $service->allForDocument($owner, $base + ['semester' => '1']);
+            $this->fail('Tahun tanpa tanggal dan nama pasangan yang valid harus ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('academic_year_id', $exception->errors());
+        }
+
+        $year->update(['name' => '2026/2027', 'starts_on' => '2025-07-01']);
+        try {
+            $service->allForDocument($owner, $base + ['semester' => '1']);
+            $this->fail('Tanggal tahun yang bertentangan dengan nama harus ditolak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('academic_year_id', $exception->errors());
+        }
     }
 
     public function test_report_access_matches_current_role_contract(): void
@@ -244,6 +589,7 @@ class OperationalReportRecapTest extends TestCase
             'academic_year_id' => $year->id,
             'classroom_id' => $classroom->id,
             'service_type' => 'case',
+            'semester' => '1',
         ];
 
         $index = $this->actingAs($owner)->get(route('reports.index', $filters));
@@ -280,6 +626,7 @@ class OperationalReportRecapTest extends TestCase
             $this->actingAs($owner)->get(route('reports.preview', [
                 'academic_year_id' => $year->id,
                 'service_type' => $type,
+                'semester' => '1',
                 'embedded' => 1,
             ]))->assertOk()
                 ->assertSee($heading)

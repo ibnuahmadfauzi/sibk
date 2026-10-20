@@ -1,3 +1,12 @@
+export const resetReportPeriodFilters = (select) => {
+    const form = select.closest('form');
+    form?.querySelectorAll('[name="date_from"], [name="date_to"]').forEach((field) => { field.value = ''; });
+    if (select.matches('[data-report-year-filter]')) {
+        const classroom = form?.querySelector('[name="classroom_search"]');
+        if (classroom) classroom.value = '';
+    }
+};
+
 export const initReportPreview = (Modal) => {
     const modal = document.querySelector('[data-report-preview-modal]');
     if (!modal) return;
@@ -5,6 +14,8 @@ export const initReportPreview = (Modal) => {
     const frame = modal.querySelector('[data-report-preview-frame]');
     const loading = modal.querySelector('[data-report-preview-loading]');
     const error = modal.querySelector('[data-report-preview-error]');
+    const errorMessage = modal.querySelector('[data-report-preview-error-message]');
+    const defaultErrorMessage = errorMessage.textContent;
     const printButton = modal.querySelector('[data-report-preview-print]');
     const retryButton = modal.querySelector('[data-report-preview-retry]');
     let ready = false;
@@ -31,15 +42,17 @@ export const initReportPreview = (Modal) => {
 
     const showLoading = () => {
         ready = false;
+        errorMessage.textContent = defaultErrorMessage;
         printButton.disabled = true;
         frame.classList.add('d-none');
         error.classList.add('d-none');
         loading.classList.remove('d-none');
     };
 
-    const showError = () => {
+    const showError = (message = defaultErrorMessage) => {
         clearLoadTimeout();
         ready = false;
+        errorMessage.textContent = message;
         printButton.disabled = true;
         frame.classList.add('d-none');
         loading.classList.add('d-none');
@@ -61,7 +74,7 @@ export const initReportPreview = (Modal) => {
         try {
             const document = frame.contentDocument;
             if (!document?.querySelector('.sibk-report-embedded .sibk-document-sheet')) {
-                showError();
+                showError(document?.querySelector('[data-report-filter-errors]')?.textContent?.trim() || defaultErrorMessage);
                 return;
             }
             document.addEventListener('keydown', (event) => {
@@ -77,7 +90,7 @@ export const initReportPreview = (Modal) => {
             showError();
         }
     });
-    frame.addEventListener('error', showError);
+    frame.addEventListener('error', () => showError());
 
     printButton.addEventListener('click', async () => {
         if (!ready) return;
