@@ -28,6 +28,7 @@ final class StudentNameTest extends TestCase
         $this->assertSame('NADIA PUTRI', $student->getAttributes()['name']);
 
         $temporary = new TemporaryStudent(['input_name' => 'BUDI SANTOSO']);
+        $temporary->setRelation('reconciledStudent', null);
         $case->setRelation('student', null);
         $case->setRelation('temporaryStudent', $temporary);
         $this->assertSame('Budi Santoso', $case->identityName());

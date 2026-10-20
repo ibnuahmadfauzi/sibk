@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Integrations\Etatib;
 
 use App\Integrations\IntegrationConfigurationException;
+use App\Integrations\IntegrationEndpointPolicy;
 use App\Integrations\IntegrationProbeResult;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use App\Integrations\IntegrationSnapshotEvidence;
+use App\Integrations\PublicApiRequest;
 use App\Models\Student;
 use Closure;
 use DateTimeImmutable;
@@ -17,6 +19,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use JsonException;
+use OverflowException;
 use Psr\Http\Message\StreamInterface;
 use Throwable;
 
@@ -134,7 +137,7 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
         $snapshotId = null;
         $watermark = null;
         $expectedTotal = null;
-        $request = $this->request($configuration);
+        [$request, $address] = $this->request($configuration);
 
         do {
             $pageCount++;
@@ -151,7 +154,15 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
             }
 
             try {
-                $response = $request->get($configuration->baseUrl, $query);
+                $response = (new PublicApiRequest)->get(
+                    $request,
+                    $configuration->baseUrl,
+                    $address,
+                    self::MAXIMUM_PAGE_BYTES,
+                    $query,
+                );
+            } catch (OverflowException) {
+                throw new IntegrationConfigurationException('response_too_large');
             } catch (ConnectionException) {
                 throw new IntegrationConfigurationException('connection_failed');
             } catch (Throwable) {
@@ -238,42 +249,32 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
         );
     }
 
-    private function request(IntegrationRuntimeConfiguration $configuration): PendingRequest
+    /** @return array{PendingRequest, string} */
+    private function request(IntegrationRuntimeConfiguration $configuration): array
     {
         $parts = parse_url($configuration->baseUrl);
         if (! is_array($parts) || ! isset($parts['host'])) {
             throw new IntegrationConfigurationException('endpoint_not_allowed');
         }
         $host = trim((string) $parts['host'], '[]');
-        $port = (int) ($parts['port'] ?? 443);
         $addresses = ($this->resolver ?? $this->resolveHost(...))($host);
         if ($addresses === []) {
             throw new IntegrationConfigurationException('connection_failed');
         }
 
-        $resolveEntries = [];
-        foreach (array_unique($addresses) as $address) {
-            if (filter_var(
-                $address,
-                FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
-            ) === false) {
+        foreach ($addresses as $address) {
+            if (! is_string($address) || ! IntegrationEndpointPolicy::isPublicAddress($address)) {
                 throw new IntegrationConfigurationException('endpoint_not_allowed');
             }
-            $curlAddress = str_contains($address, ':') ? '['.$address.']' : $address;
-            $resolveEntries[] = sprintf('%s:%d:%s', $host, $port, $curlAddress);
         }
 
-        return Http::acceptJson()
+        $request = Http::acceptJson()
             ->connectTimeout(5)
             ->timeout(min(15, $configuration->timeoutSeconds))
             ->retry(2, 250, throw: false)
-            ->withOptions([
-                'allow_redirects' => false,
-                'proxy' => '',
-                'stream' => true,
-                'curl' => [CURLOPT_RESOLVE => $resolveEntries],
-            ]);
+            ->withoutRedirecting();
+
+        return [$request, $addresses[0]];
     }
 
     /** @param array<string, mixed> $payload */

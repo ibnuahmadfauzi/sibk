@@ -54,6 +54,7 @@ class DelayedDapodikPreparationTest extends TestCase
     {
         parent::setUp();
         $this->seed([RoleSeeder::class, ReferenceSeeder::class]);
+        Http::preventStrayRequests();
     }
 
     #[Test]
@@ -1502,6 +1503,30 @@ class DelayedDapodikPreparationTest extends TestCase
     }
 
     #[Test]
+    public function api_siswa_preview_rejects_mapped_and_special_addresses_before_http(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Http::fake();
+
+        foreach ([
+            'http://[::ffff:7f00:1]/siswa',
+            'http://100.64.0.1/siswa',
+            'http://224.0.0.1/siswa',
+            'http://[ff02::1]/siswa',
+            'http://[64:ff9b::7f00:1]/siswa',
+        ] as $url) {
+            $this->assertValidationError(
+                fn () => app(ApiSiswaRosterImportService::class)->preview($url, $admin),
+                'api_url',
+            );
+        }
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('external_sync_runs', 0);
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    #[Test]
     public function api_siswa_import_requires_a_valid_http_or_https_url(): void
     {
         $admin = $this->userWithRole('admin_it');
@@ -1954,11 +1979,11 @@ class DelayedDapodikPreparationTest extends TestCase
             'academic_year_id' => $otherYear->id,
             'name' => 'X RPL 1',
         ]);
-        $crossYearMembership = StudentClassMembership::query()->create([
+        $crossYearMembership = Schema::withoutForeignKeyConstraints(fn () => StudentClassMembership::query()->create([
             'student_id' => $student->id,
             'classroom_id' => $otherYearClassroom->id,
             'academic_year_id' => $targetYear->id,
-        ]);
+        ]));
         $auditCountBefore = AuditLog::query()->count();
 
         $this->assertValidationError(
@@ -1992,22 +2017,24 @@ class DelayedDapodikPreparationTest extends TestCase
     #[Test]
     public function duplicate_local_nisn_fails_closed_before_any_import_change(): void
     {
-        Schema::table('students', function (Blueprint $table): void {
-            $table->dropUnique('students_nisn_unique');
+        $this->withLegacySqliteDatabase(function (): void {
+            Schema::table('students', function (Blueprint $table): void {
+                $table->dropUnique('students_nisn_unique');
+            });
+
+            $service = app(AcademicYearPreparationService::class);
+            $admin = $this->userWithRole('admin_it');
+            $year = $this->prepareYear($service, $admin);
+            Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid A']);
+            Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid B']);
+
+            $this->assertValidationError(
+                fn () => $service->importRoster($year, $this->validCsv(), $admin),
+                'nisn',
+            );
+            $this->assertDatabaseCount('classrooms', 0);
+            $this->assertDatabaseCount('student_class_memberships', 0);
         });
-
-        $service = app(AcademicYearPreparationService::class);
-        $admin = $this->userWithRole('admin_it');
-        $year = $this->prepareYear($service, $admin);
-        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid A']);
-        Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid B']);
-
-        $this->assertValidationError(
-            fn () => $service->importRoster($year, $this->validCsv(), $admin),
-            'nisn',
-        );
-        $this->assertDatabaseCount('classrooms', 0);
-        $this->assertDatabaseCount('student_class_memberships', 0);
     }
 
     #[Test]
@@ -2617,6 +2644,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $factory = new HttpFactory($this->app['events']);
         $this->app->instance(HttpFactory::class, $factory);
         Http::clearResolvedInstance(HttpFactory::class);
+        Http::preventStrayRequests();
     }
 
     private function csv(string $content, string $name = 'roster.csv'): UploadedFile

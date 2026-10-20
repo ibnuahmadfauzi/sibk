@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\BkCase;
 use App\Models\ReferenceValue;
 use App\Models\Role;
+use App\Models\Student;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ReferenceSeeder;
@@ -134,8 +135,11 @@ class SprintNineHardeningTest extends TestCase
 
     private function case(User $creator, string $number): BkCase
     {
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Murid Retensi']);
+
         return BkCase::query()->create([
             'registration_number' => $number,
+            'student_id' => $student->id,
             'case_source_id' => $this->reference('case_source', 'temuan_guru_bk')->id,
             'service_field_id' => $this->reference('service_field', 'pribadi')->id,
             'status_id' => $this->reference('case_status', 'sedang_diproses')->id,

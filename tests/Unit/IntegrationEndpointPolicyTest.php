@@ -11,6 +11,15 @@ use PHPUnit\Framework\TestCase;
 
 final class IntegrationEndpointPolicyTest extends TestCase
 {
+    public function test_public_address_classification_covers_mapped_and_special_addresses(): void
+    {
+        self::assertTrue(IntegrationEndpointPolicy::isPublicAddress('8.8.8.8'));
+        self::assertTrue(IntegrationEndpointPolicy::isPublicAddress('::ffff:8.8.8.8'));
+        foreach (['127.0.0.1', '::ffff:127.0.0.1', '224.0.0.1', 'ff02::1', '64:ff9b::1', 'invalid'] as $address) {
+            self::assertFalse(IntegrationEndpointPolicy::isPublicAddress($address));
+        }
+    }
+
     public function test_it_accepts_only_the_exact_canonical_origin_and_effective_port(): void
     {
         $policy = new IntegrationEndpointPolicy(
