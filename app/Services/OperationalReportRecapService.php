@@ -12,6 +12,7 @@ use App\Models\Consultation;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
 use App\Policies\ReportPolicy;
+use App\Support\StudentName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -318,6 +319,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->reportServiceQuery(BkCase::query(), $actor)
             ->with([
                 'classroom',
+                'student',
                 'source',
                 'serviceField',
                 'status',
@@ -333,8 +335,10 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->reportServiceQuery(Consultation::query(), $actor)
             ->with([
                 'classroom',
+                'student',
                 'serviceField',
                 'counselor',
+                'temporaryStudent.reconciledStudent',
             ]);
     }
 
@@ -384,7 +388,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'date' => $date,
             'day_label' => $date->locale('id')->translatedFormat('l'),
             'date_label' => $date->locale('id')->translatedFormat('d M Y'),
-            'name' => \App\Support\StudentName::display($record->identityName()),
+            'name' => StudentName::display($record->identityName()),
             'classroom' => $this->classroomName($record, $year),
             'service' => match (true) {
                 $isCase => 'Permasalahan',
@@ -439,10 +443,6 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $isCase => route('cases.destroy', $record),
                 $isConsultation => route('consultations.destroy', $record),
                 $isWithdrawal => route('withdrawals.destroy', $record),
-            },
-            'can_archive' => match (true) {
-                $isCase, $isConsultation => $actor?->can('archive', $record) ?? false,
-                $isWithdrawal => $actor?->can('delete', $record) ?? false,
             },
         ];
     }

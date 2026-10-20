@@ -14,12 +14,14 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\TeacherAssignment;
+use App\Models\TemporaryStudent;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
 use App\Services\OperationalReportRecapService;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class OperationalReportRecapTest extends TestCase
@@ -112,6 +114,112 @@ class OperationalReportRecapTest extends TestCase
         $this->assertSame($classroom->name, $report['rows']->first()['classroom']);
         $this->assertSame($classroom->id, $case->fresh()->classroom_id);
         $this->assertSame($owner->id, $case->ownerAssignment()?->user_id);
+    }
+
+    public function test_document_loads_student_names_in_one_query_per_service(): void
+    {
+        [$year, $classroom, $student, $owner, $case] = $this->caseFixture();
+        $otherStudent = Student::query()->create([
+            'nisn' => '0012345679',
+            'name' => 'Murid Laporan Kedua',
+            'is_active' => true,
+        ]);
+        StudentClassMembership::query()->create([
+            'student_id' => $otherStudent->id,
+            'classroom_id' => $classroom->id,
+            'academic_year_id' => $year->id,
+            'is_active' => true,
+        ]);
+        $otherCase = $case->replicate();
+        $otherCase->registration_number = 'K-2026-0002';
+        $otherCase->student_id = $otherStudent->id;
+        $otherCase->save();
+        CaseAssignment::query()->create([
+            'case_id' => $otherCase->id,
+            'user_id' => $owner->id,
+            'reason' => 'Pemilik saat pencatatan.',
+            'assigned_by' => $owner->id,
+        ]);
+
+        foreach ([$student, $otherStudent] as $currentStudent) {
+            Consultation::query()->create([
+                'student_id' => $currentStudent->id,
+                'academic_year_id' => $year->id,
+                'classroom_id' => $classroom->id,
+                'service_field_id' => $case->service_field_id,
+                'session_date' => '2026-09-02',
+                'problem' => 'Masalah konsultasi.',
+                'handling' => 'Penanganan konsultasi.',
+                'result' => 'Hasil konsultasi.',
+                'counselor_id' => $owner->id,
+            ]);
+        }
+
+        $selectCounts = ['students' => 0, 'academic_years' => 0, 'temporary_students' => 0];
+        DB::listen(static function ($query) use (&$selectCounts): void {
+            foreach (array_keys($selectCounts) as $table) {
+                if (preg_match('/^\s*select\b(?:(?!\bfrom\b).)*\bfrom\s+[`"]?'.$table.'[`"]?(?:\s|$)/is', $query->sql)) {
+                    $selectCounts[$table]++;
+                }
+            }
+        });
+
+        foreach (['case', 'consultation'] as $type) {
+            $selectCounts = array_fill_keys(array_keys($selectCounts), 0);
+            $report = app(OperationalReportRecapService::class)->allForDocument($owner, [
+                'academic_year_id' => $year->id,
+                'service_type' => $type,
+            ]);
+
+            $this->assertCount(2, $report['rows']);
+            $this->assertEqualsCanonicalizing(
+                [$student->name, $otherStudent->name],
+                $report['rows']->pluck('name')->all(),
+            );
+            $this->assertSame(1, $selectCounts['students'], $type.' harus memuat semua nama murid dalam satu query.');
+            $this->assertSame(2, $selectCounts['academic_years'], $type.' tidak boleh memeriksa tahun ajaran per catatan.');
+        }
+
+        foreach ([1, 2] as $index) {
+            $temporary = TemporaryStudent::query()->create([
+                'nisn' => sprintf('009876543%d', $index),
+                'input_name' => 'Murid Sementara '.$index,
+                'created_by' => $owner->id,
+                'reconciliation_status_id' => ReferenceValue::query()
+                    ->where('category', 'reconciliation_status')
+                    ->where('code', 'menunggu_rekonsiliasi')
+                    ->firstOrFail()->id,
+            ]);
+            Consultation::query()->create([
+                'temporary_student_id' => $temporary->id,
+                'academic_year_id' => $year->id,
+                'classroom_id' => $classroom->id,
+                'service_field_id' => $case->service_field_id,
+                'session_date' => '2026-09-03',
+                'problem' => 'Masalah identitas sementara.',
+                'handling' => 'Penanganan konsultasi.',
+                'result' => 'Hasil konsultasi.',
+                'counselor_id' => $owner->id,
+            ]);
+        }
+
+        $selectCounts = array_fill_keys(array_keys($selectCounts), 0);
+        $report = app(OperationalReportRecapService::class)->allForDocument($owner, [
+            'academic_year_id' => $year->id,
+            'service_type' => 'consultation',
+        ]);
+        $this->assertCount(4, $report['rows']);
+        $this->assertEqualsCanonicalizing(
+            [$student->name, $otherStudent->name, 'Murid Sementara 1', 'Murid Sementara 2'],
+            $report['rows']->pluck('name')->all(),
+        );
+        $this->assertSame(1, $selectCounts['temporary_students']);
+        $this->assertSame(1, $selectCounts['students']);
+        $this->assertSame(2, $selectCounts['academic_years']);
+
+        $this->actingAs($this->userWithRole('waka_kesiswaan'))
+            ->get(route('reports.preview', ['academic_year_id' => $year->id]))
+            ->assertForbidden();
     }
 
     public function test_report_access_matches_current_role_contract(): void
