@@ -9,6 +9,9 @@
         'classroom_id' => $report['filters']['classroom_id'],
         'classroom_search' => $report['filters']['classroom_search'],
         'service_type' => $report['filters']['service_type'],
+        'semester' => $report['filters']['semester'] ?? null,
+        'date_from' => $report['filters']['date_from'] ?? null,
+        'date_to' => $report['filters']['date_to'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 <div
@@ -27,6 +30,7 @@
                     type="button"
                     data-bs-toggle="modal"
                     data-bs-target="#report-preview-modal"
+                    @disabled(empty($report['filters']['semester']))
                 >
                     Cetak / Unduh Rekap
                 </button>
@@ -39,6 +43,7 @@
             class="alert alert-danger"
             role="alert"
             tabindex="-1"
+            data-report-filter-errors
         >
             <strong>Periksa kembali filter laporan.</strong>
             <ul class="mb-0 mt-2">
@@ -95,7 +100,7 @@
                     <div class="modal-body">
                         <p class="m-auto" role="status" data-report-preview-loading>Menyiapkan pratinjau laporan…</p>
                         <div class="m-auto text-center d-none" role="alert" data-report-preview-error>
-                            <p>Pratinjau belum dapat ditampilkan.</p>
+                            <p data-report-preview-error-message>Pratinjau belum dapat ditampilkan.</p>
                             <button class="btn btn-outline-primary" type="button" data-report-preview-retry>Coba lagi</button>
                             <a class="btn btn-link" href="{{ route('reports.preview', $documentFilters) }}" target="_blank" rel="noopener">Buka di halaman baru</a>
                         </div>

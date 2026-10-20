@@ -44,7 +44,7 @@ class ProtectIntegrationLifecycle
 
     private function isIntegrationRequest(Request $request): bool
     {
-        return $request->is('data-master/integrations', 'data-master/integrations/*');
+        return $request->is('data-master/integrations', 'data-master/integrations/*', 'data-master/api-connections/*');
     }
 
     private function noStore(Response $response): Response

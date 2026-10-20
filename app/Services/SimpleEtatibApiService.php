@@ -6,7 +6,9 @@ namespace App\Services;
 
 use App\Integrations\Etatib\EtatibSnapshot;
 use App\Integrations\Etatib\EtatibUnavailableException;
+use App\Integrations\IntegrationEndpointPolicy;
 use App\Integrations\IntegrationOperationContext;
+use App\Integrations\PublicApiRequest;
 use App\Models\AcademicYear;
 use App\Models\EtatibDuplicateDecision;
 use App\Models\EtatibIdentityMapping;
@@ -15,6 +17,7 @@ use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\StudentName;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -25,6 +28,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use JsonException;
+use OverflowException;
 use Psr\Http\Message\StreamInterface;
 use Throwable;
 
@@ -156,7 +160,7 @@ final class SimpleEtatibApiService
     }
 
     /** @param array<string, mixed>|null $preview */
-    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = [], array $duplicateDecisions = []): ExternalSyncRun
+    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = [], array $duplicateDecisions = [], ?Closure $afterApply = null): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
@@ -188,6 +192,7 @@ final class SimpleEtatibApiService
                         after: ['group_key' => $group['key'], 'copy_count' => $group['count']]);
                 }
             },
+            $afterApply,
         );
     }
 
@@ -241,7 +246,7 @@ final class SimpleEtatibApiService
         return [
             'id' => (int) $student->getKey(),
             'nisn' => $student->nisn,
-            'name' => \App\Support\StudentName::display($student->name),
+            'name' => StudentName::display($student->name),
             'classroom' => $membership?->classroom?->name ?? '-',
             'academic_year' => $membership?->academicYear?->name,
         ];
@@ -523,8 +528,8 @@ final class SimpleEtatibApiService
     private function records(string $url): array
     {
         try {
-            $this->assertPublicUrl($url);
-            $payload = $this->fetchPayload($url);
+            $address = $this->assertPublicUrl($url);
+            $payload = $this->fetchPayload($url, $address);
 
             return $this->parse($payload);
         } catch (ValidationException $exception) {
@@ -541,14 +546,18 @@ final class SimpleEtatibApiService
     }
 
     /** @return list<mixed> */
-    private function fetchPayload(string $url): array
+    private function fetchPayload(string $url, string $address): array
     {
-        $response = Http::acceptJson()
-            ->connectTimeout(5)
-            ->timeout(self::TIMEOUT_SECONDS)
-            ->withoutRedirecting()
-            ->withOptions(['stream' => true])
-            ->get($url);
+        try {
+            $response = (new PublicApiRequest)->get(
+                Http::acceptJson()->connectTimeout(5)->timeout(self::TIMEOUT_SECONDS),
+                $url,
+                $address,
+                self::MAX_RESPONSE_BYTES,
+            );
+        } catch (OverflowException) {
+            $this->fail('Ukuran respons API e-Tatib maksimal 2 MiB.');
+        }
 
         if (! $response->successful()) {
             $message = $response->redirect()
@@ -699,14 +708,14 @@ final class SimpleEtatibApiService
         return $body;
     }
 
-    private function assertPublicUrl(string $url): void
+    private function assertPublicUrl(string $url): string
     {
         $parts = parse_url($url);
         if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])
-            || ! in_array(strtolower($parts['scheme']), ['http', 'https'], true)
+            || strtolower($parts['scheme']) !== 'https'
             || isset($parts['user']) || isset($parts['pass'])
         ) {
-            $this->fail('Link API e-Tatib harus berupa alamat HTTP atau HTTPS publik yang valid.');
+            $this->fail('Link API e-Tatib harus berupa alamat HTTPS publik yang valid.');
         }
 
         $host = strtolower(trim($parts['host'], '[]'));
@@ -720,10 +729,12 @@ final class SimpleEtatibApiService
             $this->fail('Host API e-Tatib tidak dapat ditemukan.');
         }
         foreach ($addresses as $address) {
-            if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            if (! IntegrationEndpointPolicy::isPublicAddress($address)) {
                 $this->fail('Link API e-Tatib tidak boleh mengarah ke localhost atau jaringan internal.');
             }
         }
+
+        return $addresses[0];
     }
 
     /** @return list<string> */

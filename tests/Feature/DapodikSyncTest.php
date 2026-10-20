@@ -116,6 +116,63 @@ class DapodikSyncTest extends TestCase
         }
     }
 
+    public function test_overlong_academic_year_names_are_rejected_before_preview_or_master_mutation(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $complete = $this->evidencedSnapshot();
+
+        foreach ([str_repeat('A', 21), str_repeat('é', 21)] as $name) {
+            $years = $complete->academicYears;
+            $years[0]['name'] = $name;
+            $this->bindConfiguredPipeline(new DapodikSnapshot(
+                $complete->isFullSnapshot,
+                $years,
+                $complete->classrooms,
+                $complete->students,
+                $complete->memberships,
+                $complete->evidence,
+            ));
+
+            try {
+                app(DapodikSyncService::class)->synchronize($admin);
+                $this->fail('Nama tahun ajaran di luar kapasitas penyimpanan harus ditolak.');
+            } catch (IntegrationConfigurationException $exception) {
+                $this->assertSame('contract_invalid', $exception->resultCode());
+            }
+
+            $this->assertDatabaseCount('external_sync_runs', 0);
+            $this->assertDatabaseCount('dapodik_sync_preview_items', 0);
+            $this->assertDatabaseCount('academic_years', 0);
+            $this->assertDatabaseCount('classrooms', 0);
+            $this->assertDatabaseCount('students', 0);
+            $this->assertDatabaseCount('student_class_memberships', 0);
+        }
+    }
+
+    public function test_twenty_character_academic_year_names_are_accepted_without_truncation(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $complete = $this->evidencedSnapshot();
+
+        foreach ([str_repeat('A', 20), str_repeat('é', 20)] as $name) {
+            $years = $complete->academicYears;
+            $years[0]['name'] = $name;
+            $this->bindConfiguredPipeline(new DapodikSnapshot(
+                $complete->isFullSnapshot,
+                $years,
+                $complete->classrooms,
+                $complete->students,
+                $complete->memberships,
+                $complete->evidence,
+            ));
+
+            $run = app(DapodikSyncService::class)->synchronize($admin);
+
+            $this->assertSame(ExternalSyncRun::STATUS_PREVIEW_READY, $run->status);
+            $this->assertSame($name, $run->previewItems()->where('entity_type', 'academic_year')->sole()->safe_fields['name']);
+        }
+    }
+
     public function test_full_snapshot_with_empty_required_collection_is_rejected_before_preview_state_mutation(): void
     {
         $admin = $this->userWithRole('admin_it');
@@ -364,12 +421,14 @@ class DapodikSyncTest extends TestCase
             'decision_revision' => 0,
         ]);
         $studentItem = $run->previewItems()->where('entity_type', 'student')->sole();
+        $safeFields = $studentItem->safe_fields;
+        ksort($safeFields);
         $this->assertSame([
-            'source_id' => 'student-1',
-            'nisn' => '0012345678',
-            'name' => 'Nama Resmi',
             'is_active' => true,
-        ], $studentItem->safe_fields);
+            'name' => 'Nama Resmi',
+            'nisn' => '0012345678',
+            'source_id' => 'student-1',
+        ], $safeFields);
         $this->assertSame(64, strlen($studentItem->item_hash));
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'dapodik.preview_created',
@@ -852,7 +911,7 @@ class DapodikSyncTest extends TestCase
             isFullSnapshot: false,
             academicYears: [[
                 'source_id' => 'year-2026',
-                'name' => 'Tahun Resmi Tanpa Periode',
+                'name' => '2026/2027',
                 'starts_on' => null,
                 'ends_on' => null,
             ]],
@@ -902,51 +961,53 @@ class DapodikSyncTest extends TestCase
 
     public function test_multiple_memberships_inside_selected_parent_graph_fail_closed(): void
     {
-        $admin = $this->userWithRole('admin_it');
-        $fixture = $this->selectableMembershipGraphs([]);
-        Schema::table('student_class_memberships', function (Blueprint $table): void {
-            $table->dropUnique('student_membership_student_year_unique');
+        $this->withLegacySqliteDatabase(function (): void {
+            $admin = $this->userWithRole('admin_it');
+            $fixture = $this->selectableMembershipGraphs([]);
+            Schema::table('student_class_memberships', function (Blueprint $table): void {
+                $table->dropUnique('student_membership_student_year_unique');
+            });
+            foreach ([1, 2] as $number) {
+                StudentClassMembership::query()->create([
+                    'student_id' => $fixture['student']->id,
+                    'classroom_id' => $fixture['classrooms']['A']->id,
+                    'academic_year_id' => $fixture['years']['A']->id,
+                    'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
+                ]);
+            }
+            $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
+            $run = app(DapodikSyncService::class)->synchronize($admin);
+            $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
+            $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
+            $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
+
+            $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
+            app(DapodikReconciliationService::class)->decide($run, $yearItem, [
+                'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+                'candidate_id' => $fixture['years']['A']->id,
+                'decision_revision' => 0,
+            ], $admin);
+            app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
+                'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
+                'candidate_id' => $fixture['classrooms']['A']->id,
+                'decision_revision' => 0,
+            ], $admin);
+
+            $this->assertSame(DapodikSyncPreviewItem::DECISION_CONFLICT, $membershipItem->refresh()->decision);
+            $this->assertNull($membershipItem->decision_candidate_id);
+            $this->assertSame(1, $run->refresh()->conflict_count);
+            $this->actingAs($admin)
+                ->get(route('data-master.dapodik.previews.show', $run))
+                ->assertOk()
+                ->assertSee('Penempatan murid belum cocok')
+                ->assertSee('type="submit" class="btn btn-primary" disabled', false);
+            $this->assertValidationFailure(
+                fn () => app(DapodikReconciliationService::class)
+                    ->apply($run, $admin, $run->decision_revision),
+                'preview',
+            );
+            $this->assertDatabaseMissing('student_class_memberships', ['dapodik_id' => 'membership-1']);
         });
-        foreach ([1, 2] as $number) {
-            StudentClassMembership::query()->create([
-                'student_id' => $fixture['student']->id,
-                'classroom_id' => $fixture['classrooms']['A']->id,
-                'academic_year_id' => $fixture['years']['A']->id,
-                'master_source' => StudentClassMembership::MASTER_SOURCE_SCHOOL_PROVISIONAL,
-            ]);
-        }
-        $this->bindConfiguredPipeline($this->evidencedSnapshot(false));
-        $run = app(DapodikSyncService::class)->synchronize($admin);
-        $yearItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_ACADEMIC_YEAR)->sole();
-        $classroomItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_CLASSROOM)->sole();
-        $membershipItem = $run->previewItems()->where('entity_type', DapodikSyncPreviewItem::ENTITY_MEMBERSHIP)->sole();
-
-        $this->assertSame(DapodikSyncPreviewItem::MATCH_NEEDS_MAPPING, $membershipItem->match_status);
-        app(DapodikReconciliationService::class)->decide($run, $yearItem, [
-            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
-            'candidate_id' => $fixture['years']['A']->id,
-            'decision_revision' => 0,
-        ], $admin);
-        app(DapodikReconciliationService::class)->decide($run, $classroomItem, [
-            'decision' => DapodikSyncPreviewItem::DECISION_MAP_EXISTING,
-            'candidate_id' => $fixture['classrooms']['A']->id,
-            'decision_revision' => 0,
-        ], $admin);
-
-        $this->assertSame(DapodikSyncPreviewItem::DECISION_CONFLICT, $membershipItem->refresh()->decision);
-        $this->assertNull($membershipItem->decision_candidate_id);
-        $this->assertSame(1, $run->refresh()->conflict_count);
-        $this->actingAs($admin)
-            ->get(route('data-master.dapodik.previews.show', $run))
-            ->assertOk()
-            ->assertSee('Penempatan murid belum cocok')
-            ->assertSee('type="submit" class="btn btn-primary" disabled', false);
-        $this->assertValidationFailure(
-            fn () => app(DapodikReconciliationService::class)
-                ->apply($run, $admin, $run->decision_revision),
-            'preview',
-        );
-        $this->assertDatabaseMissing('student_class_memberships', ['dapodik_id' => 'membership-1']);
     }
 
     public function test_manual_year_mapping_rejects_a_candidate_outside_snapshot_period(): void
@@ -1496,7 +1557,7 @@ class DapodikSyncTest extends TestCase
         ]);
         $provisionalYear = AcademicYear::query()->create([
             'name' => '2028/2029',
-            'is_active' => true,
+            'is_active' => false,
             'master_source' => AcademicYear::MASTER_SOURCE_SCHOOL_PROVISIONAL,
         ]);
         $provisionalClassroom = Classroom::query()->create([
@@ -1548,7 +1609,7 @@ class DapodikSyncTest extends TestCase
         $this->assertFalse($oldClassroom->refresh()->is_active);
         $this->assertFalse($oldStudent->refresh()->is_active);
         $this->assertFalse($oldMembership->refresh()->is_active);
-        $this->assertTrue($provisionalYear->refresh()->is_active);
+        $this->assertFalse($provisionalYear->refresh()->is_active);
         $this->assertTrue($provisionalClassroom->refresh()->is_active);
         $this->assertTrue($provisionalStudent->refresh()->is_active);
         $this->assertTrue($legacyStudent->refresh()->is_active);
@@ -1613,14 +1674,16 @@ class DapodikSyncTest extends TestCase
 
         $run = app(DapodikSyncService::class)->synchronize($admin);
 
+        $snapshotEvidence = $run->snapshot_evidence;
+        ksort($snapshotEvidence);
         $this->assertSame([
-            'reported_source_identifier' => 'school-01',
-            'contract_marker' => 'contract-v1',
             'completeness_marker' => 'full',
+            'contract_marker' => 'contract-v1',
             'page_count' => 1,
-            'record_count' => 4,
             'processed_bytes' => 512,
-        ], $run->snapshot_evidence);
+            'record_count' => 4,
+            'reported_source_identifier' => 'school-01',
+        ], $snapshotEvidence);
         $this->assertCount(1, $run->deactivation_plan);
         $planned = $run->deactivation_plan[0];
         $this->assertSame('student', $planned['entity_type']);
@@ -1744,7 +1807,7 @@ class DapodikSyncTest extends TestCase
         );
     }
 
-    public function test_expired_incomplete_and_conflicting_previews_are_rejected_and_snapshot_fields_are_immutable(): void
+    public function test_expired_and_incomplete_previews_are_rejected(): void
     {
         $admin = $this->userWithRole('admin_it');
         $this->bindConfiguredPipeline($this->evidencedSnapshot());
@@ -1771,37 +1834,43 @@ class DapodikSyncTest extends TestCase
             'preview',
         );
         $this->assertNull($provisionalYear->refresh()->dapodik_id);
+    }
 
-        Schema::table('students', function (Blueprint $table): void {
-            $table->dropUnique('students_nisn_unique');
+    public function test_conflicting_previews_are_rejected_and_snapshot_fields_are_immutable(): void
+    {
+        $this->withLegacySqliteDatabase(function (): void {
+            $admin = $this->userWithRole('admin_it');
+            Schema::table('students', function (Blueprint $table): void {
+                $table->dropUnique('students_nisn_unique');
+            });
+            Student::query()->create(['nisn' => '0012345678', 'name' => 'Duplikat A']);
+            Student::query()->create(['nisn' => '0012345678', 'name' => 'Duplikat B']);
+            $this->bindConfiguredPipeline($this->evidencedSnapshot());
+            $conflicting = app(DapodikSyncService::class)->synchronize($admin);
+            $conflictItem = $conflicting->previewItems()
+                ->where('entity_type', DapodikSyncPreviewItem::ENTITY_STUDENT)
+                ->sole();
+            $this->assertSame(DapodikSyncPreviewItem::MATCH_CONFLICT, $conflictItem->match_status);
+            $this->actingAs($admin)->patch(
+                route('data-master.dapodik.previews.items.update', [$conflicting, $conflictItem]),
+                [
+                    'decision' => DapodikSyncPreviewItem::DECISION_CREATE_NEW,
+                    'decision_revision' => 0,
+                ],
+            )->assertSessionHasErrors('item');
+            $this->assertValidationFailure(
+                fn () => app(DapodikReconciliationService::class)
+                    ->apply($conflicting, $admin, $conflicting->decision_revision),
+                'preview',
+            );
+
+            try {
+                $conflictItem->update(['safe_fields' => ['source_id' => 'tampered']]);
+                $this->fail('Snapshot item dapat dimutasi setelah dibuat.');
+            } catch (\LogicException $exception) {
+                $this->assertStringContainsString('tidak dapat diubah', $exception->getMessage());
+            }
         });
-        Student::query()->create(['nisn' => '0012345678', 'name' => 'Duplikat A']);
-        Student::query()->create(['nisn' => '0012345678', 'name' => 'Duplikat B']);
-        $this->bindConfiguredPipeline($this->evidencedSnapshot());
-        $conflicting = app(DapodikSyncService::class)->synchronize($admin);
-        $conflictItem = $conflicting->previewItems()
-            ->where('entity_type', DapodikSyncPreviewItem::ENTITY_STUDENT)
-            ->sole();
-        $this->assertSame(DapodikSyncPreviewItem::MATCH_CONFLICT, $conflictItem->match_status);
-        $this->actingAs($admin)->patch(
-            route('data-master.dapodik.previews.items.update', [$conflicting, $conflictItem]),
-            [
-                'decision' => DapodikSyncPreviewItem::DECISION_CREATE_NEW,
-                'decision_revision' => 0,
-            ],
-        )->assertSessionHasErrors('item');
-        $this->assertValidationFailure(
-            fn () => app(DapodikReconciliationService::class)
-                ->apply($conflicting, $admin, $conflicting->decision_revision),
-            'preview',
-        );
-
-        try {
-            $conflictItem->update(['safe_fields' => ['source_id' => 'tampered']]);
-            $this->fail('Snapshot item dapat dimutasi setelah dibuat.');
-        } catch (\LogicException $exception) {
-            $this->assertStringContainsString('tidak dapat diubah', $exception->getMessage());
-        }
     }
 
     public function test_busy_preview_fails_closed_without_run_or_preview_items(): void
@@ -2002,7 +2071,7 @@ class DapodikSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.index'))
             ->assertOk()
-            ->assertSee('Belum ada data');
+            ->assertViewHas('academicYears', fn ($years): bool => $years->isEmpty());
 
         $this->actingAs($admin)
             ->post(route('data-master.dapodik.sync'))

@@ -50,7 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->reportable(static function (Throwable $exception): ?bool {
             $request = request();
 
-            if (! $request->is('data-master/integrations', 'data-master/integrations/*')) {
+            if (! $request->is('data-master/integrations', 'data-master/integrations/*', 'data-master/api-connections/*')) {
                 return null;
             }
 
@@ -63,7 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return false;
         });
         $exceptions->render(function (ValidationException $exception, Request $request) {
-            if (! $request->routeIs('data-master.integrations.*')) {
+            if (! $request->routeIs('data-master.integrations.*', 'data-master.api-connections.*')) {
                 return null;
             }
 
@@ -90,14 +90,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 }
             }
 
+            $destination = $request->routeIs('data-master.api-connections.*')
+                ? route('data-master.index', ['tab' => (string) $request->route('provider')])
+                : route('data-master.index', ['tab' => 'dapodik']).'#integration-'.(string) $request->route('provider');
+
             return redirect()
-                ->to(route('data-master.index', ['tab' => 'dapodik']).'#integration-'.(string) $request->route('provider'))
+                ->to($destination)
                 ->withInput($oldInput)
                 ->withErrors($exception->errors(), $exception->errorBag)
                 ->header('Cache-Control', 'no-store');
         });
         $exceptions->render(function (Throwable $exception, Request $request): ?Response {
-            if (! $request->is('data-master/integrations', 'data-master/integrations/*')
+            if (! $request->is('data-master/integrations', 'data-master/integrations/*', 'data-master/api-connections/*')
                 || $exception instanceof AuthenticationException
                 || $exception instanceof HttpResponseException
             ) {
@@ -115,7 +119,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 : response($message, $status, $headers);
         });
         $exceptions->respond(static function (Response $response, Throwable $exception, Request $request): Response {
-            if ($request->is('data-master/integrations', 'data-master/integrations/*')) {
+            if ($request->is('data-master/integrations', 'data-master/integrations/*', 'data-master/api-connections/*')) {
                 $response->headers->set('Cache-Control', 'no-store');
             }
 

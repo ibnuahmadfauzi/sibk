@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\EtatibAutomaticSyncService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -11,8 +12,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('sibk:sync-etatib')
-    ->weekdays()
-    ->at('15:00')
+    ->everyMinute()
     ->timezone('Asia/Jakarta')
+    ->when(fn (): bool => app(EtatibAutomaticSyncService::class)->isDueAt(now()))
     ->withoutOverlapping(30)
     ->onOneServer();

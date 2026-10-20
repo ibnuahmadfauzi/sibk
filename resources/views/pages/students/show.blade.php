@@ -71,8 +71,8 @@
                             <tr class="sibk-report-detail-row d-none" id="profile-case-notes-{{ $case->id }}">
                                 <td colspan="6"><div class="sibk-report-detail-panel"><div class="row g-3">
                                     <div class="col-12 col-lg-2"><strong class="d-block mb-1">Sumber</strong><p class="mb-0">{{ $case->source?->label ?? '—' }}</p></div>
-                                    <div class="col-12 col-lg-5"><strong class="d-block mb-1">Latar Belakang Masalah</strong><p class="mb-0" style="white-space: pre-line">{{ $case->initial_info ?: '—' }}</p></div>
-                                    <div class="col-12 col-lg-5"><strong class="d-block mb-1">Penanganan</strong><p class="mb-0" style="white-space: pre-line">{{ $case->initial_action ?: '—' }}</p></div>
+                                    <div class="col-12 col-lg-5"><strong class="d-block mb-1">Latar Belakang Masalah</strong><p class="mb-0 sibk-student-notes">{{ $case->initial_info ?: '—' }}</p></div>
+                                    <div class="col-12 col-lg-5"><strong class="d-block mb-1">Penanganan</strong><p class="mb-0 sibk-student-notes">{{ $case->initial_action ?: '—' }}</p></div>
                                 </div></div></td>
                             </tr>
                         @empty
@@ -135,8 +135,8 @@
                             </tr>
                             <tr class="sibk-report-detail-row d-none" id="profile-consultation-notes-{{ $session->id }}">
                                 <td colspan="6"><div class="sibk-report-detail-panel"><div class="row g-3">
-                                    <div class="col-12 col-lg-6"><strong class="d-block mb-1">Permasalahan</strong><p class="mb-0" style="white-space: pre-line">{{ $session->problem ?: '—' }}</p></div>
-                                    <div class="col-12 col-lg-6"><strong class="d-block mb-1">Penanganan</strong><p class="mb-0" style="white-space: pre-line">{{ $session->handling ?: '—' }}</p></div>
+                                    <div class="col-12 col-lg-6"><strong class="d-block mb-1">Permasalahan</strong><p class="mb-0 sibk-student-notes">{{ $session->problem ?: '—' }}</p></div>
+                                    <div class="col-12 col-lg-6"><strong class="d-block mb-1">Penanganan</strong><p class="mb-0 sibk-student-notes">{{ $session->handling ?: '—' }}</p></div>
                                 </div></div></td>
                             </tr>
                         @empty
@@ -149,33 +149,4 @@
             <div class="table-responsive"><table class="table sibk-table mb-0 align-middle" data-client-sort><thead><tr><x-client-sort-header label="Hari/Tanggal" type="date" /><x-client-sort-header label="Kegiatan" /><th scope="col">Jenis / Tingkat</th><th scope="col">Hasil</th></tr></thead><tbody>@forelse($achievements as $achievement)<tr><td data-sort-value="{{ $achievement->achievement_date->toDateString() }}"><div class="fw-semibold text-dark">{{ $achievement->achievement_date->locale('id')->translatedFormat('d M Y') }}</div><div class="text-muted small">({{ $achievement->achievement_date->locale('id')->translatedFormat('l') }})</div></td><td><div class="fw-semibold text-dark">{{ $achievement->activity_name }}</div><div class="text-muted small">{{ $achievement->organizer }}</div></td><td>{{ $achievement->type->label }} / {{ $achievement->level->label }}</td><td><span class="sibk-badge sibk-badge--success">{{ $achievement->result }}</span></td></tr>@empty<tr><td colspan="4" class="text-center text-muted py-4">Belum ada prestasi yang dapat ditampilkan.</td></tr>@endforelse</tbody></table></div>
         @endif
     </div>
-@endsection
-
-@section('extra-css')
-<style>
-    .btn-icon-action {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 32px !important;
-        height: 32px !important;
-        padding: 0 !important;
-        border-radius: 8px !important;
-        border: 1px solid transparent !important;
-        transition: all 0.15s ease !important;
-        cursor: pointer !important;
-        background: transparent !important;
-        flex-shrink: 0 !important;
-    }
-
-    .btn-icon-action--info {
-        color: #0891b2 !important;
-        border-color: #cffafe !important;
-        background: #f0fdfe !important;
-    }
-    .btn-icon-action--info:hover {
-        background: #cffafe !important;
-        border-color: #a5f3fc !important;
-    }
-</style>
 @endsection

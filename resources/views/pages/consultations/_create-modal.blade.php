@@ -50,19 +50,11 @@
 
     <div class="mb-4">
         <div>
-            <!-- <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="step-badge rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.95rem;">1</div>
-                <div>
-                    <h2 class="h5 fw-bold text-dark mb-0">Murid dan Layanan</h2>
-                    <p class="text-secondary small mb-0 mt-1">Lengkapi data murid dan informasi layanan konsultasi.</p>
-                </div>
-            </div> -->
-
             <div class="row g-3">
                 <div class="col-12 col-md-4 position-relative">
                     <label for="student_nisn" class="form-label text-dark fw-semibold small mb-2">NISN <span class="text-danger">*</span></label>
                     <input type="text" class="form-control py-2 border-secondary-subtle rounded-3" id="student_nisn" name="temporary_nisn" value="{{ old('temporary_nisn') }}" maxlength="150" pattern="[0-9]+" title="Pilih murid dari daftar atau isi NISN berupa angka." autocomplete="off" placeholder="Ketik NISN atau nama murid" aria-controls="student_lookup_results" aria-autocomplete="list" aria-expanded="false" aria-describedby="student_lookup_hint" required>
-                    <div id="student_lookup_results" class="list-group position-absolute start-0 end-0 mx-2 mt-1 shadow-sm d-none" role="listbox" aria-label="Hasil pencarian murid" style="z-index: 1060; max-height: 16rem; overflow-y: auto;"></div>
+                    <div id="student_lookup_results" class="list-group position-absolute start-0 end-0 mx-2 mt-1 shadow-sm d-none sibk-consultation-suggestions" role="listbox" aria-label="Hasil pencarian murid"></div>
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="student_name" class="form-label text-dark fw-semibold small mb-2">Nama Murid <span class="text-danger">*</span></label>
@@ -100,14 +92,6 @@
 
     <div class="mb-4">
         <div>
-            <!-- <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="step-badge rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px; font-size: 0.95rem;">2</div>
-                <div>
-                    <h2 class="h5 fw-bold text-dark mb-0">Catatan Layanan</h2>
-                    <p class="text-secondary small mb-0 mt-1">Tuliskan informasi yang diperlukan untuk mencatat hasil konsultasi.</p>
-                </div>
-            </div> -->
-
             <div class="row g-3">
                 <div class="col-12 col-md-6">
                     <label for="problem" class="form-label text-dark fw-semibold small mb-2">Latar Belakang Masalah / Permasalahan <span class="text-danger">*</span></label>

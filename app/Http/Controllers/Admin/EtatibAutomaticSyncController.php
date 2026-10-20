@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ConfigureAutomaticEtatibRequest;
 use App\Http\Requests\Admin\DisableAutomaticEtatibRequest;
+use App\Http\Requests\Admin\UpdateEtatibAutomaticScheduleRequest;
 use App\Models\ExternalSyncRun;
 use App\Models\User;
 use App\Services\EtatibAutomaticSyncService;
@@ -22,7 +23,7 @@ final class EtatibAutomaticSyncController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->activate($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions(), $request->duplicateDecisions());
+        $run = $service->activate($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions(), $request->duplicateDecisions(), $request->boolean('use_saved_api'));
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors([
@@ -65,6 +66,19 @@ final class EtatibAutomaticSyncController extends Controller
         $actor = $request->user();
         $service->deactivate($actor);
 
-        return back()->with('success', 'Pembaruan otomatis e-Tatib dinonaktifkan dan link tersimpan dihapus.');
+        return back()->with('success', 'Pembaruan otomatis e-Tatib dinonaktifkan. Link tersimpan tetap tersedia.');
+    }
+
+    public function updateSchedule(
+        UpdateEtatibAutomaticScheduleRequest $request,
+        EtatibAutomaticSyncService $service,
+    ): RedirectResponse {
+        /** @var User $actor */
+        $actor = $request->user();
+        $service->updateSchedule($request->days(), $request->times(), $actor);
+
+        return redirect()->route('data-master.index', ['tab' => 'etatib'])
+            ->with('success', 'Jadwal pembaruan otomatis e-Tatib berhasil disimpan.')
+            ->header('Cache-Control', 'no-store');
     }
 }

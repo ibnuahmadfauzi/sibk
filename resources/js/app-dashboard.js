@@ -17,17 +17,20 @@ import './case-create.js';
 import './table-sort.js';
 import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
-import { initReportPreview } from './report-preview';
+import { initReportPreview, resetReportPeriodFilters } from './report-preview';
 import { initAchievementForms } from './achievement-form';
 import { displayStudentName } from './student-name';
 import { initAutoFilters } from './auto-filter';
 import { initActionTooltips } from './action-tooltips';
 import { initDashboardViewSwitch } from './dashboard-view-switch';
+import { initEtatibSchedule, initSavedApiUrls } from './saved-api-url';
 
 initActionTooltips();
 initDashboardViewSwitch();
 initFormDrafts();
 initServiceRecords(document, { Modal, Toast });
+initSavedApiUrls(document, { Modal });
+initEtatibSchedule();
 initConsultationCreate();
 initApiSiswaPreview(document, { Modal });
 initRosterExcelPreview(document, { Modal });
@@ -69,13 +72,8 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });
 
-document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
-    select.addEventListener('change', () => {
-        const form = select.closest('form');
-        const classroom = form?.querySelector('[name="classroom_search"]');
-
-        if (classroom) classroom.value = '';
-    });
+document.querySelectorAll('[data-report-year-filter], [data-report-semester-filter]').forEach((select) => {
+    select.addEventListener('change', () => resetReportPeriodFilters(select));
 });
 
 initAutoFilters();

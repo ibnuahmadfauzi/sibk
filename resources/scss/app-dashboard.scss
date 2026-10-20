@@ -2594,6 +2594,8 @@ small, .small {
   tbody tr {
     transition: background-color 0.18s ease-in-out;
 
+    &.sibk-table__row--clickable { cursor: pointer; }
+
     &:hover,
     &.sibk-table__row--clickable:hover {
       background-color: var(--sibk-color-surface-raised) !important;
@@ -3148,6 +3150,17 @@ small, .small {
   z-index: 20;
 }
 
+.sibk-consultation-suggestions {
+  z-index: 1060;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.sibk-consultation-user-icon {
+  width: 30px;
+  height: 30px;
+}
+
 .sibk-icon-button.sibk-class-add {
   height: 1.75rem;
   width: 1.75rem;
@@ -3596,19 +3609,13 @@ small, .small {
     border-bottom: 3px double #111;
     display: grid;
     gap: 1rem;
-    grid-template-columns: 5rem 1fr 5rem;
+    grid-template-columns: 5rem 1fr;
     padding-bottom: 0.75rem;
   }
 
-  &__logo-placeholder {
-    align-items: center;
-    border: 1px dashed #777;
-    color: #555;
-    display: flex;
-    font-size: 0.7rem;
+  &__logo {
+    object-fit: contain;
     height: 4.5rem;
-    justify-content: center;
-    text-transform: uppercase;
     width: 4.5rem;
   }
 
@@ -4064,6 +4071,36 @@ small, .small {
   justify-content: center;
   flex: 0 0 auto;
   font-weight: 700;
+}
+
+.sibk-student-notes { white-space: pre-line; }
+
+[data-page-id="PG-202"] {
+  .btn-icon-action {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid transparent !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    flex-shrink: 0 !important;
+  }
+
+  .btn-icon-action--info {
+    color: #0891b2 !important;
+    border-color: #cffafe !important;
+    background: #f0fdfe !important;
+  }
+
+  .btn-icon-action--info:hover {
+    background: #cffafe !important;
+    border-color: #a5f3fc !important;
+  }
 }
 
 .sibk-student-hero {

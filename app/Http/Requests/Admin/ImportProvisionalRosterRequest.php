@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\IntegrationSetting;
+use App\Services\SavedApiUrlService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -33,25 +35,29 @@ class ImportProvisionalRosterRequest extends FormRequest
 
         return [
             'api_url' => [
-                'required_without_all:file,data',
-                'prohibits:file,data',
+                Rule::requiredIf(! $this->hasFile('file') && ! $this->has('data') && ! $this->boolean('use_saved_api')),
+                Rule::prohibitedIf($this->hasFile('file') || $this->has('data') || $this->boolean('use_saved_api')),
                 'string',
                 'max:2048',
-                'url:http,https',
+                'url:https',
+            ],
+            'use_saved_api' => [
+                'sometimes', 'boolean',
+                Rule::prohibitedIf($this->boolean('use_saved_api') && ($this->hasFile('file') || $this->has('data') || $this->filled('api_url'))),
             ],
             'preview_hash' => ['required_with:selected_rows', 'nullable', 'string', 'size:64', 'regex:/^[a-f0-9]{64}$/'],
-            'selected_rows' => [Rule::prohibitedIf(! $this->filled('api_url')), 'array', 'max:5000'],
+            'selected_rows' => [Rule::prohibitedIf(! $this->filled('api_url') && ! $this->boolean('use_saved_api')), 'array', 'max:5000'],
             'selected_rows.*' => ['required', 'integer', 'min:0', 'max:4999'],
             'file' => [
-                'required_without_all:api_url,data',
-                'prohibits:api_url,data',
+                Rule::requiredIf(! $this->filled('api_url') && ! $this->has('data') && ! $this->boolean('use_saved_api')),
+                Rule::prohibitedIf($this->filled('api_url') || $this->has('data') || $this->boolean('use_saved_api')),
                 'file',
                 'max:2048',
                 'extensions:csv,xlsx',
             ],
             'data' => [
-                'required_without_all:api_url,file',
-                'prohibits:api_url,file',
+                Rule::requiredIf(! $this->filled('api_url') && ! $this->hasFile('file') && ! $this->boolean('use_saved_api')),
+                Rule::prohibitedIf($this->filled('api_url') || $this->hasFile('file') || $this->boolean('use_saved_api')),
                 'array',
             ],
         ];
@@ -61,19 +67,20 @@ class ImportProvisionalRosterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'api_url.required_without_all' => 'Link API Siswa atau berkas CSV/Excel wajib diisi.',
-            'api_url.prohibits' => 'Pilih salah satu sumber impor: link API Siswa atau berkas CSV/Excel.',
+            'api_url.required' => 'Link API Siswa atau berkas CSV/Excel wajib diisi.',
+            'api_url.prohibited' => 'Pilih salah satu sumber impor: link API Siswa atau berkas CSV/Excel.',
             'api_url.max' => 'Link API Siswa terlalu panjang.',
-            'api_url.url' => 'Link API Siswa harus berupa URL HTTP atau HTTPS yang valid.',
-            'file.required' => 'Berkas daftar murid wajib dipilih.',
-            'file.required_without_all' => 'Link API Siswa atau berkas CSV/Excel wajib diisi.',
-            'file.prohibits' => 'Pilih salah satu sumber impor: link API Siswa atau berkas CSV/Excel.',
+            'api_url.url' => 'Link API Siswa harus berupa URL HTTPS yang valid.',
+            'file.required' => 'Link API Siswa atau berkas CSV/Excel wajib diisi.',
+            'file.prohibited' => 'Pilih salah satu sumber impor: link API Siswa atau berkas CSV/Excel.',
             'file.file' => 'Berkas daftar murid tidak valid.',
             'file.max' => 'Ukuran berkas daftar murid maksimal 2 MiB.',
             'file.extensions' => 'Daftar murid harus berupa berkas CSV atau Excel .xlsx.',
-            'data.required_without_all' => 'Link API Siswa, berkas CSV/Excel, atau data API daftar murid wajib dikirim.',
-            'data.prohibits' => 'Pilih hanya satu sumber impor daftar murid.',
+            'data.required' => 'Link API Siswa, berkas CSV/Excel, atau data API daftar murid wajib dikirim.',
+            'data.prohibited' => 'Pilih hanya satu sumber impor daftar murid.',
             'data.array' => 'Data API daftar murid tidak valid.',
+            'use_saved_api.boolean' => 'Pilihan API tersimpan tidak valid.',
+            'use_saved_api.prohibited' => 'Pilih hanya satu sumber impor daftar murid.',
         ];
     }
 
@@ -92,12 +99,14 @@ class ImportProvisionalRosterRequest extends FormRequest
 
     public function hasApiUrl(): bool
     {
-        return $this->filled('api_url');
+        return $this->filled('api_url') || $this->boolean('use_saved_api');
     }
 
     public function apiUrl(): string
     {
-        return (string) $this->validated('api_url');
+        return $this->boolean('use_saved_api')
+            ? app(SavedApiUrlService::class)->get(IntegrationSetting::PROVIDER_DAPODIK, $this->user())
+            : (string) $this->validated('api_url');
     }
 
     /** @return list<int> */

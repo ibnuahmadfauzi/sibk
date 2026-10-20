@@ -301,8 +301,81 @@ class ConsultationManagementTest extends TestCase
         ])->assertOk();
 
         $audit = AuditLog::query()->where('action', 'consultation.updated')->latest('id')->firstOrFail();
-        $this->assertSame(['problem' => 'Kesulitan beradaptasi di kelas.'], $audit->before_values);
-        $this->assertSame(['problem' => 'Permasalahan terbaru.'], $audit->after_values);
+        $this->assertSame(['problem'], $audit->after_values['changed_fields'] ?? null);
+        $this->assertArrayNotHasKey('problem', $audit->before_values);
+        $this->assertArrayNotHasKey('problem', $audit->after_values);
+    }
+
+    public function test_consultation_audits_keep_narratives_out_of_create_update_and_archive(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $payload = $this->payload();
+        $this->actingAs($owner)->post(route('consultations.store'), [
+            ...$payload,
+            'student_id' => $student->id,
+        ])->assertRedirect();
+        $consultation = Consultation::query()->sole();
+        $createdAudit = AuditLog::query()->where('action', 'consultation.created')->sole();
+        $createdValues = $createdAudit->after_values;
+        foreach (['problem', 'handling', 'result'] as $field) {
+            $this->assertArrayNotHasKey($field, $createdValues);
+        }
+
+        $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$payload,
+            'problem' => 'Masalah baru yang sangat privat.',
+            'handling' => 'Penanganan baru yang sangat privat.',
+            'result' => 'Hasil baru yang sangat privat.',
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ])->assertOk();
+
+        $updatedAudit = AuditLog::query()->where('action', 'consultation.updated')->sole();
+        $this->assertSame(['problem', 'handling', 'result'], $updatedAudit->after_values['changed_fields'] ?? null);
+
+        $this->actingAs($owner)->delete(route('consultations.destroy', $consultation))->assertRedirect();
+        $archivedAudit = AuditLog::query()->where('action', 'consultation.archived')->sole();
+
+        foreach ([$createdAudit, $updatedAudit, $archivedAudit] as $audit) {
+            $this->assertSame($owner->id, $audit->actor_id);
+            $this->assertSame(Consultation::class, $audit->auditable_type);
+            $this->assertSame($consultation->id, $audit->auditable_id);
+            $this->assertNotNull($audit->created_at);
+
+            foreach (['problem', 'handling', 'result'] as $field) {
+                $this->assertArrayNotHasKey($field, $audit->before_values ?? []);
+                $this->assertArrayNotHasKey($field, $audit->after_values ?? []);
+            }
+
+            $serializedAudit = json_encode([$audit->summary, $audit->before_values, $audit->after_values], JSON_THROW_ON_ERROR);
+            foreach ([$payload['problem'], $payload['handling'], $payload['result'], 'Masalah baru yang sangat privat.', 'Penanganan baru yang sangat privat.', 'Hasil baru yang sangat privat.'] as $value) {
+                $this->assertStringNotContainsString($value, $serializedAudit);
+            }
+        }
+
+        $this->assertSame($createdValues, $createdAudit->refresh()->after_values);
+        $this->assertSame(3, AuditLog::query()->where('auditable_type', Consultation::class)->where('auditable_id', $consultation->id)->count());
+    }
+
+    public function test_unchanged_narratives_do_not_create_audit_or_appear_as_changed_fields(): void
+    {
+        [$owner, $student] = $this->teacherAndScopedStudent();
+        $consultation = $this->createConsultation($owner, $student);
+
+        $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'expected_updated_at' => $consultation->updated_at->toJSON(),
+        ])->assertOk();
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'consultation.updated']);
+
+        $this->actingAs($owner)->patchJson(route('consultations.update', $consultation), [
+            ...$this->payload(),
+            'session_date' => '2026-09-17',
+            'expected_updated_at' => $consultation->refresh()->updated_at->toJSON(),
+        ])->assertOk();
+
+        $audit = AuditLog::query()->where('action', 'consultation.updated')->sole();
+        $this->assertSame(['session_date' => '2026-09-18'], $audit->before_values);
+        $this->assertSame(['session_date' => '2026-09-17'], $audit->after_values);
     }
 
     public function test_only_authorized_owner_can_archive_with_soft_delete(): void

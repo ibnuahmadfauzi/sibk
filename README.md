@@ -20,7 +20,7 @@ production belum tersedia.
 
 ## Persyaratan
 
-- PHP 8.3 atau lebih baru, Composer, dan Git.
+- PHP 8.4.1 atau lebih baru dalam seri PHP 8, ekstensi cURL dengan libcurl >= 7.49, Composer, dan Git.
 - Node.js/npm sesuai persyaratan Vite dalam `package-lock.json`.
 - MySQL atau SQLite lokal yang dikonfigurasi pada `.env`.
 
