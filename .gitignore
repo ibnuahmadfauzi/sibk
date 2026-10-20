@@ -17,6 +17,7 @@
 /.kilo
 /auth.json
 /node_modules
+/outputs/
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
@@ -24,6 +25,7 @@
 /storage/*.key
 /storage/pail
 /storage/app/testing
+/storage/framework/lsp-*.php
 /storage/framework/views-codex-*/
 /vendor
 /graphify-out
