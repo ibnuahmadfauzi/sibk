@@ -18,9 +18,9 @@ const files = {
     consultationShow: 'resources/views/pages/consultations/show.blade.php',
     studentsIndex: 'resources/views/pages/students/index.blade.php',
     studentsShow: 'resources/views/pages/students/show.blade.php',
-    achievementCreate: 'resources/views/pages/achievements/create.blade.php',
+    achievementCreate: 'resources/views/pages/achievements/_form-modal.blade.php',
     achievementIndex: 'resources/views/pages/achievements/index.blade.php',
-    achievementShow: 'resources/views/pages/achievements/show.blade.php',
+    achievementController: 'app/Http/Controllers/AchievementController.php',
     assignmentIndex: 'resources/views/pages/assignments/classes/index.blade.php',
     dataMaster: 'resources/views/pages/data-master/index.blade.php',
     dataMasterApiSiswa: 'resources/views/pages/data-master/_api-siswa-import.blade.php',
@@ -70,7 +70,9 @@ assert(!inputReferencesError(
     'identifierError',
 ), 'Pemeriksa atribut input tidak boleh mencocokkan atribut lintas tag.');
 
-const bladeKeys = Object.keys(files).filter((key) => !['routes', 'package', 'operationalReportService', 'casesIndex', 'casesShow'].includes(key));
+const bladeKeys = Object.keys(files).filter((key) => ![
+    'routes', 'package', 'operationalReportService', 'achievementController', 'casesIndex', 'casesShow',
+].includes(key));
 for (const key of bladeKeys) {
     assert(!/\sstyle\s*=/.test(contents[key]), `${files[key]} masih memakai inline style.`);
     assert(!/\son\w+\s*=/.test(contents[key]), `${files[key]} masih memakai inline event handler.`);
@@ -102,12 +104,17 @@ assert(contents.routes.includes('ReportController::class'), 'Laporan belum memak
 const pageIds = {
     casesIndex: 'PG-101', casesCreate: 'PG-102', casesShow: 'PG-103',
     consultationCreate: 'PG-105', studentsIndex: 'PG-201', studentsShow: 'PG-202',
-    achievementCreate: 'PG-203', assignmentIndex: 'PG-401',
+    assignmentIndex: 'PG-401',
     dataMaster: 'PG-501', etatibConflicts: 'PG-501-ETATIB-CONFLICTS', accessDenied: 'PG-901',
 };
 for (const [key, pageId] of Object.entries(pageIds)) {
     assert(contents[key].includes(`data-page-id="${pageId}"`), `${pageId} belum dapat ditelusuri dari markup.`);
 }
+assert(contents.achievementIndex.includes("route('achievements.create', ['modal' => 1"), 'Aksi catat prestasi belum membuka form modal.');
+assert(contents.achievementIndex.includes('data-modal-auto-open'), 'Redirect form prestasi belum membuka modal dari daftar.');
+assert(contents.achievementIndex.includes('data-service-record-modal'), 'Daftar prestasi belum menyediakan shell modal bersama.');
+assert(contents.achievementController.includes("view('pages.achievements._form-modal'"), 'Endpoint form prestasi belum merender partial modal.');
+assert(contents.achievementCreate.includes("route('achievements.store')") && contents.achievementCreate.includes('data-achievement-form'), 'Form modal prestasi belum terhubung ke penyimpanan.');
 for (const key of ['casesCreate', 'consultationCreate', 'achievementCreate', 'assignmentIndex', 'dataMaster', 'account', 'topbar']) {
     if (contents[key].includes('method="POST"')) assert(contents[key].includes('@csrf'), `${files[key]} memiliki form POST tanpa @csrf.`);
 }
@@ -146,9 +153,11 @@ assert(contents.casesIndex.includes('modal-dialog-scrollable'), 'Modal layanan b
 assert(contents.casesIndex.includes('data-service-record-modal'), 'Modal layanan belum terhubung ke JavaScript shared.');
 assert(contents.casesIndex.includes('data-modal-url'), 'Aksi modal belum memakai URL modal shared.');
 const consultationActionIndex = contents.casesIndex.indexOf("route('consultations.show'");
+const withdrawalTabIndex = contents.casesIndex.indexOf("@include('pages.cases._withdrawals')");
 const sharedModalIndex = contents.casesIndex.indexOf('data-service-record-modal');
-assert(consultationActionIndex >= 0 && sharedModalIndex > contents.casesIndex.lastIndexOf('@endif'), 'Tab konsultasi belum berbagi shell modal yang dirender setelah kedua tab.');
-assert(contents.serviceRecords.includes("response.json()).redirect"), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
+assert(consultationActionIndex >= 0 && withdrawalTabIndex >= 0 && sharedModalIndex > consultationActionIndex
+    && sharedModalIndex > withdrawalTabIndex, 'Tab layanan belum berbagi shell modal yang dirender setelah seluruh tab.');
+assert(contents.serviceRecords.includes('payload = await response.json()') && contents.serviceRecords.includes('payload?.redirect'), 'Mutasi modal belum mengikuti kontrak redirect JSON.');
 assert(contents.casesCreate.includes('id="student_lookup_results"'), 'Form kasus belum menyediakan hasil pencarian murid.');
 assert(contents.casesCreate.includes('aria-controls="student_lookup_results"'), 'Pencarian murid harus tersedia dari field NISN.');
 assert(contents.caseCreateJs.includes('student.nisn') && contents.caseCreateJs.includes('student.name'), 'Pencarian murid belum mencocokkan NISN dan nama.');

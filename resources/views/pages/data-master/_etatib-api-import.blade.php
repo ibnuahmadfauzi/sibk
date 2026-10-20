@@ -4,7 +4,7 @@
         @if($etatibAutomaticSetting['enabled'])
             <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
                 <div>
-                    <strong class="d-block">Aktif: Senin-Jumat, 15.00 WIB</strong>
+                    <strong class="d-block">Pembaruan otomatis aktif sesuai hari dan jam terpilih (WIB)</strong>
                     @if($etatibAutomaticSetting['last_run'])
                         <span class="d-block small mt-1">
                             Terakhir {{ $etatibAutomaticSetting['last_run']->started_at->locale('id')->translatedFormat('d M Y, H.i') }}:
@@ -22,6 +22,8 @@
             </div>
         @endif
 
+        @include('pages.data-master._saved-api-url', ['provider' => 'etatib', 'label' => 'API e-Tatib'])
+
         <form
             id="etatib-api-form"
             action="{{ route('data-master.etatib.sync') }}"
@@ -33,11 +35,18 @@
             data-manual-sync-url="{{ route('data-master.etatib.sync') }}"
             data-automatic-sync-url="{{ route('data-master.etatib.automatic.store') }}"
             data-duplicate-revoke-url="{{ route('data-master.etatib.duplicates.destroy', ['decision' => '__DECISION__']) }}"
+            data-saved-api-source-form
         >
             @csrf
-            <label class="form-label small mb-0" for="etatib_api_url">Tautan API e-Tatib</label>
+            @if($savedApiUrls['etatib'] ?? false)
+                <label class="form-check-label d-flex align-items-center gap-2" for="etatib_use_saved">
+                    <input class="form-check-input m-0" id="etatib_use_saved" type="checkbox" name="use_saved_api" value="1" checked data-saved-api-choice>
+                    Gunakan API tersimpan
+                </label>
+            @endif
             <div class="row g-2 align-items-stretch">
-                <div class="col-12 col-md">
+                <div class="col-12 col-md" data-one-time-api-url @if($savedApiUrls['etatib'] ?? false) hidden @endif>
+                    <label class="form-label small mb-0" for="etatib_api_url">Tautan API e-Tatib sekali pakai</label>
                     <input
                         class="form-control"
                         type="url"
@@ -46,7 +55,7 @@
                         maxlength="2048"
                         placeholder="https://api-sekolah.example/pelanggaran"
                         autocomplete="off"
-                        required
+                        @if($savedApiUrls['etatib'] ?? false) disabled @else required @endif
                     >
                 </div>
                 <div class="col-12 col-md-auto">
@@ -60,9 +69,6 @@
                     </button>
                 </div>
             </div>
-            <!-- <div class="form-text mt-0">
-                Tautan tidak ditampilkan lagi; jadwal otomatis menyimpannya terenkripsi.
-            </div> -->
         </form>
     </div>
 </section>
@@ -117,6 +123,59 @@
     </div>
 </div>
 
+@if($savedApiUrls['etatib'] ?? false)
+    @php
+        $scheduleErrors = $errors->getBag('etatib_schedule');
+        $scheduleDays = old('schedule_days', $etatibAutomaticSetting['schedule_days']);
+        $scheduleDays = is_array($scheduleDays) ? array_map('strval', $scheduleDays) : [];
+        $scheduleTimes = old('schedule_times', $etatibAutomaticSetting['schedule_times']);
+        $scheduleTimes = is_array($scheduleTimes) ? array_filter($scheduleTimes, 'is_string') : [];
+        $dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    @endphp
+    <section class="sibk-panel mb-4" aria-labelledby="etatib-schedule-title">
+        <div class="sibk-panel__body p-4">
+            <h2 class="fs-6 fw-bold" id="etatib-schedule-title">Jadwal Pembaruan e-Tatib</h2>
+            <p class="small text-muted">Pilih hari dan jam dalam WIB. Mengubah jadwal tidak mengaktifkan atau menonaktifkan pembaruan otomatis.</p>
+            <form action="{{ route('data-master.etatib.automatic.schedule') }}" method="POST" class="d-grid gap-3" data-etatib-schedule-form>
+                @csrf
+                @method('PATCH')
+                <fieldset>
+                    <legend class="form-label fs-6">Hari</legend>
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach($dayNames as $day => $name)
+                            <label class="form-check-label d-flex align-items-center gap-2">
+                                <input class="form-check-input m-0" type="checkbox" name="schedule_days[]" value="{{ $day }}" @checked(in_array((string) $day, $scheduleDays, true))>
+                                {{ $name }}
+                            </label>
+                        @endforeach
+                    </div>
+                    @if($scheduleErrors->has('schedule_days'))<div class="text-danger small mt-1" role="alert">{{ $scheduleErrors->first('schedule_days') }}</div>@endif
+                </fieldset>
+                <div>
+                    <div class="form-label">Jam (WIB)</div>
+                    <div class="d-grid gap-2" data-etatib-schedule-times>
+                        @foreach($scheduleTimes as $time)
+                            <div class="d-flex gap-2" data-etatib-schedule-time-row>
+                                <input class="form-control" type="time" name="schedule_times[]" value="{{ $time }}" aria-label="Jam pembaruan {{ $loop->iteration }}" required>
+                                <button class="btn btn-outline-secondary" type="button" data-etatib-schedule-remove aria-label="Hapus jam pembaruan {{ $loop->iteration }}">Hapus</button>
+                            </div>
+                        @endforeach
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm mt-2" type="button" data-etatib-schedule-add>Tambah jam</button>
+                    @if($scheduleErrors->has('schedule_times'))<div class="text-danger small mt-1" role="alert">{{ $scheduleErrors->first('schedule_times') }}</div>@endif
+                </div>
+                <div>
+                    <label class="form-label" for="etatib_schedule_password">Kata sandi saat ini</label>
+                    <input class="form-control" id="etatib_schedule_password" type="password" name="current_password" autocomplete="current-password" required data-etatib-schedule-password
+                        @if($scheduleErrors->has('current_password')) aria-invalid="true" aria-describedby="etatib_schedule_password_error" @endif>
+                    @if($scheduleErrors->has('current_password'))<div class="invalid-feedback d-block" id="etatib_schedule_password_error">{{ $scheduleErrors->first('current_password') }}</div>@endif
+                </div>
+                <div><button class="btn btn-primary" type="submit">Simpan jadwal</button></div>
+            </form>
+        </div>
+    </section>
+@endif
+
 @if($etatibDuplicateDecisions?->isNotEmpty())
     <section class="sibk-panel mb-4" aria-labelledby="etatib-duplicate-decisions-title">
         <div class="sibk-panel__header">
@@ -163,14 +222,14 @@
         <div class="sibk-panel__body p-4">
             <h2 class="fs-6 fw-bold" id="etatib-automatic-disable-title">Nonaktifkan Pembaruan Otomatis</h2>
             <p class="text-muted small">
-                Penonaktifan menghapus link API yang tersimpan. Sinkronisasi sekali pakai tetap tersedia.
+                Penonaktifan menghentikan jadwal otomatis. Tautan API tersimpan tetap tersedia untuk pratinjau dan sinkronisasi manual.
             </p>
             <form
                 class="row g-2 align-items-end"
                 action="{{ route('data-master.etatib.automatic.destroy') }}"
                 method="POST"
                 data-confirm-submit
-                data-confirm-message="Nonaktifkan jadwal otomatis dan hapus link API e-Tatib tersimpan?"
+                data-confirm-message="Nonaktifkan jadwal otomatis e-Tatib? Tautan API tersimpan tetap tersedia."
             >
                 @csrf
                 @method('DELETE')

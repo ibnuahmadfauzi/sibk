@@ -55,7 +55,7 @@ class ConsultationService
             $this->auditService->recordChanges(
                 action: 'consultation.created',
                 auditable: $consultation,
-                summary: sprintf('Konsultasi untuk %s dibuat.', $consultation->identityName()),
+                summary: 'Konsultasi dibuat.',
                 actor: $actor,
                 before: [],
                 after: $this->snapshot($consultation),
@@ -91,14 +91,21 @@ class ConsultationService
                 'handling' => $data['handling'],
                 'result' => $data['result'],
             ]);
+            $changedNarratives = array_values(array_intersect(
+                ['problem', 'handling', 'result'],
+                array_keys($consultation->getChanges()),
+            ));
 
             $this->auditService->recordChanges(
                 action: 'consultation.updated',
                 auditable: $consultation,
-                summary: sprintf('Konsultasi untuk %s diperbarui.', $consultation->identityName()),
+                summary: 'Konsultasi diperbarui.',
                 actor: $actor,
                 before: $before,
-                after: $this->snapshot($consultation->refresh()),
+                after: [
+                    ...$this->snapshot($consultation->refresh()),
+                    ...($changedNarratives === [] ? [] : ['changed_fields' => $changedNarratives]),
+                ],
             );
 
             return $consultation->load(['student', 'temporaryStudent.reconciledStudent', 'serviceField', 'counselor']);
@@ -114,7 +121,7 @@ class ConsultationService
             $this->auditService->record(
                 action: 'consultation.archived',
                 auditable: $consultation,
-                summary: sprintf('Konsultasi untuk %s diarsipkan.', $consultation->identityName()),
+                summary: 'Konsultasi diarsipkan.',
                 actor: $actor,
                 before: $this->snapshot($consultation),
             );
@@ -217,9 +224,6 @@ class ConsultationService
             'temporary_student_id' => $consultation->temporary_student_id,
             'service_field_id' => $consultation->service_field_id,
             'session_date' => $consultation->session_date?->toDateString(),
-            'problem' => $consultation->problem,
-            'handling' => $consultation->handling,
-            'result' => $consultation->result,
             'counselor_id' => $consultation->counselor_id,
         ];
     }

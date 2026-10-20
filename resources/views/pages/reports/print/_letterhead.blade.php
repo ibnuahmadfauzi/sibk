@@ -1,11 +1,6 @@
 <header class="sibk-document-letterhead">
     <div class="sibk-document-letterhead__identity">
-        <div
-            class="sibk-document-letterhead__logo-placeholder"
-            aria-hidden="true"
-        >
-            Logo
-        </div>
+        <img src="{{ route('branding.logo') }}" class="sibk-document-letterhead__logo" alt="Logo sekolah">
         <div>
             <p class="sibk-document-letterhead__agency">
                 Pemerintah Provinsi Jawa Timur · Dinas Pendidikan
@@ -16,12 +11,6 @@
             <p class="sibk-document-letterhead__address">
                 Jl. SMEA No. 4, Wonokromo, Surabaya, Jawa Timur 60243
             </p>
-        </div>
-        <div
-            class="sibk-document-letterhead__logo-placeholder"
-            aria-hidden="true"
-        >
-            Logo
         </div>
     </div>
     <h2 class="sibk-document-letterhead__title">

@@ -10,16 +10,25 @@
         @error('data')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
         @error('file')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
 
+        @include('pages.data-master._saved-api-url', ['provider' => 'dapodik', 'label' => 'API Siswa'])
+
         <form
             action="{{ route('data-master.roster-imports.store') }}"
             method="POST"
             class="d-grid gap-3"
             data-api-siswa-import-form
             data-preview-url="{{ route('data-master.roster-imports.preview') }}"
+            data-saved-api-source-form
         >
             @csrf
-            <div>
-                <label class="form-label small" for="api_siswa_url">Tautan API Siswa</label>
+            @if($savedApiUrls['dapodik'] ?? false)
+                <label class="form-check-label d-flex align-items-center gap-2" for="api_siswa_use_saved">
+                    <input class="form-check-input m-0" id="api_siswa_use_saved" type="checkbox" name="use_saved_api" value="1" checked data-saved-api-choice>
+                    Gunakan API tersimpan
+                </label>
+            @endif
+            <div data-one-time-api-url @if($savedApiUrls['dapodik'] ?? false) hidden @endif>
+                <label class="form-label small" for="api_siswa_url">Tautan API Siswa sekali pakai</label>
                 <input
                     class="form-control"
                     type="url"
@@ -28,11 +37,8 @@
                     maxlength="2048"
                     placeholder="https://api-sekolah.example/data-siswa"
                     autocomplete="off"
-                    required
+                    @if($savedApiUrls['dapodik'] ?? false) disabled @else required @endif
                 >
-                <!-- <div class="form-text">
-                    Tautan digunakan sekali dan tidak disimpan.
-                </div> -->
             </div>
             <div class="d-flex justify-content-end">
                 <button
@@ -48,6 +54,7 @@
 
         <details class="border-top mt-4 pt-3" @if($errors->has('file')) open @endif>
             <summary class="fw-semibold text-primary py-2">Impor CSV atau Excel jika API belum tersedia</summary>
+            <a class="btn btn-link px-0" href="{{ route('data-master.roster-imports.template') }}">Unduh template impor</a>
             <p class="text-muted small mt-2 mb-3">
                 Cadangan saat API Siswa belum tersedia. CSV UTF-8 atau Excel .xlsx maksimal 2 MiB dan 5.000 baris,
                 dengan kolom <code>nisn,nama,rombel,tahun_pelajaran</code>. Simpan NISN sebagai teks agar nol di depan tidak hilang.

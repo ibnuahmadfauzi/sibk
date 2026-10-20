@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\IntegrationSetting;
+use App\Services\SavedApiUrlService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class ConfigureAutomaticEtatibRequest extends FormRequest
 {
@@ -19,7 +22,8 @@ final class ConfigureAutomaticEtatibRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'api_url' => ['required', 'string', 'max:2048', 'url:http,https'],
+            'api_url' => [Rule::requiredIf(! $this->boolean('use_saved_api')), Rule::prohibitedIf($this->boolean('use_saved_api')), 'string', 'max:2048', 'url:https'],
+            'use_saved_api' => ['sometimes', 'boolean'],
             'current_password' => ['required', 'string', 'current_password:web'],
             'identity_decisions' => ['sometimes', 'array', 'max:10000'],
             'identity_decisions.*.nisn' => ['required', 'string', 'regex:/^\\d{10}$/'],
@@ -36,7 +40,7 @@ final class ConfigureAutomaticEtatibRequest extends FormRequest
         return [
             'api_url.required' => 'Link API e-Tatib wajib diisi.',
             'api_url.max' => 'Link API e-Tatib terlalu panjang.',
-            'api_url.url' => 'Link API e-Tatib harus berupa URL HTTP atau HTTPS yang valid.',
+            'api_url.url' => 'Link API e-Tatib harus berupa URL HTTPS yang valid.',
             'current_password.required' => 'Kata sandi saat ini wajib diisi.',
             'current_password.current_password' => 'Kata sandi saat ini tidak sesuai.',
         ];
@@ -44,7 +48,9 @@ final class ConfigureAutomaticEtatibRequest extends FormRequest
 
     public function apiUrl(): string
     {
-        return (string) $this->validated('api_url');
+        return $this->boolean('use_saved_api')
+            ? app(SavedApiUrlService::class)->get(IntegrationSetting::PROVIDER_ETATIB, $this->user())
+            : (string) $this->validated('api_url');
     }
 
     /** @return list<array{nisn: string, name: string, student_id: int}> */

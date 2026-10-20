@@ -12,12 +12,15 @@ use App\Models\Consultation;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
 use App\Policies\ReportPolicy;
+use App\Support\StudentName;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 final class OperationalReportRecapService implements OperationalReportRecap
 {
@@ -28,8 +31,8 @@ final class OperationalReportRecapService implements OperationalReportRecap
     {
         abort_unless($this->policy->viewAny($actor), 403);
 
-        [$year, $filters] = $this->normalizedFilters($filters);
-        $eventQuery = $this->eventQuery($actor, $filters, $year);
+        [$year, $filters, $period] = $this->normalizedFilters($filters);
+        $eventQuery = $this->eventQuery($actor, $filters, $year, $period);
         $summary = $this->summary($eventQuery, $filters['service_type']);
         $events = $eventQuery
             ->orderBy('service_date', ($filters['sort'] ?? null) === 'tanggal' && ($filters['direction'] ?? null) === 'asc' ? 'asc' : 'desc')
@@ -62,7 +65,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
 
         $events->setCollection($rows);
 
-        return $this->reportData($actor, $filters, $year, $events, $summary);
+        return $this->reportData($actor, $filters, $year, $period, $events, $summary);
     }
 
     /** @param array<string, mixed> $filters @return array<string, mixed> */
@@ -70,17 +73,49 @@ final class OperationalReportRecapService implements OperationalReportRecap
     {
         abort_unless($this->policy->viewDocument($actor), 403);
 
-        [$year, $filters] = $this->normalizedFilters($filters);
-        $eventQuery = $this->eventQuery($actor, $filters, $year);
+        [$year, $filters, $period] = $this->normalizedFilters($filters);
+        if ($year === null) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Tahun ajaran belum tersedia untuk membuat dokumen laporan.',
+            ])->redirectTo(route('reports.index', $filters));
+        }
+        if ($period === null) {
+            throw ValidationException::withMessages([
+                'semester' => 'Pilih semester sebelum membuat dokumen laporan.',
+            ])->redirectTo(route('reports.index', $filters));
+        }
+
+        $eventQuery = $this->eventQuery($actor, $filters, $year, $period);
         $summary = $this->summary($eventQuery, $filters['service_type']);
+        $limit = max(1, (int) config('sibk.report_max_document_rows', 2500));
+        if ($summary[0]['value'] > $limit) {
+            $this->rejectOversizedDocument($filters, $limit);
+        }
+
         $events = $eventQuery
             ->orderBy('service_date')
             ->orderBy('record_type')
             ->orderBy('record_id')
+            ->limit($limit + 1)
             ->get();
+        if ($events->count() > $limit) {
+            $this->rejectOversizedDocument($filters, $limit);
+        }
+
         $rows = $this->hydrateRows($actor, $events, $year, 1);
 
-        return $this->reportData($actor, $filters, $year, $rows, $summary);
+        return $this->reportData($actor, $filters, $year, $period, $rows, $summary);
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function rejectOversizedDocument(array $filters, int $limit): never
+    {
+        throw ValidationException::withMessages([
+            'classroom_search' => sprintf(
+                'Dokumen laporan dibatasi hingga %s catatan. Persempit periode atau filter kelas lalu coba lagi.',
+                number_format($limit, 0, ',', '.'),
+            ),
+        ])->redirectTo(route('reports.index', $filters));
     }
 
     public function findRecord(User $actor, string $type, int $id): BkCase|Consultation|WithdrawalProgress
@@ -101,17 +136,19 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->recordRow($record, null, 1);
     }
 
-    /** @param array<string, mixed> $filters @return array{AcademicYear|null, array<string, mixed>} */
+    /** @param array<string, mixed> $filters @return array{AcademicYear|null, array<string, mixed>, array<string, mixed>|null} */
     private function normalizedFilters(array $filters): array
     {
         $year = isset($filters['academic_year_id'])
             ? AcademicYear::query()->find((int) $filters['academic_year_id'])
-            : null;
-        $year ??= AcademicYear::query()->active()->orderByDesc('starts_on')->first();
-        $year ??= AcademicYear::query()->orderByDesc('starts_on')->first();
+            : AcademicYear::query()->active()->orderByDesc('starts_on')->first()
+                ?? AcademicYear::query()->orderByDesc('starts_on')->first();
 
-        return [$year, [
+        $normalized = [
             'academic_year_id' => $year?->getKey(),
+            'semester' => $filters['semester'] ?? null,
+            'date_from' => $filters['date_from'] ?? null,
+            'date_to' => $filters['date_to'] ?? null,
             'classroom_id' => isset($filters['classroom_id'])
                 ? (int) $filters['classroom_id']
                 : null,
@@ -120,7 +157,117 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'per_page' => (int) ($filters['per_page'] ?? 10),
             'sort' => $filters['sort'] ?? null,
             'direction' => $filters['direction'] ?? null,
-        ]];
+        ];
+
+        if (isset($filters['academic_year_id']) && $year === null) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Tahun ajaran tidak tersedia.',
+            ])->redirectTo(route('reports.index', $normalized));
+        }
+
+        return [$year, $normalized, $this->periodFor($year, $normalized)];
+    }
+
+    /** @param array<string, mixed> $filters @return array<string, mixed>|null */
+    private function periodFor(?AcademicYear $year, array $filters): ?array
+    {
+        $semester = $filters['semester'];
+        $dateFrom = $filters['date_from'];
+        $dateTo = $filters['date_to'];
+        $redirect = route('reports.index', Arr::only($filters, [
+            'academic_year_id', 'classroom_id', 'classroom_search', 'service_type', 'per_page',
+        ]));
+
+        if ($semester === null) {
+            if ($dateFrom !== null || $dateTo !== null) {
+                throw ValidationException::withMessages([
+                    'semester' => 'Pilih semester sebelum mengatur periode tanggal.',
+                ])->redirectTo($redirect);
+            }
+
+            return null;
+        }
+        if (! in_array($semester, ['1', '2'], true)) {
+            throw ValidationException::withMessages(['semester' => 'Semester harus 1 atau 2.'])
+                ->redirectTo($redirect);
+        }
+        foreach (['date_from' => $dateFrom, 'date_to' => $dateTo] as $field => $date) {
+            if ($date !== null && (! is_string($date)
+                || ! preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)
+                || ! checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4)))) {
+                throw ValidationException::withMessages([$field => 'Tanggal harus valid dan berformat YYYY-MM-DD.'])
+                    ->redirectTo($redirect);
+            }
+        }
+        if ($year === null) {
+            return null;
+        }
+
+        $nameYear = null;
+        if (preg_match('/^(\d{4})\/(\d{4})$/D', $year->name, $parts)
+            && (int) $parts[2] === (int) $parts[1] + 1) {
+            $nameYear = (int) $parts[1];
+        }
+        $yearStart = $year->starts_on === null
+            ? $nameYear
+            : (int) $year->starts_on->year - ($year->starts_on->month < 7 ? 1 : 0);
+        if ($yearStart === null || ($nameYear !== null && $nameYear !== $yearStart)) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Periode tahun ajaran tidak dapat dipastikan.',
+            ])->redirectTo($redirect);
+        }
+
+        $academicStart = sprintf('%04d-07-01', $yearStart);
+        $academicEnd = sprintf('%04d-06-30', $yearStart + 1);
+        $recordedStart = $year->starts_on?->toDateString();
+        $recordedEnd = $year->ends_on?->toDateString();
+        if (($recordedStart !== null && ($recordedStart < $academicStart || $recordedStart > $academicEnd))
+            || ($recordedEnd !== null && ($recordedEnd < $academicStart || $recordedEnd > $academicEnd))
+            || ($recordedStart !== null && $recordedEnd !== null && $recordedStart > $recordedEnd)) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Tanggal tahun ajaran tidak sesuai dengan periode Juli–Juni.',
+            ])->redirectTo($redirect);
+        }
+
+        $semesterStart = $semester === '1' ? $academicStart : sprintf('%04d-01-01', $yearStart + 1);
+        $semesterEnd = $semester === '1' ? sprintf('%04d-12-31', $yearStart) : $academicEnd;
+        $start = $dateFrom ?? $semesterStart;
+        $end = $dateTo ?? $semesterEnd;
+        if ($start < $semesterStart || $start > $semesterEnd) {
+            throw ValidationException::withMessages([
+                'date_from' => 'Tanggal awal harus berada dalam semester terpilih.',
+            ])->redirectTo($redirect);
+        }
+        if ($end < $semesterStart || $end > $semesterEnd) {
+            throw ValidationException::withMessages([
+                'date_to' => 'Tanggal akhir harus berada dalam semester terpilih.',
+            ])->redirectTo($redirect);
+        }
+        if ($start > $end) {
+            throw ValidationException::withMessages([
+                'date_to' => 'Tanggal akhir tidak boleh sebelum tanggal awal.',
+            ])->redirectTo($redirect);
+        }
+        if (($recordedStart !== null && $start < $recordedStart)
+            || ($recordedEnd !== null && $end > $recordedEnd)) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Periode pilihan berada di luar tanggal tahun ajaran.',
+            ])->redirectTo($redirect);
+        }
+
+        return [
+            'semester' => (int) $semester,
+            'start' => $start,
+            'end' => $end,
+            'semester_start' => $semesterStart,
+            'semester_end' => $semesterEnd,
+            'label' => sprintf(
+                'Semester %s · %s–%s',
+                $semester,
+                CarbonImmutable::parse($start)->locale('id')->translatedFormat('j F Y'),
+                CarbonImmutable::parse($end)->locale('id')->translatedFormat('j F Y'),
+            ),
+        ];
     }
 
     /** @param array<string, mixed> $filters */
@@ -128,6 +275,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         User $actor,
         array $filters,
         ?AcademicYear $year,
+        ?array $period,
     ): QueryBuilder {
         $caseEvents = $this->reportServiceQuery(BkCase::query(), $actor)
             ->when($year, fn (Builder $query, AcademicYear $selected): Builder => $query
@@ -183,7 +331,9 @@ final class OperationalReportRecapService implements OperationalReportRecap
             default => $caseEvents,
         };
 
-        return DB::query()->fromSub($events, 'report_records');
+        return DB::query()->fromSub($events, 'report_records')
+            ->when($period, fn (QueryBuilder $query, array $selected): QueryBuilder => $query
+                ->whereBetween('service_date', [$selected['start'], $selected['end']]));
     }
 
     /**
@@ -318,6 +468,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->reportServiceQuery(BkCase::query(), $actor)
             ->with([
                 'classroom',
+                'student',
                 'source',
                 'serviceField',
                 'status',
@@ -333,8 +484,10 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->reportServiceQuery(Consultation::query(), $actor)
             ->with([
                 'classroom',
+                'student',
                 'serviceField',
                 'counselor',
+                'temporaryStudent.reconciledStudent',
             ]);
     }
 
@@ -384,7 +537,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'date' => $date,
             'day_label' => $date->locale('id')->translatedFormat('l'),
             'date_label' => $date->locale('id')->translatedFormat('d M Y'),
-            'name' => \App\Support\StudentName::display($record->identityName()),
+            'name' => StudentName::display($record->identityName()),
             'classroom' => $this->classroomName($record, $year),
             'service' => match (true) {
                 $isCase => 'Permasalahan',
@@ -440,10 +593,6 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 $isConsultation => route('consultations.destroy', $record),
                 $isWithdrawal => route('withdrawals.destroy', $record),
             },
-            'can_archive' => match (true) {
-                $isCase, $isConsultation => $actor?->can('archive', $record) ?? false,
-                $isWithdrawal => $actor?->can('delete', $record) ?? false,
-            },
         ];
     }
 
@@ -468,6 +617,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
         User $actor,
         array $filters,
         ?AcademicYear $year,
+        ?array $period,
         LengthAwarePaginator|Collection $rows,
         array $summary,
     ): array {
@@ -511,6 +661,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 default => 'Rekap Catatan Permasalahan',
             },
             'filters' => $filters,
+            'period' => $period,
             'filter_options' => [
                 'academic_years' => AcademicYear::query()
                     ->orderByDesc('starts_on')

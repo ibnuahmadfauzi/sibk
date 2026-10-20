@@ -1,4 +1,5 @@
 import { displayStudentName } from './student-name.js';
+import { selectedApiSource } from './saved-api-url.js';
 
 const element = (tag, className = '', text = '') => {
     const node = document.createElement(tag);
@@ -222,14 +223,13 @@ export const initEtatibApiPreview = async (root = document, { Modal } = {}) => {
     const automaticFields = modalNode.querySelector('[data-etatib-automatic-fields]');
     const automaticPassword = modalNode.querySelector('[data-etatib-automatic-password]');
     const previewButton = form.querySelector('[data-etatib-preview-button]');
-    const url = form.elements.namedItem('api_url');
-    let previewedUrl = '';
+    let previewedSource = '';
     let missing = 0;
     let controller;
 
 
     body.addEventListener('change', (event) => {
-        if (event.target.matches('[data-duplicate-choice]') && previewedUrl) {
+        if (event.target.matches('[data-duplicate-choice]') && previewedSource) {
             updateEtatibReadiness(body, missing, confirm, automaticConfirm);
         }
     });
@@ -245,7 +245,7 @@ export const initEtatibApiPreview = async (root = document, { Modal } = {}) => {
         controller?.abort();
         form.querySelectorAll('[data-preview-decision]').forEach((input) => input.remove());
         controller = new AbortController();
-        previewedUrl = '';
+        previewedSource = '';
         confirm.disabled = true;
         automaticConfirm.disabled = true;
         automaticPassword.disabled = true;
@@ -276,7 +276,7 @@ export const initEtatibApiPreview = async (root = document, { Modal } = {}) => {
                 return;
             }
             renderEtatibPreview(body, payload.data, form.dataset.dapodikUrl, form.dataset.duplicateRevokeUrl);
-            previewedUrl = url.value;
+            previewedSource = selectedApiSource(form);
             missing = payload.data.missing;
             updateEtatibReadiness(body, missing, confirm, automaticConfirm);
         } catch (error) {
@@ -289,7 +289,7 @@ export const initEtatibApiPreview = async (root = document, { Modal } = {}) => {
     });
 
     confirm.addEventListener('click', () => {
-        if (!previewedUrl || previewedUrl !== url.value) {
+        if (!previewedSource || previewedSource !== selectedApiSource(form)) {
             body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Link berubah. Jalankan pratinjau kembali.'));
             confirm.disabled = true;
             return;
@@ -306,7 +306,7 @@ export const initEtatibApiPreview = async (root = document, { Modal } = {}) => {
     });
 
     automaticConfirm.addEventListener('click', () => {
-        if (!previewedUrl || previewedUrl !== url.value) {
+        if (!previewedSource || previewedSource !== selectedApiSource(form)) {
             body.replaceChildren(element('div', 'alert alert-danger mb-0', 'Link berubah. Jalankan pratinjau kembali.'));
             confirm.disabled = true;
             automaticConfirm.disabled = true;

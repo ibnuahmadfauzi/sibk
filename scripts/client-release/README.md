@@ -4,7 +4,7 @@ Versi dan commit sumber tersedia pada `RELEASE.json`. Repo ini menerima rilis re
 
 ## Instalasi
 
-Siapkan PHP sesuai `composer.json` dan ekstensi yang dibutuhkan lockfile, Composer 2, MySQL, serta Node.js/npm yang kompatibel dengan Vite untuk build aset. Arahkan document root hanya ke `public/`, gunakan HTTPS, dan beri proses PHP izin tulis pada `storage/` serta `bootstrap/cache/`.
+Siapkan PHP 8.4.1 atau lebih baru dalam seri PHP 8, ekstensi cURL dengan libcurl >= 7.49, ekstensi GD untuk logo dan Excel, ekstensi lain yang dibutuhkan lockfile, Composer 2, MySQL, serta Node.js/npm yang kompatibel dengan Vite untuk build aset. Arahkan document root hanya ke `public/`, gunakan HTTPS, dan beri proses PHP izin tulis pada `storage/` serta `bootstrap/cache/`.
 
 Salin `.env.example` ke `.env`, lalu isi domain dan akses database khusus aplikasi. Pertahankan `APP_ENV=production` serta `APP_DEBUG=false`. Jangan commit `.env`.
 
@@ -50,8 +50,10 @@ Sampaikan kata sandi sementara melalui saluran privat. Pengguna menggantinya saa
 
 ## Operasional dan pembaruan
 
-Jadwalkan `php artisan schedule:run` setiap menit. Konfigurasikan integrasi melalui aplikasi; adapter yang belum disahkan tetap `unavailable`. Uji login, hak akses, tahun ajaran, impor murid, layanan, laporan, dan scheduler sebelum dipakai sekolah.
+Jadwalkan `php artisan schedule:run` setiap menit. Atur URL API Siswa/e-Tatib melalui Data Master, lalu pratinjau dan aktifkan pembaruan e-Tatib. Hari dan jam dapat diubah di tab e-Tatib (WIB); pengaturan UI memerlukan scheduler server tersebut agar berjalan. Adapter Dapodik langsung yang belum disahkan tetap `unavailable`. Uji login, hak akses, tahun ajaran, impor murid, layanan, laporan, dan scheduler sebelum dipakai sekolah.
 
-Sebelum pembaruan, cadangkan database, `.env` termasuk `APP_KEY`, dan unggahan. Uji rilis pada lingkungan validasi dahulu. Pasang dependensi sesuai lockfile, bangun aset, jalankan migrasi dan perbarui cache. Pertahankan `.env`, `APP_KEY`, dan unggahan lama; jangan mengulang `key:generate`. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai.
+Pratinjau, cetak, dan Excel memerlukan satu semester: Juli–Desember atau Januari–Juni pada tahun ajaran terpilih. Rentang tanggal opsional harus berada di semester itu. Batas jumlah catatan diatur melalui `SIBK_REPORT_MAX_DOCUMENT_ROWS`; hasil yang melebihi batas meminta pengguna mempersempit periode atau kelas. Sesuaikan nilainya setelah menguji ukuran catatan dan memori PHP, lalu perbarui cache konfigurasi. Pembatasan dokumen tidak menghapus data yang tersimpan.
+
+Sebelum pembaruan, cadangkan database, `.env` termasuk `APP_KEY`, dan unggahan dalam `storage/app/private/branding`. Logo dikelola Admin IT melalui Manajemen Web; direktori itu harus dapat ditulis proses PHP. Uji rilis pada lingkungan validasi dahulu. Pasang dependensi sesuai lockfile, bangun aset, jalankan migrasi dan perbarui cache. Pertahankan `.env`, `APP_KEY`, dan unggahan lama; jangan mengulang `key:generate`. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai.
 
 Lisensi dependensi tetap berlaku; pertahankan pemberitahuan lisensi paket Composer/npm yang dipasang. Ketentuan penyerahan aplikasi mengikuti perjanjian dengan pemilik aplikasi.
