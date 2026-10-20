@@ -27,7 +27,7 @@ final class EtatibAutomaticScheduleTest extends TestCase
     public function test_default_three_times_daily_only_run_when_automatic_sync_is_active(): void
     {
         $service = app(EtatibAutomaticSyncService::class);
-        $this->assertSame(['days' => [0, 1, 2, 3, 4, 5, 6], 'times' => ['10:00', '13:00', '14:00']], $service->schedule());
+        $this->assertSame(['days' => [0, 1, 2, 3, 4, 5, 6], 'times' => ['10:00', '13:00', '15:00']], $service->schedule());
         IntegrationSetting::query()->create(['provider' => 'etatib', 'automatic_sync_enabled' => false]);
         $time = CarbonImmutable::parse('2026-10-25 10:00:00', 'Asia/Jakarta');
         $this->assertFalse($service->isDueAt($time));
@@ -35,6 +35,9 @@ final class EtatibAutomaticScheduleTest extends TestCase
         $this->assertTrue($service->isDueAt($time));
         $this->assertTrue($service->isDueAt($time->setTimezone('UTC')));
         $this->assertFalse($service->isDueAt($time->addMinute()));
+        $this->assertTrue($service->isDueAt($time->setTime(13, 0)));
+        $this->assertTrue($service->isDueAt($time->setTime(15, 0)));
+        $this->assertFalse($service->isDueAt($time->setTime(14, 0)));
     }
 
     public function test_admin_can_change_days_and_times_without_enabling_sync(): void
@@ -75,7 +78,7 @@ final class EtatibAutomaticScheduleTest extends TestCase
             'schedule_days' => [1], 'schedule_times' => ['10:00'], 'current_password' => 'password',
         ])->assertForbidden();
 
-        $this->assertSame(['days' => [0, 1, 2, 3, 4, 5, 6], 'times' => ['10:00', '13:00', '14:00']], app(EtatibAutomaticSyncService::class)->schedule());
+        $this->assertSame(['days' => [0, 1, 2, 3, 4, 5, 6], 'times' => ['10:00', '13:00', '15:00']], app(EtatibAutomaticSyncService::class)->schedule());
     }
 
     private function user(string $role): User

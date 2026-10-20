@@ -21,7 +21,7 @@ final class EtatibAutomaticSyncService
 {
     private const array DEFAULT_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
-    private const array DEFAULT_TIMES = ['10:00', '13:00', '14:00'];
+    private const array DEFAULT_TIMES = ['10:00', '13:00', '15:00'];
 
     public function __construct(
         private readonly SimpleEtatibApiService $apiService,
