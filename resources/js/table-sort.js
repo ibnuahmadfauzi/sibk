@@ -12,6 +12,14 @@ export const sortItems = (original, value, type, state) => {
     });
 };
 
+export const handleStudentRowClick = (event, navigate = (url) => window.location.assign(url)) => {
+    if (event.defaultPrevented || event.target.closest('a, button, input, select, textarea, label')) return;
+    const url = event.target.closest('tr[data-student-row]')?.querySelector('a[href]')?.href;
+    if (url) navigate(url);
+};
+
+if (typeof document !== 'undefined') document.addEventListener('click', handleStudentRowClick);
+
 if (typeof document !== 'undefined') document.querySelectorAll('table[data-client-sort]').forEach((table) => {
     const body = table.tBodies[0];
     if (!body) return;

@@ -19,7 +19,7 @@
                     $totalConsultations = (int) $student->consultations_count;
                     $totalTatibPoints = $student->tatibPoints();
                 @endphp
-                <tr class="sibk-table__row--clickable" style="cursor:pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
+                <tr class="sibk-table__row--clickable" data-student-row>
                     <td>{{ $students->firstItem() + $loop->index }}</td>
                     <td>
                         <a class="d-block fw-bold text-dark text-decoration-none" href="{{ route('students.show', $student) }}">{{ \App\Support\StudentName::display($student->name) }}</a>
