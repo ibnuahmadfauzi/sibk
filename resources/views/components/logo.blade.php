@@ -1,1 +1,1 @@
-<img src="{{ asset('assets/images/logo.png') }}" alt="Logo Aplikasi BK" {{ $attributes->merge(['class' => 'sibk-logo']) }}>
+<img src="{{ route('branding.logo') }}" alt="Logo Aplikasi BK" {{ $attributes->merge(['class' => 'sibk-logo']) }}>

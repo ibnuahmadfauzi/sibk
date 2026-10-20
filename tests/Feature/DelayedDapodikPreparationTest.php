@@ -1484,7 +1484,7 @@ class DelayedDapodikPreparationTest extends TestCase
         $admin = $this->userWithRole('admin_it');
         Http::fake();
 
-        foreach (['http://localhost/siswa', 'http://127.0.0.1/siswa', 'http://192.168.1.10/siswa'] as $url) {
+        foreach (['https://localhost/siswa', 'https://127.0.0.1/siswa', 'https://192.168.1.10/siswa'] as $url) {
             $this->actingAs($admin)
                 ->from(route('data-master.index'))
                 ->post(route('data-master.roster-imports.store'), ['api_url' => $url])

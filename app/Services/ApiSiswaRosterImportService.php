@@ -201,11 +201,11 @@ final class ApiSiswaRosterImportService
         $parts = parse_url($url);
         if (! is_array($parts)
             || ! isset($parts['scheme'], $parts['host'])
-            || ! in_array(strtolower($parts['scheme']), ['http', 'https'], true)
+            || strtolower($parts['scheme']) !== 'https'
             || isset($parts['user'])
             || isset($parts['pass'])
         ) {
-            $this->fail('URL API Siswa harus berupa alamat HTTP atau HTTPS publik yang valid.');
+            $this->fail('URL API Siswa harus berupa alamat HTTPS publik yang valid.');
         }
 
         $host = strtolower(trim($parts['host'], '[]'));

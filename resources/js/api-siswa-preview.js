@@ -1,4 +1,5 @@
 import { displayStudentName } from './student-name.js';
+import { selectedApiSource } from './saved-api-url.js';
 
 const createElement = (tag, className, text) => {
     const element = document.createElement(tag);
@@ -177,9 +178,8 @@ export const initApiSiswaPreview = async (root = document, { Modal } = {}) => {
     const body = modalElement.querySelector('[data-api-siswa-preview-body]');
     const confirmButton = modalElement.querySelector('[data-api-siswa-confirm-import]');
     const previewButton = form.querySelector('[data-api-siswa-preview-button]');
-    const urlInput = form.elements.namedItem('api_url');
     let requestController;
-    let previewedUrl = '';
+    let previewedSource = '';
     let selectedRows = [];
     let previewHash = '';
 
@@ -194,7 +194,7 @@ export const initApiSiswaPreview = async (root = document, { Modal } = {}) => {
 
         requestController?.abort();
         requestController = new AbortController();
-        previewedUrl = '';
+        previewedSource = '';
         form.querySelectorAll('[data-api-siswa-selection]').forEach((input) => input.remove());
         confirmButton.disabled = true;
         previewButton.disabled = true;
@@ -224,7 +224,7 @@ export const initApiSiswaPreview = async (root = document, { Modal } = {}) => {
                 selectedRows = rows;
                 confirmButton.disabled = !ready;
             });
-            previewedUrl = urlInput.value;
+            previewedSource = selectedApiSource(form);
             previewHash = payload.data.preview_hash;
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -236,7 +236,7 @@ export const initApiSiswaPreview = async (root = document, { Modal } = {}) => {
     });
 
     confirmButton.addEventListener('click', () => {
-        if (!previewedUrl || previewedUrl !== urlInput.value) {
+        if (!previewedSource || previewedSource !== selectedApiSource(form)) {
             renderFailure(body, 'Link API berubah. Jalankan pratinjau kembali sebelum mengimpor.');
             confirmButton.disabled = true;
             return;

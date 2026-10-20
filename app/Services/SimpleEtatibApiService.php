@@ -160,7 +160,7 @@ final class SimpleEtatibApiService
     }
 
     /** @param array<string, mixed>|null $preview */
-    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = [], array $duplicateDecisions = []): ExternalSyncRun
+    public function synchronize(string $url, User $actor, ?array $preview = null, array $decisions = [], array $duplicateDecisions = [], ?Closure $afterApply = null): ExternalSyncRun
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
 
@@ -192,6 +192,7 @@ final class SimpleEtatibApiService
                         after: ['group_key' => $group['key'], 'copy_count' => $group['count']]);
                 }
             },
+            $afterApply,
         );
     }
 
@@ -711,10 +712,10 @@ final class SimpleEtatibApiService
     {
         $parts = parse_url($url);
         if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])
-            || ! in_array(strtolower($parts['scheme']), ['http', 'https'], true)
+            || strtolower($parts['scheme']) !== 'https'
             || isset($parts['user']) || isset($parts['pass'])
         ) {
-            $this->fail('Link API e-Tatib harus berupa alamat HTTP atau HTTPS publik yang valid.');
+            $this->fail('Link API e-Tatib harus berupa alamat HTTPS publik yang valid.');
         }
 
         $host = strtolower(trim($parts['host'], '[]'));

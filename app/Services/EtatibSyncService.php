@@ -31,6 +31,7 @@ class EtatibSyncService
         private readonly EtatibIdentityNormalizer $identityNormalizer,
         private readonly array $previewDecisions = [],
         private readonly ?Closure $beforeApply = null,
+        private readonly ?Closure $afterApply = null,
     ) {}
 
     public function synchronize(?User $actor = null): ExternalSyncRun
@@ -50,7 +51,7 @@ class EtatibSyncService
     }
 
     /** @param Closure(IntegrationOperationContext): EtatibSnapshot $snapshotLoader */
-    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null, array $decisions = [], ?Closure $beforeApply = null): ExternalSyncRun
+    public function synchronizeUsing(Closure $snapshotLoader, ?User $actor = null, array $decisions = [], ?Closure $beforeApply = null, ?Closure $afterApply = null): ExternalSyncRun
     {
         $connector = new class($snapshotLoader) implements EtatibConnector
         {
@@ -72,6 +73,7 @@ class EtatibSyncService
             $this->identityNormalizer,
             $decisions,
             $beforeApply,
+            $afterApply,
         ))
             ->synchronize($actor);
     }
@@ -127,7 +129,7 @@ class EtatibSyncService
                 ],
             ]));
 
-            $this->mutate($context, function () use ($snapshot, $run, $actor): void {
+            $this->mutate($context, function () use ($snapshot, $run, $actor, $context): void {
                 if ($this->beforeApply !== null) {
                     ($this->beforeApply)();
                 }
@@ -264,6 +266,9 @@ class EtatibSyncService
                     IntegrationSetting::query()
                         ->where('provider', IntegrationSetting::PROVIDER_ETATIB)
                         ->update($checkpoint);
+                }
+                if ($this->afterApply !== null) {
+                    ($this->afterApply)($context);
                 }
             });
         } catch (Throwable $exception) {

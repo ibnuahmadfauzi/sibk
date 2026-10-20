@@ -10,12 +10,15 @@ use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 
 final class ReportDocumentExporter
 {
+    public function __construct(private readonly WebAppearanceService $appearance) {}
+
     /**
      * @param  array<string, mixed>  $report
      * @return array{path: string, filename: string, content_type: string}
@@ -46,6 +49,13 @@ final class ReportDocumentExporter
         $sheet->setCellValue('A2', $this->filterSummary($report));
         $sheet->mergeCells('A3:G3');
         $sheet->setCellValue('A3', $this->summaryText($report));
+        $logo = new Drawing;
+        $logo->setName('Logo sekolah');
+        $logo->setPath($this->appearance->logoPath());
+        $logo->setCoordinates('A1');
+        $logo->setWidthAndHeight(64, 48);
+        $logo->setWorksheet($sheet);
+        $sheet->getRowDimension(1)->setRowHeight(42);
         $sheet->getStyle('A1:A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A3')->getFont()->setBold(true);

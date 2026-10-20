@@ -3609,19 +3609,13 @@ small, .small {
     border-bottom: 3px double #111;
     display: grid;
     gap: 1rem;
-    grid-template-columns: 5rem 1fr 5rem;
+    grid-template-columns: 5rem 1fr;
     padding-bottom: 0.75rem;
   }
 
-  &__logo-placeholder {
-    align-items: center;
-    border: 1px dashed #777;
-    color: #555;
-    display: flex;
-    font-size: 0.7rem;
+  &__logo {
+    object-fit: contain;
     height: 4.5rem;
-    justify-content: center;
-    text-transform: uppercase;
     width: 4.5rem;
   }
 

@@ -18,6 +18,8 @@ use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\AcademicYearRolloverQuery;
 use App\Services\DapodikSyncService;
+use App\Services\EtatibAutomaticSyncService;
+use App\Services\SavedApiUrlService;
 use App\Services\SimpleEtatibApiService;
 use App\Support\StudentName;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +34,8 @@ class DataMasterController extends Controller
     public function index(
         Request $request,
         AcademicYearRolloverQuery $rolloverQuery,
+        EtatibAutomaticSyncService $automaticSync,
+        SavedApiUrlService $savedApiUrls,
     ): Response {
         $this->authorizeAdmin($request);
 
@@ -91,6 +95,8 @@ class DataMasterController extends Controller
             }
         }
 
+        $etatibSchedule = $automaticSync->schedule();
+
         return response()->view('pages.data-master.index', [
             'activeTab' => $activeTab,
             'showDecisionHistory' => $showDecisionHistory,
@@ -105,7 +111,15 @@ class DataMasterController extends Controller
             'syncRuns' => ! $showRunHistory ? null : $sortQuery(ExternalSyncRun::query(), 'run_sort', 'run_direction', ['waktu' => 'started_at', 'sumber' => 'source', 'status' => 'status'], 'started_at')
                 ->paginate(10, ['id', 'source', 'status', 'started_at', 'processed_count', 'conflict_count', 'summary'], 'run_page')
                 ->withQueryString(),
-            'etatibAutomaticSetting' => $this->etatibAutomaticSetting(),
+            'etatibAutomaticSetting' => [
+                ...$this->etatibAutomaticSetting(),
+                'schedule_days' => $etatibSchedule['days'],
+                'schedule_times' => $etatibSchedule['times'],
+            ],
+            'savedApiUrls' => [
+                IntegrationSetting::PROVIDER_DAPODIK => $savedApiUrls->configured(IntegrationSetting::PROVIDER_DAPODIK),
+                IntegrationSetting::PROVIDER_ETATIB => $savedApiUrls->configured(IntegrationSetting::PROVIDER_ETATIB),
+            ],
             'etatibDuplicateDecisions' => $activeTab === 'etatib'
                 ? $sortQuery(EtatibDuplicateDecision::query()->where('is_active', true), 'duplicate_sort', 'duplicate_direction', ['murid' => 'source_name', 'waktu' => 'approved_at'], 'approved_at')
                     ->paginate(10, ['id', 'source_nisn', 'source_name', 'copy_count', 'approved_at'], 'duplicate_page')->withQueryString()
@@ -187,10 +201,11 @@ class DataMasterController extends Controller
         $actor = $request->user();
 
         $request->session()->forget('etatib_api_preview');
-        $preview = $service->preview($request->apiUrl(), $actor);
+        $url = $request->apiUrl();
+        $preview = $service->preview($url, $actor);
         $request->session()->put('etatib_api_preview', [
             'actor_id' => $actor->getKey(),
-            'url_hash' => hash('sha256', $request->apiUrl()),
+            'url_hash' => hash('sha256', $url),
             'fingerprint' => $preview['fingerprint'],
             'at' => now()->getTimestamp(),
         ]);
