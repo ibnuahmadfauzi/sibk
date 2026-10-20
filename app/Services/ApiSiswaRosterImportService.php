@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Integrations\IntegrationEndpointPolicy;
+use App\Integrations\PublicApiRequest;
 use App\Models\AcademicYear;
 use App\Models\ClassroomCatalog;
 use App\Models\ExternalSyncRun;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use JsonException;
+use OverflowException;
 use Psr\Http\Message\StreamInterface;
 use Throwable;
 
@@ -47,8 +50,8 @@ final class ApiSiswaRosterImportService
         Gate::forUser($actor)->authorize('manageDataMaster');
 
         try {
-            $this->assertPublicUrl($url);
-            $payload = $this->fetchPayload($url);
+            $address = $this->assertPublicUrl($url);
+            $payload = $this->fetchPayload($url, $address);
             $rows = $this->payloadParser->parse($payload, forPreview: true);
 
             return $this->buildPreview($rows);
@@ -93,8 +96,8 @@ final class ApiSiswaRosterImportService
         $receivedCount = 0;
 
         try {
-            $this->assertPublicUrl($url);
-            $payload = $this->fetchPayload($url);
+            $address = $this->assertPublicUrl($url);
+            $payload = $this->fetchPayload($url, $address);
             $receivedCount = is_array($payload['data'] ?? null)
                 ? count($payload['data'])
                 : 0;
@@ -140,14 +143,18 @@ final class ApiSiswaRosterImportService
     }
 
     /** @return array<string, mixed> */
-    private function fetchPayload(string $url): array
+    private function fetchPayload(string $url, string $address): array
     {
-        $response = Http::acceptJson()
-            ->connectTimeout(5)
-            ->timeout(self::TIMEOUT_SECONDS)
-            ->withoutRedirecting()
-            ->withOptions(['stream' => true])
-            ->get($url);
+        try {
+            $response = (new PublicApiRequest)->get(
+                Http::acceptJson()->connectTimeout(5)->timeout(self::TIMEOUT_SECONDS),
+                $url,
+                $address,
+                self::MAX_RESPONSE_BYTES,
+            );
+        } catch (OverflowException) {
+            $this->fail('Ukuran respons API Siswa maksimal 2 MiB.');
+        }
 
         if (! $response->successful()) {
             $message = $response->redirect()
@@ -189,16 +196,16 @@ final class ApiSiswaRosterImportService
         return $body;
     }
 
-    private function assertPublicUrl(string $url): void
+    private function assertPublicUrl(string $url): string
     {
         $parts = parse_url($url);
         if (! is_array($parts)
             || ! isset($parts['scheme'], $parts['host'])
-            || ! in_array(strtolower($parts['scheme']), ['http', 'https'], true)
+            || strtolower($parts['scheme']) !== 'https'
             || isset($parts['user'])
             || isset($parts['pass'])
         ) {
-            $this->fail('URL API Siswa harus berupa alamat HTTP atau HTTPS publik yang valid.');
+            $this->fail('URL API Siswa harus berupa alamat HTTPS publik yang valid.');
         }
 
         $host = strtolower(trim($parts['host'], '[]'));
@@ -215,14 +222,12 @@ final class ApiSiswaRosterImportService
         }
 
         foreach ($addresses as $address) {
-            if (filter_var(
-                $address,
-                FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
-            ) === false) {
+            if (! IntegrationEndpointPolicy::isPublicAddress($address)) {
                 $this->fail('URL API Siswa tidak boleh mengarah ke localhost atau jaringan internal.');
             }
         }
+
+        return $addresses[0];
     }
 
     /**
@@ -381,8 +386,8 @@ final class ApiSiswaRosterImportService
     }
 
     /**
-     * @param list<array{nisn: string, name: string, classroom: string, academic_year_name: string}> $rows
-     * @param list<int> $selectedRows
+     * @param  list<array{nisn: string, name: string, classroom: string, academic_year_name: string}>  $rows
+     * @param  list<int>  $selectedRows
      * @return list<array{nisn: string, nama: string, rombel: string, tahun_pelajaran: string}>
      */
     private function selectedPayloadRows(array $rows, array $selectedRows): array

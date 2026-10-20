@@ -36,6 +36,9 @@ final class OperationalReportRequest extends FormRequest
     {
         return [
             'academic_year_id' => ['nullable', 'integer', 'exists:academic_years,id'],
+            'semester' => ['nullable', 'string', Rule::in(['1', '2'])],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
             'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
             'classroom_search' => ['nullable', 'string', 'max:100'],
             'service_type' => ['required', Rule::in(['case', 'consultation', 'withdrawal'])],
@@ -56,6 +59,9 @@ final class OperationalReportRequest extends FormRequest
     {
         return Arr::only($this->validated(), [
             'academic_year_id',
+            'semester',
+            'date_from',
+            'date_to',
             'classroom_id',
             'classroom_search',
             'service_type',
@@ -108,6 +114,9 @@ final class OperationalReportRequest extends FormRequest
     {
         return [
             'academic_year_id.exists' => 'Tahun ajaran tidak tersedia.',
+            'semester.in' => 'Semester harus 1 atau 2.',
+            'date_from.date_format' => 'Tanggal awal harus berformat YYYY-MM-DD.',
+            'date_to.date_format' => 'Tanggal akhir harus berformat YYYY-MM-DD.',
             'classroom_id.exists' => 'Kelas tidak tersedia.',
             'service_type.required' => 'Jenis layanan wajib dipilih.',
             'service_type.in' => 'Jenis layanan tidak tersedia.',

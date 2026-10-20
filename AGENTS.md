@@ -50,7 +50,7 @@ jangan membuat dokumen pengganti untuk artefak yang dihapus.
 ## Implementation
 
 - Pertahankan arsitektur repository; jangan menambah fitur di luar requirement.
-- PHP >= 8.3 dan `declare(strict_types=1);`.
+- PHP >= 8.4.1 dan `declare(strict_types=1);`.
 - Gunakan Thin Controller, Form Request, Service/Action, dan Query Scope sesuai pola repository.
 - Pisahkan UI, akses data, business logic, dan integrasi.
 - `AUTH-01`–`AUTH-07` ditegakkan di server/policy.

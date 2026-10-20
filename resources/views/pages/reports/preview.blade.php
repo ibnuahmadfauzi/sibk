@@ -9,6 +9,9 @@
         'classroom_id' => $report['filters']['classroom_id'],
         'classroom_search' => $report['filters']['classroom_search'],
         'service_type' => $report['filters']['service_type'],
+        'semester' => $report['filters']['semester'] ?? null,
+        'date_from' => $report['filters']['date_from'] ?? null,
+        'date_to' => $report['filters']['date_to'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 <div
@@ -44,9 +47,7 @@
     <article class="sibk-document-sheet sibk-document-sheet--portrait">
         @include('pages.reports.print._letterhead', [
             'title' => 'Laporan Layanan Bimbingan dan Konseling',
-            'subtitle' => 'Tahun Ajaran '.(
-                $report['academic_year']?->name ?? 'belum tersedia'
-            ),
+            'subtitle' => 'Tahun Ajaran '.($report['academic_year']?->name ?? 'belum tersedia').' · '.$report['period']['label'],
         ])
 
         <p class="sibk-document-summary">

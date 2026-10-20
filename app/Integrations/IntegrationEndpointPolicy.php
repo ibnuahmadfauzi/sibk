@@ -75,6 +75,13 @@ final class IntegrationEndpointPolicy
     /** @var list<string> */
     private array $allowedOrigins;
 
+    public static function isPublicAddress(string $address): bool
+    {
+        $packed = @inet_pton($address);
+
+        return $packed !== false && self::classifyPackedAddress($packed) === self::ADDRESS_PUBLIC;
+    }
+
     /**
      * @param  list<string>  $allowedOrigins
      */
@@ -283,7 +290,7 @@ final class IntegrationEndpointPolicy
 
             return [
                 'host' => '['.inet_ntop($packed).']',
-                'address_class' => $this->classifyPackedAddress($packed),
+                'address_class' => self::classifyPackedAddress($packed),
             ];
         }
 
@@ -295,7 +302,7 @@ final class IntegrationEndpointPolicy
         if ($packed !== false && strlen($packed) === 4) {
             return [
                 'host' => inet_ntop($packed),
-                'address_class' => $this->classifyPackedAddress($packed),
+                'address_class' => self::classifyPackedAddress($packed),
             ];
         }
 
@@ -354,7 +361,7 @@ final class IntegrationEndpointPolicy
             }
 
             $normalized = inet_ntop($packed);
-            if ($this->classifyPackedAddress($packed) === self::ADDRESS_FORBIDDEN) {
+            if (self::classifyPackedAddress($packed) === self::ADDRESS_FORBIDDEN) {
                 throw new InvalidArgumentException('Integration endpoint resolved to a forbidden address.');
             }
 
@@ -371,16 +378,16 @@ final class IntegrationEndpointPolicy
     {
         $packed = @inet_pton($address);
 
-        return $packed !== false && $this->classifyPackedAddress($packed) === self::ADDRESS_INTERNAL;
+        return $packed !== false && self::classifyPackedAddress($packed) === self::ADDRESS_INTERNAL;
     }
 
-    private function classifyPackedAddress(string $packedAddress): string
+    private static function classifyPackedAddress(string $packedAddress): string
     {
         if (strlen($packedAddress) === 16
             && substr($packedAddress, 0, 10) === str_repeat("\0", 10)
             && substr($packedAddress, 10, 2) === "\xff\xff"
         ) {
-            return $this->classifyPackedAddress(substr($packedAddress, 12, 4));
+            return self::classifyPackedAddress(substr($packedAddress, 12, 4));
         }
 
         $address = inet_ntop($packedAddress);
@@ -391,30 +398,30 @@ final class IntegrationEndpointPolicy
             ? self::IPV4_SPECIAL_RANGES
             : self::IPV6_SPECIAL_RANGES;
 
-        if (strlen($packedAddress) === 16 && $this->matchesCidr($address, 'fd00:ec2::254', 128)) {
+        if (strlen($packedAddress) === 16 && self::matchesCidr($address, 'fd00:ec2::254', 128)) {
             return self::ADDRESS_FORBIDDEN;
         }
 
         foreach ($internalRanges as [$network, $prefixLength]) {
-            if ($this->matchesCidr($address, $network, $prefixLength)) {
+            if (self::matchesCidr($address, $network, $prefixLength)) {
                 return self::ADDRESS_INTERNAL;
             }
         }
 
         foreach ($specialRanges as [$network, $prefixLength]) {
-            if ($this->matchesCidr($address, $network, $prefixLength)) {
+            if (self::matchesCidr($address, $network, $prefixLength)) {
                 return self::ADDRESS_FORBIDDEN;
             }
         }
 
-        if (strlen($packedAddress) === 16 && ! $this->matchesCidr($address, '2000::', 3)) {
+        if (strlen($packedAddress) === 16 && ! self::matchesCidr($address, '2000::', 3)) {
             return self::ADDRESS_FORBIDDEN;
         }
 
         return self::ADDRESS_PUBLIC;
     }
 
-    private function matchesCidr(string $address, string $network, int $prefixLength): bool
+    private static function matchesCidr(string $address, string $network, int $prefixLength): bool
     {
         $packedAddress = @inet_pton($address);
         $packedNetwork = @inet_pton($network);

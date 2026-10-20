@@ -96,6 +96,9 @@ final class DapodikSnapshotValidator
             $this->assertShape($item, ['source_id' => 'string', 'name' => 'string'], [
                 'starts_on' => 'nullable_string', 'ends_on' => 'nullable_string', 'is_active' => 'bool',
             ]);
+            if (mb_strlen($item['name'], 'UTF-8') > 20) {
+                throw new IntegrationConfigurationException('contract_invalid');
+            }
             $this->rememberUnique($ids, $item['source_id']);
         }
 

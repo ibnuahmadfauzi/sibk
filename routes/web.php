@@ -16,14 +16,17 @@ use App\Http\Controllers\Admin\EtatibAutomaticSyncController;
 use App\Http\Controllers\Admin\EtatibDuplicateDecisionController;
 use App\Http\Controllers\Admin\EtatibIdentityMappingController;
 use App\Http\Controllers\Admin\IntegrationSettingController;
+use App\Http\Controllers\Admin\SavedApiUrlController;
 use App\Http\Controllers\Admin\SyncIssueReviewController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\WebAppearanceController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ImportTemplateController;
 use App\Http\Controllers\LegacyPreviewController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StudentController;
@@ -33,6 +36,7 @@ use App\Models\IntegrationSetting;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/branding/logo', [WebAppearanceController::class, 'logo'])->name('branding.logo');
 Route::get('/login', [AuthController::class, 'create'])->middleware('guest')->name('login');
 Route::post('/login', [AuthController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('login.store');
 
@@ -49,6 +53,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.preview');
 
         Route::get('/admin/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+        Route::get('/admin/web-settings', [WebAppearanceController::class, 'edit'])
+            ->middleware('cache.headers:no_store')->name('admin.web-settings.edit');
+        Route::patch('/admin/web-settings', [WebAppearanceController::class, 'update'])
+            ->middleware(['cache.headers:no_store', 'throttle:5,1'])->name('admin.web-settings.update');
         Route::get('/admin/api', [ApiManagementController::class, 'index'])
             ->name('admin.api.index');
         Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
@@ -108,6 +116,7 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::get('/achievements/create', [AchievementController::class, 'create'])->name('achievements.create');
         Route::post('/achievements', [AchievementController::class, 'store'])->name('achievements.store');
         Route::post('/achievements/import', [AchievementImportController::class, 'store'])->name('achievements.import');
+        Route::get('/achievements/import/template', [ImportTemplateController::class, 'achievement'])->name('achievements.import.template');
         Route::get('/achievements/{achievement}', [AchievementController::class, 'show'])->name('achievements.show');
         Route::get('/achievements/{achievement}/edit', [AchievementController::class, 'edit'])->name('achievements.edit');
         Route::patch('/achievements/{achievement}', [AchievementController::class, 'update'])->name('achievements.update');
@@ -129,6 +138,8 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
             ->name('data-master.academic-years.destroy');
         Route::post('/data-master/roster-imports', [AcademicYearPreparationController::class, 'storeGlobalRoster'])
             ->name('data-master.roster-imports.store');
+        Route::get('/data-master/roster-imports/template', [ImportTemplateController::class, 'roster'])
+            ->name('data-master.roster-imports.template');
         Route::post('/data-master/roster-imports/preview', [AcademicYearPreparationController::class, 'previewApiSiswa'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.roster-imports.preview');
@@ -162,6 +173,9 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
         Route::post('/data-master/etatib/automatic/sync', [EtatibAutomaticSyncController::class, 'synchronize'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.automatic.sync');
+        Route::patch('/data-master/etatib/automatic/schedule', [EtatibAutomaticSyncController::class, 'updateSchedule'])
+            ->middleware(['cache.headers:no_store', 'throttle:5,1'])
+            ->name('data-master.etatib.automatic.schedule');
         Route::delete('/data-master/etatib/automatic', [EtatibAutomaticSyncController::class, 'destroy'])
             ->middleware('cache.headers:no_store')
             ->name('data-master.etatib.automatic.destroy');
@@ -183,6 +197,14 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
             ->name('data-master.etatib.mappings.update');
         Route::delete('/data-master/etatib/mappings/{mapping}', [EtatibIdentityMappingController::class, 'destroy'])
             ->name('data-master.etatib.mappings.destroy');
+        Route::patch('/data-master/api-connections/{provider}', [SavedApiUrlController::class, 'update'])
+            ->whereIn('provider', IntegrationSetting::PROVIDERS)
+            ->middleware(['cache.headers:no_store', 'throttle:5,1'])
+            ->name('data-master.api-connections.update');
+        Route::post('/data-master/api-connections/{provider}/reveal', [SavedApiUrlController::class, 'reveal'])
+            ->whereIn('provider', IntegrationSetting::PROVIDERS)
+            ->middleware(['cache.headers:no_store', 'throttle:5,1'])
+            ->name('data-master.api-connections.reveal');
         Route::patch('/data-master/integrations/{provider}', [IntegrationSettingController::class, 'update'])
             ->whereIn('provider', IntegrationSetting::PROVIDERS)
             ->middleware('cache.headers:no_store')

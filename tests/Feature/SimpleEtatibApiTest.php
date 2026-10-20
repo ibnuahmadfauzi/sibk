@@ -71,6 +71,31 @@ class SimpleEtatibApiTest extends TestCase
         $this->assertDatabaseCount('external_sync_runs', 0);
     }
 
+    public function test_mixed_and_special_dns_answers_are_rejected_before_http_request(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake();
+
+        foreach ([
+            ['8.8.8.8', '127.0.0.1'],
+            ['8.8.8.8', '::ffff:127.0.0.1'],
+            ['224.0.0.1'],
+            ['64:ff9b::1'],
+        ] as $addresses) {
+            $this->app->instance(SimpleEtatibApiService::class, new SimpleEtatibApiService(
+                app(EtatibSyncService::class),
+                static fn (string $host): array => $addresses,
+            ));
+
+            $this->actingAs($this->admin())
+                ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('api_url');
+        }
+
+        Http::assertNothingSent();
+    }
+
     public function test_sync_normalizes_short_nisn_and_persists_structured_fields(): void
     {
         $student = Student::query()->create([

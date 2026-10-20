@@ -81,6 +81,11 @@
             @endcan
 
             @can('manageDataMaster')
+                <a class="sibk-nav-link {{ request()->routeIs('admin.web-settings.*') ? 'is-active' : '' }}" href="{{ route('admin.web-settings.edit') }}"
+                    aria-current="{{ request()->routeIs('admin.web-settings.*') ? 'page' : 'false' }}">
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><path d="m3 17 5-5 4 4 3-3 6 6"/></svg>
+                    <span>Manajemen Web</span>
+                </a>
                 <a class="sibk-nav-link {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}" href="{{ route('admin.users.index') }}"
                     aria-current="{{ request()->routeIs('admin.users.*') ? 'page' : 'false' }}">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2 20c0-3.9 2.7-7 6-7s6 3.1 6 7M14 14c3.6 0 6 2.6 6 6"/></svg>

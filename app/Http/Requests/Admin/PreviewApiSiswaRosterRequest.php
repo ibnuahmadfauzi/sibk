@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\IntegrationSetting;
+use App\Services\SavedApiUrlService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class PreviewApiSiswaRosterRequest extends FormRequest
 {
@@ -17,7 +20,8 @@ final class PreviewApiSiswaRosterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'api_url' => ['required', 'string', 'max:2048', 'url:http,https'],
+            'api_url' => [Rule::requiredIf(! $this->boolean('use_saved_api')), Rule::prohibitedIf($this->boolean('use_saved_api')), 'string', 'max:2048', 'url:https'],
+            'use_saved_api' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -27,12 +31,14 @@ final class PreviewApiSiswaRosterRequest extends FormRequest
         return [
             'api_url.required' => 'Link API Siswa wajib diisi.',
             'api_url.max' => 'Link API Siswa terlalu panjang.',
-            'api_url.url' => 'Link API Siswa harus berupa URL HTTP atau HTTPS yang valid.',
+            'api_url.url' => 'Link API Siswa harus berupa URL HTTPS yang valid.',
         ];
     }
 
     public function apiUrl(): string
     {
-        return (string) $this->validated('api_url');
+        return $this->boolean('use_saved_api')
+            ? app(SavedApiUrlService::class)->get(IntegrationSetting::PROVIDER_DAPODIK, $this->user())
+            : (string) $this->validated('api_url');
     }
 }

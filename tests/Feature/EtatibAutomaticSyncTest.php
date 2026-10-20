@@ -88,7 +88,7 @@ final class EtatibAutomaticSyncTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-master.index', ['tab' => 'etatib']))
             ->assertOk()
-            ->assertSee('Aktif: Senin-Jumat, 15.00 WIB')
+            ->assertSee('Pembaruan otomatis aktif sesuai hari dan jam terpilih (WIB)')
             ->assertSee('Tinjau Data')
             ->assertDontSee(self::URL);
     }
@@ -110,7 +110,7 @@ final class EtatibAutomaticSyncTest extends TestCase
         $this->actingAs($admin)
             ->from(route('data-master.index'))
             ->post(route('data-master.etatib.automatic.store'), [
-                'api_url' => 'http://127.0.0.1/etatib',
+                'api_url' => 'https://127.0.0.1/etatib',
                 'current_password' => 'password',
             ])
             ->assertRedirect(route('data-master.index'))
@@ -291,7 +291,7 @@ final class EtatibAutomaticSyncTest extends TestCase
             ->assertDontSee(self::URL);
     }
 
-    public function test_admin_can_disable_and_delete_the_stored_url_with_password(): void
+    public function test_admin_can_disable_automatic_sync_and_keep_the_stored_url_with_password(): void
     {
         $admin = $this->admin();
         $this->automaticSetting($admin);
@@ -314,7 +314,7 @@ final class EtatibAutomaticSyncTest extends TestCase
 
         $setting = IntegrationSetting::query()->sole();
         $this->assertFalse($setting->automatic_sync_enabled);
-        $this->assertNull($setting->getRawOriginal('automatic_sync_url'));
+        $this->assertSame(self::URL, $setting->automatic_sync_url);
         $this->assertStringNotContainsString(
             self::URL,
             AuditLog::query()->get()->toJson(),
@@ -342,13 +342,13 @@ final class EtatibAutomaticSyncTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_scheduler_runs_at_three_pm_jakarta_on_weekdays_with_overlap_guards(): void
+    public function test_scheduler_checks_configured_times_each_minute_with_overlap_guards(): void
     {
         $event = collect(app(Schedule::class)->events())
             ->first(fn ($event): bool => str_contains($event->command ?? '', 'sibk:sync-etatib'));
 
         $this->assertNotNull($event);
-        $this->assertSame('0 15 * * 1-5', $event->expression);
+        $this->assertSame('* * * * *', $event->expression);
         $this->assertSame('Asia/Jakarta', $event->timezone);
         $this->assertTrue($event->withoutOverlapping);
         $this->assertTrue($event->onOneServer);
