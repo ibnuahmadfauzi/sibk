@@ -71,7 +71,7 @@ body {
     color: var(--sibk-color-text-muted);
     font-size: 1rem;
 
-    strong { color: var(--sibk-color-text-dark); }
+    strong { color: var(--sibk-color-text); }
   }
 
   .modal-footer {
@@ -143,7 +143,7 @@ body {
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: var(--sibk-font-heading);
-  color: var(--sibk-color-text-dark);
+  color: var(--sibk-color-text);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -209,25 +209,25 @@ small, .small {
 }
 
 .btn-primary {
-  background: linear-gradient(145deg, #357ad6, #2761ae) !important;
+  background: linear-gradient(145deg, var(--sibk-color-primary-gradient-start), var(--sibk-color-primary-gradient-end)) !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   color: #ffffff !important;
   box-shadow: var(--sibk-shadow-button) !important;
 
   &:hover,
   &:focus {
-    background: #25589e !important;
+    background: var(--sibk-color-primary-pressed-hover) !important;
     border-color: rgba(0, 0, 0, 0.15) !important;
-    box-shadow: inset 3px 3px 6px rgba(10, 35, 75, 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    box-shadow: inset 3px 3px 6px rgba(var(--sibk-color-primary-shadow-pressed-rgb), 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active,
   &:active:focus {
-    background: #204b86 !important;
+    background: var(--sibk-color-primary-pressed) !important;
     border-color: rgba(0, 0, 0, 0.25) !important;
-    box-shadow: inset 4px 4px 9px rgba(10, 35, 75, 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
+    box-shadow: inset 4px 4px 9px rgba(var(--sibk-color-primary-shadow-pressed-rgb), 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
     transform: translateY(2px) scale(0.985);
   }
 }
@@ -245,7 +245,7 @@ small, .small {
     background: var(--sibk-color-field) !important;
     color: var(--sibk-color-primary) !important;
     border-color: var(--sibk-color-border-light) !important;
-    box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.6), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.6), inset -3px -3px 6px #ffffff !important;
     transform: translateY(1px);
   }
 
@@ -255,7 +255,7 @@ small, .small {
     background: var(--sibk-color-field) !important;
     color: var(--sibk-color-primary) !important;
     border-color: var(--sibk-color-border-light) !important;
-    box-shadow: inset 4px 4px 8px rgba(188, 175, 160, 0.75), inset -4px -4px 8px #ffffff !important;
+    box-shadow: inset 4px 4px 8px rgba($sibk-shadow-warm, 0.75), inset -4px -4px 8px #ffffff !important;
     transform: translateY(2px) scale(0.985);
   }
 }
@@ -268,39 +268,39 @@ small, .small {
 
   &:hover,
   &:focus {
-    background: #eef5fc !important;
+    background: var(--sibk-color-primary-button-soft) !important;
     color: var(--sibk-color-primary) !important;
     border-color: var(--sibk-color-primary) !important;
-    box-shadow: inset 3px 3px 6px rgba(47, 111, 198, 0.35), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba(var(--bs-primary-rgb), 0.35), inset -3px -3px 6px #ffffff !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active {
-    background: #e2effb !important;
+    background: var(--sibk-color-primary-button-pressed) !important;
     color: var(--sibk-color-primary) !important;
-    box-shadow: inset 4px 4px 8px rgba(47, 111, 198, 0.5), inset -3px -3px 6px rgba(255, 255, 255, 0.6) !important;
+    box-shadow: inset 4px 4px 8px rgba(var(--bs-primary-rgb), 0.5), inset -3px -3px 6px rgba(255, 255, 255, 0.6) !important;
     transform: translateY(2px) scale(0.985);
   }
 }
 
 .btn-danger {
-  background: linear-gradient(145deg, #c45d5d, #a84747) !important;
+  background: linear-gradient(145deg, $sibk-danger-button-start, $sibk-danger-button-end) !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   color: #ffffff !important;
-  box-shadow: 5px 5px 12px rgba(181, 83, 83, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 5px 5px 12px rgba($sibk-danger, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
 
   &:hover,
   &:focus {
-    background: #963d3d !important;
-    box-shadow: inset 3px 3px 6px rgba(70, 15, 15, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    background: $sibk-danger-button-hover !important;
+    box-shadow: inset 3px 3px 6px rgba($sibk-danger-shadow-pressed, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active {
-    background: #832e2e !important;
-    box-shadow: inset 4px 4px 8px rgba(70, 15, 15, 0.85), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+    background: $sibk-danger-button-pressed !important;
+    box-shadow: inset 4px 4px 8px rgba($sibk-danger-shadow-pressed, 0.85), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
     transform: translateY(2px) scale(0.985);
   }
 }
@@ -313,7 +313,7 @@ small, .small {
   &:hover,
   &:focus {
     background: var(--bs-secondary-border-subtle) !important;
-    color: var(--sibk-color-text-dark) !important;
+    color: var(--sibk-color-text) !important;
   }
 }
 
@@ -348,14 +348,14 @@ small, .small {
 
   &:hover,
   &:focus {
-    box-shadow: inset 2px 2px 5px rgba(188, 175, 160, 0.6), inset -2px -2px 5px #ffffff !important;
+    box-shadow: inset 2px 2px 5px rgba($sibk-shadow-warm, 0.6), inset -2px -2px 5px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active {
-    box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.75), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.75), inset -3px -3px 6px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(2px) scale(0.985);
   }
@@ -388,56 +388,56 @@ small, .small {
 
   &:hover,
   &:focus {
-    box-shadow: inset 2px 2px 5px rgba(188, 175, 160, 0.6), inset -2px -2px 5px #ffffff !important;
+    box-shadow: inset 2px 2px 5px rgba($sibk-shadow-warm, 0.6), inset -2px -2px 5px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active {
-    box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.75), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.75), inset -3px -3px 6px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(2px) scale(0.985);
   }
 
   &.btn-primary {
-    background: linear-gradient(145deg, #357ad6, #2761ae) !important;
+    background: linear-gradient(145deg, var(--sibk-color-primary-gradient-start), var(--sibk-color-primary-gradient-end)) !important;
     border-color: rgba(255, 255, 255, 0.25) !important;
     color: #ffffff !important;
     box-shadow: var(--sibk-shadow-button) !important;
 
     &:hover,
     &:focus {
-      background: #25589e !important;
-      box-shadow: inset 3px 3px 6px rgba(10, 35, 75, 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      background: var(--sibk-color-primary-pressed-hover) !important;
+      box-shadow: inset 3px 3px 6px rgba(var(--sibk-color-primary-shadow-pressed-rgb), 0.7), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
       transform: translateY(1px);
     }
 
     &:active,
     &.active {
-      background: #204b86 !important;
-      box-shadow: inset 4px 4px 8px rgba(10, 35, 75, 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
+      background: var(--sibk-color-primary-pressed) !important;
+      box-shadow: inset 4px 4px 8px rgba(var(--sibk-color-primary-shadow-pressed-rgb), 0.85), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
       transform: translateY(2px) scale(0.985);
     }
   }
 
   &.btn-danger {
-    background: linear-gradient(145deg, #c45d5d, #a84747) !important;
+    background: linear-gradient(145deg, $sibk-danger-button-start, $sibk-danger-button-end) !important;
     border-color: rgba(255, 255, 255, 0.25) !important;
     color: #ffffff !important;
-    box-shadow: 5px 5px 12px rgba(181, 83, 83, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 5px 5px 12px rgba($sibk-danger, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.9) !important;
 
     &:hover,
     &:focus {
-      background: #963d3d !important;
-      box-shadow: inset 3px 3px 6px rgba(70, 15, 15, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      background: $sibk-danger-button-hover !important;
+      box-shadow: inset 3px 3px 6px rgba($sibk-danger-shadow-pressed, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
       transform: translateY(1px);
     }
 
     &:active,
     &.active {
-      background: #832e2e !important;
-      box-shadow: inset 4px 4px 8px rgba(70, 15, 15, 0.85), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      background: $sibk-danger-button-pressed !important;
+      box-shadow: inset 4px 4px 8px rgba($sibk-danger-shadow-pressed, 0.85), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
       transform: translateY(2px) scale(0.985);
     }
   }
@@ -538,7 +538,7 @@ small, .small {
       color: var(--sibk-color-primary) !important;
       background: var(--sibk-color-field) !important;
       border-color: var(--sibk-color-border-light) !important;
-      box-shadow: inset 3px 3px 6px rgba(188, 175, 160, 0.6), inset -3px -3px 6px #ffffff !important;
+      box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.6), inset -3px -3px 6px #ffffff !important;
       transform: translateY(1px);
     }
 
@@ -546,7 +546,7 @@ small, .small {
       background: var(--sibk-color-field) !important;
       color: var(--sibk-color-primary) !important;
       border-color: var(--sibk-color-border-light) !important;
-      box-shadow: inset 4px 4px 8px rgba(188, 175, 160, 0.75), inset -4px -4px 8px #ffffff !important;
+      box-shadow: inset 4px 4px 8px rgba($sibk-shadow-warm, 0.75), inset -4px -4px 8px #ffffff !important;
       font-weight: 700;
       transform: translateY(2px) scale(0.985);
     }
@@ -608,8 +608,8 @@ small, .small {
   }
 
   &--primary {
-    background: #eef5fc !important;
-    color: #2F6FC6 !important;
+    background: var(--sibk-color-primary-button-soft) !important;
+    color: var(--sibk-color-primary) !important;
     border: 1px solid rgba(255, 255, 255, 0.95);
   }
 
@@ -621,13 +621,13 @@ small, .small {
 
   &--warning {
     background: #fdf5ef !important;
-    color: #d16b24 !important;
+    color: $sibk-tone-warning-border !important;
     border: 1px solid rgba(255, 255, 255, 0.95);
   }
 
   &--danger {
-    background: #fdeeee !important;
-    color: #c45d5d !important;
+    background: $sibk-tone-danger-bg !important;
+    color: $sibk-danger-button-start !important;
     border: 1px solid rgba(255, 255, 255, 0.95);
   }
 }
@@ -692,7 +692,7 @@ small, .small {
 
     &.disabled .page-link {
       box-shadow: none;
-      background: rgba(238, 235, 230, 0.5);
+      background: rgba(var(--sibk-color-pagination-disabled-rgb), 0.5);
       border-color: transparent;
       opacity: 0.6;
     }
@@ -772,7 +772,7 @@ small, .small {
   &:checked {
     background-color: var(--sibk-color-primary);
     border-color: var(--sibk-color-primary);
-    box-shadow: 2px 2px 5px rgba(47, 111, 198, 0.35);
+    box-shadow: 2px 2px 5px rgba(var(--bs-primary-rgb), 0.35);
   }
 
   &:focus {
@@ -796,12 +796,6 @@ small, .small {
 .shadow-neumorph-inset-sm { box-shadow: var(--sibk-shadow-inset-sm) !important; }
 
 // ─── Main Layout ────────────────────────────────────────────────────────────
-
-:root {
-  --sibk-sidebar-width: 17.5rem;
-  --sibk-sidebar-gap: 1rem;       // Jarak sidebar dari tepi layar
-  --sibk-topbar-height: 4.5rem;
-}
 
 .sibk-app-body {
   background: var(--sibk-color-page);
@@ -937,7 +931,6 @@ small, .small {
       background: var(--sibk-color-surface-raised);
       border: 1px solid rgba(255, 255, 255, 0.95);
       border-radius: var(--sibk-radius-md);
-      box-shadow: var(--sibk-shadow-raised-lg);
       z-index: 1050;
 
       .dropdown-item {
@@ -954,14 +947,13 @@ small, .small {
         &:hover,
         &:focus {
           background: var(--sibk-color-page);
-          box-shadow: var(--sibk-shadow-inset-xs);
-          color: var(--sibk-color-primary);
+              color: var(--sibk-color-primary);
         }
 
         &.text-danger:hover,
         &.text-danger:focus {
           color: var(--sibk-color-danger) !important;
-          background: rgba(220, 53, 69, 0.08);
+          background: rgba($sibk-tone-danger-border, 0.08);
         }
       }
 
@@ -981,7 +973,7 @@ small, .small {
     border-radius: 50rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1.5px solid rgba(47, 103, 170, 0.25);
+    border: 1.5px solid rgba(var(--sibk-color-sidebar-gradient-mid-rgb), 0.25);
     background: var(--sibk-color-surface-raised, #ffffff);
     box-shadow: var(--sibk-shadow-raised-sm);
 
@@ -1001,9 +993,9 @@ small, .small {
     width: 2.75rem;
     height: 2.75rem;
     border-radius: 50%;
-    background: #E5EFFB;
+    background: var(--sibk-color-primary-avatar-soft);
     color: var(--sibk-color-primary);
-    box-shadow: 3px 4px 9px -3px rgba(53, 108, 178, 0.25);
+    box-shadow: 3px 4px 9px -3px rgba(var(--sibk-color-primary-label-rgb), 0.25);
     font-weight: 700;
     font-size: 0.9rem;
 
@@ -1021,7 +1013,7 @@ small, .small {
   &__user-name {
     font-weight: 500;
     font-size: 0.9375rem;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
   }
 
   &__chevron {
@@ -1057,10 +1049,10 @@ small, .small {
 
 .sibk-sidebar {
   // Sidebar melayang — background, shadow, dan radius diset di sini
-  background: linear-gradient(160deg, #4880c8 0%, #2F67AA 55%, #234f88 100%);
+  background: linear-gradient(160deg, var(--sibk-color-sidebar-gradient-start) 0%, var(--sibk-color-sidebar-gradient-mid) 55%, var(--sibk-color-sidebar-gradient-end) 100%);
   box-shadow:
-    0 8px 32px rgba(32, 75, 128, 0.35),
-    0 2px 8px rgba(32, 75, 128, 0.18),
+    0 8px 32px rgba(var(--sibk-color-sidebar-shadow-rgb), 0.35),
+    0 2px 8px rgba(var(--sibk-color-sidebar-shadow-rgb), 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   color: #fff;
   border-right: none;
@@ -1101,8 +1093,8 @@ small, .small {
       width: 3.125rem;
       height: 3.125rem;
       border-radius: 50%;
-      background: #F9F7F2;
-      box-shadow: 3px 4px 10px -2px rgba(33, 77, 131, 0.38);
+      background: var(--sibk-color-logo-surface);
+      box-shadow: 3px 4px 10px -2px rgba(var(--sibk-color-sidebar-logo-shadow-rgb), 0.38);
       flex: 0 0 auto;
     }
 
@@ -1260,7 +1252,7 @@ small, .small {
   // Sisi kanan-bawah: bayangan gelap (kesan gravitasi)
   // Sisi kiri-atas:   highlight terang (pantulan cahaya)
   box-shadow:
-    inset 3px 3px 8px  rgba(188, 175, 160, 0.7),   // kiri-atas gelap warm
+    inset 3px 3px 8px  rgba($sibk-shadow-warm, 0.7),   // kiri-atas gelap warm
     inset -2px -2px 6px rgba(255, 255, 255, 0.9);   // kanan-bawah terang
 }
 
@@ -1282,7 +1274,7 @@ small, .small {
       font-weight: 800;
       letter-spacing: -0.025em;
       line-height: 1.25;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
     }
 
     p {
@@ -1329,7 +1321,7 @@ small, .small {
   &__title {
     font-size: 1.05rem;
     font-weight: 700;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     margin: 0 0 0.35rem 0;
   }
 
@@ -1505,7 +1497,7 @@ small, .small {
     margin: 0 0 0.15rem 0;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     line-height: 1.25;
   }
 
@@ -1513,7 +1505,7 @@ small, .small {
     font-size: 1.85rem;
     font-weight: 800;
     line-height: 1.1;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     letter-spacing: -0.03em;
     margin-bottom: 0.25rem;
   }
@@ -1560,78 +1552,78 @@ small, .small {
 
 // Warna khusus per card dengan garis tipis tegas sesuai warna icon
 .sibk-tone--primary {
-  background: #edf4fa !important;
-  border: 1.5px solid #4072b2 !important;
+  background: $sibk-tone-primary-bg !important;
+  border: 1.5px solid $sibk-tone-primary-border !important;
 
   .sibk-stat-card__icon {
-    background: #d7e6f5;
-    color: #4072b2;
+    background: $sibk-tone-primary-icon;
+    color: $sibk-tone-primary-border;
   }
 }
 
 .sibk-tone--warning {
-  background: #fdf3eb !important;
-  border: 1.5px solid #d16b24 !important;
+  background: $sibk-tone-warning-bg !important;
+  border: 1.5px solid $sibk-tone-warning-border !important;
 
   .sibk-stat-card__icon {
-    background: #fae2d0;
-    color: #d16b24;
+    background: $sibk-tone-warning-icon;
+    color: $sibk-tone-warning-border;
   }
 }
 
 .sibk-tone--success {
-  background: #ebf6f0 !important;
-  border: 1.5px solid #3d8e57 !important;
+  background: $sibk-tone-success-bg !important;
+  border: 1.5px solid $sibk-tone-success-border !important;
 
   .sibk-stat-card__icon {
-    background: #d1ead9;
-    color: #3d8e57;
+    background: $sibk-tone-success-icon;
+    color: $sibk-tone-success-border;
   }
 }
 
 .sibk-tone--info {
-  background: #f2effb !important;
-  border: 1.5px solid #7457c1 !important;
+  background: $sibk-tone-info-bg !important;
+  border: 1.5px solid $sibk-tone-info-border !important;
 
   .sibk-stat-card__icon {
-    background: #e2def4;
-    color: #7457c1;
+    background: $sibk-tone-info-icon;
+    color: $sibk-tone-info-border;
   }
 }
 
 .sibk-tone--danger {
-  background: #fdeeee !important;
-  border: 1.5px solid #dc3545 !important;
+  background: $sibk-tone-danger-bg !important;
+  border: 1.5px solid $sibk-tone-danger-border !important;
 
   .sibk-stat-card__icon {
-    background: #fbd6d9;
-    color: #dc3545;
+    background: $sibk-tone-danger-icon;
+    color: $sibk-tone-danger-border;
   }
 }
 
 .sibk-icon-tone--primary {
-  background: #d7e6f5 !important;
-  color: #4072b2 !important;
+  background: $sibk-tone-primary-icon !important;
+  color: $sibk-tone-primary-border !important;
 }
 
 .sibk-icon-tone--warning {
-  background: #fae2d0 !important;
-  color: #d16b24 !important;
+  background: $sibk-tone-warning-icon !important;
+  color: $sibk-tone-warning-border !important;
 }
 
 .sibk-icon-tone--success {
-  background: #d1ead9 !important;
-  color: #3d8e57 !important;
+  background: $sibk-tone-success-icon !important;
+  color: $sibk-tone-success-border !important;
 }
 
 .sibk-icon-tone--info {
-  background: #e2def4 !important;
-  color: #7457c1 !important;
+  background: $sibk-tone-info-icon !important;
+  color: $sibk-tone-info-border !important;
 }
 
 .sibk-icon-tone--danger {
-  background: #fbd6d9 !important;
-  color: #dc3545 !important;
+  background: $sibk-tone-danger-icon !important;
+  color: $sibk-tone-danger-border !important;
 }
 
 
@@ -1663,7 +1655,7 @@ small, .small {
       margin: 0;
       font-size: 1rem;
       font-weight: 700;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
     }
   }
 
@@ -1785,7 +1777,7 @@ small, .small {
 
     strong {
       font-size: 1rem;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
       line-height: 1.2;
     }
 
@@ -1861,7 +1853,7 @@ small, .small {
     }
 
     .sibk-list-item__date-box {
-      background: #d7e6f5;
+      background: $sibk-tone-primary-icon;
     }
 
     .sibk-list-item__content {
@@ -1917,7 +1909,7 @@ small, .small {
     min-height: 44px;
     padding: 0.625rem 0;
     font-size: 0.9rem;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     border-bottom: 1px solid var(--sibk-color-border-light);
   }
 }
@@ -1934,7 +1926,7 @@ small, .small {
   }
 
   .sibk-list-item__date-box {
-    background: #d7e6f5;
+    background: $sibk-tone-primary-icon;
   }
 
   .badge {
@@ -2003,7 +1995,7 @@ small, .small {
 
     strong {
       font-size: 0.9rem;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
     }
 
     span {
@@ -2204,7 +2196,7 @@ small, .small {
     font-size: 0.95rem;
     font-weight: 500;
     margin: 0;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
   }
 
   &__meta {
@@ -2233,7 +2225,7 @@ small, .small {
   }
 
   &:hover {
-    background: #fafcff;
+    background: var(--sibk-color-surface-hover);
   }
 
   &.is-unread {
@@ -2241,11 +2233,11 @@ small, .small {
 
     .sibk-notification-item__title {
       font-weight: 700;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
     }
 
     &:hover {
-      background: #fafcff;
+      background: var(--sibk-color-surface-hover);
     }
   }
 }
@@ -2294,7 +2286,7 @@ small, .small {
   &__name {
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     margin: 0 0 0.25rem 0;
   }
 
@@ -2336,7 +2328,7 @@ small, .small {
 
   td {
     font-weight: 700 !important;
-    color: var(--sibk-color-text-dark) !important;
+    color: var(--sibk-color-text) !important;
     padding: 0.9rem 0 0.9rem 0.5rem !important;
     border-bottom: 1px solid var(--sibk-color-border-light) !important;
     background: transparent !important;
@@ -2358,7 +2350,7 @@ small, .small {
   border: 1px solid var(--sibk-color-border-light);
   border-radius: var(--sibk-radius-lg);
   background: var(--sibk-color-surface-raised);
-  box-shadow: 0 2px 6px rgba(15, 47, 91, 0.06);
+  box-shadow: 0 2px 6px rgba(var(--sibk-color-panel-shadow-rgb), 0.06);
 
   &--inset {
     background: var(--sibk-color-field);
@@ -2369,7 +2361,7 @@ small, .small {
     margin: 0 0 1.25rem;
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
   }
 
   &__description {
@@ -2426,7 +2418,7 @@ small, .small {
     &:active {
       background: var(--sibk-color-danger);
       color: #fff;
-      box-shadow: inset 3px 3px 6px rgba(70, 15, 15, 0.4), inset -2px -2px 5px rgba(255, 255, 255, 0.2);
+      box-shadow: inset 3px 3px 6px rgba($sibk-danger-shadow-pressed, 0.4), inset -2px -2px 5px rgba(255, 255, 255, 0.2);
       transform: translateY(1px);
     }
   }
@@ -2441,7 +2433,7 @@ small, .small {
   .form-label {
     font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     margin-bottom: 0.35rem;
   }
 
@@ -2462,7 +2454,7 @@ small, .small {
 
     &:focus {
       border-color: var(--sibk-color-primary-soft);
-      box-shadow: 0 0 0 0.2rem rgba(64, 114, 178, 0.15);
+      box-shadow: 0 0 0 0.2rem rgba($sibk-tone-primary-border, 0.15);
     }
   }
 
@@ -2583,7 +2575,7 @@ small, .small {
   thead th,
   th {
     background-color: var(--sibk-color-page) !important;
-    color: var(--sibk-color-text-dark) !important;
+    color: var(--sibk-color-text) !important;
     font-weight: 700;
     font-size: 0.85rem;
     padding: 0.875rem 1rem;
@@ -2607,7 +2599,7 @@ small, .small {
       th {
         background-color: var(--sibk-color-surface-raised) !important;
         --bs-table-bg: var(--sibk-color-surface-raised) !important;
-        color: var(--sibk-color-text-dark);
+        color: var(--sibk-color-text);
       }
     }
   }
@@ -2648,13 +2640,13 @@ small, .small {
   white-space: nowrap;
 
   &--primary {
-    background-color: #d7e6f5;
-    color: #356cb2;
+    background-color: $sibk-tone-primary-icon;
+    color: var(--sibk-color-primary-label);
   }
 
   &--info {
-    background-color: #e5effb;
-    color: #4072b2;
+    background-color: var(--sibk-color-primary-avatar-soft);
+    color: $sibk-tone-primary-border;
   }
 
   &--success {
@@ -2663,8 +2655,8 @@ small, .small {
   }
 
   &--warning {
-    background-color: #fdf3eb;
-    color: #d16b24;
+    background-color: $sibk-tone-warning-bg;
+    color: $sibk-tone-warning-border;
   }
 
   &--danger {
@@ -2731,23 +2723,23 @@ small, .small {
   overflow: hidden;
 
   &--primary {
-    border: 1.5px solid #4072b2 !important;
+    border: 1.5px solid $sibk-tone-primary-border !important;
   }
 
   &--warning {
-    border: 1.5px solid #d16b24 !important;
+    border: 1.5px solid $sibk-tone-warning-border !important;
   }
 
   &--success {
-    border: 1.5px solid #3d8e57 !important;
+    border: 1.5px solid $sibk-tone-success-border !important;
   }
 
   &--info {
-    border: 1.5px solid #7457c1 !important;
+    border: 1.5px solid $sibk-tone-info-border !important;
   }
 
   &--danger {
-    border: 1.5px solid #dc3545 !important;
+    border: 1.5px solid $sibk-tone-danger-border !important;
   }
 
   &:hover {
@@ -2789,7 +2781,7 @@ small, .small {
   &__title {
     font-size: 1.05rem;
     font-weight: 700;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     margin: 0 0 0.25rem;
     line-height: 1.3;
   }
@@ -2803,7 +2795,7 @@ small, .small {
 
   &__footer {
     padding: 0.85rem 1.5rem;
-    background: #fafcff;
+    background: var(--sibk-color-surface-hover);
     border-top: 1px dashed var(--sibk-color-border-light);
     display: flex;
     align-items: center;
@@ -2839,7 +2831,7 @@ small, .small {
   .sibk-filter-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
   }
 }
 
@@ -3046,7 +3038,7 @@ small, .small {
   background: var(--sibk-color-primary-soft);
   border: 0;
   border-radius: 0.5rem;
-  color: var(--sibk-color-text-dark);
+  color: var(--sibk-color-text);
   font-size: 0.75rem;
   padding: 0.3rem 0.45rem;
 
@@ -3072,7 +3064,7 @@ small, .small {
   &[aria-checked='false'] { color: #8a5650; }
 
   &__track {
-    background: #b8c3d1;
+    background: var(--sibk-color-account-switch-track);
     border-radius: 1rem;
     display: inline-flex;
     height: 1.2rem;
@@ -3233,7 +3225,7 @@ small, .small {
 }
 
 .sibk-activation-panel {
-  background: linear-gradient(160deg, #3f75bd 0%, #2f67aa 55%, #234f88 100%);
+  background: linear-gradient(160deg, var(--sibk-color-sidebar-card-start) 0%, var(--sibk-color-sidebar-gradient-mid) 55%, var(--sibk-color-sidebar-gradient-end) 100%);
   border-color: rgba(255, 255, 255, 0.25);
   color: #fff;
 
@@ -3253,25 +3245,25 @@ small, .small {
     color: #fff !important;
 
     li::marker {
-      color: #cde8ff;
+      color: var(--sibk-color-primary-panel-info);
     }
   }
 
   .btn-primary {
     background: #fff !important;
     border-color: rgba(255, 255, 255, 0.8) !important;
-    color: #234f88 !important;
-    box-shadow: 0 4px 10px rgba(15, 47, 91, 0.25) !important;
+    color: var(--sibk-color-sidebar-gradient-end) !important;
+    box-shadow: 0 4px 10px rgba(var(--sibk-color-panel-shadow-rgb), 0.25) !important;
 
     &:hover,
     &:focus {
-      background: #eaf3ff !important;
-      color: #173f71 !important;
+      background: var(--sibk-color-primary-hero-soft) !important;
+      color: var(--sibk-color-primary-panel-hover) !important;
     }
 
     &:disabled {
       background: rgba(255, 255, 255, 0.75) !important;
-      color: #234f88 !important;
+      color: var(--sibk-color-sidebar-gradient-end) !important;
     }
   }
 }
@@ -3282,7 +3274,7 @@ small, .small {
   border-left: 3px solid var(--sibk-color-success);
   border-radius: var(--sibk-radius-md);
   box-shadow: var(--sibk-shadow-raised);
-  color: var(--sibk-color-text-dark);
+  color: var(--sibk-color-text);
   font-size: 0.8125rem;
   max-width: none;
   width: 100%;
@@ -3337,7 +3329,7 @@ small, .small {
   align-items: center;
   background: var(--sibk-color-primary-soft);
   border-radius: 0.5rem;
-  color: var(--sibk-color-text-dark);
+  color: var(--sibk-color-text);
   display: inline-flex;
   font-size: 0.75rem;
   font-weight: 500;
@@ -3438,7 +3430,7 @@ small, .small {
   background: var(--sibk-color-surface);
   border: 1px solid var(--sibk-color-border-light);
   border-radius: 0.5rem;
-  color: var(--sibk-color-text-dark);
+  color: var(--sibk-color-text);
   font-size: 0.75rem;
   min-height: 2rem;
   overflow-wrap: anywhere;
@@ -3478,12 +3470,12 @@ small, .small {
     box-shadow: var(--sibk-shadow-button) !important;
 
     &:hover {
-      box-shadow: inset 3px 3px 6px rgba(12, 74, 61, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
+      box-shadow: inset 3px 3px 6px rgba($sibk-success-shadow-pressed, 0.65), inset -2px -2px 5px rgba(255, 255, 255, 0.25) !important;
       transform: translateY(1px);
     }
 
     &:active {
-      box-shadow: inset 4px 4px 9px rgba(12, 74, 61, 0.8), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
+      box-shadow: inset 4px 4px 9px rgba($sibk-success-shadow-pressed, 0.8), inset -3px -3px 6px rgba(255, 255, 255, 0.3) !important;
       transform: translateY(2px) scale(0.985);
     }
   }
@@ -3511,7 +3503,7 @@ small, .small {
     min-height: 0;
     padding: 0;
     overflow: hidden;
-    background: #e9edf2;
+    background: var(--sibk-color-preview-canvas);
   }
 
   iframe {
@@ -3536,7 +3528,7 @@ small, .small {
 
 @media screen {
   .sibk-report-embedded {
-    background: #e9edf2;
+    background: var(--sibk-color-preview-canvas);
     min-width: 0;
     padding: 1rem;
 
@@ -3551,7 +3543,7 @@ small, .small {
       width: 210mm;
       max-width: none;
       min-height: 297mm;
-      box-shadow: 0 2px 12px rgba(13, 36, 71, 0.12);
+      box-shadow: 0 2px 12px rgba(var(--sibk-color-text-rgb), 0.12);
     }
 
     .sibk-document-table :is(th, td) {
@@ -3572,7 +3564,6 @@ small, .small {
 .sibk-document-sheet {
   background: #fff;
   border: 1px solid var(--sibk-color-border-light);
-  box-shadow: var(--sibk-shadow-card);
   color: #111;
   margin: 0 auto;
   padding: 2rem;
@@ -4001,7 +3992,7 @@ small, .small {
 
   &__title {
     display: block;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     font-size: 1.25rem;
     line-height: 1.2;
   }
@@ -4025,7 +4016,7 @@ small, .small {
 
   &__title {
     margin-bottom: 0.5rem;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     font-size: 1.85rem;
     font-weight: 700;
   }
@@ -4092,14 +4083,14 @@ small, .small {
   }
 
   .btn-icon-action--info {
-    color: #0891b2 !important;
-    border-color: #cffafe !important;
-    background: #f0fdfe !important;
+    color: var(--sibk-color-info-action) !important;
+    border-color: var(--sibk-color-info-action-hover) !important;
+    background: var(--sibk-color-info-action-soft) !important;
   }
 
   .btn-icon-action--info:hover {
-    background: #cffafe !important;
-    border-color: #a5f3fc !important;
+    background: var(--sibk-color-info-action-hover) !important;
+    border-color: var(--sibk-color-info-action-border-hover) !important;
   }
 }
 
@@ -4110,7 +4101,7 @@ small, .small {
   gap: 1.5rem;
   padding: 1.5rem;
   border-radius: var(--sibk-radius-lg);
-  background: linear-gradient(145deg, #4880c8, #234f88);
+  background: linear-gradient(145deg, var(--sibk-color-sidebar-gradient-start), var(--sibk-color-sidebar-gradient-end));
   box-shadow: var(--sibk-shadow-raised-sm);
   color: #fff;
 
@@ -4124,7 +4115,7 @@ small, .small {
   .sibk-student-avatar {
     width: 4rem;
     height: 4rem;
-    background: #eaf3ff;
+    background: var(--sibk-color-primary-hero-soft);
     font-size: 1.1rem;
   }
 
@@ -4150,7 +4141,7 @@ small, .small {
     line-height: 1.5;
 
     > div { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; margin-top: 0.2rem; }
-    dt { font-weight: 400; color: #e1ecfa; }
+    dt { font-weight: 400; color: var(--sibk-color-primary-hero-contrast); }
     dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
   }
 
@@ -4178,7 +4169,7 @@ small, .small {
     small {
       display: block;
       margin-top: 0.35rem;
-      color: #526784;
+      color: var(--sibk-color-primary-hero-muted);
       line-height: 1.3;
     }
   }
@@ -4189,7 +4180,7 @@ small, .small {
     gap: 0.5rem;
 
     strong {
-      color: #2868b7;
+      color: var(--sibk-color-primary-hero-strong);
       font-size: 1.3rem;
       line-height: 1;
     }
@@ -4197,7 +4188,7 @@ small, .small {
 
   &__number {
     display: block;
-    color: #526784;
+    color: var(--sibk-color-primary-hero-muted);
     font-size: 1.6rem;
     line-height: 1;
 
@@ -4256,7 +4247,7 @@ small, .small {
       background: var(--sibk-color-surface-raised);
       box-shadow: var(--sibk-shadow-raised-sm);
       border: 1px solid rgba(255, 255, 255, 0.9);
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
     }
   }
 
@@ -4464,10 +4455,10 @@ small, .small {
 .sibk-import-guide {
   background: var(--sibk-color-primary-soft);
   border-color: var(--sibk-color-primary) !important;
-  color: var(--sibk-color-text-dark);
+  color: var(--sibk-color-text);
 
   code {
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
     border-color: var(--sibk-color-primary) !important;
   }
 }
@@ -4562,7 +4553,7 @@ small, .small {
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.875rem;
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
   }
 
   &__bar {
@@ -4587,7 +4578,7 @@ small, .small {
     .sibk-waka-trend__bar { opacity: 1; }
     .sibk-waka-trend__label {
       font-weight: 700;
-      color: var(--sibk-color-text-dark);
+      color: var(--sibk-color-text);
       border-bottom: 3px solid var(--sibk-color-primary);
     }
   }
@@ -4696,6 +4687,6 @@ form[data-auto-filter] .btn[data-filter-action] {
     padding: 0.4rem 0.75rem;
     border-radius: var(--sibk-radius-md);
     background: var(--sibk-color-field);
-    color: var(--sibk-color-text-dark);
+    color: var(--sibk-color-text);
   }
 }
