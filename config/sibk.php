@@ -11,6 +11,11 @@ return [
         'password' => env('SIBK_SEED_ACCOUNT_PASSWORD'),
     ],
 
+    'demo' => [
+        'enabled' => (bool) env('SIBK_DEMO_ENABLED', false),
+        'account_password' => env('SIBK_DEMO_ACCOUNT_PASSWORD'),
+    ],
+
     'integrations' => [
         'dapodik' => [
             'driver' => env('SIBK_DAPODIK_DRIVER', 'unavailable'),

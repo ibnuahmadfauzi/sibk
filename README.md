@@ -133,6 +133,25 @@ disahkan, jalankan migration forward-only, lalu cache config/view. Periksa redak
 credential, audit, `no-store`, dan sinkronisasi yang gagal aman. Rotasi key dan
 credential dijelaskan dalam admission gate; jangan mengganti key tanpa prosedur.
 
+## Demo pagelaran karya di Render
+
+Gunakan branch `demo/pagelaran-karya`, runtime Docker, dan Dockerfile
+`deploy/render-demo/Dockerfile`. Konfigurasi layanan tersedia pada `render.yaml`.
+Gunakan database MySQL Aiven kosong yang terpisah dari database sekolah.
+Simpan kredensial pada environment Render dan sertifikat CA Aiven sebagai secret
+file `aiven-ca.pem`; jangan memasukkannya ke Git. `APP_KEY` harus tetap sama pada
+setiap deploy dan `APP_URL` harus memakai URL HTTPS layanan.
+
+Startup menjalankan migration tanpa reset, lalu `DemoSeeder` jika
+`SIBK_DEMO_ENABLED=true`. Isi `SIBK_DEMO_ACCOUNT_PASSWORD` dengan minimal 12
+karakter yang memuat huruf dan angka. Akun demo memakai alamat
+`admin`, `guru`, `koordinator`, dan `waka` pada domain `demo.ruangbk.test`.
+Seeder tidak mengganti sandi atau data setelah inisialisasi demo.
+
+Paket gratis Render dapat tidur saat tidak digunakan. Data MySQL disimpan pada
+Aiven, tetapi unggahan logo pada filesystem Render bersifat sementara dan dapat
+hilang saat restart/deploy. Integrasi sekolah dan jadwal e-Tatib dinonaktifkan.
+
 ## Dokumentasi
 
 - [PRD aktif](docs/requirements/PRD_Aplikasi_BK_v1.1.md)

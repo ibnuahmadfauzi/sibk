@@ -11,7 +11,7 @@
             <div class="sibk-sidebar__logo-wrapper">
                 <x-logo class="sibk-sidebar__logo-img" />
             </div>
-            <span><strong>RUANG BK</strong><small>SMK NEGERI 1 SURABAYA</small></span>
+            <span><strong>RUANG BK</strong><small>SEKOLAH DEMO RUANG BK</small></span>
         </a>
 
         @php

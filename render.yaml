@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: sibk-demo-pagelaran
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: demo/pagelaran-karya
+    dockerfilePath: deploy/render-demo/Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: 'false'
+      - key: APP_NAME
+        value: Ruang BK Demo
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: MYSQL_ATTR_SSL_CA
+        value: /etc/secrets/aiven-ca.pem
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: 'true'
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SIBK_DEMO_ENABLED
+        value: 'true'
+      - key: SIBK_DEMO_ACCOUNT_PASSWORD
+        sync: false
+      - key: SIBK_DAPODIK_DRIVER
+        value: unavailable
+      - key: SIBK_ETATIB_DRIVER
+        value: unavailable
+      - key: SIBK_ETATIB_SCHEDULE_ENABLED
+        value: 'false'

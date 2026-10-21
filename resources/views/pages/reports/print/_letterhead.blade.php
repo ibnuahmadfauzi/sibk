@@ -4,13 +4,13 @@
         <img src="{{ $hasAgencyLogo ? route('branding.agency-logo') : route('branding.logo') }}" class="sibk-document-letterhead__logo" alt="{{ $hasAgencyLogo ? 'Logo Dinas Pendidikan Jawa Timur' : 'Logo sekolah' }}">
         <div>
             <p class="sibk-document-letterhead__agency">
-                Pemerintah Provinsi Jawa Timur · Dinas Pendidikan
+                Pagelaran Karya · Demonstrasi Aplikasi
             </p>
             <h1 class="sibk-document-letterhead__school">
-                SMK Negeri 1 Surabaya
+                Sekolah Demo Ruang BK
             </h1>
             <p class="sibk-document-letterhead__address">
-                Jl. SMEA No. 4, Wonokromo, Surabaya, Jawa Timur 60243
+                Lingkungan demo · Seluruh data merupakan data sintetis
             </p>
         </div>
         @if($hasAgencyLogo)

@@ -24,9 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Cloudflare Tunnel lokal meneruskan request ke loopback.
-        // Jangan mempercayai forwarded headers ini di production.
+        // Di luar lokal, pengecualian hanya untuk demo di belakang proxy Render.
         if (env('APP_ENV', 'production') === 'local') {
             $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+        } elseif (env('RENDER') && env('SIBK_DEMO_ENABLED', false)) {
+            $middleware->trustProxies(at: '*', headers:
+                Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO);
         }
 
         $middleware->prepend(ProtectIntegrationLifecycle::class);

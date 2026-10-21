@@ -17,7 +17,7 @@
                 </div>
                 <div>
                     <strong class="sibk-access-denied-brand__title">Ruang BK</strong>
-                    <small class="sibk-access-denied-brand__subtitle">SMK Negeri 1 Surabaya</small>
+                    <small class="sibk-access-denied-brand__subtitle">Sekolah Demo Ruang BK</small>
                 </div>
             </a>
         </div>
