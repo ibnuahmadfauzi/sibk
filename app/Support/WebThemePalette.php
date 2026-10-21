@@ -14,41 +14,6 @@ final class WebThemePalette
     public const DEFAULT_COLORS = ['primary' => '#2659a0', 'page' => '#f8f0ea', 'surface' => '#fdfbf9'];
 
     /** @return array<string, string> */
-    public static function errors(array $palette): array
-    {
-        $errors = [];
-        foreach (array_keys($palette) as $key) {
-            if (! in_array($key, ['primary', 'page', 'surface'], true)) {
-                $errors['custom_palette'] = 'Palet hanya boleh berisi warna utama, halaman, dan permukaan.';
-            }
-        }
-
-        foreach (['primary' => 'utama', 'page' => 'halaman', 'surface' => 'permukaan'] as $key => $label) {
-            if (! isset($palette[$key]) || ! is_string($palette[$key]) || preg_match('/\A#[0-9a-fA-F]{6}\z/D', $palette[$key]) !== 1) {
-                $errors['custom_palette.'.$key] = 'Warna '.$label.' harus berupa kode #RRGGBB.';
-            }
-        }
-        if ($errors !== []) {
-            return $errors;
-        }
-
-        foreach (['#ffffff' => 'teks putih', $palette['page'] => 'halaman', $palette['surface'] => 'permukaan'] as $background => $label) {
-            if (self::contrast($palette['primary'], $background) < 4.5) {
-                $errors['custom_palette.primary'] = 'Warna utama harus memiliki kontras minimal 4,5:1 terhadap '.$label.'.';
-            }
-        }
-        foreach (['page' => 'halaman', 'surface' => 'permukaan'] as $key => $label) {
-            foreach (['#0d2447' => 'teks utama', '#5f6f86' => 'teks sekunder'] as $foreground => $text) {
-                if (self::contrast($foreground, $palette[$key]) < 4.5) {
-                    $errors['custom_palette.'.$key] = 'Warna '.$label.' harus memiliki kontras minimal 4,5:1 terhadap '.$text.'.';
-                }
-            }
-        }
-
-        return $errors;
-    }
-
-    /** @return array<string, string> */
     public static function variables(array $palette): array
     {
         $brand = $palette['primary'];
@@ -109,26 +74,6 @@ final class WebThemePalette
             '--sibk-shadow-btn-light' => '3px 3px 7px '.self::rgba($shadow, 0.3).', -3px -3px 7px '.$white,
             '--bs-primary-rgb' => self::rgb($brand),
         ];
-    }
-
-    private static function contrast(string $first, string $second): float
-    {
-        $a = self::luminance($first);
-        $b = self::luminance($second);
-
-        return (max($a, $b) + 0.05) / (min($a, $b) + 0.05);
-    }
-
-    private static function luminance(string $color): float
-    {
-        $channels = self::channels($color);
-        $linear = array_map(static function (int $channel): float {
-            $value = $channel / 255;
-
-            return $value <= 0.04045 ? $value / 12.92 : (($value + 0.055) / 1.055) ** 2.4;
-        }, $channels);
-
-        return $linear[0] * 0.2126 + $linear[1] * 0.7152 + $linear[2] * 0.0722;
     }
 
     /** @return array<int, int> */

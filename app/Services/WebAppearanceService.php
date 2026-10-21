@@ -46,21 +46,10 @@ final class WebAppearanceService
 
     public function theme(): string
     {
-        $appearance = WebAppearance::query()->whereKey(1)->first();
-        $stored = $appearance?->theme;
+        $stored = WebAppearance::query()->whereKey(1)->value('theme');
 
         return in_array($stored, WebAppearance::THEMES, true)
-            && ($stored !== 'custom' || (is_array($appearance->custom_palette) && WebThemePalette::errors($appearance->custom_palette) === []))
-                ? $stored : 'default';
-    }
-
-    /** @return array<string, string> */
-    public function customPalette(): array
-    {
-        $stored = WebAppearance::query()->whereKey(1)->first()?->custom_palette;
-
-        return is_array($stored) && WebThemePalette::errors($stored) === []
-            ? $stored : WebThemePalette::DEFAULT_COLORS;
+            ? $stored : 'default';
     }
 
     /** @return array<string, string> */
@@ -71,39 +60,24 @@ final class WebAppearanceService
             return [];
         }
 
-        return WebThemePalette::variables($theme === 'custom' ? $this->customPalette() : WebThemePalette::PRESETS[$theme]);
+        return WebThemePalette::variables(WebThemePalette::PRESETS[$theme]);
     }
 
-    public function updateTheme(string $theme, User $actor, array $customPalette = []): void
+    public function updateTheme(string $theme, User $actor): void
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
         if (! in_array($theme, WebAppearance::THEMES, true)) {
             throw ValidationException::withMessages(['theme' => 'Pilih tema yang tersedia.']);
         }
-        if ($theme === 'custom') {
-            $errors = WebThemePalette::errors($customPalette);
-            if ($errors !== []) {
-                throw ValidationException::withMessages($errors);
-            }
-            $customPalette = array_map(strtolower(...), $customPalette);
-        }
-
-        DB::transaction(function () use ($theme, $actor, $customPalette): void {
+        DB::transaction(function () use ($theme, $actor): void {
             $appearance = WebAppearance::query()->whereKey(1)->lockForUpdate()->firstOrFail();
             $before = ['theme' => $appearance->theme];
             $after = ['theme' => $theme];
-            if ($theme === 'custom') {
-                $before['custom_palette'] = $appearance->custom_palette;
-                $after['custom_palette'] = $customPalette;
-            }
             if ($before === $after) {
                 return;
             }
 
             $appearance->theme = $theme;
-            if ($theme === 'custom') {
-                $appearance->custom_palette = $customPalette;
-            }
             $appearance->save();
             $this->audit->record(
                 'web_appearance.theme_updated',
