@@ -136,9 +136,12 @@ credential dijelaskan dalam admission gate; jangan mengganti key tanpa prosedur.
 ## Demo pagelaran karya di PandaStack
 
 Gunakan branch `demo/pagelaran-karya` dengan runtime Node.js 22 dan port 3000.
-`pandastack.json` memilih aplikasi generic, memasang PHP 8.4 dan Apache,
-memasang dependensi produksi, serta membangun aset Vite. Build memerlukan
-Ubuntu dengan root atau sudo tanpa kata sandi.
+`pandastack.json` memilih aplikasi generic dengan FrankenPHP 1.13.1. Build
+mengunduh binary resmi Linux x86_64 GNU, memverifikasi SHA-256, memasang
+dependensi produksi, dan membangun aset Vite. Runtime menyediakan PHP 8.4.1
+atau lebih baru; persyaratan ekstensi diperiksa sebelum aplikasi dijalankan.
+Gunakan Ubuntu x86_64 dengan cURL dan sertifikat CA sistem; root atau sudo
+tidak diperlukan.
 
 Simpan `APP_KEY`, URL HTTPS pada `APP_URL`, serta kredensial database Aiven
 sebagai environment aplikasi. Isi `AIVEN_CA_PEM_B64` dengan sertifikat CA Aiven

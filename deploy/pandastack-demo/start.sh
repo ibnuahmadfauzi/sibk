@@ -33,40 +33,24 @@ if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
     exit 1
 fi
 
-if [ "$(id -u)" -eq 0 ]; then
-    as_root=()
-elif command -v sudo >/dev/null 2>&1 && sudo -n -E true; then
-    as_root=(sudo -n -E)
-else
-    echo 'Apache requires root or passwordless sudo in PandaStack.' >&2
-    exit 1
-fi
+test -s /etc/ssl/certs/ca-certificates.crt || { echo 'System CA certificates are missing.' >&2; exit 1; }
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+frankenphp="$PWD/.pandastack-bin/frankenphp"
+test -x "$frankenphp" || { echo 'FrankenPHP build artifact is missing.' >&2; exit 1; }
 
 ca_file="$PWD/storage/app/private/aiven-ca.pem"
-"${as_root[@]}" chown -R "$(id -u):$(id -g)" bootstrap/cache storage
-umask 022
+umask 077
 printf '%s' "$AIVEN_CA_PEM_B64" | base64 --decode > "$ca_file"
-openssl x509 -in "$ca_file" -noout >/dev/null
+"$frankenphp" php-cli -r '
+    if (@openssl_x509_read(file_get_contents($argv[1])) === false) {
+        fwrite(STDERR, "Invalid Aiven CA certificate.\n");
+        exit(1);
+    }
+' "$ca_file"
 export MYSQL_ATTR_SSL_CA="$ca_file"
 unset AIVEN_CA_PEM_B64
 
-php8.4 artisan migrate --force
-php8.4 artisan db:seed --class=DemoSeeder --force
+"$frankenphp" php-cli artisan migrate --force
+"$frankenphp" php-cli artisan db:seed --class=DemoSeeder --force
 
-"${as_root[@]}" chown -R www-data:www-data bootstrap/cache storage
-if "${as_root[@]}" service apache2 status >/dev/null 2>&1; then "${as_root[@]}" service apache2 stop; fi
-printf 'Listen %s\n' "$port" | "${as_root[@]}" tee /etc/apache2/ports.conf >/dev/null
-cat <<EOF | "${as_root[@]}" tee /etc/apache2/sites-available/000-default.conf >/dev/null
-<VirtualHost *:$port>
-    DocumentRoot "$PWD/public"
-    <Directory "$PWD/public">
-        Options FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-    ErrorLog /proc/self/fd/2
-    CustomLog /proc/self/fd/1 combined
-</VirtualHost>
-EOF
-
-exec "${as_root[@]}" /usr/sbin/apache2ctl -D FOREGROUND
+exec "$frankenphp" php-server --listen ":${port}" --root "$PWD/public"
