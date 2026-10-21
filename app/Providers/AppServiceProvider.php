@@ -35,6 +35,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -69,6 +70,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('sibk.demo.enabled')) {
+            URL::useOrigin(config('app.url'));
+            URL::forceScheme(parse_url(config('app.url'), PHP_URL_SCHEME));
+        }
+
         Paginator::useBootstrapFive();
         RateLimiter::for('integration-test', static function (Request $request): Limit {
             $userId = $request->user()?->getAuthIdentifier() ?? 'guest';
