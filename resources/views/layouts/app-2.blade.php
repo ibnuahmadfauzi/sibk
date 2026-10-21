@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-web-theme="{{ app(\App\Services\WebAppearanceService::class)->theme() }}">
 
 <head>
     <meta charset="UTF-8">
@@ -15,6 +15,7 @@
 
     {{-- Vite: SCSS + JS --}}
     @vite(['resources/scss/app-dashboard.scss', 'resources/js/app-dashboard.js'])
+    <x-web-theme />
     {{-- end Vite --}}
 
     @yield('extra-css')

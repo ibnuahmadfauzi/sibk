@@ -1,69 +1,134 @@
-// SIBK Sass token values.
-// Core design variables for Bootstrap overrides.
+// Sumber nilai tema bawaan; warna status terpisah dari identitas aplikasi.
 // Brand dan navigasi
 $sibk-primary: #2F6FC6;
 $sibk-primary-hover: #2659a0;
 $sibk-primary-contrast: #ffffff;
 $sibk-primary-soft: #E9F2FB;
-$sibk-sidebar: #3F76B9;
-$sibk-sidebar-deep: #2F67AA; // Penpot: gradient end sidebar
-$sibk-sidebar-text: #ffffff;
-$sibk-nav-active-bg: rgba(255,255,255,0.15);
-$sibk-nav-active-text: #ffffff;
+$sibk-primary-gradient-start: #3475cc;
+$sibk-primary-gradient-end: #2761ae;
+$sibk-primary-pressed-hover: #25589e;
+$sibk-primary-pressed: #204b86;
+$sibk-primary-button-soft: #eef5fc;
+$sibk-primary-button-pressed: #e2effb;
+$sibk-primary-avatar-soft: #e5effb;
+$sibk-primary-hero-soft: #eaf3ff;
+$sibk-primary-label: #356cb2;
+$sibk-primary-hero-strong: #2868b7;
+$sibk-primary-hero-muted: #526784;
+$sibk-primary-hero-contrast: #e1ecfa;
+$sibk-primary-panel-hover: #173f71;
+$sibk-primary-panel-info: #cde8ff;
+$sibk-sidebar-card-start: #3f75bd;
+$sibk-sidebar-gradient-start: $sibk-sidebar-card-start;
+$sibk-sidebar-gradient-mid: #2F67AA;
+$sibk-sidebar-gradient-end: #234f88;
+$sibk-sidebar-shadow: #204b80;
+$sibk-sidebar-logo-shadow: #214d83;
+$sibk-panel-shadow: #0f2f5b;
 
 // Permukaan dan teks
-// $sibk-page: #f8f0ea;
 $sibk-page: #f8f0ea;
-$sibk-surface: #f8f0ea;
-$sibk-field: #f8f0ea;          // Mengikuti warna background tanpa dibuat lebih gelap
+$sibk-surface: $sibk-page;
+$sibk-field: $sibk-page;
 $sibk-surface-raised: #FDFBF9; // Sedikit lebih terang dari background secara lembut
+$sibk-surface-hover: #fafcff;
+$sibk-logo-surface: #f9f7f2;
+$sibk-preview-canvas: #e9edf2;
 $sibk-text: #0D2447;
 $sibk-text-muted: #5F6F86;   // Penpot: "Secondary"
 $sibk-text-subtle: #8794A7;  // Penpot: "Placeholder/Search"
 $sibk-border: #E5E2DD;       // Penpot: warm border (sesuai palet page)
 $sibk-border-light: #EDEAE6; // turunan warm, lebih terang dari border
+$sibk-border-cool: #e2e8f0;
+$sibk-case-neutral: #f8fafc;
+$sibk-case-neutral-hover: #f1f5f9;
+$sibk-case-text: #475569;
+$sibk-case-muted: #64748b;
+$sibk-case-border-hover: #cbd5e1;
+$sibk-account-switch-track: #b8c3d1;
+$sibk-pagination-disabled: #eeebe6;
 
 // Aksen dan panel brand
 $sibk-accent: #CF6A2D;
-$sibk-accent-soft: #FBECE3;  // Penpot: warning/accent soft
-$sibk-brand-panel: #f8f0ea;
+$sibk-brand-panel: $sibk-page;
 
 // Status dan feedback
 $sibk-success: #2F8F73;
 $sibk-success-soft: #E7F4EF;  // Penpot: success tint
 $sibk-warning: #CF6A2D;
 $sibk-warning-soft: #FBECE3;  // Penpot: warning tint
+$sibk-warning-dark: #9A4A14;
 $sibk-danger: #B55353;
 $sibk-danger-strong: #8D3636; // Teks kecil pada danger-soft, kontras >= 4.5:1
 $sibk-danger-soft: #F9E7E7;    // Penpot: danger tint
 $sibk-danger-border: #EEC5C5;  // turunan danger-soft
+$sibk-danger-button-start: #c45d5d;
+$sibk-danger-button-end: #a84747;
+$sibk-danger-button-hover: #963d3d;
+$sibk-danger-button-pressed: #832e2e;
 $sibk-info: #2F6FC6;
-$sibk-info-soft: #E9F2FB;    // Penpot: info/primary tint
-$sibk-purple: #6657C8;
-$sibk-purple-soft: #EEEAFD;  // Penpot: limited/purple tint
+$sibk-info-action: #0891b2;
+$sibk-info-action-hover: #cffafe;
+$sibk-info-action-soft: #f0fdfe;
+$sibk-info-action-border-hover: #a5f3fc;
+$sibk-success-action-hover: #dcfce7;
+$sibk-danger-action-hover: #fee2e2;
+
+// Kontrol tindak lanjut menggunakan biru sendiri agar tetap sama saat warna brand berubah.
+$sibk-followup-blue: #2563eb;
+$sibk-followup-blue-strong: #1d4ed8;
+$sibk-followup-blue-soft: #eff6ff;
+$sibk-followup-blue-hover: #dbeafe;
+$sibk-followup-blue-border: #bfdbfe;
+$sibk-followup-blue-border-hover: #93c5fd;
+$sibk-followup-blue-text-hover: #1e40af;
+$sibk-followup-blue-chevron: #3b82f6;
+$sibk-followup-text: #1e293b;
+$sibk-followup-muted: #94a3b8;
+
+// Warna kartu statistik tetap semantik; tidak mengikuti warna brand.
+$sibk-tone-primary-bg: #edf4fa;
+$sibk-tone-primary-border: #4072b2;
+$sibk-tone-primary-icon: #d7e6f5;
+$sibk-tone-primary-text: #2659a0;
+$sibk-tone-warning-bg: #fdf3eb;
+$sibk-tone-warning-border: #d16b24;
+$sibk-tone-warning-icon: #fae2d0;
+$sibk-tone-success-bg: #ebf6f0;
+$sibk-tone-success-border: #3d8e57;
+$sibk-tone-success-icon: #d1ead9;
+$sibk-tone-success-text: #287044;
+$sibk-tone-info-bg: #f2effb;
+$sibk-tone-info-border: #7457c1;
+$sibk-tone-info-icon: #e2def4;
+$sibk-tone-info-text: #5d4bab;
+$sibk-tone-danger-bg: #fdeeee;
+$sibk-tone-danger-border: #dc3545;
+$sibk-tone-danger-icon: #fbd6d9;
 
 // Fokus, bayangan (Neumorphism & Elevation - Formula Themesberg Neumorphic)
-$sibk-focus-ring: rgba(47, 111, 198, 0.35);
+$sibk-focus-ring: rgba($sibk-primary, 0.35);
+$sibk-shadow-warm: #bcafa0;
+$sibk-primary-shadow: #23559b;
+$sibk-primary-shadow-pressed: #0a234b;
+$sibk-danger-shadow-pressed: #460f0f;
+$sibk-success-shadow-pressed: #0c4a3d;
 
 // Raised Surfaces (Cards, Panels, Modals)
-$sibk-shadow-raised-sm: 3px 3px 6px rgba(188, 175, 160, 0.45), -3px -3px 6px rgba(255, 255, 255, 0.95);
-$sibk-shadow-raised: 6px 6px 14px rgba(188, 175, 160, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.95), 2px 2px 4px rgba(188, 175, 160, 0.25);
-$sibk-shadow-raised-hover: 9px 9px 20px rgba(188, 175, 160, 0.6), -9px -9px 20px rgba(255, 255, 255, 1), 3px 3px 6px rgba(188, 175, 160, 0.3);
+$sibk-shadow-raised-sm: 3px 3px 6px rgba($sibk-shadow-warm, 0.45), -3px -3px 6px rgba(255, 255, 255, 0.95);
+$sibk-shadow-raised: 6px 6px 14px rgba($sibk-shadow-warm, 0.5), -6px -6px 14px rgba(255, 255, 255, 0.95), 2px 2px 4px rgba($sibk-shadow-warm, 0.25);
+$sibk-shadow-raised-hover: 9px 9px 20px rgba($sibk-shadow-warm, 0.6), -9px -9px 20px rgba(255, 255, 255, 1), 3px 3px 6px rgba($sibk-shadow-warm, 0.3);
 
 // Inset Fields (Inputs, Search Bar, Recessed Containers, Pressed States, Tables)
-$sibk-shadow-inset-sm: inset 2px 2px 5px rgba(188, 175, 160, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.95);
-$sibk-shadow-inset: inset 3px 3px 8px rgba(188, 175, 160, 0.55), inset -3px -3px 8px rgba(255, 255, 255, 0.95);
-$sibk-shadow-inset-lg: inset 6px 6px 14px rgba(188, 175, 160, 0.6), inset -6px -6px 14px rgba(255, 255, 255, 1);
+$sibk-shadow-inset-sm: inset 2px 2px 5px rgba($sibk-shadow-warm, 0.5), inset -2px -2px 5px rgba(255, 255, 255, 0.95);
+$sibk-shadow-inset: inset 3px 3px 8px rgba($sibk-shadow-warm, 0.55), inset -3px -3px 8px rgba(255, 255, 255, 0.95);
+$sibk-shadow-inset-lg: inset 6px 6px 14px rgba($sibk-shadow-warm, 0.6), inset -6px -6px 14px rgba(255, 255, 255, 1);
 
 // Button Shadows (Tactile Elevated & Inset Active)
-$sibk-shadow-button: 5px 5px 12px rgba(35, 85, 155, 0.42), -4px -4px 10px rgba(255, 255, 255, 0.95), 0 3px 6px rgba(47, 111, 198, 0.3);
-$sibk-shadow-button-hover: 7px 7px 16px rgba(35, 85, 155, 0.52), -5px -5px 12px rgba(255, 255, 255, 1), 0 5px 10px rgba(47, 111, 198, 0.4);
-$sibk-shadow-button-active: inset 3px 3px 6px rgba(15, 45, 90, 0.65), inset -3px -3px 6px rgba(255, 255, 255, 0.3);
+$sibk-shadow-button: 5px 5px 12px rgba($sibk-primary-shadow, 0.42), -4px -4px 10px rgba(255, 255, 255, 0.95), 0 3px 6px rgba($sibk-primary, 0.3);
 
 // Neutral / Light Button Shadows (Themesberg signature tactile button)
-$sibk-shadow-btn-light: 5px 5px 10px rgba(188, 175, 160, 0.55), -5px -5px 10px #ffffff;
-$sibk-shadow-btn-light-hover: 7px 7px 15px rgba(188, 175, 160, 0.65), -7px -7px 15px #ffffff;
-$sibk-shadow-btn-light-active: inset 3px 3px 6px rgba(188, 175, 160, 0.6), inset -3px -3px 6px #ffffff;
+$sibk-shadow-btn-light: 5px 5px 10px rgba($sibk-shadow-warm, 0.55), -5px -5px 10px #ffffff;
 
 $sibk-radius-sm: 14px;
 $sibk-radius-md: 16px;
@@ -71,5 +136,5 @@ $sibk-radius-lg: 18px;
 $sibk-radius-xl: 24px;
 
 // Dimensi shell
-$sibk-sidebar-width: 250px;
-$sibk-topbar-height: 4.5rem;
+$sibk-sidebar-width: 17.5rem;
+$sibk-sidebar-gap: 1rem;
