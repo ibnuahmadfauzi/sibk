@@ -24,7 +24,6 @@ final class WebAppearanceController extends Controller
             'hasCustomLogo' => $appearance->hasCustomLogo(),
             'hasAgencyLogo' => $appearance->agencyLogoPath() !== null,
             'selectedTheme' => $appearance->theme(),
-            'customPalette' => $appearance->customPalette(),
         ]);
     }
 
@@ -37,7 +36,7 @@ final class WebAppearanceController extends Controller
 
     public function updateTheme(UpdateWebThemeRequest $request, WebAppearanceService $appearance): RedirectResponse
     {
-        $appearance->updateTheme($request->validated('theme'), $request->user(), $request->validated('custom_palette', []));
+        $appearance->updateTheme($request->validated('theme'), $request->user());
 
         return redirect()->route('admin.web-settings.edit')->with('success', 'Tema web berhasil diperbarui.');
     }
@@ -51,22 +50,26 @@ final class WebAppearanceController extends Controller
 
     public function logo(Request $request, WebAppearanceService $appearance): BinaryFileResponse
     {
-        return response()->file($appearance->logoPath(), [
-            'Content-Type' => 'image/png',
-            'Cache-Control' => 'no-store',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return $this->logoResponse($request, $appearance->logoPath());
     }
 
-    public function agencyLogo(WebAppearanceService $appearance): BinaryFileResponse
+    public function agencyLogo(Request $request, WebAppearanceService $appearance): BinaryFileResponse
     {
         $path = $appearance->agencyLogoPath();
         abort_if($path === null, 404);
 
-        return response()->file($path, [
+        return $this->logoResponse($request, $path);
+    }
+
+    private function logoResponse(Request $request, string $path): BinaryFileResponse
+    {
+        $version = hash_file('xxh128', $path);
+        $response = response()->file($path, [
             'Content-Type' => 'image/png',
-            'Cache-Control' => 'no-store',
             'X-Content-Type-Options' => 'nosniff',
-        ]);
+        ])->setPublic()->setMaxAge($request->query('v') === $version ? 3600 : 0)->setEtag($version);
+        $response->isNotModified($request);
+
+        return $response;
     }
 }
