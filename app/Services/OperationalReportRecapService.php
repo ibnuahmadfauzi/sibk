@@ -370,7 +370,8 @@ final class OperationalReportRecapService implements OperationalReportRecap
 
         return DB::query()->fromSub($events, 'report_records')
             ->when($period, fn (QueryBuilder $query, array $selected): QueryBuilder => $query
-                ->whereBetween('service_date', [$selected['start'], $selected['end']]));
+                ->where('service_date', '>=', $selected['start'])
+                ->where('service_date', '<', CarbonImmutable::parse($selected['end'])->addDay()->toDateString()));
     }
 
     /**

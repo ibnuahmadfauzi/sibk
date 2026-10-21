@@ -528,7 +528,7 @@ class OperationalReportRecapTest extends TestCase
             ->assertSessionHasErrors('semester');
         $this->actingAs($owner)->get(route('reports.index', $base + ['date_from' => '2026/09/01']))
             ->assertSessionHasErrors('date_from');
-        $invalidRange = $this->actingAs($owner)->get(route('reports.index', $base + [
+        $invalidRange = $this->actingAs($owner)->get(route('reports.preview', $base + [
             'semester' => '1', 'date_from' => '2026-12-31', 'date_to' => '2026-09-01',
         ]));
         $invalidRange->assertSessionHasErrors('date_to');
