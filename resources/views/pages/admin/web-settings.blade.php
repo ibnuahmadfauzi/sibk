@@ -37,7 +37,7 @@
                                 <input id="webLogo" name="logo" type="file" class="form-control @error('logo') is-invalid @enderror" accept="image/png,image/jpeg" required aria-describedby="webLogoHelp">
                             </div>
                             <div class="col-12 col-lg-auto">
-                                <button type="submit" class="btn btn-primary">Simpan logo</button>
+                                <button type="submit" class="btn btn-primary">Simpan</button>
                             </div>
                         </div>
                         <p id="webLogoHelp" class="form-text">PNG atau JPEG, maksimal 2 MB dan 2048 × 2048 piksel. Sebaiknya gunakan gambar persegi dengan latar transparan.</p>
@@ -63,7 +63,7 @@
                                     <input id="agencyLogo" name="logo" type="file" class="form-control" accept="image/png,image/jpeg" required aria-describedby="agencyLogoHelp">
                                 </div>
                                 <div class="col-12 col-lg-auto">
-                                    <button type="submit" class="btn btn-primary">Simpan logo dinas</button>
+                                    <button type="submit" class="btn btn-primary">Simpan</button>
                                 </div>
                             </div>
                             <p id="agencyLogoHelp" class="form-text">PNG atau JPEG, maksimal 2 MB dan 2048 &times; 2048 piksel. Hanya digunakan pada kop laporan.</p>
