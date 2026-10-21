@@ -1,6 +1,6 @@
 <section class="sibk-panel sibk-data-master-tab-panel mb-4" aria-labelledby="etatib-api-title">
 
-    <div class="sibk-panel__body p-4">
+    <div class="sibk-panel__body p-4" data-saved-api-url data-reveal-url="{{ route('data-master.api-connections.reveal', ['provider' => 'etatib']) }}">
         @if($etatibAutomaticSetting['enabled'])
             <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
                 <div>
@@ -22,8 +22,6 @@
             </div>
         @endif
 
-        @include('pages.data-master._saved-api-url', ['provider' => 'etatib', 'label' => 'API e-Tatib'])
-
         <form
             id="etatib-api-form"
             action="{{ route('data-master.etatib.sync') }}"
@@ -38,38 +36,9 @@
             data-saved-api-source-form
         >
             @csrf
-            @if($savedApiUrls['etatib'] ?? false)
-                <label class="form-check-label d-flex align-items-center gap-2" for="etatib_use_saved">
-                    <input class="form-check-input m-0" id="etatib_use_saved" type="checkbox" name="use_saved_api" value="1" checked data-saved-api-choice>
-                    Gunakan API tersimpan
-                </label>
-            @endif
-            <div class="row g-2 align-items-stretch">
-                <div class="col-12 col-md" data-one-time-api-url @if($savedApiUrls['etatib'] ?? false) hidden @endif>
-                    <label class="form-label small mb-0" for="etatib_api_url">Tautan API e-Tatib sekali pakai</label>
-                    <input
-                        class="form-control"
-                        type="url"
-                        id="etatib_api_url"
-                        name="api_url"
-                        maxlength="2048"
-                        placeholder="https://api-sekolah.example/pelanggaran"
-                        autocomplete="off"
-                        @if($savedApiUrls['etatib'] ?? false) disabled @else required @endif
-                    >
-                </div>
-                <div class="col-12 col-md-auto">
-                    <button
-                        type="submit"
-                        class="btn btn-primary w-100 h-100"
-                        data-action-tooltip="Periksa data dari tautan e-Tatib sebelum menyimpannya ke aplikasi."
-                        data-etatib-preview-button
-                    >
-                        Tinjau Data
-                    </button>
-                </div>
-            </div>
+            @include('pages.data-master._saved-api-url', ['provider' => 'etatib', 'label' => 'API e-Tatib', 'inputId' => 'etatib_api_url', 'placeholder' => 'https://api-sekolah.example/pelanggaran'])
         </form>
+        @include('pages.data-master._saved-api-url-modal', ['provider' => 'etatib', 'label' => 'API e-Tatib'])
     </div>
 </section>
 

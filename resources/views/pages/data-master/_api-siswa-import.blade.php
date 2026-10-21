@@ -1,5 +1,5 @@
 <div aria-labelledby="api-siswa-import-title">
-    <div class="sibk-panel__body p-4">
+    <div class="sibk-panel__body p-4" data-saved-api-url data-reveal-url="{{ route('data-master.api-connections.reveal', ['provider' => 'dapodik']) }}">
         @if(! $importableYearExists)
             <div class="alert alert-info">
                 <a href="#academic-year-preparation-title">Buat tahun ajaran</a> agar impor dapat dimulai.
@@ -10,8 +10,6 @@
         @error('data')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
         @error('file')<div class="alert alert-danger py-2">{{ $message }}</div>@enderror
 
-        @include('pages.data-master._saved-api-url', ['provider' => 'dapodik', 'label' => 'API Siswa'])
-
         <form
             action="{{ route('data-master.roster-imports.store') }}"
             method="POST"
@@ -21,36 +19,9 @@
             data-saved-api-source-form
         >
             @csrf
-            @if($savedApiUrls['dapodik'] ?? false)
-                <label class="form-check-label d-flex align-items-center gap-2" for="api_siswa_use_saved">
-                    <input class="form-check-input m-0" id="api_siswa_use_saved" type="checkbox" name="use_saved_api" value="1" checked data-saved-api-choice>
-                    Gunakan API tersimpan
-                </label>
-            @endif
-            <div data-one-time-api-url @if($savedApiUrls['dapodik'] ?? false) hidden @endif>
-                <label class="form-label small" for="api_siswa_url">Tautan API Siswa sekali pakai</label>
-                <input
-                    class="form-control"
-                    type="url"
-                    id="api_siswa_url"
-                    name="api_url"
-                    maxlength="2048"
-                    placeholder="https://api-sekolah.example/data-siswa"
-                    autocomplete="off"
-                    @if($savedApiUrls['dapodik'] ?? false) disabled @else required @endif
-                >
-            </div>
-            <div class="d-flex justify-content-end">
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                    data-api-siswa-preview-button
-                    @disabled(! $importableYearExists)
-                >
-                    Tinjau Data
-                </button>
-            </div>
+            @include('pages.data-master._saved-api-url', ['provider' => 'dapodik', 'label' => 'API Siswa', 'inputId' => 'api_siswa_url', 'placeholder' => 'https://api-sekolah.example/data-siswa'])
         </form>
+        @include('pages.data-master._saved-api-url-modal', ['provider' => 'dapodik', 'label' => 'API Siswa'])
 
         <details class="border-top mt-4 pt-3" @if($errors->has('file')) open @endif>
             <summary class="fw-semibold text-primary py-2">Impor CSV atau Excel jika API belum tersedia</summary>

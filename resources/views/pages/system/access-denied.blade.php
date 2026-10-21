@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-web-theme="{{ app(\App\Services\WebAppearanceService::class)->theme() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Akses Ditolak - Ruang BK</title>
     @vite(['resources/scss/app-dashboard.scss', 'resources/js/app-dashboard.js'])
+    <x-web-theme />
 </head>
 <body>
     <div class="sibk-access-denied-page" data-page-id="PG-901">

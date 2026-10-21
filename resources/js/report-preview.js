@@ -1,10 +1,7 @@
-export const resetReportPeriodFilters = (select) => {
+export const resetReportYearFilters = (select) => {
     const form = select.closest('form');
-    form?.querySelectorAll('[name="date_from"], [name="date_to"]').forEach((field) => { field.value = ''; });
-    if (select.matches('[data-report-year-filter]')) {
-        const classroom = form?.querySelector('[name="classroom_search"]');
-        if (classroom) classroom.value = '';
-    }
+    const classroom = form?.querySelector('[name="classroom_search"]');
+    if (classroom) classroom.value = '';
 };
 
 export const initReportPreview = (Modal) => {
@@ -18,8 +15,41 @@ export const initReportPreview = (Modal) => {
     const defaultErrorMessage = errorMessage.textContent;
     const printButton = modal.querySelector('[data-report-preview-print]');
     const retryButton = modal.querySelector('[data-report-preview-retry]');
+    const download = modal.querySelector('[data-report-preview-download]');
+    const fallback = modal.querySelector('[data-report-preview-fallback]');
+    const periodForm = modal.querySelector('[data-report-period-form]');
+    const periodStatus = modal.querySelector('[data-report-period-status]');
+    const periodPanel = modal.querySelector('[data-report-period-panel]');
+    const periodLabel = modal.querySelector('[data-report-period-label]');
+    const mobile = window.matchMedia('(max-width: 575.98px)');
+    if (periodPanel) {
+        periodPanel.open = !mobile.matches;
+        mobile.addEventListener('change', () => { periodPanel.open = !mobile.matches; });
+    }
+    modal.querySelector('[data-report-period-help]')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        event.currentTarget.focus();
+    });
+    const field = (name) => periodForm.querySelector(`[name="${name}"]`);
     let ready = false;
+    let dirty = false;
     let loadTimeout;
+
+    const disableOutput = () => {
+        printButton.disabled = true;
+        download.removeAttribute('href');
+        download.setAttribute('aria-disabled', 'true');
+        download.setAttribute('tabindex', '-1');
+        download.classList.add('disabled');
+    };
+
+    const periodUrl = (base) => {
+        const url = new URL(base);
+        for (const name of ['semester', 'date_from', 'date_to']) {
+            url.searchParams.set(name, field(name).value);
+        }
+        return url;
+    };
 
     const fitPaper = () => {
         if (!ready) return;
@@ -43,7 +73,7 @@ export const initReportPreview = (Modal) => {
     const showLoading = () => {
         ready = false;
         errorMessage.textContent = defaultErrorMessage;
-        printButton.disabled = true;
+        disableOutput();
         frame.classList.add('d-none');
         error.classList.add('d-none');
         loading.classList.remove('d-none');
@@ -51,23 +81,64 @@ export const initReportPreview = (Modal) => {
 
     const showError = (message = defaultErrorMessage) => {
         clearLoadTimeout();
+        if (periodPanel && mobile.matches) periodPanel.open = true;
         ready = false;
         errorMessage.textContent = message;
-        printButton.disabled = true;
+        disableOutput();
         frame.classList.add('d-none');
         loading.classList.add('d-none');
         error.classList.remove('d-none');
     };
 
     const load = () => {
+        if (!periodForm) {
+            showError(modal.querySelector('[data-report-period-unavailable]')?.textContent || defaultErrorMessage);
+            return;
+        }
+        const from = field('date_from');
+        const to = field('date_to');
+        to.setCustomValidity(from.value && to.value && from.value > to.value ? 'Tanggal akhir tidak boleh sebelum tanggal awal.' : '');
+        if (!periodForm.reportValidity()) return;
+        dirty = false;
+        periodStatus.textContent = '';
         showLoading();
-        frame.src = modal.dataset.previewUrl;
+        frame.src = periodUrl(modal.dataset.previewUrl).href;
+        const standalone = new URL(frame.src);
+        standalone.searchParams.delete('embedded');
+        fallback.href = standalone.href;
         clearLoadTimeout();
         loadTimeout = window.setTimeout(showError, 20000);
+        return true;
     };
 
     modal.addEventListener('show.bs.modal', load);
     retryButton.addEventListener('click', load);
+    periodForm?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (load() && mobile.matches && periodPanel) {
+            periodPanel.open = false;
+            periodPanel.querySelector('summary').focus();
+        }
+    });
+    const markChanged = () => {
+        dirty = true;
+        disableOutput();
+        field('date_to').setCustomValidity('');
+        periodStatus.textContent = 'Periode berubah. Klik Filter untuk memperbarui rekap.';
+    };
+    periodForm?.addEventListener('input', markChanged);
+    periodForm?.querySelector('[name="semester"]').addEventListener('change', () => {
+        const semester = field('semester').value === '1' ? 'One' : 'Two';
+        const start = periodForm.dataset[`semester${semester}Start`];
+        const end = periodForm.dataset[`semester${semester}End`];
+        for (const name of ['date_from', 'date_to']) {
+            field(name).min = start;
+            field(name).max = end;
+        }
+        field('date_from').value = start;
+        field('date_to').value = end;
+        markChanged();
+    });
     frame.addEventListener('load', () => {
         if (!frame.getAttribute('src')) return;
         clearLoadTimeout();
@@ -85,7 +156,14 @@ export const initReportPreview = (Modal) => {
             error.classList.add('d-none');
             frame.classList.remove('d-none');
             fitPaper();
-            printButton.disabled = false;
+            if (!dirty) {
+                if (periodLabel) periodLabel.textContent = ['date_from', 'date_to'].map((name) => field(name).value.split('-').reverse().join('/')).join(' – ');
+                printButton.disabled = false;
+                download.setAttribute('href', periodUrl(download.dataset.exportUrl).href);
+                download.setAttribute('aria-disabled', 'false');
+                download.removeAttribute('tabindex');
+                download.classList.remove('disabled');
+            }
         } catch {
             showError();
         }
@@ -93,9 +171,11 @@ export const initReportPreview = (Modal) => {
     frame.addEventListener('error', () => showError());
 
     printButton.addEventListener('click', async () => {
-        if (!ready) return;
+        if (!ready || dirty) return;
         try {
-            await frame.contentDocument.fonts.ready;
+            const document = frame.contentDocument;
+            await document.fonts.ready;
+            if (!ready || dirty || frame.contentDocument !== document) return;
             frame.contentWindow.focus();
             frame.contentWindow.print();
         } catch {
