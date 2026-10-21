@@ -32,12 +32,16 @@
                     </div>
                     <div class="col-12 col-lg">
                         <label for="webLogo" class="form-label">Unggah logo baru</label>
-                        <input id="webLogo" name="logo" type="file" class="form-control @error('logo') is-invalid @enderror" accept="image/png,image/jpeg" required aria-describedby="webLogoHelp">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-12 col-lg">
+                                <input id="webLogo" name="logo" type="file" class="form-control @error('logo') is-invalid @enderror" accept="image/png,image/jpeg" required aria-describedby="webLogoHelp">
+                            </div>
+                            <div class="col-12 col-lg-auto">
+                                <button type="submit" class="btn btn-primary">Simpan logo</button>
+                            </div>
+                        </div>
                         <p id="webLogoHelp" class="form-text">PNG atau JPEG, maksimal 2 MB dan 2048 × 2048 piksel. Sebaiknya gunakan gambar persegi dengan latar transparan.</p>
                         @error('logo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="col-12 col-lg-auto">
-                        <button type="submit" class="btn btn-primary">Simpan logo</button>
                     </div>
                 </form>
             </div>
