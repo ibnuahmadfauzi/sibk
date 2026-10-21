@@ -19,6 +19,17 @@ export const initReportPreview = (Modal) => {
     const fallback = modal.querySelector('[data-report-preview-fallback]');
     const periodForm = modal.querySelector('[data-report-period-form]');
     const periodStatus = modal.querySelector('[data-report-period-status]');
+    const periodPanel = modal.querySelector('[data-report-period-panel]');
+    const periodLabel = modal.querySelector('[data-report-period-label]');
+    const mobile = window.matchMedia('(max-width: 575.98px)');
+    if (periodPanel) {
+        periodPanel.open = !mobile.matches;
+        mobile.addEventListener('change', () => { periodPanel.open = !mobile.matches; });
+    }
+    modal.querySelector('[data-report-period-help]')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        event.currentTarget.focus();
+    });
     const field = (name) => periodForm.querySelector(`[name="${name}"]`);
     let ready = false;
     let dirty = false;
@@ -70,6 +81,7 @@ export const initReportPreview = (Modal) => {
 
     const showError = (message = defaultErrorMessage) => {
         clearLoadTimeout();
+        if (periodPanel && mobile.matches) periodPanel.open = true;
         ready = false;
         errorMessage.textContent = message;
         disableOutput();
@@ -96,19 +108,23 @@ export const initReportPreview = (Modal) => {
         fallback.href = standalone.href;
         clearLoadTimeout();
         loadTimeout = window.setTimeout(showError, 20000);
+        return true;
     };
 
     modal.addEventListener('show.bs.modal', load);
     retryButton.addEventListener('click', load);
     periodForm?.addEventListener('submit', (event) => {
         event.preventDefault();
-        load();
+        if (load() && mobile.matches && periodPanel) {
+            periodPanel.open = false;
+            periodPanel.querySelector('summary').focus();
+        }
     });
     const markChanged = () => {
         dirty = true;
         disableOutput();
         field('date_to').setCustomValidity('');
-        periodStatus.textContent = 'Periode berubah. Klik Perbarui rekap sebelum mencetak atau mengunduh.';
+        periodStatus.textContent = 'Periode berubah. Klik Filter untuk memperbarui rekap.';
     };
     periodForm?.addEventListener('input', markChanged);
     periodForm?.querySelector('[name="semester"]').addEventListener('change', () => {
@@ -141,6 +157,7 @@ export const initReportPreview = (Modal) => {
             frame.classList.remove('d-none');
             fitPaper();
             if (!dirty) {
+                if (periodLabel) periodLabel.textContent = ['date_from', 'date_to'].map((name) => field(name).value.split('-').reverse().join('/')).join(' – ');
                 printButton.disabled = false;
                 download.setAttribute('href', periodUrl(download.dataset.exportUrl).href);
                 download.setAttribute('aria-disabled', 'false');

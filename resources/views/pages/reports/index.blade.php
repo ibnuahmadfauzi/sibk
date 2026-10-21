@@ -93,7 +93,7 @@
                     <div class="modal-header">
                         <h2 class="modal-title fs-5 me-auto" id="report-preview-title">Pratinjau Rekap</h2>
                         <a class="btn btn-success sibk-report-preview-modal__download disabled" aria-disabled="true" tabindex="-1" data-report-preview-download data-export-url="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}">Unduh Excel</a>
-                        <button class="btn btn-primary" type="button" data-report-preview-print disabled>Cetak / Simpan PDF</button>
+                        <button class="btn btn-primary" type="button" data-report-preview-print disabled><span class="d-none d-sm-inline">Cetak / Simpan PDF</span><span class="d-sm-none">Cetak / PDF</span></button>
                         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
                     @include('pages.reports._recap-period')
