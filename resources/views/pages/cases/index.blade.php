@@ -43,6 +43,9 @@
                 @forelse($cases as $case)
                     @php
                         $completed = $case->status?->code === \App\Support\ServiceRecordStatus::COMPLETED;
+                        $canViewCase = auth()->user()->can('view', $case);
+                        $canUpdateCase = auth()->user()->can('update', $case);
+                        $canArchiveCase = auth()->user()->can('archive', $case);
                     @endphp
                     <tr>
                         <td>
@@ -91,7 +94,7 @@
                                         @endforelse
                                     </div>
 
-                                    @can('update', $case)
+                                    @if($canUpdateCase)
                                         @if(! $completed && $case->followUps->pluck('follow_up_type_id')->intersect($followUpTypes->pluck('id'))->unique()->count() < $followUpTypes->count())
                                             <div class="sibk-follow-up-add-wrapper">
                                                 <button type="button"
@@ -109,19 +112,19 @@
                                                 </button>
                                             </div>
                                         @endif
-                                    @endcan
+                                    @endif
                                 </div>
                             </div>
 
-                            @can('update', $case)
+                            @if($canUpdateCase)
                             <span id="case-follow-up-{{ $case->id }}" class="visually-hidden">{{ $case->followUpType?->label ?? 'Belum ada' }}</span>
                             <span id="case-updated-at-{{ $case->id }}" class="visually-hidden">{{ $case->updated_at->toJSON() }}</span>
-                            @endcan
+                            @endif
                         </td>
                         <td class="sibk-case-result">{{ $isWakaOnly ? '—' : ($case->resolution_summary ?: '—') }}</td>
                         <td>
                             <div class="d-flex align-items-center gap-1">
-                                @can('view', $case)
+                                @if($canViewCase)
                                     @unless($isWakaOnly)
                                         <button type="button" class="btn btn-icon-action btn-icon-action--primary"
                                             data-report-detail-toggle data-report-detail-name="{{ $case->identityName() }}"
@@ -136,8 +139,8 @@
                                         title="Lihat selengkapnya" aria-label="Lihat selengkapnya">
                                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 11v6m0-10v.01"/></svg>
                                     </a>
-                                @endcan
-                                @can('update', $case)
+                                @endif
+                                @if($canUpdateCase)
                                     {{-- 1. Edit (pensil) --}}
                                     <a href="{{ route('cases.edit', $case) }}"
                                         data-modal-url="{{ route('cases.edit', [$case, 'modal' => 1]) }}"
@@ -156,9 +159,9 @@
                                         title="Edit">
                                         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>
                                     </a>
-                                @endcan
+                                @endif
 
-                                @can('archive', $case)
+                                @if($canArchiveCase)
                                     {{-- 2. Hapus (trash) --}}
                                     @if($completed)
                                         <button type="button" class="btn btn-icon-action btn-icon-action--disabled" disabled title="Permasalahan telah selesai">
@@ -179,9 +182,9 @@
                                             </button>
                                         </form>
                                     @endif
-                                @endcan
+                                @endif
 
-                                @can('update', $case)
+                                @if($canUpdateCase)
                                     {{-- 3. Selesai (centang) --}}
                                     @if($completed)
                                         <button type="button" class="btn btn-icon-action btn-icon-action--disabled" disabled title="Permasalahan telah selesai">
@@ -203,12 +206,12 @@
                                             </button>
                                         </form>
                                     @endif
-                                @endcan
+                                @endif
                             </div>
                         </td>
                     </tr>
                     @unless($isWakaOnly)
-                        @can('view', $case)
+                        @if($canViewCase)
                             <tr class="sibk-report-detail-row d-none" id="case-notes-{{ $case->id }}">
                                 <td colspan="6">
                                     <div class="sibk-report-detail-panel">
@@ -229,7 +232,7 @@
                                     </div>
                                 </td>
                             </tr>
-                        @endcan
+                        @endif
                     @endunless
                 @empty<tr><td colspan="6" class="text-center text-muted py-4">Belum ada permasalahan yang dapat Anda akses.</td></tr>@endforelse
             </tbody></table></div>@if($cases->hasPages())<div class="mt-3">{{ $cases->links() }}</div>@endif
