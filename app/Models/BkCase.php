@@ -166,6 +166,10 @@ class BkCase extends Model
 
     public function isOwnedBy(User $user): bool
     {
+        if ($this->relationLoaded('assignments')) {
+            return $this->assignments->contains('user_id', $user->getKey());
+        }
+
         return $this->assignments()
             ->where('user_id', $user->getKey())
             ->exists();

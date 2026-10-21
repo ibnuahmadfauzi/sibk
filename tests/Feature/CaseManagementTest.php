@@ -26,6 +26,7 @@ use Carbon\Carbon;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class CaseManagementTest extends TestCase
@@ -671,6 +672,30 @@ class CaseManagementTest extends TestCase
             ->assertDontSee("/cases/{$case->id}/follow-ups/create", false)
             ->assertDontSee("/cases/{$case->id}/resolve", false);
         $this->assertSame(1, substr_count($response->getContent(), 'id="case-modal"'));
+    }
+
+    public function test_case_list_query_count_does_not_grow_for_repeated_permission_checks(): void
+    {
+        $teacher = $this->userWithRole('guru_bk');
+        $student = $this->scopedStudent($teacher);
+        $this->createCase($teacher, $student);
+        $this->actingAs($teacher);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->get(route('cases.index'))->assertOk();
+        $singleCaseQueries = count(DB::getQueryLog());
+
+        for ($i = 1; $i < 20; $i++) {
+            $this->createCase($teacher, $student);
+        }
+
+        DB::flushQueryLog();
+        $this->get(route('cases.index'))->assertOk();
+        $twentyCaseQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(25, $twentyCaseQueries - $singleCaseQueries);
     }
 
     public function test_case_list_shows_result_and_expandable_notes_only_to_professional_users(): void

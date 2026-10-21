@@ -131,7 +131,7 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('data-report-page-size', false)
             ->assertDontSee('class="sibk-panel sibk-operational-report"', false)
             ->assertSee('sibk-operational-report-table', false)
-            ->assertDontSee('Cetak / Unduh Rekap')
+            ->assertDontSee('data-bs-target="#report-preview-modal"', false)
             ->assertDontSee('onclick=', false);
     }
 
@@ -146,7 +146,7 @@ class FrontendPreviewTest extends TestCase
             ->assertDontSee('Catatan Layanan')
             ->assertDontSee('data-report-page-size', false)
             ->assertDontSee('class="sibk-panel sibk-operational-report"', false)
-            ->assertSee('Cetak / Unduh Rekap')
+            ->assertSee('data-bs-target="#report-preview-modal"', false)
             ->assertDontSee('onclick=', false);
     }
 
