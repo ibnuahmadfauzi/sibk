@@ -6,8 +6,10 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\WebAppearance;
+use App\Support\WebThemePalette;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -19,12 +21,22 @@ final class WebAppearanceService
 
     public function logoPath(): string
     {
-        $stored = WebAppearance::query()->whereKey(1)->value('logo_path');
+        return $this->storedLogoPath('logo_path') ?? public_path('assets/images/logo.png');
+    }
+
+    public function agencyLogoPath(): ?string
+    {
+        return $this->storedLogoPath('agency_logo_path');
+    }
+
+    private function storedLogoPath(string $column): ?string
+    {
+        $stored = WebAppearance::query()->whereKey(1)->value($column);
 
         return is_string($stored) && preg_match('/\Abranding\/[A-Za-z0-9]{40}\.png\z/', $stored) === 1
             && Storage::disk('local')->exists($stored)
                 ? Storage::disk('local')->path($stored)
-                : public_path('assets/images/logo.png');
+                : null;
     }
 
     public function hasCustomLogo(): bool
@@ -32,7 +44,89 @@ final class WebAppearanceService
         return $this->logoPath() !== public_path('assets/images/logo.png');
     }
 
+    public function theme(): string
+    {
+        $appearance = WebAppearance::query()->whereKey(1)->first();
+        $stored = $appearance?->theme;
+
+        return in_array($stored, WebAppearance::THEMES, true)
+            && ($stored !== 'custom' || (is_array($appearance->custom_palette) && WebThemePalette::errors($appearance->custom_palette) === []))
+                ? $stored : 'default';
+    }
+
+    /** @return array<string, string> */
+    public function customPalette(): array
+    {
+        $stored = WebAppearance::query()->whereKey(1)->first()?->custom_palette;
+
+        return is_array($stored) && WebThemePalette::errors($stored) === []
+            ? $stored : WebThemePalette::DEFAULT_COLORS;
+    }
+
+    /** @return array<string, string> */
+    public function themeVariables(): array
+    {
+        $theme = $this->theme();
+        if ($theme === 'default') {
+            return [];
+        }
+
+        return WebThemePalette::variables($theme === 'custom' ? $this->customPalette() : WebThemePalette::PRESETS[$theme]);
+    }
+
+    public function updateTheme(string $theme, User $actor, array $customPalette = []): void
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+        if (! in_array($theme, WebAppearance::THEMES, true)) {
+            throw ValidationException::withMessages(['theme' => 'Pilih tema yang tersedia.']);
+        }
+        if ($theme === 'custom') {
+            $errors = WebThemePalette::errors($customPalette);
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+            $customPalette = array_map(strtolower(...), $customPalette);
+        }
+
+        DB::transaction(function () use ($theme, $actor, $customPalette): void {
+            $appearance = WebAppearance::query()->whereKey(1)->lockForUpdate()->firstOrFail();
+            $before = ['theme' => $appearance->theme];
+            $after = ['theme' => $theme];
+            if ($theme === 'custom') {
+                $before['custom_palette'] = $appearance->custom_palette;
+                $after['custom_palette'] = $customPalette;
+            }
+            if ($before === $after) {
+                return;
+            }
+
+            $appearance->theme = $theme;
+            if ($theme === 'custom') {
+                $appearance->custom_palette = $customPalette;
+            }
+            $appearance->save();
+            $this->audit->record(
+                'web_appearance.theme_updated',
+                $appearance,
+                'Tema web diperbarui.',
+                $actor,
+                $before,
+                $after,
+            );
+        });
+    }
+
     public function replaceLogo(UploadedFile $upload, User $actor): void
+    {
+        $this->replaceBrandingLogo($upload, $actor, 'logo_path');
+    }
+
+    public function replaceAgencyLogo(UploadedFile $upload, User $actor): void
+    {
+        $this->replaceBrandingLogo($upload, $actor, 'agency_logo_path');
+    }
+
+    private function replaceBrandingLogo(UploadedFile $upload, User $actor, string $column): void
     {
         $bytes = $upload->get();
         $details = @getimagesizefromstring($bytes);
@@ -62,18 +156,18 @@ final class WebAppearanceService
         }
 
         try {
-            DB::transaction(function () use ($path, $actor): void {
+            DB::transaction(function () use ($path, $actor, $column): void {
                 $appearance = WebAppearance::query()->whereKey(1)->lockForUpdate()->firstOrFail();
-                $previous = $appearance->logo_path;
-                $appearance->logo_path = $path;
+                $previous = $appearance->{$column};
+                $appearance->{$column} = $path;
                 $appearance->save();
                 $this->audit->record(
-                    'web_appearance.logo_updated',
+                    $column === 'logo_path' ? 'web_appearance.logo_updated' : 'web_appearance.agency_logo_updated',
                     $appearance,
-                    'Logo web diperbarui.',
+                    $column === 'logo_path' ? 'Logo web diperbarui.' : 'Logo dinas diperbarui.',
                     $actor,
-                    ['logo_set' => $previous !== null],
-                    ['logo_set' => true],
+                    [$column => $previous !== null],
+                    [$column => true],
                 );
 
             });

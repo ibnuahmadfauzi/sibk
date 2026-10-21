@@ -12,6 +12,7 @@ use App\Services\ReportSignatoryResolver;
 use App\Services\WakaMonitoringService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
@@ -23,7 +24,20 @@ class ReportController extends Controller
     ): View {
         /** @var User $user */
         $user = $request->user();
-        $report = $service->paginateForUi($user, $request->filters());
+        $filters = $request->filters();
+        foreach (['semester', 'date_from', 'date_to'] as $field) {
+            unset($filters[$field]);
+        }
+        $report = $service->paginateForUi($user, $filters);
+        $recapPeriod = $report['period'];
+        $recapPeriodError = null;
+        if ($report['can_view_document'] && $recapPeriod === null) {
+            try {
+                $recapPeriod = $service->defaultPeriodFor($report['academic_year']);
+            } catch (ValidationException $exception) {
+                $recapPeriodError = array_values($exception->errors())[0][0] ?? 'Periode rekap belum tersedia.';
+            }
+        }
 
         if ($user->hasRole('waka_kesiswaan')) {
             $wakaMonitoring->auditViewed(
@@ -37,6 +51,8 @@ class ReportController extends Controller
 
         return view('pages.reports.index', [
             'report' => $report,
+            'recapPeriod' => $recapPeriod,
+            'recapPeriodError' => $recapPeriodError,
         ]);
     }
 

@@ -9,9 +9,9 @@
         'classroom_id' => $report['filters']['classroom_id'],
         'classroom_search' => $report['filters']['classroom_search'],
         'service_type' => $report['filters']['service_type'],
-        'semester' => $report['filters']['semester'] ?? null,
-        'date_from' => $report['filters']['date_from'] ?? null,
-        'date_to' => $report['filters']['date_to'] ?? null,
+        'semester' => $recapPeriod['semester'] ?? null,
+        'date_from' => $recapPeriod['start'] ?? null,
+        'date_to' => $recapPeriod['end'] ?? null,
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 <div
@@ -30,9 +30,8 @@
                     type="button"
                     data-bs-toggle="modal"
                     data-bs-target="#report-preview-modal"
-                    @disabled(empty($report['filters']['semester']))
                 >
-                    Cetak / Unduh Rekap
+                    Buat rekap
                 </button>
             </div>
         @endif
@@ -93,16 +92,17 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h2 class="modal-title fs-5 me-auto" id="report-preview-title">Pratinjau Rekap</h2>
-                        <a class="btn btn-success sibk-report-preview-modal__download" href="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}">Unduh Excel</a>
-                        <button class="btn btn-primary" type="button" data-report-preview-print disabled>Cetak / Simpan PDF</button>
+                        <a class="btn btn-success sibk-report-preview-modal__download disabled" aria-disabled="true" tabindex="-1" data-report-preview-download data-export-url="{{ route('reports.export', [...$documentFilters, 'format' => 'xlsx']) }}">Unduh Excel</a>
+                        <button class="btn btn-primary" type="button" data-report-preview-print disabled><span class="d-none d-sm-inline">Cetak / Simpan PDF</span><span class="d-sm-none">Cetak / PDF</span></button>
                         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
+                    @include('pages.reports._recap-period')
                     <div class="modal-body">
                         <p class="m-auto" role="status" data-report-preview-loading>Menyiapkan pratinjau laporan…</p>
                         <div class="m-auto text-center d-none" role="alert" data-report-preview-error>
                             <p data-report-preview-error-message>Pratinjau belum dapat ditampilkan.</p>
                             <button class="btn btn-outline-primary" type="button" data-report-preview-retry>Coba lagi</button>
-                            <a class="btn btn-link" href="{{ route('reports.preview', $documentFilters) }}" target="_blank" rel="noopener">Buka di halaman baru</a>
+                            <a class="btn btn-link" href="{{ route('reports.preview', $documentFilters) }}" data-report-preview-fallback target="_blank" rel="noopener">Buka di halaman baru</a>
                         </div>
                         <iframe class="d-none" title="Dokumen rekap layanan BK" data-report-preview-frame></iframe>
                     </div>

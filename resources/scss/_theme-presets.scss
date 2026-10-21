@@ -1,0 +1,12 @@
+.sibk-theme-swatch {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: $sibk-primary;
+  flex: 0 0 auto;
+  &--default-primary { background: $sibk-primary; }
+  &--default-page { background: $sibk-page; }
+  &--default-surface { background: $sibk-surface-raised; }
+}

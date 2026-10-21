@@ -17,13 +17,14 @@ import './case-create.js';
 import './table-sort.js';
 import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
-import { initReportPreview, resetReportPeriodFilters } from './report-preview';
+import { initReportPreview, resetReportYearFilters } from './report-preview';
 import { initAchievementForms } from './achievement-form';
 import { displayStudentName } from './student-name';
 import { initAutoFilters } from './auto-filter';
 import { initActionTooltips } from './action-tooltips';
 import { initDashboardViewSwitch } from './dashboard-view-switch';
 import { initEtatibSchedule, initSavedApiUrls } from './saved-api-url';
+import { initWebTheme } from './web-theme';
 
 initActionTooltips();
 initDashboardViewSwitch();
@@ -31,6 +32,7 @@ initFormDrafts();
 initServiceRecords(document, { Modal, Toast });
 initSavedApiUrls(document, { Modal });
 initEtatibSchedule();
+initWebTheme();
 initConsultationCreate();
 initApiSiswaPreview(document, { Modal });
 initRosterExcelPreview(document, { Modal });
@@ -72,8 +74,8 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });
 
-document.querySelectorAll('[data-report-year-filter], [data-report-semester-filter]').forEach((select) => {
-    select.addEventListener('change', () => resetReportPeriodFilters(select));
+document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
+    select.addEventListener('change', () => resetReportYearFilters(select));
 });
 
 initAutoFilters();

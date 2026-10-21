@@ -18,6 +18,7 @@ use App\Models\TemporaryStudent;
 use App\Models\User;
 use App\Models\WithdrawalProgress;
 use App\Services\OperationalReportRecapService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\ReferenceSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -527,7 +528,7 @@ class OperationalReportRecapTest extends TestCase
             ->assertSessionHasErrors('semester');
         $this->actingAs($owner)->get(route('reports.index', $base + ['date_from' => '2026/09/01']))
             ->assertSessionHasErrors('date_from');
-        $invalidRange = $this->actingAs($owner)->get(route('reports.index', $base + [
+        $invalidRange = $this->actingAs($owner)->get(route('reports.preview', $base + [
             'semester' => '1', 'date_from' => '2026-12-31', 'date_to' => '2026-09-01',
         ]));
         $invalidRange->assertSessionHasErrors('date_to');
@@ -582,8 +583,72 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($admin)->get(route('reports.index'))->assertForbidden();
     }
 
+    public function test_recap_defaults_to_last_thirty_days_within_selected_semester(): void
+    {
+        [$year, , , $owner] = $this->caseFixture();
+        $service = app(OperationalReportRecapService::class);
+        foreach ([
+            ['2026-07-01', 1, '2026-07-01', '2026-07-01'],
+            ['2026-10-21', 1, '2026-09-22', '2026-10-21'],
+            ['2027-01-01', 2, '2027-01-01', '2027-01-01'],
+            ['2027-01-30', 2, '2027-01-01', '2027-01-30'],
+        ] as [$today, $semester, $start, $end]) {
+            $this->travelTo(CarbonImmutable::parse($today, 'Asia/Jakarta')->startOfDay());
+            $period = $service->defaultPeriodFor($year);
+            $this->assertSame([$semester, $start, $end], [
+                $period['semester'], $period['start'], $period['end'],
+            ]);
+            $this->assertLessThanOrEqual(30, CarbonImmutable::parse($start)->diffInDays($end) + 1);
+            $this->actingAs($owner)->get(route('reports.index', ['academic_year_id' => $year->id]))
+                ->assertOk()
+                ->assertViewHas('recapPeriod', fn (array $selected): bool => $selected['start'] === $start
+                    && $selected['end'] === $end && $selected['semester'] === $semester);
+        }
+        $this->travelBack();
+    }
+
+    public function test_recap_default_clamps_to_selected_year_and_recorded_dates(): void
+    {
+        [$year] = $this->caseFixture();
+        $service = app(OperationalReportRecapService::class);
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00', 'Asia/Jakarta'));
+
+        $year->update(['name' => '2025/2026', 'starts_on' => '2025-07-01', 'ends_on' => '2026-06-30']);
+        $past = $service->defaultPeriodFor($year);
+        $this->assertSame(['2026-06-01', '2026-06-30', 2], [$past['start'], $past['end'], $past['semester']]);
+
+        $year->update(['name' => '2027/2028', 'starts_on' => '2027-07-15', 'ends_on' => '2028-02-15']);
+        $future = $service->defaultPeriodFor($year);
+        $this->assertSame(['2027-07-15', '2027-07-15', 1], [$future['start'], $future['end'], $future['semester']]);
+
+        $year->update(['name' => '2026/2027', 'starts_on' => '2026-10-01', 'ends_on' => '2027-01-15']);
+        $partial = $service->defaultPeriodFor($year);
+        $this->assertSame(['2026-10-01', '2026-10-21', 1], [$partial['start'], $partial['end'], $partial['semester']]);
+        $this->travelBack();
+    }
+
+    public function test_recap_default_errors_do_not_block_report_list(): void
+    {
+        [$year, , , $owner] = $this->caseFixture();
+        $year->update(['name' => 'Tahun Tidak Pasti', 'starts_on' => null, 'ends_on' => null]);
+        $this->actingAs($owner)->get(route('reports.index', ['academic_year_id' => $year->id]))
+            ->assertOk()
+            ->assertViewHas('recapPeriod', null)
+            ->assertViewHas('recapPeriodError', 'Periode tahun ajaran tidak dapat dipastikan.');
+    }
+
+    public function test_report_without_academic_year_still_opens_with_recap_error(): void
+    {
+        $owner = $this->userWithRole('guru_bk');
+        $this->actingAs($owner)->get(route('reports.index'))
+            ->assertOk()
+            ->assertViewHas('recapPeriod', null)
+            ->assertViewHas('recapPeriodError', 'Tahun ajaran belum tersedia untuk membuat dokumen laporan.');
+    }
+
     public function test_recap_modal_preserves_filters_and_embedded_document_access(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00', 'Asia/Jakarta'));
         [$year, $classroom, , $owner] = $this->caseFixture();
         $filters = [
             'academic_year_id' => $year->id,
@@ -593,10 +658,12 @@ class OperationalReportRecapTest extends TestCase
         ];
 
         $index = $this->actingAs($owner)->get(route('reports.index', $filters));
+        $documentFilters = $filters + ['date_from' => '2026-09-22', 'date_to' => '2026-10-21'];
         $index->assertOk()
             ->assertSee('data-bs-target="#report-preview-modal"', false)
-            ->assertSee('data-preview-url="'.e(route('reports.preview', [...$filters, 'embedded' => 1])).'"', false)
-            ->assertSee('href="'.e(route('reports.export', [...$filters, 'format' => 'xlsx'])).'"', false);
+            ->assertSee('data-preview-url="'.e(route('reports.preview', [...$documentFilters, 'embedded' => 1])).'"', false)
+            ->assertSee('data-export-url="'.e(route('reports.export', [...$documentFilters, 'format' => 'xlsx'])).'"', false)
+            ->assertSee('Buat rekap')->assertSee('data-report-period-form', false);
 
         $this->actingAs($owner)->get(route('reports.preview', [...$filters, 'embedded' => 1]))
             ->assertOk()
@@ -612,6 +679,41 @@ class OperationalReportRecapTest extends TestCase
             ->get(route('reports.preview', [...$filters, 'embedded' => 1]))->assertForbidden();
         $this->actingAs($this->userWithRole('admin_it'))
             ->get(route('reports.preview', [...$filters, 'embedded' => 1]))->assertForbidden();
+        $this->travelBack();
+    }
+
+    public function test_recap_semester_controls_respect_partial_academic_year(): void
+    {
+        [$year, , , $owner] = $this->caseFixture();
+        $this->travelTo(CarbonImmutable::parse('2026-10-21 12:00:00', 'Asia/Jakarta'));
+        $year->update(['starts_on' => '2026-10-01', 'ends_on' => '2027-01-15']);
+        $this->actingAs($owner)->get(route('reports.index'))
+            ->assertOk()
+            ->assertSee('data-semester-one-start="2026-10-01" data-semester-one-end="2026-12-31"', false)
+            ->assertSee('data-semester-two-start="2027-01-01" data-semester-two-end="2027-01-15"', false)
+            ->assertSee('min="2026-10-01" max="2026-12-31" required', false);
+        $year->update(['ends_on' => '2026-12-15']);
+        $response = $this->get(route('reports.index'))->assertOk();
+        $this->assertMatchesRegularExpression('/<option value="2"[^>]*disabled/', $response->getContent());
+        $this->travelBack();
+    }
+
+    public function test_old_period_parameters_do_not_silently_filter_report_list(): void
+    {
+        [$year, , , $owner, $case] = $this->caseFixture();
+        $this->actingAs($owner)->get(route('reports.index', [
+            'academic_year_id' => $year->id,
+            'semester' => '2',
+            'date_from' => '2027-01-01',
+            'date_to' => '2027-01-31',
+        ]))->assertOk()->assertViewHas('report', function (array $report) use ($case): bool {
+            $this->assertSame([$case->id], $report['rows']->pluck('record_id')->all());
+            $this->assertNull($report['period']);
+            foreach (['semester', 'date_from', 'date_to'] as $field) {
+                $this->assertStringNotContainsString($field.'=', $report['rows']->url(2));
+            }
+            return true;
+        });
     }
 
     public function test_recap_document_heading_follows_the_selected_service(): void
