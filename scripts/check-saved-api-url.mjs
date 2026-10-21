@@ -2,36 +2,38 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { initApiSiswaPreview } from '../resources/js/api-siswa-preview.js';
 import { initEtatibApiPreview } from '../resources/js/etatib-api-preview.js';
-import { clearSavedApiSecrets, initEtatibSchedule, revealSavedApiUrl, selectedApiSource, syncSavedApiSource } from '../resources/js/saved-api-url.js';
+import { clearSavedApiSecrets, initEtatibSchedule, initSavedApiUrls, revealSavedApiUrl, selectedApiSource, syncSavedApiSource } from '../resources/js/saved-api-url.js';
 
 const savedView = await readFile('resources/views/pages/data-master/_saved-api-url.blade.php', 'utf8');
 const etatibView = await readFile('resources/views/pages/data-master/_etatib-api-import.blade.php', 'utf8');
-assert.match(savedView, /data-saved-api-new-url/);
-assert.match(savedView, /type="password" name="api_url"/);
+const savedModalView = await readFile('resources/views/pages/data-master/_saved-api-url-modal.blade.php', 'utf8');
+assert.match(savedModalView, /data-saved-api-new-url/);
+assert.match(savedModalView, /type="password" name="api_url"/);
+assert.equal((savedView.match(/name="api_url"/g) || []).length, 1);
+assert.doesNotMatch(savedView, /_saved_api_url|data-one-time-api-url/);
 assert.match(etatibView, /route\('data-master.etatib.automatic.schedule'\)/);
 assert.match(etatibView, /name="schedule_days\[\]"/);
 assert.match(etatibView, /name="schedule_times\[\]"/);
 
 const choice = { checked: true };
-const url = { value: 'https://manual.example/api', disabled: false, required: true };
-const oneTime = { hidden: false };
+const url = { value: 'https://manual.example/api', disabled: false, required: true, dataset: { apiPlaceholder: 'https://api.example/data' } };
 const sourceForm = {
     elements: { namedItem: () => url },
     querySelector(selector) {
-        return selector === '[data-saved-api-choice]' ? choice : oneTime;
+        return selector === '[data-saved-api-choice]' ? choice : null;
     },
 };
 syncSavedApiSource(sourceForm);
 assert.equal(url.value, '');
 assert.equal(url.disabled, true);
 assert.equal(url.required, false);
-assert.equal(oneTime.hidden, true);
+assert.equal(url.placeholder, 'API tersimpan (disembunyikan)');
 assert.equal(selectedApiSource(sourceForm), 'saved');
 choice.checked = false;
 syncSavedApiSource(sourceForm);
 assert.equal(url.disabled, false);
 assert.equal(url.required, true);
-assert.equal(oneTime.hidden, false);
+assert.equal(url.placeholder, url.dataset.apiPlaceholder);
 url.value = 'https://manual.example/api';
 assert.equal(selectedApiSource(sourceForm), url.value);
 
@@ -79,6 +81,62 @@ assert.equal(await revealSavedApiUrl(section, async () => { throw new Error('net
 assert.equal(error.textContent, 'Tautan tidak dapat ditampilkan. Coba lagi.');
 clearSavedApiSecrets(section);
 assert.equal(password.value, '');
+
+const handlers = () => ({
+    listeners: {},
+    addEventListener(name, handler) { this.listeners[name] = handler; },
+    fire(name) { return this.listeners[name]?.({ preventDefault() {} }); },
+});
+const modalNode = { ...handlers(), hasAttribute: () => false };
+const saveForm = handlers();
+const edit = handlers();
+const reveal = handlers();
+const submit = { textContent: '' };
+const editFields = { hidden: false };
+const title = { textContent: '' };
+Object.assign(nodes, {
+    '[data-saved-api-modal]': modalNode,
+    '[data-saved-api-form]': saveForm,
+    '[data-saved-api-source-form]': sourceForm,
+    '[data-saved-api-submit]': submit,
+    '[data-saved-api-edit-button]': edit,
+    '[data-saved-api-reveal-button]': reveal,
+    '[data-saved-api-edit-fields]': editFields,
+    '[data-saved-api-title]': title,
+});
+Object.assign(choice, handlers());
+Object.assign(hideButton, handlers());
+const pagehideHandlers = [];
+globalThis.window = { addEventListener(name, handler) { if (name === 'pagehide') pagehideHandlers.push(handler); } };
+let focused;
+newUrl.focus = () => { focused = 'url'; };
+password.focus = () => { focused = 'password'; };
+initSavedApiUrls({ querySelectorAll: (selector) => selector === '[data-saved-api-source-form]' ? [sourceForm] : [section] }, {
+    Modal: { getOrCreateInstance: () => ({ show() {}, hide() {} }) },
+});
+url.value = 'https://manual.example/new?token=private';
+edit.fire('click');
+assert.equal(newUrl.value, url.value, 'Simpan menggunakan URL kolom utama tanpa mengetik ulang.');
+modalNode.fire('shown.bs.modal');
+assert.equal(focused, 'password');
+modalNode.fire('hidden.bs.modal');
+assert.equal(newUrl.value, '');
+choice.checked = true;
+choice.fire('change');
+assert.equal(url.value, '');
+edit.fire('click');
+assert.equal(newUrl.value, '', 'Jangan menyalin penanda URL tersimpan ke form simpan.');
+modalNode.fire('shown.bs.modal');
+assert.equal(focused, 'url');
+reveal.fire('click');
+assert.equal(newUrl.disabled, true);
+assert.equal(newUrl.required, false);
+assert.equal(editFields.hidden, true);
+choice.checked = false;
+choice.fire('change');
+url.value = 'https://manual.example/clear-on-leave';
+pagehideHandlers.forEach((handler) => handler());
+assert.equal(url.value, '');
 
 globalThis.document.createElement = () => ({ className: '', textContent: '' });
 let submittedFields;
@@ -169,8 +227,7 @@ const schedule = {
     querySelectorAll: () => [day],
     addEventListener(name, handler) { this.handlers[name] = handler; },
 };
-const pagehideHandlers = [];
-globalThis.window = { addEventListener(name, handler) { if (name === 'pagehide') pagehideHandlers.push(handler); } };
+
 initEtatibSchedule({ querySelector: () => schedule });
 assert.equal(scheduleRows.length, 1);
 add.handler();

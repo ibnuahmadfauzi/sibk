@@ -7,7 +7,7 @@ export const syncSavedApiSource = (form) => {
     if (saved) url.value = '';
     url.disabled = saved;
     url.required = !saved;
-    form.querySelector('[data-one-time-api-url]').hidden = saved;
+    url.placeholder = saved ? 'API tersimpan (disembunyikan)' : url.dataset.apiPlaceholder;
 };
 
 export const clearSavedApiSecrets = (section) => {
@@ -70,6 +70,7 @@ export const initSavedApiUrls = (root = document, { Modal } = {}) => {
         const modal = Modal.getOrCreateInstance(modalNode);
         const form = section.querySelector('[data-saved-api-form]');
         const url = section.querySelector('[data-saved-api-new-url]');
+        const sourceForm = section.querySelector('[data-saved-api-source-form]');
         const password = section.querySelector('[data-saved-api-password]');
         const submit = section.querySelector('[data-saved-api-submit]');
         let mode = 'edit';
@@ -79,6 +80,7 @@ export const initSavedApiUrls = (root = document, { Modal } = {}) => {
             clearSavedApiSecrets(section);
             mode = nextMode;
             const edit = mode === 'edit';
+            if (edit && selectedApiSource(sourceForm) !== 'saved') url.value = selectedApiSource(sourceForm);
             section.querySelector('[data-saved-api-edit-fields]').hidden = !edit;
             url.disabled = !edit;
             url.required = edit;
@@ -93,7 +95,7 @@ export const initSavedApiUrls = (root = document, { Modal } = {}) => {
             clearSavedApiSecrets(section);
             modal.hide();
         });
-        modalNode.addEventListener('shown.bs.modal', () => password.focus());
+        modalNode.addEventListener('shown.bs.modal', () => (mode === 'edit' && !url.value ? url : password).focus());
         modalNode.addEventListener('hidden.bs.modal', () => {
             controller?.abort();
             clearSavedApiSecrets(section);
