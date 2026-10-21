@@ -3681,6 +3681,8 @@ small, .small {
     padding-bottom: 0.75rem;
   }
 
+  &__identity--two-logos { grid-template-columns: 4.5rem minmax(0, 1fr) 4.5rem; }
+
   &__logo {
     object-fit: contain;
     height: 4.5rem;

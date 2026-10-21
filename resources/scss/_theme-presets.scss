@@ -1,0 +1,47 @@
+@use 'sass:color';
+
+@mixin sibk-brand-palette($brand) {
+  --sibk-color-primary: #{$brand};
+  --sibk-color-primary-hover: #{color.mix(black, $brand, 15%)};
+  --sibk-color-primary-soft: #{color.mix(white, $brand, 92%)};
+  --sibk-color-primary-gradient-start: #{$brand};
+  --sibk-color-primary-gradient-end: #{color.mix(black, $brand, 15%)};
+  --sibk-color-primary-pressed-hover: #{color.mix(black, $brand, 20%)};
+  --sibk-color-primary-pressed: #{color.mix(black, $brand, 30%)};
+  --sibk-color-primary-button-soft: #{color.mix(white, $brand, 95%)};
+  --sibk-color-primary-button-pressed: #{color.mix(white, $brand, 88%)};
+  --sibk-color-primary-avatar-soft: #{color.mix(white, $brand, 90%)};
+  --sibk-color-primary-hero-soft: #{color.mix(white, $brand, 94%)};
+  --sibk-color-primary-label: #{$brand};
+  --sibk-color-primary-hero-strong: #{$brand};
+  --sibk-color-primary-hero-muted: #{color.mix(#475569, $brand, 70%)};
+  --sibk-color-primary-hero-contrast: #{color.mix(white, $brand, 86%)};
+  --sibk-color-primary-panel-hover: #{color.mix(black, $brand, 40%)};
+  --sibk-color-primary-panel-info: #{color.mix(white, $brand, 80%)};
+  --sibk-color-sidebar-card-start: #{$brand};
+  --sibk-color-sidebar-gradient-start: #{$brand};
+  --sibk-color-sidebar-gradient-mid: #{color.mix(black, $brand, 15%)};
+  --sibk-color-sidebar-gradient-end: #{color.mix(black, $brand, 35%)};
+  @each $token, $shade in (primary-shadow-pressed: 65%, sidebar-gradient-mid: 15%, sidebar-shadow: 40%, sidebar-logo-shadow: 40%, panel-shadow: 65%) {
+    $value: color.mix(black, $brand, $shade);
+    --sibk-color-#{$token}-rgb: #{color.channel($value, 'red', $space: rgb)}, #{color.channel($value, 'green', $space: rgb)}, #{color.channel($value, 'blue', $space: rgb)};
+  }
+  --sibk-color-primary-label-rgb: #{color.channel($brand, 'red', $space: rgb)}, #{color.channel($brand, 'green', $space: rgb)}, #{color.channel($brand, 'blue', $space: rgb)};
+  --sibk-focus-ring: #{rgba($brand, 0.35)};
+  --sibk-shadow-button: 5px 5px 12px #{rgba(color.mix(black, $brand, 25%), 0.42)}, -4px -4px 10px rgba(255, 255, 255, 0.95), 0 3px 6px #{rgba($brand, 0.3)};
+  --bs-primary-rgb: #{color.channel($brand, 'red', $space: rgb)}, #{color.channel($brand, 'green', $space: rgb)}, #{color.channel($brand, 'blue', $space: rgb)};
+}
+
+html[data-web-theme='pine'] { @include sibk-brand-palette(#1f6658); }
+html[data-web-theme='slate'] { @include sibk-brand-palette(#465a75); }
+
+.sibk-theme-swatch {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: $sibk-primary;
+  &--pine { background: #1f6658; }
+  &--slate { background: #465a75; }
+}

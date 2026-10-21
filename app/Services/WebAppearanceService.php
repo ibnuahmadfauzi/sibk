@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\WebAppearance;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -19,12 +20,22 @@ final class WebAppearanceService
 
     public function logoPath(): string
     {
-        $stored = WebAppearance::query()->whereKey(1)->value('logo_path');
+        return $this->storedLogoPath('logo_path') ?? public_path('assets/images/logo.png');
+    }
+
+    public function agencyLogoPath(): ?string
+    {
+        return $this->storedLogoPath('agency_logo_path');
+    }
+
+    private function storedLogoPath(string $column): ?string
+    {
+        $stored = WebAppearance::query()->whereKey(1)->value($column);
 
         return is_string($stored) && preg_match('/\Abranding\/[A-Za-z0-9]{40}\.png\z/', $stored) === 1
             && Storage::disk('local')->exists($stored)
                 ? Storage::disk('local')->path($stored)
-                : public_path('assets/images/logo.png');
+                : null;
     }
 
     public function hasCustomLogo(): bool
@@ -32,7 +43,51 @@ final class WebAppearanceService
         return $this->logoPath() !== public_path('assets/images/logo.png');
     }
 
+    public function theme(): string
+    {
+        $stored = WebAppearance::query()->whereKey(1)->value('theme');
+
+        return in_array($stored, WebAppearance::THEMES, true) ? $stored : 'default';
+    }
+
+    public function updateTheme(string $theme, User $actor): void
+    {
+        Gate::forUser($actor)->authorize('manageDataMaster');
+        if (! in_array($theme, WebAppearance::THEMES, true)) {
+            throw ValidationException::withMessages(['theme' => 'Pilih tema yang tersedia.']);
+        }
+
+        DB::transaction(function () use ($theme, $actor): void {
+            $appearance = WebAppearance::query()->whereKey(1)->lockForUpdate()->firstOrFail();
+            $previous = $appearance->theme;
+            if ($previous === $theme) {
+                return;
+            }
+
+            $appearance->theme = $theme;
+            $appearance->save();
+            $this->audit->record(
+                'web_appearance.theme_updated',
+                $appearance,
+                'Tema web diperbarui.',
+                $actor,
+                ['theme' => $previous],
+                ['theme' => $theme],
+            );
+        });
+    }
+
     public function replaceLogo(UploadedFile $upload, User $actor): void
+    {
+        $this->replaceBrandingLogo($upload, $actor, 'logo_path');
+    }
+
+    public function replaceAgencyLogo(UploadedFile $upload, User $actor): void
+    {
+        $this->replaceBrandingLogo($upload, $actor, 'agency_logo_path');
+    }
+
+    private function replaceBrandingLogo(UploadedFile $upload, User $actor, string $column): void
     {
         $bytes = $upload->get();
         $details = @getimagesizefromstring($bytes);
@@ -62,18 +117,18 @@ final class WebAppearanceService
         }
 
         try {
-            DB::transaction(function () use ($path, $actor): void {
+            DB::transaction(function () use ($path, $actor, $column): void {
                 $appearance = WebAppearance::query()->whereKey(1)->lockForUpdate()->firstOrFail();
-                $previous = $appearance->logo_path;
-                $appearance->logo_path = $path;
+                $previous = $appearance->{$column};
+                $appearance->{$column} = $path;
                 $appearance->save();
                 $this->audit->record(
-                    'web_appearance.logo_updated',
+                    $column === 'logo_path' ? 'web_appearance.logo_updated' : 'web_appearance.agency_logo_updated',
                     $appearance,
-                    'Logo web diperbarui.',
+                    $column === 'logo_path' ? 'Logo web diperbarui.' : 'Logo dinas diperbarui.',
                     $actor,
-                    ['logo_set' => $previous !== null],
-                    ['logo_set' => true],
+                    [$column => $previous !== null],
+                    [$column => true],
                 );
 
             });

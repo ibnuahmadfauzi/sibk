@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/branding/logo', [WebAppearanceController::class, 'logo'])->name('branding.logo');
+Route::get('/branding/agency-logo', [WebAppearanceController::class, 'agencyLogo'])->name('branding.agency-logo');
 Route::get('/login', [AuthController::class, 'create'])->middleware('guest')->name('login');
 Route::post('/login', [AuthController::class, 'store'])->middleware(['guest', 'throttle:5,1'])->name('login.store');
 
@@ -57,6 +58,10 @@ Route::middleware(['auth', 'account.active'])->scopeBindings()->group(function (
             ->middleware('cache.headers:no_store')->name('admin.web-settings.edit');
         Route::patch('/admin/web-settings', [WebAppearanceController::class, 'update'])
             ->middleware(['cache.headers:no_store', 'throttle:5,1'])->name('admin.web-settings.update');
+        Route::patch('/admin/web-settings/theme', [WebAppearanceController::class, 'updateTheme'])
+            ->middleware(['cache.headers:no_store', 'throttle:5,1'])->name('admin.web-settings.theme');
+        Route::patch('/admin/web-settings/agency-logo', [WebAppearanceController::class, 'updateAgencyLogo'])
+            ->middleware(['cache.headers:no_store', 'throttle:5,1'])->name('admin.web-settings.agency-logo');
         Route::get('/admin/api', [ApiManagementController::class, 'index'])
             ->name('admin.api.index');
         Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');

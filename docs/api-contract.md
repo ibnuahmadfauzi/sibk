@@ -247,10 +247,11 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 
 ## 6. Modul Data Master & Rekonsiliasi (`MD`)
 
-### Manajemen Web (APP-01)
+### Manajemen Web (APP-01, APP-02)
 
-- `GET /admin/web-settings` menampilkan logo dan formulir unggah; `PATCH /admin/web-settings` menerima multipart `logo` melalui capability `manageDataMaster`.
-- `GET /branding/logo` menyajikan PNG logo aktif/bawaan untuk tampilan publik, dengan tipe gambar eksplisit dan `X-Content-Type-Options: nosniff`. Berkas unggahan tersimpan di disk lokal; eksportir Excel membaca berkas lokal yang sama.
+- `GET /admin/web-settings` menampilkan logo, formulir unggah, dan pilihan tema; `PATCH /admin/web-settings` menerima multipart `logo` sekolah, sedangkan `PATCH /admin/web-settings/agency-logo` menerima multipart `logo` dinas. Keduanya melalui capability `manageDataMaster` (APP-01).
+- `PATCH /admin/web-settings/theme` menerima `theme=default|pine|slate` melalui capability `manageDataMaster`, menyimpan pilihan, lalu redirect ke Manajemen Web. Reset memakai endpoint yang sama dengan `theme=default` (APP-02). Layout login dan aplikasi memasok ID tervalidasi sebagai atribut `data-web-theme`.
+- `GET /branding/logo` menyajikan PNG logo aktif/bawaan untuk tampilan publik, dengan tipe gambar eksplisit dan `X-Content-Type-Options: nosniff`. `GET /branding/agency-logo` menyajikan PNG logo dinas dengan header yang sama, atau 404 bila belum tersedia. Berkas unggahan tersimpan di disk lokal; eksportir Excel membaca berkas lokal yang sama.
 
 ### URL API tersimpan dan jadwal (INT-05, INT-16)
 

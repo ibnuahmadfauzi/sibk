@@ -81,6 +81,15 @@ for (const name of ['app-auth', 'app-dashboard']) {
     }
     assert.doesNotMatch(values['--sibk-color-info'], /var\(--sibk-color-primary/, 'Warna informasi harus terpisah dari perubahan warna utama.');
     assert.doesNotMatch(values['--sibk-color-warning'], /var\(--sibk-color-accent/, 'Warna peringatan harus terpisah dari perubahan aksen dekoratif.');
+    for (const theme of ['pine', 'slate']) {
+        const preset = rule(css, `html[data-web-theme=${theme}]`);
+        assert.ok(preset, `${name}: palet ${theme} tidak tersedia.`);
+        for (const token of ['primary', 'primary-gradient-start', 'sidebar-gradient-start']) {
+            assert.ok(contrast('#ffffff', property(preset, `--sibk-color-${token}`)) >= 4.5, `${name}: teks putih palet ${theme} pada ${token} kurang kontras.`);
+        }
+        assert.ok(contrast(property(preset, '--sibk-color-primary'), values['--sibk-color-field']) >= 4.5, `${name}: tautan palet ${theme} kurang kontras.`);
+        assert.doesNotMatch(preset, /--sibk-color-(?:success|warning|danger|info|followup|text|page|field|surface)[\w-]*\s*:/, `${name}: preset tidak boleh mengubah status, teks, atau permukaan bawaan.`);
+    }
     assert.ok(contrast('#ffffff', values['--sibk-color-primary-gradient-start']) >= 4.5, `${name}: teks tombol utama harus terbaca pada ujung terang gradasi.`);
     assert.ok(contrast('#ffffff', values['--sibk-color-sidebar-gradient-start']) >= 4.5, `${name}: teks sidebar harus terbaca pada ujung terang gradasi.`);
     if (name === 'app-dashboard') {

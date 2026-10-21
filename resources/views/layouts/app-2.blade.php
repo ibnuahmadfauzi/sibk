@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-web-theme="{{ app(\App\Services\WebAppearanceService::class)->theme() }}">
 
 <head>
     <meta charset="UTF-8">

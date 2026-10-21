@@ -49,10 +49,20 @@ final class ReportDocumentExporter
         $sheet->setCellValue('A2', $this->filterSummary($report));
         $sheet->mergeCells('A3:G3');
         $sheet->setCellValue('A3', $this->summaryText($report));
+        $agencyLogo = $this->appearance->agencyLogoPath();
+        if ($agencyLogo !== null) {
+            $agencyDrawing = new Drawing;
+            $agencyDrawing->setName('Logo dinas');
+            $agencyDrawing->setPath($agencyLogo);
+            $agencyDrawing->setCoordinates('A1');
+            $agencyDrawing->setWidthAndHeight(64, 48);
+            $agencyDrawing->setWorksheet($sheet);
+        }
+
         $logo = new Drawing;
         $logo->setName('Logo sekolah');
         $logo->setPath($this->appearance->logoPath());
-        $logo->setCoordinates('A1');
+        $logo->setCoordinates($agencyLogo === null ? 'A1' : 'G1');
         $logo->setWidthAndHeight(64, 48);
         $logo->setWorksheet($sheet);
         $sheet->getRowDimension(1)->setRowHeight(42);
