@@ -245,7 +245,7 @@ small, .small {
     background: var(--sibk-color-field) !important;
     color: var(--sibk-color-primary) !important;
     border-color: var(--sibk-color-border-light) !important;
-    box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.6), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba(var(--sibk-color-shadow-warm-rgb), 0.6), inset -3px -3px 6px #ffffff !important;
     transform: translateY(1px);
   }
 
@@ -255,7 +255,7 @@ small, .small {
     background: var(--sibk-color-field) !important;
     color: var(--sibk-color-primary) !important;
     border-color: var(--sibk-color-border-light) !important;
-    box-shadow: inset 4px 4px 8px rgba($sibk-shadow-warm, 0.75), inset -4px -4px 8px #ffffff !important;
+    box-shadow: inset 4px 4px 8px rgba(var(--sibk-color-shadow-warm-rgb), 0.75), inset -4px -4px 8px #ffffff !important;
     transform: translateY(2px) scale(0.985);
   }
 }
@@ -348,14 +348,14 @@ small, .small {
 
   &:hover,
   &:focus {
-    box-shadow: inset 2px 2px 5px rgba($sibk-shadow-warm, 0.6), inset -2px -2px 5px #ffffff !important;
+    box-shadow: inset 2px 2px 5px rgba(var(--sibk-color-shadow-warm-rgb), 0.6), inset -2px -2px 5px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active {
-    box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.75), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba(var(--sibk-color-shadow-warm-rgb), 0.75), inset -3px -3px 6px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(2px) scale(0.985);
   }
@@ -388,14 +388,14 @@ small, .small {
 
   &:hover,
   &:focus {
-    box-shadow: inset 2px 2px 5px rgba($sibk-shadow-warm, 0.6), inset -2px -2px 5px #ffffff !important;
+    box-shadow: inset 2px 2px 5px rgba(var(--sibk-color-shadow-warm-rgb), 0.6), inset -2px -2px 5px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(1px);
   }
 
   &:active,
   &.active {
-    box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.75), inset -3px -3px 6px #ffffff !important;
+    box-shadow: inset 3px 3px 6px rgba(var(--sibk-color-shadow-warm-rgb), 0.75), inset -3px -3px 6px #ffffff !important;
     color: var(--sibk-color-primary) !important;
     transform: translateY(2px) scale(0.985);
   }
@@ -538,7 +538,7 @@ small, .small {
       color: var(--sibk-color-primary) !important;
       background: var(--sibk-color-field) !important;
       border-color: var(--sibk-color-border-light) !important;
-      box-shadow: inset 3px 3px 6px rgba($sibk-shadow-warm, 0.6), inset -3px -3px 6px #ffffff !important;
+      box-shadow: inset 3px 3px 6px rgba(var(--sibk-color-shadow-warm-rgb), 0.6), inset -3px -3px 6px #ffffff !important;
       transform: translateY(1px);
     }
 
@@ -546,7 +546,7 @@ small, .small {
       background: var(--sibk-color-field) !important;
       color: var(--sibk-color-primary) !important;
       border-color: var(--sibk-color-border-light) !important;
-      box-shadow: inset 4px 4px 8px rgba($sibk-shadow-warm, 0.75), inset -4px -4px 8px #ffffff !important;
+      box-shadow: inset 4px 4px 8px rgba(var(--sibk-color-shadow-warm-rgb), 0.75), inset -4px -4px 8px #ffffff !important;
       font-weight: 700;
       transform: translateY(2px) scale(0.985);
     }
@@ -1251,7 +1251,7 @@ small, .small {
   // Sisi kanan-bawah: bayangan gelap (kesan gravitasi)
   // Sisi kiri-atas:   highlight terang (pantulan cahaya)
   box-shadow:
-    inset 3px 3px 8px  rgba($sibk-shadow-warm, 0.7),   // kiri-atas gelap warm
+    inset 3px 3px 8px  rgba(var(--sibk-color-shadow-warm-rgb), 0.7),   // kiri-atas gelap warm
     inset -2px -2px 6px rgba(255, 255, 255, 0.9);   // kanan-bawah terang
 }
 
@@ -1741,7 +1741,7 @@ small, .small {
   &[href]:hover {
     transform: translateY(-2px);
     box-shadow: var(--sibk-shadow-raised);
-    background: #ffffff;
+    background: var(--sibk-color-surface-plain);
   }
 
   &:last-child {
@@ -1840,7 +1840,7 @@ small, .small {
     align-items: center;
     gap: 1.25rem;
     padding: 0.75rem 1.25rem;
-    background: #fff;
+    background: var(--sibk-color-surface-plain);
     border-radius: var(--sibk-radius-md);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 
@@ -1929,7 +1929,7 @@ small, .small {
   }
 
   .sibk-list-item {
-    background: #fff;
+    background: var(--sibk-color-surface-plain);
     box-shadow: none;
     margin-bottom: 0.75rem;
   }
@@ -2154,7 +2154,7 @@ small, .small {
   gap: 1.25rem;
   padding: 1.25rem 1.5rem;
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--sibk-color-surface-plain);
   transition: background-color 0.2s, transform 0.2s;
   text-decoration: none;
   color: inherit;
@@ -2238,7 +2238,7 @@ small, .small {
   }
 
   &.is-unread {
-    background: #ffffff;
+    background: var(--sibk-color-surface-plain);
 
     .sibk-notification-item__title {
       font-weight: 700;

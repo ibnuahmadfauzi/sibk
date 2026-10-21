@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as sass from 'sass';
+import { execFileSync } from 'node:child_process';
 
 async function readSources(directory) {
     const entries = await readdir(directory, { withFileTypes: true });
@@ -16,6 +17,8 @@ async function readSources(directory) {
 const source = await readSources('resources');
 const references = new Set([...source.matchAll(/var\(\s*(--sibk-(?:color|shadow)-[\w-]+)/g)].map((match) => match[1]));
 const defaults = [];
+const palettes = JSON.parse(execFileSync('php', ['-r', "require 'vendor/autoload.php'; $palettes=App\\Support\\WebThemePalette::PRESETS; $palettes['custom']=App\\Support\\WebThemePalette::DEFAULT_COLORS; echo json_encode(array_map(App\\Support\\WebThemePalette::variables(...),$palettes));"], { encoding: 'utf8' }));
+palettes.boundary = JSON.parse(execFileSync('php', ['-r', "require 'vendor/autoload.php'; echo json_encode(App\\Support\\WebThemePalette::variables(['primary'=>'#767676','page'=>'#ffffff','surface'=>'#ffffff']));"], { encoding: 'utf8' }));
 
 function contrast(foreground, background) {
     const luminance = (hex) => {
@@ -81,14 +84,21 @@ for (const name of ['app-auth', 'app-dashboard']) {
     }
     assert.doesNotMatch(values['--sibk-color-info'], /var\(--sibk-color-primary/, 'Warna informasi harus terpisah dari perubahan warna utama.');
     assert.doesNotMatch(values['--sibk-color-warning'], /var\(--sibk-color-accent/, 'Warna peringatan harus terpisah dari perubahan aksen dekoratif.');
-    for (const theme of ['pine', 'slate']) {
-        const preset = rule(css, `html[data-web-theme=${theme}]`);
-        assert.ok(preset, `${name}: palet ${theme} tidak tersedia.`);
-        for (const token of ['primary', 'primary-gradient-start', 'sidebar-gradient-start']) {
-            assert.ok(contrast('#ffffff', property(preset, `--sibk-color-${token}`)) >= 4.5, `${name}: teks putih palet ${theme} pada ${token} kurang kontras.`);
+    for (const [theme, colors] of Object.entries(palettes)) {
+        for (const token of Object.keys(colors)) {
+            assert.ok(token in values || ['--bs-primary-rgb', '--sibk-focus-ring'].includes(token), `${theme}: variabel ${token} tidak dikenal stylesheet.`);
         }
-        assert.ok(contrast(property(preset, '--sibk-color-primary'), values['--sibk-color-field']) >= 4.5, `${name}: tautan palet ${theme} kurang kontras.`);
-        assert.doesNotMatch(preset, /--sibk-color-(?:success|warning|danger|info|followup|text|page|field|surface)[\w-]*\s*:/, `${name}: preset tidak boleh mengubah status, teks, atau permukaan bawaan.`);
+        for (const surface of ['page', 'surface-raised', 'field']) {
+            const background = colors[`--sibk-color-${surface}`];
+            for (const foreground of [values['--sibk-color-text'], values['--sibk-color-text-muted'], colors['--sibk-color-primary']]) {
+                assert.ok(contrast(foreground, background) >= 4.5, `${theme}: kontras teks pada ${surface} terlalu rendah.`);
+            }
+        }
+        assert.ok(contrast('#ffffff', colors['--sibk-color-primary']) >= 4.5, `${theme}: teks putih tombol/sidebar kurang kontras.`);
+        assert.ok(contrast(colors['--sibk-color-primary-hero-contrast'], colors['--sibk-color-sidebar-gradient-start']) >= 4.5, `${theme}: label identitas murid kurang kontras.`);
+        for (const token of Object.keys(colors)) {
+            assert.doesNotMatch(token, /--sibk-color-(?:success|warning|danger|info|followup|text|preview)/, `${theme}: warna status, teks, dan kertas harus tetap.`);
+        }
     }
     assert.ok(contrast('#ffffff', values['--sibk-color-primary-gradient-start']) >= 4.5, `${name}: teks tombol utama harus terbaca pada ujung terang gradasi.`);
     assert.ok(contrast('#ffffff', values['--sibk-color-sidebar-gradient-start']) >= 4.5, `${name}: teks sidebar harus terbaca pada ujung terang gradasi.`);
@@ -113,6 +123,7 @@ for (const name of ['app-auth', 'app-dashboard']) {
         assert.equal(property(placeholder, 'opacity'), '1', 'Placeholder formulir tidak boleh memudarkan warna teks yang sudah memenuhi kontras.');
         assert.ok(contrast(values['--sibk-color-text-muted'], values['--sibk-color-field']) >= 4.5, 'Warna placeholder dan bidang formulir harus memiliki kontras minimal 4,5:1.');
     }
+    assert.doesNotMatch(css, /html\[data-web-theme=(?:pine|slate)\]/, 'Nilai preset hanya boleh memiliki satu sumber di WebThemePalette.');
     defaults.push(values);
 }
 

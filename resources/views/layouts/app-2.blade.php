@@ -15,6 +15,7 @@
 
     {{-- Vite: SCSS + JS --}}
     @vite(['resources/scss/app-dashboard.scss', 'resources/js/app-dashboard.js'])
+    <x-web-theme />
     {{-- end Vite --}}
 
     @yield('extra-css')

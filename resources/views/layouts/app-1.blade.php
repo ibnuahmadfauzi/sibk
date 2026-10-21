@@ -13,6 +13,7 @@
 
     {{-- Vite: SCSS + JS --}}
     @vite(['resources/scss/app-auth.scss', 'resources/js/app-auth.js'])
+    <x-web-theme />
     {{-- end Vite --}}
 </head>
 

@@ -76,24 +76,54 @@
         <section class="sibk-panel mt-4" aria-labelledby="web-theme-heading">
             <div class="sibk-panel__body p-4">
                 <h2 id="web-theme-heading" class="fs-5">Tema warna</h2>
-                <form action="{{ route('admin.web-settings.theme') }}" method="POST">
+                <form action="{{ route('admin.web-settings.theme') }}" method="POST" data-web-theme-form>
                     @csrf
                     @method('PATCH')
                     <fieldset>
                         <legend class="fs-6">Pilih palet warna web</legend>
                         <div class="row g-3">
-                            @foreach(['default' => 'Bawaan', 'pine' => 'Hijau Pinus', 'slate' => 'Biru Sabak'] as $key => $label)
-                                <div class="col-12 col-md-4">
+                            @foreach(['default' => 'Bawaan', 'pine' => 'Hijau Pinus', 'slate' => 'Biru Sabak', 'custom' => 'Custom'] as $key => $label)
+                                <div class="col-12 col-md-6 col-xl-3">
                                     <label class="d-flex align-items-center gap-2 border rounded p-3 w-100" for="web-theme-{{ $key }}">
                                         <input class="form-check-input m-0" type="radio" name="theme" value="{{ $key }}" id="web-theme-{{ $key }}" @checked(old('theme', $selectedTheme) === $key) required>
-                                        <span class="sibk-theme-swatch sibk-theme-swatch--{{ $key }}" aria-hidden="true"></span>
+                                        @if($key !== 'custom')
+                                            <span class="d-flex gap-1" aria-hidden="true">
+                                                @if($key === 'default')
+                                                    @foreach(['primary', 'page', 'surface'] as $part)
+                                                        <span class="sibk-theme-swatch sibk-theme-swatch--default-{{ $part }}"></span>
+                                                    @endforeach
+                                                @else
+                                                    @foreach(\App\Support\WebThemePalette::PRESETS[$key] as $color)
+                                                        <span class="sibk-theme-swatch" style="background-color: {{ $color }}"></span>
+                                                    @endforeach
+                                                @endif
+                                            </span>
+                                        @endif
                                         <span>{{ $label }}</span>
                                     </label>
                                 </div>
                             @endforeach
                         </div>
                     </fieldset>
-                    <p class="small text-muted mt-3">Berlaku untuk seluruh pengguna dan halaman masuk. Warna status serta kertas laporan tetap.</p>
+                    <fieldset class="mt-4" data-custom-palette-fields @disabled(old('theme', $selectedTheme) !== 'custom') @if(old('theme', $selectedTheme) !== 'custom') hidden @endif>
+                        <legend class="fs-6">Palet custom</legend>
+                        <p class="small text-muted" id="custom-palette-help">Pilih warna utama yang gelap serta latar dan kartu yang terang. Input, border, fokus, dan bayangan mengikuti otomatis.</p>
+                        <div class="row g-3">
+                            @foreach(['primary' => 'Warna utama', 'page' => 'Latar halaman', 'surface' => 'Kartu dan panel'] as $key => $label)
+                                @php($value = old('custom_palette.'.$key, $customPalette[$key]))
+                                <div class="col-12 col-md-4" data-theme-color-field>
+                                    <label class="form-label" for="palette-{{ $key }}">{{ $label }}</label>
+                                    <div class="d-flex gap-2">
+                                        <input class="form-control form-control-color" type="color" value="{{ is_string($value) && preg_match('/^#[0-9a-fA-F]{6}$/D', $value) ? $value : $customPalette[$key] }}" aria-label="Pilih {{ strtolower($label) }}" data-theme-color-picker>
+                                        <input class="form-control" type="text" id="palette-{{ $key }}" name="custom_palette[{{ $key }}]" value="{{ is_string($value) ? $value : '' }}" pattern="#[0-9a-fA-F]{6}" maxlength="7" required spellcheck="false" autocomplete="off" data-theme-color-hex
+                                            aria-describedby="custom-palette-help @error('custom_palette.'.$key) palette-{{ $key }}-error @enderror" @error('custom_palette.'.$key) aria-invalid="true" @enderror>
+                                    </div>
+                                    @error('custom_palette.'.$key)<p class="text-danger small mt-2 mb-0" id="palette-{{ $key }}-error">{{ $message }}</p>@enderror
+                                </div>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                    <p class="small text-muted mt-3">Berlaku untuk seluruh pengguna dan halaman masuk. Warna status dan kertas laporan tetap.</p>
                     <div class="d-flex flex-wrap gap-2">
                         <button type="submit" class="btn btn-primary">Simpan tema</button>
                         <button type="submit" class="btn btn-outline-primary" name="theme" value="default" formnovalidate>Kembalikan ke default</button>

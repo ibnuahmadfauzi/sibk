@@ -24,6 +24,7 @@ final class WebAppearanceController extends Controller
             'hasCustomLogo' => $appearance->hasCustomLogo(),
             'hasAgencyLogo' => $appearance->agencyLogoPath() !== null,
             'selectedTheme' => $appearance->theme(),
+            'customPalette' => $appearance->customPalette(),
         ]);
     }
 
@@ -36,7 +37,7 @@ final class WebAppearanceController extends Controller
 
     public function updateTheme(UpdateWebThemeRequest $request, WebAppearanceService $appearance): RedirectResponse
     {
-        $appearance->updateTheme($request->validated('theme'), $request->user());
+        $appearance->updateTheme($request->validated('theme'), $request->user(), $request->validated('custom_palette', []));
 
         return redirect()->route('admin.web-settings.edit')->with('success', 'Tema web berhasil diperbarui.');
     }

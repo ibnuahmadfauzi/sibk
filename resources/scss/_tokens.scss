@@ -34,6 +34,7 @@
   --sibk-color-surface: #{$sibk-surface};
   --sibk-color-field: #{$sibk-field};
   --sibk-color-surface-raised: #{$sibk-surface-raised};
+  --sibk-color-surface-plain: #fff;
   --sibk-color-surface-hover: #{$sibk-surface-hover};
   --sibk-color-logo-surface: #{$sibk-logo-surface};
   --sibk-color-preview-canvas: #{$sibk-preview-canvas};
@@ -80,6 +81,7 @@
   --sibk-color-followup-text: #{$sibk-followup-text};
   --sibk-color-followup-muted: #{$sibk-followup-muted};
   --sibk-focus-ring: #{$sibk-focus-ring};
+  --sibk-color-shadow-warm-rgb: #{color.channel($sibk-shadow-warm, 'red', $space: rgb)}, #{color.channel($sibk-shadow-warm, 'green', $space: rgb)}, #{color.channel($sibk-shadow-warm, 'blue', $space: rgb)};
   --sibk-shadow-raised-sm: #{$sibk-shadow-raised-sm};
   --sibk-shadow-raised: #{$sibk-shadow-raised};
   --sibk-shadow-raised-hover: #{$sibk-shadow-raised-hover};

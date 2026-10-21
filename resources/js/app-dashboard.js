@@ -24,6 +24,7 @@ import { initAutoFilters } from './auto-filter';
 import { initActionTooltips } from './action-tooltips';
 import { initDashboardViewSwitch } from './dashboard-view-switch';
 import { initEtatibSchedule, initSavedApiUrls } from './saved-api-url';
+import { initWebTheme } from './web-theme';
 
 initActionTooltips();
 initDashboardViewSwitch();
@@ -31,6 +32,7 @@ initFormDrafts();
 initServiceRecords(document, { Modal, Toast });
 initSavedApiUrls(document, { Modal });
 initEtatibSchedule();
+initWebTheme();
 initConsultationCreate();
 initApiSiswaPreview(document, { Modal });
 initRosterExcelPreview(document, { Modal });

@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\WebAppearance;
+use App\Support\WebThemePalette;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -45,34 +46,72 @@ final class WebAppearanceService
 
     public function theme(): string
     {
-        $stored = WebAppearance::query()->whereKey(1)->value('theme');
+        $appearance = WebAppearance::query()->whereKey(1)->first();
+        $stored = $appearance?->theme;
 
-        return in_array($stored, WebAppearance::THEMES, true) ? $stored : 'default';
+        return in_array($stored, WebAppearance::THEMES, true)
+            && ($stored !== 'custom' || (is_array($appearance->custom_palette) && WebThemePalette::errors($appearance->custom_palette) === []))
+                ? $stored : 'default';
     }
 
-    public function updateTheme(string $theme, User $actor): void
+    /** @return array<string, string> */
+    public function customPalette(): array
+    {
+        $stored = WebAppearance::query()->whereKey(1)->first()?->custom_palette;
+
+        return is_array($stored) && WebThemePalette::errors($stored) === []
+            ? $stored : WebThemePalette::DEFAULT_COLORS;
+    }
+
+    /** @return array<string, string> */
+    public function themeVariables(): array
+    {
+        $theme = $this->theme();
+        if ($theme === 'default') {
+            return [];
+        }
+
+        return WebThemePalette::variables($theme === 'custom' ? $this->customPalette() : WebThemePalette::PRESETS[$theme]);
+    }
+
+    public function updateTheme(string $theme, User $actor, array $customPalette = []): void
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
         if (! in_array($theme, WebAppearance::THEMES, true)) {
             throw ValidationException::withMessages(['theme' => 'Pilih tema yang tersedia.']);
         }
+        if ($theme === 'custom') {
+            $errors = WebThemePalette::errors($customPalette);
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+            $customPalette = array_map(strtolower(...), $customPalette);
+        }
 
-        DB::transaction(function () use ($theme, $actor): void {
+        DB::transaction(function () use ($theme, $actor, $customPalette): void {
             $appearance = WebAppearance::query()->whereKey(1)->lockForUpdate()->firstOrFail();
-            $previous = $appearance->theme;
-            if ($previous === $theme) {
+            $before = ['theme' => $appearance->theme];
+            $after = ['theme' => $theme];
+            if ($theme === 'custom') {
+                $before['custom_palette'] = $appearance->custom_palette;
+                $after['custom_palette'] = $customPalette;
+            }
+            if ($before === $after) {
                 return;
             }
 
             $appearance->theme = $theme;
+            if ($theme === 'custom') {
+                $appearance->custom_palette = $customPalette;
+            }
             $appearance->save();
             $this->audit->record(
                 'web_appearance.theme_updated',
                 $appearance,
                 'Tema web diperbarui.',
                 $actor,
-                ['theme' => $previous],
-                ['theme' => $theme],
+                $before,
+                $after,
             );
         });
     }
