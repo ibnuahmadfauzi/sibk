@@ -17,8 +17,7 @@ async function readSources(directory) {
 const source = await readSources('resources');
 const references = new Set([...source.matchAll(/var\(\s*(--sibk-(?:color|shadow)-[\w-]+)/g)].map((match) => match[1]));
 const defaults = [];
-const palettes = JSON.parse(execFileSync('php', ['-r', "require 'vendor/autoload.php'; $palettes=App\\Support\\WebThemePalette::PRESETS; $palettes['custom']=App\\Support\\WebThemePalette::DEFAULT_COLORS; echo json_encode(array_map(App\\Support\\WebThemePalette::variables(...),$palettes));"], { encoding: 'utf8' }));
-palettes.boundary = JSON.parse(execFileSync('php', ['-r', "require 'vendor/autoload.php'; echo json_encode(App\\Support\\WebThemePalette::variables(['primary'=>'#767676','page'=>'#ffffff','surface'=>'#ffffff']));"], { encoding: 'utf8' }));
+const palettes = JSON.parse(execFileSync('php', ['-r', "require 'vendor/autoload.php'; echo json_encode(array_map(App\\Support\\WebThemePalette::variables(...), App\\Support\\WebThemePalette::PRESETS));"], { encoding: 'utf8' }));
 
 function contrast(foreground, background) {
     const luminance = (hex) => {
