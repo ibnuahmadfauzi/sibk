@@ -19,6 +19,28 @@ final class WebAppearanceService
 {
     public function __construct(private readonly AuditService $audit) {}
 
+    private function appearance(): ?WebAppearance
+    {
+        $attributes = request()->attributes;
+        if (! $attributes->has(self::class)) {
+            $attributes->set(self::class, WebAppearance::query()->find(1));
+        }
+
+        return $attributes->get(self::class);
+    }
+
+    public function logoUrl(): string
+    {
+        return route('branding.logo', ['v' => hash_file('xxh128', $this->logoPath())]);
+    }
+
+    public function agencyLogoUrl(): ?string
+    {
+        $path = $this->agencyLogoPath();
+
+        return $path !== null ? route('branding.agency-logo', ['v' => hash_file('xxh128', $path)]) : null;
+    }
+
     public function logoPath(): string
     {
         return $this->storedLogoPath('logo_path') ?? public_path('assets/images/logo.png');
@@ -31,7 +53,7 @@ final class WebAppearanceService
 
     private function storedLogoPath(string $column): ?string
     {
-        $stored = WebAppearance::query()->whereKey(1)->value($column);
+        $stored = $this->appearance()?->{$column};
 
         return is_string($stored) && preg_match('/\Abranding\/[A-Za-z0-9]{40}\.png\z/', $stored) === 1
             && Storage::disk('local')->exists($stored)
@@ -46,7 +68,7 @@ final class WebAppearanceService
 
     public function theme(): string
     {
-        $stored = WebAppearance::query()->whereKey(1)->value('theme');
+        $stored = $this->appearance()?->theme;
 
         return in_array($stored, WebAppearance::THEMES, true)
             ? $stored : 'default';
@@ -88,6 +110,7 @@ final class WebAppearanceService
                 $after,
             );
         });
+        request()->attributes->remove(self::class);
     }
 
     public function replaceLogo(UploadedFile $upload, User $actor): void
@@ -149,6 +172,8 @@ final class WebAppearanceService
             $disk->delete($path);
             throw $exception;
         }
+
+        request()->attributes->remove(self::class);
 
         // shortcut: logo lama dipertahankan untuk ekspor berjalan; bersihkan saat pemeliharaan jika unggahan menumpuk.
     }

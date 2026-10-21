@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('page-title')</title>
-    <link rel="icon" type="image/png" href="{{ route('branding.logo') }}">
+    <link rel="icon" type="image/png" href="{{ app(\App\Services\WebAppearanceService::class)->logoUrl() }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

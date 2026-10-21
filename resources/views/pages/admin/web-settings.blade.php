@@ -28,7 +28,7 @@
                     @csrf
                     @method('PATCH')
                     <div class="col-12 col-lg-auto">
-                        <img src="{{ route('branding.logo') }}" alt="Logo saat ini" width="96" height="96" class="d-block object-fit-contain">
+                        <img src="{{ app(\App\Services\WebAppearanceService::class)->logoUrl() }}" alt="Logo saat ini" width="96" height="96" class="d-block object-fit-contain">
                     </div>
                     <div class="col-12 col-lg">
                         <label for="webLogo" class="form-label">Unggah logo baru</label>
@@ -51,7 +51,7 @@
                         @method('PATCH')
                         <div class="col-12 col-lg-auto">
                             @if($hasAgencyLogo)
-                                <img src="{{ route('branding.agency-logo') }}" alt="Logo dinas saat ini" width="96" height="96" class="d-block object-fit-contain">
+                                <img src="{{ app(\App\Services\WebAppearanceService::class)->agencyLogoUrl() }}" alt="Logo dinas saat ini" width="96" height="96" class="d-block object-fit-contain">
                             @else
                                 <span class="small text-muted">Belum ada logo dinas</span>
                             @endif

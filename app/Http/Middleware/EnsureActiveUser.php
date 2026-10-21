@@ -27,6 +27,8 @@ class EnsureActiveUser
                 ->withErrors(['email' => 'Akun tidak aktif. Hubungi Admin IT sekolah.']);
         }
 
+        $user?->load('roles');
+
         return $next($request);
     }
 }

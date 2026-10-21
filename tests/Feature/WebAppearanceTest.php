@@ -60,7 +60,7 @@ final class WebAppearanceTest extends TestCase
         $this->get(route('admin.web-settings.edit'))
             ->assertOk()->assertSee(route('branding.logo'));
         $this->get(route('dashboard.preview'))
-            ->assertOk()->assertSee('rel="icon" type="image/png" href="'.route('branding.logo').'"', false);
+            ->assertOk()->assertSee('rel="icon" type="image/png" href="'.app(\App\Services\WebAppearanceService::class)->logoUrl().'"', false);
         $this->assertStringContainsString(route('branding.logo'), view('pages.reports.print._letterhead', ['title' => 'Laporan'])->render());
 
         $document = app(ReportDocumentExporter::class)->export('xlsx', [
