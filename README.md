@@ -133,7 +133,26 @@ disahkan, jalankan migration forward-only, lalu cache config/view. Periksa redak
 credential, audit, `no-store`, dan sinkronisasi yang gagal aman. Rotasi key dan
 credential dijelaskan dalam admission gate; jangan mengganti key tanpa prosedur.
 
-## Demo pagelaran karya di Render
+## Demo pagelaran karya di PandaStack
+
+Gunakan branch `demo/pagelaran-karya` dengan runtime Node.js 22 dan port 3000.
+`pandastack.json` memilih aplikasi generic, memasang PHP 8.4 dan Apache,
+memasang dependensi produksi, serta membangun aset Vite. Build memerlukan
+Ubuntu dengan root atau sudo tanpa kata sandi.
+
+Simpan `APP_KEY`, URL HTTPS pada `APP_URL`, serta kredensial database Aiven
+sebagai environment aplikasi. Isi `AIVEN_CA_PEM_B64` dengan sertifikat CA Aiven
+yang dikodekan base64. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`,
+`DB_CONNECTION=mysql`, `SIBK_DEMO_ENABLED=true`, dan
+`SIBK_DEMO_PLATFORM=pandastack`. Gunakan sandi akun demo melalui
+`SIBK_DEMO_ACCOUNT_PASSWORD`; jangan memasukkan rahasia ke Git.
+
+Startup memverifikasi CA, menjalankan migration tanpa reset dan inisialisasi
+demo satu kali, lalu menyajikan hanya direktori `public`. Integrasi sekolah
+tetap dinonaktifkan. Paket Free dapat menjeda aplikasi ketika kredit habis;
+lihat batas terbaru pada halaman Billing PandaStack.
+
+## Alternatif demo di Render
 
 Gunakan branch `demo/pagelaran-karya`, runtime Docker, dan Dockerfile
 `deploy/render-demo/Dockerfile`. Konfigurasi layanan tersedia pada `render.yaml`.

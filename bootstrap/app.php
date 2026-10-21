@@ -24,10 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Cloudflare Tunnel lokal meneruskan request ke loopback.
-        // Di luar lokal, pengecualian hanya untuk demo di belakang proxy Render.
+        // Di luar lokal, pengecualian hanya untuk proxy platform demo yang dipilih.
         if (env('APP_ENV', 'production') === 'local') {
             $middleware->trustProxies(at: ['127.0.0.1', '::1']);
-        } elseif (env('RENDER') && env('SIBK_DEMO_ENABLED', false)) {
+        } elseif (env('SIBK_DEMO_ENABLED', false)
+            && (env('RENDER') || env('SIBK_DEMO_PLATFORM') === 'pandastack')) {
             $middleware->trustProxies(at: '*', headers:
                 Request::HEADER_X_FORWARDED_FOR
                 | Request::HEADER_X_FORWARDED_PORT

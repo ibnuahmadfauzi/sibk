@@ -1,0 +1,6 @@
+{
+  "type": "generic",
+  "installCommand": "bash deploy/pandastack-demo/build.sh",
+  "buildCommand": "php8.4 .pandastack-bin/composer check-platform-reqs --no-dev",
+  "startCommand": "bash deploy/pandastack-demo/start.sh"
+}
