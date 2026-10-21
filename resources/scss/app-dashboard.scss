@@ -719,7 +719,7 @@ small, .small {
 
   &::placeholder {
     color: var(--sibk-color-text-muted);
-    opacity: 0.75;
+    opacity: 1;
   }
 }
 
@@ -1118,7 +1118,6 @@ small, .small {
 
     small {
       font-size: 0.65rem;
-      opacity: 0.8;
       letter-spacing: 0.05em;
       margin-top: 0.1rem;
     }
@@ -1136,7 +1135,7 @@ small, .small {
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.55);
+    color: #fff;
     margin: 1.15rem 0.5rem 0.4rem;
   }
 
@@ -1171,7 +1170,7 @@ small, .small {
     font-family: 'Caveat', cursive, sans-serif;
     font-size: 1.15rem;
     line-height: 1.2;
-    color: rgba(255, 255, 255, 0.9);
+    color: #fff;
     transform: rotate(-4deg);
   }
 }
@@ -1182,7 +1181,7 @@ small, .small {
   gap: 0.85rem;
   padding: 0.65rem 0.95rem;
   border-radius: var(--sibk-radius-md);
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.925rem;
@@ -1206,7 +1205,7 @@ small, .small {
   }
 
   &:hover:not(.is-planned):not(.is-active) {
-    background: rgba(255, 255, 255, 0.13);
+    background: rgba(0, 0, 0, 0.1);
     color: #ffffff;
     transform: translateX(2px);
     border-radius: var(--sibk-radius-md);
@@ -1604,26 +1603,36 @@ small, .small {
 .sibk-icon-tone--primary {
   background: $sibk-tone-primary-icon !important;
   color: $sibk-tone-primary-border !important;
+
+  &.badge { color: $sibk-tone-primary-text !important; }
 }
 
 .sibk-icon-tone--warning {
   background: $sibk-tone-warning-icon !important;
   color: $sibk-tone-warning-border !important;
+
+  &.badge { color: $sibk-warning-dark !important; }
 }
 
 .sibk-icon-tone--success {
   background: $sibk-tone-success-icon !important;
   color: $sibk-tone-success-border !important;
+
+  &.badge { color: $sibk-tone-success-text !important; }
 }
 
 .sibk-icon-tone--info {
   background: $sibk-tone-info-icon !important;
   color: $sibk-tone-info-border !important;
+
+  &.badge { color: $sibk-tone-info-text !important; }
 }
 
 .sibk-icon-tone--danger {
   background: $sibk-tone-danger-icon !important;
   color: $sibk-tone-danger-border !important;
+
+  &.badge { color: $sibk-danger-strong !important; }
 }
 
 

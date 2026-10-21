@@ -28,9 +28,13 @@
                 <button
                     class="btn btn-primary"
                     type="button"
-                    data-bs-toggle="modal"
-                    data-bs-target="#report-preview-modal"
-                    @disabled(empty($report['filters']['semester']))
+                    @if(empty($report['filters']['semester']))
+                        data-report-period-prompt
+                        aria-controls="report-period-filters"
+                    @else
+                        data-bs-toggle="modal"
+                        data-bs-target="#report-preview-modal"
+                    @endif
                 >
                     Cetak / Unduh Rekap
                 </button>

@@ -13,7 +13,8 @@ for (const markup of [view, previewView]) {
         assert(markup.includes(`'${filter}' => $report['filters']['${filter}']`));
     }
 }
-assert.match(view, /@disabled\(empty\(\$report\['filters'\]\['semester'\]\)\)/);
+assert.match(view, /data-report-period-prompt/);
+assert.doesNotMatch(view, /@disabled\(empty\(\$report\['filters'\]\['semester'\]\)\)/);
 
 const dateFrom = { value: '2026-08-01' };
 const dateTo = { value: '2026-11-30' };
@@ -69,7 +70,19 @@ const modal = {
     ...events(), dataset: { previewUrl: '/reports/preview?embedded=1' },
     querySelector(selector) { return nodes[selector]; },
 };
-globalThis.document = { querySelector: () => modal };
+const periodPrompt = events();
+const period = { open: false };
+const semester = { focused: false, focus() { this.focused = true; } };
+globalThis.document = {
+    querySelector(selector) {
+        return {
+            '[data-report-preview-modal]': modal,
+            '[data-report-period-prompt]': periodPrompt,
+            '[data-report-period]': period,
+            '[data-report-semester-filter]': semester,
+        }[selector];
+    },
+};
 globalThis.ResizeObserver = class { observe() {} };
 let timeout;
 globalThis.window = {
@@ -78,6 +91,10 @@ globalThis.window = {
 };
 
 initReportPreview({ getOrCreateInstance: () => ({ hide() {} }) });
+periodPrompt.fire('click');
+assert.equal(period.open, true, 'Cetak tanpa semester membuka pemilih periode.');
+assert.equal(semester.focused, true, 'Fokus harus menuju semester agar dapat dipilih dengan keyboard.');
+assert.equal(frame.src, '', 'Dokumen belum dimuat sebelum semester dipilih.');
 modal.fire('show.bs.modal');
 assert.equal(frame.src, modal.dataset.previewUrl);
 frame.contentDocument = {

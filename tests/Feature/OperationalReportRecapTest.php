@@ -582,6 +582,37 @@ class OperationalReportRecapTest extends TestCase
         $this->actingAs($admin)->get(route('reports.index'))->assertForbidden();
     }
 
+    public function test_report_period_is_collapsed_until_selected(): void
+    {
+        [$year, , , $owner] = $this->caseFixture();
+        $this->actingAs($owner);
+
+        $initial = $this->get(route('reports.index'))->assertOk()
+            ->assertSee('data-report-period-prompt', false)
+            ->assertSee('Semua semester (daftar)');
+        preg_match('/<details id="report-period-filters"[^>]*>/s', $initial->getContent(), $details);
+        $this->assertNotEmpty($details);
+        $this->assertStringNotContainsString(' open', $details[0]);
+
+        $selected = $this->get(route('reports.index', [
+            'academic_year_id' => $year->id, 'semester' => '1',
+            'date_from' => '2026-09-01', 'date_to' => '2026-09-30',
+        ]))->assertOk()->assertDontSee('data-report-period-prompt', false)
+            ->assertSee('data-bs-target="#report-preview-modal"', false)
+            ->assertSee('Semester 1')->assertSee('1 September 2026');
+        $this->assertMatchesRegularExpression('/<details id="report-period-filters"[^>]* open/s', $selected->getContent());
+
+    }
+
+    public function test_invalid_report_period_is_expanded_with_validation_errors(): void
+    {
+        [, , , $owner] = $this->caseFixture();
+        $invalid = $this->actingAs($owner)->followingRedirects()
+            ->get(route('reports.index', ['semester' => '3']))->assertOk()
+            ->assertSee('Semester harus 1 atau 2.');
+        $this->assertMatchesRegularExpression('/<details id="report-period-filters"[^>]* open/s', $invalid->getContent());
+    }
+
     public function test_recap_modal_preserves_filters_and_embedded_document_access(): void
     {
         [$year, $classroom, , $owner] = $this->caseFixture();

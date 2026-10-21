@@ -8,6 +8,11 @@ export const resetReportPeriodFilters = (select) => {
 };
 
 export const initReportPreview = (Modal) => {
+    document.querySelector('[data-report-period-prompt]')?.addEventListener('click', () => {
+        document.querySelector('[data-report-period]').open = true;
+        document.querySelector('[data-report-semester-filter]').focus();
+    });
+
     const modal = document.querySelector('[data-report-preview-modal]');
     if (!modal) return;
 
