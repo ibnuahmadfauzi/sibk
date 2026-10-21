@@ -72,8 +72,11 @@ class CaseController extends Controller
                 'followUpType:id,label',
                 'followUps.followUpType',
             ]), fn ($cases) => $cases->with([
+                'student',
                 'classroom',
                 'temporaryStudent.reconciledStudent',
+                'academicYear',
+                'assignments:id,case_id,user_id',
                 'source',
                 'serviceField',
                 'status',
