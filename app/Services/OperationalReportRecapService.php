@@ -39,7 +39,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             ->orderBy('record_type')
             ->orderByDesc('record_id')
             ->paginate((int) $filters['per_page'])
-            ->withQueryString();
+            ->appends(Arr::except(request()->query(), ['semester', 'date_from', 'date_to']));
 
         $rows = $this->hydrateRows(
             $actor,
@@ -136,6 +136,35 @@ final class OperationalReportRecapService implements OperationalReportRecap
         return $this->recordRow($record, null, 1);
     }
 
+    /** @return array<string, mixed> */
+    public function defaultPeriodFor(?AcademicYear $year): array
+    {
+        if ($year === null) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Tahun ajaran belum tersedia untuk membuat dokumen laporan.',
+            ]);
+        }
+
+        [$academicStart, $academicEnd, $recordedStart, $recordedEnd] = $this->academicBounds(
+            $year,
+            route('reports.index', ['academic_year_id' => $year->getKey()]),
+        );
+        $first = max($academicStart, $recordedStart ?? $academicStart);
+        $last = min($academicEnd, $recordedEnd ?? $academicEnd);
+        $today = CarbonImmutable::today('Asia/Jakarta')->toDateString();
+        $end = max($first, min($today, $last));
+        $semester = substr($end, 0, 4) === substr($academicStart, 0, 4) ? '1' : '2';
+        $semesterStart = $semester === '1' ? $academicStart : sprintf('%04d-01-01', (int) substr($academicStart, 0, 4) + 1);
+        $start = max($first, $semesterStart, CarbonImmutable::parse($end)->subDays(29)->toDateString());
+
+        return $this->periodFor($year, [
+            'academic_year_id' => $year->getKey(),
+            'semester' => $semester,
+            'date_from' => $start,
+            'date_to' => $end,
+        ]);
+    }
+
     /** @param array<string, mixed> $filters @return array{AcademicYear|null, array<string, mixed>, array<string, mixed>|null} */
     private function normalizedFilters(array $filters): array
     {
@@ -203,34 +232,10 @@ final class OperationalReportRecapService implements OperationalReportRecap
             return null;
         }
 
-        $nameYear = null;
-        if (preg_match('/^(\d{4})\/(\d{4})$/D', $year->name, $parts)
-            && (int) $parts[2] === (int) $parts[1] + 1) {
-            $nameYear = (int) $parts[1];
-        }
-        $yearStart = $year->starts_on === null
-            ? $nameYear
-            : (int) $year->starts_on->year - ($year->starts_on->month < 7 ? 1 : 0);
-        if ($yearStart === null || ($nameYear !== null && $nameYear !== $yearStart)) {
-            throw ValidationException::withMessages([
-                'academic_year_id' => 'Periode tahun ajaran tidak dapat dipastikan.',
-            ])->redirectTo($redirect);
-        }
+        [$academicStart, $academicEnd, $recordedStart, $recordedEnd] = $this->academicBounds($year, $redirect);
 
-        $academicStart = sprintf('%04d-07-01', $yearStart);
-        $academicEnd = sprintf('%04d-06-30', $yearStart + 1);
-        $recordedStart = $year->starts_on?->toDateString();
-        $recordedEnd = $year->ends_on?->toDateString();
-        if (($recordedStart !== null && ($recordedStart < $academicStart || $recordedStart > $academicEnd))
-            || ($recordedEnd !== null && ($recordedEnd < $academicStart || $recordedEnd > $academicEnd))
-            || ($recordedStart !== null && $recordedEnd !== null && $recordedStart > $recordedEnd)) {
-            throw ValidationException::withMessages([
-                'academic_year_id' => 'Tanggal tahun ajaran tidak sesuai dengan periode Juli–Juni.',
-            ])->redirectTo($redirect);
-        }
-
-        $semesterStart = $semester === '1' ? $academicStart : sprintf('%04d-01-01', $yearStart + 1);
-        $semesterEnd = $semester === '1' ? sprintf('%04d-12-31', $yearStart) : $academicEnd;
+        $semesterStart = $semester === '1' ? $academicStart : sprintf('%04d-01-01', (int) substr($academicStart, 0, 4) + 1);
+        $semesterEnd = $semester === '1' ? sprintf('%04d-12-31', (int) substr($academicStart, 0, 4)) : $academicEnd;
         $start = $dateFrom ?? $semesterStart;
         $end = $dateTo ?? $semesterEnd;
         if ($start < $semesterStart || $start > $semesterEnd) {
@@ -268,6 +273,38 @@ final class OperationalReportRecapService implements OperationalReportRecap
                 CarbonImmutable::parse($end)->locale('id')->translatedFormat('j F Y'),
             ),
         ];
+    }
+
+    /** @return array{string, string, string|null, string|null} */
+    private function academicBounds(AcademicYear $year, string $redirect): array
+    {
+        $nameYear = null;
+        if (preg_match('/^(\d{4})\/(\d{4})$/D', $year->name, $parts)
+            && (int) $parts[2] === (int) $parts[1] + 1) {
+            $nameYear = (int) $parts[1];
+        }
+        $yearStart = $year->starts_on === null
+            ? $nameYear
+            : (int) $year->starts_on->year - ($year->starts_on->month < 7 ? 1 : 0);
+        if ($yearStart === null || ($nameYear !== null && $nameYear !== $yearStart)) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Periode tahun ajaran tidak dapat dipastikan.',
+            ])->redirectTo($redirect);
+        }
+
+        $academicStart = sprintf('%04d-07-01', $yearStart);
+        $academicEnd = sprintf('%04d-06-30', $yearStart + 1);
+        $recordedStart = $year->starts_on?->toDateString();
+        $recordedEnd = $year->ends_on?->toDateString();
+        if (($recordedStart !== null && ($recordedStart < $academicStart || $recordedStart > $academicEnd))
+            || ($recordedEnd !== null && ($recordedEnd < $academicStart || $recordedEnd > $academicEnd))
+            || ($recordedStart !== null && $recordedEnd !== null && $recordedStart > $recordedEnd)) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Tanggal tahun ajaran tidak sesuai dengan periode Juli–Juni.',
+            ])->redirectTo($redirect);
+        }
+
+        return [$academicStart, $academicEnd, $recordedStart, $recordedEnd];
     }
 
     /** @param array<string, mixed> $filters */

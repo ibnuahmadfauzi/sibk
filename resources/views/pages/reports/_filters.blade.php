@@ -8,7 +8,19 @@
             data-auto-filter
             data-filter-reset-url="{{ route('reports.index') }}"
         >
-            <div class="col-12 col-md-6 col-xl-4">
+            <div class="col-12 col-md-4 col-xl-3">
+                <label class="form-label" for="academic_year_id">Tahun ajaran</label>
+                <select class="form-select" id="academic_year_id" name="academic_year_id" data-filter-field
+                    data-filter-default="{{ request()->has('academic_year_id') ? '' : ($report['filters']['academic_year_id'] ?? '') }}" data-report-year-filter
+                    @error('academic_year_id') aria-invalid="true" aria-describedby="academic_year_id-error" @enderror>
+                    @foreach($report['filter_options']['academic_years'] as $year)
+                        <option value="{{ $year->id }}" @selected((int) ($report['filters']['academic_year_id'] ?? 0) === $year->id)>{{ $year->name }}</option>
+                    @endforeach
+                </select>
+                @error('academic_year_id')<div class="invalid-feedback d-block" id="academic_year_id-error">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="col-12 col-md-4 col-xl-3">
                 <label
                     class="form-label"
                     for="classroom_search"
@@ -29,7 +41,7 @@
                 @enderror
             </div>
 
-            <div class="col-12 col-md-6 col-xl-4">
+            <div class="col-12 col-md-4 col-xl-3">
                 <label
                     class="form-label"
                     for="service_type"
@@ -76,7 +88,7 @@
                 @enderror
             </div>
 
-            <div class="col-12 col-md-6 col-xl-auto">
+            <div class="col-12 col-xl-auto ms-xl-auto d-flex justify-content-end">
                 <button
                     class="btn btn-outline-primary"
                     type="submit"
@@ -86,88 +98,6 @@
                 </button>
             </div>
 
-            <div class="col-12">
-                <details id="report-period-filters" data-report-period
-                    @if($report['period'] || $errors->hasAny(['academic_year_id', 'semester', 'date_from', 'date_to'])) open @endif>
-                    <summary class="py-2">
-                        <span class="fw-semibold text-primary">Atur periode {{ $report['can_view_document'] ? 'rekap' : 'laporan' }}</span>
-                        <span class="d-block small text-muted mt-1">
-                            Tahun ajaran {{ $report['academic_year']?->name ?? 'belum tersedia' }} &middot; {{ $report['period']['label'] ?? 'Semua semester (daftar)' }}
-                        </span>
-                    </summary>
-                    <div class="row g-3 mt-0">
-                        <div class="col-12 col-md-6">
-                            <label
-                                class="form-label"
-                                for="academic_year_id"
-                            >
-                                Tahun ajaran
-                            </label>
-                            <select
-                                class="form-select"
-                                id="academic_year_id"
-                                name="academic_year_id"
-                                data-filter-field
-                                data-filter-default="{{ request()->has('academic_year_id') ? '' : ($report['filters']['academic_year_id'] ?? '') }}"
-                                data-report-year-filter
-                                @error('academic_year_id')
-                                    aria-invalid="true"
-                                    aria-describedby="academic_year_id-error"
-                                @enderror
-                            >
-                                @foreach($report['filter_options']['academic_years'] as $year)
-                                    <option
-                                        value="{{ $year->id }}"
-                                        @selected((int) ($report['filters']['academic_year_id'] ?? 0) === $year->id)
-                                    >
-                                        {{ $year->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('academic_year_id')
-                                <div
-                                    class="invalid-feedback d-block"
-                                    id="academic_year_id-error"
-                                >
-                                    {{ $message }}
-                                </div>
-                            @enderror
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label" for="semester">Semester</label>
-                            <select class="form-select" id="semester" name="semester" data-filter-field data-filter-default="" data-report-semester-filter
-                                aria-describedby="report-period-help @error('semester') semester-error @enderror"
-                                @error('semester') aria-invalid="true" @enderror>
-                                <option value="" @selected((string) old('semester', $report['filters']['semester'] ?? '') === '')>Semua semester (daftar)</option>
-                                <option value="1" @selected((string) old('semester', $report['filters']['semester'] ?? '') === '1')>Semester 1 (Juli–Desember)</option>
-                                <option value="2" @selected((string) old('semester', $report['filters']['semester'] ?? '') === '2')>Semester 2 (Januari–Juni)</option>
-                            </select>
-                            @error('semester')<div class="invalid-feedback d-block" id="semester-error">{{ $message }}</div>@enderror
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label" for="date_from">Tanggal mulai</label>
-                            <input class="form-control" type="date" id="date_from" name="date_from" value="{{ old('date_from', $report['filters']['date_from'] ?? '') }}" data-filter-field data-filter-default=""
-                                @if($report['period']) min="{{ $report['period']['semester_start'] }}" max="{{ $report['period']['semester_end'] }}" @endif
-                                aria-describedby="report-period-help @error('date_from') date_from-error @enderror"
-                                @error('date_from') aria-invalid="true" @enderror>
-                            @error('date_from')<div class="invalid-feedback d-block" id="date_from-error">{{ $message }}</div>@enderror
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <label class="form-label" for="date_to">Tanggal akhir</label>
-                            <input class="form-control" type="date" id="date_to" name="date_to" value="{{ old('date_to', $report['filters']['date_to'] ?? '') }}" data-filter-field data-filter-default=""
-                                @if($report['period']) min="{{ $report['period']['semester_start'] }}" max="{{ $report['period']['semester_end'] }}" @endif
-                                aria-describedby="report-period-help @error('date_to') date_to-error @enderror"
-                                @error('date_to') aria-invalid="true" @enderror>
-                            @error('date_to')<div class="invalid-feedback d-block" id="date_to-error">{{ $message }}</div>@enderror
-                        </div>
-
-                        <p class="col-12 small text-muted mb-0" id="report-period-help">Untuk cetak/unduh, pilih satu semester. Tanggal opsional harus berada di semester tersebut.</p>
-                    </div>
-                </details>
-            </div>
         </form>
     </div>
 </div>

@@ -17,7 +17,7 @@ import './case-create.js';
 import './table-sort.js';
 import { initConsultationCreate } from './consultation-create';
 import { initWithdrawalProgress } from './withdrawal-progress';
-import { initReportPreview, resetReportPeriodFilters } from './report-preview';
+import { initReportPreview, resetReportYearFilters } from './report-preview';
 import { initAchievementForms } from './achievement-form';
 import { displayStudentName } from './student-name';
 import { initAutoFilters } from './auto-filter';
@@ -72,8 +72,8 @@ document.querySelectorAll('[data-print-report]').forEach((button) => {
     button.addEventListener('click', () => window.print());
 });
 
-document.querySelectorAll('[data-report-year-filter], [data-report-semester-filter]').forEach((select) => {
-    select.addEventListener('change', () => resetReportPeriodFilters(select));
+document.querySelectorAll('[data-report-year-filter]').forEach((select) => {
+    select.addEventListener('change', () => resetReportYearFilters(select));
 });
 
 initAutoFilters();

@@ -1,47 +1,30 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { initReportPreview, resetReportPeriodFilters } from '../resources/js/report-preview.js';
+import { initReportPreview, resetReportYearFilters } from '../resources/js/report-preview.js';
 
 const view = await readFile('resources/views/pages/reports/index.blade.php', 'utf8');
 assert.match(view, /data-report-filter-errors/);
 assert.match(view, /data-report-preview-error-message/);
 const previewView = await readFile('resources/views/pages/reports/preview.blade.php', 'utf8');
 const filterView = await readFile('resources/views/pages/reports/_filters.blade.php', 'utf8');
-assert.equal((filterView.match(/min="\{\{ \$report\['period'\]\['semester_start'\] \}\}" max="\{\{ \$report\['period'\]\['semester_end'\] \}\}"/g) ?? []).length, 2);
-for (const markup of [view, previewView]) {
-    for (const filter of ['semester', 'date_from', 'date_to']) {
-        assert(markup.includes(`'${filter}' => $report['filters']['${filter}']`));
-    }
-}
-assert.match(view, /data-report-period-prompt/);
-assert.doesNotMatch(view, /@disabled\(empty\(\$report\['filters'\]\['semester'\]\)\)/);
+assert.doesNotMatch(filterView, /name="(?:semester|date_from|date_to)"/);
+assert.doesNotMatch(view, /data-report-period-prompt/);
+assert.match(view, /Buat rekap/);
 
-const dateFrom = { value: '2026-08-01' };
-const dateTo = { value: '2026-11-30' };
 const classroom = { value: 'X RPL' };
 const form = {
-    querySelectorAll: () => [dateFrom, dateTo],
     querySelector: () => classroom,
 };
-const select = (year) => ({
+const select = {
     closest: () => form,
-    matches: () => year,
-});
-resetReportPeriodFilters(select(false));
-assert.equal(dateFrom.value, '');
-assert.equal(dateTo.value, '');
-assert.equal(classroom.value, 'X RPL');
-dateFrom.value = '2026-08-01';
-dateTo.value = '2026-11-30';
-resetReportPeriodFilters(select(true));
-assert.equal(dateFrom.value, '');
-assert.equal(dateTo.value, '');
+};
+resetReportYearFilters(select);
 assert.equal(classroom.value, '');
 
 const events = () => ({
     listeners: {},
     addEventListener(name, handler) { this.listeners[name] = handler; },
-    fire(name) { this.listeners[name]?.({ type: name }); },
+    fire(name) { return this.listeners[name]?.({ type: name, preventDefault() {} }); },
 });
 const classList = () => ({
     values: new Set(),
@@ -54,6 +37,19 @@ const error = { classList: classList() };
 const message = { textContent: 'Pratinjau belum dapat ditampilkan.', innerHTML: 'unchanged' };
 const print = { disabled: true, ...events() };
 const retry = events();
+const download = { classList: classList(), attributes: {}, setAttribute(name, value) { this.attributes[name] = value; }, removeAttribute(name) { delete this.attributes[name]; }, dataset: { exportUrl: 'http://localhost/reports/export?academic_year_id=1&service_type=case&format=xlsx' } };
+const fallback = { href: '' };
+const status = { textContent: '' };
+const periodFields = {
+    semester: { value: '1', ...events() },
+    date_from: { value: '2026-09-22' },
+    date_to: { value: '2026-10-21', setCustomValidity(message) { this.validationMessage = message; } },
+};
+const periodForm = {
+    ...events(), dataset: { semesterOneStart: '2026-07-01', semesterOneEnd: '2026-12-31', semesterTwoStart: '2027-01-01', semesterTwoEnd: '2027-06-30' },
+    querySelector(selector) { return periodFields[selector.match(/name="([^"]+)"/)[1]]; },
+    reportValidity() { return !periodFields.date_to.validationMessage; },
+};
 const frame = {
     ...events(), classList: classList(), src: '', contentDocument: null,
     getAttribute(name) { return name === 'src' ? this.src : null; },
@@ -65,24 +61,16 @@ const nodes = {
     '[data-report-preview-error-message]': message,
     '[data-report-preview-print]': print,
     '[data-report-preview-retry]': retry,
+    '[data-report-preview-download]': download,
+    '[data-report-preview-fallback]': fallback,
+    '[data-report-period-form]': periodForm,
+    '[data-report-period-status]': status,
 };
 const modal = {
-    ...events(), dataset: { previewUrl: '/reports/preview?embedded=1' },
+    ...events(), dataset: { previewUrl: 'http://localhost/reports/preview?academic_year_id=1&service_type=case&embedded=1' },
     querySelector(selector) { return nodes[selector]; },
 };
-const periodPrompt = events();
-const period = { open: false };
-const semester = { focused: false, focus() { this.focused = true; } };
-globalThis.document = {
-    querySelector(selector) {
-        return {
-            '[data-report-preview-modal]': modal,
-            '[data-report-period-prompt]': periodPrompt,
-            '[data-report-period]': period,
-            '[data-report-semester-filter]': semester,
-        }[selector];
-    },
-};
+globalThis.document = { querySelector: () => modal };
 globalThis.ResizeObserver = class { observe() {} };
 let timeout;
 globalThis.window = {
@@ -91,12 +79,10 @@ globalThis.window = {
 };
 
 initReportPreview({ getOrCreateInstance: () => ({ hide() {} }) });
-periodPrompt.fire('click');
-assert.equal(period.open, true, 'Cetak tanpa semester membuka pemilih periode.');
-assert.equal(semester.focused, true, 'Fokus harus menuju semester agar dapat dipilih dengan keyboard.');
-assert.equal(frame.src, '', 'Dokumen belum dimuat sebelum semester dipilih.');
 modal.fire('show.bs.modal');
-assert.equal(frame.src, modal.dataset.previewUrl);
+assert.equal(new URL(frame.src).searchParams.get('date_from'), '2026-09-22');
+assert.equal(new URL(frame.src).searchParams.get('date_to'), '2026-10-21');
+assert.equal(download.attributes.href, undefined);
 frame.contentDocument = {
     querySelector(selector) {
         return selector === '[data-report-filter-errors]'
@@ -122,6 +108,42 @@ frame.contentDocument = {
 frame.fire('load');
 assert.equal(print.disabled, false);
 assert.equal(frame.classList.contains('d-none'), false);
+assert.equal(new URL(download.attributes.href).searchParams.get('date_from'), '2026-09-22');
+periodFields.date_from.value = '2026-10-01';
+periodForm.fire('input');
+assert.equal(print.disabled, true, 'Jangan cetak dokumen lama setelah periode diubah.');
+assert.equal(download.attributes.href, undefined, 'Jangan unduh periode lama saat perubahan belum diterapkan.');
+periodForm.fire('submit');
+assert.equal(new URL(frame.src).searchParams.get('date_from'), '2026-10-01');
+periodForm.fire('input');
+frame.fire('load');
+assert.equal(print.disabled, true, 'Load yang selesai tidak boleh mengaktifkan cetak saat ada perubahan baru.');
+periodForm.fire('submit');
+frame.fire('load');
+assert.equal(print.disabled, false);
+assert.equal(new URL(download.attributes.href).searchParams.get('date_from'), '2026-10-01');
+assert.equal(new URL(fallback.href).searchParams.has('embedded'), false);
+let finishFonts;
+let printCount = 0;
+frame.contentDocument.fonts = { ready: new Promise((resolve) => { finishFonts = resolve; }) };
+frame.contentWindow = { focus() {}, print() { printCount++; } };
+const pendingPrint = print.fire('click');
+periodForm.fire('input');
+finishFonts();
+await pendingPrint;
+assert.equal(printCount, 0, 'Perubahan periode saat menunggu font harus membatalkan cetak.');
+periodFields.semester.value = '2';
+periodFields.semester.fire('change');
+assert.equal(periodFields.date_from.value, '2027-01-01');
+assert.equal(periodFields.date_to.value, '2027-06-30');
+assert.equal(periodFields.date_to.min, '2027-01-01');
+const previous = frame.src;
+periodFields.date_from.value = '2027-02-10';
+periodFields.date_to.value = '2027-02-01';
+periodForm.fire('submit');
+assert.equal(frame.src, previous, 'Rentang terbalik tidak boleh memuat dokumen.');
+periodFields.date_from.value = '2027-02-01';
+periodForm.fire('input');
 
 retry.fire('click');
 frame.fire('error');
