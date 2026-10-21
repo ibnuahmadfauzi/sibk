@@ -17,7 +17,7 @@ export DEBIAN_FRONTEND=noninteractive
 "${as_root[@]}" apt-get install -y --no-install-recommends ca-certificates curl software-properties-common unzip openssl
 "${as_root[@]}" add-apt-repository -y ppa:ondrej/php
 "${as_root[@]}" apt-get update
-"${as_root[@]}" apt-get install -y --no-install-recommends \
+"${as_root[@]}" apt-get -o Acquire::Retries=5 -o Acquire::https::Timeout=20 install -y --no-install-recommends \
     apache2 libapache2-mod-php8.4 php8.4-cli php8.4-curl php8.4-gd \
     php8.4-mbstring php8.4-mysql php8.4-xml php8.4-zip
 "${as_root[@]}" a2enmod rewrite headers
