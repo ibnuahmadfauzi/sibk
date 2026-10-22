@@ -128,9 +128,7 @@ class AssignmentManagementTest extends TestCase
 
         $this->actingAs($teacher)->get(route('assignments.classes.index', [
             'academic_year_id' => $preparationYear->id,
-        ]))->assertOk()
-            ->assertViewHas('selectedYear', fn ($year) => $year->is($activeYear))
-            ->assertDontSee('Tahun penugasan');
+        ]))->assertForbidden();
     }
 
     public function test_no_active_year_does_not_select_preparation_automatically(): void
@@ -307,9 +305,25 @@ class AssignmentManagementTest extends TestCase
             ->assertSee('>3</td>', false);
         $this->actingAs($coordinator)->get(route('assignments.classes.index', ['status' => 'unassigned']))
             ->assertOk()->assertSee($withoutClass->name)->assertDontSee($teacher->name);
-        $this->actingAs($teacher)->get(route('assignments.classes.index'))
-            ->assertOk()->assertSee($teacher->name)->assertDontSee($withoutClass->name)
-            ->assertDontSee('Tambah kelas untuk');
+        $this->actingAs($teacher)->get(route('assignments.classes.index'))->assertForbidden();
+        $this->actingAs($teacher)->get(route('dashboard.preview'))
+            ->assertOk()->assertSee('Kelas Binaan')->assertSee($firstClass->name)
+            ->assertSee($secondClass->name);
+    }
+
+    public function test_only_coordinator_can_view_assignment_list(): void
+    {
+        $this->masterContext();
+
+        foreach (['guru_bk', 'waka_kesiswaan', 'admin_it'] as $role) {
+            $this->actingAs($this->userWithRole($role))
+                ->get(route('assignments.classes.index'))
+                ->assertForbidden();
+        }
+
+        $this->actingAs($this->userWithRole('koordinator_bk'))
+            ->get(route('assignments.classes.index'))
+            ->assertOk();
     }
 
     public function test_add_guard_and_cancel_reject_stale_requests_without_changing_owner(): void

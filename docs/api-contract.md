@@ -60,7 +60,7 @@ Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan mela
 ### Daftar dan Form Kasus
 - **Endpoint:** `GET /cases`, `GET /cases/create`
 - **Controller:** `CaseController@index`
-- **Authorization:** `Guru BK` sesuai AUTH-02, `Koordinator BK` sesuai akses baca global AUTH-04/AUTH-07, dan Waka aktif melalui proyeksi hanya-baca seluruh kasus.
+- **Authorization:** `Guru BK` sesuai AUTH-02 dan `Koordinator BK` sesuai AUTH-04/AUTH-07. `CaseController@index` menolak akun Waka murni dengan HTTP 403 sesuai AUTH-05 pada seluruh nilai `tab`; endpoint pemantauan aman terpisah tetap tersedia.
 - **Query Params:** `search` (nama), `follow_up_type_id` (jenis tindak lanjut pada kasus), `status_id` (kompatibilitas pemanggil lama, tidak ditampilkan sebagai filter UI), `sort`, `direction`, `tab`, dan `page`; sort memakai allowlist dan ID sebagai tie-breaker.
 - **Response Data:** daftar `BkCase` atau `Consultation` terpagina dan tersaring policy sesuai tab aktif.
 
@@ -140,7 +140,7 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 - **Endpoint:** `GET /consultations` mengalihkan ke `GET /cases?tab=konsultasi`; `GET /consultations/create`; `GET /consultations/{consultation}`; `GET /consultations/{consultation}/edit`.
 - **Controller:** `CaseController@index` untuk daftar dan `ConsultationController` untuk formulir/detail.
 - **Form modal (CONS-01):** `GET /consultations/create?modal=1` mengembalikan fragmen HTML form. `POST /consultations` dengan `Accept: application/json` mengembalikan `message` dan `redirect` ke tab konsultasi; validasi gagal mengembalikan HTTP 422 beserta `errors`.
-- **Detail dalam baris (CONS-06):** `GET /consultations/{consultation}?inline=1` mengembalikan fragmen HTML `problem` dan `handling` untuk ditampilkan di bawah baris tabel; policy dan audit pembacaan sama dengan endpoint detail.
+- **Detail dalam baris (CONS-06, AUTH-05):** `GET /consultations/{consultation}?inline=1` mengembalikan fragmen HTML `problem` dan `handling` untuk Guru BK/Koordinator; proyeksi Waka murni hanya mengembalikan `result`. Halaman penuh, modal, dan fragmen memakai proyeksi dan audit pembacaan yang sama.
 - **Filter daftar:** `search` (nama), `service_field_id`, `sort`, `direction`, dan `page`; sort hanya `tanggal`, `nama`, `kelas`, atau `jenis_layanan` dengan ID sebagai tie-breaker.
 - **Authorization:** Guru BK membaca histori sesuai AUTH-02, Koordinator memakai akses baca global AUTH-04/AUTH-07, Waka aktif membaca proyeksi detail hanya-baca, dan Admin IT ditolak.
 
@@ -197,10 +197,9 @@ model, relasi, atau data koordinasi pada kontrak aktif.
 ### Daftar dan Form Pembagian Kelas Binaan
 - **Endpoint:** `GET /assignments/classes`, `GET /assignments/classes/manage`.
 - **Controller:** `AssignmentController@index`, `AssignmentController@manage`.
-- **Authorization daftar:** Guru BK melihat penugasannya; Koordinator, Waka, dan Admin IT memperoleh ringkasan sesuai fungsi masing-masing.
-- **Authorization form:** hanya Koordinator BK.
-- **Daftar:** satu baris per Guru BK aktif, termasuk yang belum mempunyai kelas. Kolom kelas memuat kelas aktif pada tahun terpilih; jumlah murid hanya menghitung membership aktif milik murid aktif pada tahun tersebut. Guru BK hanya menerima barisnya sendiri.
-- **Konteks tahun:** tanpa parameter, daftar memakai tahun aktif; bila belum ada, tampilkan keadaan kosong dan jangan otomatis memakai tahun Persiapan. Koordinator memilih tahun aktif atau Persiapan secara eksplisit di panel Kesiapan Aktivasi melalui `academic_year_id`; pilihan itu juga menentukan tahun pada tabel. Peran lain selalu melihat tahun aktif. Tahun arsip tidak masuk pilihan.
+- **Authorization daftar dan form:** `TeacherAssignmentPolicy` mengikuti ASN-01 dan AUTH-03; selain Koordinator menerima HTTP 403.
+- **Daftar:** satu baris per Guru BK aktif, termasuk yang belum mempunyai kelas. Kolom kelas memuat kelas aktif pada tahun terpilih; jumlah murid hanya menghitung membership aktif milik murid aktif pada tahun tersebut.
+- **Konteks tahun:** tanpa parameter, daftar memakai tahun aktif; bila belum ada, tampilkan keadaan kosong dan jangan otomatis memakai tahun Persiapan. Koordinator memilih tahun aktif atau Persiapan secara eksplisit di panel Kesiapan Aktivasi melalui `academic_year_id`; pilihan itu juga menentukan tahun pada tabel. Tahun arsip tidak masuk pilihan.
 - **Filter daftar:** `search_kelas` (nama kelas ampuan) dan `status` (`all`, `assigned`, atau `unassigned` berdasarkan status guru). Saat Koordinator menyiapkan tahun Persiapan, form filter mempertahankan `academic_year_id` terpilih. Kelas kosong tetap tersedia dalam pilihan tambah meskipun daftar difilter.
 
 ### Atur Penugasan Kelas
