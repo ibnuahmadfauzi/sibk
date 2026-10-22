@@ -18,7 +18,7 @@
                 </div>
                 <div class="col-12 col-md-5">
                     <label class="form-label" for="withdrawal-recorded-on">Tanggal pencatatan <span class="text-danger">*</span></label>
-                    <input class="form-control" id="withdrawal-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required>
+                    <input class="form-control" id="withdrawal-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', today('Asia/Jakarta')->toDateString()) }}" max="{{ today('Asia/Jakarta')->toDateString() }}" required>
                 </div>
                 <div class="col-12 d-none" data-withdrawal-selected-student aria-live="polite">
                     <div class="rounded-3 border bg-primary-subtle px-3 py-2 small"><strong data-withdrawal-selected-name></strong><span class="text-secondary ms-2" data-withdrawal-selected-classroom></span></div>

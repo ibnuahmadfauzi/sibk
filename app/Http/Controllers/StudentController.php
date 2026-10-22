@@ -215,16 +215,17 @@ class StudentController extends Controller
     private function recentActivities(Collection $cases, Collection $consultations, Collection $etatibRecords, Collection $achievements): Collection
     {
         return $cases->map(fn (BkCase $case): array => [
-            'date' => $case->created_at,
+            'date' => $case->created_at?->copy()->timezone('Asia/Jakarta'),
             'label' => 'Kasus dicatat',
         ])->concat($consultations->map(fn (Consultation $consultation): array => [
-            'date' => $consultation->created_at,
+            'date' => $consultation->created_at?->copy()->timezone('Asia/Jakarta'),
             'label' => 'Konsultasi dicatat',
         ]))->concat($etatibRecords->map(fn (ExternalTatibRecord $record): array => [
-            'date' => $record->occurred_at,
+            // Jam sumber sudah WIB; tetapkan zona tanpa menggeser jam kejadian.
+            'date' => $record->occurred_at?->copy()->shiftTimezone('Asia/Jakarta'),
             'label' => 'Data e-Tatib diperbarui',
         ]))->concat($achievements->map(fn (Achievement $achievement): array => [
-            'date' => $achievement->created_at,
+            'date' => $achievement->created_at?->copy()->timezone('Asia/Jakarta'),
             'label' => sprintf('Prestasi %s dicatat', $achievement->activity_name),
         ]))->sortByDesc('date')->take(8)->values();
     }

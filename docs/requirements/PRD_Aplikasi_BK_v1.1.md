@@ -127,7 +127,7 @@ Target waktu merupakan target uji awal, bukan janji layanan. Nilainya dapat dite
 | Dashboard dan laporan          | Pemantauan, rekap per scope Guru BK, rekap gabungan Koordinator, dan laporan Waka yang diizinkan.      | Inti        |
 | Akses Waka                     | Portal khusus berisi Dashboard, Prestasi, dan Laporan; seluruh detail kasus dan konsultasi memakai proyeksi hanya-baca yang diaudit. | Inti        |
 | Audit                          | Jejak perubahan append-only tanpa halaman pembaca umum; satu simpan resmi mencatat hanya field yang berubah. | Inti        |
-| Retensi                        | Data operasional tidak dihapus sebelum tersimpan minimum tiga tahun; draf Persiapan yang belum aktif dapat dibatalkan sesuai pemeriksaan relasi. Penghapusan otomatis belum diaktifkan. | Inti        |
+| Retensi                        | Penghapusan otomatis data BK alumni setelah masa retensi yang disahkan, dengan perlindungan murid lain dan pencegahan impor ulang; sistem sumber tetap utuh. | Inti        |
 | Prestasi                       | Pengelolaan oleh Waka melalui input manual atau impor Excel dalam modal; daftar mengutamakan pencarian dan filter tingkat prestasi; Guru BK membaca sesuai scope sebagai konteks layanan; Koordinator membaca prestasi seluruh murid, termasuk saat rangkap Guru BK. Tidak memakai bukti atau workflow verifikasi. | P0 bertahap |
 
 Prestasi tetap termasuk P0, tetapi dikerjakan setelah fungsi kasus, tindak lanjut, laporan, dan pengendalian akses inti stabil.
@@ -158,7 +158,7 @@ Konfigurasi koneksi langsung dapat disimpan sebelum kontrak provider tersedia, t
 
 - Pemindahan otomatis kasus aktif atau rolling otomatis pembagian Guru BK.
 
-- Penghapusan otomatis sebelum prosedur retensi dan pemulihan disahkan.
+- Penghapusan otomatis selain alumni yang memenuhi kebijakan retensi NFR-08.
 
 # Aturan produk utama
 
@@ -198,7 +198,7 @@ Konfigurasi koneksi langsung dapat disimpan sebelum kontrak provider tersedia, t
 | Edit dan arsip      | Tombol Hapus mengarsipkan kasus/konsultasi dengan soft delete. Kesalahan data master dikoordinasikan di luar aplikasi, diperbaiki pada sumber resmi, lalu masuk melalui sinkronisasi atau rekonsiliasi. |
 | Proses keluar murid | Pencatatan awal selalu `dalam_proses`; hanya Koordinator menetapkan `batal` atau `resmi_keluar`. Hanya `resmi_keluar` dengan tanggal efektif yang menghentikan layanan baru dan memulai retensi. Provider tidak menentukan status ini. |
 | Audit               | Setiap simpan resmi mencatat actor, waktu, tipe/ID record, serta nilai sebelum/sesudah hanya untuk field yang berubah. Pembacaan detail Waka dicatat; draft lokal tidak membuat audit. |
-| Retensi             | Kasus, layanan, konsultasi, prestasi, dan audit disimpan minimum tiga tahun; prosedur penghapusan tetap memerlukan kebijakan operasional.       |
+| Retensi             | Kebijakan penghapusan alumni disahkan untuk mengurangi penumpukan data pribadi di BK; aturan kelayakan dan perlindungannya dimiliki NFR-08 pada SRS. |
 
 # Arsitektur informasi dan laporan
 

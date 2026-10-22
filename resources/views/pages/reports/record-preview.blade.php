@@ -66,7 +66,7 @@
         </section>
 
         @include('pages.reports.print._signature-block', [
-            'generatedAt' => now(),
+            'generatedAt' => now('Asia/Jakarta'),
         ])
     </article>
 </div>

@@ -52,6 +52,7 @@ class WakaMonitoringTest extends TestCase
             'initial_info' => 'Narasi privat.',
             'initial_action' => 'Asesmen privat.',
             'internal_note' => 'Catatan internal.',
+            'resolution_summary' => 'Ringkasan aman.',
             'created_by' => $owner->id,
         ]);
         CaseAssignment::query()->create([
@@ -70,6 +71,20 @@ class WakaMonitoringTest extends TestCase
         $this->assertArrayNotHasKey('initial_info', $row);
         $this->assertArrayNotHasKey('internal_note', $row);
         $this->assertArrayNotHasKey('registration_number', $row);
+        $detail = app(WakaMonitoringService::class)->detailSafe($waka, $case->id);
+        $this->assertSame([
+            'nama_murid', 'kelas', 'bidang', 'status', 'status_code',
+            'guru_bk', 'tanggal', 'tindak_lanjut', 'resolution_summary',
+        ], array_keys($detail));
+        $this->assertArrayNotHasKey('initial_info', $detail);
+        $this->assertArrayNotHasKey('initial_action', $detail);
+        $this->assertArrayNotHasKey('registration_number', $detail);
+        $this->assertArrayNotHasKey('nisn', $detail);
+        $this->assertSame('Ringkasan aman.', $detail['resolution_summary']);
+        $this->actingAs($waka)->get(route('cases.show', $case))
+            ->assertOk()
+            ->assertSee(['Murid Aman', 'X RPL 1', $owner->name, 'Ringkasan aman.'])
+            ->assertDontSee(['Narasi privat.', 'Asesmen privat.', 'Catatan internal.', '0012345678', 'K-2026-0001']);
         $this->actingAs($waka)->get(route('waka.monitoring.students'))->assertOk();
         $this->actingAs($owner)->get(route('waka.monitoring.students'))->assertForbidden();
     }

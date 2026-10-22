@@ -90,12 +90,6 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
                     'conflict_count' => $conflicts,
                     'from' => $dates->first(),
                     'until' => $dates->last(),
-                    'samples' => collect($snapshot->records)->take(5)->map(fn (array $record): array => [
-                        'nisn' => $this->maskNisn($record['nisn']),
-                        'violation' => $record['violation_type'],
-                        'occurred_at' => $record['occurred_at'],
-                        'points' => $record['points'],
-                    ])->all(),
                 ],
             );
         } catch (IntegrationConfigurationException $exception) {
@@ -363,11 +357,6 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
         $date = DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $value);
 
         return $date === false ? null : $date->format('Y-m-d H:i:s');
-    }
-
-    private function maskNisn(string $nisn): string
-    {
-        return substr($nisn, 0, 4).'****'.substr($nisn, -2);
     }
 
     private function normalizeName(string $name): string

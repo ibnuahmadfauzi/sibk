@@ -17,3 +17,9 @@ Schedule::command('sibk:sync-etatib')
     ->when(fn (): bool => app(EtatibAutomaticSyncService::class)->isDueAt(now()))
     ->withoutOverlapping(30)
     ->onOneServer();
+
+Schedule::command('sibk:hapus-alumni --execute')
+    ->dailyAt('02:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(180)
+    ->onOneServer();

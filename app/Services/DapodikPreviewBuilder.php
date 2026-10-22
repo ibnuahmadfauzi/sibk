@@ -19,6 +19,7 @@ final class DapodikPreviewBuilder
         private readonly IntegrationOperationLock $operationLock,
         private readonly DapodikMatchResolver $matches,
         private readonly DapodikDeactivationPlanner $deactivations,
+        private readonly AlumniRetentionRegistry $retention,
     ) {}
 
     public function create(
@@ -61,6 +62,7 @@ final class DapodikPreviewBuilder
         $classroomMatches = [];
         /** @var array<string, array{candidate_id: ?int, match_status: string}> $studentMatches */
         $studentMatches = [];
+        $blockedStudentSources = [];
         $items = [];
 
         foreach ($snapshot->academicYears as $fields) {
@@ -92,6 +94,11 @@ final class DapodikPreviewBuilder
 
         foreach ($snapshot->students as $fields) {
             $safeFields = $this->normalizeStudent($fields);
+            if ($this->retention->blocked($safeFields['nisn'], $safeFields['source_id'])) {
+                $blockedStudentSources[$safeFields['source_id']] = true;
+
+                continue;
+            }
             $match = $this->matches->classifyStudent($safeFields);
             $studentMatches[$safeFields['source_id']] = $match;
             $items[] = $this->previewItem(
@@ -104,6 +111,9 @@ final class DapodikPreviewBuilder
 
         foreach ($snapshot->memberships as $fields) {
             $safeFields = $this->normalizeMembership($fields);
+            if (isset($blockedStudentSources[$safeFields['student_source_id']])) {
+                continue;
+            }
             $match = $this->matches->classifyMembership(
                 $safeFields,
                 $studentMatches[$safeFields['student_source_id']] ?? null,
@@ -119,6 +129,10 @@ final class DapodikPreviewBuilder
         }
 
         $snapshotEvidence = $this->snapshotEvidence($snapshot);
+        $excludedCount = $snapshot->recordCount() - count($items);
+        if ($excludedCount > 0) {
+            $snapshotEvidence['retention_excluded_count'] = $excludedCount;
+        }
         $deactivationPlan = $snapshot->isFullSnapshot
             ? $this->deactivations->build([
                 DapodikSyncPreviewItem::ENTITY_CLASSROOM => array_column($snapshot->classrooms, 'source_id'),

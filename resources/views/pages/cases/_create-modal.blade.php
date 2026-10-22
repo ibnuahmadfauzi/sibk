@@ -52,7 +52,7 @@
                 </div>
                 <div class="col-12 {{ in_array($selectedSourceCode, ['e_tatib', 'rujukan'], true) ? 'col-md-3' : 'col-md-5' }}" data-case-date-column>
                     <label for="service_date" class="form-label small fw-semibold">Tanggal Layanan</label>
-                    <input type="date" class="form-control border-secondary-subtle rounded-3" id="service_date" name="service_date" value="{{ old('service_date', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required>
+                    <input type="date" class="form-control border-secondary-subtle rounded-3" id="service_date" name="service_date" value="{{ old('service_date', today('Asia/Jakarta')->toDateString()) }}" max="{{ today('Asia/Jakarta')->toDateString() }}" required>
                 </div>
                 <div class="col-12 {{ in_array($selectedSourceCode, ['e_tatib', 'rujukan'], true) ? 'col-md-3' : 'col-md-5' }}" data-case-field-column>
                     <label for="service_field_id" class="form-label small fw-semibold">Jenis Masalah</label>

@@ -44,7 +44,7 @@
                     @php
                         $step = max(1, (int) ceil((collect($dashboard['trend'])->max('count') ?? 0) / 4));
                         $maximum = $step * 4;
-                        $currentMonth = now()->format('Y-m');
+                        $currentMonth = now('Asia/Jakarta')->format('Y-m');
                     @endphp
                     <div class="sibk-waka-trend">
                         <div class="sibk-waka-trend__scale" aria-hidden="true">

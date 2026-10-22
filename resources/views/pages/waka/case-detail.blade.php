@@ -36,8 +36,6 @@
             </dl>
 
             <div class="border-top pt-4">
-                <h3 class="h6">Informasi awal</h3><p>{{ $detail['initial_info'] }}</p>
-                <h3 class="h6">Tindakan awal</h3><p>{{ $detail['initial_action'] }}</p>
                 <h3 class="h6">Ringkasan penyelesaian</h3><p>{{ $detail['resolution_summary'] ?: '-' }}</p>
                 <h3 class="h6">Jenis tindak lanjut</h3><p class="mb-0">{{ $detail['tindak_lanjut'] }}</p>
             </div>

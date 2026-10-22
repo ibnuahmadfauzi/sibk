@@ -31,7 +31,7 @@
             </div>
             <div class="sibk-student-hero__stats">
                 <div class="sibk-student-hero__stat sibk-tone--primary"><h3>Layanan BK</h3><div class="sibk-student-hero__service"><strong>{{ $stats['cases'] }}</strong><span>Permasalahan</span></div><div class="sibk-student-hero__service"><strong>{{ $stats['consultations'] }}</strong><span>Konsultasi</span></div></div>
-                <div class="sibk-student-hero__stat sibk-tone--danger"><h3>Akumulasi Poin di BK</h3><strong class="sibk-student-hero__number sibk-student-hero__number--danger">{{ $stats['points'] }}</strong>@if($stats['source_points'] !== null)<small>Total terakhir dari e-Tatib: {{ $stats['source_points'] }}</small>@endif<small>Terakhir disinkronkan: {{ $stats['last_synced_at']?->locale('id')->translatedFormat('d M Y') ?? 'Belum tersedia' }}</small></div>
+                <div class="sibk-student-hero__stat sibk-tone--danger"><h3>Akumulasi Poin di BK</h3><strong class="sibk-student-hero__number sibk-student-hero__number--danger">{{ $stats['points'] }}</strong>@if($stats['source_points'] !== null)<small>Total terakhir dari e-Tatib: {{ $stats['source_points'] }}</small>@endif<small>Terakhir disinkronkan: {{ $stats['last_synced_at']?->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y') ?? 'Belum tersedia' }}</small></div>
                 <div class="sibk-student-hero__stat sibk-tone--success"><h3>Prestasi</h3><strong class="sibk-student-hero__number sibk-student-hero__number--success">{{ $stats['achievements'] }}</strong><small>Tercatat</small></div>
             </div>
         </section>

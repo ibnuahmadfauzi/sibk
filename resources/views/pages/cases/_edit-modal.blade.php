@@ -29,7 +29,7 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <label for="case-edit-date" class="form-label small fw-semibold">Tanggal Layanan</label>
-                    <input type="date" class="form-control border-secondary-subtle rounded-3 @error('service_date') is-invalid @enderror" id="case-edit-date" name="service_date" value="{{ old('service_date', $case->service_date->toDateString()) }}" max="{{ today()->toDateString() }}" required>
+                    <input type="date" class="form-control border-secondary-subtle rounded-3 @error('service_date') is-invalid @enderror" id="case-edit-date" name="service_date" value="{{ old('service_date', $case->service_date->toDateString()) }}" max="{{ today('Asia/Jakarta')->toDateString() }}" required>
                     @error('service_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>

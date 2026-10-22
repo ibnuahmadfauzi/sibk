@@ -31,7 +31,7 @@ class AuthorizationMatrixTest extends TestCase
     {
         yield 'Guru BK' => ['guru_bk', [
             '/dashboard' => 200, '/cases' => 200, '/students' => 200, '/reports' => 200,
-            '/assignments/classes' => 200,
+            '/assignments/classes' => 403,
             '/achievements' => 200, '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 200,
@@ -46,8 +46,8 @@ class AuthorizationMatrixTest extends TestCase
             '/assignments/classes/manage' => 302, '/waka/reports?tab=penanganan' => 403,
         ]];
         yield 'Waka Kesiswaan' => ['waka_kesiswaan', [
-            '/dashboard' => 200, '/cases' => 200, '/students' => 403, '/reports' => 200,
-            '/assignments/classes' => 200,
+            '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 200,
+            '/assignments/classes' => 403,
             '/achievements' => 200, '/consultations/create' => 403,
             '/data-master' => 403, '/admin/users' => 403,
             '/waka/students-with-cases' => 200, '/waka/reports?tab=laporan-akhir' => 302,
@@ -56,7 +56,7 @@ class AuthorizationMatrixTest extends TestCase
         ]];
         yield 'Admin IT' => ['admin_it', [
             '/dashboard' => 200, '/cases' => 403, '/students' => 403, '/reports' => 403,
-            '/assignments/classes' => 200,
+            '/assignments/classes' => 403,
             '/achievements' => 403, '/data-master' => 200, '/admin/users' => 200,
             '/waka/students-with-cases' => 403, '/waka/reports?tab=laporan-akhir' => 403,
             '/consultations' => 302, '/consultations/create' => 403,
@@ -136,7 +136,7 @@ class AuthorizationMatrixTest extends TestCase
             ->assertSee('Data Master');
     }
 
-    public function test_teacher_sidebar_hides_management_without_hiding_read_only_assignments(): void
+    public function test_teacher_sidebar_and_direct_url_keep_assignment_management_for_coordinator_only(): void
     {
         $teacher = $this->userWithRole('guru_bk');
         $this->assertFalse($teacher->can('create', TeacherAssignment::class));
@@ -145,7 +145,7 @@ class AuthorizationMatrixTest extends TestCase
         $this->actingAs($teacher)->get('/dashboard')->assertOk()
             ->assertDontSee('PENGELOLAAN')
             ->assertDontSee('Pembagian Kelas Binaan');
-        $this->actingAs($teacher)->get(route('assignments.classes.index'))->assertOk();
+        $this->actingAs($teacher)->get(route('assignments.classes.index'))->assertForbidden();
     }
 
     public function test_coordinator_sidebar_shows_management(): void

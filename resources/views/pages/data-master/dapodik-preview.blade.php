@@ -21,7 +21,7 @@
 
         <div class="alert alert-info" role="status">
             <strong>{{ $syncRun->is_full_snapshot ? 'Data lengkap' : 'Data sebagian' }}.</strong>
-            {{ $syncRun->received_count }} data · Berlaku sampai {{ $syncRun->preview_expires_at?->locale('id')->translatedFormat('d M Y, H.i') }}.
+            {{ $syncRun->received_count }} data · Berlaku sampai {{ $syncRun->preview_expires_at?->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}.
             Data persiapan tetap <strong>Belum terverifikasi Dapodik</strong> sampai diterapkan.
         </div>
 

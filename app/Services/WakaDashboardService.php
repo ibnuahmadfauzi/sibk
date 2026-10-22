@@ -39,7 +39,7 @@ final class WakaDashboardService
         $active = $cases->filter(static fn (BkCase $case): bool => ! ServiceRecordStatus::isTerminal($case->status?->code));
         $followUps = $cases->filter(static fn (BkCase $case): bool => $case->status?->code === ServiceRecordStatus::NEEDS_FOLLOW_UP);
         $firstDates = $this->firstServiceDates($waka);
-        $month = CarbonImmutable::now()->format('Y-m');
+        $month = CarbonImmutable::now('Asia/Jakarta')->format('Y-m');
 
         return [
             'role_key' => 'waka',
@@ -183,8 +183,8 @@ final class WakaDashboardService
     private function period(?AcademicYear $year): array
     {
         return [
-            $year?->starts_on !== null ? CarbonImmutable::instance($year->starts_on)->startOfDay() : CarbonImmutable::now()->startOfYear(),
-            $year?->ends_on !== null ? CarbonImmutable::instance($year->ends_on)->endOfDay() : CarbonImmutable::now()->endOfYear(),
+            $year?->starts_on !== null ? CarbonImmutable::instance($year->starts_on)->startOfDay() : CarbonImmutable::now('Asia/Jakarta')->startOfYear(),
+            $year?->ends_on !== null ? CarbonImmutable::instance($year->ends_on)->endOfDay() : CarbonImmutable::now('Asia/Jakarta')->endOfYear(),
         ];
     }
 }

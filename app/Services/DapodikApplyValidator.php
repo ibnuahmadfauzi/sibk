@@ -51,7 +51,14 @@ final class DapodikApplyValidator
 
     private function validateItemsForApply(ExternalSyncRun $run, Collection $items): void
     {
-        if ($items->count() !== $run->received_count || $items->isEmpty()) {
+        $excluded = is_array($run->snapshot_evidence)
+            ? ($run->snapshot_evidence['retention_excluded_count'] ?? 0)
+            : null;
+        if (! is_int($excluded)
+            || $excluded < 0
+            || $items->count() + $excluded !== $run->received_count
+            || $items->isEmpty()
+        ) {
             $this->validationError('preview', 'Pratinjau Dapodik tidak lengkap.');
         }
         $hashes = [];

@@ -142,7 +142,7 @@
                                     <td>
                                         {{ $mapping->mapper?->name ?? 'Sistem' }}
                                         <span class="d-block text-muted small">
-                                            {{ $mapping->mapped_at->locale('id')->translatedFormat('d M Y, H.i') }}
+                                            {{ $mapping->mapped_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}
                                         </span>
                                     </td>
                                     <td class="text-end">

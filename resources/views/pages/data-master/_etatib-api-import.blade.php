@@ -7,7 +7,7 @@
                     <strong class="d-block">Pembaruan otomatis aktif sesuai hari dan jam terpilih (WIB)</strong>
                     @if($etatibAutomaticSetting['last_run'])
                         <span class="d-block small mt-1">
-                            Terakhir {{ $etatibAutomaticSetting['last_run']->started_at->locale('id')->translatedFormat('d M Y, H.i') }}:
+                            Terakhir {{ $etatibAutomaticSetting['last_run']->started_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}:
                             {{ $etatibAutomaticSetting['last_run']->status === 'failed' ? 'Gagal' : 'Selesai' }}
                         </span>
                     @endif
@@ -164,7 +164,7 @@
                         <tr>
                             <td>{{ \App\Support\StudentName::display($decision->source_name) }}<span class="d-block small text-muted">NISN {{ $decision->source_nisn }}</span></td>
                             <td>{{ $decision->copy_count }} salinan dianggap satu kejadian</td>
-                            <td>{{ $decision->approved_at->locale('id')->translatedFormat('d M Y, H.i') }}</td>
+                            <td>{{ $decision->approved_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}</td>
                             <td>
                                 <form action="{{ route('data-master.etatib.duplicates.destroy', $decision) }}" method="POST"
                                     data-app-confirm-submit data-confirm-title="Batalkan keputusan duplikasi?"
