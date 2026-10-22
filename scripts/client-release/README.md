@@ -8,6 +8,12 @@ Siapkan PHP 8.4.1 atau lebih baru dalam seri PHP 8, ekstensi cURL dengan libcurl
 
 Salin `.env.example` ke `.env`, lalu isi domain dan akses database khusus aplikasi. Pertahankan `APP_ENV=production` serta `APP_DEBUG=false`. Jangan commit `.env`.
 
+Untuk instalasi pertama, buat kunci retensi dengan perintah berikut, lalu salin hasilnya ke `ALUMNI_RETENTION_KEY` pada `.env` sebelum membuat cache konfigurasi. Simpan kunci ini bersama backup rahasia aplikasi; gunakan kembali kunci yang sama saat pembaruan atau pemindahan server.
+
+```sh
+php -r "echo 'base64:'.base64_encode(random_bytes(32)),PHP_EOL;"
+```
+
 ```sh
 composer install --no-dev --prefer-dist --optimize-autoloader
 composer check-platform-reqs --no-dev
@@ -50,10 +56,20 @@ Sampaikan kata sandi sementara melalui saluran privat. Pengguna menggantinya saa
 
 ## Operasional dan pembaruan
 
-Jadwalkan `php artisan schedule:run` setiap menit. Atur URL API Siswa/e-Tatib melalui Data Master, lalu pratinjau dan aktifkan pembaruan e-Tatib. Hari dan jam dapat diubah di tab e-Tatib (WIB); pengaturan UI memerlukan scheduler server tersebut agar berjalan. Adapter Dapodik langsung yang belum disahkan tetap `unavailable`. Uji login, hak akses, tahun ajaran, impor murid, layanan, laporan, dan scheduler sebelum dipakai sekolah.
+Pengelola server memasang satu tugas yang menjalankan `php artisan schedule:run` setiap menit melalui cron atau fasilitas penjadwalan panel hosting. PHP untuk tugas ini juga harus versi 8.4.1 atau lebih baru dalam seri PHP 8. Contoh cron pada VPS Linux, dengan lokasi aplikasi dan PHP disesuaikan dengan instalasi:
+
+```cron
+* * * * * cd /var/www/sibk && /usr/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+```
+
+Jalankan tugas sebagai akun aplikasi yang dapat menulis `storage/` dan `bootstrap/cache/`. Pertahankan `CACHE_STORE=database`; migration menyiapkan tabel cache dan penguncian untuk mencegah tugas tumpang tindih. Periksa daftar tugas dengan `php artisan schedule:list` dan hasil eksekusi pada log scheduler serta aplikasi. `schedule:list` hanya menampilkan jadwal, bukan bukti tugas sudah dijalankan otomatis. Tanpa tugas server ini, jadwal otomatis tidak berjalan meskipun aplikasi bisa dibuka.
+
+Atur URL API Siswa/e-Tatib melalui Data Master, lalu pratinjau dan aktifkan pembaruan e-Tatib. Hari dan jam dapat diubah di tab e-Tatib (WIB); pengaturan UI memerlukan scheduler server tersebut agar berjalan. Adapter Dapodik langsung yang belum disahkan tetap `unavailable`. Uji login, hak akses, tahun ajaran, impor murid, layanan, laporan, dan scheduler sebelum dipakai sekolah.
+
+Retensi alumni dijadwalkan pukul 02.00 WIB setiap hari. Sebelum memasang scheduler pada database yang sudah berisi data, periksa pratinjau tanpa penghapusan dengan `php artisan sibk:hapus-alumni`. Tugas terjadwal memakai `--execute` untuk menghapus permanen data yang memenuhi syarat; hitungan yang ditunda tetap dilindungi. Backup database dan berkas unduhan lama perlu diatur masa simpannya secara terpisah.
 
 Pratinjau, cetak, dan Excel memerlukan satu semester: Juli–Desember atau Januari–Juni pada tahun ajaran terpilih. Rentang tanggal opsional harus berada di semester itu. Batas jumlah catatan diatur melalui `SIBK_REPORT_MAX_DOCUMENT_ROWS`; hasil yang melebihi batas meminta pengguna mempersempit periode atau kelas. Sesuaikan nilainya setelah menguji ukuran catatan dan memori PHP, lalu perbarui cache konfigurasi. Pembatasan dokumen tidak menghapus data yang tersimpan.
 
-Sebelum pembaruan, cadangkan database, `.env` termasuk `APP_KEY`, dan unggahan dalam `storage/app/private/branding`. Logo dikelola Admin IT melalui Manajemen Web; direktori itu harus dapat ditulis proses PHP. Uji rilis pada lingkungan validasi dahulu. Pasang dependensi sesuai lockfile, bangun aset, jalankan migrasi dan perbarui cache. Pertahankan `.env`, `APP_KEY`, dan unggahan lama; jangan mengulang `key:generate`. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai.
+Sebelum pembaruan, cadangkan database, `.env` termasuk `APP_KEY` dan `ALUMNI_RETENTION_KEY`, serta unggahan dalam `storage/app/private/branding`. Logo dikelola Admin IT melalui Manajemen Web; direktori itu harus dapat ditulis proses PHP. Uji rilis pada lingkungan validasi dahulu. Pasang dependensi sesuai lockfile, bangun aset, jalankan migrasi dan perbarui cache. Pertahankan `.env`, kedua kunci, dan unggahan lama; jangan mengulang `key:generate` atau membuat ulang kunci retensi. Kehilangan atau perubahan kunci retensi ketika penanda alumni sudah ada menghentikan impor; pulihkan kunci dari backup yang sesuai. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai.
 
 Lisensi dependensi tetap berlaku; pertahankan pemberitahuan lisensi paket Composer/npm yang dipasang. Ketentuan penyerahan aplikasi mengikuti perjanjian dengan pemilik aplikasi.
