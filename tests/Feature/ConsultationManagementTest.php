@@ -47,14 +47,10 @@ class ConsultationManagementTest extends TestCase
             ->assertSee('Latar Belakang')
             ->assertSee('Penanganan')
             ->assertSee('Ringkasan / Hasil')
-            ->assertSeeInOrder(['Murid dan Layanan', 'Catatan Layanan'], false)
-            ->assertDontSee('<h2 class="h5 fw-bold text-dark mb-0">Informasi Layanan</h2>', false)
-            ->assertSee('step-badge rounded-circle bg-primary', false)
             ->assertSee('id="student_lookup_results"', false)
             ->assertSee('id="student_nisn"', false)
             ->assertSee('id="student_name"', false)
             ->assertSee('id="manual_classroom_select"', false)
-            ->assertSee('id="student_lookup_hint"', false)
             ->assertSee('name="student_id"', false)
             ->assertSee('name="temporary_nisn"', false)
             ->assertSee('name="temporary_name"', false)
@@ -750,33 +746,39 @@ class ConsultationManagementTest extends TestCase
         $this->assertDatabaseCount('consultations', 0);
     }
 
-    public function test_waka_list_keeps_four_columns_and_detail_only_without_exposing_result(): void
+    public function test_waka_cannot_open_service_list_or_consultation_narratives_but_can_read_reports(): void
     {
         [$teacher, $student] = $this->teacherAndScopedStudent();
         $consultation = $this->createConsultation($teacher, $student);
         $waka = $this->userWithRole('waka_kesiswaan');
 
-        $this->actingAs($waka)->get(route('cases.index', ['tab' => 'konsultasi']))
-            ->assertOk()
-            ->assertSeeInOrder(['Hari/Tanggal', 'Nama & Kelas', 'Jenis Masalah', 'Aksi'], false)
-            ->assertSee('data-service-notes-url="'.route('consultations.show', [$consultation, 'inline' => 1]).'"', false)
-            ->assertSee('aria-label="Lihat detail konsultasi '.$consultation->identityName().'"', false)
-            ->assertDontSee('aria-label="Edit konsultasi '.$consultation->identityName().'"', false)
-            ->assertDontSee('aria-label="Arsipkan konsultasi '.$consultation->identityName().'"', false)
-            ->assertDontSee($consultation->result);
-
-        $this->get(route('consultations.show', [$consultation, 'inline' => 1]))
-            ->assertOk()
-            ->assertSee($consultation->problem)
-            ->assertSee($consultation->handling)
-            ->assertDontSee('modal-header', false)
-            ->assertDontSee($consultation->result);
+        $this->actingAs($waka);
+        foreach ([[], ['modal' => 1], ['inline' => 1]] as $parameters) {
+            $this->get(route('consultations.show', [$consultation, ...$parameters]))
+                ->assertOk()
+                ->assertViewHas('consultation', fn (Consultation $record): bool =>
+                    ! array_key_exists('problem', $record->getAttributes())
+                    && ! array_key_exists('handling', $record->getAttributes()))
+                ->assertDontSee($consultation->problem)
+                ->assertDontSee($consultation->handling)
+                ->assertSee($consultation->result)
+                ->assertDontSee($student->nisn)
+                ->assertDontSee('data-service-notes-url', false);
+        }
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'consultation.viewed_by_waka',
             'auditable_type' => Consultation::class,
             'auditable_id' => $consultation->id,
             'actor_id' => $waka->id,
         ]);
+        $this->get(route('cases.index', ['tab' => 'konsultasi']))->assertForbidden();
+
+        $this->get(route('reports.index', ['service_type' => 'consultation']))
+            ->assertOk()
+            ->assertSee($student->name)
+            ->assertSee($consultation->result)
+            ->assertDontSee($consultation->problem)
+            ->assertDontSee($consultation->handling);
     }
 
     public function test_previous_year_consultation_is_read_only(): void

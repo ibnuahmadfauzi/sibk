@@ -103,7 +103,7 @@ class StoreCaseRequest extends FormRequest
         $rules = [
             'case_source_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'case_source')->where('is_active', true)],
             'service_field_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'service_field')->where('is_active', true)],
-            'service_date' => ['required', 'date', 'before_or_equal:today'],
+            'service_date' => ['required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'referrer' => ['nullable', 'string', 'max:150'],
             'initial_info' => ['required', 'string', 'max:10000'],
             'initial_action' => ['required', 'string', 'max:10000'],

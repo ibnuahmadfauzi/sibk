@@ -14,6 +14,7 @@ use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\EtatibSyncService;
+use App\Services\AlumniRetentionRegistry;
 use App\Services\SimpleEtatibApiService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +35,7 @@ class SimpleEtatibApiTest extends TestCase
             SimpleEtatibApiService::class,
             new SimpleEtatibApiService(
                 app(EtatibSyncService::class),
+                app(AlumniRetentionRegistry::class),
                 static fn (string $host): array => ['8.8.8.8'],
             ),
         );
@@ -84,6 +86,7 @@ class SimpleEtatibApiTest extends TestCase
         ] as $addresses) {
             $this->app->instance(SimpleEtatibApiService::class, new SimpleEtatibApiService(
                 app(EtatibSyncService::class),
+                app(AlumniRetentionRegistry::class),
                 static fn (string $host): array => $addresses,
             ));
 

@@ -10,7 +10,7 @@
     </div>
     <div class="sibk-document-signatures__column">
         <p class="sibk-document-signatures__role">
-            Surabaya, {{ $generatedAt->locale('id')->translatedFormat('d F Y') }}<br>
+            Surabaya, {{ $generatedAt->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d F Y') }}<br>
             {{ $signatories['right']['role'] }}
         </p>
         <p class="sibk-document-signatures__name">

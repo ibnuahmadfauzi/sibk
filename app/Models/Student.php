@@ -81,7 +81,7 @@ class Student extends Model
     /** @param Builder<Student> $query */
     public function scopeAvailableForService(Builder $query, CarbonInterface|string|null $date = null): Builder
     {
-        $on = CarbonImmutable::parse($date ?? now())->toDateString();
+        $on = CarbonImmutable::parse($date ?? now('Asia/Jakarta'))->toDateString();
 
         return $query->active()->whereDoesntHave('departure', fn (Builder $departure): Builder => $departure
             ->where('status', StudentDeparture::STATUS_OFFICIAL)

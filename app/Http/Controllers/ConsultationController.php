@@ -69,7 +69,7 @@ class ConsultationController extends Controller
             $consultation = Consultation::query()
                 ->accessibleTo($user)
                 ->whereKey($consultation->getKey())
-                ->select(['id', 'student_id', 'temporary_student_id', 'academic_year_id', 'classroom_id', 'service_field_id', 'session_date', 'problem', 'handling', 'result', 'counselor_id'])
+                ->select(['id', 'student_id', 'temporary_student_id', 'academic_year_id', 'classroom_id', 'service_field_id', 'session_date', 'result', 'counselor_id'])
                 ->with([
                     'student:id,name',
                     'temporaryStudent:id,input_name,reconciled_student_id',
@@ -91,6 +91,7 @@ class ConsultationController extends Controller
         }
         $data = [
             'consultation' => $consultation,
+            'isWakaOnly' => $isWakaOnly,
             'modal' => $request->boolean('modal'),
             'canUpdateConsultation' => $user->can('update', $consultation),
             'canArchiveConsultation' => $user->can('archive', $consultation),

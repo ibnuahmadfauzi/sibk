@@ -36,7 +36,7 @@ class UpdateCaseRequest extends FormRequest
                 fn ($fields) => $fields->where('category', 'service_field')
                     ->where(fn ($allowed) => $allowed->where('is_active', true)->orWhere('id', $case->service_field_id)),
             )],
-            'service_date' => ['sometimes', 'required', 'date', 'before_or_equal:today'],
+            'service_date' => ['sometimes', 'required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'initial_info' => ['required', 'string', 'max:10000'],
             'initial_action' => ['required', 'string', 'max:10000'],
             'resolution_summary' => ['nullable', 'string', 'max:10000'],

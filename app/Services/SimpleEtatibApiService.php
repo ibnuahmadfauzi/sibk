@@ -43,6 +43,7 @@ final class SimpleEtatibApiService
     /** @param (Closure(string): list<string>)|null $resolver */
     public function __construct(
         private readonly EtatibSyncService $syncService,
+        private readonly AlumniRetentionRegistry $retention,
         private readonly ?Closure $resolver = null,
     ) {}
 
@@ -51,8 +52,9 @@ final class SimpleEtatibApiService
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
         $read = $this->verifiedRecords($url);
-        $records = $this->uniqueRecords($read['records']);
-        $groups = $this->duplicateGroups($read['records']);
+        $eligibleRecords = $this->eligibleRecords($read['records']);
+        $records = $this->uniqueRecords($eligibleRecords);
+        $groups = $this->duplicateGroups($eligibleRecords);
         $approved = EtatibDuplicateDecision::query()->where('url_hash', hash('sha256', $url))
             ->where('is_active', true)->whereIn('group_key', array_column($groups, 'key'))
             ->get()->keyBy('group_key');
@@ -272,6 +274,7 @@ final class SimpleEtatibApiService
                 throw new EtatibUnavailableException('Data API e-Tatib berubah setelah ditinjau. Tinjau data terbaru sebelum sinkronisasi.');
             }
 
+            $records = $this->eligibleRecords($records);
             $groups = $this->duplicateGroups($records);
             $keys = array_column($groups, 'key');
             if (count($duplicateDecisions) !== count(array_unique($duplicateDecisions))
@@ -335,6 +338,15 @@ final class SimpleEtatibApiService
     private function uniqueRecords(array $records): array
     {
         return array_values(collect($records)->unique('source_id')->all());
+    }
+
+    /** @param list<array<string, int|string|null>> $records @return list<array<string, int|string|null>> */
+    private function eligibleRecords(array $records): array
+    {
+        return array_values(array_filter(
+            $records,
+            fn (array $record): bool => ! $this->retention->blocked($record['nisn']),
+        ));
     }
 
     /** @param list<array<string, int|string|null>> $records @return list<array<string, mixed>> */

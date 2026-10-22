@@ -25,11 +25,11 @@ final class WakaMonitoringService
     public function detailSafe(User $waka, int $caseId): array
     {
         $case = $this->projectionQuery->detail($waka, $caseId);
+        $detail = $this->toSafeRow($case);
+        unset($detail['detail_url'], $detail['is_terminal']);
 
         return [
-            ...$this->toSafeRow($case),
-            'initial_info' => $case->initial_info,
-            'initial_action' => $case->initial_action,
+            ...$detail,
             'resolution_summary' => $case->resolution_summary,
         ];
     }

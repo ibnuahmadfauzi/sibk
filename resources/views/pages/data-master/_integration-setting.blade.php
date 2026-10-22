@@ -284,7 +284,7 @@
                         <div class="integration-setting__freshness border-top pt-4 mt-4">
                             <h4 class="fs-6 fw-bold mb-1">Pembaruan Data Terakhir</h4>
                             @if($freshRun?->finished_at)
-                                <p class="mb-1">Terakhir berhasil diperbarui {{ $freshRun->finished_at->locale('id')->translatedFormat('d M Y, H.i') }}.</p>
+                                <p class="mb-1">Terakhir berhasil diperbarui {{ $freshRun->finished_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}.</p>
                                 <p class="text-muted small mb-0">{{ $freshRun->processed_count }} data diproses.</p>
                             @else
                                 <p class="text-muted small mb-0">Belum ada pembaruan data dari {{ $state->label }}.</p>

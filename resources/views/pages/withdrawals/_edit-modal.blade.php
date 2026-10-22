@@ -19,7 +19,7 @@
             </div>
             <div class="col-12 col-md-5">
                 <label class="form-label" for="withdrawal-modal-recorded-on">Tanggal pencatatan <span class="text-danger">*</span></label>
-                <input class="form-control @error('recorded_on') is-invalid @enderror" id="withdrawal-modal-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', $withdrawal->recorded_on->toDateString()) }}" max="{{ today()->toDateString() }}" required>
+                <input class="form-control @error('recorded_on') is-invalid @enderror" id="withdrawal-modal-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', $withdrawal->recorded_on->toDateString()) }}" max="{{ today('Asia/Jakarta')->toDateString() }}" required>
                 @error('recorded_on')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-12">
