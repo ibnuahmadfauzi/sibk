@@ -14,6 +14,10 @@ Business rule, lifecycle, authorization outcome, privacy, dan acceptance criteri
 
 Capability global diperiksa melalui Gate/Policy; pembatasan data diterapkan melalui query scope, tahun ajaran aktif, kepemilikan, dan policy objek. Tidak tersedia tabel atau endpoint permission generik.
 
+### Tanggal dan waktu (NFR-15)
+
+Input tanggal operasional memakai `Y-m-d` dan batas `before_or_equal` berupa tanggal literal WIB. Timestamp internal pada JSON, termasuk `expected_updated_at`, tetap memakai ISO 8601 UTC dengan offset/`Z`; controller/presenter mengonversi timestamp untuk tampilan WIB. `occurred_at` dari adapter e-Tatib yang menyimpan jam dinding WIB tetap memakai jam sumbernya. Tidak ada migrasi atau penulisan ulang timestamp historis pada penyelarasan ini.
+
 ---
 
 ## 1. Modul Autentikasi & Akun (`AUTH`, `ACC`)

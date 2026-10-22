@@ -32,7 +32,7 @@ class StoreAchievementRequest extends FormRequest
             'level_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'achievement_level')->where('is_active', true)],
             'activity_name' => ['required', 'string', 'max:250'],
             'organizer' => ['required', 'string', 'max:200'],
-            'achievement_date' => ['required', 'date', 'before_or_equal:today'],
+            'achievement_date' => ['required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'result' => ['required', 'string', 'max:250'],
         ];
     }

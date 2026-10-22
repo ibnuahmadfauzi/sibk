@@ -712,7 +712,7 @@ final class OperationalReportRecapService implements OperationalReportRecap
             'academic_year' => $year,
             'can_view_document' => $canViewDocument,
             'generated_by' => $actor->name,
-            'generated_at' => now(),
+            'generated_at' => now('Asia/Jakarta'),
         ];
     }
 

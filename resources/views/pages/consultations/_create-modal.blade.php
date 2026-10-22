@@ -75,7 +75,7 @@
 
                 <div class="col-12 col-md-4">
                     <label for="session_date" class="form-label text-dark fw-semibold small mb-2">Tanggal Layanan <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control py-2 border-secondary-subtle rounded-3" id="session_date" name="session_date" value="{{ old('session_date', today()->toDateString()) }}" max="{{ today()->toDateString() }}" required>
+                    <input type="date" class="form-control py-2 border-secondary-subtle rounded-3" id="session_date" name="session_date" value="{{ old('session_date', today('Asia/Jakarta')->toDateString()) }}" max="{{ today('Asia/Jakarta')->toDateString() }}" required>
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="service_field_id" class="form-label text-dark fw-semibold small mb-2">Jenis Masalah <span class="text-danger">*</span></label>

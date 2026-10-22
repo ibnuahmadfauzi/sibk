@@ -216,7 +216,7 @@ class CaseService
             $before = $this->editableSnapshot($case);
             $case->update([
                 'status_id' => $this->referenceByCode('case_status', ServiceRecordStatus::COMPLETED)->getKey(),
-                'closed_at' => today()->toDateString(),
+                'closed_at' => today('Asia/Jakarta')->toDateString(),
             ]);
             $case->refresh();
             $this->auditService->recordChanges(

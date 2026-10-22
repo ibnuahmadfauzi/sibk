@@ -34,7 +34,7 @@
                 @unless($canUpdateDeparture)
                     <div class="col-md-6">
                         <label class="form-label" for="reported_at">Tanggal pencatatan</label>
-                        <input class="form-control" id="reported_at" name="reported_at" type="date" max="{{ today()->toDateString() }}" value="{{ old('reported_at', today()->toDateString()) }}" required>
+                        <input class="form-control" id="reported_at" name="reported_at" type="date" max="{{ today('Asia/Jakarta')->toDateString() }}" value="{{ old('reported_at', today('Asia/Jakarta')->toDateString()) }}" required>
                     </div>
                 @endunless
                 <div class="col-12">

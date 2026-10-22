@@ -184,7 +184,7 @@ final class ReportDocumentExporter
     {
         return sprintf(
             'laporan-layanan-bk-%s.%s',
-            now()->format('Ymd-His'),
+            now('Asia/Jakarta')->format('Ymd-His'),
             $extension,
         );
     }

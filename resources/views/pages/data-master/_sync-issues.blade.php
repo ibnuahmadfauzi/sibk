@@ -26,7 +26,7 @@
                         <td>
                             {{ match (data_get($issue->details, 'review.status')) { 'reviewed' => 'Terakhir diperiksa', 'source_correction' => 'Perlu koreksi sumber', default => 'Belum diperiksa' } }}
                             @if(data_get($issue->details, 'review.reviewed_at'))
-                                <span class="d-block small text-muted">{{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->locale('id')->translatedFormat('d M Y, H.i') }}</span>
+                                <span class="d-block small text-muted">{{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}</span>
                             @endif
                         </td>
                         <td><button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="button" data-sync-issue-toggle data-sync-issue-name="{{ $issueDisplayName ?: ($issue->nisn ?: $dataLabel) }}" @if(old('_sync_issue') == $issue->id) data-auto-open @endif data-detail-url="{{ route('data-master.sync-issues.show', ['issue' => $issue, 'inline' => 1]) }}" aria-controls="sync-issue-detail-{{ $issue->id }}" aria-expanded="false" aria-label="Tinjau {{ $issueDisplayName ?: ($issue->nisn ?: $dataLabel) }}" title="Tinjau">
@@ -66,7 +66,7 @@
                         <td>{{ \App\Support\StudentName::display($decision->input_name) ?: ($decision->nisn ? 'NISN '.$decision->nisn : 'Pelanggaran e-Tatib') }}</td>
                         <td>{{ data_get($decision->details, 'review.choice.classroom') ?? '-' }}<span class="d-block small text-muted">{{ data_get($decision->details, 'review.action') === 'use_school' ? 'Data sekolah' : 'Data e-Tatib' }}</span></td>
                         <td>Selesai</td>
-                        <td>{{ $decision->resolved_at?->locale('id')->translatedFormat('d M Y, H.i') ?? '-' }}</td>
+                        <td>{{ $decision->resolved_at?->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') ?? '-' }}</td>
                         <td><button class="btn btn-sm p-0 sibk-icon-button sibk-report-control" type="button" data-sync-issue-toggle data-sync-issue-name="{{ \App\Support\StudentName::display($decision->input_name) ?: ($decision->nisn ?: 'pelanggaran e-Tatib') }}" data-detail-url="{{ route('data-master.sync-issues.show', ['issue' => $decision, 'inline' => 1]) }}" aria-controls="sync-issue-detail-{{ $decision->id }}" aria-expanded="false" aria-label="Tinjau {{ \App\Support\StudentName::display($decision->input_name) ?: ($decision->nisn ?: 'pelanggaran e-Tatib') }}" title="Tinjau">
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.4 15.4 4.3 4.3"/></svg>
                         </button></td>
@@ -103,7 +103,7 @@
             <tbody>
                 @forelse($syncRuns as $run)
                     <tr>
-                        <td>{{ $run->started_at?->locale('id')->translatedFormat('d M Y, H.i') ?? '-' }}</td>
+                        <td>{{ $run->started_at?->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') ?? '-' }}</td>
                         <td>{{ match ($run->source) { 'etatib' => 'e-Tatib', 'dapodik' => 'Dapodik', 'api_siswa' => 'API Siswa', default => 'Sumber lain' } }}</td>
                         <td>{{ match ($run->status) { 'succeeded' => 'Berhasil', 'warning' => 'Peringatan', 'failed' => 'Gagal', 'running' => 'Berjalan', 'preview_ready' => 'Pratinjau siap', default => 'Digantikan' } }}</td>
                         <td>{{ $run->summary ?: $run->processed_count.' diproses, '.$run->conflict_count.' konflik' }}</td>

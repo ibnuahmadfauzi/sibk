@@ -23,7 +23,7 @@
                     <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="withdrawal-edit-name">Nama Murid</label><input class="form-control bg-light" id="withdrawal-edit-name" value="{{ \App\Support\StudentName::display($withdrawal->student?->name) ?: 'Murid tidak tersedia' }}" readonly></div>
                     <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="withdrawal-edit-nisn">NISN</label><input class="form-control bg-light" id="withdrawal-edit-nisn" value="{{ $withdrawal->student?->nisn ?? '-' }}" readonly></div>
                     <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="withdrawal-edit-classroom">Rombel/Kelas</label><input class="form-control bg-light" id="withdrawal-edit-classroom" value="{{ $withdrawal->classroom?->name ?? 'Kelas belum tercatat' }}" readonly></div>
-                    <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="withdrawal-edit-recorded-on">Tanggal Pencatatan <span class="text-danger">*</span></label><input class="form-control" id="withdrawal-edit-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', $withdrawal->recorded_on->toDateString()) }}" max="{{ now()->toDateString() }}" required></div>
+                    <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="withdrawal-edit-recorded-on">Tanggal Pencatatan <span class="text-danger">*</span></label><input class="form-control" id="withdrawal-edit-recorded-on" name="recorded_on" type="date" value="{{ old('recorded_on', $withdrawal->recorded_on->toDateString()) }}" max="{{ now('Asia/Jakarta')->toDateString() }}" required></div>
                 </div>
             </div></section>
 

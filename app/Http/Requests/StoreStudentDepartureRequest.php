@@ -24,7 +24,7 @@ final class StoreStudentDepartureRequest extends FormRequest
     {
         return [
             'departure_type' => ['required', 'string', Rule::in(StudentDeparture::types())],
-            'reported_at' => ['required', 'date', 'before_or_equal:today'],
+            'reported_at' => ['required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'recommendation_summary' => ['nullable', 'string', 'max:500'],
         ];
     }
