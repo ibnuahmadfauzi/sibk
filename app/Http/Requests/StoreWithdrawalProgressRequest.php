@@ -20,7 +20,7 @@ final class StoreWithdrawalProgressRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'integer', Rule::exists('students', 'id')],
-            'recorded_on' => ['required', 'date', 'before_or_equal:today'],
+            'recorded_on' => ['required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'note' => ['required', 'string', 'max:2000'],
         ];
     }

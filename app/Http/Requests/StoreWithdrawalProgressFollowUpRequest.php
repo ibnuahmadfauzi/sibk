@@ -30,7 +30,7 @@ final class StoreWithdrawalProgressFollowUpRequest extends FormRequest
                 'required',
                 'date',
                 'after_or_equal:'.$withdrawal->recorded_on->toDateString(),
-                'before_or_equal:today',
+                'before_or_equal:'.today('Asia/Jakarta')->toDateString(),
             ],
         ];
     }

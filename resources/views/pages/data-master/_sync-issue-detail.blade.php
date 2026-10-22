@@ -48,7 +48,7 @@
     <p class="small mt-3 mb-0">Keputusan terakhir: {{ match (data_get($issue->details, 'review.action')) { 'use_school' => 'Kelas saat kejadian sesuai data sekolah', 'use_etatib' => 'Kelas saat kejadian sesuai data e-Tatib', default => 'Perlu koreksi data' } }}
         @if(data_get($issue->details, 'review.choice.classroom')) — {{ data_get($issue->details, 'review.choice.classroom') }} @endif<br>
         Oleh {{ $reviewer?->name ?? 'Petugas tidak tersedia' }}
-        @if(data_get($issue->details, 'review.reviewed_at')) · {{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->locale('id')->translatedFormat('d M Y, H.i') }} @endif
+        @if(data_get($issue->details, 'review.reviewed_at')) · {{ \Carbon\Carbon::parse(data_get($issue->details, 'review.reviewed_at'))->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }} @endif
         @if(data_get($issue->details, 'review.note'))<br>Catatan: {{ data_get($issue->details, 'review.note') }}@endif
     </p>
 @endif

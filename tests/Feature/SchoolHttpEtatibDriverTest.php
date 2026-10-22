@@ -17,7 +17,7 @@ class SchoolHttpEtatibDriverTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_full_snapshot_normalizes_nisn_and_probe_only_exposes_masked_samples(): void
+    public function test_full_snapshot_normalizes_nisn_and_probe_exposes_only_aggregates(): void
     {
         Student::query()->create([
             'nisn' => '0095000088',
@@ -39,7 +39,8 @@ class SchoolHttpEtatibDriverTest extends TestCase
         $this->assertSame('95000088', $snapshot->records[0]['source_nisn']);
         $this->assertSame(20, $snapshot->records[0]['source_total_points']);
         $this->assertSame(0, $probe->preview['conflict_count']);
-        $this->assertSame('0095****88', $probe->preview['samples'][0]['nisn']);
+        $this->assertArrayNotHasKey('samples', $probe->preview);
+        $this->assertSame(1, $probe->preview['record_count']);
         $this->assertStringNotContainsString('0095000088', json_encode($probe->preview, JSON_THROW_ON_ERROR));
     }
 

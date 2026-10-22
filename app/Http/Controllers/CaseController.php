@@ -36,6 +36,7 @@ class CaseController extends Controller
         $user = $request->user();
         $isWakaOnly = $user->hasRole('waka_kesiswaan')
             && ! $user->hasAnyRole(['guru_bk', 'koordinator_bk']);
+        abort_if($isWakaOnly, 403);
         $activeTab = $request->string('tab', 'kasus')->toString();
         if (! in_array($activeTab, ['kasus', 'konsultasi', 'pengunduran-diri'], true)) {
             $activeTab = 'kasus';

@@ -10,7 +10,7 @@
 
         <div class="sibk-page-header mb-4 d-flex flex-wrap justify-content-between gap-3">
             <div class="sibk-page-header__copy">
-                <a href="{{ route('cases.index', ['tab' => 'konsultasi']) }}" class="text-decoration-none small">&larr; Kembali ke daftar</a>
+                <a href="{{ $isWakaOnly ? route('reports.index', ['service_type' => 'consultation']) : route('cases.index', ['tab' => 'konsultasi']) }}" class="text-decoration-none small">&larr; Kembali ke daftar</a>
                 <h1 class="mb-1">Detail Konsultasi</h1>
                 <p class="mb-0 text-muted">{{ $consultation->identityName() }} &mdash; {{ $consultation->session_date->locale('id')->translatedFormat('d F Y') }}</p>
             </div>

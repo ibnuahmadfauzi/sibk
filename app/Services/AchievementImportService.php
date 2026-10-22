@@ -87,7 +87,7 @@ class AchievementImportService
                     'level_id' => ['required', 'integer'],
                     'activity_name' => ['required', 'string', 'max:250'],
                     'organizer' => ['required', 'string', 'max:200'],
-                    'achievement_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+                    'achievement_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
                     'result' => ['required', 'string', 'max:250'],
                 ]);
                 if ($validator->fails()) {

@@ -27,7 +27,7 @@ class UpdateConsultationRequest extends FormRequest
             'temporary_nisn' => ['prohibited'],
             'temporary_name' => ['prohibited'],
             'service_field_id' => ['required', 'integer', Rule::exists('references', 'id')->where('category', 'service_field')->where('is_active', true)],
-            'session_date' => ['required', 'date', 'before_or_equal:today'],
+            'session_date' => ['required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'problem' => ['required', 'string', 'max:10000'],
             'handling' => ['required', 'string', 'max:10000'],
             'result' => ['required', 'string', 'max:10000'],

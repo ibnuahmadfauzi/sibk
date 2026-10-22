@@ -28,6 +28,10 @@ def allowed(name):
         return True
     if any(part.startswith('.') for part in path.parts):
         return name == 'public/.htaccess' or (path.name == '.gitignore' and path.parts[0] in {'storage', 'bootstrap'})
+    if name == 'docs/manualbook.md':
+        return True
+    if path.parent.as_posix() == 'docs/manualbook/gambar':
+        return path.suffix.lower() == '.png'
     if path.parts[0] == 'bootstrap':
         return name in {'bootstrap/app.php', 'bootstrap/providers.php'}
     if name in {'database/seeders/RoleSeeder.php', 'database/seeders/ReferenceSeeder.php'}:

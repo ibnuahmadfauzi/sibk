@@ -719,8 +719,7 @@ class CaseManagementTest extends TestCase
 
         $waka = $this->userWithRole('waka_kesiswaan');
         $this->actingAs($waka)->get(route('cases.index'))
-            ->assertOk()
-            ->assertSee($case->identityName())
+            ->assertForbidden()
             ->assertDontSee('Hasil khusus murid.')
             ->assertDontSee('Latar khusus murid.')
             ->assertDontSee('Penanganan khusus murid.')

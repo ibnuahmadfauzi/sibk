@@ -16,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class StudentIdentityService
 {
-    public function __construct(private readonly AuditService $auditService) {}
+    public function __construct(
+        private readonly AuditService $auditService,
+        private readonly AlumniRetentionRegistry $retention,
+    ) {}
 
     public function assignedClassroom(int $classroomId, User $teacher): Classroom
     {
@@ -40,6 +43,8 @@ class StudentIdentityService
         $inputName = trim($inputName);
 
         return DB::transaction(function () use ($nisn, $inputName, $creator): TemporaryStudent {
+            $this->retention->lockImports();
+            $this->retention->assertImportAllowed($nisn);
             if (Student::query()->where('nisn', $nisn)->lockForUpdate()->exists()) {
                 throw ValidationException::withMessages([
                     'temporary_nisn' => 'NISN sudah ada di daftar. Pilih murid tersebut.',

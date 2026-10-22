@@ -202,7 +202,7 @@
                                             </div>
                                             <div class="col-12 col-md-6 col-lg-4">
                                                 <strong>Login terakhir</strong>
-                                                <span class="d-block">{{ $managedUser->last_login_at ? $managedUser->last_login_at->timezone('Asia/Jakarta')->locale('id')->translatedFormat('j F Y, H.i').' WIB' : '' }}</span>
+                                                <span class="d-block">{{ $managedUser->last_login_at ? $managedUser->last_login_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('j F Y, H.i').' WIB' : '' }}</span>
                                                 @unless($managedUser->last_login_at)<span>Belum tercatat</span>@endunless
                                             </div>
                                             <div class="col-12 col-md-6 col-lg-4">

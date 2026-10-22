@@ -35,7 +35,7 @@
             </div>
             <div class="col-12 col-md-4">
                 <label for="achievement_date" class="form-label">Tanggal <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="achievement_date" name="achievement_date" max="{{ today()->toDateString() }}" value="{{ old('achievement_date', $achievement?->achievement_date?->toDateString()) }}" required>
+                <input type="date" class="form-control" id="achievement_date" name="achievement_date" max="{{ today('Asia/Jakarta')->toDateString() }}" value="{{ old('achievement_date', $achievement?->achievement_date?->toDateString()) }}" required>
             </div>
             <div class="col-12 col-md-8">
                 <label for="organizer" class="form-label">Penyelenggara <span class="text-danger">*</span></label>

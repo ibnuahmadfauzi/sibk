@@ -11,7 +11,9 @@
             <dl class="sibk-case-detail__fields mb-0">
                 <div><dt>Nama Murid</dt><dd>{{ $consultation->identityName() }}</dd></div>
                 <div><dt>Tanggal Layanan</dt><dd>{{ $sessionDate->translatedFormat('d F Y') }}<span class="d-block text-muted fw-normal">({{ $sessionDate->translatedFormat('l') }})</span></dd></div>
-                <div><dt>NISN</dt><dd>{{ $consultation->identityNisn() ?: '—' }}</dd></div>
+                @unless($isWakaOnly)
+                    <div><dt>NISN</dt><dd>{{ $consultation->identityNisn() ?: '—' }}</dd></div>
+                @endunless
                 <div><dt>Jenis Layanan</dt><dd>{{ $consultation->serviceField?->label ?? '—' }}</dd></div>
                 <div><dt>Rombel/Kelas</dt><dd>{{ $consultation->classroom?->name ?? '—' }}</dd></div>
             </dl>
@@ -24,11 +26,11 @@
                 <h3 class="fs-6 fw-bold mb-0" id="consultation-notes-title">Catatan Konsultasi</h3>
             </div>
             <div class="row g-0 p-3">
-                @foreach ([
+                @foreach (($isWakaOnly ? ['Hasil / Ringkasan' => $consultation->result] : [
                     'Latar Belakang Masalah' => $consultation->problem,
                     'Penanganan' => $consultation->handling,
                     'Hasil / Ringkasan' => $consultation->result,
-                ] as $heading => $text)
+                ]) as $heading => $text)
                     <div class="col-12 col-md-4 sibk-case-detail__note">
                         <h4 class="small fw-bold mb-1">{{ $heading }}</h4>
                         <p class="small text-muted text-break mb-0 sibk-case-detail__text">{{ $text ?: '—' }}</p>

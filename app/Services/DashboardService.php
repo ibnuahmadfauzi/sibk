@@ -200,9 +200,9 @@ class DashboardService
             'schedule_title' => 'Status sinkronisasi terbaru',
             'schedule_url' => route('data-master.index', ['tab' => 'sinkronisasi']),
             'tindak_lanjut' => $syncRuns->map(fn (ExternalSyncRun $run): array => [
-                'date' => $run->started_at->format('d'),
-                'month' => $run->started_at->locale('id')->translatedFormat('M'),
-                'year' => $run->started_at->format('Y'),
+                'date' => $run->started_at->copy()->timezone('Asia/Jakarta')->format('d'),
+                'month' => $run->started_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('M'),
+                'year' => $run->started_at->copy()->timezone('Asia/Jakarta')->format('Y'),
                 'code' => $this->syncSourceLabel($run->source),
                 'title' => match ($run->status) {
                     ExternalSyncRun::STATUS_SUCCEEDED => 'Sinkronisasi berhasil',
@@ -483,8 +483,8 @@ class DashboardService
     private function period(?AcademicYear $year): array
     {
         return [
-            $year?->starts_on?->toDateString() ?? now()->startOfYear()->toDateString(),
-            $year?->ends_on?->toDateString() ?? now()->endOfYear()->toDateString(),
+            $year?->starts_on?->toDateString() ?? now('Asia/Jakarta')->startOfYear()->toDateString(),
+            $year?->ends_on?->toDateString() ?? now('Asia/Jakarta')->endOfYear()->toDateString(),
         ];
     }
 

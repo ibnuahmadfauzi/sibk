@@ -21,7 +21,7 @@ final class UpdateWithdrawalProgressRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'recorded_on' => ['required', 'date', 'before_or_equal:today'],
+            'recorded_on' => ['required', 'date', 'before_or_equal:'.today('Asia/Jakarta')->toDateString()],
             'note' => ['required', 'string', 'max:2000'],
         ];
     }
