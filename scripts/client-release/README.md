@@ -56,7 +56,17 @@ Sampaikan kata sandi sementara melalui saluran privat. Pengguna menggantinya saa
 
 ## Operasional dan pembaruan
 
-Pengelola server memasang satu tugas yang menjalankan `php artisan schedule:run` setiap menit melalui cron atau fasilitas penjadwalan panel hosting. PHP untuk tugas ini juga harus versi 8.4.1 atau lebih baru dalam seri PHP 8. Contoh cron pada VPS Linux, dengan lokasi aplikasi dan PHP disesuaikan dengan instalasi:
+Setelah konfigurasi, kunci, dan migration selesai, pada VPS Linux jalankan perintah berikut sekali sebagai akun aplikasi yang menjalankan PHP, bukan sebagai root:
+
+```sh
+php artisan sibk:pasang-scheduler
+```
+
+Perintah mendeteksi direktori aplikasi dan executable PHP yang dipakai, lalu memasang pemicu `schedule:run` setiap menit pada crontab akun tersebut. Keluaran dan error ditulis ke `storage/logs/scheduler.log`; pemasangan berhenti jika direktori atau file log yang sudah ada tidak dapat ditulis akun aplikasi. Entri cron lain dipertahankan. Mengulang perintah untuk instalasi dan PHP yang sama tidak menambah entri. Untuk melihat rencana tanpa memasang, gunakan `php artisan sibk:pasang-scheduler --dry-run`.
+
+Server tetap harus menyediakan perintah `crontab`, mengizinkan akun aplikasi menggunakannya, dan menjalankan layanan cron. Perintah ini tidak memasang paket sistem atau mengaktifkan layanan cron, tidak mengubah crontab akun lain, dan tidak menjalankan sinkronisasi atau penghapusan saat pemasangan. Pastikan tidak ada pemicu aplikasi yang sama pada akun lain, timer sistem, atau panel; jangan menyunting cron bersamaan saat pemasangan. Jika ditemukan jadwal manual atau entri terkelola yang berbeda, perintah berhenti agar tidak menggandakan tugas atau menimpa entri lama.
+
+Jika hosting membatasi akses `crontab`, pasang tugas melalui fasilitas penjadwalan panel hosting. PHP untuk tugas ini juga harus versi 8.4.1 atau lebih baru dalam seri PHP 8. Contoh cron manual pada VPS Linux, dengan lokasi aplikasi dan PHP disesuaikan dengan instalasi:
 
 ```cron
 * * * * * cd /var/www/sibk && /usr/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1

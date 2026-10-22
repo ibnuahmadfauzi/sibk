@@ -67,6 +67,8 @@ Jalankan pada database lokal yang telah diperiksa. Jangan menjalankan
 
 ## Retensi alumni
 
+Pemasangan pemicu scheduler Linux tersedia melalui `php artisan sibk:pasang-scheduler` setelah konfigurasi dan migration selesai. Jalankan sebagai akun aplikasi, bukan root; `--dry-run` menampilkan rencana tanpa menulis crontab. Perintah memakai lokasi aplikasi dan PHP yang sedang digunakan, mempertahankan entri lain, dan mencegah entri terkelola berulang. Layanan cron harus sudah tersedia dan aktif. Petunjuk operasional lengkap berada pada [panduan rilis klien](scripts/client-release/README.md#operasional-dan-pembaruan).
+
 Aturan kelayakan penghapusan dimiliki **NFR-08** pada SRS. Periksa hitungan
 sebelum mengaktifkan scheduler pada instalasi sekolah:
 
