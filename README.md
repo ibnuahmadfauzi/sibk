@@ -65,6 +65,29 @@ Admin IT membuat tahun ajaran dan memasukkan tautan API Siswa di Data Master.
 Jalankan pada database lokal yang telah diperiksa. Jangan menjalankan
 `migrate:fresh` atau reset pada database bersama.
 
+## Retensi alumni
+
+Aturan kelayakan penghapusan dimiliki **NFR-08** pada SRS. Periksa hitungan
+sebelum mengaktifkan scheduler pada instalasi sekolah:
+
+```bash
+php artisan sibk:hapus-alumni
+```
+
+Siapkan `ALUMNI_RETENTION_KEY` pada `.env` menggunakan 32 byte acak, misalnya
+dengan `php -r "echo 'base64:'.base64_encode(random_bytes(32)),PHP_EOL;"`.
+Simpan kunci bersama backup rahasia aplikasi. Kunci ini harus tetap sama saat
+`APP_KEY` dirotasi atau server dipindah; jangan membuat ulang kunci ketika marker
+sudah ada. Kehilangan kunci menghentikan impor agar alumni tidak masuk kembali.
+
+`php artisan sibk:hapus-alumni --execute` menghapus permanen data yang memenuhi
+syarat, per transaksi murid. Scheduler menjalankannya pukul 02.00 WIB setiap
+hari setelah cron Laravel `schedule:run` dipasang. Angka **ditunda** berarti
+ada perlindungan yang belum terpenuhi; jangan menghapus relasi atau marker
+secara manual untuk memaksakan penghapusan. Backup database dan unduhan lama
+tidak dihapus oleh command ini; atur masa simpannya terpisah. Rollback migration
+marker ditolak agar perlindungan impor ulang tidak hilang.
+
 ## Alur kerja tim
 
 Sebelum mulai, baca [AGENTS](AGENTS.md), periksa branch dan status repository,

@@ -22,6 +22,7 @@ class CaseService
     public function __construct(
         private readonly StudentIdentityService $studentIdentityService,
         private readonly AuditService $auditService,
+        private readonly AlumniRetentionRegistry $retention,
     ) {}
 
     /**
@@ -46,6 +47,7 @@ class CaseService
                     ]);
                 }
             } else {
+                $this->retention->lockImports();
                 $student = Student::query()
                     ->availableForService((string) $data['service_date'])
                     ->forActiveTeacherAssignment($actor)

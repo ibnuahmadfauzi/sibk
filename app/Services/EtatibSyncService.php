@@ -29,6 +29,7 @@ class EtatibSyncService
         private readonly AuditService $auditService,
         private readonly IntegrationOperationLock $operationLock,
         private readonly EtatibIdentityNormalizer $identityNormalizer,
+        private readonly AlumniRetentionRegistry $retention,
         private readonly array $previewDecisions = [],
         private readonly ?Closure $beforeApply = null,
         private readonly ?Closure $afterApply = null,
@@ -71,6 +72,7 @@ class EtatibSyncService
             $this->auditService,
             $this->operationLock,
             $this->identityNormalizer,
+            $this->retention,
             $decisions,
             $beforeApply,
             $afterApply,
@@ -147,6 +149,9 @@ class EtatibSyncService
                     ->keyBy(fn (EtatibIdentityMapping $mapping): string => $mapping->source_nisn.'|'.$mapping->source_name_hash);
 
                 foreach ($snapshot->records as $item) {
+                    if ($this->retention->blocked($item['nisn'])) {
+                        continue;
+                    }
                     $existing = ExternalTatibRecord::query()
                         ->where('source_identifier', $item['source_id'])
                         ->first();
@@ -299,6 +304,7 @@ class EtatibSyncService
         }
 
         $sourceIdentities = collect($snapshot->records)
+            ->reject(fn (array $item): bool => $this->retention->blocked($item['nisn']))
             ->keyBy(fn (array $item): string => $this->identityNormalizer->key($item['nisn'], $item['source_student_name']));
         $seen = [];
         foreach ($this->previewDecisions as $decision) {

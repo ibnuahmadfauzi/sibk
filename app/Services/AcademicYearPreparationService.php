@@ -37,6 +37,7 @@ class AcademicYearPreparationService
         private readonly AuditService $auditService,
         private readonly AcademicYearRolloverQuery $rolloverQuery,
         private readonly StudentIdentityService $studentIdentityService,
+        private readonly AlumniRetentionRegistry $retention,
     ) {}
 
     /** @param array<string, mixed> $data */
@@ -202,6 +203,7 @@ class AcademicYearPreparationService
             }
 
             return DB::transaction(function () use ($academicYear, $rows, $actor): ProvisionalRosterImportResult {
+                $this->lockRosterImports($rows);
                 $year = AcademicYear::query()->lockForUpdate()->findOrFail($academicYear->getKey());
                 $this->assertImportable($year);
 
@@ -285,6 +287,7 @@ class AcademicYearPreparationService
     private function importRosterRows(array $rows, User $actor, string $sourceLabel): ProvisionalRosterImportResult
     {
         return DB::transaction(function () use ($rows, $actor, $sourceLabel): ProvisionalRosterImportResult {
+            $this->lockRosterImports($rows);
             $yearNames = collect($rows)->pluck('academic_year_name')->unique()->values();
             $years = AcademicYear::query()
                 ->whereIn('name', $yearNames)
@@ -303,6 +306,15 @@ class AcademicYearPreparationService
 
             return $this->processRosterRows($rows, $years->keyBy('name'), $actor);
         });
+    }
+
+    /** @param list<array{nisn: string, name: string, classroom: string, academic_year_name: string}> $rows */
+    private function lockRosterImports(array $rows): void
+    {
+        $this->retention->lockImports();
+        foreach ($rows as $row) {
+            $this->retention->assertImportAllowed($row['nisn']);
+        }
     }
 
     /**

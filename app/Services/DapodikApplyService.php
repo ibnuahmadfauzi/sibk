@@ -34,6 +34,7 @@ final class DapodikApplyService
         private readonly DapodikMatchResolver $matches,
         private readonly DapodikApplyValidator $validator,
         private readonly DapodikDeactivationPlanner $deactivations,
+        private readonly AlumniRetentionRegistry $retention,
     ) {}
 
     public function apply(ExternalSyncRun $run, User $actor, int $expectedDecisionRevision): ExternalSyncRun
@@ -84,6 +85,10 @@ final class DapodikApplyService
                         ->get();
                     $this->validator->validate($currentRun, $items);
                     $this->deactivations->validate($currentRun, $items);
+                    foreach ($items->where('entity_type', DapodikSyncPreviewItem::ENTITY_STUDENT) as $item) {
+                        $fields = $item->safe_fields;
+                        $this->retention->assertImportAllowed($fields['nisn'], $fields['source_id']);
+                    }
 
                     $syncedAt = now();
                     $appliedIds = $this->applyItems($currentRun, $items, $actor, $syncedAt);

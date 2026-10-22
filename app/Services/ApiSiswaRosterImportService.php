@@ -30,6 +30,7 @@ final class ApiSiswaRosterImportService
     public function __construct(
         private readonly AcademicYearPreparationService $preparationService,
         private readonly ProvisionalRosterPayloadParser $payloadParser,
+        private readonly AlumniRetentionRegistry $retention,
     ) {}
 
     /**
@@ -101,13 +102,19 @@ final class ApiSiswaRosterImportService
             $receivedCount = is_array($payload['data'] ?? null)
                 ? count($payload['data'])
                 : 0;
+            $rows = $this->payloadParser->parse($payload, forPreview: true);
             if ($previewHash !== null || $selectedRows !== []) {
-                $rows = $this->payloadParser->parse($payload, forPreview: true);
                 if ($previewHash === null || ! hash_equals($this->previewHash($rows), $previewHash)) {
                     $this->fail('Data API berubah sejak pratinjau. Tinjau data kembali sebelum mengimpor.');
                 }
                 $payload['data'] = $this->selectedPayloadRows($rows, $selectedRows);
             }
+            $payload['data'] = array_values(array_filter(
+                $payload['data'],
+                fn (mixed $item): bool => ! is_array($item)
+                    || ! is_string($item['nisn'] ?? null)
+                    || ! $this->retention->blocked($item['nisn']),
+            ));
             $result = $this->preparationService->importRosterPayload($payload, $actor);
 
             $run->update([
@@ -246,6 +253,8 @@ final class ApiSiswaRosterImportService
      */
     private function buildPreview(array $rows): array
     {
+        $previewHash = $this->previewHash($rows);
+        $rows = array_filter($rows, fn (array $row): bool => ! $this->retention->blocked($row['nisn']));
         $nisnCounts = array_count_values(array_map(
             fn (array $row): string => $row['academic_year_name'].'|'.$row['nisn'],
             $rows,
@@ -255,7 +264,7 @@ final class ApiSiswaRosterImportService
             ->whereIn('name', $rowsByYear->keys())
             ->get()
             ->keyBy('name');
-        $canImport = true;
+        $canImport = $rows !== [];
         $academicYears = [];
 
         foreach ($rowsByYear as $name => $yearRows) {
@@ -375,7 +384,7 @@ final class ApiSiswaRosterImportService
             'can_import' => $canImport && $conflictCount === 0,
             'can_import_after_selection' => $canImport && $blockingConflictCount === 0,
             'duplicate_group_count' => count($duplicateGroups),
-            'preview_hash' => $this->previewHash($rows),
+            'preview_hash' => $previewHash,
         ];
     }
 
@@ -392,6 +401,7 @@ final class ApiSiswaRosterImportService
      */
     private function selectedPayloadRows(array $rows, array $selectedRows): array
     {
+        $rows = array_filter($rows, fn (array $row): bool => ! $this->retention->blocked($row['nisn']));
         $groups = [];
         foreach ($rows as $index => $row) {
             $groups[$row['academic_year_name'].'|'.$row['nisn']][] = $index;
