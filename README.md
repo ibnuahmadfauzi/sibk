@@ -160,6 +160,7 @@ credential dijelaskan dalam admission gate; jangan mengganti key tanpa prosedur.
 
 ## Dokumentasi
 
+- [Manualbook bergambar untuk pengguna dan petugas server sekolah](docs/manualbook.md)
 - [PRD aktif](docs/requirements/PRD_Aplikasi_BK_v1.1.md)
 - [SRS aktif](docs/requirements/SRS_Aplikasi_BK_v1.1.md)
 - [Kontrak endpoint dan service](docs/api-contract.md)

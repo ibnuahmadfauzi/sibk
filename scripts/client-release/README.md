@@ -4,6 +4,8 @@ Versi dan commit sumber tersedia pada `RELEASE.json`. Repo ini menerima rilis re
 
 ## Instalasi
 
+Panduan penggunaan tiap peran, sitemap, ilustrasi, instalasi, dan pemulihan tersedia pada `docs/manualbook.md` dalam paket rilis. Bab 6 memuat petunjuk lengkap bagi petugas server; langkah di bawah menjadi ringkasan pemasangan.
+
 Siapkan PHP 8.4.1 atau lebih baru dalam seri PHP 8, ekstensi cURL dengan libcurl >= 7.49, ekstensi GD untuk logo dan Excel, ekstensi lain yang dibutuhkan lockfile, Composer 2, MySQL, serta Node.js/npm yang kompatibel dengan Vite untuk build aset. Arahkan document root hanya ke `public/`, gunakan HTTPS, dan beri proses PHP izin tulis pada `storage/` serta `bootstrap/cache/`.
 
 Salin `.env.example` ke `.env`, lalu isi domain dan akses database khusus aplikasi. Pertahankan `APP_ENV=production` serta `APP_DEBUG=false`. Jangan commit `.env`.
