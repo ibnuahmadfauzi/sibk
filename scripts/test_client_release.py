@@ -1,5 +1,6 @@
 """Regression checks for exports pinned to a production commit."""
 import importlib.util
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -86,6 +87,17 @@ class ClientReleaseTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Production source is incomplete'):
             exporter.export('1.0.0', output)
         self.assertFalse(output.exists())
+
+    def test_checker_requires_word_even_if_manifest_omits_it(self):
+        output = self.release()
+        word = 'docs/manualbook/Buku-Panduan-Ruang-BK.docx'
+        (output / word).unlink()
+        manifest_path = output / 'RELEASE.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        del manifest['files'][word]
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'Production source is incomplete'):
+            checker.validate(output)
 
     def test_changed_and_missing_release_files_fail(self):
         output = self.release()

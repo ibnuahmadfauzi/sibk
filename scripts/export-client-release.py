@@ -14,6 +14,8 @@ ROOT_FILES = {
 }
 TEMPLATES = {'README.md': 'README.md', '.env.example': '.env.example',
              'database/seeders/DatabaseSeeder.php': 'DatabaseSeeder.php'}
+REQUIRED_FILES = {'artisan', 'composer.lock', 'package-lock.json', 'public/index.php',
+                  'bootstrap/app.php', 'docs/manualbook/Buku-Panduan-Ruang-BK.docx'}
 
 
 def git(*args):
@@ -67,9 +69,7 @@ def export(version, output):
         files[name] = git('cat-file', 'blob', oid)
     for destination, template in TEMPLATES.items():
         files[destination] = git('show', commit + ':scripts/client-release/' + template)
-    required = {'artisan', 'composer.lock', 'package-lock.json', 'public/index.php',
-                'bootstrap/app.php', 'docs/manualbook/Buku-Panduan-Ruang-BK.docx'}
-    if not required <= files.keys():
+    if not REQUIRED_FILES <= files.keys():
         raise ValueError('Production source is incomplete')
     output.mkdir(parents=True, exist_ok=False)
     for name, content in files.items():
