@@ -1,6 +1,6 @@
 # Ruang BK — Source rilis klien
 
-Versi dan commit sumber tersedia pada `RELEASE.json`. Repo ini menerima rilis resmi, bukan tempat pengembangan harian. Tidak ada data murid, akun simulasi, kredensial, atau riwayat Git internal. Source ini masih memerlukan instalasi dependensi dan konfigurasi server; bukan paket server siap jalan.
+Versi dan commit sumber tersedia pada `RELEASE.json`. Repo rilis sekolah ini disiapkan Ibnu secara terpisah dari repo pengembangan. Pembaruan dari repo pengembangan disalurkan ke sini sebagai rilis resmi. Gunakan alamat repo dan versi yang tercantum dalam serah terima sekolah. Tidak ada data murid, akun simulasi, kredensial, atau riwayat Git internal. Source ini masih memerlukan instalasi dependensi dan konfigurasi server; bukan paket server siap jalan.
 
 ## Instalasi
 
