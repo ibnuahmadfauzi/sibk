@@ -17,6 +17,12 @@ final class PurgeExpiredAlumni extends Command
 
     public function handle(AlumniRetentionService $service): int
     {
+        if ($this->option('execute') && config('alumni_retention.enabled') !== true) {
+            $this->components->error('Penghapusan alumni belum diaktifkan. Periksa kesiapan sekolah sebelum mengatur ALUMNI_RETENTION_ENABLED=true dan memperbarui cache konfigurasi.');
+
+            return self::FAILURE;
+        }
+
         try {
             $result = $service->run((bool) $this->option('execute'));
             if ($this->option('execute')) {

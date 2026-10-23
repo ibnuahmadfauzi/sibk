@@ -25,6 +25,7 @@ use App\Models\WithdrawalProgressFollowUp;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 
 final class AlumniRetentionService
 {
@@ -34,6 +35,9 @@ final class AlumniRetentionService
     public function run(bool $execute = false): array
     {
         if ($execute) {
+            if (config('alumni_retention.enabled') !== true) {
+                throw new LogicException('Penghapusan alumni belum diaktifkan.');
+            }
             $this->registry->assertReady();
         }
 
@@ -429,7 +433,7 @@ final class AlumniRetentionService
     }
 
     /** @param list<int> $parentIds
-     *  @return list<int>
+     * @return list<int>
      */
     private function ids(string $table, string $parentColumn, array $parentIds): array
     {

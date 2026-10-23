@@ -12,6 +12,8 @@ spec.loader.exec_module(exporter)
 
 def validate(root):
     manifest = json.loads((root / 'RELEASE.json').read_text(encoding='utf-8'))
+    if not exporter.REQUIRED_FILES <= manifest['files'].keys():
+        raise ValueError('Production source is incomplete')
     exporter.git('merge-base', '--is-ancestor', manifest['source_commit'], 'origin/main')
     actual = set()
     for path in root.rglob('*'):
@@ -27,7 +29,7 @@ def validate(root):
         if hashlib.sha256((root / name).read_bytes()).hexdigest() != expected:
             raise ValueError('Changed release file: ' + name)
         if name in exporter.TEMPLATES:
-            source = (exporter.ROOT / 'scripts/client-release' / exporter.TEMPLATES[name]).read_bytes()
+            source = exporter.git('show', manifest['source_commit'] + ':scripts/client-release/' + exporter.TEMPLATES[name])
         else:
             source = exporter.git('show', manifest['source_commit'] + ':' + name)
         if (root / name).read_bytes() != source:
