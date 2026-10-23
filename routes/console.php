@@ -21,5 +21,6 @@ Schedule::command('sibk:sync-etatib')
 Schedule::command('sibk:hapus-alumni --execute')
     ->dailyAt('02:00')
     ->timezone('Asia/Jakarta')
+    ->when(fn (): bool => config('alumni_retention.enabled') === true)
     ->withoutOverlapping(180)
     ->onOneServer();

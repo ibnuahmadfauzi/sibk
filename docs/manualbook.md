@@ -1267,7 +1267,9 @@ QUEUE_CONNECTION=sync
 
 1. Sebelum mengaktifkan cron pada database yang sudah berisi data, jalankan `php artisan sibk:hapus-alumni`. Perintah tanpa `--execute` hanya menampilkan pratinjau jumlah **memenuhi syarat** dan **ditunda**. Jangan menghapus relasi atau penanda secara manual untuk memaksa retensi.
 
-   `--execute` menghapus permanen data BK alumni yang memenuhi syarat dalam transaksi per murid; scheduler menjalankannya setiap hari pukul 02.00 WIB. Hanya alumni dengan keputusan **lulus**, status **resmi keluar**, dan tanggal efektif yang telah mencapai satu tahun kalender yang dapat diproses. Murid aktif, pindah, dalam penanganan pengunduran diri, berstatus proses atau batal, serta alumni yang belum jatuh tempo tidak ikut dihapus. Konflik relasi atau keanggotaan yang masih aktif dapat menunda penghapusan.
+   `ALUMNI_RETENTION_ENABLED=false` menonaktifkan penghapusan secara bawaan. Pratinjau tetap tersedia, jadwal e-Tatib tetap berjalan, dan pemeriksaan penanda saat impor tetap berlaku. `--execute` ditolak selama penghapusan nonaktif. Setelah aktivasi terpisah, scheduler menjalankan penghapusan pukul 02.00 WIB. Hanya alumni dengan keputusan **lulus**, status **resmi keluar**, dan tanggal efektif yang telah mencapai satu tahun kalender yang dapat diproses. Murid aktif, pindah, dalam penanganan pengunduran diri, berstatus proses atau batal, serta alumni yang belum jatuh tempo tidak ikut dihapus. Konflik relasi atau keanggotaan yang masih aktif dapat menunda penghapusan.
+
+   Menu pencatatan kelulusan resmi belum tersedia pada versi ini. Pertahankan penghapusan nonaktif sampai alur dan data kelulusan, kebijakan penyimpanan, pratinjau, dan uji pemulihan cadangan siap. Aktivasi dilakukan dengan `ALUMNI_RETENTION_ENABLED=true` lalu `php artisan config:cache`. Untuk menghentikan eksekusi berikutnya, kembalikan ke `false` dan perbarui cache konfigurasi; proses yang sudah berjalan tidak dibatalkan.
 
    Setelah pemeriksaan keselamatan, proses ini membersihkan data identitas, layanan/arsip/tindak lanjut, prestasi, mirror e-Tatib, dan relasi audit lokal terkait. Sumber Dapodik dan e-Tatib tidak menerima perintah hapus. Penanda HMAC mencegah identitas yang telah dihapus diimpor ulang. Jika `ALUMNI_RETENTION_KEY` hilang atau berubah saat penanda sudah ada, impor dan penghapusan berhenti sampai kunci asli dipulihkan.
 ![Gambar 99. CONTOH Pemasangan dan pemeriksaan scheduler](manualbook/gambar/v2-server-scheduler.png)
@@ -1310,35 +1312,70 @@ QUEUE_CONNECTION=sync
 
 ![Gambar 102. CONTOH Satu snapshot backup database berkas dan kunci](manualbook/gambar/v2-server-backup.png)
 
-1. Tentukan jadwal dan masa simpan cadangan (backup) sesuai kebijakan sekolah. Agar isi database dan berkas berasal dari titik waktu yang sama, hentikan perubahan aplikasi sementara dengan `php artisan down`. Jeda pemicu cron aplikasi selama backup dan pastikan tugas retensi tidak sedang berjalan.
+Tetapkan jadwal dan masa simpan cadangan. Jeda hanya pemicu scheduler Ruang BK melalui panel atau crontab -e, dan catat entri semula; jangan gunakan crontab -r. Jalankan php artisan down, lalu tunggu seluruh proses yang mengubah data selesai, termasuk sinkronisasi, retensi, impor, dan perintah manual. Jangan melakukan pembaruan aplikasi selama pencadangan. Dengan demikian, database, storage/app, dan .env berasal dari keadaan yang sama.
 
-   Cadangkan database, seluruh `storage/app/private` (termasuk logo), dan `.env` dengan **kedua kunci** dari titik waktu yang sama. Jalankan contoh berikut dari direktori aplikasi, dengan tujuan backup privat di luar `public/`. Akun backup harus mempunyai hak baca dan hak tambahan yang diperlukan bila menyertakan routines/triggers. Sandi MySQL diminta melalui prompt `-p`, bukan lewat argumen atau shell history:
+Sediakan Bash, mysqldump, tar, sha256sum, dan age. Petugas menyiapkan /srv/backup/sibk dengan akses terbatas, serta /etc/sibk/backup-recipients.txt berisi kunci publik penerima cadangan. Simpan kunci privat pasangannya secara terpisah untuk pemulihan. Akun backup memerlukan hak baca serta hak routines/triggers yang sesuai. Sandi MySQL diminta melalui -p; jangan menuliskannya pada perintah.
 
-   ```sh
-   umask 077
-   mysqldump --single-transaction --no-tablespaces \
-     --routines --triggers -h 127.0.0.1 \
-     -u NAMA_AKUN_BACKUP -p NAMA_DATABASE > sibk-YYYYMMDD.sql
-   tar -czf sibk-YYYYMMDD-files.tar.gz .env storage/app
-   php artisan up
-   ```
+Jalankan satu blok berikut melalui Bash dari direktori aplikasi:
 
-   Pastikan setiap perintah berhasil dan berkas tidak kosong sebelum melanjutkan. Contoh ini bukan skrip otomatis yang boleh meneruskan kegagalan. Pindahkan salinan terenkripsi ke tempat backup di luar document root dan server utama, batasi aksesnya, serta uji pemulihannya berkala. Aktifkan kembali pemicu cron setelah backup.
+```bash
+(
+set -euo pipefail
+umask 077
+BACKUP_DIR="/srv/backup/sibk/$(date -u +%Y%m%dT%H%M%SZ)"
+RECIPIENTS=/etc/sibk/backup-recipients.txt
+mkdir -m 700 "$BACKUP_DIR"
+mysqldump --single-transaction --no-tablespaces \
+  --set-gtid-purged=OFF --routines --triggers \
+  -h 127.0.0.1 -u NAMA_AKUN_BACKUP -p NAMA_DATABASE \
+  | age -R "$RECIPIENTS" -o "$BACKUP_DIR/database.sql.age"
+tar -czf - storage/app \
+  | age -R "$RECIPIENTS" -o "$BACKUP_DIR/files.tar.gz.age"
+age -R "$RECIPIENTS" -o "$BACKUP_DIR/config.env.age" .env
+cd "$BACKUP_DIR"
+sha256sum database.sql.age files.tar.gz.age config.env.age > SHA256SUMS
+printf 'Cadangan selesai: %s\n' "$BACKUP_DIR"
+)
+```
 
-   Lindungi SQL dan arsip itu segera karena berisi data murid dan rahasia. Sertakan berkas lain di `storage/app` bila instalasi memakainya. Backup serta unduhan lama **tidak** dibersihkan oleh `sibk:hapus-alumni`; kelola masa simpannya terpisah.
+Jalankan satu blok Bash di atas dari direktori aplikasi. Blok berhenti bila ada perintah gagal; direktori baru bertanggal UTC mencegah cadangan lama tertimpa. Jika gagal, jangan pakai hasil sebagian sebagai cadangan. Periksa tiga berkas terenkripsi, checksum, dan kemampuan pemulihannya. Salin satu set lengkap ke penyimpanan terbatas di luar server utama; simpan kunci dekripsi secara terpisah. SHA256SUMS mendeteksi perubahan berkas, bukan membuktikan asalnya. Setelah pencadangan berhasil, buka akses dan pulihkan hanya pemicu cron yang sebelumnya dijeda.
+
+```sh
+php artisan up
+```
+
 ![Gambar 103. CONTOH Pemulihan terisolasi sebelum aplikasi dibuka](manualbook/gambar/v2-server-restore.png)
 
-2. Saat insiden, hentikan akses aplikasi. Pilih **satu** backup utuh dan siapkan source rilis yang cocok. Pulihkan SQL ke database kosong khusus pemulihan, serta `storage/app/private` dan `.env` dari titik yang sama:
+Untuk uji atau pemulihan, pilih satu set cadangan dari waktu yang sama dan rilis aplikasi yang cocok. Siapkan database kosong serta akun pemulihan yang hanya berhak mengakses database itu. Siapkan direktori induk privat /srv/restore dan kunci dekripsi di lokasi terpisah. Sesuaikan tiga path dan nama database pada blok berikut; hasil dekripsi disimpan di direktori baru, di luar web publik.
 
-   ```sh
-   mysql -h 127.0.0.1 -u NAMA_AKUN_PEMULIHAN -p \
-     NAMA_DATABASE_PEMULIHAN < sibk-YYYYMMDD.sql
-   ```
+```bash
+(
+set -euo pipefail
+umask 077
+# Ganti dengan direktori cadangan yang dipilih.
+BACKUP_DIR=/srv/backup/sibk/20261023T030000Z
+RESTORE_DIR="/srv/restore/sibk-$(date -u +%Y%m%dT%H%M%SZ)"
+IDENTITY=/media/aman/sibk-backup.key
+mkdir -m 700 "$RESTORE_DIR"
+cd "$BACKUP_DIR"
+sha256sum -c SHA256SUMS
+age -d -i "$IDENTITY" -o "$RESTORE_DIR/database.sql" database.sql.age
+age -d -i "$IDENTITY" -o "$RESTORE_DIR/files.tar.gz" files.tar.gz.age
+age -d -i "$IDENTITY" -o "$RESTORE_DIR/.env" config.env.age
+tar -xzf "$RESTORE_DIR/files.tar.gz" -C "$RESTORE_DIR"
+mysql -h 127.0.0.1 -u NAMA_AKUN_PEMULIHAN -p \
+  NAMA_DATABASE_PEMULIHAN < "$RESTORE_DIR/database.sql"
+printf 'Hasil pemulihan: %s\n' "$RESTORE_DIR"
+)
+```
 
-   Ubah hanya alamat database/domain dalam `.env` hasil pemulihan. Pertahankan `APP_KEY` untuk data terenkripsi dan `ALUMNI_RETENTION_KEY` untuk penanda HMAC. Jangan memulihkan tabel penanda saja atau mengganti kunci tanpa database pasangannya.
+Pasang hasil storage/app dan .env pada salinan aplikasi pemulihan yang terisolasi. Pertahankan APP_KEY dan ALUMNI_RETENTION_KEY; sesuaikan koneksi ke database pemulihan dan domain uji. Tetapkan ALUMNI_RETENTION_ENABLED=false sebelum menjalankan aplikasi. Jangan memasang cron di lingkungan pemulihan; batasi akses keluar ke API sumber. Bangun ulang cache konfigurasi agar aplikasi tidak memakai koneksi produksi yang tersimpan sebelumnya.
 
-   Backup lama bisa memunculkan lagi alumni yang pernah dihapus. Batasi akses, tinjau retensi dan backup, lalu jalankan pratinjau `php artisan sibk:hapus-alumni` sebelum mengaktifkan cron. Jangan impor backup lama ke produksi yang masih aktif.
-3. Pulihkan owner/izin file, `vendor` dan `public/build` dari rilis cocok, lalu jalankan `php artisan storage:link`, `php artisan config:cache`, `php artisan view:cache`, dan `php artisan schedule:list`. Verifikasi `/up`, login, logo, data/hak akses per peran, dan satu eksekusi cron nyata sebelum membuka akses kembali. Bila skema backup lebih tua daripada source, jalankan migrasi forward-only `php artisan migrate --force` hanya setelah kecocokan rilis dan backup cadangan dipastikan. Jangan rollback penanda retensi atau memakai `migrate:fresh`.
+Pulihkan izin berkas, vendor, dan public/build dari rilis yang sama. Jalankan storage:link, config:cache, dan view:cache melalui php artisan pada salinan pemulihan. Periksa login, jumlah dan relasi data, logo, berkas, serta hak akses setiap peran. Uji pemulihan dinyatakan berhasil setelah semua pemeriksaan sesuai. Catat hasilnya dan lindungi atau hapus berkas dekripsi sesuai kebijakan sekolah.
+
+Saat pemulihan produksi diperlukan, hentikan akses dan seluruh penulis data sebelum penggantian. Cadangan lama dapat memunculkan kembali alumni yang pernah dihapus; tinjau pratinjau retensi sebelum membuka akses. Jangan menimpa database produksi yang masih aktif, memakai migrate:fresh, atau menghapus penanda identitas. Aktifkan kembali satu pemicu cron setelah validasi; penghapusan alumni tetap nonaktif sampai pemeriksaannya selesai. Cadangan dan unduhan lama mempunyai masa simpan terpisah dari penghapusan data aplikasi.
+
+Rujukan perintah: [age](https://github.com/FiloSottile/age) dan [mysqldump MySQL 8.4](https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html).
 
 ## 6.6 Gangguan yang sering muncul
 
