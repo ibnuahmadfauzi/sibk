@@ -27,7 +27,7 @@ def validate(root):
         if hashlib.sha256((root / name).read_bytes()).hexdigest() != expected:
             raise ValueError('Changed release file: ' + name)
         if name in exporter.TEMPLATES:
-            source = (exporter.ROOT / 'scripts/client-release' / exporter.TEMPLATES[name]).read_bytes()
+            source = exporter.git('show', manifest['source_commit'] + ':scripts/client-release/' + exporter.TEMPLATES[name])
         else:
             source = exporter.git('show', manifest['source_commit'] + ':' + name)
         if (root / name).read_bytes() != source:
