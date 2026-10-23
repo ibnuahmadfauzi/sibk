@@ -12,8 +12,11 @@ use App\Models\StudentClassMembership;
 use App\Models\StudentDeparture;
 use App\Models\User;
 use App\Services\AlumniRetentionService;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -26,6 +29,46 @@ final class AlumniRetentionTest extends TestCase
         parent::setUp();
         $this->travelTo('2026-10-22 12:00:00');
         config(['alumni_retention.key' => 'base64:'.base64_encode(str_repeat('k', 32))]);
+        config(['alumni_retention.enabled' => true]);
+    }
+
+    public function test_disabled_retention_allows_preview_but_refuses_command_and_service_deletion(): void
+    {
+        config(['alumni_retention.enabled' => false]);
+        $student = $this->student('0000000090', '2024-06-30');
+
+        $this->artisan('sibk:hapus-alumni')->assertSuccessful();
+        $this->assertSame(['eligible' => 1, 'deferred' => 0, 'deleted' => 0], app(AlumniRetentionService::class)->run());
+        $this->artisan('sibk:hapus-alumni', ['--execute' => true])
+            ->expectsOutputToContain('Penghapusan alumni belum diaktifkan.')
+            ->assertFailed();
+        try {
+            app(AlumniRetentionService::class)->run(true);
+            $this->fail('Service harus menolak penghapusan yang nonaktif.');
+        } catch (LogicException $exception) {
+            $this->assertSame('Penghapusan alumni belum diaktifkan.', $exception->getMessage());
+        }
+        $this->assertDatabaseHas('students', ['id' => $student->id]);
+        $this->assertDatabaseHas('student_departures', ['student_id' => $student->id]);
+        $this->assertDatabaseCount('alumni_retention_markers', 0);
+    }
+
+    public function test_disabling_purge_does_not_disable_due_etatib_schedule(): void
+    {
+        $this->travelTo('2026-10-22 03:00:00');
+        IntegrationSetting::query()->create([
+            'provider' => 'etatib', 'automatic_sync_enabled' => true,
+        ]);
+        $events = collect(app(Schedule::class)->events());
+        $purge = $events->first(fn ($event) => str_contains($event->command ?? '', 'sibk:hapus-alumni'));
+        $etatib = $events->first(fn ($event) => str_contains($event->command ?? '', 'sibk:sync-etatib'));
+        $this->assertNotNull($purge);
+        $this->assertNotNull($etatib);
+        config(['alumni_retention.enabled' => false]);
+        $this->assertFalse($purge->filtersPass($this->app));
+        $this->assertTrue($etatib->filtersPass($this->app));
+        config(['alumni_retention.enabled' => true]);
+        $this->assertTrue($purge->filtersPass($this->app));
     }
 
     public function test_only_official_graduates_reach_exact_one_year_anniversary(): void
@@ -339,7 +382,7 @@ final class AlumniRetentionTest extends TestCase
         try {
             app(AlumniRetentionService::class)->run(true);
             $this->fail('Kegagalan penghapusan harus membatalkan transaksi.');
-        } catch (\Illuminate\Database\QueryException) {
+        } catch (QueryException) {
             $this->assertDatabaseHas('students', ['id' => $student->id]);
             $this->assertDatabaseHas('external_tatib_records', ['source_identifier' => 'etatib-rollback']);
             $this->assertDatabaseHas('student_departures', ['student_id' => $student->id]);
