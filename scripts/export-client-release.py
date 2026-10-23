@@ -14,6 +14,8 @@ ROOT_FILES = {
 }
 TEMPLATES = {'README.md': 'README.md', '.env.example': '.env.example',
              'database/seeders/DatabaseSeeder.php': 'DatabaseSeeder.php'}
+REQUIRED_FILES = {'artisan', 'composer.lock', 'package-lock.json', 'public/index.php',
+                  'bootstrap/app.php', 'docs/manualbook/Buku-Panduan-Ruang-BK.docx'}
 
 
 def git(*args):
@@ -28,7 +30,7 @@ def allowed(name):
         return True
     if any(part.startswith('.') for part in path.parts):
         return name == 'public/.htaccess' or (path.name == '.gitignore' and path.parts[0] in {'storage', 'bootstrap'})
-    if name == 'docs/manualbook.md':
+    if name in {'docs/manualbook.md', 'docs/manualbook/Buku-Panduan-Ruang-BK.docx'}:
         return True
     if path.parent.as_posix() == 'docs/manualbook/gambar':
         return path.suffix.lower() == '.png'
@@ -66,9 +68,8 @@ def export(version, output):
             raise ValueError('Symlink/submodule is not allowed in release: ' + name)
         files[name] = git('cat-file', 'blob', oid)
     for destination, template in TEMPLATES.items():
-        files[destination] = (ROOT / 'scripts/client-release' / template).read_bytes()
-    required = {'artisan', 'composer.lock', 'package-lock.json', 'public/index.php', 'bootstrap/app.php'}
-    if not required <= files.keys():
+        files[destination] = git('show', commit + ':scripts/client-release/' + template)
+    if not REQUIRED_FILES <= files.keys():
         raise ValueError('Production source is incomplete')
     output.mkdir(parents=True, exist_ok=False)
     for name, content in files.items():
