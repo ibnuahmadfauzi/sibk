@@ -33,17 +33,17 @@ final class WebAppearancePerformanceTest extends TestCase
         $this->actingAs($admin);
         $this->assertAppearanceQueryCount(route('admin.web-settings.edit'));
 
-        WebAppearance::query()->findOrFail(1)->update(['theme' => 'pine']);
-        $this->assertAppearanceQueryCount(route('admin.web-settings.edit'), 'pine');
-        WebAppearance::query()->findOrFail(1)->update(['theme' => 'slate']);
-        $this->assertAppearanceQueryCount(route('admin.web-settings.edit'), 'slate');
+        WebAppearance::query()->findOrFail(1)->update(['theme' => 'navy']);
+        $this->assertAppearanceQueryCount(route('admin.web-settings.edit'), 'navy');
+        WebAppearance::query()->findOrFail(1)->update(['theme' => 'modern']);
+        $this->assertAppearanceQueryCount(route('admin.web-settings.edit'), 'modern');
     }
 
     public function test_theme_save_invalidates_the_current_request_snapshot(): void
     {
         $this->assertSame('default', app(WebAppearanceService::class)->theme());
-        app(WebAppearanceService::class)->updateTheme('pine', $this->admin());
-        $this->assertSame('pine', app(WebAppearanceService::class)->theme());
+        app(WebAppearanceService::class)->updateTheme('navy', $this->admin());
+        $this->assertSame('navy', app(WebAppearanceService::class)->theme());
     }
 
     public function test_logo_versions_cache_and_revalidate_without_hiding_replacements(): void
