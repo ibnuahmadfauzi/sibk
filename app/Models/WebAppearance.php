@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable(['logo_path', 'agency_logo_path', 'theme', 'custom_palette'])]
 final class WebAppearance extends Model
 {
-    public const THEMES = ['default', 'pine', 'slate'];
+    public const THEMES = ['default', 'navy', 'smkn1', 'modern'];
 
     protected $table = 'web_appearances';
 

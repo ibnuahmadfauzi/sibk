@@ -1147,13 +1147,13 @@ Jika kedua logo tersedia, logo dinas berada di kiri dan logo sekolah di kanan pa
 
 ### Memilih atau memulihkan tema
 
-![Gambar 98. Pilihan Tema warna Bawaan, Hijau Pinus, Biru Sabak, dan Kembalikan ke default](manualbook/gambar/v2-web-tema.png)
+![Gambar 98. Lokasi pilihan Tema warna dan Kembalikan ke default pada versi sebelumnya](manualbook/gambar/v2-web-tema.png)
 
-1. Di **Tema warna**, pilih **Bawaan**, **Hijau Pinus**, atau **Biru Sabak**.
+1. Di **Tema warna**, pilih **Bawaan**, **Navy**, **Logo SMKN 1**, atau **Modern Logo**.
 2. Pilih **Simpan tema** dan lihat hasil pada halaman.
 3. Untuk kembali ke palet bawaan, pilih **Kembalikan ke default**.
 
-Tema berlaku pada aplikasi dan halaman masuk. Anda dapat memilih tiga tema yang tersedia; warna status dan kertas laporan tetap sama.
+Tema berlaku pada aplikasi dan halaman masuk. Anda dapat memilih empat tema yang tersedia; warna status dan kertas laporan tetap sama. Gambar di atas menunjukkan letak pengaturan pada versi sebelumnya; nama pilihan mengikuti daftar terbaru pada langkah 1.
 
 ## 5.13 Akun pribadi dan keluar
 
