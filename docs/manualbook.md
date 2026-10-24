@@ -2,7 +2,7 @@
 
 Panduan Penggunaan Aplikasi dan Instalasi pada Server Sekolah
 
-Edisi 23 Oktober 2026. Acuan aplikasi 741d4ac.
+Edisi 24 Oktober 2026. Acuan aplikasi 8d3936b.
 
 Ruang BK membantu sekolah mencatat layanan bimbingan dan konseling (BK), menindaklanjuti permasalahan murid, dan membaca laporan sesuai kewenangan masing-masing peran.
 
@@ -16,7 +16,7 @@ Gambar menggunakan data contoh. Warna, logo, nama, tanggal, dan angka pada aplik
 
 ## 1.1 Memilih panduan menurut peran
 
-![Gambar 1. Peta menu aplikasi yang tersedia menurut peran pengguna](manualbook/gambar/sitemap.png)
+Tampilan Dashboard lengkap dan alur kerja setiap peran tersedia di awal Bab 2–5. Ikuti arah panah; percabangan menunjukkan pilihan atau pemeriksaan sebelum melanjutkan.
 
 1. **Admin IT** menggunakan Bab 5 untuk akun, kelas, tahun persiapan, daftar murid, API, sinkronisasi, logo, dan tema. API adalah penghubung untuk mengambil data dari aplikasi lain. Hak mengelola pengaturan tidak memberi Admin IT akses ke isi konseling.
 2. **Guru BK** menggunakan Bab 2 untuk murid binaan, pencatatan layanan, tindak lanjut, riwayat, dan rekap.
@@ -34,7 +34,7 @@ Gambar menggunakan data contoh. Warna, logo, nama, tanggal, dan angka pada aplik
 
 ## 1.2 Memahami urutan kerja sekolah
 
-![Gambar 2. Urutan persiapan data dan penugasan sebelum layanan BK digunakan](manualbook/gambar/alur-operasional.png)
+![Gambar 1. Urutan persiapan data dan penugasan sebelum layanan BK digunakan](manualbook/gambar/alur-operasional.png)
 
 1. Petugas memasang aplikasi, basis data, akses aman HTTPS, dan penjadwal tugas, lalu membuat akun Admin IT pertama.
 2. Admin IT membuat akun, menata Data Kelas, menyiapkan tahun ajaran, serta meninjau dan mengimpor daftar murid. Impor berarti memasukkan data dari berkas atau sistem sumber ke Ruang BK.
@@ -46,7 +46,7 @@ Gambar menggunakan data contoh. Warna, logo, nama, tanggal, dan angka pada aplik
 ## 1.3 Masuk dan penggantian sandi pertama
 ### Masuk menggunakan akun sekolah
 
-![Gambar 3. Halaman Masuk ke Ruang BK dengan kolom email dan kata sandi](manualbook/gambar/v2-login.png)
+![Gambar 2. Halaman Masuk ke Ruang BK dengan kolom email dan kata sandi](manualbook/gambar/v2-login.png)
 
 **Sebelum mulai:** akun pribadi sudah dibuat dan masih aktif. Gunakan alamat aplikasi sekolah yang diawali HTTPS.
 
@@ -59,7 +59,7 @@ Gambar menggunakan data contoh. Warna, logo, nama, tanggal, dan angka pada aplik
 Hubungi Admin IT jika akun tidak aktif atau sandi sementara sudah kedaluwarsa.
 ### Mengganti sandi sementara
 
-![Gambar 4. Halaman wajib mengganti sandi sementara sebelum menggunakan aplikasi](manualbook/gambar/v2-ganti-sandi-awal.png)
+![Gambar 3. Halaman wajib mengganti sandi sementara sebelum menggunakan aplikasi](manualbook/gambar/v2-ganti-sandi-awal.png)
 
 **Sebelum mulai:** berhasil masuk menggunakan sandi sementara yang belum kedaluwarsa. Masa berlaku bawaan adalah 24 jam.
 
@@ -73,7 +73,7 @@ Simpan sandi secara pribadi. Jangan memotret atau membagikannya kepada pengguna 
 ## 1.4 Menggunakan daftar dan formulir
 ### Mencari, menyaring, mengurutkan, dan membuka halaman daftar
 
-![Gambar 5. Contoh pencarian dan penyaringan pada daftar layanan BK](manualbook/gambar/v2-filter-daftar.png)
+![Gambar 4. Contoh pencarian dan penyaringan pada daftar layanan BK](manualbook/gambar/v2-filter-daftar.png)
 
 Gunakan **Filter** untuk membatasi data yang ditampilkan, misalnya hanya murid dari kelas tertentu. Pilihan pencarian dan penyaring mengikuti halaman yang sedang dibuka.
 
@@ -85,7 +85,7 @@ Gunakan **Filter** untuk membatasi data yang ditampilkan, misalnya hanya murid d
 Jika murid tidak ditemukan, periksa penyaring, tahun ajaran, dan kelas binaan Anda.
 ### Memeriksa draf dan hasil simpan formulir
 
-![Gambar 6. Formulir pencatatan dengan isian wajib, tombol Kosongkan, dan tombol Simpan](manualbook/gambar/v2-draft-form.png)
+![Gambar 5. Formulir pencatatan dengan isian wajib, tombol Kosongkan, dan tombol Simpan](manualbook/gambar/v2-draft-form.png)
 
 Beberapa formulir menyimpan draf, yaitu isian sementara pada peramban (browser) perangkat. Draf belum menjadi catatan resmi sampai penyimpanan berhasil.
 
@@ -101,7 +101,7 @@ Gunakan **Keluar** setelah bekerja pada komputer bersama agar draf pada peramban
 ## 1.5 Akun Saya dan keluar
 ### Memeriksa akun sendiri
 
-![Gambar 7. Halaman Akun Saya berisi identitas peran status dan tombol sandi](manualbook/gambar/v2-akun-saya.png)
+![Gambar 6. Halaman Akun Saya berisi identitas peran status dan tombol sandi](manualbook/gambar/v2-akun-saya.png)
 
 1. Buka **Akun Saya** melalui menu samping atau menu profil kanan atas.
 2. Periksa nama, email, peran, status, login terakhir, dan konteks tahun ajaran yang ditampilkan.
@@ -109,7 +109,7 @@ Gunakan **Keluar** setelah bekerja pada komputer bersama agar draf pada peramban
 
 ### Mengganti sandi pribadi
 
-![Gambar 8. Formulir Ubah Sandi dari Akun Saya](manualbook/gambar/v2-ubah-sandi.png)
+![Gambar 7. Formulir Ubah Sandi dari Akun Saya](manualbook/gambar/v2-ubah-sandi.png)
 
 **Sebelum mulai:** masih mengetahui sandi saat ini. Jika lupa, minta Admin IT menerbitkan sandi sementara yang baru.
 
@@ -120,7 +120,7 @@ Gunakan **Keluar** setelah bekerja pada komputer bersama agar draf pada peramban
 Setelah sandi berubah, sesi masuk akun Anda pada perangkat lain akan diakhiri.
 ### Keluar dari aplikasi
 
-![Gambar 9. Menu profil dengan aksi Keluar](manualbook/gambar/v2-keluar.png)
+![Gambar 8. Menu profil dengan aksi Keluar](manualbook/gambar/v2-keluar.png)
 
 Keluar setelah pekerjaan selesai, terutama pada komputer bersama.
 
@@ -132,6 +132,14 @@ Keluar setelah pekerjaan selesai, terutama pada komputer bersama.
 
 # 2 Panduan Guru BK
 
+Mencatat permasalahan dan menindaklanjutinya sampai siap direkap.
+
+![Gambar 9. Dashboard Guru BK dan menu samping aplikasi](manualbook/gambar/dashboard-utuh-guru.png)
+
+### Alur kerja Guru BK
+
+![Gambar 10. Alur kerja Guru BK](manualbook/gambar/alur-guru-bk.png)
+
 Guru BK bekerja dengan murid di kelas binaan aktifnya. Koordinator BK dapat membaca catatan dari berbagai guru, tetapi tetap tidak dapat mengubah catatan milik guru lain. Akun yang memiliki peran Koordinator BK sekaligus Guru BK tetap memerlukan kelas binaan aktif untuk mencatat layanan.
 
 Riwayat layanan dari tahun ajaran lama dan layanan sebelum murid resmi keluar dapat dibaca sesuai hak akses serta masa penyimpanan data. Catatan lama tersebut tidak dapat diubah atau diarsipkan.
@@ -142,7 +150,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Memeriksa ringkasan dan kelas binaan
 
-![Gambar 10. Dashboard Guru BK dengan pilihan Tahun Ajaran, kartu ringkasan, aktivitas, dan tab Kelas Binaan](manualbook/gambar/v2-guru-dashboard.png)
+![Gambar 11. Dashboard Guru BK dengan pilihan Tahun Ajaran, kartu ringkasan, aktivitas, dan tab Kelas Binaan](manualbook/gambar/v2-guru-dashboard.png)
 
 **Sebelum mulai:** akun Guru BK aktif. Kelas binaan muncul setelah Koordinator memberikan penugasan.
 
@@ -158,7 +166,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Mencari dan membaca permasalahan
 
-![Gambar 11. Tab Catatan Permasalahan dengan Cari Murid, penyaring Tindak Lanjut, riwayat, dan ikon rincian](manualbook/gambar/v2-kasus-daftar.png)
+![Gambar 12. Tab Catatan Permasalahan dengan Cari Murid, penyaring Tindak Lanjut, riwayat, dan ikon rincian](manualbook/gambar/v2-kasus-daftar.png)
 
 **Sebelum mulai:** akun dapat membaca layanan murid terkait.
 
@@ -172,7 +180,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Mencatat permasalahan dari murid atau rujukan
 
-![Gambar 12. Jendela Catat Permasalahan untuk sumber selain e-Tatib, identitas murid, tanggal, jenis masalah, dan isi catatan](manualbook/gambar/v2-kasus-buat.png)
+![Gambar 13. Jendela Catat Permasalahan untuk sumber selain e-Tatib, identitas murid, tanggal, jenis masalah, dan isi catatan](manualbook/gambar/v2-kasus-buat.png)
 
 **Sebelum mulai:** akun memiliki peran Guru BK, tahun ajaran aktif, dan kelas binaan aktif.
 
@@ -187,7 +195,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Mencatat permasalahan dengan referensi e-Tatib
 
-![Gambar 13. Jendela Catat Permasalahan dengan sumber e-Tatib dan data pelanggaran yang tersedia untuk dipilih](manualbook/gambar/v2-kasus-etatib.png)
+![Gambar 14. Jendela Catat Permasalahan dengan sumber e-Tatib dan data pelanggaran yang tersedia untuk dipilih](manualbook/gambar/v2-kasus-etatib.png)
 
 **Tujuan:** mencatat layanan berdasarkan data pelanggaran resmi yang sudah tersinkron. **Sebelum mulai:** hak pencatatan Guru BK dan data e-Tatib yang dapat dipilih.
 
@@ -202,7 +210,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Mengedit permasalahan
 
-![Gambar 14. Formulir Edit Permasalahan dengan identitas dan sumber yang tidak dapat diubah serta isian yang dapat diperbarui](manualbook/gambar/v2-kasus-edit.png)
+![Gambar 15. Formulir Edit Permasalahan dengan identitas dan sumber yang tidak dapat diubah serta isian yang dapat diperbarui](manualbook/gambar/v2-kasus-edit.png)
 
 **Tujuan:** memperbaiki tanggal, jenis, atau isi catatan kasus sendiri. **Sebelum mulai:** Anda pemilik kasus dan tahun catatan masih aktif.
 
@@ -215,7 +223,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Menambahkan tindak lanjut kasus
 
-![Gambar 15. Jendela Tambah Tindak Lanjut berisi jenis serta tanggal](manualbook/gambar/v2-kasus-tindaklanjut.png)
+![Gambar 16. Jendela Tambah Tindak Lanjut berisi jenis serta tanggal](manualbook/gambar/v2-kasus-tindaklanjut.png)
 
 **Tujuan:** mencatat langkah penanganan lanjutan. **Sebelum mulai:** kasus milik Anda masih aktif dan jenis tindak lanjut belum dipakai pada kasus itu.
 
@@ -228,7 +236,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Menyelesaikan permasalahan
 
-![Gambar 16. Aksi Selesaikan Permasalahan pada kasus aktif dan dialog konfirmasinya](manualbook/gambar/v2-kasus-selesai.png)
+![Gambar 17. Aksi Selesaikan Permasalahan pada kasus aktif dan dialog konfirmasinya](manualbook/gambar/v2-kasus-selesai.png)
 
 **Tujuan:** menetapkan hasil akhir kasus sendiri. **Sebelum mulai:** kasus belum selesai dan **Ringkasan** hasil telah disimpan; tindak lanjut tidak wajib.
 
@@ -240,7 +248,7 @@ Menu kerja Guru BK adalah **Dashboard**, **Layanan BK**, **Data Murid**, dan **L
 
 ### Mengarsipkan permasalahan
 
-![Gambar 17. Dialog Hapus Kasus BK pada catatan yang belum selesai](manualbook/gambar/v2-kasus-arsip.png)
+![Gambar 18. Dialog Hapus Kasus BK pada catatan yang belum selesai](manualbook/gambar/v2-kasus-arsip.png)
 
 Tombol **Hapus** pada konfirmasi memindahkan catatan dari daftar aktif ke arsip. **Sebelum mulai:** kasus milik Anda, tahun ajaran aktif, dan kasus belum selesai.
 
@@ -254,7 +262,7 @@ Tombol **Hapus** pada konfirmasi memindahkan catatan dari daftar aktif ke arsip.
 
 ### Mencari dan membaca konsultasi
 
-![Gambar 18. Tab Sesi Bimbingan dan Konsultasi dengan pencarian, penyaring Jenis Masalah, dan ikon rincian](manualbook/gambar/v2-konsultasi-daftar.png)
+![Gambar 19. Tab Sesi Bimbingan dan Konsultasi dengan pencarian, penyaring Jenis Masalah, dan ikon rincian](manualbook/gambar/v2-konsultasi-daftar.png)
 
 **Sebelum mulai:** Anda memiliki izin membaca layanan murid tersebut. Koordinator BK dapat membaca catatan lintas guru.
 
@@ -267,7 +275,7 @@ Tombol **Hapus** pada konfirmasi memindahkan catatan dari daftar aktif ke arsip.
 
 ### Mencatat konsultasi
 
-![Gambar 19. Jendela Catat Konsultasi dengan pencarian NISN dan kolom isi catatan wajib](manualbook/gambar/v2-konsultasi-buat.png)
+![Gambar 20. Jendela Catat Konsultasi dengan pencarian NISN dan kolom isi catatan wajib](manualbook/gambar/v2-konsultasi-buat.png)
 
 **Sebelum mulai:** akun memiliki peran Guru BK dan kelas binaan aktif.
 
@@ -280,7 +288,7 @@ Tombol **Hapus** pada konfirmasi memindahkan catatan dari daftar aktif ke arsip.
 
 ### Mengedit konsultasi
 
-![Gambar 20. Formulir Edit Konsultasi dengan uraian layanan dan tombol Simpan Perubahan](manualbook/gambar/v2-konsultasi-edit.png)
+![Gambar 21. Formulir Edit Konsultasi dengan uraian layanan dan tombol Simpan Perubahan](manualbook/gambar/v2-konsultasi-edit.png)
 
 **Tujuan:** memperbaiki catatan konsultasi sendiri. **Sebelum mulai:** Anda pencatat, masih berwenang atas murid, dan tahun catatan aktif.
 
@@ -292,7 +300,7 @@ Tombol **Hapus** pada konfirmasi memindahkan catatan dari daftar aktif ke arsip.
 
 ### Mengarsipkan konsultasi
 
-![Gambar 21. Dialog Hapus Konsultasi dengan identitas target dan konfirmasi](manualbook/gambar/v2-konsultasi-arsip.png)
+![Gambar 22. Dialog Hapus Konsultasi dengan identitas target dan konfirmasi](manualbook/gambar/v2-konsultasi-arsip.png)
 
 Tombol **Hapus** pada konfirmasi memindahkan konsultasi dari daftar aktif ke arsip. **Sebelum mulai:** Anda pencatat konsultasi, masih berwenang atas murid, dan tahun catatan aktif.
 
@@ -308,7 +316,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Mencari catatan dan riwayat progres
 
-![Gambar 22. Tab Pengunduran Diri dengan penyaring Progres, tombol riwayat, dan ikon catatan awal](manualbook/gambar/v2-pengunduran-daftar.png)
+![Gambar 23. Tab Pengunduran Diri dengan penyaring Progres, tombol riwayat, dan ikon catatan awal](manualbook/gambar/v2-pengunduran-daftar.png)
 
 **Tujuan:** memeriksa perkembangan berkas dan catatan awal. **Sebelum mulai:** akses baca layanan murid; Koordinator membaca lintas guru.
 
@@ -321,7 +329,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Mencatat penanganan pengunduran diri
 
-![Gambar 23. Jendela Catat Pengunduran Diri dengan pilihan murid, tanggal pencatatan, dan Catatan](manualbook/gambar/v2-pengunduran-buat.png)
+![Gambar 24. Jendela Catat Pengunduran Diri dengan pilihan murid, tanggal pencatatan, dan Catatan](manualbook/gambar/v2-pengunduran-buat.png)
 
 **Tujuan:** membuat catatan awal penanganan. **Sebelum mulai:** peran Guru BK, murid dalam penugasan aktif, dan belum mempunyai catatan pengunduran diri.
 
@@ -334,7 +342,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Menambahkan progres penanganan
 
-![Gambar 24. Jendela Tambah Progres Penanganan dengan pilihan tahap dan Tanggal](manualbook/gambar/v2-pengunduran-progres.png)
+![Gambar 25. Jendela Tambah Progres Penanganan dengan pilihan tahap dan Tanggal](manualbook/gambar/v2-pengunduran-progres.png)
 
 **Tujuan:** merekam perkembangan setelah catatan awal. **Sebelum mulai:** murid masih dalam penugasan Guru BK aktif dan catatan awal tersedia.
 
@@ -348,7 +356,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Mengedit catatan awal pengunduran diri
 
-![Gambar 25. Jendela Edit Pengunduran Diri dengan tanggal pencatatan dan Catatan awal](manualbook/gambar/v2-pengunduran-edit.png)
+![Gambar 26. Jendela Edit Pengunduran Diri dengan tanggal pencatatan dan Catatan awal](manualbook/gambar/v2-pengunduran-edit.png)
 
 **Tujuan:** mengoreksi catatan awal, bukan menimpa riwayat progres. **Sebelum mulai:** murid masih dalam penugasan Guru BK aktif.
 
@@ -360,7 +368,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Menghapus catatan penanganan pengunduran diri
 
-![Gambar 26. Dialog Hapus penanganan pengunduran diri yang meminta konfirmasi target murid](manualbook/gambar/v2-pengunduran-hapus.png)
+![Gambar 27. Dialog Hapus penanganan pengunduran diri yang meminta konfirmasi target murid](manualbook/gambar/v2-pengunduran-hapus.png)
 
 **Tujuan:** menghapus catatan penanganan yang dibuat keliru. **Sebelum mulai:** murid masih dalam penugasan Guru BK aktif.
 
@@ -374,7 +382,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Mencari murid
 
-![Gambar 27. Daftar Murid dengan pencarian nama atau NISN, pilihan Kelas, dan jumlah riwayat](manualbook/gambar/v2-murid-daftar.png)
+![Gambar 28. Daftar Murid dengan pencarian nama atau NISN, pilihan Kelas, dan jumlah riwayat](manualbook/gambar/v2-murid-daftar.png)
 
 **Tujuan:** menemukan profil murid dalam cakupan. **Sebelum mulai:** akun Guru BK atau Koordinator BK aktif.
 
@@ -387,7 +395,7 @@ Gunakan fitur ini untuk mencatat pendampingan dan perkembangan berkas pengundura
 
 ### Membaca profil dan riwayat permasalahan
 
-![Gambar 28. Profil Murid dengan identitas, ringkasan, riwayat kelas, dan tab Permasalahan](manualbook/gambar/v2-murid-profil.png)
+![Gambar 29. Profil Murid dengan identitas, ringkasan, riwayat kelas, dan tab Permasalahan](manualbook/gambar/v2-murid-profil.png)
 
 **Tujuan:** melihat konteks murid sebelum menangani layanan. **Sebelum mulai:** profil murid dapat dibaca menurut cakupan peran.
 
@@ -399,7 +407,7 @@ Untuk memperbaiki catatan, buka **Layanan BK**. Penyuntingan mengikuti kepemilik
 
 ### Membaca data e-Tatib murid
 
-![Gambar 29. Tab Data e-Tatib di Profil Murid dengan kategori, poin, kelas, dan status catatan sumber](manualbook/gambar/v2-murid-etatib.png)
+![Gambar 30. Tab Data e-Tatib di Profil Murid dengan kategori, poin, kelas, dan status catatan sumber](manualbook/gambar/v2-murid-etatib.png)
 
 **Tujuan:** memeriksa referensi pelanggaran yang sudah disinkron. **Sebelum mulai:** akses profil murid.
 
@@ -411,7 +419,7 @@ Untuk memperbaiki catatan, buka **Layanan BK**. Penyuntingan mengikuti kepemilik
 
 ### Membaca riwayat konsultasi murid
 
-![Gambar 30. Tab Konsultasi pada Profil Murid dengan Ringkasan Hasil dan rincian isi catatan](manualbook/gambar/v2-murid-konsultasi.png)
+![Gambar 31. Tab Konsultasi pada Profil Murid dengan Ringkasan Hasil dan rincian isi catatan](manualbook/gambar/v2-murid-konsultasi.png)
 
 **Tujuan:** melihat layanan konsultasi sebelumnya yang sah. **Sebelum mulai:** akses profesional atas murid atau peran Koordinator BK.
 
@@ -423,7 +431,7 @@ Untuk memperbaiki catatan, buka **Layanan BK**. Penyuntingan mengikuti kepemilik
 
 ### Membaca prestasi pada profil murid
 
-![Gambar 31. Tab Prestasi pada Profil Murid dengan tanggal, kegiatan, jenis, tingkat, dan hasil](manualbook/gambar/v2-murid-prestasi.png)
+![Gambar 32. Tab Prestasi pada Profil Murid dengan tanggal, kegiatan, jenis, tingkat, dan hasil](manualbook/gambar/v2-murid-prestasi.png)
 
 **Tujuan:** mempertimbangkan riwayat prestasi saat memberi layanan. **Sebelum mulai:** akses profil murid.
 
@@ -437,7 +445,7 @@ Untuk memperbaiki catatan, buka **Layanan BK**. Penyuntingan mengikuti kepemilik
 
 ### Menyaring dan membaca laporan layanan
 
-![Gambar 32. Laporan Layanan BK dengan penyaring tahun ajaran, kelas, jenis layanan, dan aksi rincian](manualbook/gambar/v2-laporan-daftar.png)
+![Gambar 33. Laporan Layanan BK dengan penyaring tahun ajaran, kelas, jenis layanan, dan aksi rincian](manualbook/gambar/v2-laporan-daftar.png)
 
 **Tujuan:** meninjau catatan sebelum membuat dokumen. **Sebelum mulai:** Guru BK atau Koordinator BK aktif; data mengikuti cakupan masing-masing.
 
@@ -451,7 +459,7 @@ Untuk memperbaiki catatan, buka **Layanan BK**. Penyuntingan mengikuti kepemilik
 
 ### Membuat pratinjau dan mengatur periode
 
-![Gambar 33. Jendela Pratinjau Rekap dengan Atur periode, semester, tanggal awal/akhir, dan tombol Filter](manualbook/gambar/v2-laporan-preview.png)
+![Gambar 34. Jendela Pratinjau Rekap dengan Atur periode, semester, tanggal awal/akhir, dan tombol Filter](manualbook/gambar/v2-laporan-preview.png)
 
 **Sebelum mulai:** pastikan pilihan penyaring sesuai kebutuhan. Batas bawaan satu dokumen rekap adalah **2.500 catatan**. Rentang tanggal harus berada dalam satu semester.
 
@@ -464,7 +472,7 @@ Jika jumlah catatan melebihi batas dokumen, persempit periode atau kelas. Jika p
 
 ### Mengatur periode rekap di ponsel
 
-![Gambar 34. Pratinjau Rekap pada layar ponsel dengan ringkasan tanggal yang dapat dibuka](manualbook/gambar/v2-laporan-mobile.png)
+![Gambar 35. Pratinjau Rekap pada layar ponsel dengan ringkasan tanggal yang dapat dibuka](manualbook/gambar/v2-laporan-mobile.png)
 
 **Sebelum mulai:** jendela pratinjau terbuka di ponsel.
 
@@ -476,7 +484,7 @@ Setelah pilihan diterapkan, pengaturan terlipat dan periode tetap terlihat. Jika
 
 ### Mengunduh Excel atau mencetak PDF
 
-![Gambar 35. Pratinjau Rekap setelah berhasil dimuat dengan Unduh Excel dan Cetak atau Simpan PDF aktif](manualbook/gambar/v2-laporan-preview.png)
+![Gambar 36. Pratinjau Rekap setelah berhasil dimuat dengan Unduh Excel dan Cetak atau Simpan PDF aktif](manualbook/gambar/v2-laporan-preview.png)
 
 **Sebelum mulai:** pratinjau terbaru berhasil dimuat.
 
@@ -489,13 +497,21 @@ Setelah pilihan diterapkan, pengaturan terlipat dan periode tetap terlihat. Jika
 
 # 3 Panduan Koordinator BK
 
+Menyiapkan pembagian kelas, mengaktifkan tahun ajaran, lalu memantau layanan.
+
+![Gambar 37. Dashboard Koordinator BK dan menu samping aplikasi](manualbook/gambar/dashboard-utuh-koordinator.png)
+
+### Alur kerja Koordinator BK
+
+![Gambar 38. Alur kerja Koordinator BK](manualbook/gambar/alur-koordinator-bk.png)
+
 Koordinator dapat membaca **Dashboard**, **Layanan BK**, **Data Murid**, prestasi, dan **Laporan** lintas Guru BK dengan mengikuti langkah pada Bab 2. Koordinator juga membagi kelas binaan dan mengaktifkan tahun ajaran. Peran Koordinator saja tidak memberi izin mencatat layanan atau mengedit catatan guru lain. Jika Anda juga memiliki peran Guru BK, izin mencatat tetap mengikuti kelas binaan aktif, sedangkan izin mengedit mengikuti pemilik atau pencatat yang berwenang.
 
 ## 3.1 Pemantauan sekolah
 
 ### Memeriksa Dashboard Koordinator dan tampilan Guru BK
 
-![Gambar 36. Dashboard Koordinator BK dengan pilihan Tahun Ajaran dan sakelar Tampilan Guru BK pada akun dengan dua peran](manualbook/gambar/v2-koordinator-dashboard.png)
+![Gambar 39. Dashboard Koordinator BK dengan pilihan Tahun Ajaran dan sakelar Tampilan Guru BK pada akun dengan dua peran](manualbook/gambar/v2-koordinator-dashboard.png)
 
 Gunakan halaman ini untuk memantau kesiapan dan layanan sekolah. Jika akun Anda juga memiliki peran Guru BK, Anda dapat melihat ringkasan kelas binaan sendiri melalui sakelar tampilan.
 
@@ -509,7 +525,7 @@ Tahun yang dipilih tetap berlaku saat tampilan berganti. Sakelar hanya muncul ji
 
 ### Memilih tahun dan memeriksa penugasan
 
-![Gambar 37. Pembagian Kelas Binaan dengan pemilih tahun, filter kelas/status guru, dan daftar guru](manualbook/gambar/v2-penugasan-daftar.png)
+![Gambar 40. Pembagian Kelas Binaan dengan pemilih tahun, filter kelas/status guru, dan daftar guru](manualbook/gambar/v2-penugasan-daftar.png)
 
 Pastikan Admin IT telah menyiapkan tahun dan kelas sebelum Anda memeriksa pembagian kelas binaan.
 
@@ -522,7 +538,7 @@ Jika tahun belum tersedia, minta Admin IT membuat tahun persiapan dan menyiapkan
 
 ### Menambahkan kelas binaan
 
-![Gambar 38. Jendela Tambah kelas untuk Guru BK dengan pencarian kelas yang belum ditugaskan](manualbook/gambar/v2-penugasan-tambah.png)
+![Gambar 41. Jendela Tambah kelas untuk Guru BK dengan pencarian kelas yang belum ditugaskan](manualbook/gambar/v2-penugasan-tambah.png)
 
 Pilih tahun terlebih dahulu. Kelas yang akan diberikan harus tersedia dan belum ditugaskan kepada Guru BK lain.
 
@@ -534,7 +550,7 @@ Penanda kelas akan muncul pada guru tersebut. Jika yang diubah adalah tahun akti
 
 ### Menyalin kelas binaan dari tahun sebelumnya
 
-![Gambar 39. Aksi Salin kelas binaan tahun sebelumnya pada baris guru](manualbook/gambar/v2-penugasan-salin.png)
+![Gambar 42. Aksi Salin kelas binaan tahun sebelumnya pada baris guru](manualbook/gambar/v2-penugasan-salin.png)
 
 Anda dapat memakai penugasan tahun sebelumnya sebagai awal pembagian kelas tahun persiapan. Guru harus memiliki kelas pada tahun sebelumnya, dan kelas tujuan harus tersedia.
 
@@ -546,7 +562,7 @@ Hanya kelas yang memenuhi syarat yang ditambahkan pada tahun pilihan. Jika dafta
 
 ### Melepas penugasan kelas
 
-![Gambar 40. Dialog Batalkan penugasan yang menyebut kelas, guru, dan dampak pada cakupan](manualbook/gambar/v2-penugasan-lepas.png)
+![Gambar 43. Dialog Batalkan penugasan yang menyebut kelas, guru, dan dampak pada cakupan](manualbook/gambar/v2-penugasan-lepas.png)
 
 Gunakan langkah ini untuk mengoreksi kelas yang masih ditugaskan kepada guru tersebut.
 
@@ -560,7 +576,7 @@ Kelas kembali berstatus belum ditugaskan. Jika ini terjadi pada tahun aktif, izi
 
 ### Mengaktifkan tahun ajaran persiapan
 
-![Gambar 41. Panel Tahun Ajaran Persiapan dengan pemeriksaan kesiapan dan tombol Aktifkan Tahun Ajaran](manualbook/gambar/v2-tahun-aktifkan.png)
+![Gambar 44. Panel Tahun Ajaran Persiapan dengan pemeriksaan kesiapan dan tombol Aktifkan Tahun Ajaran](manualbook/gambar/v2-tahun-aktifkan.png)
 
 Aktivasi menjadikan daftar murid dan penugasan baru sebagai tahun yang digunakan untuk layanan. Sebelumnya, Admin IT harus menyiapkan tahun dan minimal satu murid. Tidak boleh ada murid dengan dua penempatan aktif, dan setiap rombel aktif harus memiliki tepat satu Guru BK aktif.
 
@@ -573,7 +589,7 @@ Tahun pilihan menjadi satu-satunya tahun aktif. Layanan baru mengikuti pembagian
 
 ### Membatalkan aktivasi untuk kembali ke tahun sebelumnya
 
-![Gambar 42. Dialog Batalkan aktivasi dengan tahun yang akan dikembalikan](manualbook/gambar/v2-tahun-batalkan.png)
+![Gambar 45. Dialog Batalkan aktivasi dengan tahun yang akan dikembalikan](manualbook/gambar/v2-tahun-batalkan.png)
 
 Pembatalan hanya tersedia jika tahun sebelumnya dapat dipastikan dan siap digunakan kembali, serta belum ada aktivitas operasional sejak aktivasi tahun baru.
 
@@ -585,12 +601,20 @@ Tahun sebelumnya kembali aktif. Jika **Batalkan aktivasi** tidak tersedia atau p
 
 # 4 Panduan Waka Kesiswaan
 
+Memantau kebutuhan tindak lanjut atau mencatat prestasi sesuai keperluan.
+
+![Gambar 46. Dashboard Waka Kesiswaan dan menu samping aplikasi](manualbook/gambar/dashboard-utuh-waka.png)
+
+### Alur kerja Waka Kesiswaan
+
+![Gambar 47. Alur kerja Waka Kesiswaan](manualbook/gambar/alur-waka.png)
+
 Waka Kesiswaan memantau ringkasan layanan BK dan mengelola prestasi melalui **Dashboard**, **Laporan**, **Prestasi**, dan **Akun Saya**. Guru BK tetap bertanggung jawab mencatat dan mengubah layanan konseling. Waka tidak memiliki akses untuk mengekspor layanan konseling secara massal.
 
 ## 4.1 Dashboard Waka
 ### Memantau indikator dan tindak lanjut sekolah
 
-![Gambar 43. Dashboard Waka menampilkan indikator grafik serta daftar Murid Perlu Tindak Lanjut](manualbook/gambar/v2-waka-dashboard.png)
+![Gambar 48. Dashboard Waka menampilkan indikator grafik serta daftar Murid Perlu Tindak Lanjut](manualbook/gambar/v2-waka-dashboard.png)
 
 Akun Waka harus aktif. Indikator layanan akan terisi jika sudah ada data pada tahun yang dipilih.
 
@@ -604,7 +628,7 @@ Jika angkanya berbeda dari daftar e-Tatib, periksa tahun, jenis layanan, dan car
 ## 4.2 Laporan Layanan BK
 ### Menyaring dan membaca ringkasan layanan
 
-![Gambar 44. Laporan Waka dengan filter tahun kelas dan jenis layanan dalam mode baca](manualbook/gambar/v2-waka-laporan.png)
+![Gambar 49. Laporan Waka dengan filter tahun kelas dan jenis layanan dalam mode baca](manualbook/gambar/v2-waka-laporan.png)
 
 1. Buka **Laporan**, pilih **Tahun ajaran**, **Kelas**, dan **Jenis layanan BK**.
 2. Pilih **Filter**, lalu baca daftar. Gunakan nomor halaman untuk melihat data berikutnya.
@@ -616,7 +640,7 @@ Waka hanya dapat membaca ringkasan yang ditampilkan. Uraian lengkap layanan, per
 ## 4.3 Pencatatan prestasi
 ### Mencatat prestasi secara manual
 
-![Gambar 45. Formulir Catat Prestasi untuk memilih murid dan mengisi rincian kegiatan](manualbook/gambar/v2-prestasi-buat.png)
+![Gambar 50. Formulir Catat Prestasi untuk memilih murid dan mengisi rincian kegiatan](manualbook/gambar/v2-prestasi-buat.png)
 
 Pastikan murid terdaftar resmi dan masih aktif, serta pilihan jenis dan tingkat prestasi tersedia. Tanggal prestasi tidak boleh berada di masa depan.
 
@@ -630,7 +654,7 @@ Jika murid tidak ditemukan, periksa daftar murid bersama Admin IT sebelum mencat
 ## 4.4 Templat dan impor prestasi
 ### Mengunduh, mengisi, dan mengimpor templat prestasi
 
-![Gambar 46. Jendela Impor Excel dengan tautan template petunjuk kode dan pilihan berkas](manualbook/gambar/v2-prestasi-template.png)
+![Gambar 51. Jendela Impor Excel dengan tautan template petunjuk kode dan pilihan berkas](manualbook/gambar/v2-prestasi-template.png)
 
 Pastikan daftar murid aktif serta pilihan jenis dan tingkat prestasi sudah tersedia.
 
@@ -644,7 +668,7 @@ Pastikan daftar murid aktif serta pilihan jenis dan tingkat prestasi sudah terse
 ## 4.5 Mencari, mengoreksi, dan menghapus prestasi
 ### Mencari dan mengurutkan daftar prestasi
 
-![Gambar 47. Daftar prestasi dengan pencarian Tingkat Prestasi dan aksi per baris](manualbook/gambar/v2-prestasi-daftar.png)
+![Gambar 52. Daftar prestasi dengan pencarian Tingkat Prestasi dan aksi per baris](manualbook/gambar/v2-prestasi-daftar.png)
 
 Pencarian dapat memakai murid, NISN, kegiatan, atau penyelenggara.
 
@@ -655,7 +679,7 @@ Pencarian dapat memakai murid, NISN, kegiatan, atau penyelenggara.
 Jika tidak ada hasil, kurangi pilihan pencarian.
 ### Mengedit prestasi
 
-![Gambar 48. Formulir Edit Prestasi dengan identitas murid yang tidak dapat diganti](manualbook/gambar/v2-prestasi-edit.png)
+![Gambar 53. Formulir Edit Prestasi dengan identitas murid yang tidak dapat diganti](manualbook/gambar/v2-prestasi-edit.png)
 
 Anda harus masuk sebagai Waka dan memilih catatan prestasi yang sudah ada.
 
@@ -666,7 +690,7 @@ Anda harus masuk sebagai Waka dan memilih catatan prestasi yang sudah ada.
 Jika perubahan ditolak karena pengguna lain sudah memperbarui data, muat ulang halaman dan bandingkan isinya sebelum mencoba lagi. Guru BK dan Koordinator hanya dapat membaca prestasi sesuai cakupan aksesnya.
 ### Menghapus catatan prestasi yang keliru
 
-![Gambar 49. Dialog konfirmasi Hapus prestasi dengan nama kegiatan dan target murid](manualbook/gambar/v2-prestasi-hapus.png)
+![Gambar 54. Dialog konfirmasi Hapus prestasi dengan nama kegiatan dan target murid](manualbook/gambar/v2-prestasi-hapus.png)
 
 Tombol **Hapus prestasi** mengarsipkan catatan sehingga tidak tampil lagi dalam daftar. Halaman ini tidak menyediakan tombol pemulihan.
 
@@ -677,6 +701,14 @@ Tombol **Hapus prestasi** mengarsipkan catatan sehingga tidak tampil lagi dalam 
 
 # 5 Panduan Admin IT
 
+Menyiapkan akun dan data murid sebelum penugasan oleh Koordinator BK.
+
+![Gambar 55. Dashboard Admin IT dan menu samping aplikasi](manualbook/gambar/dashboard-utuh-admin.png)
+
+### Alur kerja Admin IT
+
+![Gambar 56. Alur kerja Admin IT](manualbook/gambar/alur-admin-it.png)
+
 Admin IT menyiapkan akun, daftar kelas, daftar murid, sumber pembaruan data, dan tampilan web. Menu yang dipakai ialah **Dashboard**, **Manajemen Web**, **Kelola Akun**, **Data Master**, **Data Kelas**, dan **Akun Saya**. Peran ini tidak memberi akses ke isi layanan BK. Koordinator BK bertanggung jawab membagi kelas binaan dan mengaktifkan tahun ajaran.
 
 > Pada awal tahun, rapikan **Data Kelas**, buat tahun persiapan di **Data Master > Dapodik**, lalu impor daftar murid melalui API Siswa atau berkas CSV/Excel. Setelah itu, minta Koordinator membagi kelas binaan dan mengaktifkan tahun ajaran.
@@ -685,7 +717,7 @@ Admin IT menyiapkan akun, daftar kelas, daftar murid, sumber pembaruan data, dan
 
 ### Membaca kesiapan akun dan integrasi
 
-![Gambar 50. Dashboard Admin IT menampilkan indikator akun, konflik sinkronisasi, dan status integrasi](manualbook/gambar/v2-admin-dashboard.png)
+![Gambar 57. Dashboard Admin IT menampilkan indikator akun, konflik sinkronisasi, dan status integrasi](manualbook/gambar/v2-admin-dashboard.png)
 
 1. Buka **Dashboard**; pilih **Tahun Ajaran** bila perlu melihat periode tertentu.
 2. Baca **Akun Aktif**, **Akun Nonaktif**, **Konflik Sinkronisasi**, dan **Integrasi Bermasalah**.
@@ -697,7 +729,7 @@ Indikator menunjukkan hal yang perlu diperiksa; halaman ini tidak menguji sambun
 
 ### Mencari dan memeriksa akun
 
-![Gambar 51. Daftar Kelola Akun dengan pencarian, filter peran, dan ikon informasi](manualbook/gambar/v2-akun-daftar.png)
+![Gambar 58. Daftar Kelola Akun dengan pencarian, filter peran, dan ikon informasi](manualbook/gambar/v2-akun-daftar.png)
 
 1. Buka **Kelola Akun**; isi **Cari nama atau email** atau pilih **Peran**, lalu **Filter**.
 2. Urutkan **Nama** atau **Status** bila daftar panjang.
@@ -705,7 +737,7 @@ Indikator menunjukkan hal yang perlu diperiksa; halaman ini tidak menguji sambun
 
 ### Membuat akun
 
-![Gambar 52. Formulir Tambah Akun untuk nama, email, dan pilihan peran](manualbook/gambar/v2-akun-tambah.png)
+![Gambar 59. Formulir Tambah Akun untuk nama, email, dan pilihan peran](manualbook/gambar/v2-akun-tambah.png)
 
 1. Pilih **Tambah Akun**, isi **Nama** dan **Email**, lalu pilih minimal satu peran.
 2. Pilih Admin IT, Waka Kesiswaan, Guru BK, atau Koordinator BK secara terpisah; hanya Guru BK dan Koordinator BK yang boleh digabung.
@@ -715,7 +747,7 @@ Akun baru muncul di daftar. Jika email telah dipakai atau kombinasi peran ditola
 
 ### Memeriksa informasi akun
 
-![Gambar 53. Panel informasi akun dengan email, login terakhir, dan status sandi](manualbook/gambar/v2-akun-informasi.png)
+![Gambar 60. Panel informasi akun dengan email, login terakhir, dan status sandi](manualbook/gambar/v2-akun-informasi.png)
 
 1. Buka informasi akun melalui ikon **Lihat Informasi** pada baris akun.
 2. Periksa email, waktu login terakhir, dan status sandi.
@@ -725,7 +757,7 @@ Sandi sementara tidak ditampilkan pada panel ini. Gunakan **Reset Sandi** untuk 
 
 ### Mengedit identitas dan status akun
 
-![Gambar 54. Jendela Edit Akun dengan nama, email, dan status Aktif atau Nonaktif](manualbook/gambar/v2-akun-edit.png)
+![Gambar 61. Jendela Edit Akun dengan nama, email, dan status Aktif atau Nonaktif](manualbook/gambar/v2-akun-edit.png)
 
 1. Pilih ikon **Edit Akun** pada baris yang tepat.
 2. Koreksi nama atau email, atau pilih **Status**: **Aktif** atau **Nonaktif**.
@@ -735,7 +767,7 @@ Akun nonaktif tidak dapat masuk. Admin IT tidak dapat menonaktifkan akunnya send
 
 ### Mengubah peran akun
 
-![Gambar 55. Pemilih peran akun dengan tombol Simpan peran](manualbook/gambar/v2-akun-peran.png)
+![Gambar 62. Pemilih peran akun dengan tombol Simpan peran](manualbook/gambar/v2-akun-peran.png)
 
 1. Pilih penanda peran atau ikon **Tambah Peran** pada akun tujuan.
 2. Pilih kombinasi peran yang diizinkan, lalu **Simpan peran**.
@@ -745,7 +777,7 @@ Izin akun mengikuti peran baru. Admin IT tidak dapat mengganti perannya sendiri.
 
 ### Mereset sandi akun lain
 
-![Gambar 56. Konfirmasi Reset Sandi untuk akun tujuan](manualbook/gambar/v2-akun-reset.png)
+![Gambar 63. Konfirmasi Reset Sandi untuk akun tujuan](manualbook/gambar/v2-akun-reset.png)
 
 1. Pilih ikon **Reset Sandi** pada akun tujuan dan periksa nama akun di konfirmasi.
 2. Pilih **Ya, Reset Sandi**.
@@ -757,7 +789,7 @@ Sandi lama tidak berlaku dan sesi lama berakhir. Jika panel sandi tertutup sebel
 
 ### Melihat katalog rombel
 
-![Gambar 57. Data Kelas menampilkan jurusan dan tombol Lihat Rombel](manualbook/gambar/v2-kelas-daftar.png)
+![Gambar 64. Data Kelas menampilkan jurusan dan tombol Lihat Rombel](manualbook/gambar/v2-kelas-daftar.png)
 
 1. Buka **Data Kelas** dan pilih jurusan yang akan diperiksa.
 2. Pilih **Lihat Rombel** untuk melihat nama, status, dan jumlah murid.
@@ -767,7 +799,7 @@ Rombel aktif tersedia untuk tahun berjalan dan tahun persiapan. Jumlah murid yan
 
 ### Menambah rombel
 
-![Gambar 58. Formulir tambah rombel dengan isian Nama rombel dan tombol Tambah Rombel](manualbook/gambar/v2-kelas-tambah.png)
+![Gambar 65. Formulir tambah rombel dengan isian Nama rombel dan tombol Tambah Rombel](manualbook/gambar/v2-kelas-tambah.png)
 
 1. Pada **Data Kelas**, pilih **Tambah Rombel** bila perlu membuka formulir.
 2. Isi **Nama rombel** sesuai daftar sekolah.
@@ -777,7 +809,7 @@ Rombel baru masuk daftar kelas. Jika namanya sudah dipakai, koreksi nama atau ak
 
 ### Mengedit atau menonaktifkan rombel
 
-![Gambar 59. Jendela Edit Rombel dengan Nama Rombel dan Status](manualbook/gambar/v2-kelas-edit.png)
+![Gambar 66. Jendela Edit Rombel dengan Nama Rombel dan Status](manualbook/gambar/v2-kelas-edit.png)
 
 1. Pilih nama rombel untuk membuka **Edit Rombel**.
 2. Koreksi **Nama Rombel** atau pilih **Status** Aktif/Nonaktif.
@@ -789,7 +821,7 @@ Daftar kelas berubah tanpa mengganti nama pada riwayat tahun sebelumnya. Rombel 
 
 ### Membuat tahun persiapan
 
-![Gambar 60. Tab Dapodik dengan formulir Buat Tahun Ajaran](manualbook/gambar/v2-tahun-persiapan.png)
+![Gambar 67. Tab Dapodik dengan formulir Buat Tahun Ajaran](manualbook/gambar/v2-tahun-persiapan.png)
 
 1. Pastikan rombel aktif sudah benar, lalu buka **Data Master > Dapodik**.
 2. Isi nama tahun pada bagian **Buat Tahun Ajaran** sesuai sumber sekolah.
@@ -799,7 +831,7 @@ Tahun baru berstatus persiapan dan belum digunakan untuk layanan. Rombel aktif t
 
 ### Membatalkan persiapan yang keliru
 
-![Gambar 61. Konfirmasi pembatalan tahun persiapan dengan tombol Ya, batalkan persiapan](manualbook/gambar/v2-tahun-hapus-persiapan.png)
+![Gambar 68. Konfirmasi pembatalan tahun persiapan dengan tombol Ya, batalkan persiapan](manualbook/gambar/v2-tahun-hapus-persiapan.png)
 
 1. Di daftar **Tahun Ajaran**, pilih aksi pembatalan untuk tahun persiapan yang keliru.
 2. Periksa nama tahun dan akibatnya di dialog.
@@ -813,7 +845,7 @@ Tautan API adalah alamat penghubung yang dipakai aplikasi untuk mengambil data d
 
 ### Mengenali kolom tautan API
 
-![Gambar 62. Kolom Tautan API pada tab Data Master dengan pilihan pemakaian tautan tersimpan](manualbook/gambar/v2-api-kolom.png)
+![Gambar 69. Kolom Tautan API pada tab Data Master dengan pilihan pemakaian tautan tersimpan](manualbook/gambar/v2-api-kolom.png)
 
 1. Buka tab **Dapodik** untuk **Tautan API Siswa** atau tab **e-Tatib** untuk tautan e-Tatib.
 2. Pastikan alamat yang akan dipakai adalah HTTPS sumber resmi sekolah.
@@ -823,7 +855,7 @@ Kolom ini mengatur alamat yang dipakai aplikasi. Status sumber pada halaman tida
 
 ### Menyimpan tautan resmi
 
-![Gambar 63. Jendela Simpan tautan meminta alamat API dan Kata sandi saat ini](manualbook/gambar/v2-api-simpan.png)
+![Gambar 70. Jendela Simpan tautan meminta alamat API dan Kata sandi saat ini](manualbook/gambar/v2-api-simpan.png)
 
 1. Isi **Tautan API Siswa/e-Tatib** pada tab yang tepat, lalu pilih **Simpan**.
 2. Pada jendela yang terbuka, periksa alamat dan isi **Kata sandi saat ini**.
@@ -833,7 +865,7 @@ Alamat tersimpan dalam bentuk terenkripsi. Jika alamat, sumber, atau kata sandi 
 
 ### Memakai tautan tersimpan
 
-![Gambar 64. Pilihan Gunakan API tersimpan tercentang dengan tombol Tinjau Data](manualbook/gambar/v2-api-kolom.png)
+![Gambar 71. Pilihan Gunakan API tersimpan tercentang dengan tombol Tinjau Data](manualbook/gambar/v2-api-kolom.png)
 
 1. Biarkan **Gunakan API tersimpan** tercentang.
 2. Pilih **Tinjau Data** pada tab sumber yang tepat.
@@ -843,7 +875,7 @@ Alamat tersimpan dalam bentuk terenkripsi. Jika alamat, sumber, atau kata sandi 
 
 ### Mengubah tautan tersimpan
 
-![Gambar 65. Jendela Ubah tautan API dengan alamat baru dan verifikasi sandi](manualbook/gambar/v2-api-ubah.png)
+![Gambar 72. Jendela Ubah tautan API dengan alamat baru dan verifikasi sandi](manualbook/gambar/v2-api-ubah.png)
 
 1. Pilih **Ubah** di kolom tautan tersimpan.
 2. Isi alamat HTTPS baru serta **Kata sandi saat ini**.
@@ -853,7 +885,7 @@ Jika alamat e-Tatib diubah, pembaruan otomatis berhenti sampai pratinjau dan akt
 
 ### Menampilkan lalu menyembunyikan tautan
 
-![Gambar 66. Jendela Tampilkan tautan API dengan alamat contoh dan tombol Sembunyikan](manualbook/gambar/v2-api-tampilkan.png)
+![Gambar 73. Jendela Tampilkan tautan API dengan alamat contoh dan tombol Sembunyikan](manualbook/gambar/v2-api-tampilkan.png)
 
 1. Pilih **Tampilkan** hanya bila perlu memeriksa alamat tersimpan.
 2. Masukkan **Kata sandi saat ini** dan baca alamat di tempat privat.
@@ -863,7 +895,7 @@ Jangan menyertakan alamat API rahasia dalam tangkapan layar atau pesan pelaporan
 
 ### Meninjau alamat sekali pakai
 
-![Gambar 67. Gunakan API tersimpan dilepas dan kolom tautan sementara siap ditinjau](manualbook/gambar/v2-api-sekali-pakai.png)
+![Gambar 74. Gunakan API tersimpan dilepas dan kolom tautan sementara siap ditinjau](manualbook/gambar/v2-api-sekali-pakai.png)
 
 1. Lepas centang **Gunakan API tersimpan**.
 2. Isi tautan HTTPS sementara pada kolom yang sama.
@@ -875,7 +907,7 @@ Alamat sementara hanya dipakai untuk peninjauan ini. **Tinjau Data** belum menyi
 
 ### Meninjau data API Siswa
 
-![Gambar 68. Pratinjau API Siswa menampilkan jumlah murid, status kecocokan, dan kesiapan tahun](manualbook/gambar/v2-roster-api-preview.png)
+![Gambar 75. Pratinjau API Siswa menampilkan jumlah murid, status kecocokan, dan kesiapan tahun](manualbook/gambar/v2-roster-api-preview.png)
 
 1. Buat dahulu tahun yang tercantum di sumber; pada **Data Master > Dapodik** pilih **Tinjau Data**.
 2. Di **Pratinjau API Siswa**, periksa jumlah baris, murid baru/cocok, nama berbeda, dan kesiapan tiap tahun.
@@ -885,7 +917,7 @@ Pratinjau belum mengubah daftar murid. Jika tahun atau rombel tidak cocok, atau 
 
 ### Memilih baris NISN ganda
 
-![Gambar 69. Pratinjau API Siswa dengan kelompok NISN ganda dan pilihan satu baris](manualbook/gambar/v2-roster-api-duplikat.png)
+![Gambar 76. Pratinjau API Siswa dengan kelompok NISN ganda dan pilihan satu baris](manualbook/gambar/v2-roster-api-duplikat.png)
 
 1. Temukan setiap kelompok NISN yang muncul lebih dari sekali dalam tahun sama.
 2. Bandingkan nama dan rombel dengan data resmi, lalu pilih **satu** baris yang benar per kelompok.
@@ -895,7 +927,7 @@ Pratinjau belum mengubah daftar murid. Jika tahun atau rombel tidak cocok, atau 
 
 ### Mengimpor hasil tinjauan API
 
-![Gambar 70. Hasil impor API Siswa menampilkan jumlah baris dan murid baru atau cocok](manualbook/gambar/v2-roster-api-hasil.png)
+![Gambar 77. Hasil impor API Siswa menampilkan jumlah baris dan murid baru atau cocok](manualbook/gambar/v2-roster-api-hasil.png)
 
 1. Dari pratinjau yang telah diperiksa, pilih **Impor Data**.
 2. Tunggu pemeriksaan ulang sumber dan baca pesan hasil jumlah baris, murid baru/cocok, dan rombel baru.
@@ -907,7 +939,7 @@ Identitas dan riwayat murid yang cocok tidak digandakan. Jika data dari sumber b
 
 ### Mengunduh dan mengisi templat
 
-![Gambar 71. Panel Impor CSV atau Excel jika API belum tersedia dengan tautan Unduh template impor](manualbook/gambar/v2-roster-template.png)
+![Gambar 78. Panel Impor CSV atau Excel jika API belum tersedia dengan tautan Unduh template impor](manualbook/gambar/v2-roster-template.png)
 
 1. Di **Data Master > Dapodik**, buka **Impor CSV atau Excel jika API belum tersedia** dan pilih **Unduh template impor**.
 2. Isi kolom `nisn`, `nama`, `rombel`, dan `tahun_pelajaran`. Simpan NISN sebagai teks agar angka nol di awal tidak hilang.
@@ -917,7 +949,7 @@ Tahun persiapan harus sudah dibuat. Berkas dibatasi hingga 2 MiB dan 5.000 baris
 
 ### Meninjau berkas Excel sebelum impor
 
-![Gambar 72. Jendela Pratinjau Excel Daftar Murid dengan ringkasan dan tombol Impor Data](manualbook/gambar/v2-roster-excel-preview.png)
+![Gambar 79. Jendela Pratinjau Excel Daftar Murid dengan ringkasan dan tombol Impor Data](manualbook/gambar/v2-roster-excel-preview.png)
 
 1. Pilih **Pilih berkas CSV atau Excel**, pilih berkas, lalu **Tinjau / Impor Berkas**.
 2. Untuk Excel, baca **Pratinjau Excel Daftar Murid** dan periksa tahun, rombel, serta konflik.
@@ -927,7 +959,7 @@ Jika ditolak, periksa ekstensi, judul kolom, ukuran, NISN, tahun, dan rombel. Ti
 
 ### Memeriksa hasil impor berkas
 
-![Gambar 73. Pesan hasil impor daftar murid dari berkas dengan jumlah baris dan rombel baru](manualbook/gambar/v2-roster-excel-hasil.png)
+![Gambar 80. Pesan hasil impor daftar murid dari berkas dengan jumlah baris dan rombel baru](manualbook/gambar/v2-roster-excel-hasil.png)
 
 1. Baca pesan jumlah baris, murid baru/cocok, dan rombel baru setelah impor.
 2. Periksa contoh murid pada **Data Murid** bersama petugas yang berwenang.
@@ -939,7 +971,7 @@ Daftar murid yang sah masuk tanpa mengganti identitas atau riwayat murid yang co
 
 ### Meninjau catatan dan identitas sumber
 
-![Gambar 74. Pratinjau e-Tatib menampilkan jumlah catatan, masalah identitas, dan pilihan kandidat](manualbook/gambar/v2-etatib-preview.png)
+![Gambar 81. Pratinjau e-Tatib menampilkan jumlah catatan, masalah identitas, dan pilihan kandidat](manualbook/gambar/v2-etatib-preview.png)
 
 1. Pastikan daftar murid tersedia, lalu buka **Data Master > e-Tatib** dan pilih **Tinjau Data**.
 2. Periksa jumlah catatan, identitas yang belum cocok, catatan lama yang tidak dikirim lagi, dan kejadian tanpa tanggal.
@@ -949,7 +981,7 @@ Pratinjau belum menyinkronkan data. **Pilih berdasarkan NISN/nama** hanya mengus
 
 ### Menyetujui kelompok kejadian identik
 
-![Gambar 75. Kelompok duplikat e-Tatib dengan pilihan anggap sebagai satu kejadian](manualbook/gambar/v2-etatib-duplikat.png)
+![Gambar 82. Kelompok duplikat e-Tatib dengan pilihan anggap sebagai satu kejadian](manualbook/gambar/v2-etatib-duplikat.png)
 
 1. Pada pratinjau, periksa tiap kelompok baris identik terhadap sumber.
 2. Bila memang satu kejadian, centang **anggap sebagai satu kejadian** pada kelompok itu.
@@ -959,7 +991,7 @@ Sinkronisasi tertahan jika masih ada kelompok baru yang belum diputuskan. Keputu
 
 ### Membatalkan keputusan duplikasi lama
 
-![Gambar 76. Panel Keputusan Duplikasi dengan aksi Batalkan Keputusan dan konfirmasi](manualbook/gambar/v2-etatib-keputusan-batal.png)
+![Gambar 83. Panel Keputusan Duplikasi dengan aksi Batalkan Keputusan dan konfirmasi](manualbook/gambar/v2-etatib-keputusan-batal.png)
 
 1. Pada tab **e-Tatib**, buka **Keputusan Duplikasi** dan temukan kelompok yang keliru disetujui.
 2. Pilih **Batalkan Keputusan** dan periksa kelompok pada dialog konfirmasi.
@@ -969,7 +1001,7 @@ Pada sinkronisasi berikutnya, Anda perlu memeriksa kelompok itu lagi. Riwayat ke
 
 ### Menjalankan sinkronisasi manual
 
-![Gambar 77. Hasil sinkronisasi e-Tatib dan tombol Sinkronkan Sekarang untuk pembaruan manual](manualbook/gambar/v2-etatib-hasil.png)
+![Gambar 84. Hasil sinkronisasi e-Tatib dan tombol Sinkronkan Sekarang untuk pembaruan manual](manualbook/gambar/v2-etatib-hasil.png)
 
 1. Setelah pratinjau layak, pilih **Sinkronkan Data**.
 2. Baca pesan berhasil, peringatan, atau gagal setelah kembali ke halaman.
@@ -981,7 +1013,7 @@ Catatan dari sumber disalin ke aplikasi tanpa mengubah data di e-Tatib. Catatan 
 
 ### Mengaktifkan pembaruan otomatis
 
-![Gambar 78. Pratinjau e-Tatib dengan tombol Aktifkan Otomatis dan verifikasi sandi](manualbook/gambar/v2-etatib-aktifkan.png)
+![Gambar 85. Pratinjau e-Tatib dengan tombol Aktifkan Otomatis dan verifikasi sandi](manualbook/gambar/v2-etatib-aktifkan.png)
 
 1. Pastikan alamat resmi tersimpan dan penjadwal pada server berjalan.
 2. Di **Data Master > e-Tatib**, pilih **Tinjau Data** dan selesaikan identitas/duplikasi yang perlu diputus.
@@ -991,7 +1023,7 @@ Aplikasi menyinkronkan data terlebih dahulu, lalu mengaktifkan pembaruan otomati
 
 ### Mengatur hari dan jam pembaruan
 
-![Gambar 79. Jadwal Pembaruan e-Tatib dengan hari, jam WIB, Tambah jam, dan Simpan jadwal](manualbook/gambar/v2-etatib-jadwal.png)
+![Gambar 86. Jadwal Pembaruan e-Tatib dengan hari, jam WIB, Tambah jam, dan Simpan jadwal](manualbook/gambar/v2-etatib-jadwal.png)
 
 1. Pada **Jadwal Pembaruan e-Tatib**, pilih hari dan jam WIB; bawaan adalah setiap hari pukul 10.00, 13.00, dan 15.00.
 2. Gunakan **Tambah jam** atau **Hapus** untuk mengubah jam.
@@ -1001,7 +1033,7 @@ Jadwal baru berlaku pada waktu pembaruan berikutnya. Pilih sedikitnya satu hari 
 
 ### Menonaktifkan pembaruan otomatis
 
-![Gambar 80. Panel Nonaktifkan Pembaruan Otomatis dengan isian sandi dan tombol Nonaktifkan](manualbook/gambar/v2-etatib-nonaktifkan.png)
+![Gambar 87. Panel Nonaktifkan Pembaruan Otomatis dengan isian sandi dan tombol Nonaktifkan](manualbook/gambar/v2-etatib-nonaktifkan.png)
 
 1. Pada **Nonaktifkan Pembaruan Otomatis**, isi kata sandi saat ini.
 2. Pilih **Nonaktifkan** dan baca konfirmasi.
@@ -1013,7 +1045,7 @@ Alamat tersimpan tetap dapat dipakai untuk pratinjau atau sinkronisasi manual. J
 
 ### Mencari identitas yang belum cocok
 
-![Gambar 81. Konflik e-Tatib tab Belum Cocok dengan identitas, rombel, alasan, dan jumlah pelanggaran](manualbook/gambar/v2-konflik-daftar.png)
+![Gambar 88. Konflik e-Tatib tab Belum Cocok dengan identitas, rombel, alasan, dan jumlah pelanggaran](manualbook/gambar/v2-konflik-daftar.png)
 
 1. Pilih **Perlu Ditinjau** dari **Data Master** atau buka **Konflik e-Tatib > Belum Cocok**.
 2. Cari nama/NISN dan baca **Identitas Sumber**, **Rombel Sumber**, alasan, dan jumlah pelanggaran.
@@ -1023,7 +1055,7 @@ Identitas yang belum diputuskan tetap belum terhubung dengan murid. Jangan memil
 
 ### Mempratinjau pencocokan otomatis
 
-![Gambar 82. Pratinjau pencocokan otomatis Berdasarkan NISN atau Berdasarkan Nama](manualbook/gambar/v2-konflik-otomatis.png)
+![Gambar 89. Pratinjau pencocokan otomatis Berdasarkan NISN atau Berdasarkan Nama](manualbook/gambar/v2-konflik-otomatis.png)
 
 1. Pilih **Berdasarkan NISN** atau **Berdasarkan Nama**.
 2. Periksa pasangan identitas sumber dan data utama yang ditampilkan. Jika hasilnya lebih dari satu atau tidak ada, tangani secara manual.
@@ -1033,7 +1065,7 @@ Pencocokan tersimpan di aplikasi dan tercatat dalam riwayat. Identitas pada sist
 
 ### Mencocokkan satu identitas secara manual
 
-![Gambar 83. Formulir Cocokkan Identitas e-Tatib dengan pencarian murid pada data utama dan konfirmasi](manualbook/gambar/v2-konflik-manual.png)
+![Gambar 90. Formulir Cocokkan Identitas e-Tatib dengan pencarian murid pada data utama dan konfirmasi](manualbook/gambar/v2-konflik-manual.png)
 
 1. Pada baris konflik, pilih ikon **Cocokkan**.
 2. Cari murid pada data utama, lalu bandingkan NISN, nama, dan rombel.
@@ -1043,7 +1075,7 @@ Pencocokan di aplikasi dapat menghubungkan NISN dari sumber yang berbeda tanpa m
 
 ### Mengubah target pencocokan manual
 
-![Gambar 84. Tab Pencocokan Manual dengan aksi Ubah Pencocokan](manualbook/gambar/v2-konflik-ubah.png)
+![Gambar 91. Tab Pencocokan Manual dengan aksi Ubah Pencocokan](manualbook/gambar/v2-konflik-ubah.png)
 
 1. Buka tab **Pencocokan Manual** dan temukan relasi yang salah.
 2. Pilih **Ubah Pencocokan**, bandingkan murid pengganti dengan data sumber, lalu simpan pilihan yang benar.
@@ -1053,7 +1085,7 @@ Perubahan dapat ditolak jika catatan sudah terkait dengan kasus BK. Ikuti prosed
 
 ### Membatalkan pencocokan manual
 
-![Gambar 85. Baris pencocokan manual dengan aksi Batalkan Pencocokan](manualbook/gambar/v2-konflik-batalkan.png)
+![Gambar 92. Baris pencocokan manual dengan aksi Batalkan Pencocokan](manualbook/gambar/v2-konflik-batalkan.png)
 
 1. Pada tab **Pencocokan Manual**, pilih relasi yang tidak lagi sah.
 2. Pilih **Batalkan Pencocokan** dan periksa pasangan pada konfirmasi browser.
@@ -1065,7 +1097,7 @@ Setelah pencocokan manual dibatalkan, aturan pencocokan otomatis berlaku kembali
 
 ### Meninjau masalah
 
-![Gambar 86. Tab Sinkronisasi dengan daftar Masalah Sinkronisasi dan ikon Tinjau](manualbook/gambar/v2-sinkronisasi-masalah.png)
+![Gambar 93. Tab Sinkronisasi dengan daftar Masalah Sinkronisasi dan ikon Tinjau](manualbook/gambar/v2-sinkronisasi-masalah.png)
 
 1. Buka **Data Master > Sinkronisasi**.
 2. Pada **Masalah Sinkronisasi**, baca sumber, data, alasan, dan status pemeriksaan.
@@ -1075,7 +1107,7 @@ Rincian masalah tampil tanpa mengubah data sumber. Tangani konflik identitas mel
 
 ### Menyimpan tindakan untuk beda kelas
 
-![Gambar 87. Detail masalah beda kelas dengan pilihan tindakan dan tombol Simpan tindakan](manualbook/gambar/v2-sinkronisasi-tindakan.png)
+![Gambar 94. Detail masalah beda kelas dengan pilihan tindakan dan tombol Simpan tindakan](manualbook/gambar/v2-sinkronisasi-tindakan.png)
 
 1. Bandingkan kelas e-Tatib dengan penempatan sekolah pada tanggal kejadian.
 2. Jika bukti jelas, pilih kelas sekolah atau kelas e-Tatib yang benar **untuk kejadian itu**, lalu **Simpan tindakan**.
@@ -1085,7 +1117,7 @@ Keputusan ini tidak mengubah kelas murid pada data utama. Jika Anda memilih kore
 
 ### Membaca riwayat
 
-![Gambar 88. Riwayat Keputusan Kelas dan Riwayat Sinkronisasi dalam keadaan terbuka](manualbook/gambar/v2-sinkronisasi-riwayat.png)
+![Gambar 95. Riwayat Keputusan Kelas dan Riwayat Sinkronisasi dalam keadaan terbuka](manualbook/gambar/v2-sinkronisasi-riwayat.png)
 
 1. Pada tab **Sinkronisasi**, pilih **Tampilkan Riwayat** di **Riwayat Keputusan Kelas** atau **Riwayat Sinkronisasi**.
 2. Baca keputusan dan hasil proses; gunakan halaman berikutnya bila perlu.
@@ -1095,7 +1127,7 @@ Keputusan ini tidak mengubah kelas murid pada data utama. Jika Anda memilih kore
 
 ### Mengganti logo web/sekolah
 
-![Gambar 89. Pengaturan Logo web dengan unggahan dan pratinjau logo sekolah](manualbook/gambar/v2-web-logo.png)
+![Gambar 96. Pengaturan Logo web dengan unggahan dan pratinjau logo sekolah](manualbook/gambar/v2-web-logo.png)
 
 1. Buka **Manajemen Web**, bagian **Logo web**.
 2. Pilih **Unggah logo baru**, pilih PNG/JPEG resmi maksimal 2 MB dan 2048 × 2048 piksel.
@@ -1105,7 +1137,7 @@ Logo dipakai pada aplikasi, ikon tab, dan sisi sekolah pada kop laporan. Jika be
 
 ### Mengganti logo dinas pada kop
 
-![Gambar 90. Pengaturan Logo dinas untuk kop laporan dengan unggahan dan pratinjau](manualbook/gambar/v2-web-dinas.png)
+![Gambar 97. Pengaturan Logo dinas untuk kop laporan dengan unggahan dan pratinjau](manualbook/gambar/v2-web-dinas.png)
 
 1. Pada halaman yang sama, buka **Logo dinas untuk kop laporan**.
 2. Pilih gambar resmi PNG/JPEG dengan batas ukuran dan resolusi yang sama.
@@ -1115,7 +1147,7 @@ Jika kedua logo tersedia, logo dinas berada di kiri dan logo sekolah di kanan pa
 
 ### Memilih atau memulihkan tema
 
-![Gambar 91. Pilihan Tema warna Bawaan, Hijau Pinus, Biru Sabak, dan Kembalikan ke default](manualbook/gambar/v2-web-tema.png)
+![Gambar 98. Pilihan Tema warna Bawaan, Hijau Pinus, Biru Sabak, dan Kembalikan ke default](manualbook/gambar/v2-web-tema.png)
 
 1. Di **Tema warna**, pilih **Bawaan**, **Hijau Pinus**, atau **Biru Sabak**.
 2. Pilih **Simpan tema** dan lihat hasil pada halaman.
@@ -1131,20 +1163,20 @@ Ikuti gambar dan langkah pada bagian 1.5 untuk membuka **Akun Saya**, mengubah s
 
 Petugas teknis dapat mengikuti contoh pemasangan pada VPS Ubuntu/Debian dengan Nginx, PHP-FPM, MySQL, dan satu akun Linux aplikasi. Jika server memakai panel web, sesuaikan langkahnya melalui panel dan terminal yang tersedia.
 
-Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan database sesuai server sekolah. Gunakan paket rilis resmi dan cocokkan versinya dengan `RELEASE.json`.
+Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan database sesuai server sekolah. Gunakan repo rilis sekolah yang disiapkan Ibnu dan cocokkan versinya dengan `RELEASE.json`. Pembaruan dari repo pengembangan disalurkan sebagai rilis resmi ke repo sekolah. Gunakan alamat repo dan versi yang tercantum dalam serah terima.
 
-![Gambar 92. CONTOH Arsitektur acuan deployment server sekolah](manualbook/gambar/deployment.png)
+![Gambar 99. CONTOH Arsitektur acuan deployment server sekolah](manualbook/gambar/deployment.png)
 
 ## 6.1 Siapkan server
 
-![Gambar 93. CONTOH Prasyarat VPS sekolah](manualbook/gambar/v2-server-prasyarat.png)
+![Gambar 100. CONTOH Prasyarat VPS sekolah](manualbook/gambar/v2-server-prasyarat.png)
 
 1. Arahkan DNS (pengarah domain) ke VPS dan siapkan sertifikat HTTPS. Sediakan Nginx, MySQL, PHP-FPM dan PHP CLI **8.4.1 atau lebih baru dalam seri PHP 8**, Composer 2, serta layanan `cron` aktif. Web dan CLI harus memakai versi dan ekstensi yang sesuai.
 2. Pasang `pdo_mysql` pada PHP-FPM dan PHP CLI untuk koneksi MySQL, cURL (libcurl minimal 7.49), GD untuk logo dan Excel, serta ekstensi lain yang diminta lockfile. Periksa `php -v`, `php --ri pdo_mysql`, `composer -V`, lalu `composer check-platform-reqs --no-dev` setelah dependensi terpasang. Pastikan `pdo_mysql` juga aktif pada PHP-FPM. Node.js/npm yang kompatibel dengan Vite diperlukan di server atau mesin builder untuk aset. Jangan memakai `php artisan serve` atau `npm run dev` sebagai layanan produksi.
 3. Buat akun Linux aplikasi, misalnya `sibk`, tanpa hak root. Taruh source rilis di `/var/www/sibk`. Proses PHP dan akun cron perlu membaca source serta menulis ke `storage/` dan `bootstrap/cache/`; `storage/app/private/branding` harus dapat ditulis untuk logo. Atur owner/grup sesuai akun proses PHP, tanpa izin `777`. Berkas `.env` hanya boleh dibaca akun yang memerlukannya.
 4. Buat database MySQL khusus SIBK dan akun database khusus dengan hak hanya pada database itu, bukan root atau hak global. Migrasi (perubahan struktur database) memerlukan hak `CREATE`, `ALTER`, `INDEX`, dan `DROP` selain baca/tulis. Sesudahnya, hak akun runtime dapat dipersempit. Siapkan akun backup terpisah. Jangan memakai database pengembangan bersama.
 
-![Gambar 94. CONTOH Alur HTTPS hingga PHP-FPM](manualbook/gambar/v2-server-nginx.png)
+![Gambar 101. CONTOH Alur HTTPS hingga PHP-FPM](manualbook/gambar/v2-server-nginx.png)
 
 Contoh blok Nginx, dengan socket PHP-FPM dan jalur sertifikat disesuaikan server. Terbitkan sertifikat sebelum membuka akses pengguna:
 
@@ -1184,16 +1216,16 @@ Nama paket PHP bisa berbeda menurut OS atau panel. Gunakan paket resmi yang komp
 
 ## 6.2 Instalasi pertama
 
-![Gambar 95. CONTOH Pengisian lingkungan produksi tanpa rahasia asli](manualbook/gambar/v2-server-env.png)
+![Gambar 102. CONTOH Pengisian lingkungan produksi tanpa rahasia asli](manualbook/gambar/v2-server-env.png)
 
-1. Masuk sebagai akun aplikasi ke `/var/www/sibk`. Pada paket rilis klien, salin `.env.example` ke `.env` **hanya bila belum ada**. Jika memakai repo pengembangan penuh, gunakan `scripts/client-release/.env.example` sebagai templat produksi. Isi domain dan akses database di server. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://bk.example.sch.id`, `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`, dan `FILESYSTEM_DISK=local`. Batasi akses ke `.env`.
+1. Masuk sebagai akun aplikasi ke `/var/www/sibk`. Dari source rilis repo sekolah, salin `.env.example` ke `.env` **hanya bila belum ada**. Isi domain dan akses database di server. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://bk.example.sch.id`, `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`, dan `FILESYSTEM_DISK=local`. Batasi akses ke `.env`.
 2. Buat nilai rahasia `ALUMNI_RETENTION_KEY` untuk instalasi baru dengan perintah berikut dan salin hasilnya ke `.env`. Simpan bersama backup rahasia. Kunci 32 byte ini harus tetap sama ketika `APP_KEY` dirotasi atau server dipindah.
 
    ```sh
    php -r "echo 'base64:'.base64_encode(random_bytes(32)),PHP_EOL;"
    ```
 
-![Gambar 96. CONTOH Urutan instalasi pertama pada database baru](manualbook/gambar/v2-server-instalasi.png)
+![Gambar 103. CONTOH Urutan instalasi pertama pada database baru](manualbook/gambar/v2-server-instalasi.png)
 
 3. Jalankan di server. Dua perintah npm boleh dijalankan di mesin builder; kirim `public/build` hasil build dari rilis source yang sama ke server. Jangan memakai `composer setup` karena skripnya otomatis membuat kunci dan menjalankan migrasi.
 
@@ -1213,7 +1245,7 @@ Nama paket PHP bisa berbeda menurut OS atau panel. Gunakan paket resmi yang komp
 
    `key:generate` hanya untuk pemasangan pertama tanpa `APP_KEY`. `migrate --force` memperbarui skema tanpa mereset data. Dalam produksi, `db:seed --force` hanya mengisi peran dan referensi; akun dan data murid tidak dibuat. Jangan gunakan `migrate:fresh`, reset database, atau seeder akun uji. `storage:link` membuat tautan disk publik. Logo unggahan tersimpan di `storage/app/private/branding` dan ditampilkan melalui aplikasi.
 
-![Gambar 97. CONTOH Pembuatan Admin IT awal dan pergantian sandi](manualbook/gambar/v2-server-admin.png)
+![Gambar 104. CONTOH Pembuatan Admin IT awal dan pergantian sandi](manualbook/gambar/v2-server-admin.png)
 
 4. Buat Admin IT pertama: jalankan `php artisan tinker` di terminal server, lalu masukkan kode berikut. Ganti nama dan email contoh dengan petugas sekolah yang sah. Kode menolak pembuatan jika Admin IT sudah ada.
 
@@ -1263,7 +1295,7 @@ QUEUE_CONNECTION=sync
 
 ## 6.3 Scheduler dan retensi
 
-![Gambar 98. CONTOH Batas retensi alumni](manualbook/gambar/v2-server-retensi.png)
+![Gambar 105. CONTOH Batas retensi alumni](manualbook/gambar/v2-server-retensi.png)
 
 1. Sebelum mengaktifkan cron pada database yang sudah berisi data, jalankan `php artisan sibk:hapus-alumni`. Perintah tanpa `--execute` hanya menampilkan pratinjau jumlah **memenuhi syarat** dan **ditunda**. Jangan menghapus relasi atau penanda secara manual untuk memaksa retensi.
 
@@ -1272,7 +1304,7 @@ QUEUE_CONNECTION=sync
    Menu pencatatan kelulusan resmi belum tersedia pada versi ini. Pertahankan penghapusan nonaktif sampai alur dan data kelulusan, kebijakan penyimpanan, pratinjau, dan uji pemulihan cadangan siap. Aktivasi dilakukan dengan `ALUMNI_RETENTION_ENABLED=true` lalu `php artisan config:cache`. Untuk menghentikan eksekusi berikutnya, kembalikan ke `false` dan perbarui cache konfigurasi; proses yang sudah berjalan tidak dibatalkan.
 
    Setelah pemeriksaan keselamatan, proses ini membersihkan data identitas, layanan/arsip/tindak lanjut, prestasi, mirror e-Tatib, dan relasi audit lokal terkait. Sumber Dapodik dan e-Tatib tidak menerima perintah hapus. Penanda HMAC mencegah identitas yang telah dihapus diimpor ulang. Jika `ALUMNI_RETENTION_KEY` hilang atau berubah saat penanda sudah ada, impor dan penghapusan berhenti sampai kunci asli dipulihkan.
-![Gambar 99. CONTOH Pemasangan dan pemeriksaan scheduler](manualbook/gambar/v2-server-scheduler.png)
+![Gambar 106. CONTOH Pemasangan dan pemeriksaan scheduler](manualbook/gambar/v2-server-scheduler.png)
 
 2. Pastikan layanan `cron` aktif. Jalankan sebagai akun aplikasi `sibk`, **bukan root**, dari `/var/www/sibk`:
 
@@ -1296,11 +1328,11 @@ QUEUE_CONNECTION=sync
 
     Sambungan langsung ke penyedia resmi belum tersedia (status `unavailable`). Gunakan **Data Master** untuk mengatur API Siswa dan e-Tatib. Jadwal e-Tatib mulai bekerja setelah diaktifkan di aplikasi. Dengan `QUEUE_CONNECTION=sync`, pemasangan ini tidak memerlukan pekerja antrean terpisah.
 
-![Gambar 100. CONTOH Batas penghapusan alumni dan pengelolaan backup](manualbook/gambar/backup-retensi.png)
+![Gambar 107. CONTOH Batas penghapusan alumni dan pengelolaan backup](manualbook/gambar/backup-retensi.png)
 
 ## 6.4 Pemeriksaan dan pembaruan
 
-![Gambar 101. CONTOH Pembaruan rilis tanpa mengganti kunci dan data](manualbook/gambar/v2-server-update.png)
+![Gambar 108. CONTOH Pembaruan rilis tanpa mengganti kunci dan data](manualbook/gambar/v2-server-update.png)
 
 1. Buka `https://bk.example.sch.id/up` dan halaman login melalui HTTPS. Pastikan HTTP dialihkan ke HTTPS, aset tampil, dan source tidak dapat dibuka langsung. Login Admin IT sekolah, ganti sandi sementara, buat tahun ajaran, lalu periksa Data Master. Dengan akun sah per peran, periksa menu dan izin Guru BK, Koordinator BK, serta Waka Kesiswaan; akses tanpa izin harus ditolak. Uji impor murid, layanan, laporan, unggah logo, dan logout dengan data uji yang disetujui sekolah.
 2. Pantau kapasitas disk, backup, MySQL/PHP-FPM/Nginx, `storage/logs/laravel.log`, `storage/logs/scheduler.log`, dan log cron. Rotasikan `scheduler.log` melalui kebijakan rotasi log server agar log setiap menit tidak memenuhi disk. Pastikan jam server sinkron; tanggal operasional, tampilan waktu, serta jadwal retensi/e-Tatib otomatis memakai WIB (`Asia/Jakarta`), tanpa pengaturan tambahan pengguna. Pertahankan `config/app.php` pada UTC untuk timestamp internal; jangan menggeser data lama atau jam sumber e-Tatib secara manual. Jika pembaruan otomatis e-Tatib sudah diaktifkan, periksa status sinkronisasi terakhir pada UI dan error log.
@@ -1310,7 +1342,7 @@ QUEUE_CONNECTION=sync
 
 ## 6.5 Backup dan pemulihan
 
-![Gambar 102. CONTOH Satu snapshot backup database berkas dan kunci](manualbook/gambar/v2-server-backup.png)
+![Gambar 109. CONTOH Satu snapshot backup database berkas dan kunci](manualbook/gambar/v2-server-backup.png)
 
 Tetapkan jadwal dan masa simpan cadangan. Jeda hanya pemicu scheduler Ruang BK melalui panel atau crontab -e, dan catat entri semula; jangan gunakan crontab -r. Jika aplikasi belum dalam mode pemeliharaan, jalankan php artisan down. Jika sudah, pertahankan mode dan URL bypass yang ada. Tunggu seluruh proses yang mengubah data selesai, termasuk sinkronisasi, retensi, impor, dan perintah manual. Jangan melakukan pembaruan aplikasi selama pencadangan. Dengan demikian, database, storage/app, dan .env berasal dari keadaan yang sama.
 
@@ -1344,7 +1376,7 @@ Jalankan satu blok Bash di atas dari direktori aplikasi. Blok berhenti bila ada 
 php artisan up
 ```
 
-![Gambar 103. CONTOH Pemulihan terisolasi sebelum aplikasi dibuka](manualbook/gambar/v2-server-restore.png)
+![Gambar 110. CONTOH Pemulihan terisolasi sebelum aplikasi dibuka](manualbook/gambar/v2-server-restore.png)
 
 Untuk uji atau pemulihan, pilih satu set cadangan dari waktu yang sama dan rilis aplikasi yang cocok. Siapkan database kosong serta akun pemulihan yang hanya berhak mengakses database itu. Siapkan direktori induk privat /srv/restore dan kunci dekripsi di lokasi terpisah. Sesuaikan tiga path dan nama database pada blok berikut; hasil dekripsi disimpan di direktori baru, di luar web publik.
 
@@ -1379,7 +1411,7 @@ Rujukan perintah: [age](https://github.com/FiloSottile/age) dan [mysqldump MySQL
 
 ## 6.6 Gangguan yang sering muncul
 
-![Gambar 104. CONTOH Alur pemeriksaan gangguan tanpa membocorkan rahasia](manualbook/gambar/v2-server-gangguan.png)
+![Gambar 111. CONTOH Alur pemeriksaan gangguan tanpa membocorkan rahasia](manualbook/gambar/v2-server-gangguan.png)
 
 | Gejala | Periksa dan tindakan |
 | --- | --- |
@@ -1401,32 +1433,32 @@ Lakukan latihan dengan data murid contoh pada lingkungan uji. Jangan memasukkan 
 
 1. **Admin IT:** buat akun Guru BK, Koordinator BK, dan Waka sesuai perannya. Siapkan dua rombel contoh dan satu tahun ajaran persiapan. Unduh templat daftar murid dan penempatan rombel; isi dengan murid contoh dan NISN sebagai teks. Tinjau hasilnya sebelum impor, lalu periksa pesan dan jumlah data yang masuk.
 
-   ![Gambar 105. Admin meninjau daftar murid sebelum impor pada latihan](manualbook/gambar/v2-roster-excel-preview.png)
+   ![Gambar 112. Admin meninjau daftar murid sebelum impor pada latihan](manualbook/gambar/v2-roster-excel-preview.png)
 2. **Koordinator BK:** pilih tahun persiapan, bagi setiap rombel kepada Guru BK, periksa kesiapan, lalu aktifkan. Masuk sebagai Guru BK untuk melihat kelas dan murid yang ditugaskan.
 
-   ![Gambar 106. Koordinator memeriksa kesiapan dan aktivasi tahun ajaran](manualbook/gambar/v2-tahun-aktifkan.png)
+   ![Gambar 113. Koordinator memeriksa kesiapan dan aktivasi tahun ajaran](manualbook/gambar/v2-tahun-aktifkan.png)
 3. **Guru BK:** buat permasalahan dari sumber selain e-Tatib untuk murid contoh. Periksa status **Sedang Proses**, tambahkan tindak lanjut, isi **Ringkasan**, lalu selesaikan. Buat konsultasi dengan hasil lengkap dan periksa kedua catatan pada profil murid.
 
-   ![Gambar 107. Guru menambahkan tindak lanjut kasus latihan](manualbook/gambar/v2-kasus-tindaklanjut.png)
+   ![Gambar 114. Guru menambahkan tindak lanjut kasus latihan](manualbook/gambar/v2-kasus-tindaklanjut.png)
 4. **Guru BK:** catat penanganan pengunduran diri untuk murid contoh lain dan tambahkan progres berkas. Periksa bahwa status murid tidak berubah menjadi alumni atau resmi keluar.
 
-   ![Gambar 108. Guru mencatat progres penanganan pengunduran diri](manualbook/gambar/v2-pengunduran-progres.png)
+   ![Gambar 115. Guru mencatat progres penanganan pengunduran diri](manualbook/gambar/v2-pengunduran-progres.png)
 5. **Waka:** buka **Dashboard** dan **Laporan** untuk tahun dan kelas yang sama. Periksa ringkasannya; tombol untuk mengubah atau mengunduh uraian layanan tidak tersedia. Catat satu prestasi, lalu coba impor prestasi lain memakai templat.
 
-   ![Gambar 109. Waka mencatat prestasi uji setelah membaca ringkasan](manualbook/gambar/v2-prestasi-buat.png)
+   ![Gambar 116. Waka mencatat prestasi uji setelah membaca ringkasan](manualbook/gambar/v2-prestasi-buat.png)
 6. **Guru BK atau Koordinator BK:** buka **Laporan**, pilih jenis layanan dan kelas, lalu tekan **Buat rekap**. Atur tanggal dalam satu semester. Unduh Excel dan simpan PDF; periksa identitas, jumlah, periode, kop, dan penandatangan. Buka juga pratinjau di ponsel.
 
-   ![Gambar 110. Pratinjau rekap sebelum mengunduh Excel atau mencetak PDF](manualbook/gambar/v2-laporan-preview.png)
+   ![Gambar 117. Pratinjau rekap sebelum mengunduh Excel atau mencetak PDF](manualbook/gambar/v2-laporan-preview.png)
 7. **Admin IT:** periksa logo dan tema. Jika sekolah menyediakan API untuk uji, tinjau data e-Tatib sebelum sinkronisasi manual. Aktifkan jadwal otomatis setelah alamat tujuan dan data benar.
 
-   ![Gambar 111. Admin meninjau e-Tatib sebelum sinkronisasi](manualbook/gambar/v2-etatib-preview.png)
+   ![Gambar 118. Admin meninjau e-Tatib sebelum sinkronisasi](manualbook/gambar/v2-etatib-preview.png)
 8. **Petugas server:** periksa satu pemicu cron, log eksekusi, status sinkronisasi pada jadwalnya, serta hasil uji cadangan dan pemulihan di database terpisah. Gunakan pratinjau retensi; jangan menghapus alumni untuk menguji cron.
 
-   ![Gambar 112. CONTOH pemeriksaan scheduler server sekolah](manualbook/gambar/v2-server-scheduler.png)
+   ![Gambar 119. CONTOH pemeriksaan scheduler server sekolah](manualbook/gambar/v2-server-scheduler.png)
 
 ## 7.2 Daftar pemeriksaan sebelum digunakan sekolah
 
-![Gambar 113. Urutan persiapan data dan penugasan yang diperiksa sebelum serah terima](manualbook/gambar/alur-operasional.png)
+![Gambar 120. Urutan persiapan data dan penugasan yang diperiksa sebelum serah terima](manualbook/gambar/alur-operasional.png)
 
 - **Petugas server:** pastikan domain HTTPS, document root `public/`, PHP web/CLI, database, dan aset produksi berfungsi. Halaman error tidak menampilkan rahasia.
 - **Admin IT:** pastikan akun pribadi setiap peran dibuat dan penggantian sandi sementara berhasil. Email penandatangan serta jumlah akun aktif yang memegang peran terkait sudah benar.
@@ -1442,21 +1474,21 @@ Lakukan latihan dengan data murid contoh pada lingkungan uji. Jangan memasukkan 
 
 ### Bagaimana jika murid tidak muncul saat dicari?
 
-![Gambar 114. Daftar Murid dengan tahun, kelas, dan pencarian identitas](manualbook/gambar/v2-murid-daftar.png)
+![Gambar 121. Daftar Murid dengan tahun, kelas, dan pencarian identitas](manualbook/gambar/v2-murid-daftar.png)
 
 1. **Guru BK:** periksa tahun ajaran, kelas binaan, dan status murid. **Admin IT:** periksa keberhasilan impor.
 2. **Guru BK:** jika formulir mendukung identitas sementara, isi NISN/nama dan rombel yang sah. Jangan memakai identitas murid lain.
 
 ### Mengapa catatan guru lain tidak dapat diedit?
 
-![Gambar 115. Aksi kasus yang mengikuti kepemilikan dan kewenangan Guru BK](manualbook/gambar/v2-kasus-daftar.png)
+![Gambar 122. Aksi kasus yang mengikuti kepemilikan dan kewenangan Guru BK](manualbook/gambar/v2-kasus-daftar.png)
 
 1. **Guru BK:** periksa siapa pencatat atau pemilik catatan. Hak membaca tidak otomatis memberi hak menulis.
 2. **Guru BK:** koordinasikan koreksi dengan pemilik catatan; jangan mengganti peran agar tombol edit muncul.
 
 ### Mengapa rekap kosong atau tidak dapat diunduh?
 
-![Gambar 116. Periode dan status pratinjau rekap sebelum ekspor](manualbook/gambar/v2-laporan-preview.png)
+![Gambar 123. Periode dan status pratinjau rekap sebelum ekspor](manualbook/gambar/v2-laporan-preview.png)
 
 1. **Guru BK atau Koordinator BK:** periksa jenis layanan, kelas, tanggal, semester, dan catatan dalam cakupan.
 2. **Guru BK atau Koordinator BK:** persempit filter bila hasil melebihi batas bawaan 2.500 catatan per dokumen. Petugas server dapat mengatur batas ini.
@@ -1464,14 +1496,14 @@ Lakukan latihan dengan data murid contoh pada lingkungan uji. Jangan memasukkan 
 
 ### Mengapa data e-Tatib belum berubah?
 
-![Gambar 117. Riwayat sinkronisasi untuk memeriksa proses e-Tatib terakhir](manualbook/gambar/v2-sinkronisasi-riwayat.png)
+![Gambar 124. Riwayat sinkronisasi untuk memeriksa proses e-Tatib terakhir](manualbook/gambar/v2-sinkronisasi-riwayat.png)
 
 1. **Admin IT:** periksa hasil dan waktu sinkronisasi terakhir serta pencocokan identitas.
 2. **Admin IT:** periksa hari/jam otomatis. **Petugas server:** periksa log scheduler. Data yang tidak dikirim lagi oleh sumber tidak otomatis menghapus salinan lama.
 
 ### Mengapa data alumni belum terhapus setelah satu tahun?
 
-![Gambar 118. CONTOH syarat dan penundaan retensi alumni](manualbook/gambar/v2-server-retensi.png)
+![Gambar 125. CONTOH syarat dan penundaan retensi alumni](manualbook/gambar/v2-server-retensi.png)
 
 1. **Admin IT bersama petugas yang berwenang atas data murid:** periksa keputusan lulus resmi dan tanggal efektif yang sah.
 2. **Petugas server:** periksa scheduler dan alasan penundaan. Nama yang absen dari API atau progres pengunduran diri bukan penetapan alumni.
@@ -1513,7 +1545,7 @@ Lakukan latihan dengan data murid contoh pada lingkungan uji. Jangan memasukkan 
 
 ## 8.2 Rujukan instalasi
 
-![Gambar 119. CONTOH hubungan cadangan database berkas dan kunci saat serah terima server](manualbook/gambar/v2-server-backup.png)
+![Gambar 126. CONTOH hubungan cadangan database berkas dan kunci saat serah terima server](manualbook/gambar/v2-server-backup.png)
 
 Gunakan konfigurasi sesuai versi rilis Ruang BK yang diterima sekolah. Periksa persyaratan PHP dan dependensi melalui `composer.lock` serta perintah `composer check-platform-reqs`. Dokumentasi berikut membantu petugas memasang dan memelihara server.
 
