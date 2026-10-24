@@ -82,22 +82,24 @@
                     <fieldset>
                         <legend class="fs-6">Pilih palet warna web</legend>
                         <div class="row g-3">
-                            @foreach(['default' => 'Bawaan', 'pine' => 'Hijau Pinus', 'slate' => 'Biru Sabak'] as $key => $label)
-                                <div class="col-12 col-md-6 col-xl-4">
-                                    <label class="d-flex align-items-center gap-2 border rounded p-3 w-100" for="web-theme-{{ $key }}">
-                                        <input class="form-check-input m-0" type="radio" name="theme" value="{{ $key }}" id="web-theme-{{ $key }}" @checked(old('theme', $selectedTheme) === $key) required>
-                                        <span class="d-flex gap-1" aria-hidden="true">
-                                            @if($key === 'default')
-                                                @foreach(['primary', 'page', 'surface'] as $part)
-                                                    <span class="sibk-theme-swatch sibk-theme-swatch--default-{{ $part }}"></span>
-                                                @endforeach
-                                            @else
-                                                @foreach(\App\Support\WebThemePalette::PRESETS[$key] as $color)
-                                                    <span class="sibk-theme-swatch" style="background-color: {{ $color }}"></span>
-                                                @endforeach
-                                            @endif
+                            @foreach(['default' => 'Bawaan', 'navy' => 'Navy', 'smkn1' => 'Logo SMKN 1', 'modern' => 'Modern Logo'] as $key => $label)
+                                <div class="col-12 col-lg-6">
+                                    <label class="d-flex align-items-start gap-3 border rounded p-3 w-100" for="web-theme-{{ $key }}">
+                                        <input class="form-check-input mt-1" type="radio" name="theme" value="{{ $key }}" id="web-theme-{{ $key }}" @checked(old('theme', $selectedTheme) === $key) required>
+                                        <span class="d-flex flex-column gap-2">
+                                            <span>{{ $label }}</span>
+                                            <span class="d-flex gap-1" aria-hidden="true">
+                                                @if($key === 'default')
+                                                    @foreach(['primary', 'page', 'surface'] as $part)
+                                                        <span class="sibk-theme-swatch sibk-theme-swatch--default-{{ $part }}"></span>
+                                                    @endforeach
+                                                @else
+                                                    @foreach(['sidebar', 'primary', 'secondary', 'accent'] as $part)
+                                                        <span class="sibk-theme-swatch" style="background-color: {{ \App\Support\WebThemePalette::PRESETS[$key][$part] }}"></span>
+                                                    @endforeach
+                                                @endif
+                                            </span>
                                         </span>
-                                        <span>{{ $label }}</span>
                                     </label>
                                 </div>
                             @endforeach

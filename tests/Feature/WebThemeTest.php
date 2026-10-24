@@ -13,6 +13,7 @@ use App\Services\WebAppearanceService;
 use App\Support\WebThemePalette;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -29,15 +30,15 @@ final class WebThemeTest extends TestCase
     public function test_only_active_admin_can_change_theme(): void
     {
         $url = route('admin.web-settings.theme');
-        $this->patch($url, ['theme' => 'pine'])->assertRedirect(route('login'));
+        $this->patch($url, ['theme' => 'navy'])->assertRedirect(route('login'));
 
         foreach (['guru_bk', 'koordinator_bk', 'waka_kesiswaan'] as $role) {
-            $this->actingAs($this->user($role))->patch($url, ['theme' => 'pine'])->assertForbidden();
+            $this->actingAs($this->user($role))->patch($url, ['theme' => 'navy'])->assertForbidden();
         }
 
         $inactive = $this->user('admin_it');
         $inactive->update(['is_active' => false]);
-        $this->actingAs($inactive)->patch($url, ['theme' => 'pine'])->assertRedirect(route('login'));
+        $this->actingAs($inactive)->patch($url, ['theme' => 'navy'])->assertRedirect(route('login'));
         $this->assertSame('default', WebAppearance::query()->findOrFail(1)->theme);
     }
 
@@ -46,20 +47,24 @@ final class WebThemeTest extends TestCase
         $admin = $this->user('admin_it');
         $url = route('admin.web-settings.theme');
 
-        foreach (['pine', 'slate', 'default'] as $theme) {
+        foreach (['navy', 'smkn1', 'modern', 'default'] as $theme) {
             $this->actingAs($admin)->patch($url, ['theme' => $theme])
                 ->assertRedirect(route('admin.web-settings.edit'));
             $this->assertSame($theme, WebAppearance::query()->findOrFail(1)->theme);
             $this->assertSame($theme, app(WebAppearanceService::class)->theme());
-            $this->get(route('admin.web-settings.edit'))->assertOk()
+            $response = $this->get(route('admin.web-settings.edit'))->assertOk()
                 ->assertSee('data-web-theme="'.$theme.'"', false)
                 ->assertSee('Tema warna')
+                ->assertSee('Navy')
+                ->assertSee('Logo SMKN 1')
+                ->assertSee('Modern Logo')
                 ->assertSee('Kembalikan ke default');
+            $this->assertSame(4, substr_count($response->getContent(), 'type="radio" name="theme"'));
         }
 
-        $this->assertSame(3, AuditLog::query()->where('action', 'web_appearance.theme_updated')->count());
+        $this->assertSame(4, AuditLog::query()->where('action', 'web_appearance.theme_updated')->count());
         $latest = AuditLog::query()->where('action', 'web_appearance.theme_updated')->latest('id')->firstOrFail();
-        $this->assertSame(['theme' => 'slate'], $latest->before_values);
+        $this->assertSame(['theme' => 'modern'], $latest->before_values);
         $this->assertSame(['theme' => 'default'], $latest->after_values);
         $this->assertSame($admin->id, $latest->actor_id);
     }
@@ -70,7 +75,7 @@ final class WebThemeTest extends TestCase
         $appearance = WebAppearance::query()->findOrFail(1);
         $appearance->update(['logo_path' => 'branding/existing.png']);
 
-        foreach (['<style>*{display:none}</style>', 'custom', ''] as $theme) {
+        foreach (['<style>*{display:none}</style>', 'custom', 'pine', 'slate', ''] as $theme) {
             $this->patch(route('admin.web-settings.theme'), ['theme' => $theme])
                 ->assertSessionHasErrors('theme');
         }
@@ -78,8 +83,14 @@ final class WebThemeTest extends TestCase
         $this->assertSame('branding/existing.png', $appearance->fresh()->logo_path);
         $this->assertSame(0, AuditLog::query()->where('action', 'web_appearance.theme_updated')->count());
 
-        $appearance->update(['theme' => 'unknown']);
-        $this->assertSame('default', app(WebAppearanceService::class)->theme());
+        foreach (['unknown', 'pine', 'slate'] as $legacyTheme) {
+            $appearance->update(['theme' => $legacyTheme]);
+            $this->get(route('admin.web-settings.edit'))->assertOk()
+                ->assertSee('data-web-theme="default"', false)
+                ->assertDontSee('data-web-theme-colors');
+            $this->assertSame('default', app(WebAppearanceService::class)->theme());
+            $this->assertSame([], app(WebAppearanceService::class)->themeVariables());
+        }
     }
 
     public function test_custom_palette_submissions_are_rejected_and_legacy_colors_remain_untouched(): void
@@ -91,10 +102,10 @@ final class WebThemeTest extends TestCase
         $appearance->update(['custom_palette' => $palette]);
         $this->patch($url, ['theme' => 'custom', 'custom_palette' => $palette])
             ->assertSessionHasErrors('theme');
-        $this->patch($url, ['theme' => 'pine', 'custom_palette' => $palette])
+        $this->patch($url, ['theme' => 'navy', 'custom_palette' => $palette])
             ->assertSessionHasErrors('custom_palette');
 
-        foreach (['pine', 'default'] as $theme) {
+        foreach (['navy', 'default'] as $theme) {
             $this->patch($url, ['theme' => $theme])
                 ->assertRedirect(route('admin.web-settings.edit'));
             $this->assertSame($palette, $appearance->fresh()->custom_palette);
@@ -110,7 +121,7 @@ final class WebThemeTest extends TestCase
         try {
             $service->updateTheme('custom', $admin);
             $this->fail('Expected theme validation to fail.');
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $this->assertArrayHasKey('theme', $exception->errors());
         }
 
@@ -127,10 +138,10 @@ final class WebThemeTest extends TestCase
 
     public function test_login_uses_saved_theme_and_reports_keep_plain_document_layout(): void
     {
-        WebAppearance::query()->findOrFail(1)->update(['theme' => 'pine']);
-        $this->get(route('login'))->assertOk()->assertSee('data-web-theme="pine"', false);
+        WebAppearance::query()->findOrFail(1)->update(['theme' => 'modern']);
+        $this->get(route('login'))->assertOk()->assertSee('data-web-theme="modern"', false);
         $this->actingAs($this->user('guru_bk'))->get(route('access.denied'))
-            ->assertOk()->assertSee('data-web-theme="pine"', false);
+            ->assertOk()->assertSee('data-web-theme="modern"', false);
         $document = view('layouts.report-embedded')->render();
         $this->assertStringNotContainsString('data-web-theme', $document);
     }
@@ -138,12 +149,14 @@ final class WebThemeTest extends TestCase
     public function test_preset_colors_render_and_default_removes_every_override(): void
     {
         $appearance = WebAppearance::query()->findOrFail(1);
-        $appearance->update(['theme' => 'pine']);
+        $appearance->update(['theme' => 'modern']);
         $this->get(route('login'))->assertOk()
-            ->assertSee('data-web-theme="pine"', false)
-            ->assertSee('--sibk-color-primary: #1f6658;', false)
-            ->assertSee('--sibk-color-page: #edf4f0;', false)
-            ->assertSee('--sibk-color-surface-raised: #f8fcf9;', false);
+            ->assertSee('data-web-theme="modern"', false)
+            ->assertSee('--sibk-color-primary: #c2185b;', false)
+            ->assertSee('--sibk-color-secondary: #007c91;', false)
+            ->assertSee('--sibk-color-sidebar-gradient-start: #2a3e7c;', false)
+            ->assertSee('--sibk-color-page: #f8fafc;', false)
+            ->assertSee('--sibk-color-surface-raised: #ffffff;', false);
         $appearance->update(['theme' => 'default']);
         $this->get(route('login'))->assertOk()->assertDontSee('data-web-theme-colors');
     }
@@ -154,7 +167,7 @@ final class WebThemeTest extends TestCase
         $this->mock(AuditService::class)->shouldReceive('record')->once()->andThrow(new RuntimeException('audit failed'));
 
         try {
-            $this->withoutExceptionHandling()->patch(route('admin.web-settings.theme'), ['theme' => 'pine']);
+            $this->withoutExceptionHandling()->patch(route('admin.web-settings.theme'), ['theme' => 'navy']);
             $this->fail('Expected the audit write to fail.');
         } catch (RuntimeException $exception) {
             $this->assertSame('audit failed', $exception->getMessage());
@@ -170,7 +183,7 @@ final class WebThemeTest extends TestCase
         $this->mock(AuditService::class)->shouldReceive('record')->once()->andThrow(new RuntimeException('audit failed'));
 
         try {
-            $this->withoutExceptionHandling()->patch(route('admin.web-settings.theme'), ['theme' => 'pine']);
+            $this->withoutExceptionHandling()->patch(route('admin.web-settings.theme'), ['theme' => 'navy']);
             $this->fail('Expected the audit write to fail.');
         } catch (RuntimeException $exception) {
             $this->assertSame('audit failed', $exception->getMessage());
