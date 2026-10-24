@@ -20,9 +20,11 @@ production belum tersedia.
 
 ## Persyaratan
 
-- PHP 8.4.1 atau lebih baru dalam seri PHP 8, ekstensi cURL dengan libcurl >= 7.49, Composer, dan Git.
+- PHP 8.4.27 atau lebih baru pada cabang 8.4, atau 8.5.12 atau lebih baru pada cabang 8.5, ekstensi cURL dengan libcurl >= 7.49, Composer, dan Git. Panggil `composer check-platform-reqs --lock --no-dev` sebelum memasang dependency dan hentikan instalasi bila gagal; jangan melewati pemeriksaan versi platform.
 - Node.js/npm sesuai persyaratan Vite dalam `package-lock.json`.
 - MySQL atau SQLite lokal yang dikonfigurasi pada `.env`.
+
+PHP 8.4.27 dan 8.5.12 memuat perbaikan [PHP2Shell (CVE-2026-109618 dan CVE-2026-109619)](https://www.php.net/archive/2026.php#2026-10-21-5). Kerentanan berada pada runtime PHP; perubahan aplikasi atau dependency Composer tidak menambalnya. Periksa PHP CLI dengan `php -v` dan web/FPM melalui panel hosting atau administrator; PHP web, CLI, dan cron harus memenuhi batas `composer.json`. Jangan memasang `phpinfo()` pada server publik. Jika pemeriksaan gagal, hentikan instalasi dan minta administrator memperbarui runtime. Paket distributor juga harus memenuhi batas versi tersebut; jangan memakai `--ignore-platform-reqs` atau `config.platform` untuk melewatinya.
 
 Periksa versi: `php -v`, `composer -V`, `node -v`, dan `npm -v`.
 Gunakan versi dependency yang terkunci; jangan menjalankan update tanpa kebutuhan.
@@ -33,6 +35,7 @@ Gunakan versi dependency yang terkunci; jangan menjalankan update tanpa kebutuha
 git clone https://github.com/ibnuahmadfauzi/sibk.git
 cd sibk
 git switch cobasidebar
+composer check-platform-reqs --lock --no-dev
 composer install
 ```
 

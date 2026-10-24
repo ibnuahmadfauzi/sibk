@@ -4,9 +4,13 @@ Versi dan commit sumber tersedia pada `RELEASE.json`. Repo rilis sekolah ini dis
 
 ## Instalasi
 
-Buku panduan bergambar dalam format Word tersedia pada `docs/manualbook/Buku-Panduan-Ruang-BK.docx`. Petunjuk penggunaan, instalasi, dan pemulihan juga tersedia pada `docs/manualbook.md` dalam paket rilis. Bab 6 memuat petunjuk lengkap bagi petugas server; langkah di bawah menjadi ringkasan pemasangan.
+Buku panduan bergambar dalam format Word tersedia pada `docs/manualbook/Buku-Panduan-Ruang-BK.docx`. Petunjuk penggunaan, instalasi, dan pemulihan juga tersedia pada `docs/manualbook.md` dalam paket rilis. Bab 6 memuat petunjuk lengkap bagi petugas server; langkah di bawah menjadi ringkasan pemasangan. Jika Word atau gambar menyebut versi PHP lama, ikuti persyaratan terbaru pada `composer.json`, README ini, dan Bab 6 panduan teks. Pemasangan serta pembaruan runtime server dilakukan oleh pengelola sekolah; paket ini tidak melakukannya otomatis.
 
-Siapkan PHP 8.4.1 atau lebih baru dalam seri PHP 8 dengan `pdo_mysql` pada PHP CLI dan PHP-FPM, ekstensi cURL dengan libcurl >= 7.49, ekstensi GD untuk logo dan Excel, ekstensi lain yang dibutuhkan lockfile, Composer 2, MySQL, serta Node.js/npm yang kompatibel dengan Vite untuk build aset. Periksa CLI dengan `php --ri pdo_mysql` dan pastikan ekstensi yang sama aktif pada PHP-FPM. Arahkan document root hanya ke `public/`, gunakan HTTPS, dan beri proses PHP izin tulis pada `storage/` serta `bootstrap/cache/`.
+Siapkan PHP 8.4.27 atau lebih baru pada cabang 8.4, atau 8.5.12 atau lebih baru pada cabang 8.5, dengan `pdo_mysql` pada PHP CLI dan PHP-FPM, ekstensi cURL dengan libcurl >= 7.49, ekstensi GD untuk logo dan Excel, ekstensi lain yang dibutuhkan lockfile, Composer 2, MySQL, serta Node.js/npm yang kompatibel dengan Vite untuk build aset. Versi tersebut mencakup perbaikan PHP2Shell (CVE-2026-109618 dan CVE-2026-109619); masalah berada pada runtime PHP pemroses request dan tidak dapat ditambal melalui perubahan aplikasi atau dependency Composer. Periksa versi CLI dengan `php -v`, ekstensi CLI dengan `php --ri pdo_mysql`, dan versi serta ekstensi PHP-FPM melalui panel hosting atau administrator server. Pastikan runtime web, CLI, dan cron memakai versi yang telah diperbaiki. Jangan memasang `phpinfo()` pada server publik. Arahkan document root hanya ke `public/`, gunakan HTTPS, dan beri proses PHP izin tulis pada `storage/` serta `bootstrap/cache/`.
+
+Jalankan `composer check-platform-reqs --lock --no-dev` sebelum memasang dependency. Jika gagal, hentikan instalasi dan minta administrator server memperbarui runtime PHP. Paket distributor juga harus memenuhi batas versi `composer.json`; jangan memakai `--ignore-platform-reqs` atau `config.platform` untuk melewatinya. Rujukan: [advisori resmi PHP tanggal 21 Oktober 2026](https://www.php.net/archive/2026.php#2026-10-21-5).
+
+[Advisori PHP tanggal 23 Oktober 2026](https://www.php.net/archive/2026.php#2026-10-23-1) menyarankan `session.upload_progress.enabled=0` sampai rilis bugfix rutin berikutnya untuk jalur RCE tambahan dengan kondisi konfigurasi tertentu. Pengelola server menerapkannya di `php.ini` atau konfigurasi PHP-FPM sebelum pemrosesan request dan me-restart seluruh worker. Jangan mengandalkan `ini_set()` atau `.user.ini` untuk pengaturan sebelum parsing request. Pengaturan ini tidak menggantikan pembaruan PHP; periksa perkembangan advisori saat pemasangan.
 
 Salin `.env.example` ke `.env`, lalu isi domain dan akses database khusus aplikasi. Pertahankan `APP_ENV=production` serta `APP_DEBUG=false`. Jangan commit `.env`.
 
@@ -17,6 +21,7 @@ php -r "echo 'base64:'.base64_encode(random_bytes(32)),PHP_EOL;"
 ```
 
 ```sh
+composer check-platform-reqs --lock --no-dev
 composer install --no-dev --prefer-dist --optimize-autoloader
 composer check-platform-reqs --no-dev
 npm ci --ignore-scripts
@@ -69,7 +74,7 @@ Perintah mendeteksi direktori aplikasi dan executable PHP yang dipakai, lalu mem
 
 Server tetap harus menyediakan perintah `crontab`, mengizinkan akun aplikasi menggunakannya, dan menjalankan layanan cron. Perintah ini tidak memasang paket sistem atau mengaktifkan layanan cron, tidak mengubah crontab akun lain, dan tidak menjalankan sinkronisasi atau penghapusan saat pemasangan. Pastikan tidak ada pemicu aplikasi yang sama pada akun lain, timer sistem, atau panel; jangan menyunting cron bersamaan saat pemasangan. Jika ditemukan jadwal manual atau entri terkelola yang berbeda, perintah berhenti agar tidak menggandakan tugas atau menimpa entri lama.
 
-Jika hosting membatasi akses `crontab`, pasang tugas melalui fasilitas penjadwalan panel hosting. PHP untuk tugas ini juga harus versi 8.4.1 atau lebih baru dalam seri PHP 8. Contoh cron manual pada VPS Linux, dengan lokasi aplikasi dan PHP disesuaikan dengan instalasi:
+Jika hosting membatasi akses `crontab`, pasang tugas melalui fasilitas penjadwalan panel hosting. PHP untuk tugas ini juga harus versi 8.4.27 atau lebih baru pada cabang 8.4, atau 8.5.12 atau lebih baru pada cabang 8.5. Contoh cron manual pada VPS Linux, dengan lokasi aplikasi dan PHP disesuaikan dengan instalasi:
 
 ```cron
 * * * * * cd /var/www/sibk && /usr/bin/php artisan schedule:run >> storage/logs/scheduler.log 2>&1
@@ -83,6 +88,6 @@ Penghapusan alumni nonaktif secara bawaan (`ALUMNI_RETENTION_ENABLED=false`); pe
 
 Pratinjau, cetak, dan Excel memerlukan satu semester: Juli–Desember atau Januari–Juni pada tahun ajaran terpilih. Rentang tanggal opsional harus berada di semester itu. Batas jumlah catatan diatur melalui `SIBK_REPORT_MAX_DOCUMENT_ROWS`; hasil yang melebihi batas meminta pengguna mempersempit periode atau kelas. Sesuaikan nilainya setelah menguji ukuran catatan dan memori PHP, lalu perbarui cache konfigurasi. Pembatasan dokumen tidak menghapus data yang tersimpan.
 
-Untuk pembaruan, ikuti urutan maintenance, jeda cron, backup satu keadaan, pemasangan, pengujian privat, dan pembukaan akses pada [Bab 6 panduan server](docs/manualbook.md#64-pemeriksaan-dan-pembaruan). Uji rilis pada lingkungan validasi dahulu. Pertahankan `.env`, `APP_KEY`, `ALUMNI_RETENTION_KEY`, dan `storage/app`; jangan mengulang `key:generate` atau membuat ulang kunci retensi. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai. Logo dikelola Admin IT melalui Manajemen Web; `storage/app/private/branding` harus dapat ditulis proses PHP.
+Untuk pembaruan, uji rilis di lingkungan validasi dan jalankan `composer check-platform-reqs --lock --no-dev` dari folder rilis baru sebelum maintenance atau jeda cron. Pastikan PHP web/FPM, CLI, dan cron memenuhi persyaratan; hentikan pembaruan aplikasi jika pemeriksaan gagal. Setelah lulus, ikuti urutan maintenance, jeda cron, backup satu keadaan, pemasangan, pengujian privat, dan pembukaan akses pada [Bab 6 panduan server](docs/manualbook.md#64-pemeriksaan-dan-pembaruan). Pertahankan `.env`, `APP_KEY`, `ALUMNI_RETENTION_KEY`, dan `storage/app`; jangan mengulang `key:generate` atau membuat ulang kunci retensi. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai. Logo dikelola Admin IT melalui Manajemen Web; `storage/app/private/branding` harus dapat ditulis proses PHP.
 
 Lisensi dependensi tetap berlaku; pertahankan pemberitahuan lisensi paket Composer/npm yang dipasang. Ketentuan penyerahan aplikasi mengikuti perjanjian dengan pemilik aplikasi.
