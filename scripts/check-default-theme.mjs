@@ -18,6 +18,8 @@ const source = await readSources('resources');
 const references = new Set([...source.matchAll(/var\(\s*(--sibk-(?:color|shadow)-[\w-]+)/g)].map((match) => match[1]));
 const defaults = [];
 const palettes = JSON.parse(execFileSync('php', ['-r', "require 'vendor/autoload.php'; echo json_encode(array_map(App\\Support\\WebThemePalette::variables(...), App\\Support\\WebThemePalette::PRESETS));"], { encoding: 'utf8' }));
+assert.deepEqual(Object.keys(palettes), ['navy', 'smkn1', 'modern'], 'Tersedia tiga palet tambahan untuk tema bawaan.');
+const themed = 'html[data-web-theme]:not([data-web-theme=default])';
 
 function contrast(foreground, background) {
     const luminance = (hex) => {
@@ -95,6 +97,12 @@ for (const name of ['app-auth', 'app-dashboard']) {
         }
         assert.ok(contrast('#ffffff', colors['--sibk-color-primary']) >= 4.5, `${theme}: teks putih tombol/sidebar kurang kontras.`);
         assert.ok(contrast(colors['--sibk-color-primary-hero-contrast'], colors['--sibk-color-sidebar-gradient-start']) >= 4.5, `${theme}: label identitas murid kurang kontras.`);
+        for (const part of ['primary-gradient-start', 'primary-gradient-end', 'primary-pressed-hover', 'primary-pressed', 'secondary', 'secondary-hover', 'secondary-gradient-start', 'secondary-gradient-end', 'sidebar-gradient-start', 'sidebar-gradient-mid', 'sidebar-gradient-end']) {
+            assert.ok(contrast('#ffffff', colors[`--sibk-color-${part}`]) >= 4.5, `${theme}: teks putih pada ${part} kurang kontras.`);
+        }
+        for (const surface of ['page', 'surface-raised', 'field']) {
+            assert.ok(contrast(colors['--sibk-focus-ring'], colors[`--sibk-color-${surface}`]) >= 3, `${theme}: indikator fokus pada ${surface} kurang kontras.`);
+        }
         for (const token of Object.keys(colors)) {
             assert.doesNotMatch(token, /--sibk-color-(?:success|warning|danger|info|followup|text|preview)/, `${theme}: warna status, teks, dan kertas harus tetap.`);
         }
@@ -102,6 +110,9 @@ for (const name of ['app-auth', 'app-dashboard']) {
     assert.ok(contrast('#ffffff', values['--sibk-color-primary-gradient-start']) >= 4.5, `${name}: teks tombol utama harus terbaca pada ujung terang gradasi.`);
     assert.ok(contrast('#ffffff', values['--sibk-color-sidebar-gradient-start']) >= 4.5, `${name}: teks sidebar harus terbaca pada ujung terang gradasi.`);
     if (name === 'app-dashboard') {
+        const secondary = rule(css, `${themed} .sibk-btn-secondary`);
+        assert.equal(property(secondary, 'background'), 'linear-gradient(145deg, var(--sibk-color-secondary-gradient-start), var(--sibk-color-secondary-gradient-end))');
+        assert.equal(property(secondary, 'color'), '#ffffff');
         assert.ok(/\$sibk-tone-primary-text:\s*#[\da-f]+;/i.test(source), 'Teks status utama harus memiliki nilai semantik sendiri, terpisah dari warna merek.');
         for (const selector of ['.sibk-nav-link', '.sibk-sidebar__section', '.sibk-sidebar__tagline']) {
             assert.ok(contrast(property(rule(css, selector), 'color'), values['--sibk-color-sidebar-gradient-start']) >= 4.5, `${selector}: teks harus terbaca pada ujung terang sidebar.`);
@@ -111,6 +122,9 @@ for (const name of ['app-auth', 'app-dashboard']) {
         assert.doesNotMatch(css, /\.sibk-sidebar__brand small[^{}]*\{[^}]*opacity:/, 'Teks kecil logo tidak boleh pudar.');
         const hover = rule(css, '.sibk-nav-link:hover:not(.is-planned):not(.is-active)');
         assert.ok(contrast(property(hover, 'color'), overlay(values['--sibk-color-sidebar-gradient-start'], property(hover, 'background'))) >= 4.5, 'Teks menu sidebar harus terbaca saat hover.');
+        for (const [theme, colors] of Object.entries(palettes)) {
+            assert.ok(contrast(property(hover, 'color'), overlay(colors['--sibk-color-sidebar-gradient-start'], property(hover, 'background'))) >= 4.5, `${theme}: teks menu sidebar harus terbaca saat hover.`);
+        }
         for (const tone of ['primary', 'warning', 'success', 'info', 'danger']) {
             const base = rule(css, `.sibk-icon-tone--${tone}`);
             const badge = rule(css, `.sibk-icon-tone--${tone}.badge`);
@@ -122,7 +136,11 @@ for (const name of ['app-auth', 'app-dashboard']) {
         assert.equal(property(placeholder, 'opacity'), '1', 'Placeholder formulir tidak boleh memudarkan warna teks yang sudah memenuhi kontras.');
         assert.ok(contrast(values['--sibk-color-text-muted'], values['--sibk-color-field']) >= 4.5, 'Warna placeholder dan bidang formulir harus memiliki kontras minimal 4,5:1.');
     }
-    assert.doesNotMatch(css, /html\[data-web-theme=(?:pine|slate)\]/, 'Nilai preset hanya boleh memiliki satu sumber di WebThemePalette.');
+    const focus = rule(css, `${themed} :is(a, button, input, select, textarea, [tabindex]):focus-visible`);
+    assert.equal(property(focus, 'outline'), '2px solid var(--sibk-focus-ring)', `${name}: fokus keyboard harus memiliki garis kontras.`);
+    assert.equal(property(focus, 'outline-offset'), '2px');
+    assert.equal(property(focus, 'box-shadow'), '0 0 0 2px #ffffff', `${name}: fokus tetap terlihat pada permukaan gelap.`);
+    assert.doesNotMatch(css, /html\[data-web-theme=(?:navy|smkn1|modern)\]/, 'Nilai preset hanya boleh memiliki satu sumber di WebThemePalette.');
     defaults.push(values);
 }
 

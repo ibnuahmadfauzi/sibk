@@ -7,8 +7,9 @@ namespace App\Support;
 final class WebThemePalette
 {
     public const PRESETS = [
-        'pine' => ['primary' => '#1f6658', 'page' => '#edf4f0', 'surface' => '#f8fcf9'],
-        'slate' => ['primary' => '#465a75', 'page' => '#eff2f6', 'surface' => '#f8fafc'],
+        'navy' => ['primary' => '#175690', 'secondary' => '#175690', 'sidebar' => '#012340', 'accent' => '#175690', 'page' => '#f0f6fc', 'surface' => '#ffffff'],
+        'smkn1' => ['primary' => '#00783b', 'secondary' => '#0076a8', 'sidebar' => '#006b3c', 'accent' => '#fff000', 'page' => '#f8fafc', 'surface' => '#ffffff'],
+        'modern' => ['primary' => '#c2185b', 'secondary' => '#007c91', 'sidebar' => '#2a3e7c', 'accent' => '#ffad41', 'page' => '#f8fafc', 'surface' => '#ffffff'],
     ];
 
     public const DEFAULT_COLORS = ['primary' => '#2659a0', 'page' => '#f8f0ea', 'surface' => '#fdfbf9'];
@@ -17,14 +18,22 @@ final class WebThemePalette
     public static function variables(array $palette): array
     {
         $brand = $palette['primary'];
+        $secondary = $palette['secondary'] ?? $brand;
+        $sidebar = $palette['sidebar'] ?? $brand;
         $page = $palette['page'];
         $surface = $palette['surface'];
         $hover = self::mix('#000000', $brand, 15);
+        $secondaryHover = self::mix('#000000', $secondary, 15);
+        $sidebarMid = self::mix('#000000', $sidebar, 15);
         $shadow = self::mix('#000000', $page, 20);
         $white = 'rgba(255, 255, 255, 0.95)';
 
         return [
             '--sibk-color-primary' => $brand,
+            '--sibk-color-secondary' => $secondary,
+            '--sibk-color-secondary-hover' => $secondaryHover,
+            '--sibk-color-secondary-gradient-start' => $secondary,
+            '--sibk-color-secondary-gradient-end' => $secondaryHover,
             '--sibk-color-primary-hover' => $hover,
             '--sibk-color-primary-soft' => self::mix('#ffffff', $brand, 92),
             '--sibk-color-primary-gradient-start' => $brand,
@@ -41,17 +50,18 @@ final class WebThemePalette
             '--sibk-color-primary-hero-contrast' => '#ffffff',
             '--sibk-color-primary-panel-hover' => self::mix('#000000', $brand, 40),
             '--sibk-color-primary-panel-info' => self::mix('#ffffff', $brand, 80),
-            '--sibk-color-sidebar-card-start' => $brand,
-            '--sibk-color-sidebar-gradient-start' => $brand,
-            '--sibk-color-sidebar-gradient-mid' => $hover,
-            '--sibk-color-sidebar-gradient-end' => self::mix('#000000', $brand, 35),
+            '--sibk-color-sidebar-card-start' => $sidebar,
+            '--sibk-color-sidebar-gradient-start' => $sidebar,
+            '--sibk-color-sidebar-gradient-mid' => $sidebarMid,
+            '--sibk-color-sidebar-gradient-end' => self::mix('#000000', $sidebar, 35),
             '--sibk-color-primary-shadow-pressed-rgb' => self::rgb(self::mix('#000000', $brand, 65)),
-            '--sibk-color-sidebar-gradient-mid-rgb' => self::rgb($hover),
-            '--sibk-color-sidebar-shadow-rgb' => self::rgb(self::mix('#000000', $brand, 40)),
-            '--sibk-color-sidebar-logo-shadow-rgb' => self::rgb(self::mix('#000000', $brand, 40)),
+            '--sibk-color-sidebar-gradient-mid-rgb' => self::rgb($sidebarMid),
+            '--sibk-color-sidebar-shadow-rgb' => self::rgb(self::mix('#000000', $sidebar, 40)),
+            '--sibk-color-sidebar-logo-shadow-rgb' => self::rgb(self::mix('#000000', $sidebar, 40)),
             '--sibk-color-panel-shadow-rgb' => self::rgb(self::mix('#000000', $brand, 65)),
             '--sibk-color-primary-label-rgb' => self::rgb($brand),
             '--sibk-color-page' => $page,
+            '--sibk-color-accent' => $palette['accent'] ?? '#cf6a2d',
             '--sibk-color-surface' => $page,
             '--sibk-color-field' => $page,
             '--sibk-color-brand-panel' => $page,
@@ -63,7 +73,7 @@ final class WebThemePalette
             '--sibk-color-border-light' => self::mix('#000000', $page, 4),
             '--sibk-color-border-cool' => self::mix('#000000', $page, 8),
             '--sibk-color-shadow-warm-rgb' => self::rgb($shadow),
-            '--sibk-focus-ring' => self::rgba($brand, 0.35),
+            '--sibk-focus-ring' => $brand,
             '--sibk-shadow-button' => '5px 5px 12px '.self::rgba(self::mix('#000000', $brand, 25), 0.42).', -4px -4px 10px '.$white.', 0 3px 6px '.self::rgba($brand, 0.3),
             '--sibk-shadow-raised-sm' => '3px 3px 6px '.self::rgba($shadow, 0.45).', -3px -3px 6px '.$white,
             '--sibk-shadow-raised' => '6px 6px 14px '.self::rgba($shadow, 0.5).', -6px -6px 14px '.$white.', 2px 2px 4px '.self::rgba($shadow, 0.25),
