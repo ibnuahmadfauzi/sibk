@@ -12,6 +12,11 @@
 }
 
 html[data-web-theme]:not([data-web-theme="default"]) {
+  .sibk-sidebar__mobile-header {
+    .offcanvas-title { color: #ffffff; }
+    .btn-close { opacity: 1; }
+  }
+
   .sibk-btn-secondary {
     background: linear-gradient(145deg, var(--sibk-color-secondary-gradient-start), var(--sibk-color-secondary-gradient-end)) !important;
     border-color: var(--sibk-color-secondary) !important;
