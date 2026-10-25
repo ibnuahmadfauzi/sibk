@@ -154,6 +154,7 @@ class EtatibSyncService
                     }
                     $existing = ExternalTatibRecord::query()
                         ->where('source_identifier', $item['source_id'])
+                        ->lockForUpdate()
                         ->first();
 
                     if ($duplicateSourceIds->contains($item['source_id'])) {
@@ -172,23 +173,15 @@ class EtatibSyncService
                     $manualMapping = is_string($sourceName)
                         ? $manualMappings->get($this->identityNormalizer->key($item['nisn'], $sourceName))
                         : null;
-                    $student = $manualMapping?->student;
+                    $student = Student::query()->where('nisn', $item['nisn'])->first() ?? $manualMapping?->student;
 
-                    if ($student === null && $manualMapping === null) {
-                        $student = Student::query()->where('nisn', $item['nisn'])->first();
-                        if ($student === null) {
-                            $this->issue($run, $item, 'student_not_found', 'NISN e-Tatib belum ditemukan pada master murid.');
-                        } elseif (is_string($sourceName)
-                            && ! $this->namesMatch($sourceName, $student->name)
-                        ) {
-                            $this->issue(
-                                $run,
-                                $item,
-                                'student_name_mismatch',
-                                'Nama e-Tatib berbeda dengan nama pada master murid. Record ditahan tanpa penautan.',
-                            );
-                            $student = null;
-                        }
+                    if ($student === null) {
+                        $this->issue($run, $item, 'student_not_found', 'NISN e-Tatib belum ditemukan pada master murid.');
+                    }
+
+                    if ($existing !== null && $existing->student_id !== $student?->getKey()
+                        && DB::table('case_etatib_links')->where('external_tatib_record_id', $existing->getKey())->whereNull('deleted_at')->lockForUpdate()->first() !== null) {
+                        throw new EtatibUnavailableException('Pelanggaran e-Tatib sudah tertaut ke kasus BK dengan murid berbeda. Periksa pencocokan sebelum sinkronisasi.');
                     }
 
                     if ($student !== null) {
@@ -321,7 +314,7 @@ class EtatibSyncService
                 throw new EtatibUnavailableException('Murid pilihan tidak tersedia. Tinjau data kembali.');
             }
             $sameNisn = Student::query()->where('nisn', $nisn)->first();
-            if ($sameNisn !== null && $this->identityNormalizer->name($sameNisn->name) === $this->identityNormalizer->name($name)) {
+            if ($sameNisn !== null) {
                 throw new EtatibUnavailableException('Identitas tersebut sudah cocok otomatis. Tinjau data kembali.');
             }
             $mapping = EtatibIdentityMapping::query()
@@ -459,16 +452,12 @@ class EtatibSyncService
         ]);
     }
 
-    private function namesMatch(string $sourceName, string $masterName): bool
-    {
-        return $this->identityNormalizer->name($sourceName) === $this->identityNormalizer->name($masterName);
-    }
-
     private function reconcileUnlinkedRecords(?User $actor): int
     {
         $linked = 0;
         ExternalTatibRecord::query()
             ->whereNull('student_id')
+            ->lockForUpdate()
             ->eachById(function (ExternalTatibRecord $record) use ($actor, &$linked): void {
                 $mapping = $record->source_student_name === null
                     ? null
@@ -478,20 +467,13 @@ class EtatibSyncService
                         ->where('source_name_hash', $this->identityNormalizer->nameHash($record->source_student_name))
                         ->with('student')
                         ->first();
-                $student = $mapping?->student;
-
+                $student = Student::query()->where('nisn', $record->nisn)->first() ?? $mapping?->student;
                 if ($student === null) {
-                    $students = Student::query()->where('nisn', $record->nisn)->get();
-                    if ($students->count() !== 1) {
-                        return;
-                    }
+                    return;
+                }
 
-                    $student = $students->firstOrFail();
-                    if ($record->source_student_name !== null
-                        && ! $this->namesMatch($record->source_student_name, $student->name)
-                    ) {
-                        return;
-                    }
+                if (DB::table('case_etatib_links')->where('external_tatib_record_id', $record->getKey())->whereNull('deleted_at')->lockForUpdate()->first() !== null) {
+                    throw new EtatibUnavailableException('Pelanggaran e-Tatib sudah tertaut ke kasus BK dengan murid berbeda. Periksa pencocokan sebelum sinkronisasi.');
                 }
 
                 $record->update(['student_id' => $student->getKey()]);

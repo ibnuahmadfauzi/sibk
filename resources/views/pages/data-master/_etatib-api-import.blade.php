@@ -8,7 +8,13 @@
                     @if($etatibAutomaticSetting['last_run'])
                         <span class="d-block small mt-1">
                             Terakhir {{ $etatibAutomaticSetting['last_run']->started_at->copy()->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y, H.i') }}:
-                            {{ $etatibAutomaticSetting['last_run']->status === 'failed' ? 'Gagal' : 'Selesai' }}
+                            {{ match ($etatibAutomaticSetting['last_run']->status) {
+                                \App\Models\ExternalSyncRun::STATUS_RUNNING => $etatibAutomaticSetting['last_run']->started_at->lte(now()->subSeconds(\App\Integrations\IntegrationOperationLock::LEASE_TTL_SECONDS))
+                                    ? 'Perlu diperiksa' : 'Sedang berjalan',
+                                \App\Models\ExternalSyncRun::STATUS_FAILED => 'Gagal',
+                                \App\Models\ExternalSyncRun::STATUS_SUCCEEDED, \App\Models\ExternalSyncRun::STATUS_WARNING => 'Selesai',
+                                default => 'Perlu diperiksa',
+                            } }}
                         </span>
                     @endif
                 </div>
@@ -105,6 +111,7 @@
         <div class="sibk-panel__body p-4">
             <h2 class="fs-6 fw-bold" id="etatib-schedule-title">Jadwal Pembaruan e-Tatib</h2>
             <p class="small text-muted">Pilih hari dan jam dalam WIB. Mengubah jadwal tidak mengaktifkan atau menonaktifkan pembaruan otomatis.</p>
+            @if($scheduleErrors->has('etatib_schedule'))<div class="alert alert-warning" role="alert">{{ $scheduleErrors->first('etatib_schedule') }}</div>@endif
             <form action="{{ route('data-master.etatib.automatic.schedule') }}" method="POST" class="d-grid gap-3" data-etatib-schedule-form>
                 @csrf
                 @method('PATCH')
