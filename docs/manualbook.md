@@ -1219,6 +1219,29 @@ Pada VPS berbasis systemd, `sudo systemctl enable --now cron` mengaktifkan layan
 
 Nama paket PHP bisa berbeda menurut OS atau panel. Gunakan paket resmi yang kompatibel dan periksa hasil `composer check-platform-reqs --no-dev`.
 
+### 6.1.1 Docker untuk perintah CLI
+
+`Dockerfile` pada paket rilis menyediakan PHP CLI 8.5.12, Composer 2, serta ekstensi yang diperlukan, termasuk GD dan ZIP. Image memakai pengaturan `session.upload_progress.enabled=0` sesuai catatan keamanan di atas. Docker Engine harus sudah tersedia pada mesin pengelola. Contoh berikut untuk shell Linux, dijalankan sebagai akun aplikasi dari direktori rilis yang telah diperiksa:
+
+```sh
+docker build --pull -t ruang-bk-cli:8.5.12 .
+docker run --rm ruang-bk-cli:8.5.12 php -v
+docker run --rm --user "$(id -u):$(id -g)" -e COMPOSER_HOME=/tmp/composer --mount "type=bind,src=$(pwd),dst=/var/www/html" ruang-bk-cli:8.5.12 composer check-platform-reqs --lock --no-dev
+```
+
+Jika pemeriksaan lulus, pemasangan dependency dapat menggunakan image yang sama:
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" -e COMPOSER_HOME=/tmp/composer --mount "type=bind,src=$(pwd),dst=/var/www/html" ruang-bk-cli:8.5.12 composer install --no-dev --prefer-dist --optimize-autoloader
+docker run --rm --user "$(id -u):$(id -g)" -e COMPOSER_HOME=/tmp/composer --mount "type=bind,src=$(pwd),dst=/var/www/html" ruang-bk-cli:8.5.12 composer check-platform-reqs --no-dev
+```
+
+Bind mount mempertahankan source, `.env`, `vendor`, dan `storage` pada host; UID/GID yang sama mencegah berkas menjadi milik root. Image tidak menyalin rahasia atau data sekolah dan tidak menjalankan pembuatan kunci, migrasi, atau seeder secara otomatis. ZIP produksi sudah membawa `public/build`, sehingga Node.js/npm tidak diperlukan pada server bila aset bawaan digunakan.
+
+Layanan web tetap memerlukan Nginx/PHP-FPM, database, dan pengaturan penyimpanan yang sesuai. Image CLI ini tidak membuka layanan web atau memasang cron. PHP web/FPM dan cron host tetap harus memenuhi persyaratan rilis; mengganti image CLI tidak memperbarui runtime tersebut. Jika perintah Artisan dijalankan di kontainer, pastikan koneksi databasenya dapat dijangkau: `127.0.0.1` di kontainer menunjuk ke kontainer itu sendiri. Pada Docker Engine Linux, opsi `--network host` dapat dipakai bila database berada pada loopback host dan kebijakan sekolah mengizinkannya.
+
+Pasang scheduler sekali pada host sesuai 6.3. Jika pemicu host menjalankan CLI melalui Docker, gunakan image, source/storage, konfigurasi database, dan hak akses yang sama untuk setiap pemanggilan `schedule:run`; jangan membuat pemicu tambahan atau memasang crontab di kontainer sementara. Perintah `sibk:pasang-scheduler` ditujukan untuk akun aplikasi pada host Linux yang menyediakan `crontab`.
+
 ## 6.2 Instalasi pertama
 
 ![Gambar 102. CONTOH Pengisian lingkungan produksi tanpa rahasia asli](manualbook/gambar/v2-server-env.png)
@@ -1343,7 +1366,7 @@ QUEUE_CONNECTION=sync
 1. Buka `https://bk.example.sch.id/up` dan halaman login melalui HTTPS. Pastikan HTTP dialihkan ke HTTPS, aset tampil, dan source tidak dapat dibuka langsung. Login Admin IT sekolah, ganti sandi sementara, buat tahun ajaran, lalu periksa Data Master. Dengan akun sah per peran, periksa menu dan izin Guru BK, Koordinator BK, serta Waka Kesiswaan; akses tanpa izin harus ditolak. Uji impor murid, layanan, laporan, unggah logo, dan logout dengan data uji yang disetujui sekolah.
 2. Pantau kapasitas disk, backup, MySQL/PHP-FPM/Nginx, `storage/logs/laravel.log`, `storage/logs/scheduler.log`, dan log cron. Rotasikan `scheduler.log` melalui kebijakan rotasi log server agar log setiap menit tidak memenuhi disk. Pastikan jam server sinkron; tanggal operasional, tampilan waktu, serta jadwal retensi/e-Tatib otomatis memakai WIB (`Asia/Jakarta`), tanpa pengaturan tambahan pengguna. Pertahankan `config/app.php` pada UTC untuk timestamp internal; jangan menggeser data lama atau jam sumber e-Tatib secara manual. Jika pembaruan otomatis e-Tatib sudah diaktifkan, periksa status sinkronisasi terakhir pada UI dan error log.
 3. Uji rilis di lingkungan validasi. Sebelum maintenance atau menjeda cron produksi, jalankan `composer check-platform-reqs --lock --no-dev` dari folder rilis baru yang masih terpisah dari aplikasi aktif. Pastikan PHP CLI, web/FPM, dan cron memenuhi persyaratan rilis baru; jika gagal, hentikan pembaruan aplikasi dan minta administrator menyiapkan runtime yang sesuai. Setelah pemeriksaan lulus, jeda **hanya** pemicu cron Ruang BK melalui panel atau `crontab -e` dan catat entri semula; jangan gunakan `crontab -r`. Jalankan `php artisan down --with-secret` sebagai akun aplikasi dan simpan URL bypass yang dihasilkan secara privat untuk penguji berwenang. Tunggu seluruh penulisan data, termasuk sinkronisasi, retensi, impor, dan perintah manual yang sedang berjalan, selesai **sebelum** backup, penggantian source, atau migrasi.
-4. Ambil satu set backup database, `storage/app`, dan `.env` dari keadaan yang sama sesuai 6.5, tanpa menjalankan langkah pembukaan akses atau pemulihan cron di akhir prosedur backup. Pertahankan `.env`, `storage`, `APP_KEY`, dan `ALUMNI_RETENTION_KEY`. Tempatkan source rilis baru, jalankan `composer install --no-dev --prefer-dist --optimize-autoloader` sesuai `composer.lock`, serta bangun atau serahkan `public/build` dari rilis source yang sama. Jalankan `php artisan migrate --force`, `php artisan config:cache`, dan `php artisan view:cache`. Jangan mengulang `key:generate` atau membuat ulang kunci retensi.
+4. Ambil satu set backup database, `storage/app`, dan `.env` dari keadaan yang sama sesuai 6.5, tanpa menjalankan langkah pembukaan akses atau pemulihan cron di akhir prosedur backup. Pertahankan `.env`, `storage`, `APP_KEY`, dan `ALUMNI_RETENTION_KEY`. Tempatkan source rilis baru, jalankan `composer install --no-dev --prefer-dist --optimize-autoloader` sesuai `composer.lock`, lalu `composer check-platform-reqs --no-dev`, serta bangun atau serahkan `public/build` dari rilis source yang sama. Jalankan `php artisan migrate --force`, `php artisan config:cache`, dan `php artisan view:cache`. Jangan mengulang `key:generate` atau membuat ulang kunci retensi.
 5. Setelah dependensi, migrasi, dan cache siap, gunakan URL bypass privat untuk uji login, logo, skema, dan menu serta izin tiap peran saat akses umum masih dalam maintenance; URL ini tidak melewati login. Periksa `php artisan schedule:list` untuk definisi jadwal saja. Jika semua pemeriksaan berhasil, jalankan `php artisan up`, pulihkan **satu** pemicu cron yang dicatat, lalu periksa log dan hasil tugas yang benar-benar jatuh tempo. Bila lokasi rilis berubah, arahkan satu pemicu itu ke lokasi baru; jangan menyunting crontab bersamaan dengan pemasang scheduler. Jika pembaruan atau pemeriksaan gagal, biarkan maintenance dan jeda cron tetap aktif, lalu selidiki atau pulihkan dari backup sesuai 6.5 tanpa reset database.
 
 ## 6.5 Backup dan pemulihan

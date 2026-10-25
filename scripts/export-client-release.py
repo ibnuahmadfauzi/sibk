@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {
     'artisan', 'composer.json', 'composer.lock', 'package.json', 'package-lock.json',
     'vite.config.js', '.gitignore', '.gitattributes', '.editorconfig', '.npmrc',
-    'LICENSE', 'LICENSE.md', 'NOTICE',
+    'LICENSE', 'LICENSE.md', 'NOTICE', 'Dockerfile',
 }
 TEMPLATES = {'README.md': 'README.md', '.env.example': '.env.example',
              'database/seeders/DatabaseSeeder.php': 'DatabaseSeeder.php'}

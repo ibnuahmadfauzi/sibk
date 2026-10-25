@@ -68,6 +68,10 @@ Admin IT membuat tahun ajaran dan memasukkan tautan API Siswa di Data Master.
 Jalankan pada database lokal yang telah diperiksa. Jangan menjalankan
 `migrate:fresh` atau reset pada database bersama.
 
+## Docker CLI
+
+`Dockerfile` menyediakan PHP CLI 8.5.12, Composer 2, serta ekstensi untuk perintah aplikasi. Image tidak menyalin source, `.env`, atau data sekolah. Petunjuk build, bind mount, izin berkas, dan batas penggunaannya tersedia pada [panduan Docker CLI](docs/manualbook.md#611-docker-untuk-perintah-cli). PHP web/FPM dan pemicu scheduler tetap disiapkan serta diverifikasi oleh pengelola server.
+
 ## Retensi alumni
 
 Pemasangan pemicu scheduler Linux tersedia melalui `php artisan sibk:pasang-scheduler` setelah konfigurasi dan migration selesai. Jalankan sebagai akun aplikasi, bukan root; `--dry-run` menampilkan rencana tanpa menulis crontab. Perintah memakai lokasi aplikasi dan PHP yang sedang digunakan, mempertahankan entri lain, dan mencegah entri terkelola berulang. Layanan cron harus sudah tersedia dan aktif. Petunjuk operasional lengkap berada pada [panduan rilis klien](scripts/client-release/README.md#operasional-dan-pembaruan).
