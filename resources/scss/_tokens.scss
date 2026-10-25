@@ -22,6 +22,7 @@
   --sibk-color-primary-hero-strong: #{$sibk-primary-hero-strong};
   --sibk-color-primary-hero-muted: #{$sibk-primary-hero-muted};
   --sibk-color-primary-hero-contrast: #{$sibk-primary-hero-contrast};
+  --sibk-color-student-name: #{$sibk-student-name};
   --sibk-color-primary-panel-hover: #{$sibk-primary-panel-hover};
   --sibk-color-primary-panel-info: #{$sibk-primary-panel-info};
   --sibk-color-primary-shadow-pressed-rgb: #{color.channel($sibk-primary-shadow-pressed, 'red', $space: rgb)}, #{color.channel($sibk-primary-shadow-pressed, 'green', $space: rgb)}, #{color.channel($sibk-primary-shadow-pressed, 'blue', $space: rgb)};
