@@ -58,9 +58,8 @@
 
         @if($tab === 'conflicts')
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <span class="text-muted small me-1">Pratinjau pencocokan otomatis:</span>
-                <button class="btn btn-outline-primary btn-sm" type="button" data-etatib-auto-open="nisn" data-action-tooltip="Cari pasangan dengan NISN yang sama untuk diperiksa sebelum diterapkan.">Berdasarkan NISN</button>
-                <button class="btn btn-outline-primary btn-sm" type="button" data-etatib-auto-open="name" data-action-tooltip="Cari pasangan dengan nama yang sama persis. Nama dengan beberapa kandidat tetap perlu diperiksa manual.">Berdasarkan Nama</button>
+                <span class="text-muted small me-1">Pratinjau pencocokan otomatis berdasarkan NISN Dapodik:</span>
+                <button class="btn btn-outline-primary btn-sm" type="button" data-etatib-auto-open data-action-tooltip="Cari pasangan dengan NISN yang sama untuk diperiksa sebelum diterapkan.">Pratinjau NISN</button>
             </div>
             <section class="sibk-panel" aria-label="Belum Cocok">
                 <div class="table-responsive">

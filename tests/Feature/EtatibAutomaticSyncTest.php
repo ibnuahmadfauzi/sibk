@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Integrations\IntegrationOperationLock;
 use App\Models\AuditLog;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
@@ -11,12 +12,13 @@ use App\Models\IntegrationSetting;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
-use App\Services\EtatibSyncService;
 use App\Services\AlumniRetentionRegistry;
+use App\Services\EtatibSyncService;
 use App\Services\SimpleEtatibApiService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -93,6 +95,87 @@ final class EtatibAutomaticSyncTest extends TestCase
             ->assertSee('Pembaruan otomatis aktif sesuai hari dan jam terpilih (WIB)')
             ->assertSee('Tinjau Data')
             ->assertDontSee(self::URL);
+    }
+
+    public function test_busy_activation_keeps_preview_for_retry_without_fetching_or_mutating(): void
+    {
+        $admin = $this->admin();
+        Student::query()->create(['nisn' => '0093200788', 'name' => 'FERRYSCHA PUTRI']);
+        Http::fake([self::URL => Http::response($this->payload())]);
+
+        $this->actingAs($admin)->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()->assertSessionHas('etatib_api_preview');
+        $lock = Cache::lock('sibk:integration:etatib:operation', 60);
+        $this->assertTrue($lock->get());
+        try {
+            $this->from(route('data-master.index', ['tab' => 'etatib']))
+                ->post(route('data-master.etatib.automatic.store'), [
+                    'api_url' => self::URL, 'current_password' => 'password',
+                ])
+                ->assertRedirect()
+                ->assertSessionHasErrors('etatib_automatic', null, 'etatib_automatic')
+                ->assertSessionHas('etatib_api_preview');
+        } finally {
+            $lock->release();
+        }
+
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('external_sync_runs', 0);
+        $this->assertDatabaseCount('external_tatib_records', 0);
+    }
+
+    public function test_busy_manual_sync_keeps_preview_and_busy_stored_actions_are_reported(): void
+    {
+        $admin = $this->admin();
+        $this->automaticSetting($admin);
+        Http::fake([self::URL => Http::response($this->payload())]);
+        $this->actingAs($admin)->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
+            ->assertOk()->assertSessionHas('etatib_api_preview');
+        $lock = Cache::lock('sibk:integration:etatib:operation', 60);
+        $this->assertTrue($lock->get());
+        try {
+            $this->from(route('data-master.index', ['tab' => 'etatib']))
+                ->post(route('data-master.etatib.sync'), ['api_url' => self::URL])
+                ->assertRedirect()->assertSessionHasErrors('etatib_sync')
+                ->assertSessionHas('etatib_api_preview');
+            $this->post(route('data-master.etatib.automatic.sync'))
+                ->assertRedirect()->assertSessionHasErrors('etatib_automatic', null, 'etatib_automatic');
+            $this->delete(route('data-master.etatib.automatic.destroy'), ['current_password' => 'password'])
+                ->assertRedirect()->assertSessionHasErrors('etatib_automatic', null, 'etatib_automatic');
+        } finally {
+            $lock->release();
+        }
+
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('external_sync_runs', 0);
+        $this->assertTrue(IntegrationSetting::query()->sole()->automatic_sync_enabled);
+    }
+
+    public function test_data_master_shows_running_automatic_sync_as_in_progress(): void
+    {
+        $admin = $this->admin();
+        $this->automaticSetting($admin);
+        ExternalSyncRun::query()->create([
+            'source' => 'etatib', 'status' => ExternalSyncRun::STATUS_RUNNING,
+            'started_at' => now(), 'triggered_by' => null,
+        ]);
+
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'etatib']))
+            ->assertOk()->assertSee('Sedang berjalan');
+    }
+
+    public function test_data_master_flags_running_sync_after_lock_lease_expires(): void
+    {
+        $admin = $this->admin();
+        $this->automaticSetting($admin);
+        ExternalSyncRun::query()->create([
+            'source' => 'etatib', 'status' => ExternalSyncRun::STATUS_RUNNING,
+            'started_at' => now()->subSeconds(IntegrationOperationLock::LEASE_TTL_SECONDS + 1),
+            'triggered_by' => null,
+        ]);
+
+        $this->actingAs($admin)->get(route('data-master.index', ['tab' => 'etatib']))
+            ->assertOk()->assertSee('Perlu diperiksa')->assertDontSee('Sedang berjalan');
     }
 
     public function test_invalid_password_or_private_url_cannot_activate_automatic_sync(): void

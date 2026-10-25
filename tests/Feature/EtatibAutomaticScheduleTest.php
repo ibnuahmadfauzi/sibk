@@ -12,6 +12,7 @@ use App\Services\EtatibAutomaticSyncService;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 final class EtatibAutomaticScheduleTest extends TestCase
@@ -60,6 +61,25 @@ final class EtatibAutomaticScheduleTest extends TestCase
         $this->assertTrue($service->isDueAt(CarbonImmutable::parse('2026-10-26 09:05:00', 'Asia/Jakarta')));
         $this->assertFalse($service->isDueAt(CarbonImmutable::parse('2026-10-27 09:05:00', 'Asia/Jakarta')));
         $this->assertFalse($service->isDueAt(CarbonImmutable::parse('2026-10-26 10:00:00', 'Asia/Jakarta')));
+    }
+
+    public function test_busy_schedule_change_keeps_old_schedule_and_reports_conflict(): void
+    {
+        $admin = $this->user('admin_it');
+        IntegrationSetting::query()->create(['provider' => 'etatib', 'automatic_sync_url' => 'https://etatib.example.test/pelanggaran']);
+        $lock = Cache::lock('sibk:integration:etatib:operation', 60);
+        $this->assertTrue($lock->get());
+        try {
+            $this->actingAs($admin)->patch(route('data-master.etatib.automatic.schedule'), [
+                'schedule_days' => [1], 'schedule_times' => ['09:00'], 'current_password' => 'password',
+            ])->assertRedirect()->assertSessionHasErrors('etatib_schedule', null, 'etatib_schedule');
+        } finally {
+            $lock->release();
+        }
+
+        $this->assertSame(['days' => [0, 1, 2, 3, 4, 5, 6], 'times' => ['10:00', '13:00', '15:00']],
+            app(EtatibAutomaticSyncService::class)->schedule());
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 
     public function test_invalid_schedule_or_password_and_non_admin_cannot_change_schedule(): void

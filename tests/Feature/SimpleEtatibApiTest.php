@@ -6,15 +6,14 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\EtatibDuplicateDecision;
-use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
 use App\Models\IntegrationSetting;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
-use App\Services\EtatibSyncService;
 use App\Services\AlumniRetentionRegistry;
+use App\Services\EtatibSyncService;
 use App\Services\SimpleEtatibApiService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -162,7 +161,7 @@ class SimpleEtatibApiTest extends TestCase
             ->assertSee('Sesi tinjauan e-Tatib berakhir. Tinjau data kembali sebelum sinkronisasi.');
     }
 
-    public function test_preview_flags_same_nisn_with_different_name_and_shows_source_class(): void
+    public function test_preview_matches_same_nisn_with_different_source_name(): void
     {
         Student::query()->create([
             'nisn' => '0093200788',
@@ -173,14 +172,14 @@ class SimpleEtatibApiTest extends TestCase
         $this->actingAs($this->admin())
             ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
             ->assertOk()
-            ->assertJsonPath('data.conflicts', 1)
+            ->assertJsonPath('data.matched', 1)
+            ->assertJsonPath('data.conflicts', 0)
             ->assertJsonPath('data.missing_students', 0)
-            ->assertJsonPath('data.name_mismatches', 1)
-            ->assertJsonPath('data.identity_conflicts.0.classroom', '12 PH 2')
-            ->assertJsonPath('data.identity_conflicts.0.reason', 'Nama pada master: Nama di Master · Kelas master: -');
+            ->assertJsonPath('data.name_mismatches', 0)
+            ->assertJsonCount(0, 'data.identity_conflicts');
     }
 
-    public function test_admin_can_choose_master_student_in_preview_and_sync_without_another_mapping_step(): void
+    public function test_preview_does_not_offer_other_student_when_canonical_nisn_exists(): void
     {
         $sameNisn = Student::query()->create(['nisn' => '0093200788', 'name' => 'NAMA LAIN']);
         $suggestion = Student::query()->create(['nisn' => '0012345678', 'name' => 'FERRYSCHA PUTRI']);
@@ -191,10 +190,8 @@ class SimpleEtatibApiTest extends TestCase
         $this->actingAs($this->admin())
             ->postJson(route('data-master.etatib.preview'), ['api_url' => self::URL])
             ->assertOk()
-            ->assertJsonPath('data.identity_conflicts.0.master.id', $sameNisn->id)
-            ->assertJsonPath('data.identity_conflicts.0.master.nisn', '0093200788')
-            ->assertJsonPath('data.identity_conflicts.0.suggestions.0.id', $suggestion->id)
-            ->assertJsonPath('data.identity_conflicts.0.suggestions.0.nisn', '0012345678');
+            ->assertJsonPath('data.matched', 1)
+            ->assertJsonCount(0, 'data.identity_conflicts');
         $this->assertDatabaseCount('etatib_identity_mappings', 0);
 
         $this->post(route('data-master.etatib.sync'), [
@@ -204,10 +201,10 @@ class SimpleEtatibApiTest extends TestCase
                 'name' => 'FERRYSCHA PUTRI',
                 'student_id' => $suggestion->id,
             ]],
-        ])->assertSessionHas('success');
+        ])->assertSessionHasErrors('etatib_sync');
 
-        $this->assertSame($suggestion->id, ExternalTatibRecord::query()->sole()->student_id);
-        $this->assertSame($suggestion->id, EtatibIdentityMapping::query()->sole()->student_id);
+        $this->assertDatabaseCount('external_tatib_records', 0);
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
     }
 
     public function test_forged_preview_identity_choice_rejects_sync_without_mapping(): void

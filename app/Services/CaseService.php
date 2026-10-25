@@ -80,6 +80,7 @@ class CaseService
                     fn ($records) => $records->where('student_id', $student->getKey()),
                     fn ($records) => $records->whereNull('student_id')->where('nisn', $nisn),
                 )
+                ->lockForUpdate()
                 ->get();
 
             if ($etatibRecords->count() !== count(array_unique($etatibIds))) {

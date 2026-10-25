@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ConfigureAutomaticEtatibRequest;
 use App\Http\Requests\Admin\DisableAutomaticEtatibRequest;
 use App\Http\Requests\Admin\UpdateEtatibAutomaticScheduleRequest;
+use App\Integrations\IntegrationBusyException;
 use App\Models\ExternalSyncRun;
 use App\Models\User;
 use App\Services\EtatibAutomaticSyncService;
@@ -23,7 +24,17 @@ final class EtatibAutomaticSyncController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->activate($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions(), $request->duplicateDecisions(), $request->boolean('use_saved_api'));
+        $url = $request->apiUrl();
+        $preview = $request->session()->pull('etatib_api_preview');
+        try {
+            $run = $service->activate($url, $actor, $preview, $request->identityDecisions(), $request->duplicateDecisions(), $request->boolean('use_saved_api'));
+        } catch (IntegrationBusyException) {
+            if (is_array($preview)) {
+                $request->session()->put('etatib_api_preview', $preview);
+            }
+
+            return back()->withErrors(['etatib_automatic' => 'Sinkronisasi e-Tatib sedang berjalan. Coba lagi setelah selesai.'], 'etatib_automatic');
+        }
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors([
@@ -44,7 +55,11 @@ final class EtatibAutomaticSyncController extends Controller
         Gate::forUser($request->user())->authorize('manageDataMaster');
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->synchronizeNow($actor);
+        try {
+            $run = $service->synchronizeNow($actor);
+        } catch (IntegrationBusyException) {
+            return back()->withErrors(['etatib_automatic' => 'Sinkronisasi e-Tatib sedang berjalan. Coba lagi setelah selesai.'], 'etatib_automatic');
+        }
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors([
@@ -64,7 +79,11 @@ final class EtatibAutomaticSyncController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $service->deactivate($actor);
+        try {
+            $service->deactivate($actor);
+        } catch (IntegrationBusyException) {
+            return back()->withErrors(['etatib_automatic' => 'Sinkronisasi e-Tatib sedang berjalan. Coba lagi setelah selesai.'], 'etatib_automatic');
+        }
 
         return back()->with('success', 'Pembaruan otomatis e-Tatib dinonaktifkan. Link tersimpan tetap tersedia.');
     }
@@ -75,7 +94,13 @@ final class EtatibAutomaticSyncController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $service->updateSchedule($request->days(), $request->times(), $actor);
+        try {
+            $service->updateSchedule($request->days(), $request->times(), $actor);
+        } catch (IntegrationBusyException) {
+            return redirect()->route('data-master.index', ['tab' => 'etatib'])
+                ->withErrors(['etatib_schedule' => 'Sinkronisasi e-Tatib sedang berjalan. Coba lagi setelah selesai.'], 'etatib_schedule')
+                ->header('Cache-Control', 'no-store');
+        }
 
         return redirect()->route('data-master.index', ['tab' => 'etatib'])
             ->with('success', 'Jadwal pembaruan otomatis e-Tatib berhasil disimpan.')
