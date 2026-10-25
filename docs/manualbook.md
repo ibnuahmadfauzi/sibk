@@ -1163,7 +1163,7 @@ Ikuti gambar dan langkah pada bagian 1.5 untuk membuka **Akun Saya**, mengubah s
 
 Petugas teknis dapat mengikuti contoh pemasangan pada VPS Ubuntu/Debian dengan Nginx, PHP-FPM, MySQL, dan satu akun Linux aplikasi. Jika server memakai panel web, sesuaikan langkahnya melalui panel dan terminal yang tersedia.
 
-Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan database sesuai server sekolah. Gunakan paket atau repositori rilis resmi yang tercantum dalam serah terima, lalu cocokkan versi dan commit sumbernya dengan `RELEASE.json`. Terapkan pembaruan sesuai versi rilis yang telah diverifikasi.
+Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan database sesuai server sekolah. Gunakan sumber yang tercantum dalam serah terima. Untuk ZIP, cocokkan versi dan commit sumber dengan `RELEASE.json`; untuk repo, clone branch `produksi-smkn1sby` dari `https://github.com/ibnuahmadfauzi/sibk.git` dan catat commit dengan `git rev-parse HEAD`. Terapkan pembaruan sesuai sumber yang telah diverifikasi.
 
 ![Gambar 99. CONTOH Arsitektur acuan deployment server sekolah](manualbook/gambar/deployment.png)
 
@@ -1246,7 +1246,7 @@ Pasang scheduler sekali pada host sesuai 6.3. Jika pemicu host menjalankan CLI m
 
 ![Gambar 102. CONTOH Pengisian lingkungan produksi tanpa rahasia asli](manualbook/gambar/v2-server-env.png)
 
-1. Masuk sebagai akun aplikasi ke `/var/www/sibk`. Dari source rilis repo sekolah, salin `.env.example` ke `.env` **hanya bila belum ada**. Isi domain dan akses database di server. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://bk.example.sch.id`, `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`, dan `FILESYSTEM_DISK=local`. Batasi akses ke `.env`.
+1. Masuk sebagai akun aplikasi ke `/var/www/sibk`. Untuk ZIP, gunakan `.env.example` di root; untuk repo sekolah, gunakan `scripts/client-release/.env.example` karena `.env.example` di root ditujukan untuk pengembangan lokal. Salin template yang sesuai ke `.env` **hanya bila belum ada**, lalu isi domain dan akses database di server. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://bk.example.sch.id`, `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`, dan `FILESYSTEM_DISK=local`. Batasi akses ke `.env`.
 2. Buat nilai rahasia `ALUMNI_RETENTION_KEY` untuk instalasi baru dengan perintah berikut dan salin hasilnya ke `.env`. Simpan bersama backup rahasia. Kunci 32 byte ini harus tetap sama ketika `APP_KEY` dirotasi atau server dipindah.
 
    ```sh
