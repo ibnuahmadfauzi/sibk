@@ -110,6 +110,12 @@ for (const name of ['app-auth', 'app-dashboard']) {
     assert.ok(contrast('#ffffff', values['--sibk-color-primary-gradient-start']) >= 4.5, `${name}: teks tombol utama harus terbaca pada ujung terang gradasi.`);
     assert.ok(contrast('#ffffff', values['--sibk-color-sidebar-gradient-start']) >= 4.5, `${name}: teks sidebar harus terbaca pada ujung terang gradasi.`);
     if (name === 'app-dashboard') {
+        assert.ok(/\.sibk-student-hero__identity-text h2[^{]*\{[^}]*color:\s*var\(--sibk-color-student-name\)/.test(css), 'Nama murid harus memakai warna kuning tema, bukan warna heading global.');
+        for (const [theme, colors] of Object.entries({ default: values, ...palettes })) {
+            for (const stop of ['start', 'end']) {
+                assert.ok(contrast(colors['--sibk-color-student-name'], colors[`--sibk-color-sidebar-gradient-${stop}`]) >= 4.5, `${theme}: nama murid harus memiliki kontras minimal 4,5:1 pada seluruh gradasi profil.`);
+            }
+        }
         const secondary = rule(css, `${themed} .sibk-btn-secondary`);
         assert.equal(property(secondary, 'background'), 'linear-gradient(145deg, var(--sibk-color-secondary-gradient-start), var(--sibk-color-secondary-gradient-end))');
         assert.equal(property(secondary, 'color'), '#ffffff');
