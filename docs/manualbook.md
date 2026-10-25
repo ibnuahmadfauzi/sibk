@@ -1169,7 +1169,7 @@ Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan databas
 
 ## 6.1 Siapkan server
 
-Persyaratan pada bab ini dan `composer.json` menggantikan nomor versi PHP lama pada dokumen Word atau gambar contoh. Pihak sekolah menjalankan pemasangan, pembaruan runtime, dan verifikasi server; repo serta ZIP hanya menyediakan aplikasi dan petunjuknya.
+Pihak sekolah menjalankan pemasangan, pembaruan runtime, dan verifikasi server sesuai persyaratan pada bab ini dan `composer.json`.
 
 ![Gambar 100. CONTOH Prasyarat VPS sekolah](manualbook/gambar/v2-server-prasyarat.png)
 
@@ -1246,7 +1246,7 @@ Pasang scheduler sekali pada host sesuai 6.3. Jika pemicu host menjalankan CLI m
 
 ![Gambar 102. CONTOH Pengisian lingkungan produksi tanpa rahasia asli](manualbook/gambar/v2-server-env.png)
 
-1. Masuk sebagai akun aplikasi ke `/var/www/sibk`. Untuk ZIP, gunakan `.env.example` di root; untuk repo sekolah, gunakan `scripts/client-release/.env.example` karena `.env.example` di root ditujukan untuk pengembangan lokal. Salin template yang sesuai ke `.env` **hanya bila belum ada**, lalu isi domain dan akses database di server. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://bk.example.sch.id`, `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`, dan `FILESYSTEM_DISK=local`. Batasi akses ke `.env`.
+1. Masuk sebagai akun aplikasi ke `/var/www/sibk`. Untuk ZIP, gunakan `.env.example` di root; untuk repo sekolah, gunakan `scripts/client-release/.env.example` karena `.env.example` di root ditujukan untuk pengembangan lokal. Salin template yang sesuai ke `.env` **hanya bila belum ada**, lalu isi domain dan akses database di server. Atur `APP_URL` ke domain HTTPS sekolah yang sebenarnya. Pertahankan `APP_ENV=production`, `APP_DEBUG=false`, `DB_CONNECTION=mysql`, `SESSION_DRIVER=database`, `CACHE_STORE=database`, `QUEUE_CONNECTION=sync`, dan `FILESYSTEM_DISK=local`. Batasi akses ke `.env`.
 2. Buat nilai rahasia `ALUMNI_RETENTION_KEY` untuk instalasi baru dengan perintah berikut dan salin hasilnya ke `.env`. Simpan bersama backup rahasia. Kunci 32 byte ini harus tetap sama ketika `APP_KEY` dirotasi atau server dipindah.
 
    ```sh
@@ -1266,13 +1266,14 @@ Pasang scheduler sekali pada host sesuai 6.3. Jika pemicu host menjalankan CLI m
    # Hanya instalasi baru ketika APP_KEY masih kosong:
    php artisan key:generate --force
    php artisan migrate --force
-   php artisan db:seed --force
+   php artisan db:seed --class=RoleSeeder --force
+   php artisan db:seed --class=ReferenceSeeder --force
    php artisan storage:link
    php artisan config:cache
    php artisan view:cache
    ```
 
-   `key:generate` hanya untuk pemasangan pertama tanpa `APP_KEY`. `migrate --force` memperbarui skema tanpa mereset data. Dalam produksi, `db:seed --force` hanya mengisi peran dan referensi; akun dan data murid tidak dibuat. Jangan gunakan `migrate:fresh`, reset database, atau seeder akun uji. `storage:link` membuat tautan disk publik. Logo unggahan tersimpan di `storage/app/private/branding` dan ditampilkan melalui aplikasi.
+   `key:generate` hanya untuk pemasangan pertama tanpa `APP_KEY`. `migrate --force` memperbarui skema tanpa mereset data. Kedua seeder yang disebutkan hanya mengisi peran dan referensi; akun dan data murid tidak dibuat. Pertahankan `APP_ENV=production` dan jangan gunakan `migrate:fresh`, reset database, atau seeder akun uji. `storage:link` membuat tautan disk publik. Logo unggahan tersimpan di `storage/app/private/branding` dan ditampilkan melalui aplikasi.
 
 ![Gambar 104. CONTOH Pembuatan Admin IT awal dan pergantian sandi](manualbook/gambar/v2-server-admin.png)
 

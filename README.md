@@ -2,17 +2,9 @@
 
 Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 
-## Branch dan status
+## Sumber rilis sekolah
 
-Instalasi sekolah melalui Git memakai branch `produksi-smkn1sby` pada repo ini, yang dibuat dan diperbarui dari `main` yang sudah diverifikasi. Serah terima ZIP tetap diekspor dari `origin/main`: jalankan `git fetch origin main`, lalu `python scripts/export-client-release.py --version 1.0.0 --output outputs/client-release/1.0.0` dan `python scripts/check-client-release.py outputs/client-release/1.0.0`, dengan versi/direktori baru untuk setiap rilis. ZIP memakai template instalasi dan dokumentasi dari commit produksi yang sama, tidak membawa riwayat Git, dan menyertakan `RELEASE.json` berisi commit sumber serta checksum file. Pada instalasi melalui Git, identitas rilis diperiksa melalui commit branch. Kedua cara tetap memerlukan verifikasi instalasi oleh pengelola server sekolah.
-
-- `cobasidebar`: baseline pengembangan aktif.
-- `devlopment`: tahap validasi hasil dari `cobasidebar` sebelum masuk produksi.
-- `main`: versi stabil untuk produksi; tidak dipakai untuk pekerjaan harian.
-- `produksi-smkn1sby`: branch instalasi sekolah yang mengikuti commit produksi dari `main`.
-- Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
-- Alur promosi melalui Pull Request: `cobasidebar` -> `devlopment` -> `main`. Merge setiap tahap setelah pemeriksaan dan pengujian yang sesuai; perpindahan tidak otomatis.
-- Jangan force push, menghapus `main`, atau reset database bersama/produksi.
+Instalasi sekolah melalui Git memakai branch `produksi-smkn1sby` pada repo ini, yang mengikuti `main` setelah diverifikasi. ZIP produksi diserahkan terpisah dari commit produksi yang sama dan menyertakan `RELEASE.json` berisi commit sumber serta checksum file. Pada instalasi melalui Git, identitas rilis diperiksa melalui commit branch. Kedua cara tetap memerlukan verifikasi instalasi oleh pengelola server sekolah.
 
 ## Pemasangan sekolah dari repo produksi
 
@@ -26,10 +18,17 @@ git rev-parse HEAD
 
 Repo memerlukan build aset frontend (`npm ci --ignore-scripts` lalu `npm run build`). Untuk `.env`, gunakan `scripts/client-release/.env.example` dan salin hanya bila `.env` belum ada; root `.env.example` ditujukan untuk pengembangan lokal. Ikuti [panduan rilis klien](scripts/client-release/README.md) dan [Bab 6 panduan server](docs/manualbook.md#6-instalasi-dan-operasional-server-sekolah). Jangan jalankan `composer setup` atau seeder pengembangan pada server sekolah.
 
-Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung.
-Pekerjaan aktif ditentukan dari instruksi/issue, branch/worktree, dan plan/spec
-yang relevan. Fondasi integrasi Dapodik dan e-Tatib sudah selesai, tetapi adapter
-production belum tersedia.
+## Pengembangan lokal
+
+- `cobasidebar`: baseline pengembangan aktif.
+- `devlopment`: tahap validasi hasil dari `cobasidebar` sebelum masuk produksi.
+- `main`: versi stabil untuk produksi; tidak dipakai untuk pekerjaan harian.
+- `produksi-smkn1sby`: branch instalasi sekolah yang mengikuti commit produksi dari `main`.
+- Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
+- Alur promosi melalui Pull Request: `cobasidebar` -> `devlopment` -> `main`. Merge setiap tahap setelah pemeriksaan dan pengujian yang sesuai; perpindahan tidak otomatis.
+- Jangan force push, menghapus `main`, atau reset database bersama/produksi.
+
+Untuk membuat ZIP serah terima dari commit produksi yang sama, jalankan `git fetch origin main`, lalu `python scripts/export-client-release.py --version 1.0.0 --output outputs/client-release/1.0.0` dan `python scripts/check-client-release.py outputs/client-release/1.0.0`. Gunakan versi dan direktori baru untuk setiap rilis.
 
 ## Persyaratan
 
