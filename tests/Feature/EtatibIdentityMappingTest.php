@@ -118,6 +118,21 @@ final class EtatibIdentityMappingTest extends TestCase
         ]);
     }
 
+    public function test_manual_mapping_cannot_override_existing_canonical_nisn(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        Student::query()->create(['nisn' => '0093200788', 'name' => 'Nama Dapodik', 'master_source' => Student::MASTER_SOURCE_DAPODIK]);
+        $other = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Lain']);
+        [$issue, $record] = $this->conflict('0093200788', 'Nama Berbeda', 'source-canonical');
+
+        $this->actingAs($admin)->post(route('data-master.etatib.mappings.store', $issue), [
+            'student_id' => $other->getKey(), 'confirmed' => '1',
+        ])->assertSessionHasErrors('student_id');
+
+        $this->assertNull($record->refresh()->student_id);
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
+    }
+
     public function test_mapping_can_be_changed_and_revoked_back_to_strict_matching(): void
     {
         $admin = $this->userWithRole('admin_it');
@@ -175,6 +190,47 @@ final class EtatibIdentityMappingTest extends TestCase
             'confirmed' => '1',
         ])->assertSessionHasErrors('student_id');
         $this->assertTrue($mapping->refresh()->is_active);
+    }
+
+    public function test_sync_preserves_case_link_when_canonical_nisn_points_to_another_student(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $canonical = Student::query()->create(['nisn' => '0093200788', 'name' => 'Murid Dapodik', 'master_source' => Student::MASTER_SOURCE_DAPODIK]);
+        $previous = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Kasus']);
+        [, $record] = $this->conflict('0093200788', 'Nama e-Tatib', 'source-linked-drift');
+        $record->update(['student_id' => $previous->getKey()]);
+        $case = $this->caseFor($previous, $admin);
+        $case->etatibRecords()->attach($record->getKey(), ['linked_by' => $admin->getKey()]);
+
+        $run = app(EtatibSyncService::class)->synchronizeSnapshot(new EtatibSnapshot(true, [
+            $this->snapshotItem('source-linked-drift', '0093200788', 'Nama e-Tatib'),
+        ]), $admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_FAILED, $run->status);
+        $this->assertSame($previous->getKey(), $record->refresh()->student_id);
+        $this->assertSame($previous->getKey(), $case->refresh()->student_id);
+        $this->assertDatabaseHas('case_etatib_links', ['case_id' => $case->getKey(), 'external_tatib_record_id' => $record->getKey(), 'deleted_at' => null]);
+        $this->assertSame(0, EtatibIdentityMapping::query()->count());
+        $this->assertNotSame($canonical->getKey(), $record->student_id);
+    }
+
+    public function test_new_manual_mapping_cannot_move_record_already_linked_to_a_case(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $previous = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Kasus']);
+        $other = Student::query()->create(['nisn' => '0022222222', 'name' => 'Murid Tujuan']);
+        [$issue, $record] = $this->conflict('0093200788', 'Nama e-Tatib', 'source-manual-linked');
+        $record->update(['student_id' => $previous->getKey()]);
+        $case = $this->caseFor($previous, $admin);
+        $case->etatibRecords()->attach($record->getKey(), ['linked_by' => $admin->getKey()]);
+
+        $this->actingAs($admin)->post(route('data-master.etatib.mappings.store', $issue), [
+            'student_id' => $other->getKey(), 'confirmed' => '1',
+        ])->assertSessionHasErrors('student_id');
+
+        $this->assertSame($previous->getKey(), $record->refresh()->student_id);
+        $this->assertDatabaseCount('etatib_identity_mappings', 0);
+        $this->assertDatabaseHas('case_etatib_links', ['case_id' => $case->getKey(), 'external_tatib_record_id' => $record->getKey(), 'deleted_at' => null]);
     }
 
     public function test_conflict_page_candidates_and_mutations_are_admin_only(): void
@@ -288,7 +344,7 @@ final class EtatibIdentityMappingTest extends TestCase
         $this->assertDatabaseHas('external_sync_issues', ['source_identifier' => 'source-auto-skip', 'resolved_at' => null]);
     }
 
-    public function test_name_preview_only_proposes_unique_normalized_exact_match_and_rejects_stale_batch(): void
+    public function test_name_mode_cannot_automatically_link_same_name_with_different_nisn(): void
     {
         $admin = $this->userWithRole('admin_it');
         $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Nama Sama']);
@@ -297,32 +353,25 @@ final class EtatibIdentityMappingTest extends TestCase
         [$issue, $record] = $this->conflict('0099999991', '  murid   nama SAMA ', 'source-auto-name');
         $this->conflict('0099999992', 'Nama Duplikat', 'source-auto-ambiguous');
 
-        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
-            ->assertOk()
-            ->assertJsonCount(1, 'proposals')
-            ->assertJsonCount(1, 'skipped')
-            ->assertJsonPath('proposals.0.student_id', $student->getKey());
-
-        $student->update(['name' => 'Nama Sekolah Berubah']);
+        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
+            ->assertUnprocessable()->assertJsonValidationErrors('mode');
         $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
-            'mode' => 'name', 'fingerprint' => $preview->json('fingerprint'), 'confirmed' => '1',
+            'mode' => 'name', 'fingerprint' => str_repeat('0', 64), 'confirmed' => '1',
         ])->assertSessionHasErrors('mode');
         $this->assertNull($record->refresh()->student_id);
         $this->assertNull($issue->refresh()->resolved_at);
         $this->assertSame(0, EtatibIdentityMapping::query()->count());
     }
 
-    public function test_name_matching_maps_all_records_of_one_source_identity_once(): void
+    public function test_manual_matching_can_map_all_records_of_one_source_identity_when_nisn_absent(): void
     {
         $admin = $this->userWithRole('admin_it');
         $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Murid Nama Sama']);
         [$firstIssue, $firstRecord] = $this->conflict('0099999991', 'MURID  NAMA SAMA', 'source-name-one');
         [$secondIssue, $secondRecord] = $this->conflict('0099999991', 'murid nama sama', 'source-name-two');
 
-        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
-            ->assertOk()->assertJsonCount(1, 'proposals');
-        $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
-            'mode' => 'name', 'fingerprint' => $preview->json('fingerprint'), 'confirmed' => '1',
+        $this->actingAs($admin)->post(route('data-master.etatib.mappings.store', $firstIssue), [
+            'student_id' => $student->getKey(), 'confirmed' => '1',
         ])->assertRedirect(route('data-master.etatib.conflicts.index'));
 
         $this->assertSame($student->getKey(), $firstRecord->refresh()->student_id);
@@ -332,30 +381,34 @@ final class EtatibIdentityMappingTest extends TestCase
         $this->assertSame(1, EtatibIdentityMapping::query()->active()->count());
     }
 
-    public function test_name_matching_skips_two_source_identities_pointing_to_one_master_student(): void
+    public function test_nisn_preview_does_not_propose_name_only_matches(): void
     {
         $admin = $this->userWithRole('admin_it');
         Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Sama']);
         $this->conflict('0099999991', 'Nama Sama', 'source-same-one');
         $this->conflict('0099999992', 'NAMA SAMA', 'source-same-two');
 
-        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'name']))
+        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
             ->assertOk()
             ->assertJsonCount(0, 'proposals')
             ->assertJsonCount(2, 'skipped');
     }
 
-    public function test_nisn_matching_skips_two_source_names_pointing_to_one_master_student(): void
+    public function test_nisn_matching_links_two_source_names_to_one_master_student(): void
     {
         $admin = $this->userWithRole('admin_it');
-        Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Sekolah']);
-        $this->conflict('0011111111', 'Nama e-Tatib Satu', 'source-nisn-one');
-        $this->conflict('0011111111', 'Nama e-Tatib Dua', 'source-nisn-two');
+        $student = Student::query()->create(['nisn' => '0011111111', 'name' => 'Nama Sekolah']);
+        [, $first] = $this->conflict('0011111111', 'Nama e-Tatib Satu', 'source-nisn-one');
+        [, $second] = $this->conflict('0011111111', 'Nama e-Tatib Dua', 'source-nisn-two');
 
-        $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
-            ->assertOk()
-            ->assertJsonCount(0, 'proposals')
-            ->assertJsonCount(2, 'skipped');
+        $preview = $this->actingAs($admin)->getJson(route('data-master.etatib.conflicts.automatic.preview', ['mode' => 'nisn']))
+            ->assertOk()->assertJsonCount(2, 'proposals')->assertJsonCount(0, 'skipped');
+        $this->actingAs($admin)->post(route('data-master.etatib.conflicts.automatic.apply'), [
+            'mode' => 'nisn', 'fingerprint' => $preview->json('fingerprint'), 'confirmed' => '1',
+        ])->assertRedirect(route('data-master.etatib.conflicts.index'));
+        $this->assertSame($student->getKey(), $first->refresh()->student_id);
+        $this->assertSame($student->getKey(), $second->refresh()->student_id);
+        $this->assertSame('Nama Sekolah', $student->refresh()->name);
     }
 
     public function test_automatic_preview_preserves_existing_active_mapping(): void

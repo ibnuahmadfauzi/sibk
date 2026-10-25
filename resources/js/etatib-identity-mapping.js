@@ -141,7 +141,7 @@ export const initEtatibIdentityMapping = async (root = document, { Modal } = {})
 
     root.querySelectorAll('[data-etatib-auto-open]').forEach((button) => {
         button.addEventListener('click', async () => {
-            const mode = button.dataset.etatibAutoOpen;
+            const mode = 'nisn';
             autoMode.value = mode;
             autoFingerprint.value = '';
             autoConfirmed.checked = false;
@@ -157,7 +157,7 @@ export const initEtatibIdentityMapping = async (root = document, { Modal } = {})
                 const preview = await response.json();
                 if (autoMode.value !== mode) return;
 
-                const method = mode === 'nisn' ? 'NISN yang sama' : 'nama yang sama setelah huruf dan spasi dinormalkan';
+                const method = 'NISN yang sama';
                 const rows = preview.proposals.map((proposal) => `
                     <tr>
                         <td><strong class="d-block">${escapeHtml(displayStudentName(proposal.source_name))}</strong><span class="text-muted small">NISN ${escapeHtml(proposal.source_nisn)}</span></td>

@@ -11,12 +11,13 @@ use App\Models\IntegrationSetting;
 use App\Models\Role;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\AlumniRetentionRegistry;
 use App\Services\EtatibAutomaticSyncService;
 use App\Services\EtatibSyncService;
-use App\Services\AlumniRetentionRegistry;
 use App\Services\SimpleEtatibApiService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -134,6 +135,27 @@ final class SavedApiUrlTest extends TestCase
         $this->assertTrue($setting->refresh()->automatic_sync_enabled);
         $this->assertSame(self::ETATIB_NEW_URL, $setting->automatic_sync_url);
         $this->assertDatabaseHas('external_sync_runs', ['source' => 'etatib', 'status' => ExternalSyncRun::STATUS_WARNING]);
+    }
+
+    public function test_busy_etatib_url_save_reports_retry_without_replacing_saved_url(): void
+    {
+        $admin = $this->user('admin_it');
+        IntegrationSetting::query()->create(['provider' => 'etatib', 'automatic_sync_url' => self::ETATIB_URL]);
+        Http::fake([self::ETATIB_NEW_URL => fn () => Http::response($this->etatibPayload())]);
+        $lock = Cache::lock('sibk:integration:etatib:operation', 60);
+        $this->assertTrue($lock->get());
+        try {
+            $this->actingAs($admin)->patch(route('data-master.api-connections.update', 'etatib'), [
+                'api_url' => self::ETATIB_NEW_URL, 'current_password' => 'password',
+            ])->assertRedirect(route('data-master.index', ['tab' => 'etatib']))
+                ->assertSessionHasErrors('api_url', null, 'api_connections_etatib');
+        } finally {
+            $lock->release();
+        }
+
+        $this->assertSame(self::ETATIB_URL, IntegrationSetting::query()->where('provider', 'etatib')->sole()->automatic_sync_url);
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('external_sync_runs', 0);
     }
 
     public function test_activation_failure_rolls_back_records_and_does_not_enable_automatic_sync(): void

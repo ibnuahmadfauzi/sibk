@@ -17,7 +17,6 @@ use DateTimeInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use JsonException;
 use OverflowException;
 use Psr\Http\Message\StreamInterface;
@@ -72,8 +71,7 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
             $conflicts = collect($snapshot->records)->filter(function (array $record) use ($students): bool {
                 $student = $students->get($record['nisn']);
 
-                return $student === null
-                    || $this->normalizeName($record['source_student_name']) !== $this->normalizeName($student->name);
+                return $student === null;
             })->count();
 
             return new IntegrationProbeResult(
@@ -314,8 +312,8 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
                 throw new IntegrationConfigurationException('contract_invalid');
             }
         }
-        if (! is_int($item['poin_pelanggaran']) || $item['poin_pelanggaran'] < 0
-            || ! is_int($item['total_poin']) || $item['total_poin'] < 0
+        if (! is_int($item['poin_pelanggaran']) || $item['poin_pelanggaran'] < 0 || $item['poin_pelanggaran'] > 2147483647
+            || ! is_int($item['total_poin']) || $item['total_poin'] < 0 || $item['total_poin'] > 2147483647
         ) {
             throw new IntegrationConfigurationException('contract_invalid');
         }
@@ -356,12 +354,8 @@ final class SchoolHttpEtatibDriver implements EtatibDriver
         }
         $date = DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $value);
 
-        return $date === false ? null : $date->format('Y-m-d H:i:s');
-    }
-
-    private function normalizeName(string $name): string
-    {
-        return Str::upper((string) preg_replace('/\s+/u', ' ', trim($name)));
+        return $date === false || $date->format(DateTimeInterface::ATOM) !== $value
+            ? null : $date->format('Y-m-d H:i:s');
     }
 
     private function readLimitedBody(StreamInterface $stream, int $processedBytes): string
