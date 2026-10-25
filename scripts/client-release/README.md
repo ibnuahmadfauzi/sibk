@@ -37,6 +37,12 @@ php artisan view:cache
 
 Langkah ini khusus instalasi pertama pada database baru. `key:generate` hanya dijalankan ketika `APP_KEY` masih kosong. Seeder hanya mengisi peran dan referensi; tidak membuat akun atau data murid. Jangan gunakan `composer setup`: ikuti langkah eksplisit di atas. Manifest dan lockfile sumber dipertahankan berpasangan; alat pengembangan PHP tidak dipasang dengan `--no-dev`. Perintah pengujian internal dalam manifest tidak digunakan pada repo klien.
 
+## Docker CLI
+
+Paket menyertakan `Dockerfile` untuk PHP CLI 8.5.12 dan Composer 2. Gunakan langkah [Docker CLI pada panduan server](docs/manualbook.md#611-docker-untuk-perintah-cli) bila perintah Composer atau Artisan dijalankan melalui kontainer. Source, `.env`, dan `storage` tetap berada di host melalui bind mount; image tidak membuat kunci, menjalankan migrasi, atau mengisi akun otomatis. Layanan web/FPM, database, serta satu pemicu scheduler tetap disiapkan pengelola sekolah. Menggunakan image CLI tidak memperbarui PHP web/FPM atau cron host.
+
+Untuk ZIP produksi yang sudah menyertakan `public/build`, lewati langkah npm pada urutan instalasi di atas. ZIP source memerlukan build frontend pada mesin pembangun yang kompatibel.
+
 ## Admin pertama
 
 Pengelola server menjalankan `php artisan tinker`, mengganti nama/email contoh berikut, lalu menjalankan kode ini pada instalasi baru:
