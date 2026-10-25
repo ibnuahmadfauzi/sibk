@@ -17,7 +17,7 @@ final class ApplyAutomaticEtatibMappingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'mode' => ['required', 'in:nisn,name'],
+            'mode' => ['required', 'in:nisn'],
             'fingerprint' => ['required', 'regex:/\A[a-f0-9]{64}\z/'],
             'confirmed' => ['accepted'],
         ];

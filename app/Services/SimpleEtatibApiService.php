@@ -77,40 +77,25 @@ final class SimpleEtatibApiService
             ->keyBy(fn (EtatibIdentityMapping $mapping): string => $mapping->source_nisn.'|'.$mapping->source_name_hash);
         $matched = collect($records)->filter(function (array $record) use ($students, $manualMappings): bool {
             $mappingKey = $record['nisn'].'|'.hash('sha256', $this->normalizeText($record['source_student_name']));
-            if ($manualMappings->has($mappingKey)) {
-                return true;
-            }
 
-            $student = $students->get($record['nisn']);
-
-            return $student instanceof Student
-                && $this->normalizeText($student->name) === $this->normalizeText($record['source_student_name']);
+            return $students->has($record['nisn']) || $manualMappings->has($mappingKey);
         })->count();
         $identityConflicts = collect($records)
             ->filter(function (array $record) use ($students, $manualMappings): bool {
                 $mappingKey = $record['nisn'].'|'.hash('sha256', $this->normalizeText($record['source_student_name']));
-                if ($manualMappings->has($mappingKey)) {
-                    return false;
-                }
 
-                $student = $students->get($record['nisn']);
-
-                return ! $student instanceof Student
-                    || $this->normalizeText($student->name) !== $this->normalizeText($record['source_student_name']);
+                return ! $students->has($record['nisn']) && ! $manualMappings->has($mappingKey);
             })
             ->groupBy(fn (array $record): string => $record['nisn'].'|'.$this->normalizeText($record['source_student_name']))
-            ->map(function ($group) use ($students): array {
+            ->map(function ($group): array {
                 $record = $group->first();
-                $student = $students->get($record['nisn']);
 
                 return [
                     'nisn' => $record['nisn'],
                     'name' => $record['source_student_name'],
                     'classroom' => $group->pluck('source_classroom_name')->unique()->implode(', '),
-                    'kind' => $student instanceof Student ? 'name_mismatch' : 'nisn_not_found',
-                    'reason' => $student instanceof Student
-                        ? 'Nama pada master: '.$student->name.' · Kelas master: '.($student->classMemberships->first()?->classroom?->name ?? '-')
-                        : 'NISN ini belum ada pada master murid.',
+                    'kind' => 'nisn_not_found',
+                    'reason' => 'NISN ini belum ada pada master murid.',
                 ];
             })
             ->values()
@@ -632,7 +617,7 @@ final class SimpleEtatibApiService
                 trim((string) $item['tanggal_pelanggaran']),
                 'Asia/Jakarta',
             );
-            if ($occurredAt === false) {
+            if ($occurredAt === false || $occurredAt->format('d M Y H:i:s') !== trim((string) $item['tanggal_pelanggaran'])) {
                 $this->fail(sprintf('Tanggal pelanggaran baris %d harus seperti 20 Jul 2026 10:17:00.', $index + 1));
             }
 
@@ -699,7 +684,9 @@ final class SimpleEtatibApiService
     private function nonNegativeInteger(mixed $value, string $label, int $index): int
     {
         if ((! is_int($value) && (! is_string($value) || preg_match('/^\d+$/D', $value) !== 1))
+            || strlen(ltrim((string) $value, '0')) > 10
             || (int) $value < 0
+            || (int) $value > 2147483647
         ) {
             $this->fail(sprintf('%s e-Tatib baris %d tidak valid.', ucfirst($label), $index + 1));
         }

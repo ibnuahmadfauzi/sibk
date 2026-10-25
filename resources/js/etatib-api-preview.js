@@ -104,10 +104,7 @@ export const renderEtatibPreview = (container, preview, dapodikUrl, revokeUrl = 
             const list = element('div', 'd-grid gap-3 mt-2');
             const bulkButtons = element('div', 'd-flex flex-wrap gap-2 mt-2');
             const bulkStatus = element('p', 'small text-muted mt-2 mb-0');
-            (kind === 'name_mismatch'
-                ? [['nisn', 'Pilih berdasarkan NISN'], ['name', 'Pilih berdasarkan nama']]
-                : [['name', 'Pilih berdasarkan nama']]
-            ).forEach(([basis, textLabel]) => {
+            (kind === 'name_mismatch' ? [['nisn', 'Pilih berdasarkan NISN']] : []).forEach(([basis, textLabel]) => {
                 const button = element('button', 'btn btn-outline-primary btn-sm', textLabel);
                 button.type = 'button';
                 button.addEventListener('click', () => {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\ProtectIntegrationLifecycle;
+use App\Integrations\IntegrationBusyException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -54,6 +55,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            if ($exception instanceof IntegrationBusyException) {
+                return false;
+            }
+
             ProtectIntegrationLifecycle::redactForExceptionReporting($request);
             Log::error('Kegagalan tak terduga pada konfigurasi koneksi.', [
                 'exception_class' => $exception::class,
@@ -61,6 +66,34 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
 
             return false;
+        });
+        $exceptions->render(function (IntegrationBusyException $exception, Request $request): ?Response {
+            $savedUrl = $request->routeIs('data-master.api-connections.update');
+            $mapping = $request->routeIs('data-master.etatib.mappings.*', 'data-master.etatib.conflicts.automatic.apply');
+            $duplicate = $request->routeIs('data-master.etatib.duplicates.destroy');
+            if (! $savedUrl && ! $mapping && ! $duplicate) {
+                return null;
+            }
+
+            $message = $savedUrl && $request->route('provider') === 'dapodik'
+                ? 'Proses API Siswa sedang berjalan. Coba lagi setelah selesai.'
+                : 'Sinkronisasi e-Tatib sedang berjalan. Coba lagi setelah selesai.';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 409)->header('Cache-Control', 'no-store');
+            }
+
+            if ($savedUrl) {
+                $provider = (string) $request->route('provider');
+
+                return redirect()->route('data-master.index', ['tab' => $provider])
+                    ->withErrors(['api_url' => $message], 'api_connections_'.$provider)
+                    ->header('Cache-Control', 'no-store');
+            }
+
+            return redirect()->route($mapping ? 'data-master.etatib.conflicts.index' : 'data-master.index',
+                $mapping ? [] : ['tab' => 'etatib'])
+                ->withErrors([$mapping ? 'etatib_mapping' : 'etatib_sync' => $message])
+                ->header('Cache-Control', 'no-store');
         });
         $exceptions->render(function (ValidationException $exception, Request $request) {
             if (! $request->routeIs('data-master.integrations.*', 'data-master.api-connections.*')) {

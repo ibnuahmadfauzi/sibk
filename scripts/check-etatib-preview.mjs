@@ -110,12 +110,14 @@ render({
     identity_conflicts: [{
         kind: 'name_mismatch', nisn: '0012345678', name: sourceName, classroom: 'X RPL',
         master: { id: 12, name: 'SITI NUR AISYAH', nisn: '0012345678', classroom: 'X RPL' },
-        suggestions: [],
+        suggestions: [{ id: 13, name: 'SITI NUR AISYAH', nisn: '0098765432', classroom: 'X RPL', academic_year: '2026/2027' }],
     }],
 });
 assert(descendants(body).some((node) => node.tag === 'strong' && node.textContent === 'Siti Nur Aisyah'));
 const identityChoice = body.querySelector('[data-identity-choice]');
 assert.equal(identityChoice.dataset.name, sourceName);
+assert.equal(descendants(body).filter((node) => node.dataset.choiceBasis === 'name').length, 1);
+assert.equal(descendants(body).some((node) => node.tag === 'button' && node.textContent.includes('berdasarkan nama')), false);
 identityChoice.checked = true;
 writeEtatibDecisions(form, body);
 assert(form.children.some((input) => input.name.endsWith('[name]') && input.value === sourceName));

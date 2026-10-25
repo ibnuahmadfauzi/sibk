@@ -18,9 +18,10 @@ use App\Integrations\IntegrationOperationLock;
 use App\Integrations\IntegrationProbeResult;
 use App\Integrations\IntegrationRuntimeConfiguration;
 use App\Integrations\IntegrationSnapshotEvidence;
-use App\Models\AuditLog;
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\Classroom;
+use App\Models\EtatibIdentityMapping;
 use App\Models\ExternalSyncIssue;
 use App\Models\ExternalSyncRun;
 use App\Models\ExternalTatibRecord;
@@ -30,6 +31,7 @@ use App\Models\Student;
 use App\Models\StudentClassMembership;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\EtatibIdentityNormalizer;
 use App\Services\EtatibSyncService;
 use App\Services\IntegrationSettingService;
 use Carbon\CarbonImmutable;
@@ -310,10 +312,10 @@ class EtatibSyncTest extends TestCase
         $this->assertDatabaseHas('external_sync_issues', ['issue_code' => 'source_identity_mismatch', 'source_identifier' => 'tatib-1']);
     }
 
-    public function test_name_mismatch_is_not_used_as_identity_fallback(): void
+    public function test_same_nisn_links_despite_source_name_difference_without_changing_master_name(): void
     {
         $admin = $this->userWithRole('admin_it');
-        Student::query()->create(['nisn' => '0012345678', 'name' => 'Nama Master', 'is_active' => true]);
+        $student = Student::query()->create(['nisn' => '0012345678', 'name' => 'Nama Master', 'is_active' => true]);
         $this->fakeConnector(new EtatibSnapshot(false, [[
             'source_id' => 'tatib-name-mismatch',
             'nisn' => '0012345678',
@@ -326,15 +328,41 @@ class EtatibSyncTest extends TestCase
 
         $run = app(EtatibSyncService::class)->synchronize($admin);
 
-        $this->assertSame(ExternalSyncRun::STATUS_WARNING, $run->status);
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
         $this->assertDatabaseHas('external_tatib_records', [
             'source_identifier' => 'tatib-name-mismatch',
-            'student_id' => null,
+            'student_id' => $student->getKey(),
+            'source_student_name' => 'NAMA BERBEDA',
         ]);
-        $this->assertDatabaseHas('external_sync_issues', [
-            'source_identifier' => 'tatib-name-mismatch',
-            'issue_code' => 'student_name_mismatch',
+        $this->assertSame('Nama Master', $student->refresh()->name);
+        $this->assertDatabaseCount('external_sync_issues', 0);
+    }
+
+    public function test_canonical_nisn_takes_precedence_over_an_existing_mapping_to_another_student(): void
+    {
+        $admin = $this->userWithRole('admin_it');
+        $canonical = Student::query()->create(['nisn' => '0012345678', 'name' => 'Nama Dapodik', 'master_source' => Student::MASTER_SOURCE_DAPODIK]);
+        $other = Student::query()->create(['nisn' => '0099999999', 'name' => 'Murid Lain']);
+        EtatibIdentityMapping::query()->create([
+            'source_nisn' => $canonical->nisn,
+            'source_name' => 'Nama Sumber',
+            'source_name_hash' => app(EtatibIdentityNormalizer::class)->nameHash('Nama Sumber'),
+            'student_id' => $other->getKey(),
+            'is_active' => true,
+            'mapped_by' => $admin->getKey(),
+            'mapped_at' => now(),
         ]);
+        $this->fakeConnector(new EtatibSnapshot(false, [[
+            'source_id' => 'source-old-mapping', 'nisn' => $canonical->nisn,
+            'source_student_name' => 'Nama Sumber', 'occurred_at' => '2026-08-19 08:00:00',
+            'violation_type' => 'Terlambat', 'category' => 'ringan', 'points' => 10,
+        ]]));
+
+        $run = app(EtatibSyncService::class)->synchronize($admin);
+
+        $this->assertSame(ExternalSyncRun::STATUS_SUCCEEDED, $run->status);
+        $this->assertSame($canonical->getKey(), ExternalTatibRecord::query()->where('source_identifier', 'source-old-mapping')->sole()->student_id);
+        $this->assertSame('Nama Dapodik', $canonical->refresh()->name);
     }
 
     public function test_repeated_unmatched_identity_keeps_one_record_and_one_open_issue(): void

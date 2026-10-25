@@ -977,7 +977,7 @@ Daftar murid yang sah masuk tanpa mengganti identitas atau riwayat murid yang co
 2. Periksa jumlah catatan, identitas yang belum cocok, catatan lama yang tidak dikirim lagi, dan kejadian tanpa tanggal.
 3. Jika identitas berbeda, bandingkan NISN, nama, dan rombel. Pilih murid yang cocok hanya jika Anda yakin. Bila buktinya belum cukup, pilih **Lewati dulu, belum tertaut**.
 
-Pratinjau belum menyinkronkan data. **Pilih berdasarkan NISN/nama** hanya mengusulkan satu murid yang masih perlu Anda periksa.
+Pratinjau belum menyinkronkan data. NISN pada master Dapodik menjadi acuan pencocokan otomatis; perbedaan nama e-Tatib tidak menghalangi penautan. Nama master tetap dipakai sebagai identitas resmi. Jika NISN sumber belum ditemukan, periksa kandidat secara manual berdasarkan bukti resmi sekolah.
 
 ### Menyetujui kelompok kejadian identik
 
@@ -1055,9 +1055,9 @@ Identitas yang belum diputuskan tetap belum terhubung dengan murid. Jangan memil
 
 ### Mempratinjau pencocokan otomatis
 
-![Gambar 89. Pratinjau pencocokan otomatis Berdasarkan NISN atau Berdasarkan Nama](manualbook/gambar/v2-konflik-otomatis.png)
+![Gambar 89. Pratinjau pencocokan otomatis identitas e-Tatib](manualbook/gambar/v2-konflik-otomatis.png)
 
-1. Pilih **Berdasarkan NISN** atau **Berdasarkan Nama**.
+1. Pilih **Berdasarkan NISN**. Pencocokan otomatis hanya memakai NISN master; nama bukan kunci pencocokan.
 2. Periksa pasangan identitas sumber dan data utama yang ditampilkan. Jika hasilnya lebih dari satu atau tidak ada, tangani secara manual.
 3. Centang konfirmasi dan pilih **Terapkan Pencocokan** hanya untuk pasangan tunggal yang benar.
 
@@ -1071,7 +1071,7 @@ Pencocokan tersimpan di aplikasi dan tercatat dalam riwayat. Identitas pada sist
 2. Cari murid pada data utama, lalu bandingkan NISN, nama, dan rombel.
 3. Pilih kandidat yang benar, centang konfirmasi, lalu simpan.
 
-Pencocokan di aplikasi dapat menghubungkan NISN dari sumber yang berbeda tanpa mengubah identitas murid pada data utama. Jika bukti belum cukup, biarkan identitas berstatus belum cocok.
+Pencocokan manual tersedia jika NISN sumber belum ditemukan pada master. NISN yang sudah ada pada master tidak dapat dialihkan ke murid lain. Jika bukti belum cukup, biarkan identitas berstatus belum cocok. Pelanggaran yang sudah terkait kasus BK tidak dapat dipindahkan ke murid lain melalui sinkronisasi atau pencocokan.
 
 ### Mengubah target pencocokan manual
 

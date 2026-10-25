@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SyncEtatibApiRequest;
+use App\Integrations\IntegrationBusyException;
 use App\Integrations\IntegrationConfigurationException;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
@@ -225,7 +226,17 @@ class DataMasterController extends Controller
     ): RedirectResponse {
         /** @var User $actor */
         $actor = $request->user();
-        $run = $service->synchronize($request->apiUrl(), $actor, $request->session()->pull('etatib_api_preview'), $request->identityDecisions(), $request->duplicateDecisions());
+        $url = $request->apiUrl();
+        $preview = $request->session()->pull('etatib_api_preview');
+        try {
+            $run = $service->synchronize($url, $actor, $preview, $request->identityDecisions(), $request->duplicateDecisions());
+        } catch (IntegrationBusyException) {
+            if (is_array($preview)) {
+                $request->session()->put('etatib_api_preview', $preview);
+            }
+
+            return back()->withErrors(['etatib_sync' => 'Sinkronisasi e-Tatib sedang berjalan. Coba lagi setelah selesai.']);
+        }
 
         if ($run->status === ExternalSyncRun::STATUS_FAILED) {
             return back()->withErrors(['etatib_sync' => $run->summary ?? 'Sinkronisasi e-Tatib gagal.']);

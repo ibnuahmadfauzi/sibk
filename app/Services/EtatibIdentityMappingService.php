@@ -48,8 +48,8 @@ final class EtatibIdentityMappingService
     public function previewAutomatic(string $mode, User $actor): array
     {
         Gate::forUser($actor)->authorize('manageDataMaster');
-        if (! in_array($mode, ['nisn', 'name'], true)) {
-            throw ValidationException::withMessages(['mode' => 'Pilih pencocokan berdasarkan NISN atau nama.']);
+        if ($mode !== 'nisn') {
+            throw ValidationException::withMessages(['mode' => 'Pencocokan otomatis hanya berdasarkan NISN.']);
         }
 
         $issues = ExternalSyncIssue::query()
@@ -68,7 +68,6 @@ final class EtatibIdentityMappingService
             ->groupBy(fn (ExternalTatibRecord $record): string => $this->normalizer->key($record->nisn, (string) $record->source_student_name));
         $students = Student::query()->get(['id', 'nisn', 'name']);
         $byNisn = $students->groupBy('nisn');
-        $byName = $students->groupBy(fn (Student $student): string => $this->normalizer->name($student->name));
         $mapped = EtatibIdentityMapping::query()->active()->get()
             ->keyBy(fn (EtatibIdentityMapping $mapping): string => $mapping->source_nisn.'|'.$mapping->source_name_hash);
         $proposals = [];
@@ -91,9 +90,7 @@ final class EtatibIdentityMappingService
 
                 continue;
             }
-            $candidates = $mode === 'nisn'
-                ? $byNisn->get($record->nisn, collect())
-                : $byName->get($this->normalizer->name($record->source_student_name), collect());
+            $candidates = $byNisn->get($record->nisn, collect());
             if ($candidates->count() !== 1) {
                 $skipped[] = $source + ['reason' => $candidates->isEmpty() ? 'Tidak ditemukan di master murid.' : 'Lebih dari satu murid cocok.'];
 
@@ -107,21 +104,6 @@ final class EtatibIdentityMappingService
                 'student_name' => $student->name,
             ];
         }
-
-        $counts = collect($proposals)->countBy('student_id');
-        $proposals = array_values(array_filter($proposals, function (array $proposal) use ($counts, &$skipped): bool {
-            if ($counts->get($proposal['student_id']) === 1) {
-                return true;
-            }
-            $skipped[] = [
-                'issue_id' => $proposal['issue_id'],
-                'source_nisn' => $proposal['source_nisn'],
-                'source_name' => $proposal['source_name'],
-                'reason' => 'Beberapa identitas e-Tatib mengarah ke murid yang sama.',
-            ];
-
-            return false;
-        }));
 
         return [
             'mode' => $mode,
@@ -168,6 +150,10 @@ final class EtatibIdentityMappingService
         $lockedIssue = ExternalSyncIssue::query()->lockForUpdate()->findOrFail($issueId);
         $record = $this->recordForIssue($lockedIssue);
         $identity = $this->identityFor($record);
+        $canonical = Student::query()->where('nisn', $identity['nisn'])->first();
+        if ($canonical !== null && $canonical->getKey() !== $student->getKey()) {
+            throw ValidationException::withMessages(['student_id' => 'NISN sudah ditemukan di master murid. Pencocokan otomatis berdasarkan NISN berlaku.']);
+        }
 
         $mapping = EtatibIdentityMapping::query()
             ->where('source_nisn', $identity['nisn'])
@@ -184,6 +170,11 @@ final class EtatibIdentityMappingService
                 'student_id' => 'Identitas sumber ini sudah memiliki pencocokan aktif. Gunakan aksi Ubah.',
             ]);
         }
+
+        $records = ExternalTatibRecord::query()->where('nisn', $identity['nisn'])->lockForUpdate()->get()
+            ->filter(fn (ExternalTatibRecord $item): bool => $item->source_student_name !== null
+                && $this->normalizer->nameHash($item->source_student_name) === $identity['name_hash']);
+        $this->ensureRelinkDoesNotChangeCase($records, $student);
 
         if ($mapping === null) {
             $mapping = EtatibIdentityMapping::query()->create([
@@ -242,6 +233,10 @@ final class EtatibIdentityMappingService
                     }
                     if ($locked->student_id === $student->getKey()) {
                         return $locked;
+                    }
+
+                    if (Student::query()->where('nisn', $locked->source_nisn)->exists()) {
+                        throw ValidationException::withMessages(['student_id' => 'NISN sudah ditemukan di master murid. Pencocokan otomatis berdasarkan NISN berlaku.']);
                     }
 
                     $records = $this->recordsFor($locked);
@@ -387,6 +382,7 @@ final class EtatibIdentityMappingService
         ?Collection $records = null,
     ): int {
         $records ??= $this->recordsFor($mapping);
+        $this->ensureRelinkDoesNotChangeCase($records, $student);
         $sourceIdentifiers = $records->pluck('source_identifier');
 
         foreach ($records as $record) {
@@ -415,21 +411,29 @@ final class EtatibIdentityMappingService
         $linked = DB::table('case_etatib_links')
             ->whereIn('external_tatib_record_id', $records->modelKeys())
             ->whereNull('deleted_at')
-            ->exists();
+            ->lockForUpdate()
+            ->first();
 
-        if ($linked) {
+        if ($linked !== null) {
             throw ValidationException::withMessages([
                 'student_id' => 'Pencocokan tidak dapat diubah karena pelanggaran sudah ditautkan ke kasus BK.',
             ]);
         }
     }
 
+    /** @param Collection<int, ExternalTatibRecord> $records */
+    private function ensureRelinkDoesNotChangeCase(Collection $records, Student $student): void
+    {
+        $changing = $records->filter(fn (ExternalTatibRecord $record): bool => $record->student_id !== $student->getKey());
+        if ($changing->isNotEmpty()) {
+            $this->ensureNotLinkedToCase($changing);
+        }
+    }
+
     private function restoreStrictMatch(ExternalTatibRecord $record, User $actor): void
     {
         $student = Student::query()->where('nisn', $record->nisn)->first();
-        $matches = $student !== null
-            && $record->source_student_name !== null
-            && $this->normalizer->name($record->source_student_name) === $this->normalizer->name($student->name);
+        $matches = $student !== null;
 
         $record->update(['student_id' => $matches ? $student->getKey() : null]);
 
@@ -448,7 +452,7 @@ final class EtatibIdentityMappingService
             return;
         }
 
-        $issueCode = $student === null ? 'student_not_found' : 'student_name_mismatch';
+        $issueCode = 'student_not_found';
         $issue = ExternalSyncIssue::query()
             ->where('entity_type', 'etatib_record')
             ->where('source_identifier', $record->source_identifier)
@@ -474,9 +478,7 @@ final class EtatibIdentityMappingService
             'nisn' => $record->nisn,
             'input_name' => $record->source_student_name,
             'issue_code' => $issueCode,
-            'summary' => $student === null
-                ? 'NISN e-Tatib belum ditemukan pada master murid.'
-                : 'Nama e-Tatib berbeda dengan nama pada master murid. Record ditahan tanpa penautan.',
+            'summary' => 'NISN e-Tatib belum ditemukan pada master murid.',
         ]);
     }
 }
