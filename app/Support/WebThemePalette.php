@@ -7,9 +7,9 @@ namespace App\Support;
 final class WebThemePalette
 {
     public const PRESETS = [
-        'navy' => ['primary' => '#175690', 'secondary' => '#175690', 'sidebar' => '#012340', 'accent' => '#175690', 'page' => '#f0f6fc', 'surface' => '#ffffff'],
-        'smkn1' => ['primary' => '#00783b', 'secondary' => '#0076a8', 'sidebar' => '#006b3c', 'accent' => '#fff000', 'page' => '#f8fafc', 'surface' => '#ffffff'],
-        'modern' => ['primary' => '#c2185b', 'secondary' => '#007c91', 'sidebar' => '#2a3e7c', 'accent' => '#ffad41', 'page' => '#f8fafc', 'surface' => '#ffffff'],
+        'navy' => ['primary' => '#175690', 'secondary' => '#175690', 'sidebar' => '#012340', 'accent' => '#175690', 'student_name' => '#ffc107', 'page' => '#f0f6fc', 'surface' => '#ffffff'],
+        'smkn1' => ['primary' => '#00783b', 'secondary' => '#0076a8', 'sidebar' => '#006b3c', 'accent' => '#fff000', 'student_name' => '#fff000', 'page' => '#f8fafc', 'surface' => '#ffffff'],
+        'modern' => ['primary' => '#c2185b', 'secondary' => '#007c91', 'sidebar' => '#2a3e7c', 'accent' => '#ffad41', 'student_name' => '#ffad41', 'page' => '#f8fafc', 'surface' => '#ffffff'],
     ];
 
     public const DEFAULT_COLORS = ['primary' => '#2659a0', 'page' => '#f8f0ea', 'surface' => '#fdfbf9'];
@@ -48,6 +48,7 @@ final class WebThemePalette
             '--sibk-color-primary-hero-strong' => $brand,
             '--sibk-color-primary-hero-muted' => self::mix('#475569', $brand, 70),
             '--sibk-color-primary-hero-contrast' => '#ffffff',
+            '--sibk-color-student-name' => $palette['student_name'] ?? '#ffffcc',
             '--sibk-color-primary-panel-hover' => self::mix('#000000', $brand, 40),
             '--sibk-color-primary-panel-info' => self::mix('#ffffff', $brand, 80),
             '--sibk-color-sidebar-card-start' => $sidebar,
