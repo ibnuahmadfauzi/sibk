@@ -4,14 +4,27 @@ Aplikasi layanan Bimbingan dan Konseling untuk SMK Negeri 1 Surabaya.
 
 ## Branch dan status
 
-Source untuk klien diekspor dari `origin/main` dengan riwayat Git baru. Repo klien menerima rilis resmi, bukan pekerjaan harian. Setelah promosi perubahan ke `main`, jalankan `git fetch origin main`, lalu `python scripts/export-client-release.py --version 1.0.0 --output outputs/client-release/1.0.0` dan `python scripts/check-client-release.py outputs/client-release/1.0.0`. Ganti versi/direktori untuk setiap rilis; direktori yang sudah ada tidak ditimpa. Template instalasi di `scripts/client-release/` dan dokumentasi yang diekspor harus berasal dari commit `origin/main` yang sama, agar perubahan feature branch yang belum dipromosikan tidak ikut terbawa. Pemeriksaan dilakukan sebelum `git init` pada hasil ekspor. Untuk rilis berikutnya, hasil yang sudah diperiksa diterapkan sebagai commit baru pada checkout bersih repo klien; jangan mengganti riwayat atau force push. `RELEASE.json` mencatat commit sumber dan checksum file. Ekspor ini tidak menggantikan pengujian instalasi pada server tujuan.
+Instalasi sekolah melalui Git memakai branch `produksi-smkn1sby` pada repo ini, yang dibuat dan diperbarui dari `main` yang sudah diverifikasi. Serah terima ZIP tetap diekspor dari `origin/main`: jalankan `git fetch origin main`, lalu `python scripts/export-client-release.py --version 1.0.0 --output outputs/client-release/1.0.0` dan `python scripts/check-client-release.py outputs/client-release/1.0.0`, dengan versi/direktori baru untuk setiap rilis. ZIP memakai template instalasi dan dokumentasi dari commit produksi yang sama, tidak membawa riwayat Git, dan menyertakan `RELEASE.json` berisi commit sumber serta checksum file. Pada instalasi melalui Git, identitas rilis diperiksa melalui commit branch. Kedua cara tetap memerlukan verifikasi instalasi oleh pengelola server sekolah.
 
 - `cobasidebar`: baseline pengembangan aktif.
 - `devlopment`: tahap validasi hasil dari `cobasidebar` sebelum masuk produksi.
 - `main`: versi stabil untuk produksi; tidak dipakai untuk pekerjaan harian.
+- `produksi-smkn1sby`: branch instalasi sekolah yang mengikuti commit produksi dari `main`.
 - Kerjakan perubahan di feature branch, lalu buat Pull Request ke `cobasidebar`.
 - Alur promosi melalui Pull Request: `cobasidebar` -> `devlopment` -> `main`. Merge setiap tahap setelah pemeriksaan dan pengujian yang sesuai; perpindahan tidak otomatis.
 - Jangan force push, menghapus `main`, atau reset database bersama/produksi.
+
+## Pemasangan sekolah dari repo produksi
+
+Untuk serah terima melalui Git, gunakan branch `produksi-smkn1sby` pada repo yang sama. Branch ini mencerminkan `main`; verifikasi revisi dengan `git rev-parse HEAD` dan jangan memakai `RELEASE.json` untuk instalasi repo.
+
+```bash
+git clone --single-branch --branch produksi-smkn1sby https://github.com/ibnuahmadfauzi/sibk.git
+cd sibk
+git rev-parse HEAD
+```
+
+Repo memerlukan build aset frontend (`npm ci --ignore-scripts` lalu `npm run build`). Untuk `.env`, gunakan `scripts/client-release/.env.example` dan salin hanya bila `.env` belum ada; root `.env.example` ditujukan untuk pengembangan lokal. Ikuti [panduan rilis klien](scripts/client-release/README.md) dan [Bab 6 panduan server](docs/manualbook.md#6-instalasi-dan-operasional-server-sekolah). Jangan jalankan `composer setup` atau seeder pengembangan pada server sekolah.
 
 Backend dan frontend tersedia. Penyederhanaan fitur masih berlangsung.
 Pekerjaan aktif ditentukan dari instruksi/issue, branch/worktree, dan plan/spec
