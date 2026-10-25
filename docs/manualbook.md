@@ -1163,7 +1163,7 @@ Ikuti gambar dan langkah pada bagian 1.5 untuk membuka **Akun Saya**, mengubah s
 
 Petugas teknis dapat mengikuti contoh pemasangan pada VPS Ubuntu/Debian dengan Nginx, PHP-FPM, MySQL, dan satu akun Linux aplikasi. Jika server memakai panel web, sesuaikan langkahnya melalui panel dan terminal yang tersedia.
 
-Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan database sesuai server sekolah. Gunakan repo rilis sekolah yang disiapkan Ibnu dan cocokkan versinya dengan `RELEASE.json`. Pembaruan dari repo pengembangan disalurkan sebagai rilis resmi ke repo sekolah. Gunakan alamat repo dan versi yang tercantum dalam serah terima.
+Ganti domain `bk.example.sch.id`, lokasi `/var/www/sibk`, nama akun, dan database sesuai server sekolah. Gunakan paket atau repositori rilis resmi yang tercantum dalam serah terima, lalu cocokkan versi dan commit sumbernya dengan `RELEASE.json`. Terapkan pembaruan sesuai versi rilis yang telah diverifikasi.
 
 ![Gambar 99. CONTOH Arsitektur acuan deployment server sekolah](manualbook/gambar/deployment.png)
 
