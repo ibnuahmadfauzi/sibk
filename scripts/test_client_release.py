@@ -80,6 +80,17 @@ class ClientReleaseTest(unittest.TestCase):
         self.commit()
         checker.validate(output)
 
+    def test_export_includes_committed_dockerfile_without_local_changes(self):
+        self.write('Dockerfile', 'FROM php:8.5.12-cli-bookworm\n')
+        self.commit()
+        self.write('Dockerfile', 'FROM php:8.5-cli\n')
+
+        output = self.release()
+
+        self.assertTrue((output / 'Dockerfile').is_file())
+        self.assertEqual((output / 'Dockerfile').read_text(), 'FROM php:8.5.12-cli-bookworm\n')
+        checker.validate(output)
+
     def test_export_requires_committed_word_manual(self):
         self.run_git('rm', 'docs/manualbook/Buku-Panduan-Ruang-BK.docx')
         self.commit()
