@@ -1,10 +1,10 @@
 # Ruang BK — Source rilis klien
 
-Gunakan sumber yang tercantum dalam serah terima sekolah. Untuk ZIP, cocokkan versi dan commit sumber pada `RELEASE.json`; untuk repo sekolah, gunakan branch `produksi-smkn1sby` dan catat commit dengan `git rev-parse HEAD`. ZIP hasil ekspor tidak menyertakan riwayat Git internal. Instalasi dependensi dan konfigurasi server dilakukan oleh pengelola sekolah.
+Gunakan sumber yang tercantum dalam serah terima sekolah. Untuk ZIP, cocokkan versi dan commit sumber pada `RELEASE.json`; untuk repo sekolah, gunakan branch `produksi-smkn1sby` dan catat commit dengan `git rev-parse HEAD`. ZIP tidak menyertakan riwayat Git. Instalasi dependensi dan konfigurasi server dilakukan oleh pengelola sekolah.
 
 ## Instalasi
 
-Buku panduan bergambar dalam format Word tersedia pada `docs/manualbook/Buku-Panduan-Ruang-BK.docx`. Petunjuk penggunaan, instalasi, dan pemulihan juga tersedia pada `docs/manualbook.md` dalam paket rilis. Bab 6 memuat petunjuk lengkap bagi petugas server; langkah di bawah menjadi ringkasan pemasangan. Jika Word atau gambar menyebut versi PHP lama, ikuti persyaratan terbaru pada `composer.json`, README ini, dan Bab 6 panduan teks. Pemasangan serta pembaruan runtime server dilakukan oleh pengelola sekolah; paket ini tidak melakukannya otomatis.
+Buku panduan bergambar dalam format Word tersedia pada `docs/manualbook/Buku-Panduan-Ruang-BK.docx`. Petunjuk penggunaan, instalasi, dan pemulihan juga tersedia pada `docs/manualbook.md` dalam paket rilis. Bab 6 memuat petunjuk lengkap bagi petugas server; langkah di bawah menjadi ringkasan pemasangan. Pemasangan serta pembaruan runtime server dilakukan oleh pengelola sekolah.
 
 Siapkan PHP 8.4.27 atau lebih baru pada cabang 8.4, atau 8.5.12 atau lebih baru pada cabang 8.5, dengan `pdo_mysql` pada PHP CLI dan PHP-FPM, ekstensi cURL dengan libcurl >= 7.49, ekstensi GD untuk logo dan Excel, ekstensi lain yang dibutuhkan lockfile, Composer 2, MySQL, serta Node.js/npm yang kompatibel dengan Vite untuk build aset. Versi tersebut mencakup perbaikan PHP2Shell (CVE-2026-109618 dan CVE-2026-109619); masalah berada pada runtime PHP pemroses request dan tidak dapat ditambal melalui perubahan aplikasi atau dependency Composer. Periksa versi CLI dengan `php -v`, ekstensi CLI dengan `php --ri pdo_mysql`, dan versi serta ekstensi PHP-FPM melalui panel hosting atau administrator server. Pastikan runtime web, CLI, dan cron memakai versi yang telah diperbaiki. Jangan memasang `phpinfo()` pada server publik. Arahkan document root hanya ke `public/`, gunakan HTTPS, dan beri proses PHP izin tulis pada `storage/` serta `bootstrap/cache/`.
 
@@ -29,13 +29,14 @@ npm run build
 # Hanya instalasi pertama ketika APP_KEY masih kosong:
 php artisan key:generate --force
 php artisan migrate --force
-php artisan db:seed --force
+php artisan db:seed --class=RoleSeeder --force
+php artisan db:seed --class=ReferenceSeeder --force
 php artisan storage:link
 php artisan config:cache
 php artisan view:cache
 ```
 
-Langkah ini khusus instalasi pertama pada database baru. `key:generate` hanya dijalankan ketika `APP_KEY` masih kosong. Seeder hanya mengisi peran dan referensi; tidak membuat akun atau data murid. Jangan gunakan `composer setup`: ikuti langkah eksplisit di atas. Manifest dan lockfile sumber dipertahankan berpasangan; alat pengembangan PHP tidak dipasang dengan `--no-dev`. Perintah pengujian internal dalam manifest tidak digunakan pada repo klien.
+Langkah ini khusus instalasi pertama pada database baru. `key:generate` hanya dijalankan ketika `APP_KEY` masih kosong. Kedua seeder yang disebutkan hanya mengisi peran dan referensi; tidak membuat akun atau data murid. Pertahankan `APP_ENV=production` dan jangan jalankan seeder uji. Jangan gunakan `composer setup`: ikuti langkah eksplisit di atas.
 
 ## Docker CLI
 
