@@ -15,6 +15,7 @@ Aplikasi layanan Bimbingan dan Konseling SMK Negeri 1 Surabaya.
 - Tulis pesan commit, judul, dan deskripsi PR GitHub dalam Bahasa Indonesia yang sederhana, lugas, dan sesuai perubahan yang dikerjakan.
 - `cobasidebar` adalah baseline pengembangan; `devlopment` tahap validasi sebelum produksi; `main` versi stabil produksi.
 - Promosikan perubahan melalui PR `cobasidebar` -> `devlopment` -> `main`. Jangan melewati tahap `devlopment` untuk rilis ke `main`.
+- `produksi-smkn1sby` adalah branch serah terima untuk instalasi sekolah melalui repo. Buat dan perbarui hanya dari `main` yang sudah diverifikasi, tanpa perubahan khusus atau force push pada branch tersebut.
 - Kerjakan di feature branch/worktree, PR ke `cobasidebar`; jangan force push atau menghapus branch yang belum di-merge.
 
 ## Documentation

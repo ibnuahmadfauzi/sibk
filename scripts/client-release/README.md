@@ -1,6 +1,6 @@
 # Ruang BK — Source rilis klien
 
-Versi dan commit sumber tersedia pada `RELEASE.json`. Gunakan paket atau repositori rilis resmi yang tercantum dalam serah terima sekolah. Pembaruan diterapkan sesuai versi rilis yang telah diverifikasi. Paket tidak menyertakan data murid, akun simulasi, kredensial, atau riwayat Git internal. Instalasi dependensi dan konfigurasi server dilakukan oleh pengelola sekolah.
+Gunakan sumber yang tercantum dalam serah terima sekolah. Untuk ZIP, cocokkan versi dan commit sumber pada `RELEASE.json`; untuk repo sekolah, gunakan branch `produksi-smkn1sby` dan catat commit dengan `git rev-parse HEAD`. ZIP hasil ekspor tidak menyertakan riwayat Git internal. Instalasi dependensi dan konfigurasi server dilakukan oleh pengelola sekolah.
 
 ## Instalasi
 
@@ -12,7 +12,7 @@ Jalankan `composer check-platform-reqs --lock --no-dev` sebelum memasang depende
 
 [Advisori PHP tanggal 23 Oktober 2026](https://www.php.net/archive/2026.php#2026-10-23-1) menyarankan `session.upload_progress.enabled=0` sampai rilis bugfix rutin berikutnya untuk jalur RCE tambahan dengan kondisi konfigurasi tertentu. Pengelola server menerapkannya di `php.ini` atau konfigurasi PHP-FPM sebelum pemrosesan request dan me-restart seluruh worker. Jangan mengandalkan `ini_set()` atau `.user.ini` untuk pengaturan sebelum parsing request. Pengaturan ini tidak menggantikan pembaruan PHP; periksa perkembangan advisori saat pemasangan.
 
-Salin `.env.example` ke `.env`, lalu isi domain dan akses database khusus aplikasi. Pertahankan `APP_ENV=production` serta `APP_DEBUG=false`. Jangan commit `.env`.
+Untuk ZIP produksi, `.env.example` di root adalah template produksi. Untuk repo sekolah, salin `scripts/client-release/.env.example` ke `.env`. Pada keduanya, salin hanya bila `.env` belum ada, lalu isi domain dan akses database khusus aplikasi. Pertahankan `APP_ENV=production` serta `APP_DEBUG=false`. Jangan commit `.env`.
 
 Untuk instalasi pertama, buat kunci retensi dengan perintah berikut, lalu salin hasilnya ke `ALUMNI_RETENTION_KEY` pada `.env` sebelum membuat cache konfigurasi. Simpan kunci ini bersama backup rahasia aplikasi; gunakan kembali kunci yang sama saat pembaruan atau pemindahan server.
 
@@ -39,9 +39,9 @@ Langkah ini khusus instalasi pertama pada database baru. `key:generate` hanya di
 
 ## Docker CLI
 
-Paket menyertakan `Dockerfile` untuk PHP CLI 8.5.12 dan Composer 2. Gunakan langkah [Docker CLI pada panduan server](docs/manualbook.md#611-docker-untuk-perintah-cli) bila perintah Composer atau Artisan dijalankan melalui kontainer. Source, `.env`, dan `storage` tetap berada di host melalui bind mount; image tidak membuat kunci, menjalankan migrasi, atau mengisi akun otomatis. Layanan web/FPM, database, serta satu pemicu scheduler tetap disiapkan pengelola sekolah. Menggunakan image CLI tidak memperbarui PHP web/FPM atau cron host.
+Paket menyertakan `Dockerfile` untuk PHP CLI 8.5.12 dan Composer 2. Gunakan langkah Docker CLI pada Bab 6.1.1 berkas `docs/manualbook.md` dari root aplikasi bila perintah Composer atau Artisan dijalankan melalui kontainer. Source, `.env`, dan `storage` tetap berada di host melalui bind mount; image tidak membuat kunci, menjalankan migrasi, atau mengisi akun otomatis. Layanan web/FPM, database, serta satu pemicu scheduler tetap disiapkan pengelola sekolah. Menggunakan image CLI tidak memperbarui PHP web/FPM atau cron host.
 
-Untuk ZIP produksi yang sudah menyertakan `public/build`, lewati langkah npm pada urutan instalasi di atas. ZIP source memerlukan build frontend pada mesin pembangun yang kompatibel.
+ZIP produksi sudah menyertakan `public/build`, sehingga langkah npm pada urutan instalasi dapat dilewati. Repo sekolah tidak menyertakan hasil build; jalankan langkah npm di atas pada mesin pembangun yang kompatibel lalu kirim `public/build` dari commit yang sama ke server.
 
 ## Admin pertama
 
@@ -94,6 +94,6 @@ Penghapusan alumni nonaktif secara bawaan (`ALUMNI_RETENTION_ENABLED=false`); pe
 
 Pratinjau, cetak, dan Excel memerlukan satu semester: Juli–Desember atau Januari–Juni pada tahun ajaran terpilih. Rentang tanggal opsional harus berada di semester itu. Batas jumlah catatan diatur melalui `SIBK_REPORT_MAX_DOCUMENT_ROWS`; hasil yang melebihi batas meminta pengguna mempersempit periode atau kelas. Sesuaikan nilainya setelah menguji ukuran catatan dan memori PHP, lalu perbarui cache konfigurasi. Pembatasan dokumen tidak menghapus data yang tersimpan.
 
-Untuk pembaruan, uji rilis di lingkungan validasi dan jalankan `composer check-platform-reqs --lock --no-dev` dari folder rilis baru sebelum maintenance atau jeda cron. Pastikan PHP web/FPM, CLI, dan cron memenuhi persyaratan; hentikan pembaruan aplikasi jika pemeriksaan gagal. Setelah lulus, ikuti urutan maintenance, jeda cron, backup satu keadaan, pemasangan, pengujian privat, dan pembukaan akses pada [Bab 6 panduan server](docs/manualbook.md#64-pemeriksaan-dan-pembaruan). Pertahankan `.env`, `APP_KEY`, `ALUMNI_RETENTION_KEY`, dan `storage/app`; jangan mengulang `key:generate` atau membuat ulang kunci retensi. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai. Logo dikelola Admin IT melalui Manajemen Web; `storage/app/private/branding` harus dapat ditulis proses PHP.
+Untuk pembaruan, uji rilis di lingkungan validasi dan jalankan `composer check-platform-reqs --lock --no-dev` dari folder rilis baru sebelum maintenance atau jeda cron. Pastikan PHP web/FPM, CLI, dan cron memenuhi persyaratan; hentikan pembaruan aplikasi jika pemeriksaan gagal. Setelah lulus, ikuti urutan maintenance, jeda cron, backup satu keadaan, pemasangan, pengujian privat, dan pembukaan akses pada Bab 6.4 berkas `docs/manualbook.md` dari root aplikasi. Pertahankan `.env`, `APP_KEY`, `ALUMNI_RETENTION_KEY`, dan `storage/app`; jangan mengulang `key:generate` atau membuat ulang kunci retensi. Migrasi tertentu forward-only: jangan memakai `migrate:fresh` atau reset database. Pemulihan memakai source dan cadangan data yang sesuai. Logo dikelola Admin IT melalui Manajemen Web; `storage/app/private/branding` harus dapat ditulis proses PHP.
 
 Lisensi dependensi tetap berlaku; pertahankan pemberitahuan lisensi paket Composer/npm yang dipasang. Ketentuan penyerahan aplikasi mengikuti perjanjian dengan pemilik aplikasi.
